@@ -4,35 +4,39 @@ import pytest
 
 import common
 
-def test_line_format_simple():
+
+def test_wrap_markdown():
+    assert common.wrap_markdown('text') == '```text```'
+
+def test_format_line_simple():
     data = ['a phrase', 3344, 5553, 'another phrase']
     expect = 'a phrase | 3344 | 5553 | another phrase'
-    assert common.line_format(data) == expect
+    assert common.format_line(data) == expect
 
-def test_line_format_separator():
+def test_format_line_separator():
     data = ['a phrase', 3344, 5553, 'another phrase']
     expect = 'a phrase$$3344$$5553$$another phrase'
-    assert common.line_format(data, sep='$$') == expect
+    assert common.format_line(data, sep='$$') == expect
 
-def test_line_format_pad_same():
+def test_format_line_pad_same():
     data = ['a phrase', 3344, 5553, 'another phrase']
     pads = [10, 10, 10, 10]
     expect = 'a phrase   | 3344       | 5553       | another phrase'
-    assert common.line_format(data, pads=pads) == expect
+    assert common.format_line(data, pads=pads) == expect
 
-def test_line_format_pad_different():
+def test_format_line_pad_different():
     data = ['a phrase', 3344, 5553, 'another phrase']
     pads = [15, 7, 7, 20]
     expect = 'a phrase        | 3344    | 5553    | another phrase'
-    assert common.line_format(data, pads=pads) == expect
+    assert common.format_line(data, pads=pads) == expect
 
-def test_line_format_pad_center():
+def test_format_line_pad_center():
     data = ['a phrase', 3344, 5553, 'another phrase']
     pads = [15, 7, 7, 20]
     expect = '   a phrase     |  3344   |  5553   |    another phrase'
-    assert common.line_format(data, pads=pads, center=True) == expect
+    assert common.format_line(data, pads=pads, center=True) == expect
 
-def test_table_format():
+def test_format_table():
     lines = [
         ['Name', 'Number 1', 'Num2', 'Notes'],
         ['John', 5831, 5, 'He is good.'],
@@ -43,9 +47,9 @@ def test_table_format():
 John    | 5831     | 5    | He is good.
 Fareed  | 23752    | 322  | Likes smoking.
 Rosalie | 34       | 7320 | Bit lazy."""
-    assert common.table_format(lines) == expect
+    assert common.format_table(lines) == expect
 
-def test_table_format_separator():
+def test_format_table_separator():
     lines = [
         ['Name', 'Number 1', 'Num2', 'Notes'],
         ['John', 5831, 5, 'He is good.'],
@@ -56,4 +60,4 @@ def test_table_format_separator():
 John   !5831    !5   !He is good.
 Fareed !23752   !322 !Likes smoking.
 Rosalie!34      !7320!Bit lazy."""
-    assert common.table_format(lines, sep='!') == expect
+    assert common.format_table(lines, sep='!') == expect

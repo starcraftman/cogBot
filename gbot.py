@@ -24,7 +24,6 @@ import fort
 # TODO: Secure to channel/server/users
 # TODO: Add basic IFF
 # TODO: Generate standard test csv file
-# TODO: Improve message formatting for uneven systems
 # TODO: Download csv as background task every 2 minutes
 
 def init_logging():

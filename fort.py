@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+"""
+Module that handles:
+    - Parsing the csv
+    - Analysing data in the csv
+"""
 from __future__ import absolute_import, print_function
 
 from functools import partial
@@ -24,7 +29,10 @@ class CSVLineTokenizer(object):
         self.line = line.strip()
 
     def has_more_tokens(self):
-        return len(self.line) != 0
+        """
+        Are there more tokens?
+        """
+        return bool(self.line)
 
     def next_token(self):
         """
@@ -75,16 +83,17 @@ class FortSystem(object):
 
     def __str__(self):
         """ Format for output """
-        return common.line_format(self.data_tuple)
+        return common.format_line(self.data_tuple)
 
     @property
     def data_tuple(self):
+        """ Return a list of important data for tables """
         if self.is_fortified:
             fort_status = ':fortified:'
         else:
             fort_status = '{:>4}/{:4} ({:2}%)'.format(self.fort_status,
-                                                       self.fort_trigger,
-                                                       self.completion)
+                                                      self.fort_trigger,
+                                                      self.completion)
 
         if self.skip:
             missing = 'Please do not fortify!'
@@ -100,7 +109,7 @@ class FortSystem(object):
 
     @property
     def is_undermined(self):
-        """ The system has been undermined. """
+        """ The system has been undermined """
         return self.um_percent >= 99
 
     @property
@@ -159,7 +168,7 @@ class FortTable(object):
             if othime_found and target_found:
                 break
 
-        return common.table_format([omsg, lmsg])
+        return common.wrap_markdown(common.format_table([omsg, lmsg], sep='|'))
 
     def next_objectives(self, num=5):
         """
@@ -193,7 +202,7 @@ class FortTable(object):
             if len(targets) == num + 1:
                 break
 
-        return common.table_format(targets[1:])
+        return common.wrap_markdown(common.format_table(targets[1:], sep='|'))
 
     def totals(self):
         """
@@ -212,6 +221,14 @@ class FortTable(object):
         return (fortified, undermined, len(self.systems))
 
 def tokenize(line, start=None, end=None):
+    """
+    Apply tokenize to a line and return the tokens.
+
+    args:
+        line: A line of csv format
+        start: First useful column from csv
+        end: Last useful column of csv
+    """
     tokens = []
     tok = CSVLineTokenizer(line)
 
@@ -225,19 +242,18 @@ def tokenize(line, start=None, end=None):
 
     return tokens
 
-def parse_int(num_str):
+def parse_int(num):
     """
     Parse an integer that was stored in a csv.
     Specifically change strings like 3,459 or 7% into ints.
+    Empty strings treated as 0.
     """
-    num = num_str
+    if not num:
+        return 0
 
-    if len(num) > 0:
-        for char in [',', '%']:
-            while char in num:
-                num = num.replace(char, '')
-    else:
-        num = 0
+    for char in [',', '%']:
+        while char in num:
+            num = num.replace(char, '')
 
     return int(num)
 
