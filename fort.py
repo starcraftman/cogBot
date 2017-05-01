@@ -8,6 +8,8 @@ try:
 except ImportError:
     from urllib import urlopen
 
+import common
+
 class NoMoreTokens(Exception):
     """
     Exception thrown when tokenizer has run out.
@@ -36,7 +38,7 @@ class CSVLineTokenizer(object):
         if not self.has_more_tokens():
             raise NoMoreTokens('Out of tokens!')
 
-        # If has quote, data goes until next quote, comma may be insie quotes
+        # If has quote, data goes until next quote, comma may be inside quotes
         if self.line[0] == '"':
             end = self.line.find('"', 1) + 1
             token = self.line[1:end-1]
@@ -73,19 +75,23 @@ class FortSystem(object):
 
     def __str__(self):
         """ Format for output """
-        if self.skip:
-            fort_status = 'Please do not fortify!'
-        elif self.is_fortified:
+        return common.line_format(self.data_tuple)
+
+    @property
+    def data_tuple(self):
+        if self.is_fortified:
             fort_status = ':fortified:'
         else:
-            fort_status = '{}/{} ({}%)'.format(self.fort_status,
-                                               self.fort_trigger,
-                                               self.completion)
-        line = '{sys:20} || status: {fort} || {miss} || um: {um}%'.format(
-            sys=self.name, fort=fort_status,
-            miss='' if self.is_fortified else 'missing: ' + str(self.missing),
-            um=self.um_percent)
-        return line
+            fort_status = '{:>4}/{:4} ({:2}%)'.format(self.fort_status,
+                                                       self.fort_trigger,
+                                                       self.completion)
+
+        if self.skip:
+            missing = 'Please do not fortify!'
+        else:
+            missing = 'missing: {:>4}'.format(self.missing)
+
+        return [self.name, fort_status, missing, 'um: {:2}%'.format(self.um_percent)]
 
     @property
     def is_fortified(self):
@@ -139,22 +145,23 @@ class FortTable(object):
             if system.name == 'Othime':
                 othime_found = True
 
+                omsg = ['S/M Ships']
                 if system.is_fortified:
-                    omsg = 'S/M Ships: Othime done, fort regular target!'
+                    omsg += ['Othime fortified! Fort target below!']
                 else:
-                    omsg = 'S/M Ships: {}'.format(system)
+                    omsg += system.data_tuple
 
             if not target_found and system.name != 'Othime' and \
                     not system.is_fortified and not system.skip:
                 target_found = True
-                lmsg = 'L ships  : {}'.format(system)
+                lmsg = ['L ships'] + system.data_tuple
 
             if othime_found and target_found:
                 break
 
-        return omsg + '\n' + lmsg
+        return common.table_format([omsg, lmsg])
 
-    def next_objectives(self, status=False):
+    def next_objectives(self, num=5):
         """
         Return next 5 regular fort targets.
         """
@@ -164,15 +171,29 @@ class FortTable(object):
             system = FortSystem(system, self.data[i])
 
             if system.name != 'Othime' and not system.is_fortified and not system.skip:
-                if status:
-                    targets.append(str(system))
-                else:
-                    targets.append(system.name)
+                targets.append(system.name)
 
-            if len(targets) == 6:
+            if len(targets) == num + 1:
                 break
 
-        return targets[1:]
+        return '\n'.join(targets[1:])
+
+    def next_objectives_status(self, num=5):
+        """
+        Return next 5 regular fort targets.
+        """
+        targets = []
+
+        for (i, system) in enumerate(self.systems):
+            system = FortSystem(system, self.data[i])
+
+            if system.name != 'Othime' and not system.is_fortified and not system.skip:
+                targets.append(system.data_tuple)
+
+            if len(targets) == num + 1:
+                break
+
+        return common.table_format(targets[1:])
 
     def totals(self):
         """
@@ -235,16 +256,19 @@ def usable_range(systems):
 
     return (start, end)
 
-"""
-Useful rows of the csv:
-    0 -> um %
-    2 -> fort trigger
-    4 -> cmdr merits
-    5 -> fort status
-    8 -> notes (i.e. Leave for grinders)
-    9 -> system name
-"""
 def parse_csv(lines):
+    """
+    This function tokenizes all the useful lines in the csv for later use.
+    Some columns at the beginning and end must be ignored to focus on useful data.
+
+    Useful rows of the csv:
+        0 -> um %
+        2 -> fort trigger
+        4 -> cmdr merits
+        5 -> fort status
+        8 -> notes (i.e. Leave for grinders)
+        9 -> system name
+    """
     systems = tokenize(lines[9])
     start, end = usable_range(systems)
     systems = systems[start:end]

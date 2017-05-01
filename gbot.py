@@ -125,9 +125,9 @@ async def on_message(message):
         table = get_fort_table()
 
         if message.content == '!fort next long':
-            msg = '\n'.join(table.next_objectives(True))
+            msg = table.next_objectives_status()
         elif message.content == '!fort next':
-            msg = '\n'.join(table.next_objectives())
+            msg = table.next_objectives()
         else:
             msg = table.objectives()
 

@@ -17,3 +17,7 @@ discord.py
 
 Testing:
 pytest
+
+Edit Discord CSS:
+1) Ctrl + Shift + I
+2) Edit .markup class, add ``font-family: monospace``
