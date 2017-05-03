@@ -12,18 +12,12 @@ def wrap_markdown(text):
     return '```' + text + '```'
 
 
-def format_table(lines, sep=' | ', center=False):
+def max_col_width(lines):
     """
-    This function formats a table that fits all data evenly.
-    It will go down columns and choose spacing that fits largest data.
-
-    args:
-        lines: Each top level element is a line composed of data in a list.
-        sep: String to separate data with.
-        center: Center the entry, otherwise left aligned.
+    Iterate all lines and entries.
+    Return a list of numbers, the max width required for each
+    column given the data.
     """
-    # Guarantee all strings
-    lines = [[str(data) for data in line] for line in lines]
     pads = [0 for ent in lines[0]]
 
     for line in lines:
@@ -32,7 +26,40 @@ def format_table(lines, sep=' | ', center=False):
             if len_d > pads[ind]:
                 pads[ind] = len_d
 
-    ret_line = ''
+    return pads
+
+
+def format_header(line, sep=' | ', pads=None, center=True):
+    """
+    Format a simple table header and return as string.
+    """
+    header = format_line(line, sep=sep, pads=pads, center=center)
+    divider = format_line(['-' * pad for pad in pads], sep=sep)
+    return header + '\n' + divider + '\n'
+
+
+def format_table(lines, sep=' | ', center=False, header=False):
+    """
+    This function formats a table that fits all data evenly.
+    It will go down columns and choose spacing that fits largest data.
+
+    args:
+        lines: Each top level element is a line composed of data in a list.
+        sep: String to separate data with.
+        center: Center the entry, otherwise left aligned.
+        header: If true, format first line as pretty header.
+    """
+    # Guarantee all strings
+    lines = [[str(data) for data in line] for line in lines]
+
+    pads = max_col_width(lines)
+
+    if header:
+        header, lines = lines[0], lines[1:]
+        ret_line = format_header(header, sep=sep, pads=pads, center=True)
+    else:
+        ret_line = ''
+
     for line in lines:
         ret_line += format_line(line, sep=sep, pads=pads, center=center) + '\n'
 
@@ -51,14 +78,12 @@ def format_line(entries, sep=' | ', pads=None, center=False):
         center: Center the entry, otherwise left aligned.
     """
     line = ''
+    align = '^' if center else ''
 
     if pads is None:
-        pads = ['' for ent in entries]
+        pads = [align for ent in entries]
     else:
-        pads = [str(pad) for pad in pads]
-
-    if center:
-        pads = ['^' + pad for pad in pads]
+        pads = [align + str(pad) for pad in pads]
 
     ents = []
     for ind, ent in enumerate(entries):

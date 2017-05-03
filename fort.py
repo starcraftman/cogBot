@@ -174,7 +174,7 @@ class FortTable(object):
         lines = [TABLE_HEADER, target.data_tuple]
         if not othime.is_fortified:
             lines += [othime.data_tuple]
-        return common.wrap_markdown(common.format_table(lines, sep='|'))
+        return common.wrap_markdown(common.format_table(lines, sep='|', header=True))
 
     def next_objectives(self, num=5):
         """
@@ -208,7 +208,8 @@ class FortTable(object):
             if len(targets) == num + 1:
                 break
 
-        return common.wrap_markdown(common.format_table([TABLE_HEADER] + targets[1:], sep='|'))
+        return common.wrap_markdown(common.format_table([TABLE_HEADER] + targets[1:], sep='|',
+                                                        header=True))
 
     def totals(self):
         """
