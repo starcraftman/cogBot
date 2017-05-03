@@ -61,3 +61,14 @@ John   !5831    !5   !He is good.
 Fareed !23752   !322 !Likes smoking.
 Rosalie!34      !7320!Bit lazy."""
     assert common.format_table(lines, sep='!') == expect
+
+def test_format_table_ragged():
+    lines = [
+        ['Name', 'Number 1', 'Num2', 'Notes'],
+        ['John', 5831, 5, 'He is good.'],
+        ['Fareed', 23752]
+    ]
+    expect = """Name   | Number 1 | Num2 | Notes
+John   | 5831     | 5    | He is good.
+Fareed | 23752"""
+    assert common.format_table(lines) == expect

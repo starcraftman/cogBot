@@ -99,10 +99,12 @@ def get_fort_table():
 
 @client.event
 async def on_ready():
-    print('Logged in as')
-    print(client.user.name)
-    print(client.user.id)
-    print('------')
+    log = logging.getLogger('gbot')
+    log.info('Logged in as: '+ client.user.name)
+    log.info('Available on following servers:')
+    for server in client.servers:
+        log.info('  "{}" with id {}'.format(server.name, server.id))
+    print('GBot Ready!')
 
 @client.event
 async def on_message(message):
@@ -120,6 +122,10 @@ async def on_message(message):
     if message.author.bot or not message.content.startswith('!'):
         return
 
+    log = logging.getLogger('gbot')
+    log.info('Server: {}, Channel: {}, User: {} | {}'.format(message.channel.server,
+            message.channel.name, message.author.name, message.content))
+
     if message.content.startswith('!fort'):
         table = get_fort_table()
 
@@ -127,6 +133,8 @@ async def on_message(message):
             msg = table.next_objectives_status()
         elif message.content == '!fort next':
             msg = table.next_objectives()
+        elif message.content == '!fort totals':
+            msg = table.totals()
         else:
             msg = table.objectives()
 

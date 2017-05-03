@@ -15,6 +15,9 @@ except ImportError:
 
 import common
 
+TABLE_HEADER = ['System', 'Trigger', 'Missing', 'UM', 'Notes']
+
+
 class NoMoreTokens(Exception):
     """
     Exception thrown when tokenizer has run out.
@@ -79,7 +82,7 @@ class FortSystem(object):
         cmdr_merits = parse_int(data[2])
         status = parse_int(data[3])
         self.fort_status = max(cmdr_merits, status)
-        self.skip = 'Leave' in data[4]
+        self.notes = data[4]
 
     def __str__(self):
         """ Format for output """
@@ -98,9 +101,17 @@ class FortSystem(object):
         if self.skip:
             missing = 'Please do not fortify!'
         else:
-            missing = 'missing: {:>4}'.format(self.missing)
+            missing = '{:>4}'.format(self.missing)
 
-        return [self.name, fort_status, missing, 'um: {:2}%'.format(self.um_percent)]
+        data = [self.name, fort_status, missing, '{:2}%'.format(self.um_percent)]
+        if self.notes:
+            data += [self.notes]
+
+        return data
+
+    @property
+    def skip(self):
+        return 'Leave' in self.notes
 
     @property
     def is_fortified(self):
@@ -141,34 +152,29 @@ class FortTable(object):
 
     def objectives(self):
         """
-        S/M ships fort Othime until done, then direct to L target.
-        L target starts at first system and slides down.
+        Print out the current objectives to fortify and their status.
         """
-        othime_found = False
-        target_found = False
+        othime = None
+        target = None
 
-        # Seek L target
+        # Seek targets in systems list
         for (i, system) in enumerate(self.systems):
             system = FortSystem(system, self.data[i])
 
             if system.name == 'Othime':
-                othime_found = True
+                othime = system
 
-                omsg = ['S/M Ships']
-                if system.is_fortified:
-                    omsg += ['Othime fortified! Fort target below!']
-                else:
-                    omsg += system.data_tuple
-
-            if not target_found and system.name != 'Othime' and \
+            if not target and system.name != 'Othime' and \
                     not system.is_fortified and not system.skip:
-                target_found = True
-                lmsg = ['L ships'] + system.data_tuple
+                target = system
 
-            if othime_found and target_found:
+            if othime and target:
                 break
 
-        return common.wrap_markdown(common.format_table([omsg, lmsg], sep='|'))
+        lines = [TABLE_HEADER, target.data_tuple]
+        if not othime.is_fortified:
+            lines += [othime.data_tuple]
+        return common.wrap_markdown(common.format_table(lines, sep='|'))
 
     def next_objectives(self, num=5):
         """
@@ -202,7 +208,7 @@ class FortTable(object):
             if len(targets) == num + 1:
                 break
 
-        return common.wrap_markdown(common.format_table(targets[1:], sep='|'))
+        return common.wrap_markdown(common.format_table([TABLE_HEADER] + targets[1:], sep='|'))
 
     def totals(self):
         """
@@ -218,7 +224,8 @@ class FortTable(object):
             if system.is_undermined:
                 undermined += 1
 
-        return (fortified, undermined, len(self.systems))
+        return 'Fortified {}/{tot}, Undermined: {}/{tot}'.format(fortified, undermined,
+                                                                 tot=len(self.systems))
 
 def tokenize(line, start=None, end=None):
     """
