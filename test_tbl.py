@@ -2,18 +2,18 @@ from __future__ import absolute_import, print_function
 
 import pytest
 
-import common
+import tbl
 
 
 def test_wrap_markdown():
-    assert common.wrap_markdown('text') == '```text```'
+    assert tbl.wrap_markdown('text') == '```text```'
 
 
 def test_max_col_width():
     lines = [['aa', 'aaa', 'aa', 'aa'],
              ['a', 'aa', 'aa', 'aaaa'],
              ]
-    assert common.max_col_width(lines) == [2, 3, 2, 4]
+    assert tbl.max_col_width(lines) == [2, 3, 2, 4]
 
 
 def test_format_header():
@@ -21,40 +21,40 @@ def test_format_header():
     expect = """Header1 | Head 2 | Header 3
 ------- | ------ | --------
 """
-    assert common.format_header(header, pads=common.max_col_width([header])) == expect
+    assert tbl.format_header(header, pads=tbl.max_col_width([header])) == expect
 
 
 def test_format_line_simple():
     data = ['a phrase', 3344, 5553, 'another phrase']
     expect = 'a phrase | 3344 | 5553 | another phrase'
-    assert common.format_line(data) == expect
+    assert tbl.format_line(data) == expect
 
 
 def test_format_line_separator():
     data = ['a phrase', 3344, 5553, 'another phrase']
     expect = 'a phrase$$3344$$5553$$another phrase'
-    assert common.format_line(data, sep='$$') == expect
+    assert tbl.format_line(data, sep='$$') == expect
 
 
 def test_format_line_pad_same():
     data = ['a phrase', 3344, 5553, 'another phrase']
     pads = [10, 10, 10, 10]
     expect = 'a phrase   | 3344       | 5553       | another phrase'
-    assert common.format_line(data, pads=pads) == expect
+    assert tbl.format_line(data, pads=pads) == expect
 
 
 def test_format_line_pad_different():
     data = ['a phrase', 3344, 5553, 'another phrase']
     pads = [15, 7, 7, 20]
     expect = 'a phrase        | 3344    | 5553    | another phrase'
-    assert common.format_line(data, pads=pads) == expect
+    assert tbl.format_line(data, pads=pads) == expect
 
 
 def test_format_line_pad_center():
     data = ['a phrase', 3344, 5553, 'another phrase']
     pads = [15, 7, 7, 20]
     expect = '   a phrase     |  3344   |  5553   |    another phrase'
-    assert common.format_line(data, pads=pads, center=True) == expect
+    assert tbl.format_line(data, pads=pads, center=True) == expect
 
 
 def test_format_table():
@@ -68,7 +68,7 @@ def test_format_table():
 John    | 5831     | 5    | He is good.
 Fareed  | 23752    | 322  | Likes smoking.
 Rosalie | 34       | 7320 | Bit lazy."""
-    assert common.format_table(lines) == expect
+    assert tbl.format_table(lines) == expect
 
 
 def test_format_table_header():
@@ -83,7 +83,7 @@ def test_format_table_header():
 John    | 5831     | 5    | He is good.
 Fareed  | 23752    | 322  | Likes smoking.
 Rosalie | 34       | 7320 | Bit lazy."""
-    assert common.format_table(lines, header=True) == expect
+    assert tbl.format_table(lines, header=True) == expect
 
 
 def test_format_table_separator():
@@ -97,7 +97,7 @@ def test_format_table_separator():
 John   !5831    !5   !He is good.
 Fareed !23752   !322 !Likes smoking.
 Rosalie!34      !7320!Bit lazy."""
-    assert common.format_table(lines, sep='!') == expect
+    assert tbl.format_table(lines, sep='!') == expect
 
 
 def test_format_table_ragged():
@@ -109,4 +109,4 @@ def test_format_table_ragged():
     expect = """Name   | Number 1 | Num2 | Notes
 John   | 5831     | 5    | He is good.
 Fareed | 23752"""
-    assert common.format_table(lines) == expect
+    assert tbl.format_table(lines) == expect

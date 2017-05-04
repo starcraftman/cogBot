@@ -13,7 +13,7 @@ try:
 except ImportError:
     from urllib import urlopen
 
-import common
+import tbl
 
 TABLE_HEADER = ['System', 'Trigger', 'Missing', 'UM', 'Notes']
 
@@ -86,7 +86,7 @@ class FortSystem(object):
 
     def __str__(self):
         """ Format for output """
-        return common.format_line(self.data_tuple)
+        return tbl.format_line(self.data_tuple)
 
     @property
     def data_tuple(self):
@@ -103,15 +103,12 @@ class FortSystem(object):
         else:
             missing = '{:>4}'.format(self.missing)
 
-        data = [self.name, fort_status, missing, '{:2}%'.format(self.um_percent)]
-        if self.notes:
-            data += [self.notes]
-
-        return data
+        return [self.name, fort_status, missing, '{:2}%'.format(self.um_percent), self.notes]
 
     @property
     def skip(self):
-        return 'Leave' in self.notes
+        notes = self.notes.lower()
+        return 'leave' in notes or 'skip' in notes
 
     @property
     def is_fortified(self):
@@ -150,6 +147,25 @@ class FortTable(object):
         self.systems = systems
         self.data = data
 
+    def current(self):
+        """
+        Print out the current objectives to fortify and their status.
+        """
+        target = None
+
+        # Seek targets in systems list
+        for (i, system) in enumerate(self.systems):
+            system = FortSystem(system, self.data[i])
+
+            if not target and system.name != 'Othime' and \
+                    not system.is_fortified and not system.skip:
+                target = system
+
+            if target:
+                break
+
+        return target.name
+
     def objectives(self):
         """
         Print out the current objectives to fortify and their status.
@@ -174,13 +190,15 @@ class FortTable(object):
         lines = [TABLE_HEADER, target.data_tuple]
         if not othime.is_fortified:
             lines += [othime.data_tuple]
-        return common.wrap_markdown(common.format_table(lines, sep='|', header=True))
+        return tbl.format_table(lines, sep='|', header=True)
 
-    def next_objectives(self, num=5):
+    def next_objectives(self, num=None):
         """
         Return next 5 regular fort targets.
         """
         targets = []
+        if not num:
+            num = 5
 
         for (i, system) in enumerate(self.systems):
             system = FortSystem(system, self.data[i])
@@ -193,11 +211,13 @@ class FortTable(object):
 
         return '\n'.join(targets[1:])
 
-    def next_objectives_status(self, num=5):
+    def next_objectives_status(self, num=None):
         """
         Return next 5 regular fort targets.
         """
         targets = []
+        if not num:
+            num = 5
 
         for (i, system) in enumerate(self.systems):
             system = FortSystem(system, self.data[i])
@@ -208,8 +228,7 @@ class FortTable(object):
             if len(targets) == num + 1:
                 break
 
-        return common.wrap_markdown(common.format_table([TABLE_HEADER] + targets[1:], sep='|',
-                                                        header=True))
+        return tbl.format_table([TABLE_HEADER] + targets[1:], sep='|', header=True)
 
     def totals(self):
         """

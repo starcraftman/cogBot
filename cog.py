@@ -19,6 +19,7 @@ except ImportError:
     from yaml import Loader, Dumper
 
 import fort
+from tbl import wrap_markdown
 
 # TODO: discord.ext.bot -> wrapper
 # TODO: Secure to channel/server/users
@@ -130,11 +131,11 @@ async def on_message(message):
         table = get_fort_table()
 
         if message.content == '!fort next long':
-            msg = table.next_objectives_status()
+            msg = wrap_markdown(table.next_objectives_status())
         elif message.content == '!fort next':
             msg = table.next_objectives()
         elif message.content == '!fort totals':
-            msg = table.totals()
+            msg = wrap_markdown(table.totals())
         else:
             msg = table.objectives()
 
