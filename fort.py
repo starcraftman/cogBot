@@ -149,7 +149,7 @@ class FortTable(object):
 
     def current(self):
         """
-        Print out the current objectives to fortify and their status.
+        Print out the current system to forify.
         """
         target = None
 
@@ -166,7 +166,7 @@ class FortTable(object):
 
         return target.name
 
-    def objectives(self):
+    def current_long(self):
         """
         Print out the current objectives to fortify and their status.
         """
@@ -192,7 +192,7 @@ class FortTable(object):
             lines += [othime.data_tuple]
         return tbl.format_table(lines, sep='|', header=True)
 
-    def next_objectives(self, num=None):
+    def next_systems(self, num=None):
         """
         Return next 5 regular fort targets.
         """
@@ -211,7 +211,7 @@ class FortTable(object):
 
         return '\n'.join(targets[1:])
 
-    def next_objectives_status(self, num=None):
+    def next_systems_long(self, num=None):
         """
         Return next 5 regular fort targets.
         """
@@ -338,9 +338,8 @@ def main():
     systems, data = parse_csv(lines)
 
     table = FortTable(systems, data)
-    print(table.objectives())
-    print(table.next_objectives())
-    print('\n'.join(table.next_objectives(True)))
+    print(table.current())
+    print(table.next_systems_long())
 
 if __name__ == "__main__":
     main()

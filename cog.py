@@ -6,10 +6,6 @@ import logging.handlers
 import os
 import sys
 import tempfile
-try:
-    from urllib.request import urlopen
-except ImportError:
-    from urllib import urlopen
 
 import discord
 import yaml
@@ -18,6 +14,7 @@ try:
 except ImportError:
     from yaml import Loader, Dumper
 
+import share
 import fort
 from tbl import wrap_markdown
 
@@ -85,19 +82,6 @@ client = discord.Client()
 # client.loop.create_task(my_task())
 init_logging()
 
-def get_config(key):
-    with open('yaml.private') as conf:
-        return yaml.load(conf)[key]
-
-def get_fort_table():
-    with urlopen(get_config('url_cattle')) as fin:
-        lines = str(fin.read()).split(r'\r\n')
-
-    lines = [line.strip() for line in lines]
-    systems, data = fort.parse_csv(lines)
-
-    return fort.FortTable(systems, data)
-
 @client.event
 async def on_ready():
     log = logging.getLogger('gbot')
@@ -127,17 +111,12 @@ async def on_message(message):
     log.info('Server: {}, Channel: {}, User: {} | {}'.format(message.channel.server,
             message.channel.name, message.author.name, message.content))
 
+    # FIXME: Move all commands into argsparser.
     if message.content.startswith('!fort'):
-        table = get_fort_table()
-
-        if message.content == '!fort next long':
-            msg = wrap_markdown(table.next_objectives_status())
-        elif message.content == '!fort next':
-            msg = table.next_objectives()
-        elif message.content == '!fort totals':
-            msg = wrap_markdown(table.totals())
-        else:
-            msg = table.objectives()
+        message.content = message.content[1:]
+        parser = share.make_parser()
+        args = parser.parse_args(message.content.split(' '))
+        msg = args.func(args)
 
     elif message.content.startswith('!info'):
         roles = ', '.join([role.name for role in message.author.roles[1:]])
@@ -166,7 +145,7 @@ async def on_message(message):
 
 def main():
     try:
-        client.run(get_config('token'))
+        client.run(share.get_config('token'))
     finally:
         client.close()
 
