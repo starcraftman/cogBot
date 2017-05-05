@@ -13,9 +13,12 @@ def main():
     try:
         parser = share.make_parser()
         while True:
-            line = sys.stdin.readline().rstrip()
-            args = parser.parse_args(line.split(' '))
-            print(args.func(args))
+            try:
+                line = sys.stdin.readline().rstrip()
+                args = parser.parse_args(line.split(' '))
+                print(args.func(args))
+            except share.ArgumentParseError:
+                print('Please try again.')
     except KeyboardInterrupt:
         print('\nTerminating loop. Thanks for testing.')
 

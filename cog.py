@@ -23,6 +23,7 @@ from tbl import wrap_markdown
 # TODO: Add basic IFF
 # TODO: Generate standard test csv file
 # TODO: Download csv as background task every 2 minutes
+# TODO: Switch to Sheets api
 
 def init_logging():
     """
@@ -113,10 +114,13 @@ async def on_message(message):
 
     # FIXME: Move all commands into argsparser.
     if message.content.startswith('!fort'):
-        message.content = message.content[1:]
-        parser = share.make_parser()
-        args = parser.parse_args(message.content.split(' '))
-        msg = args.func(args)
+        try:
+            message.content = message.content[1:]
+            parser = share.make_parser()
+            args = parser.parse_args(message.content.split(' '))
+            msg = args.func(args)
+        except share.ArgumentParseError:
+            msg = 'Bad command, see !help.'
 
     elif message.content.startswith('!info'):
         roles = ', '.join([role.name for role in message.author.roles[1:]])
@@ -131,11 +135,12 @@ async def on_message(message):
     elif message.content.startswith('!help'):
         msg = '\n'.join([
                 'Available commands:',
-               '!fort - Show current fort targets.',
-               '!fort next - Show the next 5 targets.',
-               '!fort next long - Show status of the next 5 targets.',
-               '!info - Dump user data.',
-               '!mirror - Repeat what you write to you.',
+               '!fort           Show current fort targets.',
+               '!fort -l        Show current fort status.',
+               '!fort -n NUM    Show the next NUM targets.',
+               '!fort -nl NUM   Show status of the next NUM targets.',
+               '!info           Dump user data.',
+               '!mirror         Repeat what you write to you.',
                ])
     else:
         msg = 'Did not understand: {}'.format(message.content)

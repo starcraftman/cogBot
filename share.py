@@ -14,6 +14,15 @@ import fort
 import tbl
 
 
+class ArgumentParseError(Exception):
+    pass
+
+
+class ThrowArggumentParser(argparse.ArgumentParser):
+    def error(self, message):
+        raise ArgumentParseError(message)
+
+
 def get_config(key):
     with open('yaml.private') as conf:
         return yaml.load(conf)[key]
@@ -33,8 +42,8 @@ def make_parser():
     """
     Returns a parser.
     """
-    parser = argparse.ArgumentParser(prog='cog', description='simple discord bot',
-                                     formatter_class=RawDescriptionHelp)
+    parser = ThrowArggumentParser(prog='cog', description='simple discord bot',
+                                  formatter_class=RawDescriptionHelp)
 
     subs = parser.add_subparsers(title='subcommands',
                                  description='The subcommands of cog')
