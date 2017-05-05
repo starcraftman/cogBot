@@ -2,7 +2,6 @@
 Common functions.
 """
 import argparse
-from argparse import RawDescriptionHelpFormatter as RawDescriptionHelp
 try:
     from urllib.request import urlopen
 except ImportError:
@@ -15,20 +14,36 @@ import tbl
 
 
 class ArgumentParseError(Exception):
+    """ Error raised instead of exiting on argparse error. """
     pass
 
 
 class ThrowArggumentParser(argparse.ArgumentParser):
-    def error(self, message):
-        raise ArgumentParseError(message)
+    def error(self, message=None):
+        """
+        Suppress default exit after error.
+        """
+        raise ArgumentParseError()
+
+    def exit(self, status=0, message=None):
+        """
+        Suppress default exit behaviour.
+        """
+        raise ArgumentParseError()
 
 
 def get_config(key):
+    """
+    Return keys straight from yaml config.
+    """
     with open('yaml.private') as conf:
         return yaml.load(conf)[key]
 
 
 def get_fort_table():
+    """
+    Return a fort table object.
+    """
     with urlopen(get_config('url_cattle')) as fin:
         lines = str(fin.read()).split(r'\r\n')
 
@@ -42,16 +57,18 @@ def make_parser():
     """
     Returns a parser.
     """
-    parser = ThrowArggumentParser(prog='cog', description='simple discord bot',
-                                  formatter_class=RawDescriptionHelp)
+    parser = ThrowArggumentParser(prog='', description='simple discord bot')
 
     subs = parser.add_subparsers(title='subcommands',
                                  description='The subcommands of cog')
 
     sub = subs.add_parser('fort', description='Show next fort target.')
-    sub.add_argument('-l', '--long', action='store_true', default=False)
-    sub.add_argument('-n', '--next', action='store_true', default=False)
-    sub.add_argument('num', nargs='?', type=int)
+    sub.add_argument('-l', '--long', action='store_true', default=False,
+                     help='show detailed stats')
+    sub.add_argument('-n', '--next', action='store_true', default=False,
+                     help='show NUM systems after current')
+    sub.add_argument('num', nargs='?', type=int,
+                     help='number of systems to display')
     sub.set_defaults(func=parse_fort)
 
     sub = subs.add_parser('help', description='Show available commands.')

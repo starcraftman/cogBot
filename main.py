@@ -16,9 +16,11 @@ def main():
             try:
                 line = sys.stdin.readline().rstrip()
                 args = parser.parse_args(line.split(' '))
-                print(args.func(args))
+                msg = args.func(args)
+                if msg:
+                    print(msg.replace('```', ''))
             except share.ArgumentParseError:
-                print('Please try again.')
+                pass
     except KeyboardInterrupt:
         print('\nTerminating loop. Thanks for testing.')
 

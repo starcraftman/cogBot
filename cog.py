@@ -18,12 +18,15 @@ import share
 import fort
 from tbl import wrap_markdown
 
-# TODO: discord.ext.bot -> wrapper
-# TODO: Secure to channel/server/users
-# TODO: Add basic IFF
-# TODO: Generate standard test csv file
-# TODO: Download csv as background task every 2 minutes
-# TODO: Switch to Sheets api
+# TODO: investigate use of discord.ext.bot || make own bot class
+# TODO: Investigate possible database, RethinkDB
+# TODO: Secure commands against servers/channels/users
+# TODO: Allow management commands to add/remove above
+# TODO: Add basic whois support, default lookup in local to channel db
+# TODO: Add wider search, across server, inara and other sources
+# TODO: Add test cases for all of fort, use test Google Sheet
+# TODO: No longer needed? Download csv as background task every 2 minutes
+
 
 def init_logging():
     """
@@ -35,7 +38,7 @@ def init_logging():
       - Send all messsages >= WARN to STDERR.
       - Send all messages >= INFO to rotating file log in /tmp.
 
-    IMPORTANT: On every start of gbot, the logs are rolled over. 5 runs kept max.
+    IMPORTANT: On every start the logs are rolled over. 5 runs kept max.
     """
     log_folder = os.path.join(tempfile.gettempdir(), 'gbot')
     if not os.path.exists(log_folder):
@@ -83,8 +86,12 @@ client = discord.Client()
 # client.loop.create_task(my_task())
 init_logging()
 
+
 @client.event
 async def on_ready():
+    """
+    Event triggered when connection established to discord and bot ready.
+    """
     log = logging.getLogger('gbot')
     log.info('Logged in as: '+ client.user.name)
     log.info('Available on following servers:')
@@ -92,10 +99,13 @@ async def on_ready():
         log.info('  "{}" with id {}'.format(server.name, server.id))
     print('GBot Ready!')
 
+
 @client.event
 async def on_message(message):
     """
-    Notes:
+    Intercepts every message sent to server!
+
+    Layout of message:
         message.author - Returns member object
             message.author.roles -> List of Role objects. First always @everyone.
                 message.author.roles[0].name -> String name of role.
@@ -147,6 +157,7 @@ async def on_message(message):
         msg += '\nGet more info with: !help'
 
     await client.send_message(message.channel, msg)
+
 
 def main():
     try:

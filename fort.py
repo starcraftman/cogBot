@@ -17,6 +17,9 @@ import tbl
 
 TABLE_HEADER = ['System', 'Trigger', 'Missing', 'UM', 'Notes']
 
+# TODO: Switch to Google Sheets api instead of CSVTokenizer
+# TODO: Don't iterate Systems every query
+
 
 class NoMoreTokens(Exception):
     """
