@@ -20,7 +20,7 @@ def main():
                 if msg:
                     print(msg.replace('```', ''))
             except share.ArgumentParseError:
-                pass
+                print('Invalid command:', line)
     except KeyboardInterrupt:
         print('\nTerminating loop. Thanks for testing.')
 
