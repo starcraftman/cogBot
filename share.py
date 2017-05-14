@@ -21,7 +21,7 @@ import tbl
 
 
 THIS_DIR = os.path.dirname(os.path.abspath(__file__))
-YAML_FILE = os.path.join(THIS_DIR, '.secrets', 'yaml.private')
+YAML_FILE = os.path.join(THIS_DIR, '.secrets', 'config.yaml')
 
 
 class ArgumentParseError(Exception):
