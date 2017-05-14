@@ -142,7 +142,7 @@ def main():
     Simple main func for quick tests.
     """
     # Dummy sheet that can be manipulated at will.
-    sheet_id = 'ID_EXPUNGED'
+    sheet_id = share.get_config('hudson', 'cattle_id')
     secrets = share.get_config('secrets', 'sheets')
     sheet = SheetApi(sheet_id, secrets['json'], secrets['token'])
     print(sheet.get_range('!A11:B20'))
