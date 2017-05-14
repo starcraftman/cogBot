@@ -1,6 +1,9 @@
 """
 Common functions.
 """
+from __future__ import absolute_import, print_function
+
+import os
 import argparse
 try:
     from urllib.request import urlopen
@@ -8,9 +11,17 @@ except ImportError:
     from urllib import urlopen
 
 import yaml
+try:
+    from yaml import CLoader as Loader
+except ImportError:
+    from yaml import Loader
 
 import fort
 import tbl
+
+
+THIS_DIR = os.path.dirname(os.path.abspath(__file__))
+YAML_FILE = os.path.join(THIS_DIR, '.secrets', 'yaml.private')
 
 
 class ArgumentParseError(Exception):
@@ -32,19 +43,24 @@ class ThrowArggumentParser(argparse.ArgumentParser):
         raise ArgumentParseError()
 
 
-def get_config(key):
+def get_config(*keys):
     """
     Return keys straight from yaml config.
     """
-    with open('yaml.private') as conf:
-        return yaml.load(conf)[key]
+    with open(YAML_FILE) as conf:
+        conf = yaml.load(conf, Loader=Loader)
+
+    for key in keys:
+        conf = conf[key]
+
+    return conf
 
 
 def get_fort_table():
     """
     Return a fort table object.
     """
-    with urlopen(get_config('url_cattle')) as fin:
+    with urlopen(get_config('hudson', 'cattle_url')) as fin:
         lines = str(fin.read()).split(r'\r\n')
 
     lines = [line.strip() for line in lines]
@@ -71,14 +87,25 @@ def make_parser():
                      help='number of systems to display')
     sub.set_defaults(func=parse_fort)
 
-    sub = subs.add_parser('help', description='Show available commands.')
+    sub = subs.add_parser('help', description='Show overall help message.')
     sub.set_defaults(func=parse_help)
-
     return parser
 
 
-def parse_help(args):
-    print('Placeholder help message.')
+def parse_help(_):
+    """
+    Simply prints overall help documentation.
+    """
+    lines = [
+        'Available commands:',
+        '!fort           Show current fort target.',
+        '!fort -l        Show current fort target\'s status.',
+        '!fort -n NUM    Show the next NUM targets. Default NUM = 5.',
+        '!fort -nl NUM   Show status of the next NUM targets.',
+        '!info           Display information on user.',
+        '!help           This help message.',
+    ]
+    return '\n'.join(lines)
 
 
 def parse_fort(args):

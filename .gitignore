@@ -1,4 +1,5 @@
 .cache
+py3
 test_async
 
 *private

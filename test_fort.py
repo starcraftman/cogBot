@@ -1,10 +1,11 @@
 """
-Test pakit.graph
+Test fortification logic
 """
 from __future__ import absolute_import, print_function
-import fort
 
 import pytest
+
+import fort
 
 CSV_LINE = 'A long string,0,"3,447",299,"Another long string"'
 CSV_TOKENS = ['A long string', '0', '3,447', '299', 'Another long string']

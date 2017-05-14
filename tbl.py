@@ -3,6 +3,7 @@
 """
 Common or catch all functions for the bot.
 """
+from __future__ import absolute_import, print_function
 
 
 def wrap_markdown(text):

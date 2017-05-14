@@ -6,8 +6,8 @@ Module that handles:
     - Analysing data in the csv
 """
 from __future__ import absolute_import, print_function
-
 from functools import partial
+
 try:
     from urllib.request import urlopen
 except ImportError:
