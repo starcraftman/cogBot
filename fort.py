@@ -6,66 +6,28 @@ Module that handles:
     - Analysing data in the csv
 """
 from __future__ import absolute_import, print_function
-from functools import partial
 
-try:
-    from urllib.request import urlopen
-except ImportError:
-    from urllib import urlopen
-
+import share
+import sheets
 import tbl
 
 TABLE_HEADER = ['System', 'Trigger', 'Missing', 'UM', 'Notes']
 
-# TODO: Switch to Google Sheets api instead of CSVTokenizer
+
 # TODO: Don't iterate Systems every query
 
 
-class NoMoreTokens(Exception):
-    """
-    Exception thrown when tokenizer has run out.
-    """
-    pass
+def parse_int(word):
+    if word == '':
+        word = 0
+    return int(word)
 
-class CSVLineTokenizer(object):
-    """
-    Tokenize a csv line into individual tokens one at a time.
-    """
-    def __init__(self, line):
-        self.line = line.strip()
 
-    def has_more_tokens(self):
-        """
-        Are there more tokens?
-        """
-        return bool(self.line)
+def parse_float(word):
+    if word == '':
+        word = '0.0'
+    return float(word)
 
-    def next_token(self):
-        """
-        Parse the line for next token. Modifies the line.
-
-        Return:
-            The parsed token.
-        """
-        token = ''
-
-        if not self.has_more_tokens():
-            raise NoMoreTokens('Out of tokens!')
-
-        # If has quote, data goes until next quote, comma may be inside quotes
-        if self.line[0] == '"':
-            end = self.line.find('"', 1) + 1
-            token = self.line[1:end-1]
-            self.line = self.line[end+1:]
-        elif self.line.find(',') != -1:
-            end = self.line.find(',')
-            token = self.line[0:end]
-            self.line = self.line[end+1:]
-        else:
-            token = self.line
-            self.line = ''
-
-        return token
 
 class FortSystem(object):
     """
@@ -78,14 +40,14 @@ class FortSystem(object):
         Note: ump is a string like: 17%
         Note: trigger, cmdr_merits & status are strings like: 3,444
     """
-    def __init__(self, system, data):
-        self.name = system
-        self.um_percent = parse_int(data[0][:-1])
-        self.fort_trigger = parse_int(data[1])
-        cmdr_merits = parse_int(data[2])
-        status = parse_int(data[3])
+    def __init__(self, data):
+        self.name = data[9]
+        self.um_percent = parse_float(data[0])
+        self.fort_trigger = parse_int(data[2])
+        cmdr_merits = parse_int(data[4])
+        status = parse_int(data[5])
         self.fort_status = max(cmdr_merits, status)
-        self.notes = data[4]
+        self.notes = data[8]
 
     def __str__(self):
         """ Format for output """
@@ -138,16 +100,16 @@ class FortSystem(object):
 
         return '{:.1f}'.format(comp_cent)
 
+
 class FortTable(object):
     """
     Represents the fort sheet
         -> Goal: Minimize unecessary operations to data on server.
     """
-    def __init__(self, systems, data):
+    def __init__(self, data):
         """
         Parse data from table and initialize.
         """
-        self.systems = systems
         self.data = data
 
     def current(self):
@@ -157,8 +119,8 @@ class FortTable(object):
         target = None
 
         # Seek targets in systems list
-        for (i, system) in enumerate(self.systems):
-            system = FortSystem(system, self.data[i])
+        for datum in self.data:
+            system = FortSystem(datum)
 
             if not target and system.name != 'Othime' and \
                     not system.is_fortified and not system.skip:
@@ -177,8 +139,8 @@ class FortTable(object):
         target = None
 
         # Seek targets in systems list
-        for (i, system) in enumerate(self.systems):
-            system = FortSystem(system, self.data[i])
+        for datum in self.data:
+            system = FortSystem(datum)
 
             if system.name == 'Othime':
                 othime = system
@@ -203,8 +165,8 @@ class FortTable(object):
         if not num:
             num = 5
 
-        for (i, system) in enumerate(self.systems):
-            system = FortSystem(system, self.data[i])
+        for datum in self.data:
+            system = FortSystem(datum)
 
             if system.name != 'Othime' and not system.is_fortified and not system.skip:
                 targets.append(system.name)
@@ -222,8 +184,8 @@ class FortTable(object):
         if not num:
             num = 5
 
-        for (i, system) in enumerate(self.systems):
-            system = FortSystem(system, self.data[i])
+        for datum in self.data:
+            system = FortSystem(datum)
 
             if system.name != 'Othime' and not system.is_fortified and not system.skip:
                 targets.append(system.data_tuple)
@@ -240,107 +202,30 @@ class FortTable(object):
         undermined = 0
         fortified = 0
 
-        for (i, system) in enumerate(self.systems):
-            system = FortSystem(system, self.data[i])
+        for datum in self.data:
+            system = FortSystem(datum)
+
             if system.is_fortified:
                 fortified += 1
             if system.is_undermined:
                 undermined += 1
 
         return 'Fortified {}/{tot}, Undermined: {}/{tot}'.format(fortified, undermined,
-                                                                 tot=len(self.systems))
+                                                                 tot=len(self.data))
 
-def tokenize(line, start=None, end=None):
-    """
-    Apply tokenize to a line and return the tokens.
-
-    args:
-        line: A line of csv format
-        start: First useful column from csv
-        end: Last useful column of csv
-    """
-    tokens = []
-    tok = CSVLineTokenizer(line)
-
-    while tok.has_more_tokens():
-        tokens.append(tok.next_token())
-
-    if start and end:
-        tokens = tokens[start:end]
-    elif start and end is None:
-        tokens = tokens[start:]
-
-    return tokens
-
-def parse_int(num):
-    """
-    Parse an integer that was stored in a csv.
-    Specifically change strings like 3,459 or 7% into ints.
-    Empty strings treated as 0.
-    """
-    if not num:
-        return 0
-
-    for char in [',', '%']:
-        while char in num:
-            num = num.replace(char, '')
-
-    return int(num)
-
-def usable_range(systems):
-    """
-    Determines the usable columns of the csv
-    """
-    start = 0
-    end = len(systems) - 1
-
-    while systems[start] != 'Frey':
-        start = start + 1
-
-    while systems[end] == '':
-        end = end - 1
-
-    return (start, end)
-
-def parse_csv(lines):
-    """
-    This function tokenizes all the useful lines in the csv for later use.
-    Some columns at the beginning and end must be ignored to focus on useful data.
-
-    Useful rows of the csv:
-        0 -> um %
-        2 -> fort trigger
-        4 -> cmdr merits
-        5 -> fort status
-        8 -> notes (i.e. Leave for grinders)
-        9 -> system name
-    """
-    systems = tokenize(lines[9])
-    start, end = usable_range(systems)
-    systems = systems[start:end]
-
-    make_list = partial(tokenize, start=start, end=end)
-    um_status = make_list(lines[0])
-    fort_triggers = make_list(lines[2])
-    cmdr_merits = make_list(lines[4])
-    fort_status = make_list(lines[5])
-    notes = make_list(lines[8])
-
-    data = list(zip(um_status, fort_triggers, cmdr_merits, fort_status, notes))
-
-    return (systems, data)
 
 def main():
     """
     Main function, tests with local csv file.
     """
-    with open('csv.private') as fin:
-        lines = fin.readlines()
+    sheet_id = share.get_config('hudson', 'cattle', 'id')
+    secrets = share.get_config('secrets', 'sheets')
+    sheet = sheets.SheetApi(sheet_id, secrets['json'], secrets['token'])
 
-    lines = [line.strip() for line in lines]
-    systems, data = parse_csv(lines)
-
-    table = FortTable(systems, data)
+    result = sheet.get('!F1:BM10', dim='COLUMNS')
+    # for data in result:
+        # print(str(FortSystem(data)))
+    table = FortTable(result)
     print(table.current())
     print(table.next_systems_long())
 

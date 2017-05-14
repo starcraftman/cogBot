@@ -77,7 +77,7 @@ class SheetApi(object):
         self.service = discovery.build('sheets', 'v4', http=http,
                                        discoveryServiceUrl=discovery_url)
 
-    def get_range(self, cell_range, dim='ROWS'):
+    def get(self, cell_range, dim='ROWS'):
         """
         Args:
             service: The service returned by the sheets api.
@@ -93,7 +93,7 @@ class SheetApi(object):
                             valueRenderOption='UNFORMATTED_VALUE').execute()
         return result.get('values', [])
 
-    def set_range(self, cell_range, n_vals, dim='ROWS'):
+    def set(self, cell_range, n_vals, dim='ROWS'):
         """
         Set a whole range of values in the sheet.
 
@@ -117,7 +117,8 @@ class SheetApi(object):
                                  majorDimension=dim,
                                  valueRenderOption='UNFORMATTED_VALUE').execute()
 
-        return result['valueRanges']
+        return [ent['values'] for ent in result['valueRanges']]
+        # return result['valueRanges']
 
     def batch_set(self, cell_ranges, n_vals, dim='ROWS'):
         """
@@ -145,7 +146,7 @@ def main():
     sheet_id = share.get_config('hudson', 'cattle_id')
     secrets = share.get_config('secrets', 'sheets')
     sheet = SheetApi(sheet_id, secrets['json'], secrets['token'])
-    print(sheet.get_range('!A11:B20'))
+    print(sheet.get('!A11:B20'))
     # data_range = ['!B11:B17', '!F11:G17']
 
 
