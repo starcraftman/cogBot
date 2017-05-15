@@ -2,10 +2,9 @@
 Common functions.
 """
 from __future__ import absolute_import, print_function
-
 import os
-import argparse
 
+import argparse
 import yaml
 try:
     from yaml import CLoader as Loader

@@ -99,7 +99,7 @@ def discord_bot():
         log.info('Logged in as: '+ client.user.name)
         log.info('Available on following servers:')
         for server in client.servers:
-            log.info('  "%s" with id %s', server.name, server.id)
+            log.info('  "{}" with id {}'.format(server.name, server.id))
         print('GBot Ready!')
 
 

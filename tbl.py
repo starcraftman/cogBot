@@ -1,7 +1,10 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """
-Common or catch all functions for the bot.
+Any logic having to do with formatting an ASCII table.
+
+String formatting reference:
+  https://pyformat.info/#string_pad_align
 """
 from __future__ import absolute_import, print_function
 
@@ -67,7 +70,6 @@ def format_table(lines, sep=' | ', center=False, header=False):
     return ret_line[:-1]
 
 
-# Formatting ref: https://pyformat.info/#string_pad_align
 def format_line(entries, sep=' | ', pads=None, center=False):
     """
     Format data for use in a simple table output to text.

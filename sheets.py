@@ -75,6 +75,7 @@ def col_to_char(cur):
     27 = AA
     53 = BA
     """
+    # FIXME: Shouldn't be needed in production, catch stupid errors
     if cur < 1:
         raise ConversionException('Cannot convert this integer: ' + str(cur))
 
@@ -100,7 +101,7 @@ def col_to_int(cur):
     AA = 27
     BA = 53
     """
-    # FIXME: Shouldn't be needed in production, fix stupid errors
+    # FIXME: Shouldn't be needed in production, catch stupid errors
     for char in cur:
         if ord(char) < ord('A') or ord(char) > ord('Z'):
             raise ConversionException('The following string is not suitable: ' + cur)

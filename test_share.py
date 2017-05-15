@@ -7,13 +7,16 @@ import pytest
 
 import share
 
+
 def test_get_config():
     assert share.get_config('secrets', 'sheets', 'json') == '.secrets/sheets.json'
+
 
 def test_make_parser_throws():
     parser = share.make_parser()
     with pytest.raises(share.ArgumentParseError):
         parser.parse_args(['--help'])
+
 
 def test_make_parser():
     """

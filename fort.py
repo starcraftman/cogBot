@@ -37,8 +37,9 @@ class FortSystem(object):
         system: Name of system.
         data: List to be unpacked: ump, trigger, cmdr_merits, status, notes):
 
-        Note: ump is a string like: 17%
-        Note: trigger, cmdr_merits & status are strings like: 3,444
+        Notes:
+            - ump is a raw float of long precision or if blank strings of ''
+            - trigger, cmdr_merits & status are raw integers or if blank strings of ''
     """
     def __init__(self, data):
         self.name = data[9]
@@ -61,11 +62,12 @@ class FortSystem(object):
                                                   self.completion)
 
         if self.skip:
-            missing = 'Please do not fortify!'
+            missing = 'N/A'
+            notes = self.notes + 'Do not fortify!'
         else:
             missing = '{:>4}'.format(self.missing)
 
-        return [self.name, fort_status, missing, '{:2}%'.format(self.um_percent), self.notes]
+        return (self.name, fort_status, missing, '{:.1f}%'.format(self.um_percent), notes)
 
     @property
     def skip(self):
