@@ -58,7 +58,7 @@ def get_credentials(json_secret, sheets_token):
     return credentials
 
 
-class SheetApi(object):
+class GSheet(object):
     """
     Class to wrap the sheet api and provide convenience methods.
 
@@ -102,7 +102,7 @@ class SheetApi(object):
                             valueRenderOption='UNFORMATTED_VALUE').execute()
         return result.get('values', [])
 
-    def set(self, cell_range, n_vals, dim='ROWS'):
+    def update(self, cell_range, n_vals, dim='ROWS'):
         """
         Set a whole range of values in the sheet.
 
@@ -132,7 +132,7 @@ class SheetApi(object):
         return [ent.get('values', []) for ent in result['valueRanges']]
         # return result['valueRanges']
 
-    def batch_set(self, cell_ranges, n_vals, dim='ROWS'):
+    def batch_update(self, cell_ranges, n_vals, dim='ROWS'):
         """
         Similar to set_range except take a list of lists for ranges and n_vals.
         """
@@ -157,8 +157,8 @@ def main():
     # Dummy sheet that can be manipulated at will.
     sheet_id = share.get_config('hudson', 'cattle', 'id')
     secrets = share.get_config('secrets', 'sheets')
-    sheet = SheetApi(sheet_id, secrets['json'], secrets['token'])
-    sheet.set('!B16:B16', [['Shepron']])
+    sheet = GSheet(sheet_id, secrets['json'], secrets['token'])
+    sheet.update('!B16:B16', [['Shepron']])
     print(sheet.get('!B16:B16'))
     # data_range = ['!B11:B17', '!F11:G17']
 

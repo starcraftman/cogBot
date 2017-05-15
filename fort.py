@@ -218,7 +218,7 @@ def main():
     """
     sheet_id = share.get_config('hudson', 'cattle', 'id')
     secrets = share.get_config('secrets', 'sheets')
-    sheet = sheets.SheetApi(sheet_id, secrets['json'], secrets['token'])
+    sheet = sheets.GSheet(sheet_id, secrets['json'], secrets['token'])
 
     result = sheet.get('!F1:BM10', dim='COLUMNS')
     # for data in result:

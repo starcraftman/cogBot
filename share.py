@@ -59,7 +59,7 @@ def get_fort_table():
     """
     sheet_id = get_config('hudson', 'cattle', 'id')
     secrets = get_config('secrets', 'sheets')
-    sheet = sheets.SheetApi(sheet_id, secrets['json'], secrets['token'])
+    sheet = sheets.GSheet(sheet_id, secrets['json'], secrets['token'])
     result = sheet.get('!F1:BM10', dim='COLUMNS')
 
     return fort.FortTable(result)
