@@ -5,6 +5,7 @@ Tutorial and reference available at:
     https://developers.google.com/sheets/api/quickstart/python
 """
 from __future__ import absolute_import, print_function
+import math
 import os
 
 import argparse
@@ -26,6 +27,13 @@ REQ_SCOPE = 'https://www.googleapis.com/auth/spreadsheets'
 class MissingConfigFile(Exception):
     """
     Thrown if a config isn't set properly.
+    """
+    pass
+
+
+class ConversionException(Exception):
+    """
+    Raise when conversion errors happen.
     """
     pass
 
@@ -56,6 +64,85 @@ def get_credentials(json_secret, sheets_token):
         print('Storing credentials to ' + sheets_token)
 
     return credentials
+
+
+def col_to_char(cur):
+    """
+    Map simple integer to multi character excel columns.
+
+    1 = A
+    26 = Z
+    27 = AA
+    53 = BA
+    """
+    if cur < 1:
+        raise ConversionException('Cannot convert this integer: ' + str(cur))
+
+    n_str = ''
+    back = ord('A') - 1
+
+    while cur > 26:
+        rem = cur % 26
+        cur = cur // 26
+        n_str = chr(rem + back) + n_str
+
+    n_str = chr(cur + back) + n_str
+
+    return n_str
+
+
+def col_to_int(cur):
+    """
+    Map a multi character column to an integer.
+
+    A = 1
+    Z = 26
+    AA = 27
+    BA = 53
+    """
+    # FIXME: Shouldn't be needed in production, fix stupid errors
+    for char in cur:
+        if ord(char) < ord('A') or ord(char) > ord('Z'):
+            raise ConversionException('The following string is not suitable: ' + cur)
+
+    exp, value = 0, 0
+    back = ord('A') - 1
+
+    while cur:
+        last, cur = cur[-1], cur[:-1]
+        value += math.pow(26, exp) * (ord(last) - back)
+        exp += 1
+
+    return int(value)
+
+
+class RangeMapper(object):
+    """
+    Maintain an up to date range of elements from the range.
+    Map their order sequentially, and index their values to sheet cells.
+    """
+    def __init__(self, sheet, cells,  dim='ROWS'):
+        """
+        Args:
+            cells: Dict describing range to map.
+                start: Start of range.
+                end: End of range.
+                dim: Dimension of range, should be 'ROWS' or 'COLUMNS'
+            sheet: A sheets.GSheet object.
+            dim: Dimension to interpret returns.
+        """
+        self.cells = cells
+        self.sheet = sheet
+        self.units = []
+        self.cells = []
+        self.units_to_cells = {}
+
+
+    def scan_range(self):
+        """
+        Pull range from sheet and update.
+        """
+        pass
 
 
 class GSheet(object):
