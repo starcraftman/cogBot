@@ -174,7 +174,7 @@ def main():
 
     parser = argparse.ArgumentParser(prog='cog', description='a simple discord bot')
     parser.add_argument('-l', '--local', action='store_true', default=False,
-                     help='run the bot locally without connecting to discord')
+                        help='run the bot locally without connecting to discord')
     args = parser.parse_args()
 
     if args.local:

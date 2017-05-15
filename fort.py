@@ -56,12 +56,9 @@ class FortSystem(object):
     @property
     def data_tuple(self):
         """ Return a list of important data for tables """
-        if self.is_fortified:
-            fort_status = ':fortified:'
-        else:
-            fort_status = '{:>4}/{:4} ({:2}%)'.format(self.fort_status,
-                                                      self.fort_trigger,
-                                                      self.completion)
+        fort_status = '{:>4}/{:4} ({:2}%)'.format(self.fort_status,
+                                                  self.fort_trigger,
+                                                  self.completion)
 
         if self.skip:
             missing = 'Please do not fortify!'
@@ -72,6 +69,7 @@ class FortSystem(object):
 
     @property
     def skip(self):
+        """ The system should be skipped. """
         notes = self.notes.lower()
         return 'leave' in notes or 'skip' in notes
 
@@ -216,7 +214,7 @@ class FortTable(object):
 
 def main():
     """
-    Main function, tests with local csv file.
+    Main function, does simple fort table test.
     """
     sheet_id = share.get_config('hudson', 'cattle', 'id')
     secrets = share.get_config('secrets', 'sheets')

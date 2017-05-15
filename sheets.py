@@ -61,6 +61,15 @@ def get_credentials(json_secret, sheets_token):
 class SheetApi(object):
     """
     Class to wrap the sheet api and provide convenience methods.
+
+    Results are returned or sent via api in following form:
+    {
+        "range": string,
+        "majorDimension": enum(Dimension),
+        "values": [
+            array
+        ],
+    }
     """
     def __init__(self, sheet_id, json_secret, sheet_token):
         """
@@ -103,9 +112,12 @@ class SheetApi(object):
             range: An A1 range that describes a single area to return.
             n_vals: New values to fit into range, list of lists.
         """
-        body = {'values': n_vals}
+        body = {
+            'majorDimension': dim,
+            'values': n_vals
+        }
         values = self.service.spreadsheets().values()
-        values.update(spreadsheetId=self.sheet_id, range=cell_range, majorDimension=dim,
+        values.update(spreadsheetId=self.sheet_id, range=cell_range,
                       valueInputOption='RAW', body=body).execute()
 
     def batch_get(self, cell_ranges, dim='ROWS'):
@@ -117,7 +129,7 @@ class SheetApi(object):
                                  majorDimension=dim,
                                  valueRenderOption='UNFORMATTED_VALUE').execute()
 
-        return [ent['values'] for ent in result['valueRanges']]
+        return [ent.get('values', []) for ent in result['valueRanges']]
         # return result['valueRanges']
 
     def batch_set(self, cell_ranges, n_vals, dim='ROWS'):
@@ -143,10 +155,11 @@ def main():
     Simple main func for quick tests.
     """
     # Dummy sheet that can be manipulated at will.
-    sheet_id = share.get_config('hudson', 'cattle_id')
+    sheet_id = share.get_config('hudson', 'cattle', 'id')
     secrets = share.get_config('secrets', 'sheets')
     sheet = SheetApi(sheet_id, secrets['json'], secrets['token'])
-    print(sheet.get('!A11:B20'))
+    sheet.set('!B16:B16', [['Shepron']])
+    print(sheet.get('!B16:B16'))
     # data_range = ['!B11:B17', '!F11:G17']
 
 

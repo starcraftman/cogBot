@@ -5,10 +5,6 @@ from __future__ import absolute_import, print_function
 
 import os
 import argparse
-try:
-    from urllib.request import urlopen
-except ImportError:
-    from urllib import urlopen
 
 import yaml
 try:
@@ -17,6 +13,7 @@ except ImportError:
     from yaml import Loader
 
 import fort
+import sheets
 import tbl
 
 
@@ -60,20 +57,19 @@ def get_fort_table():
     """
     Return a fort table object.
     """
-    with urlopen(get_config('hudson', 'cattle_url')) as fin:
-        lines = str(fin.read()).split(r'\r\n')
+    sheet_id = get_config('hudson', 'cattle', 'id')
+    secrets = get_config('secrets', 'sheets')
+    sheet = sheets.SheetApi(sheet_id, secrets['json'], secrets['token'])
+    result = sheet.get('!F1:BM10', dim='COLUMNS')
 
-    lines = [line.strip() for line in lines]
-    systems, data = fort.parse_csv(lines)
-
-    return fort.FortTable(systems, data)
+    return fort.FortTable(result)
 
 
 def make_parser():
     """
-    Returns a parser.
+    Returns the bot parser.
     """
-    parser = ThrowArggumentParser(prog='', description='simple discord bot')
+    parser = ThrowArggumentParser(prog='cog', description='simple discord bot')
 
     subs = parser.add_subparsers(title='subcommands',
                                  description='The subcommands of cog')
