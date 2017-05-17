@@ -15,6 +15,7 @@ asyncio (Python 3.5+)
 pyyaml
 discord.py
 google-api-python-client
+SQLalchemy
 
 Testing:
 pytest

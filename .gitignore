@@ -1,6 +1,6 @@
 .cache
 .secrets
-py3
-test_async
+venv
+z_scratch
 
 *private

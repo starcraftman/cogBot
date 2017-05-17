@@ -24,7 +24,6 @@ import share
 # TODO: Add basic whois support, default lookup in local to channel db
 # TODO: Add wider search, across server, inara and other sources
 # TODO: Add test cases for all of fort, use test Google Sheet
-# TODO: No longer needed? Download csv as background task every 2 minutes
 
 # Simple background coroutine example for later, adapt to refresh csv.
 # async def my_task():
