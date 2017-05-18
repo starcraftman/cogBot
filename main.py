@@ -18,7 +18,6 @@ import share
 
 
 # TODO: investigate use of discord.ext.bot || make own bot class
-# TODO: Investigate possible database, RethinkDB
 # TODO: Secure commands against servers/channels/users
 # TODO: Allow management commands to add/remove above
 # TODO: Add basic whois support, default lookup in local to channel db
