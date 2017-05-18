@@ -35,20 +35,18 @@ class User(Base):
     discord_name = sqa.Column(sqa.String, unique=True)
     sheet_name = sqa.Column(sqa.String)
     sheet_row = sqa.Column(sqa.Integer)
-    ban = sqa.Column(sqa.Boolean)
 
     def __repr__(self):
         args = {
             'discord': self.discord_name,
             'sheet': self.sheet_name,
             'row': self.sheet_row,
-            'ban':self.ban
         }
         return "<User(discord_name='{discord}', sheet_name='{sheet}', "\
-               "sheet_row='{row}', ban='{ban}')>".format(**args)
+               "sheet_row='{row}')>".format(**args)
 
     def __str__(self):
-        return 'ID: {}\n{}'.format(self.id, self.__repr__())
+        return "ID='{}', ".format(self.id) + self.__repr__()
 
 
 class System(Base):
@@ -68,21 +66,20 @@ class System(Base):
 
     def __repr__(self):
         args = {
-            'id': self.id,
             'name': self.name,
+            'order': self.sheet_order,
             'col': self.sheet_col,
             'cur': self.current,
-            'order': self.sheet_order,
             'merits': self.cmdr_merits,
             'trig': self.trigger,
             'under': self.undermine,
         }
-        return "<System(id='{id}', name='{name}', sheet_col='{col}', order='{order}', "\
+        return "<System(name='{name}', sheet_order='{order}', sheet_col='{col}', "\
                 "merits='{merits}', current='{cur}', trigger='{trig}', "\
                 "undermine='{under}')>".format(**args)
 
     def __str__(self):
-        return 'ID: {}\n{}'.format(self.id, self.__repr__())
+        return "ID='{}', ".format(self.id) + self.__repr__()
 
 
 class Fort(Base):
@@ -99,16 +96,15 @@ class Fort(Base):
 
     def __repr__(self):
         args = {
-            'id': self.id,
             'user': self.user.discord_name,
             'system': self.system.name,
             'amount': self.amount,
         }
-        return "<Fort(id='{id}', user_id='{user}', "\
-                "system_id='{system}', amount='{amount}')>".format(**args)
+        return "<Fort(user='{user}', "\
+                "system='{system}', amount='{amount}')>".format(**args)
 
     def __str__(self):
-        return 'ID: {}\n{}'.format(self.id, self.__repr__())
+        return "ID='{}', ".format(self.id) + self.__repr__()
 
 
 Fort.user = sqa_orm.relationship('User', back_populates='forts')
@@ -162,20 +158,22 @@ def main():
     session.commit()
 
     import pprint
-    print = pprint.pprint
-    print('\n--------------------------------\n')
+    def mprint(*args):
+        args = [str(x) for x in args]
+        pprint.pprint(*args)
+
     for user in session.query(User).order_by(User.discord_name).all():
-        print(user)
-        print(user.forts)
+        mprint(user)
+        mprint(user.forts)
 
     for sys in session.query(System).order_by(System.name):
-        print(sys)
-        print(sys.forts)
+        mprint(sys)
+        mprint(sys.forts)
 
     for fort in session.query(Fort).order_by(Fort.system_id):
-        print(fort)
-        print(fort.user)
-        print(fort.system)
+        mprint(fort)
+        mprint(fort.user)
+        mprint(fort.system)
 
 
 if __name__ == "__main__":
