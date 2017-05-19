@@ -53,7 +53,7 @@ class System(Base):
     """
     Maintain the state of each system as retreieved from the spreadsheet.
     """
-    __tablename__ = 'not_systems'
+    __tablename__ = 'systems'
 
     id = sqa.Column(sqa.Integer, primary_key=True)
     name = sqa.Column(sqa.String, unique=True)
@@ -128,7 +128,7 @@ class HSystem(Base):
         sheet_col: The name of the column in the excel. (string)
         sheet_order: Order systems should be ordered. (int)
     """
-    __tablename__ = 'systems'
+    __tablename__ = 'hsystems'
 
     header = ['System', 'Trigger', 'Missing', 'UM', 'Notes']
 
