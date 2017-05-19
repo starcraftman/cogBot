@@ -78,7 +78,7 @@ class System(Base):
         }
         return "<System(name='{name}', sheet_order='{order}', sheet_col='{col}', "\
                 "merits='{merits}', fort_status='{cur}', trigger='{trig}', "\
-                "undermine='{under}, notes='{notes}'')>".format(**args)
+                "undermine='{under}', notes='{notes}')>".format(**args)
 
     def __str__(self):
         return "ID='{}', ".format(self.id) + self.__repr__()
@@ -156,7 +156,7 @@ class HSystem(Base):
         }
         return "<System(name='{name}', sheet_order='{order}', sheet_col='{col}', "\
                 "merits='{merits}', fort_status='{cur}', trigger='{trig}', "\
-                "undermine='{under}, notes='{notes}'')>".format(**args)
+                "undermine='{under}', notes='{notes}')>".format(**args)
 
     def __str__(self):
         """ Format for output """
@@ -291,7 +291,8 @@ def main():
     import pprint
     def mprint(*args):
         args = [str(x) for x in args]
-        pprint.pprint(*args)
+        # pprint.pprint(*args)
+        print(*args)
 
     for user in session.query(User).order_by(User.discord_name).all():
         mprint(user)
