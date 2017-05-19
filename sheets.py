@@ -117,33 +117,46 @@ def col_to_int(cur):
     return int(value)
 
 
-class RangeMapper(object):
-    """
-    Maintain an up to date range of elements from the range.
-    Map their order sequentially, and index their values to sheet cells.
-    """
-    def __init__(self, sheet, cells,  dim='ROWS'):
-        """
-        Args:
-            cells: Dict describing range to map.
-                start: Start of range.
-                end: End of range.
-                dim: Dimension of range, should be 'ROWS' or 'COLUMNS'
-            sheet: A sheets.GSheet object.
-            dim: Dimension to interpret returns.
-        """
-        self.cells = cells
-        self.sheet = sheet
-        self.units = []
-        self.cells = []
-        self.units_to_cells = {}
+def parse_int(word):
+    if word == '':
+        word = 0
+    return int(word)
 
 
-    def scan_range(self):
-        """
-        Pull range from sheet and update.
-        """
-        pass
+def parse_float(word):
+    if word == '':
+        word = 0.0
+    return float(word)
+
+
+def system_result_dict(lines, order, col_offset=1):
+    """
+    Map the json result from systems request into kwargs to initialize the system with.
+
+    lines: A list of the following
+        0   - undermine % (comes as float 0.0 - 1.0)
+        1   - completion % (comes as float 0.0 - 1.0)
+        2   - fortification trigger
+        3   - missing merits
+        4   - merits dropped by commanders
+        5   - status updated manually (defaults to '', map to 0)
+        6   - undermine updated manually (defaults to '', map to 0)
+        7   - distance from hq (float, always set)
+        8   - notes (defaults '')
+        9   - system name
+    order: The order of this data set relative others.
+    col_offset: Columns in table start at 1, not 0 like order.
+    """
+    return {
+        'undermine': parse_float(lines[0]),
+        'trigger': parse_int(lines[2]),
+        'cmdr_merits': lines[4],
+        'fort_status': parse_int(lines[5]),
+        'notes': lines[8],
+        'name': lines[9],
+        'sheet_col': col_to_char(order + col_offset),
+        'sheet_order': order,
+    }
 
 
 class GSheet(object):

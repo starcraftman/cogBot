@@ -1,233 +1,153 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
-Module that handles:
-    - Parsing the csv
-    - Analysing data in the csv
+Module should handle logic related to querying/manipulating tables from a high level.
 """
 from __future__ import absolute_import, print_function
 
 import share
 import sheets
-import tbl
-
-TABLE_HEADER = ['System', 'Trigger', 'Missing', 'UM', 'Notes']
+import cdb
 
 
 # TODO: Don't iterate Systems every query
+# FIXME: FortTable broken, still porting to new orm objects.
+# class FortTable(object):
+    # """
+    # Represents the fort sheet
+        # -> Goal: Minimize unecessary operations to data on server.
+    # """
+    # def __init__(self, data):
+        # """
+        # Parse data from table and initialize.
+        # """
+        # self.data = data
 
+    # def current(self):
+        # """
+        # Print out the current system to forify.
+        # """
+        # target = None
 
-def parse_int(word):
-    if word == '':
-        word = 0
-    return int(word)
+        # # Seek targets in systems list
+        # for datum in self.data:
+            # system = FortSystem(datum)
 
+            # if not target and system.name != 'Othime' and \
+                    # not system.is_fortified and not system.skip:
+                # target = system
 
-def parse_float(word):
-    if word == '':
-        word = '0.0'
-    return float(word)
+            # if target:
+                # break
 
+        # return target.name
 
-class FortSystem(object):
-    """
-    Simple little object that transforms data for output or use.
+    # def current_long(self):
+        # """
+        # Print out the current objectives to fortify and their status.
+        # """
+        # othime = None
+        # target = None
 
-    args:
-        system: Name of system.
-        data: List to be unpacked: ump, trigger, cmdr_merits, status, notes):
+        # # Seek targets in systems list
+        # for datum in self.data:
+            # system = FortSystem(datum)
 
-        Notes:
-            - ump is a raw float of long precision or if blank strings of ''
-            - trigger, cmdr_merits & status are raw integers or if blank strings of ''
-    """
-    def __init__(self, data):
-        self.name = data[9]
-        self.um_percent = parse_float(data[0])
-        self.fort_trigger = parse_int(data[2])
-        cmdr_merits = parse_int(data[4])
-        status = parse_int(data[5])
-        self.fort_status = max(cmdr_merits, status)
-        self.notes = data[8]
+            # if system.name == 'Othime':
+                # othime = system
 
-    def __str__(self):
-        """ Format for output """
-        return tbl.format_line(self.data_tuple)
+            # if not target and system.name != 'Othime' and \
+                    # not system.is_fortified and not system.skip:
+                # target = system
 
-    @property
-    def data_tuple(self):
-        """ Return a list of important data for tables """
-        fort_status = '{:>4}/{:4} ({:2}%)'.format(self.fort_status,
-                                                  self.fort_trigger,
-                                                  self.completion)
+            # if othime and target:
+                # break
 
-        if self.skip:
-            missing = 'N/A'
-            notes = self.notes + 'Do not fortify!'
-        else:
-            missing = '{:>4}'.format(self.missing)
+        # lines = [HSystem.header, target.data_tuple]
+        # if not othime.is_fortified:
+            # lines += [othime.data_tuple]
+        # return tbl.format_table(lines, sep='|', header=True)
 
-        return (self.name, fort_status, missing, '{:.1f}%'.format(self.um_percent), notes)
+    # def next_systems(self, num=None):
+        # """
+        # Return next 5 regular fort targets.
+        # """
+        # targets = []
+        # if not num:
+            # num = 5
 
-    @property
-    def skip(self):
-        """ The system should be skipped. """
-        notes = self.notes.lower()
-        return 'leave' in notes or 'skip' in notes
+        # for datum in self.data:
+            # system = FortSystem(datum)
 
-    @property
-    def is_fortified(self):
-        """ The remaining supplies to fortify """
-        return self.fort_status >= self.fort_trigger
+            # if system.name != 'Othime' and not system.is_fortified and not system.skip:
+                # targets.append(system.name)
 
-    @property
-    def is_undermined(self):
-        """ The system has been undermined """
-        return self.um_percent >= 99
+            # if len(targets) == num + 1:
+                # break
 
-    @property
-    def missing(self):
-        """ The remaining supplies to fortify """
-        return max(0, self.fort_trigger - self.fort_status)
+        # return '\n'.join(targets[1:])
 
-    @property
-    def completion(self):
-        """ The fort completion percentage """
-        try:
-            comp_cent = self.fort_status / self.fort_trigger * 100
-        except ZeroDivisionError:
-            comp_cent = 0
+    # def next_systems_long(self, num=None):
+        # """
+        # Return next 5 regular fort targets.
+        # """
+        # targets = []
+        # if not num:
+            # num = 5
 
-        return '{:.1f}'.format(comp_cent)
+        # for datum in self.data:
+            # system = FortSystem(datum)
 
+            # if system.name != 'Othime' and not system.is_fortified and not system.skip:
+                # targets.append(system.data_tuple)
 
-class FortTable(object):
-    """
-    Represents the fort sheet
-        -> Goal: Minimize unecessary operations to data on server.
-    """
-    def __init__(self, data):
-        """
-        Parse data from table and initialize.
-        """
-        self.data = data
+            # if len(targets) == num + 1:
+                # break
 
-    def current(self):
-        """
-        Print out the current system to forify.
-        """
-        target = None
+        # return tbl.format_table([HSystem.header] + targets[1:], sep='|', header=True)
 
-        # Seek targets in systems list
-        for datum in self.data:
-            system = FortSystem(datum)
+    # def totals(self):
+        # """
+        # Print running total of fortified, undermined systems.
+        # """
+        # undermined = 0
+        # fortified = 0
 
-            if not target and system.name != 'Othime' and \
-                    not system.is_fortified and not system.skip:
-                target = system
+        # for datum in self.data:
+            # system = FortSystem(datum)
 
-            if target:
-                break
+            # if system.is_fortified:
+                # fortified += 1
+            # if system.is_undermined:
+                # undermined += 1
 
-        return target.name
-
-    def current_long(self):
-        """
-        Print out the current objectives to fortify and their status.
-        """
-        othime = None
-        target = None
-
-        # Seek targets in systems list
-        for datum in self.data:
-            system = FortSystem(datum)
-
-            if system.name == 'Othime':
-                othime = system
-
-            if not target and system.name != 'Othime' and \
-                    not system.is_fortified and not system.skip:
-                target = system
-
-            if othime and target:
-                break
-
-        lines = [TABLE_HEADER, target.data_tuple]
-        if not othime.is_fortified:
-            lines += [othime.data_tuple]
-        return tbl.format_table(lines, sep='|', header=True)
-
-    def next_systems(self, num=None):
-        """
-        Return next 5 regular fort targets.
-        """
-        targets = []
-        if not num:
-            num = 5
-
-        for datum in self.data:
-            system = FortSystem(datum)
-
-            if system.name != 'Othime' and not system.is_fortified and not system.skip:
-                targets.append(system.name)
-
-            if len(targets) == num + 1:
-                break
-
-        return '\n'.join(targets[1:])
-
-    def next_systems_long(self, num=None):
-        """
-        Return next 5 regular fort targets.
-        """
-        targets = []
-        if not num:
-            num = 5
-
-        for datum in self.data:
-            system = FortSystem(datum)
-
-            if system.name != 'Othime' and not system.is_fortified and not system.skip:
-                targets.append(system.data_tuple)
-
-            if len(targets) == num + 1:
-                break
-
-        return tbl.format_table([TABLE_HEADER] + targets[1:], sep='|', header=True)
-
-    def totals(self):
-        """
-        Print running total of fortified, undermined systems.
-        """
-        undermined = 0
-        fortified = 0
-
-        for datum in self.data:
-            system = FortSystem(datum)
-
-            if system.is_fortified:
-                fortified += 1
-            if system.is_undermined:
-                undermined += 1
-
-        return 'Fortified {}/{tot}, Undermined: {}/{tot}'.format(fortified, undermined,
-                                                                 tot=len(self.data))
+        # return 'Fortified {}/{tot}, Undermined: {}/{tot}'.format(fortified, undermined,
+                                                                 # tot=len(self.data))
 
 
 def main():
     """
     Main function, does simple fort table test.
     """
+    import sqlalchemy as sqa
+    import sqlalchemy.orm as sqa_orm
+    import pprint
+    engine = sqa.create_engine('sqlite:///:memory:', echo=False)
+    cdb.Base.metadata.create_all(engine)
+    Session = sqa_orm.sessionmaker(bind=engine)
+
     sheet_id = share.get_config('hudson', 'cattle', 'id')
     secrets = share.get_config('secrets', 'sheets')
     sheet = sheets.GSheet(sheet_id, secrets['json'], secrets['token'])
+    result = sheet.get('!F1:BJ10', dim='COLUMNS')
 
-    result = sheet.get('!F1:BM10', dim='COLUMNS')
-    # for data in result:
-        # print(str(FortSystem(data)))
-    table = FortTable(result)
-    print(table.current())
-    print(table.next_systems_long())
+    offset = sheets.col_to_int('F')
+    for ind, data in enumerate(result):
+        pprint.pprint(data)
+        pprint.pprint(sheets.system_result_dict(data, ind, offset))
+        pprint.pprint(cdb.HSystem(**sheets.system_result_dict(data, ind, offset)))
+
+    # table = FortTable(result)
+    # print(table.current())
+    # print(table.next_systems_long())
 
 if __name__ == "__main__":
     main()

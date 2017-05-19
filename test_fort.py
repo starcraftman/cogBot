@@ -7,6 +7,4 @@ import pytest
 
 import fort
 
-
-def test_parse_int():
-    assert fort.parse_int('34') == 34
+# Empty for now

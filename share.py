@@ -3,8 +3,12 @@ Common functions.
 """
 from __future__ import absolute_import, print_function
 import os
+import sys
 
 import argparse
+import logging
+import logging.handlers
+import tempfile
 import yaml
 try:
     from yaml import CLoader as Loader
@@ -116,3 +120,49 @@ def parse_fort(args):
         msg = table.current()
 
     return msg
+
+
+def init_logging():
+    """
+    Initialize project wide logging.
+      - 'discord' logger is used by the discord.py framework.
+      - 'gbot' logger will be used to log anything in this project.
+
+    Both loggers will:
+      - Send all messsages >= WARN to STDERR.
+      - Send all messages >= INFO to rotating file log in /tmp.
+
+    IMPORTANT: On every start the logs are rolled over. 5 runs kept max.
+    """
+    log_folder = os.path.join(tempfile.gettempdir(), 'gbot')
+    if not os.path.exists(log_folder):
+        os.makedirs(log_folder)
+    discord_file = os.path.join(log_folder, 'discordpy.log')
+    gbot_file = os.path.join(log_folder, 'gbot.log')
+    print('discord.py log ' + discord_file)
+    print('gbot log: ' + gbot_file)
+    fmt = logging.Formatter('%(asctime)s [%(levelname)s] %(msg)s')
+
+    d_logger = logging.getLogger('discord')
+    d_logger.setLevel(logging.INFO)
+    handler1 = logging.handlers.RotatingFileHandler(discord_file,
+                                                    backupCount=5, encoding='utf-8')
+    handler1.setLevel(logging.DEBUG)
+    handler1.setFormatter(fmt)
+    handler1.doRollover()
+    d_logger.addHandler(handler1)
+
+    g_logger = logging.getLogger('gbot')
+    g_logger.setLevel(logging.INFO)
+    handler2 = logging.handlers.RotatingFileHandler(gbot_file,
+                                                    backupCount=5, encoding='utf-8')
+    handler2.setLevel(logging.DEBUG)
+    handler2.setFormatter(fmt)
+    handler2.doRollover()
+    g_logger.addHandler(handler2)
+
+    handler3 = logging.StreamHandler(sys.stderr)
+    handler3.setLevel(logging.WARNING)
+    handler3.setFormatter(fmt)
+    d_logger.addHandler(handler3)
+    g_logger.addHandler(handler3)

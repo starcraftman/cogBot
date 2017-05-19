@@ -61,7 +61,7 @@ def test_batch_update(fort_sheet_reset):
     assert fort_sheet_reset.batch_get(cell_ranges) == n_vals
 
 
-def test_to_int():
+def test_col_to_int():
     with pytest.raises(sheets.ConversionException):
         sheets.col_to_int('a')
     with pytest.raises(sheets.ConversionException):
@@ -72,7 +72,7 @@ def test_to_int():
     assert sheets.col_to_int('BA') == 53
 
 
-def test_to_char():
+def test_col_to_char():
     with pytest.raises(sheets.ConversionException):
         sheets.col_to_char(-1)
     assert sheets.col_to_char(1) == 'A'
@@ -80,12 +80,24 @@ def test_to_char():
     assert sheets.col_to_char(27) == 'AA'
     assert sheets.col_to_char(53) == 'BA'
 
+def test_parse_int():
+    assert sheets.parse_int('') == 0
+    assert sheets.parse_int('2') == 2
+    assert sheets.parse_int(5) == 5
 
-# Disabled until decide where to put inc_column
-# def test_inc_col():
-    # assert inc_col('A') == 'B'
-    # assert inc_col('A', 3) == 'D'
-    # assert inc_col('A', 25) == 'Z'
-    # assert inc_col('Z') == 'AA'
-    # assert inc_col('AZ') == 'BA'
-    # assert inc_col('AZ', -1) == 'AY'
+def test_parse_float():
+    assert sheets.parse_float('') == 0.0
+    assert sheets.parse_float('2') == 2.0
+    assert sheets.parse_float(0.5) == 0.5
+
+def test_system_result_dict():
+    data = ['', 1, 4910, 0, 4322, 4910, 0, 116.99, '', 'Frey']
+    result = sheets.system_result_dict(data, 0, 6)
+    assert result['undermine'] == 0.0
+    assert result['trigger'] == 4910
+    assert result['cmdr_merits'] == 4322
+    assert result['fort_status'] == 4910
+    assert result['notes'] == ''
+    assert result['name'] == 'Frey'
+    assert result['sheet_col'] == 'F'
+    assert result['sheet_order'] == 0
