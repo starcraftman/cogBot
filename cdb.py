@@ -229,12 +229,12 @@ class HSystem(Base):
 
         if self.skip:
             missing = 'N/A'
-            notes = self.notes + 'Do not fortify!'
+            notes = self.notes + ' Do NOT fortify!'
         else:
             missing = '{:>4}'.format(self.missing)
             notes = self.notes
 
-        return (self.name, status, missing, '{:.1f}%'.format(self.um_percent), notes)
+        return (self.name, status, missing, '{:.1f}%'.format(self.undermine), notes)
 
 
 # Relationships

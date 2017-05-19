@@ -141,9 +141,7 @@ def main():
 
     offset = sheets.col_to_int('F')
     for ind, data in enumerate(result):
-        pprint.pprint(data)
-        pprint.pprint(sheets.system_result_dict(data, ind, offset))
-        pprint.pprint(cdb.HSystem(**sheets.system_result_dict(data, ind, offset)))
+        print(cdb.HSystem(**sheets.system_result_dict(data, ind, offset)).__repr__())
 
     # table = FortTable(result)
     # print(table.current())
