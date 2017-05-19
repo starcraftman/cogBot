@@ -19,18 +19,17 @@ def wrap_markdown(text):
 def max_col_width(lines):
     """
     Iterate all lines and entries.
-    Return a list of numbers, the max width required for each
-    column given the data.
+
+    Returns: A list of numbers, the max width required for each
+             column given the data.
     """
-    pads = [0 for ent in lines[0]]
+    lens = [[] for _ in lines[0]]
 
     for line in lines:
         for ind, data in enumerate(line):
-            len_d = len(data)
-            if len_d > pads[ind]:
-                pads[ind] = len_d
+            lens[ind].append(len(data))
 
-    return pads
+    return [max(len_list) for len_list in lens]
 
 
 def format_header(line, sep=' | ', pads=None, center=True):
