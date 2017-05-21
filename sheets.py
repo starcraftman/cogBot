@@ -66,55 +66,55 @@ def get_credentials(json_secret, sheets_token):
     return credentials
 
 
-def col_to_char(cur):
+def base26_from_sequence(sequence):
     """
-    Map simple integer to multi character excel columns.
+    Map a list of integers of base26 to a string.
 
-    1 = A
-    26 = Z
-    27 = AA
-    53 = BA
+    For example: [0] -> A, [25] -> Z [0, 0] -> AA, [0, 25] -> AZ
     """
-    # FIXME: Shouldn't be needed in production, catch stupid errors
-    if cur < 1:
-        raise ConversionException('Cannot convert this integer: ' + str(cur))
+    base_string = ''
+    back = ord('A')
 
-    n_str = ''
-    back = ord('A') - 1
+    for val in sequence:
+        base_string += chr(val + back)
 
-    while cur > 26:
-        rem = cur % 26
-        cur = cur // 26
-        n_str = chr(rem + back) + n_str
-
-    n_str = chr(cur + back) + n_str
-
-    return n_str
+    return base_string
 
 
-def col_to_int(cur):
+def base26_to_sequence(base_string):
     """
-    Map a multi character column to an integer.
+    Map a b26 string to a list of integers of that base.
 
-    A = 1
-    Z = 26
-    AA = 27
-    BA = 53
+    For example: A -> [0], Z -> [25], AA -> [0, 0]
     """
     # FIXME: Shouldn't be needed in production, catch stupid errors
-    for char in cur:
+    for char in base_string:
         if ord(char) < ord('A') or ord(char) > ord('Z'):
-            raise ConversionException('The following string is not suitable: ' + cur)
+            raise ConversionException('The following string is not suitable: ' + base_string)
 
-    exp, value = 0, 0
-    back = ord('A') - 1
+    return [ord(char) - ord('A') for char in base_string]
 
-    while cur:
-        last, cur = cur[-1], cur[:-1]
-        value += math.pow(26, exp) * (ord(last) - back)
-        exp += 1
 
-    return int(value)
+def base26_inc_sequence(sequence, offset=1):
+    """
+    Increment by offset the sequence and carry additions up.
+    """
+    sequence.reverse()
+    n_seq = []
+
+    carry = offset
+    for val in sequence:
+        n_val = val + carry
+        carry = n_val // 26
+        n_seq.insert(0, n_val % 26)
+
+    # Corner case, when adding a value, we start at 0 not 1 that carry begins at
+    while carry:
+        n_val = carry
+        carry = n_val // 26
+        n_seq.insert(0, (n_val % 26) - 1)
+
+    return n_seq
 
 
 def parse_int(word):

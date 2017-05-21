@@ -61,24 +61,36 @@ def test_batch_update(fort_sheet_reset):
     assert fort_sheet_reset.batch_get(cell_ranges) == n_vals
 
 
-def test_col_to_int():
+def test_base26_to_sequence():
     with pytest.raises(sheets.ConversionException):
-        sheets.col_to_int('a')
+        sheets.base26_to_sequence('a')
     with pytest.raises(sheets.ConversionException):
-        sheets.col_to_int('0')
-    assert sheets.col_to_int('A') == 1
-    assert sheets.col_to_int('Z') == 26
-    assert sheets.col_to_int('AA') == 27
-    assert sheets.col_to_int('BA') == 53
+        sheets.base26_to_sequence('0')
+    assert sheets.base26_to_sequence('A') == [0]
+    assert sheets.base26_to_sequence('Z') == [25]
+    assert sheets.base26_to_sequence('AA') == [0, 0]
+    assert sheets.base26_to_sequence('AZ') == [0, 25]
+    assert sheets.base26_to_sequence('BA') == [1, 0]
+    assert sheets.base26_to_sequence('BZ') == [1, 25]
 
 
-def test_col_to_char():
-    with pytest.raises(sheets.ConversionException):
-        sheets.col_to_char(-1)
-    assert sheets.col_to_char(1) == 'A'
-    assert sheets.col_to_char(26) == 'Z'
-    assert sheets.col_to_char(27) == 'AA'
-    assert sheets.col_to_char(53) == 'BA'
+def test_base26_from_sequence():
+    assert sheets.base26_from_sequence([0]) == 'A'
+    assert sheets.base26_from_sequence([25]) == 'Z'
+    assert sheets.base26_from_sequence([0, 0]) == 'AA'
+    assert sheets.base26_from_sequence([0, 25]) == 'AZ'
+    assert sheets.base26_from_sequence([1, 0]) == 'BA'
+    assert sheets.base26_from_sequence([1, 25]) == 'BZ'
+
+
+def test_base26_inc_sequence():
+    assert sheets.base26_inc_sequence([0]) == [1]
+    assert sheets.base26_inc_sequence([0], 5) == [5]
+    assert sheets.base26_inc_sequence([25]) == [0, 0]
+    assert sheets.base26_inc_sequence([25], 5) == [0, 4]
+    assert sheets.base26_inc_sequence([0, 25]) == [1, 0]
+    assert sheets.base26_inc_sequence([0, 25], 5) == [1, 4]
+
 
 def test_parse_int():
     assert sheets.parse_int('') == 0
