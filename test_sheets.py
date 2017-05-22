@@ -61,35 +61,53 @@ def test_batch_update(fort_sheet_reset):
     assert fort_sheet_reset.batch_get(cell_ranges) == n_vals
 
 
-def test_base26_to_sequence():
-    with pytest.raises(sheets.ConversionException):
-        sheets.base26_to_sequence('a')
-    with pytest.raises(sheets.ConversionException):
-        sheets.base26_to_sequence('0')
-    assert sheets.base26_to_sequence('A') == [0]
-    assert sheets.base26_to_sequence('Z') == [25]
-    assert sheets.base26_to_sequence('AA') == [0, 0]
-    assert sheets.base26_to_sequence('AZ') == [0, 25]
-    assert sheets.base26_to_sequence('BA') == [1, 0]
-    assert sheets.base26_to_sequence('BZ') == [1, 25]
+def test_ColCnt_init():
+    col1 = sheets.ColCnt()
+    assert col1.char == 'A'
+    col2 = sheets.ColCnt('Z')
+    assert col2.char == 'Z'
 
 
-def test_base26_from_sequence():
-    assert sheets.base26_from_sequence([0]) == 'A'
-    assert sheets.base26_from_sequence([25]) == 'Z'
-    assert sheets.base26_from_sequence([0, 0]) == 'AA'
-    assert sheets.base26_from_sequence([0, 25]) == 'AZ'
-    assert sheets.base26_from_sequence([1, 0]) == 'BA'
-    assert sheets.base26_from_sequence([1, 25]) == 'BZ'
+def test_ColCnt_next():
+    col1 = sheets.ColCnt()
+    col1.next()
+    assert col1.char == 'B'
+
+    col2 = sheets.ColCnt('Z')
+    with pytest.raises(sheets.ColOverflow):
+        col2.next()
+    assert col2.char == 'A'
 
 
-def test_base26_inc_sequence():
-    assert sheets.base26_inc_sequence([0]) == [1]
-    assert sheets.base26_inc_sequence([0], 5) == [5]
-    assert sheets.base26_inc_sequence([25]) == [0, 0]
-    assert sheets.base26_inc_sequence([25], 5) == [0, 4]
-    assert sheets.base26_inc_sequence([0, 25]) == [1, 0]
-    assert sheets.base26_inc_sequence([0, 25], 5) == [1, 4]
+def test_ColCnt_reset():
+    col2 = sheets.ColCnt('Z')
+    col2.reset()
+    assert col2.char == 'A'
+
+
+def test_Column_init():
+    column = sheets.Column()
+    assert str(column) == 'A'
+    assert column.counters[0].char == 'A'
+    column = sheets.Column('BA')
+    assert str(column) == 'BA'
+    assert column.counters[0].char == 'A'
+    assert column.counters[1].char == 'B'
+
+
+def test_Column_increment():
+    column = sheets.Column()
+    assert column.increment() == 'B'
+
+    column = sheets.Column('Z')
+    assert column.increment() == 'AA'
+    assert column.increment() == 'AB'
+
+
+def test_Column_offset():
+    column = sheets.Column()
+    column.offset(5)
+    assert str(column) == 'F'
 
 
 def test_parse_int():
@@ -97,10 +115,12 @@ def test_parse_int():
     assert sheets.parse_int('2') == 2
     assert sheets.parse_int(5) == 5
 
+
 def test_parse_float():
     assert sheets.parse_float('') == 0.0
     assert sheets.parse_float('2') == 2.0
     assert sheets.parse_float(0.5) == 0.5
+
 
 def test_system_result_dict():
     data = ['', 1, 4910, 0, 4322, 4910, 0, 116.99, '', 'Frey']

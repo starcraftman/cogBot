@@ -139,7 +139,7 @@ def main():
     sheet = sheets.GSheet(sheet_id, secrets['json'], secrets['token'])
     result = sheet.get('!F1:BJ10', dim='COLUMNS')
 
-    offset = sheets.col_to_int('F')
+    offset = 6  ## FIXME: Adapt to new Column class
     for ind, data in enumerate(result):
         print(cdb.HSystem(**sheets.system_result_dict(data, ind, offset)).__repr__())
 

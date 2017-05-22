@@ -66,55 +66,103 @@ def get_credentials(json_secret, sheets_token):
     return credentials
 
 
-def base26_from_sequence(sequence):
+class ColOverflow(Exception):
     """
-    Map a list of integers of base26 to a string.
-
-    For example: [0] -> A, [25] -> Z [0, 0] -> AA, [0, 25] -> AZ
+    Raise when a column has reached end, increment next column.
     """
-    base_string = ''
-    back = ord('A')
-
-    for val in sequence:
-        base_string += chr(val + back)
-
-    return base_string
+    pass
 
 
-def base26_to_sequence(base_string):
+class ColCnt(object):
     """
-    Map a b26 string to a list of integers of that base.
-
-    For example: A -> [0], Z -> [25], AA -> [0, 0]
+    Simple counter that resets and prints its character.
     """
-    # FIXME: Shouldn't be needed in production, catch stupid errors
-    for char in base_string:
-        if ord(char) < ord('A') or ord(char) > ord('Z'):
-            raise ConversionException('The following string is not suitable: ' + base_string)
+    def __init__(self, char='A'):
+        self.char = char
+        self.stop_char = chr(ord('Z') + 1)
 
-    return [ord(char) - ord('A') for char in base_string]
+    def __repr__(self):
+        return "<ColCnt(char='{}', stop_char='{}')>".format(self.char, self.stop_char)
+
+    def __str__(self):
+        return self.char
+
+    def next(self):
+        """
+        Move to next character.
+
+        Raises:
+            ColOverflow: When the counter exceeds its bounds. Counter is reset before throwing.
+        """
+        self.char = chr(ord(self.char) + 1)
+        if self.char == self.stop_char:
+            self.reset()
+            raise ColOverflow
+
+    def reset(self):
+        """
+        Reset to first character.
+        """
+        self.char = 'A'
 
 
-def base26_inc_sequence(sequence, offset=1):
+class Column(object):
     """
-    Increment by offset the sequence and carry additions up.
+    Model a column in an excel sheet of form A-Z, AA, AB ... AZ, BA ....
     """
-    sequence.reverse()
-    n_seq = []
+    def __init__(self, init_col='A'):
+        """
+        Access the current column string by using str().
 
-    carry = offset
-    for val in sequence:
-        n_val = val + carry
-        carry = n_val // 26
-        n_seq.insert(0, n_val % 26)
+        IMPORTANT: Counters are stored backwards, lease significant counter at index 0.
 
-    # Corner case, when adding a value, we start at 0 not 1 that carry begins at
-    while carry:
-        n_val = carry
-        carry = n_val // 26
-        n_seq.insert(0, (n_val % 26) - 1)
+        Args:
+            init_col: An string representing an excel column of A-Z, AA, AB, etc ...
+        """
+        self.counters = []
 
-    return n_seq
+        for char in init_col:
+            self.counters.insert(0, ColCnt(char))
+
+    def __str__(self):
+        msg = ''
+
+        for counter in self.counters:
+            msg = str(counter) + msg
+
+        return msg
+
+    def increment(self):
+        """
+        Add exactly 1 to the column counters.
+
+        Returns: The new column string.
+        """
+        add_counter = True
+        for counter in self.counters:
+            try:
+                counter.next()
+                add_counter = False
+                break
+            except ColOverflow:
+                pass
+
+        if add_counter:
+            self.counters.append(ColCnt())
+
+        return self.__str__()
+
+    def offset(self, offset):
+        """
+        Increment counters by offset.
+
+        Returns: The new column string.
+        """
+        while offset:
+            self.increment()
+            offset -= 1
+
+        return self.__str__()
 
 
 def parse_int(word):
@@ -154,7 +202,7 @@ def system_result_dict(lines, order, col_offset=1):
         'fort_status': parse_int(lines[5]),
         'notes': lines[8],
         'name': lines[9],
-        'sheet_col': col_to_char(order + col_offset),
+        'sheet_col': 'F',  # FIXME: Adapt to new Column class.
         'sheet_order': order,
     }
 
