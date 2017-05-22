@@ -177,7 +177,7 @@ def parse_float(word):
     return float(word)
 
 
-def system_result_dict(lines, order, col_offset=1):
+def system_result_dict(lines, order, column):
     """
     Map the json result from systems request into kwargs to initialize the system with.
 
@@ -193,7 +193,7 @@ def system_result_dict(lines, order, col_offset=1):
         8   - notes (defaults '')
         9   - system name
     order: The order of this data set relative others.
-    col_offset: Columns in table start at 1, not 0 like order.
+    column: The column string this data belongs in.
     """
     return {
         'undermine': parse_float(lines[0]),
@@ -202,7 +202,7 @@ def system_result_dict(lines, order, col_offset=1):
         'fort_status': parse_int(lines[5]),
         'notes': lines[8],
         'name': lines[9],
-        'sheet_col': 'F',  # FIXME: Adapt to new Column class.
+        'sheet_col': column,
         'sheet_order': order,
     }
 
