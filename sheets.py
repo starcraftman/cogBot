@@ -38,34 +38,6 @@ class ConversionException(Exception):
     pass
 
 
-def get_credentials(json_secret, sheets_token):
-    """
-    Get credentials from OAuth process.
-
-    Args:
-        json_secret: The json secret file downloaded from Google Api.
-        sheets_token: Store the authorization in this file.
-
-    Returns: Credentials obtained from oauth process.
-    """
-    if not os.path.exists(json_secret):
-        raise MissingConfigFile('Missing: ' + json_secret)
-
-    store = Storage(sheets_token)
-    credentials = store.get()
-    if not credentials or credentials.invalid:
-        flow = client.flow_from_clientsecrets(json_secret, REQ_SCOPE)
-        flow.user_agent = APPLICATION_NAME
-
-        parser = argparse.ArgumentParser(parents=[tools.argparser])
-        flags = parser.parse_args(['--noauth_local_webserver'])
-        credentials = tools.run_flow(flow, store, flags)
-
-        print('Storing credentials to ' + sheets_token)
-
-    return credentials
-
-
 class ColOverflow(Exception):
     """
     Raise when a column has reached end, increment next column.
@@ -165,48 +137,6 @@ class Column(object):
         return self.__str__()
 
 
-def parse_int(word):
-    if word == '':
-        word = 0
-    return int(word)
-
-
-def parse_float(word):
-    if word == '':
-        word = 0.0
-    return float(word)
-
-
-def system_result_dict(lines, order, column):
-    """
-    Map the json result from systems request into kwargs to initialize the system with.
-
-    lines: A list of the following
-        0   - undermine % (comes as float 0.0 - 1.0)
-        1   - completion % (comes as float 0.0 - 1.0)
-        2   - fortification trigger
-        3   - missing merits
-        4   - merits dropped by commanders
-        5   - status updated manually (defaults to '', map to 0)
-        6   - undermine updated manually (defaults to '', map to 0)
-        7   - distance from hq (float, always set)
-        8   - notes (defaults '')
-        9   - system name
-    order: The order of this data set relative others.
-    column: The column string this data belongs in.
-    """
-    return {
-        'undermine': parse_float(lines[0]),
-        'trigger': parse_int(lines[2]),
-        'cmdr_merits': lines[4],
-        'fort_status': parse_int(lines[5]),
-        'notes': lines[8],
-        'name': lines[9],
-        'sheet_col': column,
-        'sheet_order': order,
-    }
-
-
 class GSheet(object):
     """
     Class to wrap the sheet api and provide convenience methods.
@@ -297,6 +227,76 @@ class GSheet(object):
             })
         values = self.service.spreadsheets().values()
         values.batchUpdate(spreadsheetId=self.sheet_id, body=body).execute()
+
+
+def get_credentials(json_secret, sheets_token):
+    """
+    Get credentials from OAuth process.
+
+    Args:
+        json_secret: The json secret file downloaded from Google Api.
+        sheets_token: Store the authorization in this file.
+
+    Returns: Credentials obtained from oauth process.
+    """
+    if not os.path.exists(json_secret):
+        raise MissingConfigFile('Missing: ' + json_secret)
+
+    store = Storage(sheets_token)
+    credentials = store.get()
+    if not credentials or credentials.invalid:
+        flow = client.flow_from_clientsecrets(json_secret, REQ_SCOPE)
+        flow.user_agent = APPLICATION_NAME
+
+        parser = argparse.ArgumentParser(parents=[tools.argparser])
+        flags = parser.parse_args(['--noauth_local_webserver'])
+        credentials = tools.run_flow(flow, store, flags)
+
+        print('Storing credentials to ' + sheets_token)
+
+    return credentials
+
+
+def parse_int(word):
+    if word == '':
+        word = 0
+    return int(word)
+
+
+def parse_float(word):
+    if word == '':
+        word = 0.0
+    return float(word)
+
+
+def system_result_dict(lines, order, column):
+    """
+    Map the json result from systems request into kwargs to initialize the system with.
+
+    lines: A list of the following
+        0   - undermine % (comes as float 0.0 - 1.0)
+        1   - completion % (comes as float 0.0 - 1.0)
+        2   - fortification trigger
+        3   - missing merits
+        4   - merits dropped by commanders
+        5   - status updated manually (defaults to '', map to 0)
+        6   - undermine updated manually (defaults to '', map to 0)
+        7   - distance from hq (float, always set)
+        8   - notes (defaults '')
+        9   - system name
+    order: The order of this data set relative others.
+    column: The column string this data belongs in.
+    """
+    return {
+        'undermine': parse_float(lines[0]),
+        'trigger': parse_int(lines[2]),
+        'cmdr_merits': lines[4],
+        'fort_status': parse_int(lines[5]),
+        'notes': lines[8],
+        'name': lines[9],
+        'sheet_col': column,
+        'sheet_order': order,
+    }
 
 
 def main():

@@ -124,7 +124,7 @@ def test_parse_float():
 
 def test_system_result_dict():
     data = ['', 1, 4910, 0, 4322, 4910, 0, 116.99, '', 'Frey']
-    result = sheets.system_result_dict(data, 0, 6)
+    result = sheets.system_result_dict(data, 0, 'F')
     assert result['undermine'] == 0.0
     assert result['trigger'] == 4910
     assert result['cmdr_merits'] == 4322
