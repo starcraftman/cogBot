@@ -31,13 +31,6 @@ class MissingConfigFile(Exception):
     pass
 
 
-class ConversionException(Exception):
-    """
-    Raise when conversion errors happen.
-    """
-    pass
-
-
 class ColOverflow(Exception):
     """
     Raise when a column has reached end, increment next column.
