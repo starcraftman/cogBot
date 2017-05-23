@@ -38,6 +38,13 @@ class ColOverflow(Exception):
     pass
 
 
+class IncompleteData(Exception):
+    """
+    Raise when data no longer contains useful information.
+    """
+    pass
+
+
 class ColCnt(object):
     """
     Simple counter that resets and prints its character.
@@ -97,7 +104,7 @@ class Column(object):
 
         return msg
 
-    def increment(self):
+    def next(self):
         """
         Add exactly 1 to the column counters.
 
@@ -124,7 +131,7 @@ class Column(object):
         Returns: The new column string.
         """
         while offset:
-            self.increment()
+            self.next()
             offset -= 1
 
         return self.__str__()
@@ -280,6 +287,12 @@ def system_result_dict(lines, order, column):
     order: The order of this data set relative others.
     column: The column string this data belongs in.
     """
+    try:
+        if lines[9] == '':
+            raise IncompleteData
+    except IndexError:
+        raise IncompleteData
+
     return {
         'undermine': parse_float(lines[0]),
         'trigger': parse_int(lines[2]),
@@ -300,9 +313,9 @@ def main():
     sheet_id = share.get_config('hudson', 'cattle', 'id')
     secrets = share.get_config('secrets', 'sheets')
     sheet = GSheet(sheet_id, secrets['json'], secrets['token'])
-    sheet.update('!B16:B16', [['Shepron']])
+
     print(sheet.get('!B16:B16'))
-    # data_range = ['!B11:B17', '!F11:G17']
+    # sheet.update('!B16:B16', [['Shepron']])
 
 
 if __name__ == "__main__":

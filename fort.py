@@ -123,25 +123,99 @@ import cdb
                                                                  # tot=len(self.data))
 
 
+
 def main():
     """
     Main function, does simple fort table test.
     """
     import sqlalchemy as sqa
     import sqlalchemy.orm as sqa_orm
-    import pprint
     engine = sqa.create_engine('sqlite:///:memory:', echo=False)
     cdb.Base.metadata.create_all(engine)
-    Session = sqa_orm.sessionmaker(bind=engine)
+    session = sqa_orm.sessionmaker(bind=engine)()
 
     sheet_id = share.get_config('hudson', 'cattle', 'id')
     secrets = share.get_config('secrets', 'sheets')
     sheet = sheets.GSheet(sheet_id, secrets['json'], secrets['token'])
-    result = sheet.get('!F1:BJ10', dim='COLUMNS')
 
-    column = sheets.Column('E')
-    for ind, data in enumerate(result):
-        print(cdb.HSystem(**sheets.system_result_dict(data, ind, column.increment())).__repr__())
+    range_fetch = 10
+    data_column = sheets.Column('F')
+    more_systems = True
+    while more_systems:
+        begin, end = str(data_column), data_column.offset(range_fetch)
+        data_column.next()
+        data_range = '!{}1:{}10'.format(begin, end)
+        result = sheet.get(data_range, dim='COLUMNS')
+
+        try:
+            result_column = sheets.Column(begin)
+            for ind, data in enumerate(result):
+                kwargs = sheets.system_result_dict(data, ind, str(result_column))
+                system = cdb.HSystem(**kwargs)
+                session.add(system)
+                result_column.next()
+        except sheets.IncompleteData:
+            more_systems = False
+
+    session.commit()
+
+    more_users = True
+    row = 11
+    while more_users:
+        begin = row
+        end = row + range_fetch
+        row += range_fetch + 1
+
+        data_range = '!B{}:B{}'.format(begin, end)
+        result = sheet.get(data_range, dim='COLUMNS')
+
+        try:
+            data_row = begin
+            for uname in result[0]:
+                user = cdb.User(discord_name=uname, sheet_name=uname, sheet_row=data_row)
+                session.add(user)
+                data_row += 1
+
+            if len(result[0]) != range_fetch + 1:
+                more_users = False
+        except IndexError:
+            more_users = False
+
+    session.commit()
+
+    users = session.query(cdb.User).all()
+    systems = session.query(cdb.HSystem).all()
+
+    # Proccess all forts
+    data_range = '!{}{}:{}{}'.format('F', 11, systems[-1].sheet_col, users[-1].sheet_row)
+    result = sheet.get(data_range, dim='COLUMNS')
+    system_ind = 0
+    for col_data in result:
+        system = systems[system_ind]
+        system_ind += 1
+
+        user_ind = 0
+        for row_data in col_data:
+            if row_data == '':
+                continue
+
+            user = users[user_ind]
+            user_ind += 1
+
+            fort = cdb.Fort(user_id=user.id, system_id=system.id, amount=row_data)
+            session.add(fort)
+
+    session.commit()
+
+    print('Printing filled database, first 10 elements.')
+    for system in session.query(cdb.HSystem)[:10]:
+        print(system.__repr__())
+
+    for user in session.query(cdb.User)[:10]:
+        print(user)
+
+    for fort in session.query(cdb.Fort)[:10]:
+        print(fort)
 
     # table = FortTable(result)
     # print(table.current())

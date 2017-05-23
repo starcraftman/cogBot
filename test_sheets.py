@@ -95,13 +95,13 @@ def test_Column_init():
     assert column.counters[1].char == 'B'
 
 
-def test_Column_increment():
+def test_Column_next():
     column = sheets.Column()
-    assert column.increment() == 'B'
+    assert column.next() == 'B'
 
     column = sheets.Column('Z')
-    assert column.increment() == 'AA'
-    assert column.increment() == 'AB'
+    assert column.next() == 'AA'
+    assert column.next() == 'AB'
 
 
 def test_Column_offset():

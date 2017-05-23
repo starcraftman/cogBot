@@ -49,41 +49,6 @@ class User(Base):
         return "ID='{}', ".format(self.id) + self.__repr__()
 
 
-class System(Base):
-    """
-    Maintain the state of each system as retreieved from the spreadsheet.
-    """
-    __tablename__ = 'systems'
-
-    id = sqa.Column(sqa.Integer, primary_key=True)
-    name = sqa.Column(sqa.String, unique=True)
-    sheet_col = sqa.Column(sqa.String)
-    sheet_order = sqa.Column(sqa.Integer)
-    fort_status = sqa.Column(sqa.Integer)
-    cmdr_merits = sqa.Column(sqa.Integer)
-    trigger = sqa.Column(sqa.Integer)
-    undermine = sqa.Column(sqa.Float)
-    notes = sqa.Column(sqa.String)
-
-    def __repr__(self):
-        args = {
-            'name': self.name,
-            'order': self.sheet_order,
-            'col': self.sheet_col,
-            'cur': self.fort_status,
-            'merits': self.cmdr_merits,
-            'trig': self.trigger,
-            'under': self.undermine,
-            'notes': self.notes
-        }
-        return "<System(name='{name}', sheet_order='{order}', sheet_col='{col}', "\
-                "merits='{merits}', fort_status='{cur}', trigger='{trig}', "\
-                "undermine='{under}', notes='{notes}')>".format(**args)
-
-    def __str__(self):
-        return "ID='{}', ".format(self.id) + self.__repr__()
-
-
 class Fort(Base):
     """
     Every drop made by a user creates a fort entry here.
@@ -93,7 +58,7 @@ class Fort(Base):
 
     id = sqa.Column(sqa.Integer, primary_key=True)
     user_id = sqa.Column(sqa.Integer, sqa.ForeignKey('users.id'))
-    system_id = sqa.Column(sqa.String, sqa.ForeignKey('systems.id'))
+    system_id = sqa.Column(sqa.String, sqa.ForeignKey('hsystems.id'))
     amount = sqa.Column(sqa.Integer)
 
     def __repr__(self):
@@ -239,12 +204,12 @@ class HSystem(Base):
 
 # Relationships
 Fort.user = sqa_orm.relationship('User', back_populates='forts')
-Fort.system = sqa_orm.relationship('System', back_populates='forts')
+Fort.system = sqa_orm.relationship('HSystem', back_populates='forts')
 User.forts = sqa_orm.relationship('Fort',
                                   # collection_class=sqa_attr_map('system.name'),
                                   cascade='all, delete, delete-orphan',
                                   back_populates='user')
-System.forts = sqa_orm.relationship('Fort',
+HSystem.forts = sqa_orm.relationship('Fort',
                                     # collection_class=sqa_attr_map('user.discord_name'),
                                     cascade='all, delete, delete-orphan',
                                     back_populates='system')
