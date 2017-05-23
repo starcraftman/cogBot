@@ -124,8 +124,7 @@ class HSystem(Base):
                 "undermine='{under}', notes='{notes}')>".format(**args)
 
     def __str__(self):
-        """ Format for output """
-        return tbl.format_line(self.data_tuple)
+        return "ID='{}', ".format(self.id) + self.__repr__()
 
     @property
     def f_status(self):

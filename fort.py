@@ -209,7 +209,7 @@ def main():
 
     print('Printing filled database, first 10 elements.')
     for system in session.query(cdb.HSystem)[:10]:
-        print(system.__repr__())
+        print(system)
 
     for user in session.query(cdb.User)[:10]:
         print(user)
