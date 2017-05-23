@@ -19,8 +19,6 @@ import sqlalchemy.orm as sqa_orm
 # from sqlalchemy.orm.collections import attribute_mapped_collection as sqa_attr_map
 import sqlalchemy.ext.declarative as sqa_dec
 
-import tbl
-
 
 Base = sqa_dec.declarative_base()
 
@@ -32,21 +30,26 @@ class User(Base):
     __tablename__ = 'users'
 
     id = sqa.Column(sqa.Integer, primary_key=True)
-    discord_name = sqa.Column(sqa.String, unique=True)
-    sheet_name = sqa.Column(sqa.String)
+    sheet_name = sqa.Column(sqa.String, unique=True)
     sheet_row = sqa.Column(sqa.Integer)
 
     def __repr__(self):
         args = {
-            'discord': self.discord_name,
             'sheet': self.sheet_name,
             'row': self.sheet_row,
         }
-        return "<User(discord_name='{discord}', sheet_name='{sheet}', "\
-               "sheet_row='{row}')>".format(**args)
+        return "<User(sheet_name='{sheet}', sheet_row='{row}')>".format(**args)
 
     def __str__(self):
         return "ID='{}', ".format(self.id) + self.__repr__()
+
+    @property
+    def merits(self):
+        amount = 0
+        for fort in self.forts:
+            amount += fort.amount
+
+        return amount
 
 
 class Fort(Base):
@@ -63,7 +66,7 @@ class Fort(Base):
 
     def __repr__(self):
         args = {
-            'user': self.user.discord_name,
+            'user': self.user.sheet_name,
             'system': self.system.name,
             'amount': self.amount,
         }
@@ -209,9 +212,9 @@ User.forts = sqa_orm.relationship('Fort',
                                   cascade='all, delete, delete-orphan',
                                   back_populates='user')
 HSystem.forts = sqa_orm.relationship('Fort',
-                                    # collection_class=sqa_attr_map('user.discord_name'),
-                                    cascade='all, delete, delete-orphan',
-                                    back_populates='system')
+                                     # collection_class=sqa_attr_map('user.sheet_name'),
+                                     cascade='all, delete, delete-orphan',
+                                     back_populates='system')
 
 
 def main():
@@ -220,9 +223,9 @@ def main():
     Session = sqa_orm.sessionmaker(bind=engine)
 
     users = (
-        User(discord_name='gearsandcogs', sheet_name='GearsandCogs', sheet_row=15),
-        User(discord_name='rjwhite', sheet_name='rjwhite', sheet_row=16),
-        User(discord_name='vampyregtx', sheet_name='vampyregtx', sheet_row=17),
+        User(sheet_name='GearsandCogs', sheet_row=15),
+        User(sheet_name='rjwhite', sheet_row=16),
+        User(sheet_name='vampyregtx', sheet_row=17),
     )
 
     session = Session()
@@ -230,12 +233,12 @@ def main():
     session.commit()
 
     systems = (
-        System(name='Frey', sheet_col='F', sheet_order=1, fort_status=0,
-               cmdr_merits=0, trigger=7400, undermine=0),
-        System(name='Adeo', sheet_col='G', sheet_order=2, fort_status=0,
-               cmdr_merits=0, trigger=5400, undermine=0),
-        System(name='Sol', sheet_col='H', sheet_order=3, fort_status=0,
-               cmdr_merits=0, trigger=6000, undermine=0),
+        HSystem(name='Frey', sheet_col='F', sheet_order=1, fort_status=0,
+                cmdr_merits=0, trigger=7400, undermine=0),
+        HSystem(name='Adeo', sheet_col='G', sheet_order=2, fort_status=0,
+                cmdr_merits=0, trigger=5400, undermine=0),
+        HSystem(name='Sol', sheet_col='H', sheet_order=3, fort_status=0,
+                cmdr_merits=0, trigger=6000, undermine=0),
     )
 
     session.add_all(systems)
@@ -258,11 +261,11 @@ def main():
         # pprint.pprint(*args)
         print(*args)
 
-    for user in session.query(User).order_by(User.discord_name).all():
+    for user in session.query(User).order_by(User.sheet_name).all():
         mprint(user)
         mprint(user.forts)
 
-    for sys in session.query(System).order_by(System.name):
+    for sys in session.query(HSystem).order_by(HSystem.name):
         mprint(sys)
         mprint(sys.forts)
 

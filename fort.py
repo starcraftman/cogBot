@@ -172,7 +172,7 @@ def main():
         try:
             data_row = begin
             for uname in result[0]:
-                user = cdb.User(discord_name=uname, sheet_name=uname, sheet_row=data_row)
+                user = cdb.User(sheet_name=uname, sheet_row=data_row)
                 session.add(user)
                 data_row += 1
 
