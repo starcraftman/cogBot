@@ -111,6 +111,7 @@ class InitialScan(object):
         """
         found = []
         data_column = sheets.Column(self.start_col)
+        order = 1
         more_systems = True
 
         while more_systems:
@@ -121,10 +122,11 @@ class InitialScan(object):
 
             try:
                 result_column = sheets.Column(begin)
-                for ind, data in enumerate(result):
-                    kwargs = sheets.system_result_dict(data, ind, str(result_column))
+                for data in result:
+                    kwargs = sheets.system_result_dict(data, order, str(result_column))
                     found.append(cdb.HSystem(**kwargs))
                     result_column.next()
+                    order = order + 1
             except sheets.IncompleteData:
                 more_systems = False
 
@@ -208,15 +210,16 @@ def main():
     session.add_all(forts)
     session.commit()
 
-    # print('Printing filled database, first 10 elements.')
-    # for system in systems[0:10]:
+    # print('Printing filled databases')
+    # for system in systems:
         # print(system)
 
-    # for user in users[0:10]:
+    # for user in users:
         # print(user)
 
-    # for fort in forts[0:10]:
+    # for fort in forts:
         # print(fort)
+
     othime = session.query(cdb.HSystem).filter_by(name='Othime').one()
     not_othime = session.query(cdb.HSystem).filter(cdb.HSystem.name != 'Othime').all()
 
