@@ -56,18 +56,6 @@ def get_config(*keys):
     return conf
 
 
-def get_fort_table():
-    """
-    Return a fort table object.
-    """
-    sheet_id = get_config('hudson', 'cattle', 'id')
-    secrets = get_config('secrets', 'sheets')
-    sheet = sheets.GSheet(sheet_id, secrets['json'], secrets['token'])
-    result = sheet.get('!F1:BM10', dim='COLUMNS')
-
-    return fort.FortTable(result)
-
-
 def make_parser():
     """
     Returns the bot parser.
@@ -82,7 +70,7 @@ def make_parser():
                      help='show detailed stats')
     sub.add_argument('-n', '--next', action='store_true', default=False,
                      help='show NUM systems after current')
-    sub.add_argument('num', nargs='?', type=int,
+    sub.add_argument('num', nargs='?', type=int, default=5,
                      help='number of systems to display')
     sub.set_defaults(func=parse_fort)
 
@@ -108,16 +96,18 @@ def parse_help(_):
 
 
 def parse_fort(args):
-    table = get_fort_table()
+    table = fort.get_fort_table()
 
-    if args.next and args.long:
-        msg = tbl.wrap_markdown(table.next_systems_long(args.num))
-    elif args.next:
-        msg = table.next_systems(args.num)
-    elif args.long:
-        msg = tbl.wrap_markdown(table.current_long())
+    if args.next:
+        systems = table.next_targets(args.num)
     else:
-        msg = table.current()
+        systems = table.targets()
+
+    if args.long:
+        lines = [systems[0].__class__.header] + [system.data_tuple for system in systems]
+        msg = tbl.wrap_markdown(tbl.format_table(lines, sep='|', header=True))
+    else:
+        msg = '\n'.join([system.name for system in systems])
 
     return msg
 

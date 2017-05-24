@@ -9,6 +9,14 @@ import sheets
 import tbl
 
 
+# TODO: Concern, too many sheet.gets. Consolidate to get whole sheet, and parse ?
+# TODO: Similarly, when updating sheet rely on batch_update eventually taken from a queue.
+# TODO: FortTable.drop(user, system, aount)
+# TODO: FortTable.add_user(username)
+
+# FIXME: Lazy initialization, do this better later
+table = None
+
 class FortTable(object):
     """
     Represents the fort sheet
@@ -47,15 +55,7 @@ class FortTable(object):
 
         return targets
 
-    def targets_long(self):
-        """
-        Print out the current objectives to fortify and their status.
-        """
-        lines = [cdb.HSystem.header] + [system.data_tuple for system in self.targets()]
-
-        return tbl.format_table(lines, sep='|', header=True)
-
-    def next_systems(self, count=5):
+    def next_targets(self, count=5):
         """
         Return next 5 regular fort targets.
         """
@@ -72,14 +72,6 @@ class FortTable(object):
                 break
 
         return targets
-
-    def next_systems_long(self, num=5):
-        """
-        Return next 5 regular fort targets.
-        """
-        lines = [cdb.HSystem.header] + [system.data_tuple for system in self.next_systems(num)]
-
-        return tbl.format_table(lines, sep='|', header=True)
 
     def totals(self):
         """
@@ -98,25 +90,25 @@ class FortTable(object):
                                                                  tot=len(self.systems) + 1)
 
 
-class InitialScan(object):
-    def __init__(self, start_row, start_col, sheet):
-        self.fetch_amount = 15
+class SheetScanner(object):
+    def __init__(self, sheet, row_start=1, col_start=1):
+        self.num_results = 15
         self.sheet = sheet
-        self.start_row = start_row
-        self.start_col = start_col
+        self.row_start = row_start
+        self.col_start = col_start
 
     def systems(self):
         """
-        Scan for systems in the fort table and insert into database.
+        Scan the systems in the fortification sheet and return HSystem objects that can be inserted.
         """
         found = []
-        data_column = sheets.Column(self.start_col)
+        data_column = sheets.Column(self.col_start)
         order = 1
         more_systems = True
 
         while more_systems:
             begin = str(data_column)
-            end = data_column.offset(self.fetch_amount)
+            end = data_column.offset(self.num_results)
             data_column.next()
             result = self.sheet.get('!{}1:{}10'.format(begin, end), dim='COLUMNS')
 
@@ -125,6 +117,7 @@ class InitialScan(object):
                 for data in result:
                     kwargs = sheets.system_result_dict(data, order, str(result_column))
                     found.append(cdb.HSystem(**kwargs))
+
                     result_column.next()
                     order = order + 1
             except sheets.IncompleteData:
@@ -133,35 +126,44 @@ class InitialScan(object):
         return found
 
     def users(self):
+        """
+        Scan the users in the fortification sheet and return User objects that can be inserted.
+
+        Ensure Users and HSystems have been flushed to link ids.
+        """
         found = []
-        row = self.start_row
+        row = self.row_start
         more_users = True
 
         while more_users:
-            begin = row
-            data_range = '!B{}:B{}'.format(begin, begin + self.fetch_amount)
-            row = row + self.fetch_amount + 1
+            sname_row = row - 1
+            data_range = '!B{}:B{}'.format(row, row + self.num_results)
+            row = row + self.num_results + 1
             result = self.sheet.get(data_range, dim='COLUMNS')
 
             try:
-                for uname in result[0]:
-                    found.append(cdb.User(sheet_name=uname, sheet_row=begin))
-                    begin += 1
+                for sname in result[0]:
+                    sname_row += 1
+                    if sname == '':  # Users sometimes miss an entry
+                        continue
 
-                if len(result[0]) != self.fetch_amount + 1:
-                    more_users = False
+                    found.append(cdb.User(sheet_name=sname, sheet_row=sname_row))
             except IndexError:
                 more_users = False
 
         return found
 
-
     def forts(self, systems, users):
         """
-        Given the existing systems and users, parse forts.
+        Scan the fortification area of the sheet and return Fort objects representing
+        fortification of each system.
+
+        Args:
+            systems: The list of HSystems in the order entered in the sheet.
+            users: The list of Users in order the order entered in the sheet.
         """
         found = []
-        data_range = '!{}{}:{}{}'.format(self.start_col, self.start_row,
+        data_range = '!{}{}:{}{}'.format(self.col_start, self.row_start,
                                          systems[-1].sheet_col,
                                          users[-1].sheet_row)
         result = self.sheet.get(data_range, dim='COLUMNS')
@@ -183,6 +185,43 @@ class InitialScan(object):
         return found
 
 
+def get_fort_table():
+    """
+    Terrible hack, just make a fort table.
+    """
+    global table
+    if table:
+        return table
+
+    import sqlalchemy as sqa
+    import sqlalchemy.orm as sqa_orm
+    engine = sqa.create_engine('sqlite:///:memory:', echo=False)
+    cdb.Base.metadata.create_all(engine)
+    session = sqa_orm.sessionmaker(bind=engine)()
+
+    sheet_id = share.get_config('hudson', 'cattle', 'id')
+    secrets = share.get_config('secrets', 'sheets')
+    sheet = sheets.GSheet(sheet_id, secrets['json'], secrets['token'])
+
+    scanner = SheetScanner(sheet, 11, 'F')
+    systems = scanner.systems()
+    users = scanner.users()
+    session.add_all(systems + users)
+    session.commit()
+
+    forts = scanner.forts(systems, users)
+    session.add_all(forts)
+    session.commit()
+
+    othime = session.query(cdb.HSystem).filter_by(name='Othime').one()
+    not_othime = session.query(cdb.HSystem).filter(cdb.HSystem.name != 'Othime').all()
+
+    table = FortTable(othime, not_othime, users, forts)
+    table.set_target()
+
+    return table
+
+
 def main():
     """
     Main function, does simple fort table test.
@@ -197,11 +236,13 @@ def main():
     secrets = share.get_config('secrets', 'sheets')
     sheet = sheets.GSheet(sheet_id, secrets['json'], secrets['token'])
 
-    scanner = InitialScan(11, 'F', sheet)
+    # result = sheet.get('!A1:BJ22', dim='COLUMNS')
+    # for column in result:
+        # print(column)
+
+    scanner = SheetScanner(sheet, 11, 'F')
     systems = scanner.systems()
     session.add_all(systems)
-    session.commit()
-
     users = scanner.users()
     session.add_all(users)
     session.commit()
@@ -209,6 +250,12 @@ def main():
     forts = scanner.forts(systems, users)
     session.add_all(forts)
     session.commit()
+
+    # Drop tables easily
+    # session.query(cdb.Fort).delete()
+    # session.query(cdb.User).delete()
+    # session.query(cdb.HSystem).delete()
+    # session.commit()
 
     # print('Printing filled databases')
     # for system in systems:

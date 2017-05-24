@@ -8,6 +8,7 @@ from __future__ import absolute_import, print_function
 import discord
 import logging
 
+import fort
 import share
 
 
@@ -54,7 +55,7 @@ async def on_message(message):
     log.info("Server: '{}' Channel: '{}' User: '{}' | {}".format(server,
             channel, author.name, msg))
 
-    if msg.startswith('!fort') or msg.starswith('!help'):
+    if msg.startswith('!fort') or msg.startswith('!help'):
         try:
             message.content = message.content[1:]
             parser = share.make_parser()
@@ -77,6 +78,7 @@ async def on_message(message):
 
 
 def main():
+    fort.get_fort_table()  # Force preloading table
     share.init_logging()
     try:
         client.run(share.get_config('secrets', 'discord_token'))
