@@ -273,8 +273,7 @@ def main():
     table = FortTable(othime, not_othime, users, forts)
     table.set_target()
     print(table.targets())
-    print(table.targets_long())
-    print(table.next_systems_long())
+    print(table.next_targets())
 
 if __name__ == "__main__":
     main()

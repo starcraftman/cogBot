@@ -63,36 +63,36 @@ def test_batch_update(fort_sheet_reset):
 
 def test_ColCnt_init():
     col1 = sheets.ColCnt()
-    assert col1.char == 'A'
+    assert str(col1) == 'A'
     col2 = sheets.ColCnt('Z')
-    assert col2.char == 'Z'
+    assert str(col2) == 'Z'
 
 
 def test_ColCnt_next():
     col1 = sheets.ColCnt()
     col1.next()
-    assert col1.char == 'B'
+    assert str(col1) == 'B'
 
     col2 = sheets.ColCnt('Z')
     with pytest.raises(sheets.ColOverflow):
         col2.next()
-    assert col2.char == 'A'
+    assert str(col2) == 'A'
 
 
 def test_ColCnt_reset():
     col2 = sheets.ColCnt('Z')
     col2.reset()
-    assert col2.char == 'A'
+    assert str(col2) == 'A'
 
 
 def test_Column_init():
     column = sheets.Column()
     assert str(column) == 'A'
-    assert column.counters[0].char == 'A'
+    assert str(column.counters[0]) == 'A'
     column = sheets.Column('BA')
     assert str(column) == 'BA'
-    assert column.counters[0].char == 'A'
-    assert column.counters[1].char == 'B'
+    assert str(column.counters[0]) == 'A'
+    assert str(column.counters[1]) == 'B'
 
 
 def test_Column_next():

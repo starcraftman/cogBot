@@ -50,14 +50,14 @@ class ColCnt(object):
     Simple counter that resets and prints its character.
     """
     def __init__(self, char='A'):
-        self.char = char
-        self.stop_char = chr(ord('Z') + 1)
+        self.char = ord(char)
+        self.stop_char = ord('Z') + 1
 
     def __repr__(self):
-        return "<ColCnt(char='{}', stop_char='{}')>".format(self.char, self.stop_char)
+        return "<ColCnt(char='{}', stop_char='{}')>".format(chr(self.char), chr(self.stop_char))
 
     def __str__(self):
-        return self.char
+        return chr(self.char)
 
     def next(self):
         """
@@ -66,7 +66,7 @@ class ColCnt(object):
         Raises:
             ColOverflow: When the counter exceeds its bounds. Counter is reset before throwing.
         """
-        self.char = chr(ord(self.char) + 1)
+        self.char = self.char + 1
         if self.char == self.stop_char:
             self.reset()
             raise ColOverflow
@@ -75,7 +75,7 @@ class ColCnt(object):
         """
         Reset to first character.
         """
-        self.char = 'A'
+        self.char = ord('A')
 
 
 class Column(object):
