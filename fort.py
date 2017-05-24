@@ -3,125 +3,184 @@ Module should handle logic related to querying/manipulating tables from a high l
 """
 from __future__ import absolute_import, print_function
 
+import cdb
 import share
 import sheets
-import cdb
+import tbl
 
 
-# TODO: Don't iterate Systems every query
-# FIXME: FortTable broken, still porting to new orm objects.
-# class FortTable(object):
+class FortTable(object):
+    """
+    Represents the fort sheet
+        -> Goal: Minimize unecessary operations to data on server.
     # """
-    # Represents the fort sheet
-        # -> Goal: Minimize unecessary operations to data on server.
-    # """
-    # def __init__(self, data):
-        # """
-        # Parse data from table and initialize.
-        # """
-        # self.data = data
+    def __init__(self, othime, systems, users, forts):
+        """
+        Pass in systems and users objects parsed from table.
 
-    # def current(self):
-        # """
-        # Print out the current system to forify.
-        # """
-        # target = None
+        NB: Remove othime from systems and pass in separately.
+        """
+        self.index = 0
+        self.othime = othime
+        self.forts = forts
+        self.systems = systems
+        self.users = users
 
-        # # Seek targets in systems list
-        # for datum in self.data:
-            # system = FortSystem(datum)
+    def set_target(self):
+        """
+        Scan list from the beginning to find next unfortified target.
+        """
+        for ind, system in enumerate(self.systems):
+            if system.is_fortified or system.skip:
+                continue
 
-            # if not target and system.name != 'Othime' and \
-                    # not system.is_fortified and not system.skip:
-                # target = system
+            self.index = ind
+            break
 
-            # if target:
-                # break
+    def targets(self):
+        """
+        Print out the current system to forify.
+        """
+        targets = [self.systems[self.index]]
+        if not self.othime.is_fortified:
+            targets.append(self.othime)
 
-        # return target.name
+        return targets
 
-    # def current_long(self):
-        # """
-        # Print out the current objectives to fortify and their status.
-        # """
-        # othime = None
-        # target = None
+    def targets_long(self):
+        """
+        Print out the current objectives to fortify and their status.
+        """
+        lines = [cdb.HSystem.header, self.systems[self.index].data_tuple]
+        if not self.othime.is_fortified:
+            lines += [self.othime.data_tuple]
 
-        # # Seek targets in systems list
-        # for datum in self.data:
-            # system = FortSystem(datum)
+        return tbl.format_table(lines, sep='|', header=True)
 
-            # if system.name == 'Othime':
-                # othime = system
+    def next_systems(self, count=5):
+        """
+        Return next 5 regular fort targets.
+        """
+        targets = []
 
-            # if not target and system.name != 'Othime' and \
-                    # not system.is_fortified and not system.skip:
-                # target = system
+        for system in self.systems[self.index+1:]:
+            if system.is_fortified or system.skip:
+                continue
 
-            # if othime and target:
-                # break
+            targets.append(system)
 
-        # lines = [HSystem.header, target.data_tuple]
-        # if not othime.is_fortified:
-            # lines += [othime.data_tuple]
-        # return tbl.format_table(lines, sep='|', header=True)
+            count = count - 1
+            if count == 0:
+                break
 
-    # def next_systems(self, num=None):
-        # """
-        # Return next 5 regular fort targets.
-        # """
-        # targets = []
-        # if not num:
-            # num = 5
+        return targets
 
-        # for datum in self.data:
-            # system = FortSystem(datum)
+    def next_systems_long(self, num=5):
+        """
+        Return next 5 regular fort targets.
+        """
+        tuples = [system.data_tuple for system in self.next_systems(num)]
+        return tbl.format_table([cdb.HSystem.header] + tuples,
+                                sep='|', header=True)
 
-            # if system.name != 'Othime' and not system.is_fortified and not system.skip:
-                # targets.append(system.name)
+    def totals(self):
+        """
+        Print running total of fortified, undermined systems.
+        """
+        undermined = 0
+        fortified = 0
 
-            # if len(targets) == num + 1:
-                # break
+        for system in self.systems + [self.othime]:
+            if system.is_fortified:
+                fortified += 1
+            if system.is_undermined:
+                undermined += 1
 
-        # return '\n'.join(targets[1:])
+        return 'Fortified {}/{tot}, Undermined: {}/{tot}'.format(fortified, undermined,
+                                                                 tot=len(self.systems) + 1)
 
-    # def next_systems_long(self, num=None):
-        # """
-        # Return next 5 regular fort targets.
-        # """
-        # targets = []
-        # if not num:
-            # num = 5
 
-        # for datum in self.data:
-            # system = FortSystem(datum)
+class InitialScan(object):
+    def __init__(self, start_row, start_col, sheet):
+        self.fetch_amount = 15
+        self.sheet = sheet
+        self.start_row = start_row
+        self.start_col = start_col
 
-            # if system.name != 'Othime' and not system.is_fortified and not system.skip:
-                # targets.append(system.data_tuple)
+    def systems(self):
+        """
+        Scan for systems in the fort table and insert into database.
+        """
+        found = []
+        data_column = sheets.Column(self.start_col)
+        more_systems = True
 
-            # if len(targets) == num + 1:
-                # break
+        while more_systems:
+            begin = str(data_column)
+            end = data_column.offset(self.fetch_amount)
+            data_column.next()
+            result = self.sheet.get('!{}1:{}10'.format(begin, end), dim='COLUMNS')
 
-        # return tbl.format_table([HSystem.header] + targets[1:], sep='|', header=True)
+            try:
+                result_column = sheets.Column(begin)
+                for ind, data in enumerate(result):
+                    kwargs = sheets.system_result_dict(data, ind, str(result_column))
+                    found.append(cdb.HSystem(**kwargs))
+                    result_column.next()
+            except sheets.IncompleteData:
+                more_systems = False
 
-    # def totals(self):
-        # """
-        # Print running total of fortified, undermined systems.
-        # """
-        # undermined = 0
-        # fortified = 0
+        return found
 
-        # for datum in self.data:
-            # system = FortSystem(datum)
+    def users(self):
+        found = []
+        row = self.start_row
+        more_users = True
 
-            # if system.is_fortified:
-                # fortified += 1
-            # if system.is_undermined:
-                # undermined += 1
+        while more_users:
+            begin = row
+            data_range = '!B{}:B{}'.format(begin, begin + self.fetch_amount)
+            row = row + self.fetch_amount + 1
+            result = self.sheet.get(data_range, dim='COLUMNS')
 
-        # return 'Fortified {}/{tot}, Undermined: {}/{tot}'.format(fortified, undermined,
-                                                                 # tot=len(self.data))
+            try:
+                for uname in result[0]:
+                    found.append(cdb.User(sheet_name=uname, sheet_row=begin))
+                    begin += 1
 
+                if len(result[0]) != self.fetch_amount + 1:
+                    more_users = False
+            except IndexError:
+                more_users = False
+
+        return found
+
+
+    def forts(self, systems, users):
+        """
+        Given the existing systems and users, parse forts.
+        """
+        found = []
+        data_range = '!{}{}:{}{}'.format(self.start_col, self.start_row,
+                                         systems[-1].sheet_col,
+                                         users[-1].sheet_row)
+        result = self.sheet.get(data_range, dim='COLUMNS')
+        system_ind = -1
+        for col_data in result:
+            system_ind += 1
+            system = systems[system_ind]
+
+            user_ind = -1
+            for amount in col_data:
+                user_ind += 1
+
+                if amount == '':  # Some rows just placeholders if empty
+                    continue
+
+                user = users[user_ind]
+                found.append(cdb.Fort(user_id=user.id, system_id=system.id, amount=amount))
+
+        return found
 
 
 def main():
@@ -138,88 +197,36 @@ def main():
     secrets = share.get_config('secrets', 'sheets')
     sheet = sheets.GSheet(sheet_id, secrets['json'], secrets['token'])
 
-    range_fetch = 10
-    data_column = sheets.Column('F')
-    more_systems = True
-    while more_systems:
-        begin, end = str(data_column), data_column.offset(range_fetch)
-        data_column.next()
-        data_range = '!{}1:{}10'.format(begin, end)
-        result = sheet.get(data_range, dim='COLUMNS')
-
-        try:
-            result_column = sheets.Column(begin)
-            for ind, data in enumerate(result):
-                kwargs = sheets.system_result_dict(data, ind, str(result_column))
-                system = cdb.HSystem(**kwargs)
-                session.add(system)
-                result_column.next()
-        except sheets.IncompleteData:
-            more_systems = False
-
+    scanner = InitialScan(11, 'F', sheet)
+    systems = scanner.systems()
+    session.add_all(systems)
     session.commit()
 
-    more_users = True
-    row = 11
-    while more_users:
-        begin = row
-        end = row + range_fetch
-        row += range_fetch + 1
-
-        data_range = '!B{}:B{}'.format(begin, end)
-        result = sheet.get(data_range, dim='COLUMNS')
-
-        try:
-            data_row = begin
-            for uname in result[0]:
-                user = cdb.User(sheet_name=uname, sheet_row=data_row)
-                session.add(user)
-                data_row += 1
-
-            if len(result[0]) != range_fetch + 1:
-                more_users = False
-        except IndexError:
-            more_users = False
-
+    users = scanner.users()
+    session.add_all(users)
     session.commit()
 
-    users = session.query(cdb.User).all()
-    systems = session.query(cdb.HSystem).all()
-
-    # Proccess all forts
-    data_range = '!{}{}:{}{}'.format('F', 11, systems[-1].sheet_col, users[-1].sheet_row)
-    result = sheet.get(data_range, dim='COLUMNS')
-    system_ind = 0
-    for col_data in result:
-        system = systems[system_ind]
-        system_ind += 1
-
-        user_ind = 0
-        for row_data in col_data:
-            if row_data == '':
-                continue
-
-            user = users[user_ind]
-            user_ind += 1
-
-            fort = cdb.Fort(user_id=user.id, system_id=system.id, amount=row_data)
-            session.add(fort)
-
+    forts = scanner.forts(systems, users)
+    session.add_all(forts)
     session.commit()
 
-    print('Printing filled database, first 10 elements.')
-    for system in session.query(cdb.HSystem)[:10]:
-        print(system)
+    # print('Printing filled database, first 10 elements.')
+    # for system in systems[0:10]:
+        # print(system)
 
-    for user in session.query(cdb.User)[:10]:
-        print(user)
+    # for user in users[0:10]:
+        # print(user)
 
-    for fort in session.query(cdb.Fort)[:10]:
-        print(fort)
+    # for fort in forts[0:10]:
+        # print(fort)
+    othime = session.query(cdb.HSystem).filter_by(name='Othime').one()
+    not_othime = session.query(cdb.HSystem).filter(cdb.HSystem.name != 'Othime').all()
 
-    # table = FortTable(result)
-    # print(table.current())
-    # print(table.next_systems_long())
+    table = FortTable(othime, not_othime, users, forts)
+    table.set_target()
+    print(table.targets())
+    print(table.targets_long())
+    print(table.next_systems_long())
 
 if __name__ == "__main__":
     main()

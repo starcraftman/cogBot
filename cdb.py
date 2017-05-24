@@ -19,6 +19,9 @@ import sqlalchemy.orm as sqa_orm
 # from sqlalchemy.orm.collections import attribute_mapped_collection as sqa_attr_map
 import sqlalchemy.ext.declarative as sqa_dec
 
+# TODO: Used to serialize db, possible test db with it?
+# import sqlalchemy.ext.serializer as sqa_serial
+
 
 Base = sqa_dec.declarative_base()
 
@@ -255,24 +258,24 @@ def main():
     session.add_all(forts)
     session.commit()
 
-    import pprint
     def mprint(*args):
         args = [str(x) for x in args]
-        # pprint.pprint(*args)
         print(*args)
+
+    pad = ' ' * 3
 
     for user in session.query(User).order_by(User.sheet_name).all():
         mprint(user)
-        mprint(user.forts)
+        mprint(pad, user.forts)
 
     for sys in session.query(HSystem).order_by(HSystem.name):
         mprint(sys)
-        mprint(sys.forts)
+        mprint(pad, sys.forts)
 
     for fort in session.query(Fort).order_by(Fort.system_id):
         mprint(fort)
-        mprint(fort.user)
-        mprint(fort.system)
+        mprint(pad, fort.user)
+        mprint(pad, fort.system)
 
 
 if __name__ == "__main__":

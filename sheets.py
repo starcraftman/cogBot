@@ -24,16 +24,16 @@ APPLICATION_NAME = 'GearBot'
 REQ_SCOPE = 'https://www.googleapis.com/auth/spreadsheets'
 
 
-class MissingConfigFile(Exception):
+class ColOverflow(Exception):
     """
-    Thrown if a config isn't set properly.
+    Raise when a column has reached end, increment next column.
     """
     pass
 
 
-class ColOverflow(Exception):
+class MissingConfigFile(Exception):
     """
-    Raise when a column has reached end, increment next column.
+    Thrown if a config isn't set properly.
     """
     pass
 
@@ -140,6 +140,9 @@ class Column(object):
 class GSheet(object):
     """
     Class to wrap the sheet api and provide convenience methods.
+
+    Important: The A1 range specified is inclusive on both sides.
+    For example sheet.get('!A1:B2') fetches cells [[A1, A2], [B1, B2]]
 
     Results are returned or sent via api in following form:
     {
