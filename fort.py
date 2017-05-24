@@ -51,9 +51,7 @@ class FortTable(object):
         """
         Print out the current objectives to fortify and their status.
         """
-        lines = [cdb.HSystem.header, self.systems[self.index].data_tuple]
-        if not self.othime.is_fortified:
-            lines += [self.othime.data_tuple]
+        lines = [cdb.HSystem.header] + [system.data_tuple for system in self.targets()]
 
         return tbl.format_table(lines, sep='|', header=True)
 
@@ -79,9 +77,9 @@ class FortTable(object):
         """
         Return next 5 regular fort targets.
         """
-        tuples = [system.data_tuple for system in self.next_systems(num)]
-        return tbl.format_table([cdb.HSystem.header] + tuples,
-                                sep='|', header=True)
+        lines = [cdb.HSystem.header] + [system.data_tuple for system in self.next_systems(num)]
+
+        return tbl.format_table(lines, sep='|', header=True)
 
     def totals(self):
         """
