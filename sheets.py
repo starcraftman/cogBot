@@ -5,7 +5,6 @@ Tutorial and reference available at:
     https://developers.google.com/sheets/api/quickstart/python
 """
 from __future__ import absolute_import, print_function
-import math
 import os
 
 import argparse
@@ -31,16 +30,16 @@ class ColOverflow(Exception):
     pass
 
 
-class MissingConfigFile(Exception):
+class IncompleteData(Exception):
     """
-    Thrown if a config isn't set properly.
+    Raise when data no longer contains useful information.
     """
     pass
 
 
-class IncompleteData(Exception):
+class MissingConfigFile(Exception):
     """
-    Raise when data no longer contains useful information.
+    Thrown if a config isn't set properly.
     """
     pass
 

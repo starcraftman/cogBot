@@ -223,7 +223,7 @@ HSystem.forts = sqa_orm.relationship('Fort',
 def main():
     engine = sqa.create_engine('sqlite:///:memory:', echo=False)
     Base.metadata.create_all(engine)
-    Session = sqa_orm.sessionmaker(bind=engine)
+    session = sqa_orm.sessionmaker(bind=engine)()
 
     users = (
         User(sheet_name='GearsandCogs', sheet_row=15),
@@ -231,7 +231,6 @@ def main():
         User(sheet_name='vampyregtx', sheet_row=17),
     )
 
-    session = Session()
     session.add_all(users)
     session.commit()
 

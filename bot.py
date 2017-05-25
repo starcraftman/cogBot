@@ -78,7 +78,7 @@ async def on_message(message):
 
 
 def main():
-    fort.get_fort_table()  # Force preloading table
+    share.get_db_session()
     share.init_logging()
     try:
         client.run(share.get_config('secrets', 'discord_token'))

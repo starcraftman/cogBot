@@ -14,25 +14,21 @@ import tbl
 # TODO: FortTable.drop(user, system, aount)
 # TODO: FortTable.add_user(username)
 
-# FIXME: Lazy initialization, do this better later
-table = None
 
 class FortTable(object):
     """
-    Represents the fort sheet
-        -> Goal: Minimize unecessary operations to data on server.
-    # """
-    def __init__(self, othime, systems, users, forts):
+    Represents the fort sheet, answers simple questions.
+    """
+    def __init__(self, session):
         """
-        Pass in systems and users objects parsed from table.
-
-        NB: Remove othime from systems and pass in separately.
+        Query on creation any data needed.
         """
+        self.othime = session.query(cdb.HSystem).\
+                filter_by(name='Othime').one()
+        self.systems = session.query(cdb.HSystem).\
+                filter(cdb.HSystem.name != 'Othime').all()
         self.index = 0
-        self.othime = othime
-        self.forts = forts
-        self.systems = systems
-        self.users = users
+        self.set_target()
 
     def set_target(self):
         """
@@ -185,71 +181,13 @@ class SheetScanner(object):
         return found
 
 
-def get_fort_table():
-    """
-    Terrible hack, just make a fort table.
-    """
-    global table
-    if table:
-        return table
-
-    import sqlalchemy as sqa
-    import sqlalchemy.orm as sqa_orm
-    engine = sqa.create_engine('sqlite:///:memory:', echo=False)
-    cdb.Base.metadata.create_all(engine)
-    session = sqa_orm.sessionmaker(bind=engine)()
-
-    sheet_id = share.get_config('hudson', 'cattle', 'id')
-    secrets = share.get_config('secrets', 'sheets')
-    sheet = sheets.GSheet(sheet_id, secrets['json'], secrets['token'])
-
-    scanner = SheetScanner(sheet, 11, 'F')
-    systems = scanner.systems()
-    users = scanner.users()
-    session.add_all(systems + users)
-    session.commit()
-
-    forts = scanner.forts(systems, users)
-    session.add_all(forts)
-    session.commit()
-
-    othime = session.query(cdb.HSystem).filter_by(name='Othime').one()
-    not_othime = session.query(cdb.HSystem).filter(cdb.HSystem.name != 'Othime').all()
-
-    table = FortTable(othime, not_othime, users, forts)
-    table.set_target()
-
-    return table
-
-
 def main():
     """
     Main function, does simple fort table test.
     """
-    import sqlalchemy as sqa
-    import sqlalchemy.orm as sqa_orm
-    engine = sqa.create_engine('sqlite:///:memory:', echo=False)
-    cdb.Base.metadata.create_all(engine)
-    session = sqa_orm.sessionmaker(bind=engine)()
-
-    sheet_id = share.get_config('hudson', 'cattle', 'id')
-    secrets = share.get_config('secrets', 'sheets')
-    sheet = sheets.GSheet(sheet_id, secrets['json'], secrets['token'])
-
-    # result = sheet.get('!A1:BJ22', dim='COLUMNS')
-    # for column in result:
-        # print(column)
-
-    scanner = SheetScanner(sheet, 11, 'F')
-    systems = scanner.systems()
-    session.add_all(systems)
-    users = scanner.users()
-    session.add_all(users)
-    session.commit()
-
-    forts = scanner.forts(systems, users)
-    session.add_all(forts)
-    session.commit()
+    table = FortTable(share.get_db_session())
+    print(table.targets())
+    print(table.next_targets())
 
     # Drop tables easily
     # session.query(cdb.Fort).delete()
@@ -266,14 +204,6 @@ def main():
 
     # for fort in forts:
         # print(fort)
-
-    othime = session.query(cdb.HSystem).filter_by(name='Othime').one()
-    not_othime = session.query(cdb.HSystem).filter(cdb.HSystem.name != 'Othime').all()
-
-    table = FortTable(othime, not_othime, users, forts)
-    table.set_target()
-    print(table.targets())
-    print(table.next_targets())
 
 if __name__ == "__main__":
     main()

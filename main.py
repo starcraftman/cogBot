@@ -32,6 +32,7 @@ def main():
     """
     Simply operate the bot locally by command line input.
     """
+    share.get_db_session()
     share.init_logging()
 
     try:

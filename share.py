@@ -20,6 +20,7 @@ import sheets
 import tbl
 
 
+SESSION = None
 THIS_DIR = os.path.dirname(os.path.abspath(__file__))
 YAML_FILE = os.path.join(THIS_DIR, '.secrets', 'config.yaml')
 
@@ -41,6 +42,41 @@ class ThrowArggumentParser(argparse.ArgumentParser):
         Suppress default exit behaviour.
         """
         raise ArgumentParseError()
+
+
+# FIXME: Still a bad temporary hack.
+def get_db_session(reuse_db=True):
+    """
+    Create database, parse sheet and insert data.
+    """
+    global SESSION
+    import sqlalchemy as sqa
+    import sqlalchemy.orm as sqa_orm
+    import cdb
+    if SESSION and reuse_db:
+        session = SESSION
+    else:
+        engine = sqa.create_engine('sqlite:///:memory:', echo=False)
+        cdb.Base.metadata.create_all(engine)
+        session = sqa_orm.sessionmaker(bind=engine)()
+        SESSION = session
+
+    if not session.query(cdb.HSystem).all():
+        sheet_id = get_config('hudson', 'cattle', 'id')
+        secrets = get_config('secrets', 'sheets')
+        sheet = sheets.GSheet(sheet_id, secrets['json'], secrets['token'])
+
+        scanner = fort.SheetScanner(sheet, 11, 'F')
+        systems = scanner.systems()
+        users = scanner.users()
+        session.add_all(systems + users)
+        session.commit()
+
+        forts = scanner.forts(systems, users)
+        session.add_all(forts)
+        session.commit()
+
+    return session
 
 
 def get_config(*keys):
@@ -84,19 +120,19 @@ def parse_help(_):
     Simply prints overall help documentation.
     """
     lines = [
-        'Available commands:',
-        '!fort           Show current fort target.',
-        '!fort -l        Show current fort target\'s status.',
-        '!fort -n NUM    Show the next NUM targets. Default NUM = 5.',
-        '!fort -nl NUM   Show status of the next NUM targets.',
-        '!info           Display information on user.',
-        '!help           This help message.',
+        ['Command', 'Effect'],
+        ['!fort', 'Show current fort target.'],
+        ['!fort -l', 'Show current fort target\'s status.'],
+        ['!fort -n NUM', 'Show the next NUM targets. Default NUM = 5.'],
+        ['!fort -nl NUM', 'Show status of the next NUM targets.'],
+        ['!info', 'Display information on user.'],
+        ['!help', 'This help message.'],
     ]
-    return '\n'.join(lines)
+    return tbl.wrap_markdown(tbl.format_table(lines, header=True))
 
 
 def parse_fort(args):
-    table = fort.get_fort_table()
+    table = fort.FortTable(get_db_session())
 
     if args.next:
         systems = table.next_targets(args.num)
