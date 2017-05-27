@@ -132,10 +132,13 @@ class FortTable(object):
         try:
             fort = self.session.query(cdb.Fort).filter_by(user_id=user.id, system_id=system.id).one()
             fort.amount += amount
+            system.fort_status += amount
+            system.cmdr_merits += amount
         except sqa_exc.NoResultFound:
             fort = cdb.Fort(user_id=user.id, system_id=system.id, amount=amount)
 
         self.session.add(fort)
+        self.session.add(system)
         self.session.commit()
 
         sheet = get_sheet()

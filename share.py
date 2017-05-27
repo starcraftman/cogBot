@@ -184,6 +184,7 @@ def parse_user(args):
 
     return msg
 
+
 def parse_drop(args):
     table = fort.FortTable(get_db_session())
     msg = table.add_fort(args.system, args.user, args.amount)
@@ -191,7 +192,7 @@ def parse_drop(args):
         return msg
     else:
         lines = [msg.__class__.header, msg.data_tuple]
-        msg = tbl.wrap_markdown(tbl.format_table(lines, sep='|', header=True))
+        return tbl.wrap_markdown(tbl.format_table(lines, sep='|', header=True))
 
 
 def init_logging():
