@@ -3,10 +3,11 @@ Module should handle logic related to querying/manipulating tables from a high l
 """
 from __future__ import absolute_import, print_function
 
+import sqlalchemy.orm.exc as sqa_exc
+
 import cdb
 import share
 import sheets
-import tbl
 
 
 # TODO: Concern, too many sheet.gets. Consolidate to get whole sheet, and parse ?
@@ -23,12 +24,24 @@ class FortTable(object):
         """
         Query on creation any data needed.
         """
-        self.othime = session.query(cdb.HSystem).\
-                filter_by(name='Othime').one()
-        self.systems = session.query(cdb.HSystem).\
-                filter(cdb.HSystem.name != 'Othime').all()
+        self.session = session
         self.index = 0
         self.set_target()
+
+    @property
+    def othime(self):
+        return self.session.query(cdb.HSystem).\
+                filter_by(name='Othime').one()
+
+    @property
+    def systems(self):
+        return self.session.query(cdb.HSystem).\
+                filter(cdb.HSystem.name != 'Othime').all()
+
+    @property
+    def users(self):
+        return self.session.query(cdb.User).all()
+
 
     def set_target(self):
         """
@@ -84,6 +97,52 @@ class FortTable(object):
 
         return 'Fortified {}/{tot}, Undermined: {}/{tot}'.format(fortified, undermined,
                                                                  tot=len(self.systems) + 1)
+
+    def find_user(self, name):
+        """
+        Find and return matching User, if not found returns None.
+        """
+        try:
+            return self.session.query(cdb.User).filter_by(sheet_name=name).one()
+        except (sqa_exc.NoResultFound, sqa_exc.MultipleResultsFound):
+            return None
+
+    def add_user(self, name):
+        """
+        Simply add user past last entry.
+        """
+        last_row = self.users[-1].sheet_row
+        new_user = cdb.User(sheet_name=name, sheet_row=last_row+1)
+        self.session.add(new_user)
+        self.session.commit()
+
+        # For now, update immediately and wait.
+        sheet = get_sheet()
+        sheet.update('!B{row}:B{row}'.format(row=new_user.sheet_row), [[new_user.sheet_name]])
+
+        return new_user
+
+    def add_fort(self, system_name, sheet_name, amount):
+        try:
+            system = self.session.query(cdb.HSystem).filter_by(name=system_name).one()
+            user = self.session.query(cdb.User).filter_by(sheet_name=sheet_name).one()
+        except (sqa_exc.NoResultFound, sqa_exc.MultipleResultsFound):
+            return 'Invalid drop command. Check system and username.'
+
+        try:
+            fort = self.session.query(cdb.Fort).filter_by(user_id=user.id, system_id=system.id).one()
+            fort.amount += amount
+        except sqa_exc.NoResultFound:
+            fort = cdb.Fort(user_id=user.id, system_id=system.id, amount=amount)
+
+        self.session.add(fort)
+        self.session.commit()
+
+        sheet = get_sheet()
+        sheet.update('!{col}{row}:{col}{row}'.format(col=system.sheet_col,
+                                                     row=user.sheet_row), [[fort.amount]])
+
+        return system
 
 
 class SheetScanner(object):
@@ -179,6 +238,12 @@ class SheetScanner(object):
                 found.append(cdb.Fort(user_id=user.id, system_id=system.id, amount=amount))
 
         return found
+
+
+def get_sheet():
+    sheet_id = share.get_config('hudson', 'cattle', 'id')
+    secrets = share.get_config('secrets', 'sheets')
+    return sheets.GSheet(sheet_id, secrets['json'], secrets['token'])
 
 
 def main():

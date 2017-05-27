@@ -110,6 +110,21 @@ def make_parser():
                      help='number of systems to display')
     sub.set_defaults(func=parse_fort)
 
+    sub = subs.add_parser('user', description='Manipulate sheet users.')
+    sub.add_argument('-a', '--add', action='store_true', default=False,
+                     help='Add a user to table if not present.')
+    sub.add_argument('-q', '--query', action='store_true', default=False,
+                     help='Return username and row if exists.')
+    sub.add_argument('user', nargs='?',
+                     help='The user to interact with.')
+    sub.set_defaults(func=parse_user)
+
+    sub = subs.add_parser('drop', description='Drop forts for user at system.')
+    sub.add_argument('system', help='The system to drop at.')
+    sub.add_argument('user', help='The user to drop for.')
+    sub.add_argument('amount', type=int, help='The amount to drop.')
+    sub.set_defaults(func=parse_drop)
+
     sub = subs.add_parser('help', description='Show overall help message.')
     sub.set_defaults(func=parse_help)
     return parser
@@ -125,6 +140,9 @@ def parse_help(_):
         ['!fort -l', 'Show current fort target\'s status.'],
         ['!fort -n NUM', 'Show the next NUM targets. Default NUM = 5.'],
         ['!fort -nl NUM', 'Show status of the next NUM targets.'],
+        ['!user -a USER', 'Add a USER to table.'],
+        ['!user -q USER', 'Check if user is in table.'],
+        ['!drop SYSTEM USER AMOUNT', 'Increase by AMOUNT forts for USER at SYSTEM'],
         ['!info', 'Display information on user.'],
         ['!help', 'This help message.'],
     ]
@@ -146,6 +164,34 @@ def parse_fort(args):
         msg = '\n'.join([system.name for system in systems])
 
     return msg
+
+
+def parse_user(args):
+    table = fort.FortTable(get_db_session())
+    user = table.find_user(args.user)
+
+    if user:
+        if args.query or args.add:
+            msg = "User '{}' already present in row {}.".format(user.sheet_name,
+                                                                user.sheet_row)
+    else:
+        if args.add:
+            new_user = table.add_user(args.user)
+            msg = "Added '{}' to row {}.".format(new_user.sheet_name,
+                                                 new_user.sheet_row)
+        else:
+            msg = "User '{}' not found.".format(args.user)
+
+    return msg
+
+def parse_drop(args):
+    table = fort.FortTable(get_db_session())
+    msg = table.add_fort(args.system, args.user, args.amount)
+    if isinstance(msg, type('')):
+        return msg
+    else:
+        lines = [msg.__class__.header, msg.data_tuple]
+        msg = tbl.wrap_markdown(tbl.format_table(lines, sep='|', header=True))
 
 
 def init_logging():

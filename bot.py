@@ -55,24 +55,20 @@ async def on_message(message):
     log.info("Server: '{}' Channel: '{}' User: '{}' | {}".format(server,
             channel, author.name, msg))
 
-    if msg.startswith('!fort') or msg.startswith('!help'):
+    if message.content.startswith('!info'):
+        roles = ', '.join([role.name for role in message.author.roles[1:]])
+        msg = 'Author: {aut} has Roles: {rol}'.format(aut=message.author.name, rol=roles)
+        msg += '\nSent from channel [{ch}] on server [{se}]'.format(ch=message.channel.name,
+                                                                se=message.channel.server)
+    else:
         try:
             message.content = message.content[1:]
             parser = share.make_parser()
             args = parser.parse_args(message.content.split(' '))
             msg = args.func(args)
         except share.ArgumentParseError:
-            msg = 'Bad command, see !help.'
-
-    elif message.content.startswith('!info'):
-        roles = ', '.join([role.name for role in message.author.roles[1:]])
-        msg = 'Author: {aut} has Roles: {rol}'.format(aut=message.author.name, rol=roles)
-        msg += '\nSent from channel [{ch}] on server [{se}]'.format(ch=message.channel.name,
-                                                                se=message.channel.server)
-
-    else:
-        msg = 'Did not understand: {}'.format(message.content)
-        msg += '\nGet more info with: !help'
+            msg = 'Did not understand: {}'.format(message.content)
+            msg += '\nGet more info with: !help'
 
     await client.send_message(message.channel, msg)
 

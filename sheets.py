@@ -260,15 +260,17 @@ def get_credentials(json_secret, sheets_token):
 
 
 def parse_int(word):
-    if word == '':
-        word = 0
-    return int(word)
+    try:
+        return int(word)
+    except ValueError:
+        return 0
 
 
 def parse_float(word):
-    if word == '':
-        word = 0.0
-    return float(word)
+    try:
+        return float(word)
+    except ValueError:
+        return 0.0
 
 
 def system_result_dict(lines, order, column):
