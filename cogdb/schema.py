@@ -1,29 +1,16 @@
 """
-Database related code, for caching excel sheet
-
-Reference tutorial
-  http://docs.sqlalchemy.org/en/latest/orm/tutorial.html
-Relationships:
-  http://docs.sqlalchemy.org/en/latest/orm/basic_relationships.html#relationship-patterns
-Linking Relationships:
-  http://docs.sqlalchemy.org/en/latest/orm/backref.html#relationships-backref
-Customing Collections Access:
-  http://docs.sqlalchemy.org/en/latest/orm/collections.html#custom-collections
-Constraints:
-  http://docs.sqlalchemy.org/en/latest/core/constraints.html#unique-constraint
+Manage the database and its tables.
 """
 from __future__ import absolute_import, print_function
 
-import sqlalchemy as sqa
-import sqlalchemy.orm as sqa_orm
-# from sqlalchemy.orm.collections import attribute_mapped_collection as sqa_attr_map
-import sqlalchemy.ext.declarative as sqa_dec
+import sqlalchemy as sqla
+import sqlalchemy.orm as sqla_orm
+import sqlalchemy.ext.declarative
 
-# TODO: Used to serialize db, possible test db with it?
-# import sqlalchemy.ext.serializer as sqa_serial
+import cogdb
 
 
-Base = sqa_dec.declarative_base()
+Base = sqlalchemy.ext.declarative.declarative_base()
 
 
 class User(Base):
@@ -32,9 +19,9 @@ class User(Base):
     """
     __tablename__ = 'users'
 
-    id = sqa.Column(sqa.Integer, primary_key=True)
-    sheet_name = sqa.Column(sqa.String, unique=True)
-    sheet_row = sqa.Column(sqa.Integer)
+    id = sqla.Column(sqla.Integer, primary_key=True)
+    sheet_name = sqla.Column(sqla.String, unique=True)
+    sheet_row = sqla.Column(sqla.Integer)
 
     def __repr__(self):
         args = {
@@ -62,10 +49,10 @@ class Fort(Base):
     """
     __tablename__ = 'forts'
 
-    id = sqa.Column(sqa.Integer, primary_key=True)
-    user_id = sqa.Column(sqa.Integer, sqa.ForeignKey('users.id'))
-    system_id = sqa.Column(sqa.String, sqa.ForeignKey('systems.id'))
-    amount = sqa.Column(sqa.Integer)
+    id = sqla.Column(sqla.Integer, primary_key=True)
+    user_id = sqla.Column(sqla.Integer, sqla.ForeignKey('users.id'))
+    system_id = sqla.Column(sqla.String, sqla.ForeignKey('systems.id'))
+    amount = sqla.Column(sqla.Integer)
 
     def __repr__(self):
         args = {
@@ -103,15 +90,15 @@ class System(Base):
 
     header = ['System', 'Trigger', 'Missing', 'UM', 'Notes']
 
-    id = sqa.Column(sqa.Integer, primary_key=True)
-    name = sqa.Column(sqa.String, unique=True)
-    sheet_col = sqa.Column(sqa.String)
-    sheet_order = sqa.Column(sqa.Integer)
-    fort_status = sqa.Column(sqa.Integer)
-    cmdr_merits = sqa.Column(sqa.Integer)
-    trigger = sqa.Column(sqa.Integer)
-    undermine = sqa.Column(sqa.Float)
-    notes = sqa.Column(sqa.String)
+    id = sqla.Column(sqla.Integer, primary_key=True)
+    name = sqla.Column(sqla.String, unique=True)
+    sheet_col = sqla.Column(sqla.String)
+    sheet_order = sqla.Column(sqla.Integer)
+    fort_status = sqla.Column(sqla.Integer)
+    cmdr_merits = sqla.Column(sqla.Integer)
+    trigger = sqla.Column(sqla.Integer)
+    undermine = sqla.Column(sqla.Float)
+    notes = sqla.Column(sqla.String)
 
     def __repr__(self):
         """ Dump object data. """
@@ -207,23 +194,53 @@ class System(Base):
         return (self.name, status, missing, '{:.1f}%'.format(self.undermine), notes)
 
 
+def make_file_engine(abs_path):
+    """
+    Make an sqlite file engine.
+
+    Args:
+        abs_path: Absolute path to the database.
+    """
+    return sqla.create_engine('sqlite:////{}'.format(abs_path), echo=False)
+
+
+def drop_all_tables():
+    """
+    Drop all tables.
+    """
+    session = cogdb.Session()
+    session.query(User).delete()
+    session.query(System).delete()
+    session.query(Fort).delete()
+    session.commit()
+
+
+def recreate_tables():
+    """
+    Recreate all tables after start.
+    """
+    drop_all_tables()
+    Base.metadata.create_all(cogdb.mem_engine)
+
+
 # Relationships
-Fort.user = sqa_orm.relationship('User', back_populates='forts')
-Fort.system = sqa_orm.relationship('System', back_populates='forts')
-User.forts = sqa_orm.relationship('Fort',
-                                  # collection_class=sqa_attr_map('system.name'),
-                                  cascade='all, delete, delete-orphan',
-                                  back_populates='user')
-System.forts = sqa_orm.relationship('Fort',
-                                    # collection_class=sqa_attr_map('user.sheet_name'),
-                                    cascade='all, delete, delete-orphan',
-                                    back_populates='system')
+Fort.user = sqla_orm.relationship('User', back_populates='forts')
+Fort.system = sqla_orm.relationship('System', back_populates='forts')
+User.forts = sqla_orm.relationship('Fort',
+                                   # collection_class=sqa_attr_map('system.name'),
+                                   cascade='all, delete, delete-orphan',
+                                   back_populates='user')
+System.forts = sqla_orm.relationship('Fort',
+                                     # collection_class=sqa_attr_map('user.sheet_name'),
+                                     cascade='all, delete, delete-orphan',
+                                     back_populates='system')
 
 
 def main():
-    engine = sqa.create_engine('sqlite:///:memory:', echo=False)
-    Base.metadata.create_all(engine)
-    session = sqa_orm.sessionmaker(bind=engine)()
+    """
+    Exists only as old example code.
+    """
+    session = cogdb.Session()
 
     users = (
         User(sheet_name='GearsandCogs', sheet_row=15),

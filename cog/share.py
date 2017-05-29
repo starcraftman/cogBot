@@ -15,12 +15,12 @@ try:
 except ImportError:
     from yaml import Loader
 
+import cogdb
 import cog.fort
 import cog.sheets
 import cog.tbl
 
 
-SESSION = None
 ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 YAML_FILE = os.path.join(ROOT_DIR, '.secrets', 'config.yaml')
 
@@ -51,30 +51,24 @@ def rel_to_abs(path):
     return os.path.join(ROOT_DIR, path)
 
 
-# FIXME: Still a bad temporary hack.
-def get_db_session(reuse_db=True):
+def get_sheet():
     """
-    Create database, parse sheet and insert data.
+    Temporary hack, get a sheet.
     """
-    global SESSION
-    import sqlalchemy as sqa
-    import sqlalchemy.orm as sqa_orm
-    import cogdb.cdb
-    if SESSION and reuse_db:
-        session = SESSION
-    else:
-        engine = sqa.create_engine('sqlite:///:memory:', echo=False)
-        cogdb.cdb.Base.metadata.create_all(engine)
-        session = sqa_orm.sessionmaker(bind=engine)()
-        SESSION = session
+    sheet_id = cog.share.get_config('hudson', 'cattle', 'id')
+    secrets = cog.share.get_config('secrets', 'sheets')
+    return cog.sheets.GSheet(sheet_id, cog.share.rel_to_abs(secrets['json']),
+                             cog.share.rel_to_abs(secrets['token']))
 
-    if not session.query(cogdb.cdb.System).all():
-        sheet_id = get_config('hudson', 'cattle', 'id')
-        secrets = get_config('secrets', 'sheets')
-        sheet = cog.sheets.GSheet(sheet_id, rel_to_abs(secrets['json']),
-                              rel_to_abs(secrets['token']))
 
-        scanner = cog.fort.SheetScanner(sheet, 11, 'F')
+def init_db():
+    """
+    Scan sheet and fill database if empty.
+    """
+    session = cogdb.Session()
+
+    if not session.query(cogdb.System).all():
+        scanner = cog.fort.SheetScanner(get_sheet(), 11, 'F')
         systems = scanner.systems()
         users = scanner.users()
         session.add_all(systems + users)
@@ -83,8 +77,6 @@ def get_db_session(reuse_db=True):
         forts = scanner.forts(systems, users)
         session.add_all(forts)
         session.commit()
-
-    return session
 
 
 def get_config(*keys):
@@ -158,7 +150,7 @@ def parse_help(_):
 
 
 def parse_fort(args):
-    table = cog.fort.FortTable(get_db_session())
+    table = cog.fort.FortTable(cogdb.Session(), get_sheet())
 
     if args.next:
         systems = table.next_targets(args.num)
@@ -175,7 +167,7 @@ def parse_fort(args):
 
 
 def parse_user(args):
-    table = cog.fort.FortTable(get_db_session())
+    table = cog.fort.FortTable(cogdb.Session(), get_sheet())
     user = table.find_user(args.user)
 
     if user:
@@ -194,7 +186,7 @@ def parse_user(args):
 
 
 def parse_drop(args):
-    table = cog.fort.FortTable(get_db_session())
+    table = cog.fort.FortTable(cogdb.Session(), get_sheet())
     msg = table.add_fort(args.system, args.user, args.amount)
     if isinstance(msg, type('')):
         return msg

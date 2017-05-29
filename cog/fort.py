@@ -5,42 +5,41 @@ from __future__ import absolute_import, print_function
 
 import sqlalchemy.orm.exc as sqa_exc
 
-import cogdb.cdb as cdb
+import cogdb
 import cog.share
 import cog.sheets
 
 
 # TODO: Concern, too many sheet.gets. Consolidate to get whole sheet, and parse ?
 # TODO: Similarly, when updating sheet rely on batch_update eventually taken from a queue.
-# TODO: FortTable.drop(user, system, aount)
-# TODO: FortTable.add_user(username)
 
 
 class FortTable(object):
     """
     Represents the fort sheet, answers simple questions.
     """
-    def __init__(self, session):
+    def __init__(self, session, sheet):
         """
         Query on creation any data needed.
         """
         self.session = session
         self.index = 0
+        self.sheet = sheet
         self.set_target()
 
     @property
     def othime(self):
-        return self.session.query(cdb.System).\
+        return self.session.query(cogdb.System).\
                 filter_by(name='Othime').one()
 
     @property
     def systems(self):
-        return self.session.query(cdb.System).\
-                filter(cdb.System.name != 'Othime').all()
+        return self.session.query(cogdb.System).\
+                filter(cogdb.System.name != 'Othime').all()
 
     @property
     def users(self):
-        return self.session.query(cdb.User).all()
+        return self.session.query(cogdb.User).all()
 
 
     def set_target(self):
@@ -103,7 +102,7 @@ class FortTable(object):
         Find and return matching User, if not found returns None.
         """
         try:
-            return self.session.query(cdb.User).filter_by(sheet_name=name).one()
+            return self.session.query(cogdb.User).filter_by(sheet_name=name).one()
         except (sqa_exc.NoResultFound, sqa_exc.MultipleResultsFound):
             return None
 
@@ -112,37 +111,35 @@ class FortTable(object):
         Simply add user past last entry.
         """
         last_row = self.users[-1].sheet_row
-        new_user = cdb.User(sheet_name=name, sheet_row=last_row+1)
+        new_user = cogdb.User(sheet_name=name, sheet_row=last_row+1)
         self.session.add(new_user)
         self.session.commit()
 
         # For now, update immediately and wait.
-        sheet = get_sheet()
-        sheet.update('!B{row}:B{row}'.format(row=new_user.sheet_row), [[new_user.sheet_name]])
+        self.sheet.update('!B{row}:B{row}'.format(row=new_user.sheet_row), [[new_user.sheet_name]])
 
         return new_user
 
     def add_fort(self, system_name, sheet_name, amount):
         try:
-            system = self.session.query(cdb.System).filter_by(name=system_name).one()
-            user = self.session.query(cdb.User).filter_by(sheet_name=sheet_name).one()
+            system = self.session.query(cogdb.System).filter_by(name=system_name).one()
+            user = self.session.query(cogdb.User).filter_by(sheet_name=sheet_name).one()
         except (sqa_exc.NoResultFound, sqa_exc.MultipleResultsFound):
             return 'Invalid drop command. Check system and username.'
 
         try:
-            fort = self.session.query(cdb.Fort).filter_by(user_id=user.id, system_id=system.id).one()
+            fort = self.session.query(cogdb.Fort).filter_by(user_id=user.id, system_id=system.id).one()
             fort.amount += amount
             system.fort_status += amount
             system.cmdr_merits += amount
         except sqa_exc.NoResultFound:
-            fort = cdb.Fort(user_id=user.id, system_id=system.id, amount=amount)
+            fort = cogdb.Fort(user_id=user.id, system_id=system.id, amount=amount)
 
         self.session.add(fort)
         self.session.add(system)
         self.session.commit()
 
-        sheet = get_sheet()
-        sheet.update('!{col}{row}:{col}{row}'.format(col=system.sheet_col,
+        self.sheet.update('!{col}{row}:{col}{row}'.format(col=system.sheet_col,
                                                      row=user.sheet_row), [[fort.amount]])
 
         return system
@@ -174,7 +171,7 @@ class SheetScanner(object):
                 result_column = cog.sheets.Column(begin)
                 for data in result:
                     kwargs = cog.sheets.system_result_dict(data, order, str(result_column))
-                    found.append(cdb.System(**kwargs))
+                    found.append(cogdb.System(**kwargs))
 
                     result_column.next()
                     order = order + 1
@@ -205,7 +202,7 @@ class SheetScanner(object):
                     if sname == '':  # Users sometimes miss an entry
                         continue
 
-                    found.append(cdb.User(sheet_name=sname, sheet_row=sname_row))
+                    found.append(cogdb.User(sheet_name=sname, sheet_row=sname_row))
             except IndexError:
                 more_users = False
 
@@ -238,29 +235,24 @@ class SheetScanner(object):
                     continue
 
                 user = users[user_ind]
-                found.append(cdb.Fort(user_id=user.id, system_id=system.id, amount=amount))
+                found.append(cogdb.Fort(user_id=user.id, system_id=system.id, amount=amount))
 
         return found
-
-
-def get_sheet():
-    sheet_id = cog.share.get_config('hudson', 'cattle', 'id')
-    secrets = cog.share.get_config('secrets', 'sheets')
-    return cog.sheets.GSheet(sheet_id, secrets['json'], secrets['token'])
 
 
 def main():
     """
     Main function, does simple fort table test.
     """
-    table = FortTable(cog.share.get_db_session())
+    cog.share.init_db()
+    table = FortTable(cogdb.Session(), cog.share.get_sheet())
     print(table.targets())
     print(table.next_targets())
 
     # Drop tables easily
-    # session.query(cdb.Fort).delete()
-    # session.query(cdb.User).delete()
-    # session.query(cdb.System).delete()
+    # session.query(cogdb.Fort).delete()
+    # session.query(cogdb.User).delete()
+    # session.query(cogdb.System).delete()
     # session.commit()
 
     # print('Printing filled databases')

@@ -33,8 +33,8 @@ def main():
     """
     Simply operate the bot locally by command line input.
     """
-    cog.share.get_db_session()
     cog.share.init_logging()
+    cog.share.init_db()
 
     try:
         parser = cog.share.make_parser()
