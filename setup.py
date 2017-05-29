@@ -51,7 +51,7 @@ class CleanCommand(Command):
         eggs = ' '.join(glob.glob('*.egg-info') + glob.glob('*.egg'))
         cmd = 'rm -vrf .eggs .tox build dist {0} {1}'.format(eggs, pycs)
         print('Executing: ' + cmd)
-        if raw_input('OK? y/n  ').strip().lower()[0] == 'y':
+        if input('OK? y/n  ').strip().lower()[0] == 'y':
             subprocess.call(shlex.split(cmd))
 
 
