@@ -16,7 +16,6 @@ try:
 except ImportError:
     print('Please run: pip install google-api-python-client')
 
-import share
 
 APPLICATION_NAME = 'GearBot'
 # Requires read and write access to user's account
@@ -314,8 +313,9 @@ def main():
     Simple main func for quick tests.
     """
     # Dummy sheet that can be manipulated at will.
-    sheet_id = share.get_config('hudson', 'cattle', 'id')
-    secrets = share.get_config('secrets', 'sheets')
+    import cog.share
+    sheet_id = cog.share.get_config('hudson', 'cattle', 'id')
+    secrets = cog.share.get_config('secrets', 'sheets')
     sheet = GSheet(sheet_id, secrets['json'], secrets['token'])
 
     print(sheet.get('!B16:B16'))

@@ -5,9 +5,9 @@ from __future__ import absolute_import, print_function
 
 import sqlalchemy.orm.exc as sqa_exc
 
-import cdb
-import share
-import sheets
+import cog.db.cdb as cdb
+import cog.share
+import cog.sheets
 
 
 # TODO: Concern, too many sheet.gets. Consolidate to get whole sheet, and parse ?
@@ -160,7 +160,7 @@ class SheetScanner(object):
         Scan the systems in the fortification sheet and return System objects that can be inserted.
         """
         found = []
-        data_column = sheets.Column(self.col_start)
+        data_column = cog.sheets.Column(self.col_start)
         order = 1
         more_systems = True
 
@@ -171,14 +171,14 @@ class SheetScanner(object):
             result = self.sheet.get('!{}1:{}10'.format(begin, end), dim='COLUMNS')
 
             try:
-                result_column = sheets.Column(begin)
+                result_column = cog.sheets.Column(begin)
                 for data in result:
-                    kwargs = sheets.system_result_dict(data, order, str(result_column))
+                    kwargs = cog.sheets.system_result_dict(data, order, str(result_column))
                     found.append(cdb.System(**kwargs))
 
                     result_column.next()
                     order = order + 1
-            except sheets.IncompleteData:
+            except cog.sheets.IncompleteData:
                 more_systems = False
 
         return found
@@ -244,16 +244,16 @@ class SheetScanner(object):
 
 
 def get_sheet():
-    sheet_id = share.get_config('hudson', 'cattle', 'id')
-    secrets = share.get_config('secrets', 'sheets')
-    return sheets.GSheet(sheet_id, secrets['json'], secrets['token'])
+    sheet_id = cog.share.get_config('hudson', 'cattle', 'id')
+    secrets = cog.share.get_config('secrets', 'sheets')
+    return cog.sheets.GSheet(sheet_id, secrets['json'], secrets['token'])
 
 
 def main():
     """
     Main function, does simple fort table test.
     """
-    table = FortTable(share.get_db_session())
+    table = FortTable(cog.share.get_db_session())
     print(table.targets())
     print(table.next_targets())
 

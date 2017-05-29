@@ -7,7 +7,7 @@ Instead parses CLI to test commands/outputs locally.
 from __future__ import absolute_import, print_function
 import sys
 
-import share
+import cog.share
 
 
 # TODO: investigate use of discord.ext.bot || make own bot class
@@ -33,11 +33,11 @@ def main():
     """
     Simply operate the bot locally by command line input.
     """
-    share.get_db_session()
-    share.init_logging()
+    cog.share.get_db_session()
+    cog.share.init_logging()
 
     try:
-        parser = share.make_parser()
+        parser = cog.share.make_parser()
         while True:
             try:
                 line = sys.stdin.readline().rstrip()
@@ -45,7 +45,7 @@ def main():
                 msg = args.func(args)
                 if msg:
                     print(msg.replace('```', ''))
-            except share.ArgumentParseError:
+            except cog.share.ArgumentParseError:
                 print('Invalid command:', line)
     except KeyboardInterrupt:
         print('\nTerminating loop. Thanks for testing.')

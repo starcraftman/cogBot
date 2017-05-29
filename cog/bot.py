@@ -8,8 +8,7 @@ from __future__ import absolute_import, print_function
 import discord
 import logging
 
-import fort
-import share
+import cog.share
 
 
 client = discord.Client()
@@ -63,10 +62,10 @@ async def on_message(message):
     else:
         try:
             message.content = message.content[1:]
-            parser = share.make_parser()
+            parser = cog.share.make_parser()
             args = parser.parse_args(message.content.split(' '))
             msg = args.func(args)
-        except share.ArgumentParseError:
+        except cog.share.ArgumentParseError:
             msg = 'Did not understand: {}'.format(message.content)
             msg += '\nGet more info with: !help'
 
@@ -74,10 +73,10 @@ async def on_message(message):
 
 
 def main():
-    share.get_db_session()
-    share.init_logging()
+    cog.share.get_db_session()
+    cog.share.init_logging()
     try:
-        client.run(share.get_config('secrets', 'discord_token'))
+        client.run(cog.share.get_config('secrets', 'discord_token'))
     finally:
         client.close()
 

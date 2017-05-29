@@ -64,7 +64,7 @@ class Fort(Base):
 
     id = sqa.Column(sqa.Integer, primary_key=True)
     user_id = sqa.Column(sqa.Integer, sqa.ForeignKey('users.id'))
-    system_id = sqa.Column(sqa.String, sqa.ForeignKey('hsystems.id'))
+    system_id = sqa.Column(sqa.String, sqa.ForeignKey('systems.id'))
     amount = sqa.Column(sqa.Integer)
 
     def __repr__(self):

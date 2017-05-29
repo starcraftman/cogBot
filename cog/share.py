@@ -15,14 +15,14 @@ try:
 except ImportError:
     from yaml import Loader
 
-import fort
-import sheets
-import tbl
+import cog.fort
+import cog.sheets
+import cog.tbl
 
 
 SESSION = None
-THIS_DIR = os.path.dirname(os.path.abspath(__file__))
-YAML_FILE = os.path.join(THIS_DIR, '.secrets', 'config.yaml')
+ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+YAML_FILE = os.path.join(ROOT_DIR, '.secrets', 'config.yaml')
 
 
 class ArgumentParseError(Exception):
@@ -48,7 +48,7 @@ def rel_to_abs(path):
     """
     Convert an internally relative path to an absolute one.
     """
-    return os.path.join(THIS_DIR, path)
+    return os.path.join(ROOT_DIR, path)
 
 
 # FIXME: Still a bad temporary hack.
@@ -59,22 +59,22 @@ def get_db_session(reuse_db=True):
     global SESSION
     import sqlalchemy as sqa
     import sqlalchemy.orm as sqa_orm
-    import cdb
+    import cog.db.cdb
     if SESSION and reuse_db:
         session = SESSION
     else:
         engine = sqa.create_engine('sqlite:///:memory:', echo=False)
-        cdb.Base.metadata.create_all(engine)
+        cog.db.cdb.Base.metadata.create_all(engine)
         session = sqa_orm.sessionmaker(bind=engine)()
         SESSION = session
 
-    if not session.query(cdb.System).all():
+    if not session.query(cog.db.cdb.System).all():
         sheet_id = get_config('hudson', 'cattle', 'id')
         secrets = get_config('secrets', 'sheets')
-        sheet = sheets.GSheet(sheet_id, rel_to_abs(secrets['json']),
+        sheet = cog.sheets.GSheet(sheet_id, rel_to_abs(secrets['json']),
                               rel_to_abs(secrets['token']))
 
-        scanner = fort.SheetScanner(sheet, 11, 'F')
+        scanner = cog.fort.SheetScanner(sheet, 11, 'F')
         systems = scanner.systems()
         users = scanner.users()
         session.add_all(systems + users)
@@ -154,11 +154,11 @@ def parse_help(_):
         ['!info', 'Display information on user.'],
         ['!help', 'This help message.'],
     ]
-    return tbl.wrap_markdown(tbl.format_table(lines, header=True))
+    return cog.tbl.wrap_markdown(cog.tbl.format_table(lines, header=True))
 
 
 def parse_fort(args):
-    table = fort.FortTable(get_db_session())
+    table = cog.fort.FortTable(get_db_session())
 
     if args.next:
         systems = table.next_targets(args.num)
@@ -167,7 +167,7 @@ def parse_fort(args):
 
     if args.long:
         lines = [systems[0].__class__.header] + [system.data_tuple for system in systems]
-        msg = tbl.wrap_markdown(tbl.format_table(lines, sep='|', header=True))
+        msg = cog.tbl.wrap_markdown(cog.tbl.format_table(lines, sep='|', header=True))
     else:
         msg = '\n'.join([system.name for system in systems])
 
@@ -175,7 +175,7 @@ def parse_fort(args):
 
 
 def parse_user(args):
-    table = fort.FortTable(get_db_session())
+    table = cog.fort.FortTable(get_db_session())
     user = table.find_user(args.user)
 
     if user:
@@ -194,13 +194,13 @@ def parse_user(args):
 
 
 def parse_drop(args):
-    table = fort.FortTable(get_db_session())
+    table = cog.fort.FortTable(get_db_session())
     msg = table.add_fort(args.system, args.user, args.amount)
     if isinstance(msg, type('')):
         return msg
     else:
         lines = [msg.__class__.header, msg.data_tuple]
-        return tbl.wrap_markdown(tbl.format_table(lines, sep='|', header=True))
+        return cog.tbl.wrap_markdown(cog.tbl.format_table(lines, sep='|', header=True))
 
 
 def init_logging():

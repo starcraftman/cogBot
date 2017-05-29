@@ -5,8 +5,8 @@ from __future__ import absolute_import, print_function
 
 import pytest
 
-import share
-import sheets
+import cog.share
+import cog.sheets
 
 
 @pytest.fixture()
@@ -14,9 +14,9 @@ def fort_sheet():
     """
     Yield fixture returns fort sheet.
     """
-    sheet_id = share.get_config('hudson', 'cattle', 'id')
-    secrets = share.get_config('secrets', 'sheets')
-    f_sheet = sheets.GSheet(sheet_id, secrets['json'], secrets['token'])
+    sheet_id = cog.share.get_config('hudson', 'cattle', 'id')
+    secrets = cog.share.get_config('secrets', 'sheets')
+    f_sheet = cog.sheets.GSheet(sheet_id, secrets['json'], secrets['token'])
 
     yield f_sheet
 
@@ -28,9 +28,9 @@ def fort_sheet_reset():
 
     N.B. Test in cells cleaned in cell_ranges.
     """
-    sheet_id = share.get_config('hudson', 'cattle', 'id')
-    secrets = share.get_config('secrets', 'sheets')
-    f_sheet = sheets.GSheet(sheet_id, secrets['json'], secrets['token'])
+    sheet_id = cog.share.get_config('hudson', 'cattle', 'id')
+    secrets = cog.share.get_config('secrets', 'sheets')
+    f_sheet = cog.sheets.GSheet(sheet_id, secrets['json'], secrets['token'])
 
     yield f_sheet
 
@@ -62,69 +62,69 @@ def test_batch_update(fort_sheet_reset):
 
 
 def test_ColCnt_init():
-    col1 = sheets.ColCnt()
+    col1 = cog.sheets.ColCnt()
     assert str(col1) == 'A'
-    col2 = sheets.ColCnt('Z')
+    col2 = cog.sheets.ColCnt('Z')
     assert str(col2) == 'Z'
 
 
 def test_ColCnt_next():
-    col1 = sheets.ColCnt()
+    col1 = cog.sheets.ColCnt()
     col1.next()
     assert str(col1) == 'B'
 
-    col2 = sheets.ColCnt('Z')
-    with pytest.raises(sheets.ColOverflow):
+    col2 = cog.sheets.ColCnt('Z')
+    with pytest.raises(cog.sheets.ColOverflow):
         col2.next()
     assert str(col2) == 'A'
 
 
 def test_ColCnt_reset():
-    col2 = sheets.ColCnt('Z')
+    col2 = cog.sheets.ColCnt('Z')
     col2.reset()
     assert str(col2) == 'A'
 
 
 def test_Column_init():
-    column = sheets.Column()
+    column = cog.sheets.Column()
     assert str(column) == 'A'
     assert str(column.counters[0]) == 'A'
-    column = sheets.Column('BA')
+    column = cog.sheets.Column('BA')
     assert str(column) == 'BA'
     assert str(column.counters[0]) == 'A'
     assert str(column.counters[1]) == 'B'
 
 
 def test_Column_next():
-    column = sheets.Column()
+    column = cog.sheets.Column()
     assert column.next() == 'B'
 
-    column = sheets.Column('Z')
+    column = cog.sheets.Column('Z')
     assert column.next() == 'AA'
     assert column.next() == 'AB'
 
 
 def test_Column_offset():
-    column = sheets.Column()
+    column = cog.sheets.Column()
     column.offset(5)
     assert str(column) == 'F'
 
 
 def test_parse_int():
-    assert sheets.parse_int('') == 0
-    assert sheets.parse_int('2') == 2
-    assert sheets.parse_int(5) == 5
+    assert cog.sheets.parse_int('') == 0
+    assert cog.sheets.parse_int('2') == 2
+    assert cog.sheets.parse_int(5) == 5
 
 
 def test_parse_float():
-    assert sheets.parse_float('') == 0.0
-    assert sheets.parse_float('2') == 2.0
-    assert sheets.parse_float(0.5) == 0.5
+    assert cog.sheets.parse_float('') == 0.0
+    assert cog.sheets.parse_float('2') == 2.0
+    assert cog.sheets.parse_float(0.5) == 0.5
 
 
 def test_system_result_dict():
     data = ['', 1, 4910, 0, 4322, 4910, 0, 116.99, '', 'Frey']
-    result = sheets.system_result_dict(data, 0, 'F')
+    result = cog.sheets.system_result_dict(data, 0, 'F')
     assert result['undermine'] == 0.0
     assert result['trigger'] == 4910
     assert result['cmdr_merits'] == 4322
