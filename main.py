@@ -16,6 +16,7 @@ import share
 # TODO: Add basic whois support, default lookup in local to channel db
 # TODO: Add wider search, across server, inara and other sources
 # TODO: Add test cases for all of fort, use test Google Sheet
+# TODO: Ensure commands accept spaces for systems/users.
 
 # Simple background coroutine example for later, adapt to refresh csv.
 # async def my_task():
