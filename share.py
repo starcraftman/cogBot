@@ -44,6 +44,13 @@ class ThrowArggumentParser(argparse.ArgumentParser):
         raise ArgumentParseError()
 
 
+def rel_to_abs(path):
+    """
+    Convert an internally relative path to an absolute one.
+    """
+    return os.path.join(THIS_DIR, path)
+
+
 # FIXME: Still a bad temporary hack.
 def get_db_session(reuse_db=True):
     """
@@ -64,7 +71,8 @@ def get_db_session(reuse_db=True):
     if not session.query(cdb.HSystem).all():
         sheet_id = get_config('hudson', 'cattle', 'id')
         secrets = get_config('secrets', 'sheets')
-        sheet = sheets.GSheet(sheet_id, secrets['json'], secrets['token'])
+        sheet = sheets.GSheet(sheet_id, rel_to_abs(secrets['json']),
+                              rel_to_abs(secrets['token']))
 
         scanner = fort.SheetScanner(sheet, 11, 'F')
         systems = scanner.systems()

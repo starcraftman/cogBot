@@ -1,0 +1,14 @@
+# Discord bot service, put in: /etc/systemd/system
+[Unit]
+Description=Federal Discord Bot
+After=network.target
+
+[Service]
+Type=simple
+User=cog
+WorkingDirectory=/home/cog
+ExecStart=/home/cog/.pyenv/versions/3.5.3/bin/python /home/cog/cogBot/bot.py
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
