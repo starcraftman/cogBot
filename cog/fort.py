@@ -5,7 +5,7 @@ from __future__ import absolute_import, print_function
 
 import sqlalchemy.orm.exc as sqa_exc
 
-import cog.db.cdb as cdb
+import cogdb.cdb as cdb
 import cog.share
 import cog.sheets
 

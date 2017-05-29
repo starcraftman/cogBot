@@ -1,5 +1,10 @@
 ## Simple Python Discord Bot
 
+### Overview
+
+This bot is designed to facilitate Powerplay for the federal forces.
+The bot runs and monitors our discord channel and manages our powerplay objectives.
+
 ### Install
 
 Requires python3. Execute following commands on linux box.
@@ -22,4 +27,3 @@ pytest
 
 Edit Discord CSS:
 1) Ctrl + Shift + I
-2) Edit .markup class, add ``font-family: monospace``

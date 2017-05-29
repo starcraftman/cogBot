@@ -59,16 +59,16 @@ def get_db_session(reuse_db=True):
     global SESSION
     import sqlalchemy as sqa
     import sqlalchemy.orm as sqa_orm
-    import cog.db.cdb
+    import cogdb.cdb
     if SESSION and reuse_db:
         session = SESSION
     else:
         engine = sqa.create_engine('sqlite:///:memory:', echo=False)
-        cog.db.cdb.Base.metadata.create_all(engine)
+        cogdb.cdb.Base.metadata.create_all(engine)
         session = sqa_orm.sessionmaker(bind=engine)()
         SESSION = session
 
-    if not session.query(cog.db.cdb.System).all():
+    if not session.query(cogdb.cdb.System).all():
         sheet_id = get_config('hudson', 'cattle', 'id')
         secrets = get_config('secrets', 'sheets')
         sheet = cog.sheets.GSheet(sheet_id, rel_to_abs(secrets['json']),
