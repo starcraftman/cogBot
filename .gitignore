@@ -1,4 +1,5 @@
 .cache
+.python-version
 .secrets
 venv
 z_scratch
