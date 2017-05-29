@@ -80,7 +80,7 @@ class Fort(Base):
         return "ID='{}', ".format(self.id) + self.__repr__()
 
 
-class HSystem(Base):
+class System(Base):
     """
     Represent a single system for fortification.
     Object can be flushed and queried from the database.
@@ -99,7 +99,7 @@ class HSystem(Base):
         sheet_col: The name of the column in the excel. (string)
         sheet_order: Order systems should be ordered. (int)
     """
-    __tablename__ = 'hsystems'
+    __tablename__ = 'systems'
 
     header = ['System', 'Trigger', 'Missing', 'UM', 'Notes']
 
@@ -209,15 +209,15 @@ class HSystem(Base):
 
 # Relationships
 Fort.user = sqa_orm.relationship('User', back_populates='forts')
-Fort.system = sqa_orm.relationship('HSystem', back_populates='forts')
+Fort.system = sqa_orm.relationship('System', back_populates='forts')
 User.forts = sqa_orm.relationship('Fort',
                                   # collection_class=sqa_attr_map('system.name'),
                                   cascade='all, delete, delete-orphan',
                                   back_populates='user')
-HSystem.forts = sqa_orm.relationship('Fort',
-                                     # collection_class=sqa_attr_map('user.sheet_name'),
-                                     cascade='all, delete, delete-orphan',
-                                     back_populates='system')
+System.forts = sqa_orm.relationship('Fort',
+                                    # collection_class=sqa_attr_map('user.sheet_name'),
+                                    cascade='all, delete, delete-orphan',
+                                    back_populates='system')
 
 
 def main():
@@ -235,12 +235,12 @@ def main():
     session.commit()
 
     systems = (
-        HSystem(name='Frey', sheet_col='F', sheet_order=1, fort_status=0,
-                cmdr_merits=0, trigger=7400, undermine=0),
-        HSystem(name='Adeo', sheet_col='G', sheet_order=2, fort_status=0,
-                cmdr_merits=0, trigger=5400, undermine=0),
-        HSystem(name='Sol', sheet_col='H', sheet_order=3, fort_status=0,
-                cmdr_merits=0, trigger=6000, undermine=0),
+        System(name='Frey', sheet_col='F', sheet_order=1, fort_status=0,
+               cmdr_merits=0, trigger=7400, undermine=0),
+        System(name='Adeo', sheet_col='G', sheet_order=2, fort_status=0,
+               cmdr_merits=0, trigger=5400, undermine=0),
+        System(name='Sol', sheet_col='H', sheet_order=3, fort_status=0,
+               cmdr_merits=0, trigger=6000, undermine=0),
     )
 
     session.add_all(systems)
@@ -267,7 +267,7 @@ def main():
         mprint(user)
         mprint(pad, user.forts)
 
-    for sys in session.query(HSystem).order_by(HSystem.name):
+    for sys in session.query(System).order_by(System.name):
         mprint(sys)
         mprint(pad, sys.forts)
 

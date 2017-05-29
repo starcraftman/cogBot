@@ -68,7 +68,7 @@ def get_db_session(reuse_db=True):
         session = sqa_orm.sessionmaker(bind=engine)()
         SESSION = session
 
-    if not session.query(cdb.HSystem).all():
+    if not session.query(cdb.System).all():
         sheet_id = get_config('hudson', 'cattle', 'id')
         secrets = get_config('secrets', 'sheets')
         sheet = sheets.GSheet(sheet_id, rel_to_abs(secrets['json']),

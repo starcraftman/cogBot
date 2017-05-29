@@ -30,13 +30,13 @@ class FortTable(object):
 
     @property
     def othime(self):
-        return self.session.query(cdb.HSystem).\
+        return self.session.query(cdb.System).\
                 filter_by(name='Othime').one()
 
     @property
     def systems(self):
-        return self.session.query(cdb.HSystem).\
-                filter(cdb.HSystem.name != 'Othime').all()
+        return self.session.query(cdb.System).\
+                filter(cdb.System.name != 'Othime').all()
 
     @property
     def users(self):
@@ -124,7 +124,7 @@ class FortTable(object):
 
     def add_fort(self, system_name, sheet_name, amount):
         try:
-            system = self.session.query(cdb.HSystem).filter_by(name=system_name).one()
+            system = self.session.query(cdb.System).filter_by(name=system_name).one()
             user = self.session.query(cdb.User).filter_by(sheet_name=sheet_name).one()
         except (sqa_exc.NoResultFound, sqa_exc.MultipleResultsFound):
             return 'Invalid drop command. Check system and username.'
@@ -157,7 +157,7 @@ class SheetScanner(object):
 
     def systems(self):
         """
-        Scan the systems in the fortification sheet and return HSystem objects that can be inserted.
+        Scan the systems in the fortification sheet and return System objects that can be inserted.
         """
         found = []
         data_column = sheets.Column(self.col_start)
@@ -174,7 +174,7 @@ class SheetScanner(object):
                 result_column = sheets.Column(begin)
                 for data in result:
                     kwargs = sheets.system_result_dict(data, order, str(result_column))
-                    found.append(cdb.HSystem(**kwargs))
+                    found.append(cdb.System(**kwargs))
 
                     result_column.next()
                     order = order + 1
@@ -187,7 +187,7 @@ class SheetScanner(object):
         """
         Scan the users in the fortification sheet and return User objects that can be inserted.
 
-        Ensure Users and HSystems have been flushed to link ids.
+        Ensure Users and Systems have been flushed to link ids.
         """
         found = []
         row = self.row_start
@@ -217,7 +217,7 @@ class SheetScanner(object):
         fortification of each system.
 
         Args:
-            systems: The list of HSystems in the order entered in the sheet.
+            systems: The list of Systems in the order entered in the sheet.
             users: The list of Users in order the order entered in the sheet.
         """
         found = []
@@ -260,7 +260,7 @@ def main():
     # Drop tables easily
     # session.query(cdb.Fort).delete()
     # session.query(cdb.User).delete()
-    # session.query(cdb.HSystem).delete()
+    # session.query(cdb.System).delete()
     # session.commit()
 
     # print('Printing filled databases')
