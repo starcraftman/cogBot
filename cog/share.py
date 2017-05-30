@@ -2,12 +2,12 @@
 Common functions.
 """
 from __future__ import absolute_import, print_function
-import os
-import sys
-
-import argparse
 import logging
 import logging.handlers
+import logging.config
+import os
+
+import argparse
 import tempfile
 import yaml
 try:
@@ -168,45 +168,22 @@ def parse_drop(args):
 
 def init_logging():
     """
-    Initialize project wide logging.
-      - 'discord' logger is used by the discord.py framework.
-      - 'gbot' logger will be used to log anything in this project.
+    Initialize project wide logging. The setup is described best in config file.
 
-    Both loggers will:
-      - Send all messsages >= WARN to STDERR.
-      - Send all messages >= INFO to rotating file log in /tmp.
-
-    IMPORTANT: On every start the logs are rolled over. 5 runs kept max.
+    IMPORTANT: On every start the file logs are rolled over.
     """
-    log_folder = os.path.join(tempfile.gettempdir(), 'gbot')
-    if not os.path.exists(log_folder):
-        os.makedirs(log_folder)
-    discord_file = os.path.join(log_folder, 'discordpy.log')
-    gbot_file = os.path.join(log_folder, 'gbot.log')
-    print('discord.py log ' + discord_file)
-    print('gbot log: ' + gbot_file)
-    fmt = logging.Formatter('%(asctime)s [%(levelname)s] %(msg)s')
+    # TODO: Possibly, subclass Formatter, substring replace dict pathname to cut out absolute root
+    log_folder = os.path.join(tempfile.gettempdir(), 'cog')
+    try:
+        os.path.exists(log_folder)
+    except OSError:
+        pass
+    print('LOGGING FOLDER:', log_folder)
 
-    d_logger = logging.getLogger('discord')
-    d_logger.setLevel(logging.INFO)
-    handler1 = logging.handlers.RotatingFileHandler(discord_file,
-                                                    backupCount=5, encoding='utf-8')
-    handler1.setLevel(logging.DEBUG)
-    handler1.setFormatter(fmt)
-    handler1.doRollover()
-    d_logger.addHandler(handler1)
+    with open(rel_to_abs('log.yaml')) as fin:
+        log_conf = yaml.load(fin, Loader=Loader)
+    logging.config.dictConfig(log_conf)
 
-    g_logger = logging.getLogger('gbot')
-    g_logger.setLevel(logging.INFO)
-    handler2 = logging.handlers.RotatingFileHandler(gbot_file,
-                                                    backupCount=5, encoding='utf-8')
-    handler2.setLevel(logging.DEBUG)
-    handler2.setFormatter(fmt)
-    handler2.doRollover()
-    g_logger.addHandler(handler2)
-
-    handler3 = logging.StreamHandler(sys.stderr)
-    handler3.setLevel(logging.WARNING)
-    handler3.setFormatter(fmt)
-    d_logger.addHandler(handler3)
-    g_logger.addHandler(handler3)
+    for handler in logging.getLogger('cog').handlers + logging.getLogger('cogdb').handlers:
+        if isinstance(handler, logging.handlers.RotatingFileHandler):
+            handler.doRollover()

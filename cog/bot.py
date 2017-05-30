@@ -20,11 +20,10 @@ async def on_ready():
     """
     Event triggered when connection established to discord and bot ready.
     """
-    log = logging.getLogger('gbot')
-    log.info('Logged in as: '+ client.user.name)
-    log.info('Available on following servers:')
+    logging.getLogger('cog.bot').info('Logged in as: %s', client.user.name)
+    logging.getLogger('cog.bot').info('Available on following servers:')
     for server in client.servers:
-        log.info('  "{}" with id {}'.format(server.name, server.id))
+        logging.getLogger('cog.bot').info('  "%s" with id %s', server.name, server.id)
     print('GBot Ready!')
 
 
@@ -50,10 +49,8 @@ async def on_message(message):
     if author.bot or not message.content.startswith('!'):
         return
 
-    log = logging.getLogger('gbot')
-    log.info("Server: '{}' Channel: '{}' User: '{}' | {}".format(server,
-                                                                 channel,
-                                                                 author.name, msg))
+    logging.getLogger('cog.bot').info("Server: '%s' Channel: '%s' User: '%s' | %s",
+                                      server, channel, author.name, msg))
 
     if message.content.startswith('!info'):
         roles = ', '.join([role.name for role in message.author.roles[1:]])

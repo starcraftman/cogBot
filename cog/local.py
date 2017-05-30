@@ -5,6 +5,7 @@ Stub version of bot, doesn't connect to discord.
 Instead parses CLI to test commands/outputs locally.
 """
 from __future__ import absolute_import, print_function
+import logging
 import sys
 
 import cogdb.query
@@ -36,7 +37,7 @@ def main():
     """
     cog.share.init_logging()
     cogdb.query.init_db()
-    print('Local loop ready!')
+    logging.getLogger('cog.local').info('Local loop is ready.')
 
     try:
         parser = cog.share.make_parser()
