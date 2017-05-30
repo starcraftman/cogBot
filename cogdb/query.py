@@ -33,18 +33,15 @@ class FortTable(object):
 
     @property
     def othime(self):
-        return self.session.query(System).\
-                filter_by(name='Othime').one()
+        return self.session.query(System).filter_by(name='Othime').one()
 
     @property
     def systems(self):
-        return self.session.query(System).\
-                filter(System.name != 'Othime').all()
+        return self.session.query(System).filter(System.name != 'Othime').all()
 
     @property
     def users(self):
         return self.session.query(User).all()
-
 
     def set_target(self):
         """
@@ -73,7 +70,8 @@ class FortTable(object):
         """
         targets = []
 
-        for system in self.systems[self.index+1:]:
+        start = self.index + 1
+        for system in self.systems[start:]:
             if system.is_fortified or system.skip:
                 continue
 
@@ -114,8 +112,8 @@ class FortTable(object):
         """
         Simply add user past last entry.
         """
-        last_row = self.users[-1].sheet_row
-        new_user = User(sheet_name=name, sheet_row=last_row+1)
+        next_row = self.users[-1].sheet_row + 1
+        new_user = User(sheet_name=name, sheet_row=next_row)
         self.session.add(new_user)
         self.session.commit()
 
@@ -287,6 +285,7 @@ def main():
 
     # for fort in forts:
         # print(fort)
+
 
 if __name__ == "__main__":
     main()

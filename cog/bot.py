@@ -50,7 +50,7 @@ async def on_message(message):
         return
 
     logging.getLogger('cog.bot').info("Server: '%s' Channel: '%s' User: '%s' | %s",
-                                      server, channel, author.name, msg))
+                                      server, channel, author.name, msg)
 
     if message.content.startswith('!info'):
         roles = ', '.join([role.name for role in message.author.roles[1:]])

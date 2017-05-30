@@ -61,7 +61,7 @@ class Fort(Base):
             'amount': self.amount,
         }
         return "<Fort(user='{user}', "\
-                "system='{system}', amount='{amount}')>".format(**args)
+               "system='{system}', amount='{amount}')>".format(**args)
 
     def __str__(self):
         return "ID='{}', ".format(self.id) + self.__repr__()
@@ -113,8 +113,8 @@ class System(Base):
             'notes': self.notes
         }
         return "<System(name='{name}', sheet_order='{order}', sheet_col='{col}', "\
-                "merits='{merits}', fort_status='{cur}', trigger='{trig}', "\
-                "undermine='{under}', notes='{notes}')>".format(**args)
+               "merits='{merits}', fort_status='{cur}', trigger='{trig}', "\
+               "undermine='{under}', notes='{notes}')>".format(**args)
 
     def __str__(self):
         return "ID='{}', ".format(self.id) + self.__repr__()
