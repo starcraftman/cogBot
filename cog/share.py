@@ -166,6 +166,16 @@ def parse_drop(args):
         return str(exc)
 
 
+class ModFormatter(logging.Formatter):
+    """
+    Do a bit of magic to %pathname% in dict.
+    """
+    def format(self, record):
+        relmod = record.__dict__['pathname'].replace(ROOT_DIR + os.path.sep, '')
+        record.__dict__['relmod'] = relmod.replace('.py', '')
+        return super(ModFormatter, self).format(record)
+
+
 def init_logging():
     """
     Initialize project wide logging. The setup is described best in config file.

@@ -37,7 +37,7 @@ def main():
     """
     cog.share.init_logging()
     cogdb.query.init_db()
-    logging.getLogger('cog.local').info('Local loop is ready.')
+    logging.getLogger('cog.local').error('Local loop is ready.')
 
     try:
         parser = cog.share.make_parser()
