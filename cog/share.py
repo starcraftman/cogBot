@@ -21,7 +21,7 @@ import cog.tbl
 
 
 ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-YAML_FILE = os.path.join(ROOT_DIR, 'cog', '.secrets', 'config.yaml')
+YAML_FILE = os.path.join(ROOT_DIR, '.secrets', 'config.yaml')
 
 
 class ArgumentParseError(Exception):
