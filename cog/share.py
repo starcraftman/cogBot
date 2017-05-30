@@ -172,7 +172,7 @@ class ModFormatter(logging.Formatter):
     """
     def format(self, record):
         relmod = record.__dict__['pathname'].replace(ROOT_DIR + os.path.sep, '')
-        record.__dict__['relmod'] = relmod.replace('.py', '')
+        record.__dict__['relmod'] = relmod[:-3]
         return super(ModFormatter, self).format(record)
 
 
