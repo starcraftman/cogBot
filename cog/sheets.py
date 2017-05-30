@@ -19,7 +19,7 @@ except ImportError:
 import cog.exc
 
 
-APPLICATION_NAME = 'GearBot'
+APPLICATION_NAME = 'CogBot'
 # Requires read and write access to user's account
 REQ_SCOPE = 'https://www.googleapis.com/auth/spreadsheets'
 
