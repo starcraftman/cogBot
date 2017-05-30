@@ -5,9 +5,10 @@ Discord bot class
 """
 from __future__ import absolute_import, print_function
 
-import discord
 import logging
+import discord
 
+import cogdb.query
 import cog.share
 
 
@@ -44,21 +45,21 @@ async def on_message(message):
     author = message.author
     channel = message.channel.name
     server = message.channel.server
-    msg = message.content
-    cont = message.content
+    msg = ''
     # Ignore lines not directed at bot
-    if author.bot or not msg.startswith('!'):
+    if author.bot or not message.content.startswith('!'):
         return
 
     log = logging.getLogger('gbot')
     log.info("Server: '{}' Channel: '{}' User: '{}' | {}".format(server,
-            channel, author.name, msg))
+                                                                 channel,
+                                                                 author.name, msg))
 
     if message.content.startswith('!info'):
         roles = ', '.join([role.name for role in message.author.roles[1:]])
         msg = 'Author: {aut} has Roles: {rol}'.format(aut=message.author.name, rol=roles)
         msg += '\nSent from channel [{ch}] on server [{se}]'.format(ch=message.channel.name,
-                                                                se=message.channel.server)
+                                                                    se=message.channel.server)
     else:
         try:
             message.content = message.content[1:]
@@ -73,8 +74,8 @@ async def on_message(message):
 
 
 def main():
-    cog.share.init_db()
     cog.share.init_logging()
+    cogdb.query.init_db()
     try:
         client.run(cog.share.get_config('secrets', 'discord_token'))
     finally:

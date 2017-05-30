@@ -236,6 +236,9 @@ System.forts = sqla_orm.relationship('Fort',
                                      back_populates='system')
 
 
+Base.metadata.create_all(cogdb.mem_engine)
+
+
 def main():
     """
     Exists only as old example code.

@@ -166,7 +166,7 @@ setup(
     # You can just specify the packages manually here if your project is
     # simple. Or you can use find_packages().
     # packages=find_packages(exclude=['venv', 'test*']),
-    packages=find_packages(exclude=['venv', 'tests*']),
+    packages=find_packages(exclude=['venv','.tox']),
 
     # List run-time dependencies here.  These will be installed by pip when
     # your project is installed. For an analysis of "install_requires" vs pip's
@@ -185,18 +185,20 @@ setup(
         'test': TEST_DEPS,
     },
 
+    # include_package_data=True,
     # # If there are data files included in your packages that need to be
     # # installed, specify them here.  If using Python 2.6 or less, then these
     # # have to be included in MANIFEST.in as well.
-    package_data={
-        'cog': ['.secret/config.yaml', '.secrets/sheets.json', '.secrets/sheets.token'],
-    },
+    # package_dir={'cog' : 'cog'},
+    # package_data={
+        # 'cog': ['.secrets/*']
+    # },
 
     # # Although 'package_data' is the preferred approach, in some case you may
     # # need to place data files outside of your packages. See:
     # # http://docs.python.org/3.4/distutils/setupscript.html#installing-additional-files # noqa
     # # In this case, 'data_file' will be installed into '<sys.prefix>/my_data'
-    # data_files=[('my_data', ['data/data_file'])],
+    # data_files=[('secrets', ['cog/secrets/*'])],
 
     # To provide executable scripts, use entry points in preference to the
     # "scripts" keyword. Entry points provide cross-platform support and allow

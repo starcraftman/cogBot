@@ -7,6 +7,7 @@ Instead parses CLI to test commands/outputs locally.
 from __future__ import absolute_import, print_function
 import sys
 
+import cogdb.query
 import cog.share
 
 
@@ -34,7 +35,8 @@ def main():
     Simply operate the bot locally by command line input.
     """
     cog.share.init_logging()
-    cog.share.init_db()
+    cogdb.query.init_db()
+    print('Local loop ready!')
 
     try:
         parser = cog.share.make_parser()

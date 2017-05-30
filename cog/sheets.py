@@ -16,31 +16,12 @@ try:
 except ImportError:
     print('Please run: pip install google-api-python-client')
 
+import cog.exc
+
 
 APPLICATION_NAME = 'GearBot'
 # Requires read and write access to user's account
 REQ_SCOPE = 'https://www.googleapis.com/auth/spreadsheets'
-
-
-class ColOverflow(Exception):
-    """
-    Raise when a column has reached end, increment next column.
-    """
-    pass
-
-
-class IncompleteData(Exception):
-    """
-    Raise when data no longer contains useful information.
-    """
-    pass
-
-
-class MissingConfigFile(Exception):
-    """
-    Thrown if a config isn't set properly.
-    """
-    pass
 
 
 class ColCnt(object):
@@ -67,7 +48,7 @@ class ColCnt(object):
         self.char = self.char + 1
         if self.char == self.stop_char:
             self.reset()
-            raise ColOverflow
+            raise cog.exc.ColOverflow
 
     def reset(self):
         """
@@ -114,7 +95,7 @@ class Column(object):
                 counter.next()
                 add_counter = False
                 break
-            except ColOverflow:
+            except cog.exc.ColOverflow:
                 pass
 
         if add_counter:
@@ -210,7 +191,6 @@ class GSheet(object):
                                  valueRenderOption='UNFORMATTED_VALUE').execute()
 
         return [ent.get('values', []) for ent in result['valueRanges']]
-        # return result['valueRanges']
 
     def batch_update(self, cell_ranges, n_vals, dim='ROWS'):
         """
@@ -241,7 +221,7 @@ def get_credentials(json_secret, sheets_token):
     Returns: Credentials obtained from oauth process.
     """
     if not os.path.exists(json_secret):
-        raise MissingConfigFile('Missing: ' + json_secret)
+        raise cog.exc.MissingConfigFile('Missing: ' + json_secret)
 
     store = Storage(sheets_token)
     credentials = store.get()
@@ -256,6 +236,16 @@ def get_credentials(json_secret, sheets_token):
         print('Storing credentials to ' + sheets_token)
 
     return credentials
+
+
+def get_sheet():
+    """
+    Temporary hack, get a sheet.
+    """
+    sheet_id = cog.share.get_config('hudson', 'cattle', 'id')
+    secrets = cog.share.get_config('secrets', 'sheets')
+    return cog.sheets.GSheet(sheet_id, cog.share.rel_to_abs(secrets['json']),
+                             cog.share.rel_to_abs(secrets['token']))
 
 
 def parse_int(word):
@@ -292,9 +282,9 @@ def system_result_dict(lines, order, column):
     """
     try:
         if lines[9] == '':
-            raise IncompleteData
+            raise cog.exc.IncompleteData
     except IndexError:
-        raise IncompleteData
+        raise cog.exc.IncompleteData
 
     return {
         'undermine': parse_float(lines[0]),
@@ -306,21 +296,3 @@ def system_result_dict(lines, order, column):
         'sheet_col': column,
         'sheet_order': order,
     }
-
-
-def main():
-    """
-    Simple main func for quick tests.
-    """
-    # Dummy sheet that can be manipulated at will.
-    import cog.share
-    sheet_id = cog.share.get_config('hudson', 'cattle', 'id')
-    secrets = cog.share.get_config('secrets', 'sheets')
-    sheet = GSheet(sheet_id, secrets['json'], secrets['token'])
-
-    print(sheet.get('!B16:B16'))
-    # sheet.update('!B16:B16', [['Shepron']])
-
-
-if __name__ == "__main__":
-    main()

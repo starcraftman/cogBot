@@ -15,14 +15,13 @@ try:
 except ImportError:
     from yaml import Loader
 
-import cogdb
-import cog.fort
+import cogdb.query
 import cog.sheets
 import cog.tbl
 
 
 ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-YAML_FILE = os.path.join(ROOT_DIR, '.secrets', 'config.yaml')
+YAML_FILE = os.path.join(ROOT_DIR, 'cog', '.secrets', 'config.yaml')
 
 
 class ArgumentParseError(Exception):
@@ -49,34 +48,6 @@ def rel_to_abs(path):
     Convert an internally relative path to an absolute one.
     """
     return os.path.join(ROOT_DIR, path)
-
-
-def get_sheet():
-    """
-    Temporary hack, get a sheet.
-    """
-    sheet_id = cog.share.get_config('hudson', 'cattle', 'id')
-    secrets = cog.share.get_config('secrets', 'sheets')
-    return cog.sheets.GSheet(sheet_id, cog.share.rel_to_abs(secrets['json']),
-                             cog.share.rel_to_abs(secrets['token']))
-
-
-def init_db():
-    """
-    Scan sheet and fill database if empty.
-    """
-    session = cogdb.Session()
-
-    if not session.query(cogdb.System).all():
-        scanner = cog.fort.SheetScanner(get_sheet(), 11, 'F')
-        systems = scanner.systems()
-        users = scanner.users()
-        session.add_all(systems + users)
-        session.commit()
-
-        forts = scanner.forts(systems, users)
-        session.add_all(forts)
-        session.commit()
 
 
 def get_config(*keys):
@@ -150,7 +121,7 @@ def parse_help(_):
 
 
 def parse_fort(args):
-    table = cog.fort.FortTable(cogdb.Session(), get_sheet())
+    table = cogdb.query.FortTable(cog.sheets.get_sheet())
 
     if args.next:
         systems = table.next_targets(args.num)
@@ -167,7 +138,7 @@ def parse_fort(args):
 
 
 def parse_user(args):
-    table = cog.fort.FortTable(cogdb.Session(), get_sheet())
+    table = cogdb.query.FortTable(cog.sheets.get_sheet())
     user = table.find_user(args.user)
 
     if user:
@@ -186,13 +157,13 @@ def parse_user(args):
 
 
 def parse_drop(args):
-    table = cog.fort.FortTable(cogdb.Session(), get_sheet())
+    table = cogdb.query.FortTable(cog.sheets.get_sheet())
     msg = table.add_fort(args.system, args.user, args.amount)
-    if isinstance(msg, type('')):
-        return msg
-    else:
+    try:
         lines = [msg.__class__.header, msg.data_tuple]
         return cog.tbl.wrap_markdown(cog.tbl.format_table(lines, sep='|', header=True))
+    except cog.exc.InvalidCommandArgs as exc:
+        return str(exc)
 
 
 def init_logging():

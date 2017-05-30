@@ -5,6 +5,7 @@ from __future__ import absolute_import, print_function
 
 import pytest
 
+import cog.exc
 import cog.share
 import cog.sheets
 
@@ -74,7 +75,7 @@ def test_ColCnt_next():
     assert str(col1) == 'B'
 
     col2 = cog.sheets.ColCnt('Z')
-    with pytest.raises(cog.sheets.ColOverflow):
+    with pytest.raises(cog.exc.ColOverflow):
         col2.next()
     assert str(col2) == 'A'
 

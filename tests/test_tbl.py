@@ -3,8 +3,6 @@ Test table formatting logic
 """
 from __future__ import absolute_import, print_function
 
-import pytest
-
 import cog.tbl
 
 
@@ -15,7 +13,7 @@ def test_wrap_markdown():
 def test_max_col_width():
     lines = [['aa', 'aaa', 'aa', 'aa'],
              ['a', 'aa', 'aa', 'aaaa'],
-             ]
+            ]
     assert cog.tbl.max_col_width(lines) == [2, 3, 2, 4]
 
 

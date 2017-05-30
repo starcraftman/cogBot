@@ -1,7 +1,9 @@
 .cache
 .python-version
 .secrets
+.tox
 venv
 z_scratch
 
+*.egg-info
 *private
