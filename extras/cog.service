@@ -5,9 +5,9 @@ After=network.target
 
 [Service]
 Type=simple
-User=cog
-WorkingDirectory=/home/cog
-ExecStart=/home/cog/.pyenv/versions/3.5.3/bin/python /home/cog/cogBot/bot.py
+User=USER
+Environment=PYTHONPATH=REPLACE/cogBot
+ExecStart=REPLACE/cog/.pyenv/shims/python REPLACE/cogBot/cog/bot.py
 Restart=always
 
 [Install]
