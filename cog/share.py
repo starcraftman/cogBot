@@ -168,7 +168,8 @@ def parse_drop(args):
 
 class ModFormatter(logging.Formatter):
     """
-    Do a bit of magic to %pathname% in dict.
+    Add a relmod key to record dict.
+    This key tracks a module relative this project' root.
     """
     def format(self, record):
         relmod = record.__dict__['pathname'].replace(ROOT_DIR + os.path.sep, '')
@@ -182,10 +183,9 @@ def init_logging():
 
     IMPORTANT: On every start the file logs are rolled over.
     """
-    # TODO: Possibly, subclass Formatter, substring replace dict pathname to cut out absolute root
     log_folder = os.path.join(tempfile.gettempdir(), 'cog')
     try:
-        os.path.exists(log_folder)
+        os.makedirs(log_folder)
     except OSError:
         pass
     print('LOGGING FOLDER:', log_folder)

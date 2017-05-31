@@ -64,6 +64,7 @@ async def on_message(message):
             args = parser.parse_args(message.content.split(' '))
             msg = args.func(args)
         except cog.share.ArgumentParseError:
+            logging.getLogger('cog.bot').error("Command failed from '%s' | %s", author.name, msg)
             msg = 'Did not understand: {}'.format(message.content)
             msg += '\nGet more info with: !help'
 
