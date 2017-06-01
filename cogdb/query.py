@@ -11,7 +11,6 @@ import cog.exc
 import cog.sheets
 
 
-# TODO: Concern, too many sheet.gets. Consolidate to get whole sheet, and parse ?
 # TODO: Similarly, when updating sheet rely on batch_update eventually taken from a queue.
 
 
@@ -148,37 +147,35 @@ class FortTable(object):
 
 
 class SheetScanner(object):
-    def __init__(self, sheet, row_start=1, col_start=1):
-        self.num_results = 15
-        self.sheet = sheet
+    """
+    Scan a sheet's cells for useful information.
+
+    Whole sheets can be fetched by simply getting far beyond expected column end.
+        i.e. sheet.get('!A:EA', dim='COLUMNS')
+    """
+    def __init__(self, cells, row_start=1):
         self.row_start = row_start
-        self.col_start = col_start
+        self.cells = cells
 
     def systems(self):
         """
         Scan the systems in the fortification sheet and return System objects that can be inserted.
         """
         found = []
-        data_column = cog.sheets.Column(self.col_start)
+        cell_column = cog.sheets.Column('C')
         order = 1
-        more_systems = True
 
-        while more_systems:
-            begin = str(data_column)
-            end = data_column.offset(self.num_results)
-            data_column.next()
-            result = self.sheet.get('!{}1:{}10'.format(begin, end), dim='COLUMNS')
+        try:
+            for col in self.cells[3:]:
+                cell_column.next()
+                if col[2] == 10000:
+                    continue
 
-            try:
-                result_column = cog.sheets.Column(begin)
-                for data in result:
-                    kwargs = cog.sheets.system_result_dict(data, order, str(result_column))
-                    found.append(System(**kwargs))
-
-                    result_column.next()
-                    order = order + 1
-            except cog.exc.IncompleteData:
-                more_systems = False
+                kwargs = cog.sheets.system_result_dict(col, order, str(cell_column))
+                found.append(System(**kwargs))
+                order = order + 1
+        except cog.exc.IncompleteData:
+            pass
 
         return found
 
@@ -189,24 +186,15 @@ class SheetScanner(object):
         Ensure Users and Systems have been flushed to link ids.
         """
         found = []
-        row = self.row_start
-        more_users = True
+        row = self.row_start - 1
 
-        while more_users:
-            sname_row = row - 1
-            data_range = '!B{}:B{}'.format(row, row + self.num_results)
-            row = row + self.num_results + 1
-            result = self.sheet.get(data_range, dim='COLUMNS')
+        for user in self.cells[1][row:]:
+            row += 1
 
-            try:
-                for sname in result[0]:
-                    sname_row += 1
-                    if sname == '':  # Users sometimes miss an entry
-                        continue
+            if user == '':  # Users sometimes miss an entry
+                continue
 
-                    found.append(User(sheet_name=sname, sheet_row=sname_row))
-            except IndexError:
-                more_users = False
+            found.append(User(sheet_name=user, sheet_row=row))
 
         return found
 
@@ -220,26 +208,36 @@ class SheetScanner(object):
             users: The list of Users in order the order entered in the sheet.
         """
         found = []
-        data_range = '!{}{}:{}{}'.format(self.col_start, self.row_start,
-                                         systems[-1].sheet_col,
-                                         users[-1].sheet_row)
-        result = self.sheet.get(data_range, dim='COLUMNS')
-        system_ind = -1
-        for col_data in result:
-            system_ind += 1
-            system = systems[system_ind]
+        col_offset = column_to_index(systems[0].sheet_col)
 
-            user_ind = -1
-            for amount in col_data:
-                user_ind += 1
+        for system in systems:
+            try:
+                for user in users:
+                    col_ind = col_offset + system.sheet_order
+                    amount = self.cells[col_ind][user.sheet_row - 1]
 
-                if amount == '':  # Some rows just placeholders if empty
-                    continue
+                    if amount == '':  # Some rows just placeholders if empty
+                        continue
 
-                user = users[user_ind]
-                found.append(Fort(user_id=user.id, system_id=system.id, amount=amount))
+                    found.append(Fort(user_id=user.id, system_id=system.id, amount=amount))
+            except IndexError:
+                pass  # No more amounts in column
 
         return found
+
+
+def column_to_index(col_str):
+    """
+    Convert a column string to an index in sheet cells.
+    """
+    cnt = 0
+    column = cog.sheets.Column('A')
+
+    while str(column) != col_str:
+        column.next()
+        cnt += 1
+
+    return cnt
 
 
 def init_db():
@@ -249,7 +247,8 @@ def init_db():
     session = cogdb.Session()
 
     if not session.query(cogdb.schema.System).all():
-        scanner = SheetScanner(cog.sheets.get_sheet(), 11, 'F')
+        sheet = cog.sheets.get_sheet()
+        scanner = SheetScanner(sheet.get('!A:EA', dim='COLUMNS'), 11)
         systems = scanner.systems()
         users = scanner.users()
         session.add_all(systems + users)
@@ -264,11 +263,10 @@ def main():
     """
     Main function, does simple fort table test.
     """
-    pass
-    # cog.share.init_db()
-    # table = FortTable(Session(), cog.share.get_sheet())
-    # print(table.targets())
-    # print(table.next_targets())
+    init_db()
+    table = FortTable(cog.sheets.get_sheet())
+    print(table.targets())
+    print(table.next_targets())
 
     # Drop tables easily
     # session.query(Fort).delete()
@@ -276,14 +274,15 @@ def main():
     # session.query(System).delete()
     # session.commit()
 
+    # session = cogdb.Session()
     # print('Printing filled databases')
-    # for system in systems:
+    # for system in session.query(System):
         # print(system)
 
-    # for user in users:
+    # for user in session.query(User):
         # print(user)
 
-    # for fort in forts:
+    # for fort in session.query(Fort):
         # print(fort)
 
 

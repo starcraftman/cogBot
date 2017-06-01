@@ -55,9 +55,19 @@ class Fort(Base):
     amount = sqla.Column(sqla.Integer)
 
     def __repr__(self):
+        if getattr(self, 'user', None):
+            user = self.user.sheet_name
+        else:
+            user = 'UID-{}'.format(self.user_id)
+
+        if getattr(self, 'system', None):
+            system = self.systems.name
+        else:
+            system = 'SID-{}'.format(self.system_id)
+
         args = {
-            'user': self.user.sheet_name,
-            'system': self.system.name,
+            'user': user,
+            'system': system,
             'amount': self.amount,
         }
         return "<Fort(user='{user}', "\

@@ -17,6 +17,7 @@ except ImportError:
     print('Please run: pip install google-api-python-client')
 
 import cog.exc
+import cog.share
 
 
 APPLICATION_NAME = 'CogBot'

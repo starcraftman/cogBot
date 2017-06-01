@@ -43,11 +43,15 @@ class ThrowArggumentParser(argparse.ArgumentParser):
         raise ArgumentParseError()
 
 
-def rel_to_abs(path):
+class ModFormatter(logging.Formatter):
     """
-    Convert an internally relative path to an absolute one.
+    Add a relmod key to record dict.
+    This key tracks a module relative this project' root.
     """
-    return os.path.join(ROOT_DIR, path)
+    def format(self, record):
+        relmod = record.__dict__['pathname'].replace(ROOT_DIR + os.path.sep, '')
+        record.__dict__['relmod'] = relmod[:-3]
+        return super(ModFormatter, self).format(record)
 
 
 def get_config(*keys):
@@ -61,6 +65,35 @@ def get_config(*keys):
         conf = conf[key]
 
     return conf
+
+
+def init_logging():
+    """
+    Initialize project wide logging. The setup is described best in config file.
+
+    IMPORTANT: On every start the file logs are rolled over.
+    """
+    log_folder = os.path.join(tempfile.gettempdir(), 'cog')
+    try:
+        os.makedirs(log_folder)
+    except OSError:
+        pass
+    print('LOGGING FOLDER:', log_folder)
+
+    with open(rel_to_abs('log.yaml')) as fin:
+        log_conf = yaml.load(fin, Loader=Loader)
+    logging.config.dictConfig(log_conf)
+
+    for handler in logging.getLogger('cog').handlers + logging.getLogger('cogdb').handlers:
+        if isinstance(handler, logging.handlers.RotatingFileHandler):
+            handler.doRollover()
+
+
+def rel_to_abs(path):
+    """
+    Convert an internally relative path to an absolute one.
+    """
+    return os.path.join(ROOT_DIR, path)
 
 
 def make_parser():
@@ -164,36 +197,3 @@ def parse_drop(args):
         return cog.tbl.wrap_markdown(cog.tbl.format_table(lines, sep='|', header=True))
     except cog.exc.InvalidCommandArgs as exc:
         return str(exc)
-
-
-class ModFormatter(logging.Formatter):
-    """
-    Add a relmod key to record dict.
-    This key tracks a module relative this project' root.
-    """
-    def format(self, record):
-        relmod = record.__dict__['pathname'].replace(ROOT_DIR + os.path.sep, '')
-        record.__dict__['relmod'] = relmod[:-3]
-        return super(ModFormatter, self).format(record)
-
-
-def init_logging():
-    """
-    Initialize project wide logging. The setup is described best in config file.
-
-    IMPORTANT: On every start the file logs are rolled over.
-    """
-    log_folder = os.path.join(tempfile.gettempdir(), 'cog')
-    try:
-        os.makedirs(log_folder)
-    except OSError:
-        pass
-    print('LOGGING FOLDER:', log_folder)
-
-    with open(rel_to_abs('log.yaml')) as fin:
-        log_conf = yaml.load(fin, Loader=Loader)
-    logging.config.dictConfig(log_conf)
-
-    for handler in logging.getLogger('cog').handlers + logging.getLogger('cogdb').handlers:
-        if isinstance(handler, logging.handlers.RotatingFileHandler):
-            handler.doRollover()
