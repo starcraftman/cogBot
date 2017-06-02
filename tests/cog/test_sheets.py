@@ -41,20 +41,28 @@ def fort_sheet_reset():
     f_sheet.batch_update(cell_ranges, n_vals)
 
 
-def test_get(fort_sheet):
+def test_gsheet_get(fort_sheet):
     assert fort_sheet.get('!B16:B16') == [['Shepron']]
 
 
-def test_batch_get(fort_sheet):
+def test_gsheet_batch_get(fort_sheet):
     assert fort_sheet.batch_get(['!B16:B16', '!F6:G6']) == [[['Shepron']], [[4910, 4350]]]
 
 
-def test_update(fort_sheet_reset):
+def test_ghseet_get_with_formatting(fort_sheet):
+    fmt_cells = fort_sheet.get_with_formatting('!F10:F10')
+    system_colors = {'red': 0.42745098, 'blue': 0.92156863, 'green': 0.61960787}
+
+    for val in fmt_cells['sheets'][0]['data'][0]['rowData'][0]['values']:
+        assert val['effectiveFormat']['backgroundColor'] == system_colors
+
+
+def test_gsheet_update(fort_sheet_reset):
     fort_sheet_reset.update('!B16:B16', [['NotShepron']])
     assert fort_sheet_reset.get('!B16:B16') == [['NotShepron']]
 
 
-def test_batch_update(fort_sheet_reset):
+def test_gsheet_batch_update(fort_sheet_reset):
     cell_ranges = ['!B16:B17', '!F6:G6']
     n_vals = [[['NotShepron'], ['Grimbald']], [[2222, 3333]]]
     fort_sheet_reset.batch_update(cell_ranges, n_vals)
@@ -62,15 +70,15 @@ def test_batch_update(fort_sheet_reset):
     assert fort_sheet_reset.batch_get(cell_ranges) == n_vals
 
 
-def test_ColCnt_init():
-    col1 = cog.sheets.ColCnt()
+def test_colcnt_init():
+    col1 = cog.sheets.ColCnt('A')
     assert str(col1) == 'A'
     col2 = cog.sheets.ColCnt('Z')
     assert str(col2) == 'Z'
 
 
-def test_ColCnt_next():
-    col1 = cog.sheets.ColCnt()
+def test_colcnt_next():
+    col1 = cog.sheets.ColCnt('A')
     col1.next()
     assert str(col1) == 'B'
 
@@ -80,24 +88,39 @@ def test_ColCnt_next():
     assert str(col2) == 'A'
 
 
-def test_ColCnt_reset():
-    col2 = cog.sheets.ColCnt('Z')
-    col2.reset()
-    assert str(col2) == 'A'
+def test_colcnt_prev():
+    col1 = cog.sheets.ColCnt('B')
+    col1.prev()
+    assert str(col1) == 'A'
+
+    with pytest.raises(cog.exc.ColOverflow):
+        col1.prev()
+    assert str(col1) == 'Z'
 
 
-def test_Column_init():
-    column = cog.sheets.Column()
+def test_colcnt_reset():
+    col1 = cog.sheets.ColCnt('Z')
+    col1.reset()
+    assert str(col1) == 'A'
+
+    col2 = cog.sheets.ColCnt('A')
+    col2.reset(False)
+    assert str(col2) == 'Z'
+
+
+def test_column_init():
+    column = cog.sheets.Column('A')
     assert str(column) == 'A'
     assert str(column.counters[0]) == 'A'
+
     column = cog.sheets.Column('BA')
     assert str(column) == 'BA'
     assert str(column.counters[0]) == 'A'
     assert str(column.counters[1]) == 'B'
 
 
-def test_Column_next():
-    column = cog.sheets.Column()
+def test_column_next():
+    column = cog.sheets.Column('A')
     assert column.next() == 'B'
 
     column = cog.sheets.Column('Z')
@@ -105,10 +128,30 @@ def test_Column_next():
     assert column.next() == 'AB'
 
 
-def test_Column_offset():
-    column = cog.sheets.Column()
+def test_column_prev():
+    column = cog.sheets.Column('B')
+    assert column.prev() == 'A'
+
+    column = cog.sheets.Column('AA')
+    assert column.prev() == 'Z'
+    assert column.prev() == 'Y'
+
+
+def test_column_offset():
+    column = cog.sheets.Column('A')
     column.offset(5)
     assert str(column) == 'F'
+
+    column.offset(-5)
+    assert str(column) == 'A'
+
+
+def test_column_to_index():
+    column = cog.sheets.Column('A')
+    assert cog.sheets.column_to_index(str(column)) == 0
+
+    column2 = cog.sheets.Column('AA')
+    assert cog.sheets.column_to_index(str(column2)) == 26
 
 
 def test_parse_int():
@@ -121,16 +164,3 @@ def test_parse_float():
     assert cog.sheets.parse_float('') == 0.0
     assert cog.sheets.parse_float('2') == 2.0
     assert cog.sheets.parse_float(0.5) == 0.5
-
-
-def test_system_result_dict():
-    data = ['', 1, 4910, 0, 4322, 4910, 0, 116.99, '', 'Frey']
-    result = cog.sheets.system_result_dict(data, 0, 'F')
-    assert result['undermine'] == 0.0
-    assert result['trigger'] == 4910
-    assert result['cmdr_merits'] == 4322
-    assert result['fort_status'] == 4910
-    assert result['notes'] == ''
-    assert result['name'] == 'Frey'
-    assert result['sheet_col'] == 'F'
-    assert result['sheet_order'] == 0

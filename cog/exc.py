@@ -18,7 +18,7 @@ class ColOverflow(Exception):
     pass
 
 
-class IncompleteData(Exception):
+class IncorrectData(Exception):
     """
     Raise when data no longer contains useful information.
     """

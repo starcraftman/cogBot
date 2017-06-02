@@ -154,7 +154,11 @@ def parse_help(_):
 
 
 def parse_fort(args):
-    table = cogdb.query.FortTable(cog.sheets.get_sheet())
+    sheet_id = get_config('hudson', 'cattle', 'id')
+    secrets = get_config('secrets', 'sheets')
+    sheet = cog.sheets.GSheet(sheet_id, rel_to_abs(secrets['json']),
+                              rel_to_abs(secrets['token']))
+    table = cogdb.query.FortTable(sheet)
 
     if args.next:
         systems = table.next_targets(args.num)
@@ -171,7 +175,11 @@ def parse_fort(args):
 
 
 def parse_user(args):
-    table = cogdb.query.FortTable(cog.sheets.get_sheet())
+    sheet_id = get_config('hudson', 'cattle', 'id')
+    secrets = get_config('secrets', 'sheets')
+    sheet = cog.sheets.GSheet(sheet_id, rel_to_abs(secrets['json']),
+                              rel_to_abs(secrets['token']))
+    table = cogdb.query.FortTable(sheet)
     user = table.find_user(args.user)
 
     if user:
@@ -190,7 +198,11 @@ def parse_user(args):
 
 
 def parse_drop(args):
-    table = cogdb.query.FortTable(cog.sheets.get_sheet())
+    sheet_id = get_config('hudson', 'cattle', 'id')
+    secrets = get_config('secrets', 'sheets')
+    sheet = cog.sheets.GSheet(sheet_id, rel_to_abs(secrets['json']),
+                              rel_to_abs(secrets['token']))
+    table = cogdb.query.FortTable(sheet)
     msg = table.add_fort(args.system, args.user, args.amount)
     try:
         lines = [msg.__class__.header, msg.data_tuple]

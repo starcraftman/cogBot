@@ -17,7 +17,6 @@ except ImportError:
     print('Please run: pip install google-api-python-client')
 
 import cog.exc
-import cog.share
 
 
 APPLICATION_NAME = 'CogBot'
@@ -29,12 +28,15 @@ class ColCnt(object):
     """
     Simple counter that resets and prints its character.
     """
-    def __init__(self, char='A'):
+    def __init__(self, char, low='A', high='Z'):
         self.char = ord(char)
-        self.stop_char = ord('Z') + 1
+        self.low_bound = ord(low) - 1
+        self.high_bound = ord(high) + 1
 
     def __repr__(self):
-        return "<ColCnt(char='{}', stop_char='{}')>".format(chr(self.char), chr(self.stop_char))
+        return "<ColCnt(char='{}', low/high bound='{}'/'{}')>".format(chr(self.char),
+                                                                      chr(self.low_bound),
+                                                                      chr(self.high_bound))
 
     def __str__(self):
         return chr(self.char)
@@ -47,15 +49,30 @@ class ColCnt(object):
             ColOverflow: When the counter exceeds its bounds. Counter is reset before throwing.
         """
         self.char = self.char + 1
-        if self.char == self.stop_char:
+        if self.char == self.high_bound:
             self.reset()
             raise cog.exc.ColOverflow
 
-    def reset(self):
+    def prev(self):
+        """
+        Move to previous character.
+
+        Raises:
+            ColOverflow: When the counter exceeds its bounds. Counter is reset before throwing.
+        """
+        self.char = self.char - 1
+        if self.char == self.low_bound:
+            self.reset(overflow=False)
+            raise cog.exc.ColOverflow
+
+    def reset(self, overflow=True):
         """
         Reset to first character.
         """
-        self.char = ord('A')
+        if overflow:
+            self.char = ord('A')
+        else:
+            self.char = ord('Z')
 
 
 class Column(object):
@@ -69,7 +86,7 @@ class Column(object):
         IMPORTANT: Counters are stored backwards, lease significant counter at index 0.
 
         Args:
-            init_col: An string representing an excel column of A-Z, AA, AB, etc ...
+            init_col: A string representing an excel column of A-Z, AA, AB, etc ...
         """
         self.counters = []
 
@@ -100,7 +117,27 @@ class Column(object):
                 pass
 
         if add_counter:
-            self.counters.append(ColCnt())
+            self.counters.append(ColCnt('A'))
+
+        return self.__str__()
+
+    def prev(self):
+        """
+        Subtract exactly 1 from the column counters.
+
+        Returns: The new column string.
+        """
+        sub_counter = True
+        for counter in self.counters:
+            try:
+                counter.prev()
+                sub_counter = False
+                break
+            except cog.exc.ColOverflow:
+                pass
+
+        if sub_counter:
+            self.counters = self.counters[:-1]
 
         return self.__str__()
 
@@ -110,8 +147,14 @@ class Column(object):
 
         Returns: The new column string.
         """
+        if offset > 0:
+            call = self.next
+        else:
+            call = self.prev
+            offset = offset * -1
+
         while offset:
-            self.next()
+            call()
             offset -= 1
 
         return self.__str__()
@@ -210,6 +253,30 @@ class GSheet(object):
         values = self.service.spreadsheets().values()
         values.batchUpdate(spreadsheetId=self.sheet_id, body=body).execute()
 
+    def get_with_formatting(self, cell_range):
+        """
+        Get cells with formatting information.
+        """
+        sheets = self.service.spreadsheets()
+        result = sheets.get(spreadsheetId=self.sheet_id, ranges=cell_range,
+                            includeGridData=True).execute()
+
+        return result
+
+
+def column_to_index(col_str):
+    """
+    Convert a column string to an index in sheet cells.
+    """
+    cnt = 0
+    column = cog.sheets.Column('A')
+
+    while str(column) != col_str:
+        column.next()
+        cnt += 1
+
+    return cnt
+
 
 def get_credentials(json_secret, sheets_token):
     """
@@ -239,16 +306,6 @@ def get_credentials(json_secret, sheets_token):
     return credentials
 
 
-def get_sheet():
-    """
-    Temporary hack, get a sheet.
-    """
-    sheet_id = cog.share.get_config('hudson', 'cattle', 'id')
-    secrets = cog.share.get_config('secrets', 'sheets')
-    return cog.sheets.GSheet(sheet_id, cog.share.rel_to_abs(secrets['json']),
-                             cog.share.rel_to_abs(secrets['token']))
-
-
 def parse_int(word):
     try:
         return int(word)
@@ -261,39 +318,3 @@ def parse_float(word):
         return float(word)
     except ValueError:
         return 0.0
-
-
-def system_result_dict(lines, order, column):
-    """
-    Map the json result from systems request into kwargs to initialize the system with.
-
-    lines: A list of the following
-        0   - undermine % (comes as float 0.0 - 1.0)
-        1   - completion % (comes as float 0.0 - 1.0)
-        2   - fortification trigger
-        3   - missing merits
-        4   - merits dropped by commanders
-        5   - status updated manually (defaults to '', map to 0)
-        6   - undermine updated manually (defaults to '', map to 0)
-        7   - distance from hq (float, always set)
-        8   - notes (defaults '')
-        9   - system name
-    order: The order of this data set relative others.
-    column: The column string this data belongs in.
-    """
-    try:
-        if lines[9] == '':
-            raise cog.exc.IncompleteData
-    except IndexError:
-        raise cog.exc.IncompleteData
-
-    return {
-        'undermine': parse_float(lines[0]),
-        'trigger': parse_int(lines[2]),
-        'cmdr_merits': lines[4],
-        'fort_status': parse_int(lines[5]),
-        'notes': lines[8],
-        'name': lines[9],
-        'sheet_col': column,
-        'sheet_order': order,
-    }

@@ -153,28 +153,27 @@ class SheetScanner(object):
     Whole sheets can be fetched by simply getting far beyond expected column end.
         i.e. sheet.get('!A:EA', dim='COLUMNS')
     """
-    def __init__(self, cells, row_start=1):
-        self.row_start = row_start
+    def __init__(self, cells, col_start='A', row_start=1):
         self.cells = cells
+        self.col_start = col_start
+        self.row_start = row_start
 
     def systems(self):
         """
         Scan the systems in the fortification sheet and return System objects that can be inserted.
         """
         found = []
-        cell_column = cog.sheets.Column('C')
+        cell_column = cog.sheets.Column(self.col_start)
+        start_index = cog.sheets.column_to_index(self.col_start)
         order = 1
 
         try:
-            for col in self.cells[3:]:
-                cell_column.next()
-                if col[2] == 10000:
-                    continue
-
-                kwargs = cog.sheets.system_result_dict(col, order, str(cell_column))
+            for col in self.cells[start_index:]:
+                kwargs = system_result_dict(col, order, str(cell_column))
                 found.append(System(**kwargs))
                 order = order + 1
-        except cog.exc.IncompleteData:
+                cell_column.next()
+        except cog.exc.IncorrectData:
             pass
 
         return found
@@ -208,7 +207,7 @@ class SheetScanner(object):
             users: The list of Users in order the order entered in the sheet.
         """
         found = []
-        col_offset = column_to_index(systems[0].sheet_col)
+        col_offset = cog.sheets.column_to_index(systems[0].sheet_col)
 
         for system in systems:
             try:
@@ -226,18 +225,59 @@ class SheetScanner(object):
         return found
 
 
-def column_to_index(col_str):
+def first_system_column(fmt_cells):
     """
-    Convert a column string to an index in sheet cells.
-    """
-    cnt = 0
-    column = cog.sheets.Column('A')
+    Find the first column that has a system cell in it.
 
-    while str(column) != col_str:
+    Determined based on cell's background color.
+    """
+    column = cog.sheets.Column()
+    # System's always use this background color.
+    system_colors = {'red': 0.42745098, 'blue': 0.92156863, 'green': 0.61960787}
+
+    for val in fmt_cells['sheets'][0]['data'][0]['rowData'][0]['values']:
+        if val['effectiveFormat']['backgroundColor'] == system_colors:
+            break
+
         column.next()
-        cnt += 1
 
-    return cnt
+    return str(column)
+
+
+def system_result_dict(lines, order, column):
+    """
+    Map the json result from systems request into kwargs to initialize the system with.
+
+    lines: A list of the following
+        0   - undermine % (comes as float 0.0 - 1.0)
+        1   - completion % (comes as float 0.0 - 1.0)
+        2   - fortification trigger
+        3   - missing merits
+        4   - merits dropped by commanders
+        5   - status updated manually (defaults to '', map to 0)
+        6   - undermine updated manually (defaults to '', map to 0)
+        7   - distance from hq (float, always set)
+        8   - notes (defaults '')
+        9   - system name
+    order: The order of this data set relative others.
+    column: The column string this data belongs in.
+    """
+    try:
+        if lines[9] == '':
+            raise cog.exc.IncorrectData
+
+        return {
+            'undermine': cog.sheets.parse_float(lines[0]),
+            'trigger': cog.sheets.parse_int(lines[2]),
+            'cmdr_merits': lines[4],
+            'fort_status': cog.sheets.parse_int(lines[5]),
+            'notes': lines[8],
+            'name': lines[9],
+            'sheet_col': column,
+            'sheet_order': order,
+        }
+    except (IndexError, TypeError):
+        raise cog.exc.IncorrectData
 
 
 def init_db():
@@ -247,8 +287,13 @@ def init_db():
     session = cogdb.Session()
 
     if not session.query(cogdb.schema.System).all():
-        sheet = cog.sheets.get_sheet()
-        scanner = SheetScanner(sheet.get('!A:EA', dim='COLUMNS'), 11)
+        sheet_id = cog.share.get_config('hudson', 'cattle', 'id')
+        secrets = cog.share.get_config('secrets', 'sheets')
+        sheet = cog.sheets.GSheet(sheet_id, cog.share.rel_to_abs(secrets['json']),
+                                  cog.share.rel_to_abs(secrets['token']))
+
+        col_start = first_system_column(sheet.get_with_formatting('!A10:J10'))
+        scanner = SheetScanner(sheet.get('!A:EA', dim='COLUMNS'), col_start, 11)
         systems = scanner.systems()
         users = scanner.users()
         session.add_all(systems + users)
@@ -263,10 +308,21 @@ def main():
     """
     Main function, does simple fort table test.
     """
-    init_db()
-    table = FortTable(cog.sheets.get_sheet())
-    print(table.targets())
-    print(table.next_targets())
+    sheet_id = cog.share.get_config('hudson', 'cattle', 'id')
+    secrets = cog.share.get_config('secrets', 'sheets')
+    sheet = cog.sheets.GSheet(sheet_id, cog.share.rel_to_abs(secrets['json']),
+                              cog.share.rel_to_abs(secrets['token']))
+
+    col_start = first_system_column(sheet.get_with_formatting('!A10:J10'))
+    scanner = SheetScanner(sheet.get('!A:EA', dim='COLUMNS'), col_start, 11)
+    print(scanner.col_start)
+    print(scanner.systems()[0].name)
+
+    # print(json.dumps(values, indent=4, sort_keys=True))
+    # init_db()
+    # table = FortTable(sheet)
+    # print(table.targets())
+    # print(table.next_targets())
 
     # Drop tables easily
     # session.query(Fort).delete()
