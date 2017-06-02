@@ -61,7 +61,7 @@ class Fort(Base):
             user = 'UID-{}'.format(self.user_id)
 
         if getattr(self, 'system', None):
-            system = self.systems.name
+            system = self.system.name
         else:
             system = 'SID-{}'.format(self.system_id)
 

@@ -2,6 +2,7 @@
 Common functions.
 """
 from __future__ import absolute_import, print_function
+import functools
 import logging
 import logging.handlers
 import logging.config
@@ -96,7 +97,7 @@ def rel_to_abs(path):
     return os.path.join(ROOT_DIR, path)
 
 
-def make_parser():
+def make_parser(table):
     """
     Returns the bot parser.
     """
@@ -112,22 +113,27 @@ def make_parser():
                      help='show NUM systems after current')
     sub.add_argument('num', nargs='?', type=int, default=5,
                      help='number of systems to display')
-    sub.set_defaults(func=parse_fort)
+    sub.set_defaults(func=functools.partial(parse_fort, table))
 
     sub = subs.add_parser('user', description='Manipulate sheet users.')
     sub.add_argument('-a', '--add', action='store_true', default=False,
                      help='Add a user to table if not present.')
     sub.add_argument('-q', '--query', action='store_true', default=False,
                      help='Return username and row if exists.')
-    sub.add_argument('user', nargs='?',
+    sub.add_argument('user', nargs='+',
                      help='The user to interact with.')
-    sub.set_defaults(func=parse_user)
+    sub.set_defaults(func=functools.partial(parse_user, table))
 
     sub = subs.add_parser('drop', description='Drop forts for user at system.')
-    sub.add_argument('system', help='The system to drop at.')
-    sub.add_argument('user', help='The user to drop for.')
     sub.add_argument('amount', type=int, help='The amount to drop.')
-    sub.set_defaults(func=parse_drop)
+    sub.add_argument('-s', '--system', required=True, nargs='+',
+                     help='The system to drop at.')
+    sub.add_argument('-u', '--user', nargs='+',
+                     help='The user to drop for.')
+    sub.set_defaults(func=functools.partial(parse_drop, table))
+
+    sub = subs.add_parser('dump', description='Dump the current db.')
+    sub.set_defaults(func=parse_dumpdb)
 
     sub = subs.add_parser('help', description='Show overall help message.')
     sub.set_defaults(func=parse_help)
@@ -146,20 +152,18 @@ def parse_help(_):
         ['!fort -nl NUM', 'Show status of the next NUM targets.'],
         ['!user -a USER', 'Add a USER to table.'],
         ['!user -q USER', 'Check if user is in table.'],
-        ['!drop SYSTEM USER AMOUNT', 'Increase by AMOUNT forts for USER at SYSTEM'],
+        ['!drop AMOUNT -s SYSTEM -u USER', 'Increase by AMOUNT forts for USER at SYSTEM'],
         ['!info', 'Display information on user.'],
         ['!help', 'This help message.'],
     ]
     return cog.tbl.wrap_markdown(cog.tbl.format_table(lines, header=True))
 
 
-def parse_fort(args):
-    sheet_id = get_config('hudson', 'cattle', 'id')
-    secrets = get_config('secrets', 'sheets')
-    sheet = cog.sheets.GSheet(sheet_id, rel_to_abs(secrets['json']),
-                              rel_to_abs(secrets['token']))
-    table = cogdb.query.FortTable(sheet)
+def parse_dumpdb(_):
+    cogdb.query.dump_db()
 
+
+def parse_fort(table, args):
     if args.next:
         systems = table.next_targets(args.num)
     else:
@@ -174,12 +178,8 @@ def parse_fort(args):
     return msg
 
 
-def parse_user(args):
-    sheet_id = get_config('hudson', 'cattle', 'id')
-    secrets = get_config('secrets', 'sheets')
-    sheet = cog.sheets.GSheet(sheet_id, rel_to_abs(secrets['json']),
-                              rel_to_abs(secrets['token']))
-    table = cogdb.query.FortTable(sheet)
+def parse_user(table, args):
+    args.user = ' '.join(args.user)
     user = table.find_user(args.user)
 
     if user:
@@ -197,15 +197,14 @@ def parse_user(args):
     return msg
 
 
-def parse_drop(args):
-    sheet_id = get_config('hudson', 'cattle', 'id')
-    secrets = get_config('secrets', 'sheets')
-    sheet = cog.sheets.GSheet(sheet_id, rel_to_abs(secrets['json']),
-                              rel_to_abs(secrets['token']))
-    table = cogdb.query.FortTable(sheet)
-    msg = table.add_fort(args.system, args.user, args.amount)
+def parse_drop(table, args):
+    args.system = ' '.join(args.system)
+    if args.user:
+        args.user = ' '.join(args.user)
+
+    system = table.add_fort(args.system, args.user, args.amount)
     try:
-        lines = [msg.__class__.header, msg.data_tuple]
+        lines = [system.__class__.header, system.data_tuple]
         return cog.tbl.wrap_markdown(cog.tbl.format_table(lines, sep='|', header=True))
     except cog.exc.InvalidCommandArgs as exc:
         return str(exc)

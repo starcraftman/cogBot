@@ -60,7 +60,12 @@ async def on_message(message):
     else:
         try:
             message.content = message.content[1:]
-            parser = cog.share.make_parser()
+
+            sheet_id = cog.share.get_config('hudson', 'cattle', 'id')
+            secrets = cog.share.get_config('secrets', 'sheets')
+            sheet = cog.sheets.GSheet(sheet_id, cog.share.rel_to_abs(secrets['json']),
+                                      cog.share.rel_to_abs(secrets['token']))
+            parser = cog.share.make_parser(cogdb.query.FortTable(sheet))
             args = parser.parse_args(message.content.split(' '))
             msg = args.func(args)
         except cog.share.ArgumentParseError:

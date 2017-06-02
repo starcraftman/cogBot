@@ -40,7 +40,12 @@ def main():
     logging.getLogger('cog.local').error('Local loop is ready.')
 
     try:
-        parser = cog.share.make_parser()
+        sheet_id = cog.share.get_config('hudson', 'cattle', 'id')
+        secrets = cog.share.get_config('secrets', 'sheets')
+        sheet = cog.sheets.GSheet(sheet_id, cog.share.rel_to_abs(secrets['json']),
+                                  cog.share.rel_to_abs(secrets['token']))
+        parser = cog.share.make_parser(cogdb.query.FortTable(sheet))
+
         while True:
             try:
                 line = sys.stdin.readline().rstrip()

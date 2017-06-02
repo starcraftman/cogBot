@@ -12,6 +12,7 @@ import cog.sheets
 
 
 # TODO: Similarly, when updating sheet rely on batch_update eventually taken from a queue.
+# TODO: ForTable -> make functional and pass data or reorganize, doesn't work for me.
 
 
 class FortTable(object):
@@ -24,11 +25,8 @@ class FortTable(object):
         """
         self.index = 0
         self.sheet = sheet
+        self.session = cogdb.Session()
         self.set_target()
-
-    @property
-    def session(self):
-        return cogdb.Session()
 
     @property
     def othime(self):
@@ -130,18 +128,21 @@ class FortTable(object):
 
         try:
             fort = self.session.query(Fort).filter_by(user_id=user.id, system_id=system.id).one()
-            fort.amount += amount
-            system.fort_status += amount
-            system.cmdr_merits += amount
+            fort.amount = fort.amount + amount
         except sqa_exc.NoResultFound:
             fort = Fort(user_id=user.id, system_id=system.id, amount=amount)
+            self.session.add(fort)
+        system.fort_status = system.fort_status + amount
+        system.cmdr_merits = system.cmdr_merits + amount
 
-        self.session.add(fort)
-        self.session.add(system)
         self.session.commit()
 
-        self.sheet.update('!{col}{row}:{col}{row}'.format(col=system.sheet_col,
-                                                          row=user.sheet_row), [[fort.amount]])
+        range1 = '!{col}{row}:{col}{row}'.format(col=system.sheet_col,
+                                                 row=user.sheet_row)
+        range2 = '!{col}{row}:{col}{row}'.format(col=system.sheet_col,
+                                                 row=6)
+        self.sheet.update(range1, [[fort.amount]])
+        self.sheet.update(range2, [[max(system.fort_status, system.cmdr_merits)]])
 
         return system
 
@@ -207,7 +208,7 @@ class SheetScanner(object):
             users: The list of Users in order the order entered in the sheet.
         """
         found = []
-        col_offset = cog.sheets.column_to_index(systems[0].sheet_col)
+        col_offset = cog.sheets.column_to_index(systems[0].sheet_col) - 1
 
         for system in systems:
             try:
@@ -302,6 +303,22 @@ def init_db():
         forts = scanner.forts(systems, users)
         session.add_all(forts)
         session.commit()
+
+
+def dump_db():
+    """
+    Purely debug function, prints locally database.
+    """
+    session = cogdb.Session()
+    print('Printing filled databases')
+    for system in session.query(System):
+        print(system)
+
+    for user in session.query(User):
+        print(user)
+
+    for fort in session.query(Fort):
+        print(fort)
 
 
 def main():
