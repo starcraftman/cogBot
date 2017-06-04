@@ -35,7 +35,7 @@ def main():
     Simply operate the bot locally by command line input.
     """
     cog.share.init_logging()
-    cogdb.query.init_db()
+    cog.share.init_db(cog.share.get_config('hudson', 'cattle', 'id'))
     logging.getLogger('cog.local').error('Local loop is ready.')
 
     try:

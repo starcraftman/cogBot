@@ -80,7 +80,7 @@ def test_system_creation():
     session.commit()
 
     assert system.id == 1
-    assert repr(system) ==  "<System(name='Frey', sheet_order='0', sheet_col='F', merits='4322', fort_status='4910', trigger='4910', undermine='0.0', notes='')>"
+    assert repr(system) == "<System(name='Frey', sheet_order='0', sheet_col='F', merits='4322', fort_status='4910', trigger='4910', undermine='0.0', notes='')>"
     assert str(system) == "ID='1', <System(name='Frey', sheet_order='0', sheet_col='F', merits='4322', fort_status='4910', trigger='4910', undermine='0.0', notes='')>"
 
 

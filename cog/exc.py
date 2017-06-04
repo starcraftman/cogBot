@@ -4,9 +4,9 @@ Common exceptions.
 from __future__ import absolute_import, print_function
 
 
-class InvalidCommandArgs(Exception):
+class SheetParsingError(Exception):
     """
-    Unable to process command due to bad arguements.
+    During sheet parsing, could not determine cell anchors properly.
     """
     pass
 
@@ -14,6 +14,13 @@ class InvalidCommandArgs(Exception):
 class ColOverflow(Exception):
     """
     Raise when a column has reached end, increment next column.
+    """
+    pass
+
+
+class InvalidCommandArgs(Exception):
+    """
+    Unable to process command due to bad arguements.
     """
     pass
 

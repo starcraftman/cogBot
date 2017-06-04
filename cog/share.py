@@ -90,6 +90,31 @@ def init_logging():
             handler.doRollover()
 
 
+def init_db(sheet_id):
+    """
+    Scan sheet and fill database if empty.
+    """
+    session = cogdb.Session()
+
+    if not session.query(cogdb.schema.System).all():
+        secrets = get_config('secrets', 'sheets')
+        sheet = cog.sheets.GSheet(sheet_id, rel_to_abs(secrets['json']),
+                                  rel_to_abs(secrets['token']))
+
+        system_col = cogdb.query.first_system_column(sheet.get_with_formatting('!A10:J10'))
+        cells = sheet.whole_sheet()
+        user_col, user_row = cogdb.query.first_user_row(cells)
+        scanner = cogdb.query.SheetScanner(cells, system_col, user_col, user_row)
+        systems = scanner.systems()
+        users = scanner.users()
+        session.add_all(systems + users)
+        session.commit()
+
+        forts = scanner.forts(systems, users)
+        session.add_all(forts)
+        session.commit()
+
+
 def rel_to_abs(path):
     """
     Convert an internally relative path to an absolute one.

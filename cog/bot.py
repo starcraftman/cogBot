@@ -78,7 +78,7 @@ async def on_message(message):
 
 def main():
     cog.share.init_logging()
-    cogdb.query.init_db()
+    cog.share.init_db(cog.share.get_config('hudson', 'cattle', 'id'))
     try:
         client.run(cog.share.get_config('secrets', 'discord_token'))
     finally:

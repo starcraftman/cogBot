@@ -263,6 +263,15 @@ class GSheet(object):
 
         return result
 
+    def whole_sheet(self, dim='COLUMNS'):
+        """
+        Simple alias to fetch a whole sheet, simply request far beyond
+        possible column range.
+
+        Returns: 2D list of sheet.
+        """
+        return self.get('!A:ZZ', dim=dim)
+
 
 def column_to_index(col_str):
     """

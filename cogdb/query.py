@@ -5,13 +5,13 @@ from __future__ import absolute_import, print_function
 
 import sqlalchemy.orm.exc as sqa_exc
 
-import cogdb
-from cogdb.schema import Fort, System, User
 import cog.exc
 import cog.sheets
+import cogdb
+from cogdb.schema import Fort, System, User, system_result_dict
 
 
-# TODO: Similarly, when updating sheet rely on batch_update eventually taken from a queue.
+# TODO: Possible optimization, batch updates together on timer of 1-2s. May not be needed.
 # TODO: ForTable -> make functional and pass data or reorganize, doesn't work for me.
 
 
@@ -154,22 +154,23 @@ class SheetScanner(object):
     Whole sheets can be fetched by simply getting far beyond expected column end.
         i.e. sheet.get('!A:EA', dim='COLUMNS')
     """
-    def __init__(self, cells, col_start='A', row_start=1):
+    def __init__(self, cells, system_col='A', user_col='A', user_row=1):
         self.cells = cells
-        self.col_start = col_start
-        self.row_start = row_start
+        self.system_col = system_col
+        self.user_col = user_col
+        self.user_row = user_row
 
     def systems(self):
         """
         Scan the systems in the fortification sheet and return System objects that can be inserted.
         """
         found = []
-        cell_column = cog.sheets.Column(self.col_start)
-        start_index = cog.sheets.column_to_index(self.col_start)
+        cell_column = cog.sheets.Column(self.system_col)
+        first_system_col = cog.sheets.column_to_index(self.system_col)
         order = 1
 
         try:
-            for col in self.cells[start_index:]:
+            for col in self.cells[first_system_col:]:
                 kwargs = system_result_dict(col, order, str(cell_column))
                 found.append(System(**kwargs))
                 order = order + 1
@@ -186,9 +187,10 @@ class SheetScanner(object):
         Ensure Users and Systems have been flushed to link ids.
         """
         found = []
-        row = self.row_start - 1
+        row = self.user_row - 1
+        user_column = cog.sheets.column_to_index(self.user_col)
 
-        for user in self.cells[1][row:]:
+        for user in self.cells[user_column][row:]:
             row += 1
 
             if user == '':  # Users sometimes miss an entry
@@ -238,35 +240,35 @@ def first_system_column(fmt_cells):
 
     for val in fmt_cells['sheets'][0]['data'][0]['rowData'][0]['values']:
         if val['effectiveFormat']['backgroundColor'] == system_colors:
-            break
+            return str(column)
 
         column.next()
 
-    return str(column)
+    raise cog.exc.SheetParsingError
 
 
-def init_db():
+def first_user_row(cells):
     """
-    Scan sheet and fill database if empty.
+    cells: List of columns in sheet, each column is a list of rows.
+
+    Returns: First row and column that has users in it.
+
+    Raises: SheetParsingError when fails to locate expected anchor in cells.
     """
-    session = cogdb.Session()
+    cell_anchor = 'CMDR Name'
+    col_count = cog.sheets.Column('A')
 
-    if not session.query(cogdb.schema.System).all():
-        sheet_id = cog.share.get_config('hudson', 'cattle', 'id')
-        secrets = cog.share.get_config('secrets', 'sheets')
-        sheet = cog.sheets.GSheet(sheet_id, cog.share.rel_to_abs(secrets['json']),
-                                  cog.share.rel_to_abs(secrets['token']))
+    for column in cells:
+        col_count.next()
+        if cell_anchor not in column:
+            continue
 
-        col_start = first_system_column(sheet.get_with_formatting('!A10:J10'))
-        scanner = SheetScanner(sheet.get('!A:EA', dim='COLUMNS'), col_start, 11)
-        systems = scanner.systems()
-        users = scanner.users()
-        session.add_all(systems + users)
-        session.commit()
+        col_count.prev()  # Gone past by one
+        for row_count, row in enumerate(column):
+            if row == cell_anchor:
+                return (str(col_count), row_count + 2)
 
-        forts = scanner.forts(systems, users)
-        session.add_all(forts)
-        session.commit()
+    raise cog.exc.SheetParsingError
 
 
 def dump_db():
@@ -289,18 +291,21 @@ def main():
     """
     Main function, does simple fort table test.
     """
+    import cog.share
     sheet_id = cog.share.get_config('hudson', 'cattle', 'id')
     secrets = cog.share.get_config('secrets', 'sheets')
     sheet = cog.sheets.GSheet(sheet_id, cog.share.rel_to_abs(secrets['json']),
                               cog.share.rel_to_abs(secrets['token']))
 
-    col_start = first_system_column(sheet.get_with_formatting('!A10:J10'))
-    scanner = SheetScanner(sheet.get('!A:EA', dim='COLUMNS'), col_start, 11)
-    print(scanner.col_start)
+    system_col = first_system_column(sheet.get_with_formatting('!A10:J10'))
+    cells = sheet.whole_sheet()
+    user_col, user_row = first_user_row(cells)
+    scanner = SheetScanner(cells, system_col, user_col, user_row)
+    print(scanner.system_col)
     print(scanner.systems()[0].name)
 
     # print(json.dumps(values, indent=4, sort_keys=True))
-    # init_db()
+    # cog.share.init_db(cog.share.get_config('hudson', 'cattle', 'id'))
     # table = FortTable(sheet)
     # print(table.targets())
     # print(table.next_targets())
