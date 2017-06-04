@@ -152,15 +152,3 @@ def test_column_to_index():
 
     column2 = cog.sheets.Column('AA')
     assert cog.sheets.column_to_index(str(column2)) == 26
-
-
-def test_parse_int():
-    assert cog.sheets.parse_int('') == 0
-    assert cog.sheets.parse_int('2') == 2
-    assert cog.sheets.parse_int(5) == 5
-
-
-def test_parse_float():
-    assert cog.sheets.parse_float('') == 0.0
-    assert cog.sheets.parse_float('2') == 2.0
-    assert cog.sheets.parse_float(0.5) == 0.5

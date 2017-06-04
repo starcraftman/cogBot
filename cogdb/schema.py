@@ -7,6 +7,7 @@ import sqlalchemy as sqla
 import sqlalchemy.orm as sqla_orm
 import sqlalchemy.ext.declarative
 
+import cog.exc
 import cogdb
 
 
@@ -130,24 +131,6 @@ class System(Base):
         return "ID='{}', ".format(self.id) + self.__repr__()
 
     @property
-    def f_status(self):
-        return self.fort_status
-
-    @f_status.setter
-    def set_f_status(self, new_value):
-        if new_value > self.trigger:
-            self.fort_status = self.trigger
-
-    @property
-    def c_merits(self):
-        return self.cmdr_merits
-
-    @c_merits.setter
-    def set_c_merits(self, new_value):
-        if new_value > self.trigger:
-            self.cmdr_merits = self.trigger
-
-    @property
     def current_status(self):
         """ Simply return max fort status reported. """
         return max(self.fort_status, self.cmdr_merits)
@@ -184,7 +167,7 @@ class System(Base):
         return '{:.1f}'.format(comp_cent)
 
     @property
-    def data_tuple(self):
+    def table_row(self):
         """
         Return a tuple of important data to be formatted for table output.
         Each element should be mapped to separate column.
@@ -193,15 +176,60 @@ class System(Base):
         status = '{:>4}/{:4} ({:2}%)'.format(self.current_status,
                                              self.trigger,
                                              self.completion)
+        missing = 'N/A' if self.skip else '{:>4}'.format(self.missing)
 
-        if self.skip:
-            missing = 'N/A'
-            notes = self.notes + ' Do NOT fortify!'
-        else:
-            missing = '{:>4}'.format(self.missing)
-            notes = self.notes
+        return (self.name, status, missing, '{:.1f}%'.format(self.undermine), self.notes)
 
-        return (self.name, status, missing, '{:.1f}%'.format(self.undermine), notes)
+
+def parse_int(word):
+    try:
+        return int(word)
+    except ValueError:
+        return 0
+
+
+def parse_float(word):
+    try:
+        return float(word)
+    except ValueError:
+        return 0.0
+
+
+def system_result_dict(lines, order, column):
+    """
+    Simple adapter that parses the data and puts it into kwargs to
+    be used when initializing the System object.
+
+    lines: A list of the following
+        0   - undermine % (comes as float 0.0 - 1.0)
+        1   - completion % (comes as float 0.0 - 1.0)
+        2   - fortification trigger
+        3   - missing merits
+        4   - merits dropped by commanders
+        5   - status updated manually (defaults to '', map to 0)
+        6   - undermine updated manually (defaults to '', map to 0)
+        7   - distance from hq (float, always set)
+        8   - notes (defaults '')
+        9   - system name
+    order: The order of this data set relative others.
+    column: The column string this data belongs in.
+    """
+    try:
+        if lines[9] == '':
+            raise cog.exc.IncorrectData
+
+        return {
+            'undermine': parse_float(lines[0]),
+            'trigger': parse_int(lines[2]),
+            'cmdr_merits': lines[4],
+            'fort_status': parse_int(lines[5]),
+            'notes': lines[8],
+            'name': lines[9],
+            'sheet_col': column,
+            'sheet_order': order,
+        }
+    except (IndexError, TypeError):
+        raise cog.exc.IncorrectData
 
 
 def make_file_engine(abs_path):

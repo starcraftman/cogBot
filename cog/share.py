@@ -170,7 +170,7 @@ def parse_fort(table, args):
         systems = table.targets()
 
     if args.long:
-        lines = [systems[0].__class__.header] + [system.data_tuple for system in systems]
+        lines = [systems[0].__class__.header] + [system.table_row for system in systems]
         msg = cog.tbl.wrap_markdown(cog.tbl.format_table(lines, sep='|', header=True))
     else:
         msg = '\n'.join([system.name for system in systems])
@@ -204,7 +204,7 @@ def parse_drop(table, args):
 
     system = table.add_fort(args.system, args.user, args.amount)
     try:
-        lines = [system.__class__.header, system.data_tuple]
+        lines = [system.__class__.header, system.table_row]
         return cog.tbl.wrap_markdown(cog.tbl.format_table(lines, sep='|', header=True))
     except cog.exc.InvalidCommandArgs as exc:
         return str(exc)

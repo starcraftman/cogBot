@@ -304,17 +304,3 @@ def get_credentials(json_secret, sheets_token):
         print('Storing credentials to ' + sheets_token)
 
     return credentials
-
-
-def parse_int(word):
-    try:
-        return int(word)
-    except ValueError:
-        return 0
-
-
-def parse_float(word):
-    try:
-        return float(word)
-    except ValueError:
-        return 0.0
