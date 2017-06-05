@@ -149,7 +149,7 @@ class System(Base):
     @property
     def is_undermined(self):
         """ The system has been undermined """
-        return self.undermine >= 99
+        return self.undermine >= 0.99
 
     @property
     def missing(self):

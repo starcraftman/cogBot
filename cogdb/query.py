@@ -11,8 +11,180 @@ import cogdb
 from cogdb.schema import Fort, System, User, system_result_dict
 
 
-# TODO: Possible optimization, batch updates together on timer of 1-2s. May not be needed.
-# TODO: ForTable -> make functional and pass data or reorganize, doesn't work for me.
+SYS_IND = 0  # current fortification target
+
+
+# TODO: Remove FortTable and replace with functions.
+
+
+def get_othime(session):
+    """
+    Return the System Othime.
+    """
+    return session.query(System).filter_by(name='Othime').one()
+
+
+def get_systems_not_othime(session):
+    """
+    Return a list of all Systems except Othime.
+    """
+    return session.query(System).filter(System.name != 'Othime').all()
+
+
+def get_all_systems(session):
+    """
+    Return a list of all Systems except Othime.
+    """
+    return session.query(System).all()
+
+
+def get_all_users(session):
+    """
+    Return a list of all Users.
+    """
+    return session.query(User).all()
+
+
+def find_current_target(session):
+    """
+    Scan Systems from the beginning to find next unfortified target that is not Othime.
+    """
+    for ind, system in enumerate(get_systems_not_othime(session)):
+        if system.is_fortified or system.skip:
+            continue
+
+        return ind
+
+
+def get_fort_targets(session, current):
+    """
+    Returns a list of Systems that should be fortified.
+    First System is not Othime and is unfortified.
+    Second System if prsent is Othime, only when not fortified.
+    """
+    systems = get_systems_not_othime(session)
+    othime = get_othime(session)
+
+    targets = [systems[current]]
+    if not othime.is_fortified:
+        targets.append(othime)
+
+    return targets
+
+
+def get_next_fort_targets(session, current, count=5):
+    """
+    Return next 'count' fort targets.
+    """
+    targets = []
+    systems = get_systems_not_othime(session)
+
+    start = current + 1
+    for system in systems[start:]:
+        if system.is_fortified or system.skip:
+            continue
+
+        targets.append(system)
+        count = count - 1
+
+        if count == 0:
+            break
+
+    return targets
+
+
+def get_all_systems_by_state(session):
+    """
+    Return a dictionary that lists the systems states below:
+
+        left:
+        fortified:
+        undermined:
+        cancelled:
+    """
+    states = {
+        'cancelled': [],
+        'fortified': [],
+        'left': [],
+        'undermined': [],
+    }
+
+    for system in get_all_systems(session):
+        if system.is_fortified and system.is_undermined:
+            states['cancelled'].append(system)
+        elif system.is_undermined:
+            states['undermined'].append(system)
+        elif system.is_fortified:
+            states['fortified'].append(system)
+        else:
+            states['left'].append(system)
+
+    return states
+
+
+def get_sheet_user_by_name(session, sheet_name):
+    """
+    Return the User with User.sheet_name that matches.
+    """
+    try:
+        return session.query(User).filter_by(sheet_name=sheet_name).one()
+    except (sqa_exc.NoResultFound, sqa_exc.MultipleResultsFound):
+        # TODO: Fallback to fuzzy find if query fails.
+        raise cog.exc.NoMatch
+
+
+def get_system_by_name(session, system_name):
+    """
+    Return the System with System.name that matches.
+    """
+    try:
+        return session.query(System).filter_by(name=system_name).one()
+    except (sqa_exc.NoResultFound, sqa_exc.MultipleResultsFound):
+        # TODO: Fallback to fuzzy find if query fails.
+        raise cog.exc.NoMatch
+
+
+def add_user(session, callback, sheet_name):
+    """
+    Simply add user past last user in sheet.
+    """
+    next_row = get_all_users(session)[-1].sheet_row + 1
+    new_user = User(sheet_name=sheet_name, sheet_row=next_row)
+    session.add(new_user)
+    session.commit()
+
+    callback(new_user)
+
+    return new_user
+
+
+def add_fort(session, callback, **kwargs):
+    """
+    Add a fort for 'amount' to the database where fort intersects at:
+        System.name and User.sheet_name
+    If fort exists, increment its value. Else add it to database.
+
+    Kwargs: system, user, amount
+
+    Returns: The Fort object.
+    """
+    system = kwargs['system']
+    user = kwargs['user']
+    amount = kwargs['amount']
+
+    try:
+        fort = session.query(Fort).filter_by(user_id=user.id, system_id=system.id).one()
+        fort.amount = fort.amount + amount
+    except sqa_exc.NoResultFound:
+        fort = Fort(user_id=user.id, system_id=system.id, amount=amount)
+        session.add(fort)
+    system.fort_status = system.fort_status + amount
+    system.cmdr_merits = system.cmdr_merits + amount
+    session.commit()
+
+    callback(fort)
+
+    return fort
 
 
 class FortTable(object):

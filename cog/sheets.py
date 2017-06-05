@@ -273,6 +273,26 @@ class GSheet(object):
         return self.get('!A:ZZ', dim=dim)
 
 
+def callback_add_fort(gsheet, user_col, user):
+    """
+    Callback for user add operation.
+    """
+    cell_range = '!{col}{row}:{col}{row}'.format(col=user_col, row=user.sheet_row)
+    gsheet.update(cell_range, [[user.sheet_name]])
+
+
+def callback_add_user(gsheet, fort):
+    """
+    Callback for fort add/update operation.
+    """
+    range1 = '!{col}{row}:{col}{row}'.format(col=fort.system.sheet_col,
+                                             row=fort.user.sheet_row)
+    gsheet.update(range1, [[fort.amount]])
+    range2 = '!{col}{row}:{col}{row}'.format(col=fort.system.sheet_col,
+                                             row=6)
+    gsheet.update(range2, [[fort.system.current_status]])
+
+
 def column_to_index(col_str):
     """
     Convert a column string to an index in sheet cells.

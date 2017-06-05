@@ -14,11 +14,18 @@ SYSTEM_DATA = ['', 1, 4910, 0, 4322, 4910, 0, 116.99, '', 'Frey']
 
 
 def db_cleanup(function):
+    """
+    Clean the whole database. Guarantee it is empty.
+    """
     def call():
         try:
             function()
         finally:
             cogdb.schema.drop_all_tables()
+            session = cogdb.Session()
+            assert session.query(cogdb.schema.System).all() == []
+            assert session.query(cogdb.schema.User).all() == []
+            assert session.query(cogdb.schema.Fort).all() == []
     return call
 
 
