@@ -120,10 +120,10 @@ def test_system_is_undermined():
     result = cogdb.schema.system_result_dict(SYSTEM_DATA, 0, 'F')
     system = cogdb.schema.System(**result)
 
-    system.undermine = 100.0
+    system.undermine = 1.0
     assert system.is_undermined is True
 
-    system.undermine = 40.0
+    system.undermine = 0.4
     assert system.is_undermined is False
 
 

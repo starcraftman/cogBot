@@ -2,7 +2,6 @@
 Common functions.
 """
 from __future__ import absolute_import, print_function
-import functools
 import logging
 import logging.handlers
 import logging.config
@@ -16,6 +15,7 @@ try:
 except ImportError:
     from yaml import Loader
 
+import cogdb
 import cogdb.query
 import cog.sheets
 import cog.tbl
@@ -23,6 +23,9 @@ import cog.tbl
 
 ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 YAML_FILE = os.path.join(ROOT_DIR, '.secrets', 'config.yaml')
+
+
+# TODO: I may be trying too hard to use argparse. May be easier to make small custom parser.
 
 
 class ArgumentParseError(Exception):
@@ -122,7 +125,7 @@ def rel_to_abs(path):
     return os.path.join(ROOT_DIR, path)
 
 
-def make_parser(table):
+def make_parser():
     """
     Returns the bot parser.
     """
@@ -138,7 +141,7 @@ def make_parser(table):
                      help='show NUM systems after current')
     sub.add_argument('num', nargs='?', type=int, default=5,
                      help='number of systems to display')
-    sub.set_defaults(func=functools.partial(parse_fort, table))
+    sub.set_defaults(func=parse_fort)
 
     sub = subs.add_parser('user', description='Manipulate sheet users.')
     sub.add_argument('-a', '--add', action='store_true', default=False,
@@ -147,7 +150,7 @@ def make_parser(table):
                      help='Return username and row if exists.')
     sub.add_argument('user', nargs='+',
                      help='The user to interact with.')
-    sub.set_defaults(func=functools.partial(parse_user, table))
+    sub.set_defaults(func=parse_user)
 
     sub = subs.add_parser('drop', description='Drop forts for user at system.')
     sub.add_argument('amount', type=int, help='The amount to drop.')
@@ -155,7 +158,7 @@ def make_parser(table):
                      help='The system to drop at.')
     sub.add_argument('-u', '--user', nargs='+',
                      help='The user to drop for.')
-    sub.set_defaults(func=functools.partial(parse_drop, table))
+    sub.set_defaults(func=parse_drop)
 
     sub = subs.add_parser('dump', description='Dump the current db.')
     sub.set_defaults(func=parse_dumpdb)
@@ -188,11 +191,13 @@ def parse_dumpdb(_):
     cogdb.query.dump_db()
 
 
-def parse_fort(table, args):
+def parse_fort(args):
+    session = cogdb.Session()
+    cur_index = cogdb.query.find_current_target(session)
     if args.next:
-        systems = table.next_targets(args.num)
+        systems = cogdb.query.get_next_fort_targets(session, cur_index)
     else:
-        systems = table.targets()
+        systems = cogdb.query.get_fort_targets(session, cur_index)
 
     if args.long:
         lines = [systems[0].__class__.header] + [system.table_row for system in systems]
@@ -203,9 +208,13 @@ def parse_fort(table, args):
     return msg
 
 
-def parse_user(table, args):
+def parse_user(args):
+    session = cogdb.Session()
     args.user = ' '.join(args.user)
-    user = table.find_user(args.user)
+    try:
+        user = cogdb.query.get_sheet_user_by_name(session, args.user)
+    except cog.exc.NoMatch:
+        user = None
 
     if user:
         if args.query or args.add:
@@ -213,7 +222,7 @@ def parse_user(table, args):
                                                                 user.sheet_row)
     else:
         if args.add:
-            new_user = table.add_user(args.user)
+            new_user = cogdb.query.add_user(session, cog.sheets.callback_add_user, args.user)
             msg = "Added '{}' to row {}.".format(new_user.sheet_name,
                                                  new_user.sheet_row)
         else:
@@ -222,14 +231,18 @@ def parse_user(table, args):
     return msg
 
 
-def parse_drop(table, args):
+def parse_drop(args):
+    session = cogdb.Session()
     args.system = ' '.join(args.system)
     if args.user:
         args.user = ' '.join(args.user)
 
-    system = table.add_fort(args.system, args.user, args.amount)
+    system = cogdb.query.get_system_by_name(session, args.system)
+    user = cogdb.query.get_sheet_user_by_name(session, args.user)
+    fort = cogdb.query.add_fort(session, cog.sheets.callback_add_fort,
+                                system=system, user=user, amount=args.amount)
     try:
-        lines = [system.__class__.header, system.table_row]
+        lines = [fort.system.__class__.header, fort.system.table_row]
         return cog.tbl.wrap_markdown(cog.tbl.format_table(lines, sep='|', header=True))
     except cog.exc.InvalidCommandArgs as exc:
         return str(exc)

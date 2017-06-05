@@ -8,7 +8,6 @@ from __future__ import absolute_import, print_function
 import logging
 import sys
 
-import cogdb.query
 import cog.share
 
 
@@ -17,7 +16,6 @@ import cog.share
 # TODO: Allow management commands to add/remove above
 # TODO: Add basic whois support, default lookup in local to channel db
 # TODO: Add wider search, across server, inara and other sources
-# TODO: Add test cases for all of fort, use test Google Sheet
 
 # Simple background coroutine example for later, adapt to refresh csv.
 # async def my_task():
@@ -39,11 +37,7 @@ def main():
     logging.getLogger('cog.local').error('Local loop is ready.')
 
     try:
-        sheet_id = cog.share.get_config('hudson', 'cattle', 'id')
-        secrets = cog.share.get_config('secrets', 'sheets')
-        sheet = cog.sheets.GSheet(sheet_id, cog.share.rel_to_abs(secrets['json']),
-                                  cog.share.rel_to_abs(secrets['token']))
-        parser = cog.share.make_parser(cogdb.query.FortTable(sheet))
+        parser = cog.share.make_parser()
 
         while True:
             try:

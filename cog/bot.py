@@ -8,7 +8,6 @@ from __future__ import absolute_import, print_function
 import logging
 import discord
 
-import cogdb.query
 import cog.share
 
 
@@ -60,12 +59,7 @@ async def on_message(message):
     else:
         try:
             message.content = message.content[1:]
-
-            sheet_id = cog.share.get_config('hudson', 'cattle', 'id')
-            secrets = cog.share.get_config('secrets', 'sheets')
-            sheet = cog.sheets.GSheet(sheet_id, cog.share.rel_to_abs(secrets['json']),
-                                      cog.share.rel_to_abs(secrets['token']))
-            parser = cog.share.make_parser(cogdb.query.FortTable(sheet))
+            parser = cog.share.make_parser()
             args = parser.parse_args(message.content.split(' '))
             msg = args.func(args)
         except cog.share.ArgumentParseError:
