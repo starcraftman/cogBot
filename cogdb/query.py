@@ -228,6 +228,56 @@ class SheetScanner(object):
         return found
 
 
+def subseq_match(needle, line, ignore_case=True):
+    """
+    True iff the subsequence needle present in line.
+    """
+    n_index, l_index, matches = 0, 0, 0
+
+    if ignore_case:
+        needle = needle.lower()
+        line = line.lower()
+
+    while n_index != len(needle):
+        while l_index != len(line):
+            if needle[n_index] == line[l_index]:
+                matches += 1
+                l_index += 1
+                break
+
+            # Stop searching if match no longer possible
+            if len(needle[n_index:]) > len(line[l_index + 1:]):
+                raise cog.exc.NoMatch
+
+            l_index += 1
+        n_index += 1
+
+    return matches == len(needle)
+
+
+def fuzzy_find(needle, stack, ignore_case=True):
+    """
+    Searches for needle in whole stack and gathers matches. Returns match if only 1.
+
+    Raise separate exceptions for NoMatch and MoreThanOneMatch.
+    """
+    matches = []
+    for line in stack:
+        try:
+            if subseq_match(needle, line, ignore_case):
+                matches.append(line)
+        except cog.exc.NoMatch:
+            pass
+
+    num_matches = len(matches)
+    if num_matches == 1:
+        return matches[0]
+    elif num_matches == 0:
+        raise cog.exc.NoMatch
+    else:
+        raise cog.exc.MoreThanOneMatch(needle, matches)
+
+
 def first_system_column(fmt_cells):
     """
     Find the first column that has a system cell in it.
