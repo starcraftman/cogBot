@@ -134,24 +134,6 @@ def make_parser():
     subs = parser.add_subparsers(title='subcommands',
                                  description='The subcommands of cog')
 
-    sub = subs.add_parser('fort', description='Show next fort target.')
-    sub.add_argument('-l', '--long', action='store_true', default=False,
-                     help='show detailed stats')
-    sub.add_argument('-n', '--next', action='store_true', default=False,
-                     help='show NUM systems after current')
-    sub.add_argument('num', nargs='?', type=int, default=5,
-                     help='number of systems to display')
-    sub.set_defaults(func=parse_fort)
-
-    sub = subs.add_parser('user', description='Manipulate sheet users.')
-    sub.add_argument('-a', '--add', action='store_true', default=False,
-                     help='Add a user to table if not present.')
-    sub.add_argument('-q', '--query', action='store_true', default=False,
-                     help='Return username and row if exists.')
-    sub.add_argument('user', nargs='+',
-                     help='The user to interact with.')
-    sub.set_defaults(func=parse_user)
-
     sub = subs.add_parser('drop', description='Drop forts for user at system.')
     sub.add_argument('amount', type=int, help='The amount to drop.')
     sub.add_argument('-s', '--system', required=True, nargs='+',
@@ -163,12 +145,35 @@ def make_parser():
     sub = subs.add_parser('dump', description='Dump the current db.')
     sub.set_defaults(func=parse_dumpdb)
 
+    sub = subs.add_parser('fort', description='Show next fort target.')
+    sub.add_argument('-l', '--long', action='store_true', default=False,
+                     help='show detailed stats')
+    sub.add_argument('-n', '--next', action='store_true', default=False,
+                     help='show NUM systems after current')
+    sub.add_argument('num', nargs='?', type=int, default=5,
+                     help='number of systems to display')
+    sub.set_defaults(func=parse_fort)
+
+    sub = subs.add_parser('info', description='Get information on things.')
+    sub.add_argument('user', nargs='?',
+                     help='Display information about user.')
+    sub.set_defaults(func=parse_info)
+
+    sub = subs.add_parser('user', description='Manipulate sheet users.')
+    sub.add_argument('-a', '--add', action='store_true', default=False,
+                     help='Add a user to table if not present.')
+    sub.add_argument('-q', '--query', action='store_true', default=False,
+                     help='Return username and row if exists.')
+    sub.add_argument('user', nargs='+',
+                     help='The user to interact with.')
+    sub.set_defaults(func=parse_user)
+
     sub = subs.add_parser('help', description='Show overall help message.')
     sub.set_defaults(func=parse_help)
     return parser
 
 
-def parse_help(_):
+def parse_help(client, msg, args):
     """
     Simply prints overall help documentation.
     """
@@ -181,17 +186,39 @@ def parse_help(_):
         ['!user -a USER', 'Add a USER to table.'],
         ['!user -q USER', 'Check if user is in table.'],
         ['!drop AMOUNT -s SYSTEM -u USER', 'Increase by AMOUNT forts for USER at SYSTEM'],
-        ['!info', 'Display information on user.'],
+        ['!info USER', 'Display information on user.'],
         ['!help', 'This help message.'],
     ]
     return cog.tbl.wrap_markdown(cog.tbl.format_table(lines, header=True))
 
 
-def parse_dumpdb(_):
+def parse_dumpdb(client, msg, _):
     cogdb.query.dump_db()
 
 
-def parse_fort(args):
+def parse_info(client, msg, args):
+    if args.user:
+        members = msg.channel.server.members
+        user = cogdb.query.fuzzy_find(args.user, members, obj_attr='display_name')
+    else:
+        user = msg.author
+
+    lines = [
+        '**' + user.display_name + '**',
+        '-' * (len(user.display_name) + 6),
+        'Username: {}#{}'.format(user.name, user.discriminator),
+        'ID: ' + user.id,
+        'Status: ' + str(user.status),
+        'Join Date: ' + str(user.joined_at),
+        'Roles: ' + str([str(role) for role in user.roles[1:]]),
+        'Highest Role: ' + str(user.top_role).replace('@', '@ '),
+    ]
+    response = '\n'.join(lines)
+
+    return response
+
+
+def parse_fort(client, msg, args):
     session = cogdb.Session()
     cur_index = cogdb.query.find_current_target(session)
     if args.next:
@@ -208,7 +235,7 @@ def parse_fort(args):
     return msg
 
 
-def parse_user(args):
+def parse_user(client, msg, args):
     session = cogdb.Session()
     args.user = ' '.join(args.user)
     try:
@@ -231,7 +258,7 @@ def parse_user(args):
     return msg
 
 
-def parse_drop(args):
+def parse_drop(client, msg, args):
     session = cogdb.Session()
     args.system = ' '.join(args.system)
     if args.user:

@@ -2,81 +2,94 @@
 # -*- coding: utf-8 -*-
 """
 Discord bot class
+
+API: https://discordpy.readthedocs.io/en/latest/api.html
 """
 from __future__ import absolute_import, print_function
-
 import logging
+
 import discord
 
 import cog.share
 
 
-client = discord.Client()
-
-
-@client.event
-async def on_ready():
+class CogBot(discord.Client):
     """
-    Event triggered when connection established to discord and bot ready.
+    The main bot, hooks onto on_message primarily and waits for commands.
     """
-    logging.getLogger('cog.bot').info('Logged in as: %s', client.user.name)
-    logging.getLogger('cog.bot').info('Available on following servers:')
-    for server in client.servers:
-        logging.getLogger('cog.bot').info('  "%s" with id %s', server.name, server.id)
-    print('GBot Ready!')
+    def __init__(self, prefix, **kwargs):
+        self.prefix = prefix
+        super(CogBot, self).__init__(**kwargs)
 
+    async def on_member_join(self):
+        log = logging.getLogger('cog.bot')
+        log.info('Member has joined: ' + member.display_name)
 
-@client.event
-async def on_message(message):
-    """
-    Intercepts every message sent to server!
+    async def on_member_leave(self, member):
+        log = logging.getLogger('cog.bot')
+        log.info('Member has left: ' + member.display_name)
 
-    Layout of message:
-        message.author - Returns member object
-            message.author.roles -> List of Role objects. First always @everyone.
-                message.author.roles[0].name -> String name of role.
-        message.channel - Channel object.
-            message.channel.name -> Name of channel.
-            message.channel.server -> server of channel.
-        message.content - The text
-    """
-    author = message.author
-    channel = message.channel.name
-    server = message.channel.server
-    msg = ''
-    # Ignore lines not directed at bot
-    if author.bot or not message.content.startswith('!'):
-        return
+    async def on_ready(self):
+        """
+        Event triggered when connection established to discord and bot ready.
+        """
+        log = logging.getLogger('cog.bot')
+        log.info('Logged in as: %s', self.user.name)
+        log.info('Available on following servers:')
+        for server in self.servers:
+            log.info('  "%s" with id %s', server.name, server.id)
+        print('GBot Ready!')
 
-    logging.getLogger('cog.bot').info("Server: '%s' Channel: '%s' User: '%s' | %s",
-                                      server, channel, author.name, msg)
+    async def on_message(self, message):
+        """
+        Intercepts every message sent to server!
 
-    if message.content.startswith('!info'):
-        roles = ', '.join([role.name for role in message.author.roles[1:]])
-        msg = 'Author: {aut} has Roles: {rol}'.format(aut=message.author.name, rol=roles)
-        msg += '\nSent from channel [{ch}] on server [{se}]'.format(ch=message.channel.name,
-                                                                    se=message.channel.server)
-    else:
+        Notes:
+            message.author - Returns member object
+                roles -> List of Role objects. First always @everyone.
+                    roles[0].name -> String name of role.
+            message.channel - Channel object.
+                name -> Name of channel
+                server -> Server of channel
+                    members -> Iterable of all members
+                    channels -> Iterable of all channels
+                    get_member_by_name -> Search for user by nick
+            message.content - The text
+        """
+        msg = message.content
+        author = message.author
+        channel = message.channel
+        response = ''
+
+        # Ignore lines not directed at bot
+        if author.bot or not msg.startswith(self.prefix):
+            return
+
+        log = logging.getLogger('cog.bot')
+        log.info("Server: '%s' Channel: '%s' User: '%s' | %s",
+                 channel.server, channel.name, author.name, msg)
+
         try:
-            message.content = message.content[1:]
+            msg = msg.replace(self.prefix, '')
             parser = cog.share.make_parser()
-            args = parser.parse_args(message.content.split(' '))
-            msg = args.func(args)
+            args = parser.parse_args(msg.split(' '))
+            response = args.func(self, message, args)
+            await self.send_message(channel, response)
         except cog.share.ArgumentParseError:
-            logging.getLogger('cog.bot').error("Command failed from '%s' | %s", author.name, msg)
-            msg = 'Did not understand: {}'.format(message.content)
-            msg += '\nGet more info with: !help'
-
-    await client.send_message(message.channel, msg)
+            log.error("Cmd failed from '%s' | %s", author.name, msg)
+            response = 'Did not understand: ' + msg
+            response += '\nGet help with: !help'
+            await self.send_message(channel, response)
 
 
 def main():
+    bot = CogBot('!')
     cog.share.init_logging()
     cog.share.init_db(cog.share.get_config('hudson', 'cattle', 'id'))
     try:
-        client.run(cog.share.get_config('secrets', 'discord_token'))
+        bot.run(cog.share.get_config('secrets', 'discord_token'))
     finally:
-        client.close()
+        bot.close()
 
 
 if __name__ == "__main__":

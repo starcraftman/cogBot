@@ -8,6 +8,7 @@ from __future__ import absolute_import, print_function
 import logging
 import sys
 
+import mock
 import cog.share
 
 
@@ -43,7 +44,7 @@ def main():
             try:
                 line = sys.stdin.readline().rstrip()
                 args = parser.parse_args(line.split(' '))
-                msg = args.func(args)
+                msg = args.func(args, mock.Mock(), mock.Mock())
                 if msg:
                     print(msg.replace('```', ''))
             except cog.share.ArgumentParseError:

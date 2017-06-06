@@ -7,11 +7,15 @@ The bot runs and monitors our discord channel and manages our powerplay objectiv
 
 ### Install
 
-Requires python3. Execute following commands on linux box.
+Optionally, install python3.5.3.
+- Install [pyenv](https://github.com/pyenv/pyenv)
+- pyenv install 3.5.3
+- pyenv global 3.5.3
 
+Execute following commands on linux box.
 - sudo apt-get install python3-dev libffi-dev
-- pip3 install wheel setuptools
-- pip3 install discord.py pyyaml pytest google-api-python-client
+- pip install wheel setuptools
+- pip install discord.py pyyaml pytest google-api-python-client
 
 ### Dependencies
 
