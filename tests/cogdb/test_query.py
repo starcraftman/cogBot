@@ -217,6 +217,9 @@ def test_get_system_by_name():
     assert isinstance(sys, cogdb.schema.System)
     assert sys.name == 'Sol'
 
+    sys = cogdb.query.get_system_by_name(session, 'alp')
+    assert sys.name == 'Alpha Fornacis'
+
 
 @db_cleanup
 @db_data
@@ -225,6 +228,9 @@ def test_get_sheet_user_by_name():
     user = cogdb.query.get_sheet_user_by_name(session, 'Shepron')
     assert isinstance(user, cogdb.schema.User)
     assert user.sheet_name == 'Shepron'
+
+    user = cogdb.query.get_sheet_user_by_name(session, 'gear')
+    assert user.sheet_name == 'GearsandCogs'
 
 
 @db_cleanup
@@ -258,35 +264,6 @@ def test_add_fort():
     assert system.fort_status == old_fort + 400
     assert system.cmdr_merits == old_cmdr + 400
     assert session.query(cogdb.schema.Fort).filter_by(user_id=user.id, system_id=system.id).one()
-
-
-# def get_all_systems_by_state(session):
-    # """
-    # Return a dictionary that lists the systems states below:
-
-        # left:
-        # fortified:
-        # undermined:
-        # cancelled:
-    # """
-    # states = {
-        # 'cancelled': [],
-        # 'fortified': [],
-        # 'left': [],
-        # 'undermined': [],
-    # }
-
-    # for system in get_all_systems(session):
-        # if system.is_fortified and system.is_undermined:
-            # states['cancelled'].append(system)
-        # elif system.is_undermined:
-            # states['undermined'].append(system)
-        # elif system.is_fortified:
-            # states['fortified'].append(system)
-        # else:
-            # states['left'].append(system)
-
-    # return states
 
 
 SYSTEMS = [

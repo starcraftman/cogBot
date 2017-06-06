@@ -27,7 +27,7 @@ def get_systems_not_othime(session):
 
 def get_all_systems(session):
     """
-    Return a list of all Systems except Othime.
+    Return a list of all Systems.
     """
     return session.query(System).all()
 
@@ -91,10 +91,10 @@ def get_all_systems_by_state(session):
     """
     Return a dictionary that lists the systems states below:
 
-        left:
-        fortified:
-        undermined:
-        cancelled:
+        left: Has neither been fortified nor undermined.
+        fortified: Has been fortified and not undermined.
+        undermined: Has been undermined and not fortified.
+        cancelled: Has been both fortified and undermined.
     """
     states = {
         'cancelled': [],
@@ -119,23 +119,32 @@ def get_all_systems_by_state(session):
 def get_sheet_user_by_name(session, sheet_name):
     """
     Return the User with User.sheet_name that matches.
+
+    Raises:
+        NoMatch - No possible match found.
+        MoreThanOneMatch - Too many matches possible, ask user to resubmit.
     """
     try:
         return session.query(User).filter_by(sheet_name=sheet_name).one()
     except (sqa_exc.NoResultFound, sqa_exc.MultipleResultsFound):
-        # TODO: Fallback to fuzzy find if query fails.
-        raise cog.exc.NoMatch
+        users = get_all_users(session)
+        return fuzzy_find(sheet_name, users, 'sheet_name')
 
 
 def get_system_by_name(session, system_name):
     """
     Return the System with System.name that matches.
+
+    Raises:
+        NoMatch - No possible match found.
+        MoreThanOneMatch - Too many matches possible, ask user to resubmit.
     """
     try:
         return session.query(System).filter_by(name=system_name).one()
     except (sqa_exc.NoResultFound, sqa_exc.MultipleResultsFound):
-        # TODO: Fallback to fuzzy find if query fails.
-        raise cog.exc.NoMatch
+        index = find_current_target(session)
+        systems = get_all_systems(session)[index:]
+        return fuzzy_find(system_name, systems, 'name')
 
 
 def add_user(session, callback, sheet_name):
@@ -289,17 +298,17 @@ def subseq_match(needle, line, ignore_case=True):
     return matches == len(needle)
 
 
-def fuzzy_find(needle, stack, ignore_case=True):
+def fuzzy_find(needle, stack, obj_attr='zzzz', ignore_case=True):
     """
     Searches for needle in whole stack and gathers matches. Returns match if only 1.
 
     Raise separate exceptions for NoMatch and MoreThanOneMatch.
     """
     matches = []
-    for line in stack:
+    for obj in stack:
         try:
-            if subseq_match(needle, line, ignore_case):
-                matches.append(line)
+            if subseq_match(needle, getattr(obj, obj_attr, obj), ignore_case):
+                matches.append(obj)
         except cog.exc.NoMatch:
             pass
 
