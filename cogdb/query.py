@@ -8,7 +8,7 @@ import sqlalchemy.orm.exc as sqa_exc
 import cog.exc
 import cog.sheets
 import cogdb
-from cogdb.schema import Fort, System, User, system_result_dict
+from cogdb.schema import Fort, SUser, System, system_result_dict
 
 
 def get_othime(session):
@@ -36,7 +36,7 @@ def get_all_users(session):
     """
     Return a list of all Users.
     """
-    return session.query(User).all()
+    return session.query(SUser).all()
 
 
 def find_current_target(session):
@@ -125,7 +125,7 @@ def get_sheet_user_by_name(session, sheet_name):
         MoreThanOneMatch - Too many matches possible, ask user to resubmit.
     """
     try:
-        return session.query(User).filter_by(sheet_name=sheet_name).one()
+        return session.query(SUser).filter_by(sheet_name=sheet_name).one()
     except (sqa_exc.NoResultFound, sqa_exc.MultipleResultsFound):
         users = get_all_users(session)
         return fuzzy_find(sheet_name, users, 'sheet_name')
@@ -152,7 +152,7 @@ def add_user(session, callback, sheet_name):
     Simply add user past last user in sheet.
     """
     next_row = get_all_users(session)[-1].sheet_row + 1
-    new_user = User(sheet_name=sheet_name, sheet_row=next_row)
+    new_user = SUser(sheet_name=sheet_name, sheet_row=next_row)
     session.add(new_user)
     session.commit()
 
@@ -239,7 +239,7 @@ class SheetScanner(object):
             if user == '':  # Users sometimes miss an entry
                 continue
 
-            found.append(User(sheet_name=user, sheet_row=row))
+            found.append(SUser(sheet_name=user, sheet_row=row))
 
         return found
 
@@ -373,7 +373,7 @@ def dump_db():
     for system in session.query(System):
         print(system)
 
-    for user in session.query(User):
+    for user in session.query(SUser):
         print(user)
 
     for fort in session.query(Fort):

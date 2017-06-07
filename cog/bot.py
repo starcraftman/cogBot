@@ -21,7 +21,7 @@ class CogBot(discord.Client):
         self.prefix = prefix
         super(CogBot, self).__init__(**kwargs)
 
-    async def on_member_join(self):
+    async def on_member_join(self, member):
         log = logging.getLogger('cog.bot')
         log.info('Member has joined: ' + member.display_name)
 

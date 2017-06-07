@@ -14,11 +14,74 @@ import cogdb
 Base = sqlalchemy.ext.declarative.declarative_base()
 
 
-class User(Base):
+class Command(Base):
+    """
+    Represents a command that was issued. Track all commands for now.
+    """
+    # TODO: Possible rollback/undo later of commands.
+    __tablename__ = 'commands'
+    id = sqla.Column(sqla.Integer, primary_key=True)
+    cmd_str = sqla.Column(sqla.String)
+    date = sqla.Column(sqla.DateTime)
+    discord_id = sqla.Column(sqla.String, sqla.ForeignKey('dusers.discord_id'))
+
+    def __repr__(self):
+        if getattr(self, 'duser', None):
+            duser = "display_name='{}'".format(self.duser.display_name)
+        else:
+            duser = "discord_id='{}'".format(self.discord_id)
+
+        args = {
+            'duser': duser,
+            'cmd_str': self.cmd_str,
+            'date': self.date,
+        }
+        return "<Command({duser}, cmd_str='{cmd_str}', "\
+            "date='{date}')>".format(**args)
+
+    def __str__(self):
+        return "ID='{}', ".format(self.id) + self.__repr__()
+
+    def __eq__(self, other):
+        return (self.cmd_str, self.discord_id, self.date) == (
+            other.cmd_str, other.discord_id, other.date)
+
+
+class DUser(Base):
+    """
+    Database to store discord users and their permanent preferences.
+    """
+    __tablename__ = 'dusers'
+
+    id = sqla.Column(sqla.Integer, primary_key=True)
+    discord_id = sqla.Column(sqla.String, unique=True)
+    display_name = sqla.Column(sqla.String)
+    capacity = sqla.Column(sqla.Integer)
+    sheet_name = sqla.Column(sqla.String, sqla.ForeignKey('susers.sheet_name'))
+
+    def __repr__(self):
+        args = {
+            'discord_id': self.discord_id,
+            'display_name': self.display_name,
+            'capacity': self.capacity,
+            'sheet_name': self.sheet_name,
+        }
+        return "<DUser(display_name='{display_name}', discord_id='{discord_id}', "\
+            "capacity='{capacity}', sheet_name='{sheet_name}')>".format(**args)
+
+    def __str__(self):
+        return "ID='{}', ".format(self.id) + self.__repr__()
+
+    def __eq__(self, other):
+        return (self.discord_id, self.display_name, self.capacity, self.sheet_name) == (
+            other.discord_id, other.display_name, other.capacity, other.sheet_name)
+
+
+class SUser(Base):
     """
     Every user of bot, has an entry here. Discord name must be unique.
     """
-    __tablename__ = 'users'
+    __tablename__ = 'susers'
 
     id = sqla.Column(sqla.Integer, primary_key=True)
     sheet_name = sqla.Column(sqla.String, unique=True)
@@ -29,10 +92,13 @@ class User(Base):
             'sheet': self.sheet_name,
             'row': self.sheet_row,
         }
-        return "<User(sheet_name='{sheet}', sheet_row='{row}')>".format(**args)
+        return "<SUser(sheet_name='{sheet}', sheet_row='{row}')>".format(**args)
 
     def __str__(self):
         return "ID='{}', ".format(self.id) + self.__repr__()
+
+    def __eq__(self, other):
+        return (self.sheet_name, self.sheet_row) == (other.sheet_name, other.sheet_row)
 
     @property
     def merits(self):
@@ -51,13 +117,13 @@ class Fort(Base):
     __tablename__ = 'forts'
 
     id = sqla.Column(sqla.Integer, primary_key=True)
-    user_id = sqla.Column(sqla.Integer, sqla.ForeignKey('users.id'))
+    user_id = sqla.Column(sqla.Integer, sqla.ForeignKey('susers.id'))
     system_id = sqla.Column(sqla.String, sqla.ForeignKey('systems.id'))
     amount = sqla.Column(sqla.Integer)
 
     def __repr__(self):
-        if getattr(self, 'user', None):
-            user = self.user.sheet_name
+        if getattr(self, 'suser', None):
+            user = self.suser.sheet_name
         else:
             user = 'UID-{}'.format(self.user_id)
 
@@ -76,6 +142,10 @@ class Fort(Base):
 
     def __str__(self):
         return "ID='{}', ".format(self.id) + self.__repr__()
+
+    def __eq__(self, other):
+        return (self.user_id, self.system_id, self.amount) == (
+            other.user_id, other.system_id, other.amount)
 
 
 class System(Base):
@@ -180,6 +250,12 @@ class System(Base):
 
         return (self.name, status, missing, '{:.1f}%'.format(self.undermine), self.notes)
 
+    def __eq__(self, other):
+        return (self.name, self.sheet_col, self.sheet_order, self.fort_status,
+                self.cmdr_merits, self.trigger, self.undermine, self.notes) == (
+                    other.name, other.sheet_col, other.sheet_order, other.fort_status,
+                    other.cmdr_merits, other.trigger, other.undermine, other.notes)
+
 
 def parse_int(word):
     try:
@@ -247,7 +323,9 @@ def drop_all_tables():
     Drop all tables.
     """
     session = cogdb.Session()
-    session.query(User).delete()
+    session.query(DUser).delete()
+    session.query(SUser).delete()
+    session.query(Command).delete()
     session.query(System).delete()
     session.query(Fort).delete()
     session.commit()
@@ -262,17 +340,23 @@ def recreate_tables():
 
 
 # Relationships
-Fort.user = sqla_orm.relationship('User', back_populates='forts')
-Fort.system = sqla_orm.relationship('System', back_populates='forts')
-User.forts = sqla_orm.relationship('Fort',
-                                   # collection_class=sqa_attr_map('system.name'),
-                                   cascade='all, delete, delete-orphan',
-                                   back_populates='user')
+Fort.suser = sqla_orm.relationship('SUser', uselist=False, back_populates='forts')
+Fort.system = sqla_orm.relationship('System', uselist=False, back_populates='forts')
+SUser.forts = sqla_orm.relationship('Fort',
+                                    # collection_class=sqa_attr_map('system.name'),
+                                    cascade='all, delete, delete-orphan',
+                                    back_populates='suser')
 System.forts = sqla_orm.relationship('Fort',
                                      # collection_class=sqa_attr_map('user.sheet_name'),
                                      cascade='all, delete, delete-orphan',
                                      back_populates='system')
-
+DUser.cmds = sqla_orm.relationship('Command',
+                                   # collection_class=sqa_attr_map('user.sheet_name'),
+                                   cascade='all, delete, delete-orphan',
+                                   back_populates='duser')
+Command.duser = sqla_orm.relationship('DUser', back_populates='cmds')
+DUser.suser = sqla_orm.relationship('SUser', uselist=False, back_populates='duser')
+SUser.duser = sqla_orm.relationship('DUser', uselist=False, back_populates='suser')
 
 Base.metadata.create_all(cogdb.mem_engine)
 
@@ -281,15 +365,31 @@ def main():
     """
     Exists only as old example code.
     """
+    import datetime as date
     session = cogdb.Session()
 
-    users = (
-        User(sheet_name='GearsandCogs', sheet_row=15),
-        User(sheet_name='rjwhite', sheet_row=16),
-        User(sheet_name='vampyregtx', sheet_row=17),
+    dusers = (
+        DUser(discord_id='197221', display_name='GearsandCogs', capacity=0, sheet_name='GearsandCogs'),
+        DUser(discord_id='299221', display_name='rjwhite', capacity=0, sheet_name='rjwhite'),
+        DUser(discord_id='293211', display_name='vampyregtx', capacity=0, sheet_name='vampyregtx'),
     )
+    session.add_all(dusers)
+    session.commit()
 
-    session.add_all(users)
+    cmds = (
+        Command(discord_id=dusers[0].discord_id, cmd_str='info Shepron', date=date.datetime.now()),
+        Command(discord_id=dusers[0].discord_id, cmd_str='drop 700', date=date.datetime.now()),
+        Command(discord_id=dusers[1].discord_id, cmd_str='ban rjwhite', date=date.datetime.now()),
+    )
+    session.add_all(cmds)
+    session.commit()
+
+    susers = (
+        SUser(sheet_name='GearsandCogs', sheet_row=15),
+        SUser(sheet_name='rjwhite', sheet_row=16),
+        SUser(sheet_name='vampyregtx', sheet_row=17),
+    )
+    session.add_all(susers)
     session.commit()
 
     systems = (
@@ -300,18 +400,16 @@ def main():
         System(name='Sol', sheet_col='H', sheet_order=3, fort_status=0,
                cmdr_merits=0, trigger=6000, undermine=0),
     )
-
     session.add_all(systems)
     session.commit()
 
     forts = (
-        Fort(user_id=users[0].id, system_id=systems[0].id, amount=700),
-        Fort(user_id=users[1].id, system_id=systems[0].id, amount=700),
-        Fort(user_id=users[0].id, system_id=systems[2].id, amount=1400),
-        Fort(user_id=users[2].id, system_id=systems[1].id, amount=2100),
-        Fort(user_id=users[2].id, system_id=systems[0].id, amount=300),
+        Fort(user_id=susers[0].id, system_id=systems[0].id, amount=700),
+        Fort(user_id=susers[1].id, system_id=systems[0].id, amount=700),
+        Fort(user_id=susers[0].id, system_id=systems[2].id, amount=1400),
+        Fort(user_id=susers[2].id, system_id=systems[1].id, amount=2100),
+        Fort(user_id=susers[2].id, system_id=systems[0].id, amount=300),
     )
-
     session.add_all(forts)
     session.commit()
 
@@ -321,17 +419,31 @@ def main():
 
     pad = ' ' * 3
 
-    for user in session.query(User).order_by(User.sheet_name).all():
+    print('Commands----------')
+    for cmd in session.query(Command):
+        mprint(cmd)
+        mprint(pad, cmd.duser)
+
+    print('DUsers----------')
+    for user in session.query(DUser):
+        mprint(user)
+        mprint(pad, user.suser)
+
+    print('SUsers----------')
+    for user in session.query(SUser):
         mprint(user)
         mprint(pad, user.forts)
+        mprint(pad, user.duser)
 
-    for sys in session.query(System).order_by(System.name):
+    print('Systems----------')
+    for sys in session.query(System):
         mprint(sys)
         mprint(pad, sys.forts)
 
-    for fort in session.query(Fort).order_by(Fort.system_id):
+    print('Forts----------')
+    for fort in session.query(Fort):
         mprint(fort)
-        mprint(pad, fort.user)
+        mprint(pad, fort.suser)
         mprint(pad, fort.system)
 
 

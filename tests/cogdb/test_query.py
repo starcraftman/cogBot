@@ -226,7 +226,7 @@ def test_get_system_by_name():
 def test_get_sheet_user_by_name():
     session = cogdb.Session()
     user = cogdb.query.get_sheet_user_by_name(session, 'Shepron')
-    assert isinstance(user, cogdb.schema.User)
+    assert isinstance(user, cogdb.schema.SUser)
     assert user.sheet_name == 'Shepron'
 
     user = cogdb.query.get_sheet_user_by_name(session, 'gear')

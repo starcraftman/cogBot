@@ -1,5 +1,7 @@
 """
 Test sheets api logic
+
+NOTE: GSheet tests being skipped, they are slow and that code is mostly frozen.
 """
 from __future__ import absolute_import, print_function
 
@@ -41,14 +43,17 @@ def fort_sheet_reset():
     f_sheet.batch_update(cell_ranges, n_vals)
 
 
+@pytest.mark.skip(reason='Works, slow as blocking to sheet.')
 def test_gsheet_get(fort_sheet):
     assert fort_sheet.get('!B16:B16') == [['Shepron']]
 
 
+@pytest.mark.skip(reason='Works, slow as blocking to sheet.')
 def test_gsheet_batch_get(fort_sheet):
     assert fort_sheet.batch_get(['!B16:B16', '!F6:G6']) == [[['Shepron']], [[4910, 4350]]]
 
 
+@pytest.mark.skip(reason='Works, slow as blocking to sheet.')
 def test_ghseet_get_with_formatting(fort_sheet):
     fmt_cells = fort_sheet.get_with_formatting('!F10:F10')
     system_colors = {'red': 0.42745098, 'blue': 0.92156863, 'green': 0.61960787}
@@ -57,11 +62,13 @@ def test_ghseet_get_with_formatting(fort_sheet):
         assert val['effectiveFormat']['backgroundColor'] == system_colors
 
 
+@pytest.mark.skip(reason='Works, slow as blocking to sheet.')
 def test_gsheet_update(fort_sheet_reset):
     fort_sheet_reset.update('!B16:B16', [['NotShepron']])
     assert fort_sheet_reset.get('!B16:B16') == [['NotShepron']]
 
 
+@pytest.mark.skip(reason='Works, slow as blocking to sheet.')
 def test_gsheet_batch_update(fort_sheet_reset):
     cell_ranges = ['!B16:B17', '!F6:G6']
     n_vals = [[['NotShepron'], ['Grimbald']], [[2222, 3333]]]
