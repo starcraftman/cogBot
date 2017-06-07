@@ -111,6 +111,7 @@ def db_data(function):
     Wrap a test and setup database with dummy data.
     """
     def call():
+        import datetime as date
         session = cogdb.Session()
 
         user_col, user_row = cogdb.query.first_user_row(CELLS)
@@ -122,6 +123,14 @@ def db_data(function):
 
         forts = scanner.forts(systems, users)
         session.add_all(forts)
+        session.commit()
+
+        duser = cogdb.schema.DUser(discord_id='1111', display_name='GearsandCogs',
+                                   capacity=0, sheet_name='GearsandCogs')
+        cmd = cogdb.schema.Command(discord_id=duser.discord_id,
+                                   cmd_str='drop 700', date=date.datetime.now())
+        session.add(cmd)
+        session.add(duser)
         session.commit()
 
         function()
@@ -219,6 +228,18 @@ def test_get_system_by_name():
 
     sys = cogdb.query.get_system_by_name(session, 'alp')
     assert sys.name == 'Alpha Fornacis'
+
+
+@db_cleanup
+@db_data
+def test_get_discord_user_by_id():
+    session = cogdb.Session()
+    duser = cogdb.query.get_discord_user_by_id(session, '1111')
+    assert isinstance(duser, cogdb.schema.DUser)
+    assert duser.display_name == 'GearsandCogs'
+
+    with pytest.raises(cog.exc.NoMatch):
+        cogdb.query.get_discord_user_by_id(session, '0')
 
 
 @db_cleanup

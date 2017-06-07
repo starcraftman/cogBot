@@ -8,7 +8,7 @@ import sqlalchemy.orm.exc as sqa_exc
 import cog.exc
 import cog.sheets
 import cogdb
-from cogdb.schema import Fort, SUser, System, system_result_dict
+from cogdb.schema import Fort, DUser, SUser, System, system_result_dict
 
 
 def get_othime(session):
@@ -116,7 +116,20 @@ def get_all_systems_by_state(session):
     return states
 
 
-def get_sheet_user_by_name(session, sheet_name):
+def get_discord_user_by_id(session, did):
+    """
+    Return the User with User.sheet_name that matches.
+
+    Raises:
+        NoMatch - No possible match found.
+    """
+    try:
+        return session.query(DUser).filter_by(discord_id=did).one()
+    except sqa_exc.NoResultFound:
+        raise cog.exc.NoMatch
+
+
+def get_sheet_user_by_name(session, name):
     """
     Return the User with User.sheet_name that matches.
 
@@ -125,10 +138,10 @@ def get_sheet_user_by_name(session, sheet_name):
         MoreThanOneMatch - Too many matches possible, ask user to resubmit.
     """
     try:
-        return session.query(SUser).filter_by(sheet_name=sheet_name).one()
+        return session.query(SUser).filter_by(sheet_name=name).one()
     except (sqa_exc.NoResultFound, sqa_exc.MultipleResultsFound):
         users = get_all_users(session)
-        return fuzzy_find(sheet_name, users, 'sheet_name')
+        return fuzzy_find(name, users, 'sheet_name')
 
 
 def get_system_by_name(session, system_name):
@@ -370,11 +383,9 @@ def dump_db():
     """
     session = cogdb.Session()
     print('Printing filled databases')
-    for system in session.query(System):
-        print(system)
-
-    for user in session.query(SUser):
-        print(user)
-
-    for fort in session.query(Fort):
-        print(fort)
+    classes = [cogdb.schema.Command, cogdb.schema.DUser,
+        cogdb.schema.SUser, cogdb.schema.Fort, cogdb.schema.System]
+    for cls in classes:
+        print('---- ' + str(cls) + ' ----')
+        for obj in session.query(cls):
+            print(obj)
