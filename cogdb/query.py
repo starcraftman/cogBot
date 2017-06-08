@@ -343,7 +343,8 @@ def fuzzy_find(needle, stack, obj_attr='zzzz', ignore_case=True):
     if num_matches == 1:
         return matches[0]
     elif num_matches == 0:
-        raise cog.exc.NoMatch(needle, stack[0].__class__.__name__)
+        cls = stack[0].__class__.__name__ if getattr(stack[0], '__class__') else 'string'
+        raise cog.exc.NoMatch(needle, cls)
     else:
         raise cog.exc.MoreThanOneMatch(needle, matches, obj_attr)
 

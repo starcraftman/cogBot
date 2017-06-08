@@ -19,6 +19,7 @@ except ImportError:
 
 import cogdb
 import cogdb.query
+import cog.exc
 import cog.sheets
 import cog.tbl
 
@@ -260,8 +261,13 @@ def parse_fort(**kwargs):
     if args.systems:
         args.long = True
         systems = []
-        for system in systems:
-            systems.append(cogdb.query.get_system_by_name(session, system, search_all=True))
+        for system in args.systems:
+            try:
+                systems.append(cogdb.query.get_system_by_name(session, system, search_all=True))
+            except cog.exc.NoMatch:
+                pass
+            except cog.exc.MoreThanOneMatch as exc:
+                systems.extend(exc.matches)
     elif args.next:
         systems = cogdb.query.get_next_fort_targets(session, cur_index, count=args.num)
     else:
