@@ -56,9 +56,6 @@ def test_command_creation():
     session.add(cmd)
     session.commit()
 
-    print(str(dtime))
-    print(str(cmd))
-    print(str(dtime))
     assert repr(cmd) == "<Command(display_name='test user', cmd_str='drop 400', date='{}')>".format(dtime)
     assert str(cmd) == "ID='1', <Command(display_name='test user', cmd_str='drop 400', date='{}')>".format(dtime)
     assert cmd.duser == duser

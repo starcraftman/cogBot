@@ -70,16 +70,19 @@ class CogBot(discord.Client):
                  channel.server, channel.name, author.name, msg)
 
         try:
+            cog.share.check_member(author)
             msg = msg.replace(self.prefix, '')
             parser = cog.share.make_parser()
             args = parser.parse_args(msg.split(' '))
-            response = args.func(self, message, args)
-            await self.send_message(channel, response)
+            response = args.func(msg=message, args=args)
         except cog.share.ArgumentParseError:
             log.error("Cmd failed from '%s' | %s", author.name, msg)
             response = 'Did not understand: ' + msg
             response += '\nGet help with: !help'
-            await self.send_message(channel, response)
+        except cog.exc.InvalidCommandArgs as exc:
+            response = str(exc)
+
+        await self.send_message(channel, response)
 
 
 def main():

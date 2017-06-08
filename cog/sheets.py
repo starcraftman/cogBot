@@ -191,6 +191,13 @@ class GSheet(object):
         self.service = discovery.build('sheets', 'v4', http=http,
                                        discoveryServiceUrl=discovery_url)
 
+    @property
+    def values(self):
+        """
+        Alias to service.spreadsheets().values()
+        """
+        return self.service.spreadsheets().values()  # pylint: disable=no-member
+
     def get(self, cell_range, dim='ROWS'):
         """
         Args:
@@ -201,10 +208,9 @@ class GSheet(object):
         Returns: A list of rows in the area.
         """
         # Default returns by row, use majorDimension = 'COLUMNS' to flip.
-        values = self.service.spreadsheets().values()
-        result = values.get(spreadsheetId=self.sheet_id, range=cell_range,
-                            majorDimension=dim,
-                            valueRenderOption='UNFORMATTED_VALUE').execute()
+        result = self.values.get(spreadsheetId=self.sheet_id, range=cell_range,
+                                 majorDimension=dim,
+                                 valueRenderOption='UNFORMATTED_VALUE').execute()
         return result.get('values', [])
 
     def update(self, cell_range, n_vals, dim='ROWS'):
@@ -221,18 +227,16 @@ class GSheet(object):
             'majorDimension': dim,
             'values': n_vals
         }
-        values = self.service.spreadsheets().values()
-        values.update(spreadsheetId=self.sheet_id, range=cell_range,
-                      valueInputOption='RAW', body=body).execute()
+        self.values.update(spreadsheetId=self.sheet_id, range=cell_range,
+                           valueInputOption='RAW', body=body).execute()
 
     def batch_get(self, cell_ranges, dim='ROWS'):
         """
         Similar to get_range except take a list of cell_ranges.
         """
-        values = self.service.spreadsheets().values()
-        result = values.batchGet(spreadsheetId=self.sheet_id, ranges=cell_ranges,
-                                 majorDimension=dim,
-                                 valueRenderOption='UNFORMATTED_VALUE').execute()
+        result = self.values.batchGet(spreadsheetId=self.sheet_id, ranges=cell_ranges,
+                                      majorDimension=dim,
+                                      valueRenderOption='UNFORMATTED_VALUE').execute()
 
         return [ent.get('values', []) for ent in result['valueRanges']]
 
@@ -250,18 +254,15 @@ class GSheet(object):
                 'majorDimension': dim,
                 'values': n_val,
             })
-        values = self.service.spreadsheets().values()
-        values.batchUpdate(spreadsheetId=self.sheet_id, body=body).execute()
+        self.values.batchUpdate(spreadsheetId=self.sheet_id, body=body).execute()
 
     def get_with_formatting(self, cell_range):
         """
         Get cells with formatting information.
         """
-        sheets = self.service.spreadsheets()
-        result = sheets.get(spreadsheetId=self.sheet_id, ranges=cell_range,
-                            includeGridData=True).execute()
-
-        return result
+        sheets = self.service.spreadsheets()  # pylint: disable=no-member
+        return sheets.get(spreadsheetId=self.sheet_id, ranges=cell_range,
+                          includeGridData=True).execute()
 
     def whole_sheet(self, dim='COLUMNS'):
         """

@@ -160,7 +160,20 @@ def get_system_by_name(session, system_name):
         return fuzzy_find(system_name, systems, 'name')
 
 
-def add_user(session, callback, sheet_name):
+def add_duser(session, member, capacity=0, sheet_name=None):
+    """
+    Add a discord user to the database.
+    """
+    if not sheet_name:
+        sheet_name = member.display_name
+    new_duser = DUser(discord_id=member.discord_id, display_name=member.display_name,
+                      capacity=capacity, sheet_name=sheet_name)
+    session.add(new_duser)
+    session.commit()
+    return new_duser
+
+
+def add_suser(session, callback, sheet_name):
     """
     Simply add user past last user in sheet.
     """
@@ -384,7 +397,7 @@ def dump_db():
     session = cogdb.Session()
     print('Printing filled databases')
     classes = [cogdb.schema.Command, cogdb.schema.DUser,
-        cogdb.schema.SUser, cogdb.schema.Fort, cogdb.schema.System]
+               cogdb.schema.SUser, cogdb.schema.Fort, cogdb.schema.System]
     for cls in classes:
         print('---- ' + str(cls) + ' ----')
         for obj in session.query(cls):

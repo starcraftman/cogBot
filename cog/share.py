@@ -173,7 +173,7 @@ def make_parser():
     return parser
 
 
-def parse_help(client, msg, args):
+def parse_help(**_):
     """
     Simply prints overall help documentation.
     """
@@ -192,11 +192,13 @@ def parse_help(client, msg, args):
     return cog.tbl.wrap_markdown(cog.tbl.format_table(lines, header=True))
 
 
-def parse_dumpdb(client, msg, _):
+def parse_dumpdb(**_):
     cogdb.query.dump_db()
 
 
-def parse_info(client, msg, args):
+def parse_info(**kwargs):
+    args = kwargs['args']
+    msg = kwargs['msg']
     if args.user:
         members = msg.channel.server.members
         user = cogdb.query.fuzzy_find(args.user, members, obj_attr='display_name')
@@ -218,25 +220,27 @@ def parse_info(client, msg, args):
     return response
 
 
-def parse_fort(client, msg, args):
+def parse_fort(**kwargs):
     session = cogdb.Session()
+    args = kwargs['args']
     cur_index = cogdb.query.find_current_target(session)
     if args.next:
-        systems = cogdb.query.get_next_fort_targets(session, cur_index)
+        systems = cogdb.query.get_next_fort_targets(session, cur_index, count=args.num)
     else:
         systems = cogdb.query.get_fort_targets(session, cur_index)
 
     if args.long:
         lines = [systems[0].__class__.header] + [system.table_row for system in systems]
-        msg = cog.tbl.wrap_markdown(cog.tbl.format_table(lines, sep='|', header=True))
+        response = cog.tbl.wrap_markdown(cog.tbl.format_table(lines, sep='|', header=True))
     else:
-        msg = '\n'.join([system.name for system in systems])
+        response = '\n'.join([system.name for system in systems])
 
-    return msg
+    return response
 
 
-def parse_user(client, msg, args):
+def parse_user(**kwargs):
     session = cogdb.Session()
+    args = kwargs['args']
     args.user = ' '.join(args.user)
     try:
         user = cogdb.query.get_sheet_user_by_name(session, args.user)
@@ -245,21 +249,22 @@ def parse_user(client, msg, args):
 
     if user:
         if args.query or args.add:
-            msg = "User '{}' already present in row {}.".format(user.sheet_name,
-                                                                user.sheet_row)
+            response = "User '{}' already present in row {}.".format(user.sheet_name,
+                                                                     user.sheet_row)
     else:
         if args.add:
-            new_user = cogdb.query.add_user(session, cog.sheets.callback_add_user, args.user)
-            msg = "Added '{}' to row {}.".format(new_user.sheet_name,
-                                                 new_user.sheet_row)
+            new_user = cogdb.query.add_suser(session, cog.sheets.callback_add_user, args.user)
+            response = "Added '{}' to row {}.".format(new_user.sheet_name,
+                                                      new_user.sheet_row)
         else:
-            msg = "User '{}' not found.".format(args.user)
+            response = "User '{}' not found.".format(args.user)
 
-    return msg
+    return response
 
 
-def parse_drop(client, msg, args):
+def parse_drop(**kwargs):
     session = cogdb.Session()
+    args = kwargs['args']
     args.system = ' '.join(args.system)
     if args.user:
         args.user = ' '.join(args.user)
@@ -268,8 +273,34 @@ def parse_drop(client, msg, args):
     user = cogdb.query.get_sheet_user_by_name(session, args.user)
     fort = cogdb.query.add_fort(session, cog.sheets.callback_add_fort,
                                 system=system, user=user, amount=args.amount)
+
+    lines = [fort.system.__class__.header, fort.system.table_row]
+    return cog.tbl.wrap_markdown(cog.tbl.format_table(lines, sep='|', header=True))
+
+
+def check_member(member):
+    """
+    Ensure a member has entries in requisite tables.
+    """
+    session = cogdb.Session()
     try:
-        lines = [fort.system.__class__.header, fort.system.table_row]
-        return cog.tbl.wrap_markdown(cog.tbl.format_table(lines, sep='|', header=True))
-    except cog.exc.InvalidCommandArgs as exc:
-        return str(exc)
+        cogdb.query.get_discord_user_by_id(session, member.id)
+    except cog.exc.NoMatch:
+        duser = cogdb.query.add_duser(session, member)
+
+    # Try to loosely match if first fails
+    tries = 3
+    look_for = duser.display_name
+    while tries:
+        try:
+            suser = cogdb.query.get_sheet_user_by_name(session, look_for)
+            duser.sheet_name = suser.sheet_name
+            tries = 0
+        except cog.exc.NoMatch:
+            look_for = duser.display_name[1:-1]
+            tries -= 1
+            if not tries:
+                cogdb.query.add_suser(session, cog.sheets.callback_add_user,
+                                      sheet_name=duser.sheet_name)
+
+    return duser

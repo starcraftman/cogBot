@@ -44,9 +44,9 @@ def main():
             try:
                 line = sys.stdin.readline().rstrip()
                 args = parser.parse_args(line.split(' '))
-                msg = args.func(args, mock.Mock(), mock.Mock())
-                if msg:
-                    print(msg.replace('```', ''))
+                response = args.func(msg=mock.Mock(), args=args)
+                if response:
+                    print(response.replace('```', ''))
             except cog.share.ArgumentParseError:
                 print('Invalid command:', line)
     except KeyboardInterrupt:

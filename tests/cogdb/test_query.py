@@ -256,12 +256,22 @@ def test_get_sheet_user_by_name():
 
 @db_cleanup
 @db_data
-def test_add_user():
+def test_add_suser():
     session = cogdb.Session()
     mock_call = mock.Mock()
-    user = cogdb.query.add_user(session, mock_call.callback, 'NewestUser')
+    user = cogdb.query.add_suser(session, mock_call.callback, 'NewestUser')
     assert cogdb.query.get_all_users(session)[-1].sheet_name == 'NewestUser'
     mock_call.callback.assert_called_with(user)
+
+
+@db_cleanup
+def test_add_duser():
+    member = mock.Mock()
+    member.discord_id = '1111'
+    member.display_name = 'NewestUser'
+    session = cogdb.Session()
+    duser = cogdb.query.add_duser(session, member, capacity=50)
+    assert cogdb.query.get_discord_user_by_id(session, '1111') == duser
 
 
 @db_cleanup
