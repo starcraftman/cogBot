@@ -144,7 +144,7 @@ def get_sheet_user_by_name(session, name):
         return fuzzy_find(name, users, 'sheet_name')
 
 
-def get_system_by_name(session, system_name):
+def get_system_by_name(session, system_name, search_all=False):
     """
     Return the System with System.name that matches.
 
@@ -155,7 +155,8 @@ def get_system_by_name(session, system_name):
     try:
         return session.query(System).filter_by(name=system_name).one()
     except (sqa_exc.NoResultFound, sqa_exc.MultipleResultsFound):
-        index = find_current_target(session)
+        index = 0 if search_all else find_current_target(session)
+
         systems = get_all_systems(session)[index:]
         return fuzzy_find(system_name, systems, 'name')
 

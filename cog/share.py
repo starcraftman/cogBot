@@ -161,6 +161,8 @@ def make_parser():
     sub.set_defaults(func=parse_dumpdb)
 
     sub = subs.add_parser('fort', description='Show next fort target.')
+    sub.add_argument('-s', '--systems', nargs='+',
+                     help='Show status of these systems.')
     sub.add_argument('-l', '--long', action='store_true',
                      help='show detailed stats')
     sub.add_argument('-n', '--next', action='store_true',
@@ -195,6 +197,7 @@ def parse_help(**_):
     lines = [
         ['Command', 'Effect'],
         ['!fort', 'Show current fort target.'],
+        ['!fort -s SYSTEM [SYSTEM] ...', 'Show status of SYSTEMS'],
         ['!fort -l', 'Show current fort target\'s status.'],
         ['!fort -n NUM', 'Show the next NUM targets. Default NUM = 5.'],
         ['!fort -nl NUM', 'Show status of the next NUM targets.'],
@@ -249,11 +252,17 @@ def parse_fort(**kwargs):
     """
     Parse the 'fort' command.
     """
-    # TODO: Allow lookup by status (--summary) and particular system (--system).
+    # TODO: Allow lookup by status (--summary)
     session = cogdb.Session()
     args = kwargs['args']
     cur_index = cogdb.query.find_current_target(session)
-    if args.next:
+
+    if args.systems:
+        args.long = True
+        systems = []
+        for system in systems:
+            systems.append(cogdb.query.get_system_by_name(session, system, search_all=True))
+    elif args.next:
         systems = cogdb.query.get_next_fort_targets(session, cur_index, count=args.num)
     else:
         systems = cogdb.query.get_fort_targets(session, cur_index)
