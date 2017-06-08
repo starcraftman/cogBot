@@ -70,26 +70,30 @@ class CogBot(discord.Client):
                  channel.server, channel.name, author.name, msg)
 
         try:
-            cog.share.check_member(author)
+            cog.share.get_or_create_duser(author)
             msg = msg.replace(self.prefix, '')
             parser = cog.share.make_parser()
             args = parser.parse_args(msg.split(' '))
             response = args.func(msg=message, args=args)
         except cog.share.ArgumentParseError:
-            log.error("Cmd failed from '%s' | %s", author.name, msg)
-            response = 'Did not understand: ' + msg
-            response += '\nGet help with: !help'
-        except cog.exc.InvalidCommandArgs as exc:
-            response = str(exc)
+            log.exception("Failed to parse command. '%s' | %s", author.name, msg)
+            response = 'Could not parse command: ' + msg
+            response += '\nPlease check how I work: {}help'.format(self.prefix)
+        except (cog.exc.NoMatch, cog.exc.MoreThanOneMatch) as exc:
+            log.error("Loose cmd failed to match excatly one. '%s' | %s", author.name, msg)
+            log.error(exc)
+            response = 'Check command arguments ...\n'
+            response += str(exc)
 
+        log.info("Responding to %s with %s.", author.name, response)
         await self.send_message(channel, response)
 
 
 def main():
-    bot = CogBot('!')
     cog.share.init_logging()
     cog.share.init_db(cog.share.get_config('hudson', 'cattle', 'id'))
     try:
+        bot = CogBot('!')
         bot.run(cog.share.get_config('secrets', 'discord_token'))
     finally:
         bot.close()

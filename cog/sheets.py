@@ -274,7 +274,7 @@ class GSheet(object):
         return self.get('!A:ZZ', dim=dim)
 
 
-def callback_add_fort(gsheet, user_col, user):
+def callback_add_user(gsheet, user_col, user):
     """
     Callback for user add operation.
     """
@@ -282,12 +282,12 @@ def callback_add_fort(gsheet, user_col, user):
     gsheet.update(cell_range, [[user.sheet_name]])
 
 
-def callback_add_user(gsheet, fort):
+def callback_add_fort(gsheet, fort):
     """
     Callback for fort add/update operation.
     """
     range1 = '!{col}{row}:{col}{row}'.format(col=fort.system.sheet_col,
-                                             row=fort.user.sheet_row)
+                                             row=fort.suser.sheet_row)
     gsheet.update(range1, [[fort.amount]])
     range2 = '!{col}{row}:{col}{row}'.format(col=fort.system.sheet_col,
                                              row=6)

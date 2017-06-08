@@ -126,7 +126,7 @@ def get_discord_user_by_id(session, did):
     try:
         return session.query(DUser).filter_by(discord_id=did).one()
     except sqa_exc.NoResultFound:
-        raise cog.exc.NoMatch
+        raise cog.exc.NoMatch(did, 'DUser')
 
 
 def get_sheet_user_by_name(session, name):
@@ -160,13 +160,13 @@ def get_system_by_name(session, system_name):
         return fuzzy_find(system_name, systems, 'name')
 
 
-def add_duser(session, member, capacity=0, sheet_name=None):
+def add_duser(session, member, capacity=0, sheet_name=''):
     """
     Add a discord user to the database.
     """
     if not sheet_name:
         sheet_name = member.display_name
-    new_duser = DUser(discord_id=member.discord_id, display_name=member.display_name,
+    new_duser = DUser(discord_id=member.id, display_name=member.display_name,
                       capacity=capacity, sheet_name=sheet_name)
     session.add(new_duser)
     session.commit()
@@ -316,7 +316,7 @@ def subseq_match(needle, line, ignore_case=True):
 
             # Stop searching if match no longer possible
             if len(needle[n_index:]) > len(line[l_index + 1:]):
-                raise cog.exc.NoMatch
+                raise cog.exc.NoMatch(needle)
 
             l_index += 1
         n_index += 1
@@ -342,9 +342,9 @@ def fuzzy_find(needle, stack, obj_attr='zzzz', ignore_case=True):
     if num_matches == 1:
         return matches[0]
     elif num_matches == 0:
-        raise cog.exc.NoMatch
+        raise cog.exc.NoMatch(needle, stack[0].__class__.__name__)
     else:
-        raise cog.exc.MoreThanOneMatch(needle, matches)
+        raise cog.exc.MoreThanOneMatch(needle, matches, obj_attr)
 
 
 def first_system_column(fmt_cells):

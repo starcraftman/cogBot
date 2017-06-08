@@ -267,7 +267,7 @@ def test_add_suser():
 @db_cleanup
 def test_add_duser():
     member = mock.Mock()
-    member.discord_id = '1111'
+    member.id = '1111'
     member.display_name = 'NewestUser'
     session = cogdb.Session()
     duser = cogdb.query.add_duser(session, member, capacity=50)

@@ -2,10 +2,12 @@
 Common functions.
 """
 from __future__ import absolute_import, print_function
+import functools
 import logging
 import logging.handlers
 import logging.config
 import os
+import sys
 
 import argparse
 import tempfile
@@ -75,7 +77,8 @@ def init_logging():
     """
     Initialize project wide logging. The setup is described best in config file.
 
-    IMPORTANT: On every start the file logs are rolled over.
+     - On every start the file logs are rolled over.
+     - This should be first invocation on startup to set up logging.
     """
     log_folder = os.path.join(tempfile.gettempdir(), 'cog')
     try:
@@ -95,7 +98,11 @@ def init_logging():
 
 def init_db(sheet_id):
     """
-    Scan sheet and fill database if empty.
+    Run common database initialization.
+
+    - Fetch the current sheet and parse it.
+    - Fill database with parsed data.
+    - Settatr this module callbacks for GSheets.
     """
     session = cogdb.Session()
 
@@ -107,6 +114,14 @@ def init_db(sheet_id):
         system_col = cogdb.query.first_system_column(sheet.get_with_formatting('!A10:J10'))
         cells = sheet.whole_sheet()
         user_col, user_row = cogdb.query.first_user_row(cells)
+
+        # Prep callbacks for later use
+        this_module = sys.modules[__name__]
+        setattr(this_module, 'callback_add_user',
+                functools.partial(cog.sheets.callback_add_user, sheet, user_col))
+        setattr(this_module, 'callback_add_fort',
+                functools.partial(cog.sheets.callback_add_fort, sheet))
+
         scanner = cogdb.query.SheetScanner(cells, system_col, user_col, user_row)
         systems = scanner.systems()
         users = scanner.users()
@@ -136,7 +151,7 @@ def make_parser():
 
     sub = subs.add_parser('drop', description='Drop forts for user at system.')
     sub.add_argument('amount', type=int, help='The amount to drop.')
-    sub.add_argument('-s', '--system', required=True, nargs='+',
+    sub.add_argument('-s', '--system', nargs='+',
                      help='The system to drop at.')
     sub.add_argument('-u', '--user', nargs='+',
                      help='The user to drop for.')
@@ -146,9 +161,9 @@ def make_parser():
     sub.set_defaults(func=parse_dumpdb)
 
     sub = subs.add_parser('fort', description='Show next fort target.')
-    sub.add_argument('-l', '--long', action='store_true', default=False,
+    sub.add_argument('-l', '--long', action='store_true',
                      help='show detailed stats')
-    sub.add_argument('-n', '--next', action='store_true', default=False,
+    sub.add_argument('-n', '--next', action='store_true',
                      help='show NUM systems after current')
     sub.add_argument('num', nargs='?', type=int, default=5,
                      help='number of systems to display')
@@ -175,7 +190,7 @@ def make_parser():
 
 def parse_help(**_):
     """
-    Simply prints overall help documentation.
+    Parse the 'help' command.
     """
     lines = [
         ['Command', 'Effect'],
@@ -193,10 +208,18 @@ def parse_help(**_):
 
 
 def parse_dumpdb(**_):
+    """
+    Parse the 'dump' command.
+
+    DB is ONLY dumped to console.
+    """
     cogdb.query.dump_db()
 
 
 def parse_info(**kwargs):
+    """
+    Parse the 'info' command.
+    """
     args = kwargs['args']
     msg = kwargs['msg']
     if args.user:
@@ -221,6 +244,10 @@ def parse_info(**kwargs):
 
 
 def parse_fort(**kwargs):
+    """
+    Parse the 'fort' command.
+    """
+    # TODO: Allow lookup by status (--summary) and particular system (--system).
     session = cogdb.Session()
     args = kwargs['args']
     cur_index = cogdb.query.find_current_target(session)
@@ -239,10 +266,13 @@ def parse_fort(**kwargs):
 
 
 def parse_user(**kwargs):
+    """
+    Parse the 'user' command.
+    """
     session = cogdb.Session()
     args = kwargs['args']
-    args.user = ' '.join(args.user)
     try:
+        args.user = ' '.join(args.user)
         user = cogdb.query.get_sheet_user_by_name(session, args.user)
     except cog.exc.NoMatch:
         user = None
@@ -253,7 +283,7 @@ def parse_user(**kwargs):
                                                                      user.sheet_row)
     else:
         if args.add:
-            new_user = cogdb.query.add_suser(session, cog.sheets.callback_add_user, args.user)
+            new_user = cogdb.query.add_suser(session, callback_add_user, args.user)  # pylint: disable=undefined-variable
             response = "Added '{}' to row {}.".format(new_user.sheet_name,
                                                       new_user.sheet_row)
         else:
@@ -263,44 +293,75 @@ def parse_user(**kwargs):
 
 
 def parse_drop(**kwargs):
+    """
+    Parse the 'drop' command.
+    """
+    log = logging.getLogger('cog.share')
     session = cogdb.Session()
     args = kwargs['args']
-    args.system = ' '.join(args.system)
+    msg = kwargs['msg']
+
+    # FIXME: Refactor this area. Or alternative to connect parsed commands to actions.
     if args.user:
         args.user = ' '.join(args.user)
+        import mock
+        duser = mock.Mock()
+        duser.suser = cogdb.query.get_sheet_user_by_name(session, args.user)
+        duser.sheet_name = duser.suser.sheet_name
+        duser.display_name = duser.sheet_name
+    else:
+        duser = cogdb.query.get_discord_user_by_id(session, msg.author.id)
+        get_or_create_sheet_user(session, duser)
+    log.info('DROP - Matched duser %s with id %s.',
+             args.user if args.user else msg.author.display_name, duser.display_name)
 
-    system = cogdb.query.get_system_by_name(session, args.system)
-    user = cogdb.query.get_sheet_user_by_name(session, args.user)
-    fort = cogdb.query.add_fort(session, cog.sheets.callback_add_fort,
-                                system=system, user=user, amount=args.amount)
+    if args.system:
+        args.system = ' '.join(args.system)
+        system = cogdb.query.get_system_by_name(session, args.system)
+    else:
+        current = cogdb.query.find_current_target(session)
+        system = cogdb.query.get_fort_targets(session, current)[0]
+    log.info('DROP - Matched system %s based on args: %s.',
+             system.name, args.system)
+
+    fort = cogdb.query.add_fort(session, callback_add_fort,  # pylint: disable=undefined-variable
+                                system=system, user=duser.suser,
+                                amount=args.amount)
+    log.info('DROP - Sucessfully dropped %d at %s for %s.',
+             args.amount, system.name, duser.display_name)
 
     lines = [fort.system.__class__.header, fort.system.table_row]
     return cog.tbl.wrap_markdown(cog.tbl.format_table(lines, sep='|', header=True))
 
 
-def check_member(member):
+def get_or_create_sheet_user(session, duser):
     """
-    Ensure a member has entries in requisite tables.
+    Try to find a user's entry in the sheet. If sheet_name is set, use that
+    otherwise fall back to display_name (their server nickname).
     """
-    session = cogdb.Session()
+    look_for = duser.sheet_name if duser.sheet_name else duser.display_name
+
     try:
-        cogdb.query.get_discord_user_by_id(session, member.id)
+        suser = cogdb.query.get_sheet_user_by_name(session, look_for)
+        duser.sheet_name = suser.sheet_name
+    except cog.exc.NoMatch:
+        duser.sheet_name = duser.display_name
+        suser = cogdb.query.add_suser(session, cog.sheets.callback_add_user,
+                                      sheet_name=duser.sheet_name)
+
+    return suser
+
+
+def get_or_create_duser(member):
+    """
+    Ensure a member has an entry in the dusers table.
+
+    Returns: The DUser object.
+    """
+    try:
+        session = cogdb.Session()
+        duser = cogdb.query.get_discord_user_by_id(session, member.id)
     except cog.exc.NoMatch:
         duser = cogdb.query.add_duser(session, member)
-
-    # Try to loosely match if first fails
-    tries = 3
-    look_for = duser.display_name
-    while tries:
-        try:
-            suser = cogdb.query.get_sheet_user_by_name(session, look_for)
-            duser.sheet_name = suser.sheet_name
-            tries = 0
-        except cog.exc.NoMatch:
-            look_for = duser.display_name[1:-1]
-            tries -= 1
-            if not tries:
-                cogdb.query.add_suser(session, cog.sheets.callback_add_user,
-                                      sheet_name=duser.sheet_name)
 
     return duser
