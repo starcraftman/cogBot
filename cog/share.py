@@ -200,7 +200,9 @@ def parse_help(**_):
         ['!fort -nl NUM', 'Show status of the next NUM targets.'],
         ['!user -a USER', 'Add a USER to table.'],
         ['!user -q USER', 'Check if user is in table.'],
-        ['!drop AMOUNT -s SYSTEM -u USER', 'Increase by AMOUNT forts for USER at SYSTEM'],
+        ['!drop AMOUNT', 'Drop AMOUNT forts at current target.'],
+        ['!drop AMOUNT -s SYSTEM', 'Drop AMOUNT forts at SYSTEM'],
+        ['!drop AMOUNT -s SYSTEM -u USER', 'Drop AMOUNT forts for USER at SYSTEM'],
         ['!info USER', 'Display information on user.'],
         ['!help', 'This help message.'],
     ]
