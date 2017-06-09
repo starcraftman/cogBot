@@ -10,6 +10,7 @@ import cog.exc
 import cogdb
 import cogdb.schema
 
+from tests.cogdb import CELLS
 
 SYSTEM_DATA = ['', 1, 4910, 0, 4322, 4910, 0, 116.99, '', 'Frey']
 
@@ -32,16 +33,76 @@ def db_cleanup(function):
     return call
 
 
+def db_data(function):
+    """
+    Wrap a test and setup database with dummy data.
+    """
+    def call():
+        session = cogdb.Session()
+
+        user_col, user_row = cogdb.query.first_user_row(CELLS)
+        scanner = cogdb.query.SheetScanner(CELLS, 'F', user_col, user_row)
+        systems = scanner.systems()
+        users = scanner.users()
+        session.add_all(systems + users)
+        session.commit()
+
+        forts = scanner.forts(systems, users)
+        session.add_all(forts)
+        session.commit()
+
+        duser = cogdb.schema.DUser(discord_id='1111', display_name='GearsandCogs',
+                                   capacity=0, sheet_name='GearsandCogs')
+        cmd = cogdb.schema.Command(discord_id=duser.discord_id,
+                                   cmd_str='drop 700', date=date.datetime.now())
+        session.add(cmd)
+        session.add(duser)
+        session.commit()
+
+        function()
+    return call
+
+
 @db_cleanup
-def test_drop_tables():
+@db_data
+def test_drop_all_tables():
     session = cogdb.Session()
     user = cogdb.schema.SUser(sheet_name='test user', sheet_row=2)
     session.add(user)
     session.commit()
 
+    assert session.query(cogdb.schema.DUser).all()
     assert session.query(cogdb.schema.SUser).all()
+    assert session.query(cogdb.schema.Command).all()
+    assert session.query(cogdb.schema.Fort).all()
+    assert session.query(cogdb.schema.System).all()
     cogdb.schema.drop_all_tables()
-    assert not session.query(cogdb.schema.SUser).all()
+    assert session.query(cogdb.schema.DUser).all() == []
+    assert session.query(cogdb.schema.SUser).all() == []
+    assert session.query(cogdb.schema.Command).all() == []
+    assert session.query(cogdb.schema.Fort).all() == []
+    assert session.query(cogdb.schema.System).all() == []
+
+
+@db_cleanup
+@db_data
+def test_drop_scanned_tables():
+    session = cogdb.Session()
+    user = cogdb.schema.SUser(sheet_name='test user', sheet_row=2)
+    session.add(user)
+    session.commit()
+
+    assert session.query(cogdb.schema.DUser).all()
+    assert session.query(cogdb.schema.SUser).all()
+    assert session.query(cogdb.schema.Command).all()
+    assert session.query(cogdb.schema.Fort).all()
+    assert session.query(cogdb.schema.System).all()
+    cogdb.schema.drop_scanned_tables()
+    assert session.query(cogdb.schema.DUser).all()
+    assert session.query(cogdb.schema.SUser).all() == []
+    assert session.query(cogdb.schema.Command).all()
+    assert session.query(cogdb.schema.Fort).all() == []
+    assert session.query(cogdb.schema.System).all() == []
 
 
 @db_cleanup

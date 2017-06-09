@@ -18,6 +18,7 @@ except ImportError:
     from yaml import Loader
 
 import cogdb
+import cogdb.schema
 import cogdb.query
 import cog.exc
 import cog.sheets
@@ -32,7 +33,7 @@ YAML_FILE = os.path.join(ROOT_DIR, '.secrets', 'config.yaml')
 
 
 class ThrowArggumentParser(argparse.ArgumentParser):
-    def print_help(self, file=None):
+    def print_help(self, file=None):  # pylint: disable=redefined-builtin
         raise cog.exc.ArgumentHelpError(self.format_help())
 
     def error(self, message):
@@ -172,6 +173,9 @@ def make_parser(prefix):
                      help='Display information about user.')
     sub.set_defaults(func=parse_info)
 
+    sub = subs.add_parser(prefix + 'scan', description='Scan the sheet for changes.')
+    sub.set_defaults(func=parse_scan)
+
     sub = subs.add_parser(prefix + 'user', description='Manipulate sheet users.')
     sub.add_argument('-a', '--add', action='store_true', default=False,
                      help='Add a user to table if not present.')
@@ -190,22 +194,19 @@ def parse_help(**_):
     """
     Parse the 'help' command.
     """
+    over = 'Here is an overview of my commands.\nFor more information do: ![Command] -h\n'
     lines = [
         ['Command', 'Effect'],
-        ['!fort', 'Show current fort target.'],
-        ['!fort -s SYSTEM [SYSTEM] ...', 'Show status of SYSTEMS'],
-        ['!fort -l', 'Show current fort target\'s status.'],
-        ['!fort -n NUM', 'Show the next NUM targets. Default NUM = 5.'],
-        ['!fort -nl NUM', 'Show status of the next NUM targets.'],
-        ['!user -a USER', 'Add a USER to table.'],
-        ['!user -q USER', 'Check if user is in table.'],
-        ['!drop AMOUNT', 'Drop AMOUNT forts at current target.'],
-        ['!drop AMOUNT -s SYSTEM', 'Drop AMOUNT forts at SYSTEM'],
-        ['!drop AMOUNT -s SYSTEM -u USER', 'Drop AMOUNT forts for USER at SYSTEM'],
-        ['!info USER', 'Display information on user.'],
+        ['!drop', 'Drop forts into the fort sheet.'],
+        ['!dump', 'Dump the database to the server console. For admins.'],
+        ['!fort', 'Get information about our fort systems.'],
+        ['!info', 'Display information on a user.'],
+        ['!scan', 'Rebuild the database by fetching and parsing latest data.'],
+        ['!time', 'Show game time and time to ticks.'],
+        ['!user', 'Manage users.'],
         ['!help', 'This help message.'],
     ]
-    return cog.tbl.wrap_markdown(cog.tbl.format_table(lines, header=True))
+    return over + cog.tbl.wrap_markdown(cog.tbl.format_table(lines, header=True))
 
 
 def parse_dumpdb(**_):
@@ -215,6 +216,16 @@ def parse_dumpdb(**_):
     DB is ONLY dumped to console.
     """
     cogdb.query.dump_db()
+    return 'Db has been dumped to console.'
+
+
+def parse_scan(**_):
+    """
+    Parse the 'scan' command.
+    """
+    cogdb.schema.drop_scanned_tables()
+    init_db(get_config('hudson', 'cattle', 'id'))
+    return 'The database has been updated with the latest sheet data.'
 
 
 def parse_info(**kwargs):

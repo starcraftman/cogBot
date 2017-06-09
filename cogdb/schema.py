@@ -334,6 +334,18 @@ def drop_all_tables():
     session.commit()
 
 
+def drop_scanned_tables():
+    """
+    Drop only tables related to data parsed from sheet.
+    """
+    # TODO: Temp fix, should make an update method to update based on parsed objects.
+    session = cogdb.Session()
+    session.query(SUser).delete()
+    session.query(System).delete()
+    session.query(Fort).delete()
+    session.commit()
+
+
 def recreate_tables():
     """
     Recreate all tables after start.

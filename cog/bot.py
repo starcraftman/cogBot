@@ -86,7 +86,7 @@ class CogBot(discord.Client):
             cog.share.get_or_create_duser(author)
             parser = cog.share.make_parser(self.prefix)
             args = parser.parse_args(msg.split(' '))
-            response = args.func(msg=message, args=args)
+            response = args.func(client=self, msg=message, args=args)
         except (cog.exc.NoMatch, cog.exc.MoreThanOneMatch) as exc:
             log.error("Loose cmd failed to match excatly one. '%s' | %s", author.name, msg)
             log.error(exc)

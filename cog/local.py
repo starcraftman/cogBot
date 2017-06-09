@@ -5,7 +5,6 @@ Stub version of bot, doesn't connect to discord.
 Instead parses CLI to test commands/outputs locally.
 """
 from __future__ import absolute_import, print_function
-import logging
 import sys
 
 import mock
