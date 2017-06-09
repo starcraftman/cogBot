@@ -84,19 +84,20 @@ class CogBot(discord.Client):
 
         try:
             cog.share.get_or_create_duser(author)
-            msg = msg.replace(self.prefix, '')
-            parser = cog.share.make_parser()
+            parser = cog.share.make_parser(self.prefix)
             args = parser.parse_args(msg.split(' '))
             response = args.func(msg=message, args=args)
-        except cog.share.ArgumentParseError:
-            log.exception("Failed to parse command. '%s' | %s", author.name, msg)
-            response = 'Could not parse command: ' + msg
-            response += '\nPlease check how I work: {}help'.format(self.prefix)
         except (cog.exc.NoMatch, cog.exc.MoreThanOneMatch) as exc:
             log.error("Loose cmd failed to match excatly one. '%s' | %s", author.name, msg)
             log.error(exc)
             response = 'Check command arguments ...\n'
             response += str(exc)
+        except cog.exc.ArgumentParseError as exc:
+            log.exception("Failed to parse command. '%s' | %s", author.name, msg)
+            response = exc.message
+        except cog.exc.ArgumentHelpError as exc:
+            log.info("User requested help. '%s' | %s", author.name, msg)
+            response = exc.help
 
         log.info("Responding to %s with %s.", author.name, response)
         await self.send_message(channel, response)

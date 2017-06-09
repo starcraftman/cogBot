@@ -31,23 +31,18 @@ YAML_FILE = os.path.join(ROOT_DIR, '.secrets', 'config.yaml')
 # TODO: I may be trying too hard to use argparse. May be easier to make small custom parser.
 
 
-class ArgumentParseError(Exception):
-    """ Error raised instead of exiting on argparse error. """
-    pass
-
-
 class ThrowArggumentParser(argparse.ArgumentParser):
-    def error(self, message=None):
-        """
-        Suppress default exit after error.
-        """
-        raise ArgumentParseError()
+    def print_help(self):
+        raise cog.exc.ArgumentHelpError(self.format_help())
+
+    def error(self, message):
+        raise cog.exc.ArgumentParseError(message, self.format_usage())
 
     def exit(self, status=0, message=None):
         """
         Suppress default exit behaviour.
         """
-        raise ArgumentParseError()
+        raise cog.exc.ArgumentParseError(message, self.format_usage())
 
 
 class ModFormatter(logging.Formatter):
@@ -141,16 +136,16 @@ def rel_to_abs(path):
     return os.path.join(ROOT_DIR, path)
 
 
-def make_parser():
+def make_parser(prefix):
     """
     Returns the bot parser.
     """
-    parser = ThrowArggumentParser(prog='cog', description='simple discord bot')
+    parser = ThrowArggumentParser(prog='', description='simple discord bot')
 
     subs = parser.add_subparsers(title='subcommands',
                                  description='The subcommands of cog')
 
-    sub = subs.add_parser('drop', description='Drop forts for user at system.')
+    sub = subs.add_parser(prefix + 'drop', description='Drop forts for user at system.')
     sub.add_argument('amount', type=int, help='The amount to drop.')
     sub.add_argument('-s', '--system', nargs='+',
                      help='The system to drop at.')
@@ -158,10 +153,10 @@ def make_parser():
                      help='The user to drop for.')
     sub.set_defaults(func=parse_drop)
 
-    sub = subs.add_parser('dump', description='Dump the current db.')
+    sub = subs.add_parser(prefix + 'dump', description='Dump the current db.')
     sub.set_defaults(func=parse_dumpdb)
 
-    sub = subs.add_parser('fort', description='Show next fort target.')
+    sub = subs.add_parser(prefix + 'fort', description='Show next fort target.')
     sub.add_argument('-s', '--systems', nargs='+',
                      help='Show status of these systems.')
     sub.add_argument('-l', '--long', action='store_true',
@@ -172,12 +167,12 @@ def make_parser():
                      help='number of systems to display')
     sub.set_defaults(func=parse_fort)
 
-    sub = subs.add_parser('info', description='Get information on things.')
+    sub = subs.add_parser(prefix + 'info', description='Get information on things.')
     sub.add_argument('user', nargs='?',
                      help='Display information about user.')
     sub.set_defaults(func=parse_info)
 
-    sub = subs.add_parser('user', description='Manipulate sheet users.')
+    sub = subs.add_parser(prefix + 'user', description='Manipulate sheet users.')
     sub.add_argument('-a', '--add', action='store_true', default=False,
                      help='Add a user to table if not present.')
     sub.add_argument('-q', '--query', action='store_true', default=False,
@@ -186,7 +181,7 @@ def make_parser():
                      help='The user to interact with.')
     sub.set_defaults(func=parse_user)
 
-    sub = subs.add_parser('help', description='Show overall help message.')
+    sub = subs.add_parser(prefix + 'help', description='Show overall help message.')
     sub.set_defaults(func=parse_help)
     return parser
 

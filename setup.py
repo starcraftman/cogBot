@@ -54,7 +54,7 @@ class CleanCommand(Command):
         cmd = 'rm -vrf .eggs .tox build dist {0} {1}'.format(eggs, pycs)
         print('Executing: ' + cmd)
         recv = input('OK? y/n  ').strip().lower()
-        if  recv.startswith('y'):
+        if recv.startswith('y'):
             subprocess.call(shlex.split(cmd))
 
 

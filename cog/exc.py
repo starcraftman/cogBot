@@ -4,6 +4,21 @@ Common exceptions.
 from __future__ import absolute_import, print_function
 
 
+class ArgumentParseError(Exception):
+    """ Error raised on failure to parse arguments. """
+    def __init__(self, message, usage):
+        super(ArgumentParseError, self).__init__()
+        self.message = message
+        self.usage = usage
+
+
+class ArgumentHelpError(Exception):
+    """ Error raised on request to print help for command. """
+    def __init__(self, help):
+        super(ArgumentHelpError, self).__init__()
+        self.help = help
+
+
 class ColOverflow(Exception):
     """
     Raise when a column has reached end, increment next column.

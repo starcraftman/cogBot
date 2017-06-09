@@ -41,8 +41,12 @@ def main():
                 response = args.func(msg=mock.Mock(), args=args)
                 if response:
                     print(response.replace('```', ''))
-            except cog.share.ArgumentParseError:
-                print('Invalid command:', line)
+            except cog.share.ArgumentParseError as exc:
+                response = exc.my_args[0]
+                print('HELLO')
+                print(len(exc.my_args))
+                for arg in exc.my_args:
+                    print(arg)
     except KeyboardInterrupt:
         print('\nTerminating loop. Thanks for testing.')
 
