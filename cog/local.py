@@ -12,12 +12,6 @@ import mock
 import cog.share
 
 
-# TODO: investigate use of discord.ext.bot || make own bot class
-# TODO: Secure commands against servers/channels/users
-# TODO: Allow management commands to add/remove above
-# TODO: Add basic whois support, default lookup in local to channel db
-# TODO: Add wider search, across server, inara and other sources
-
 # Simple background coroutine example for later, adapt to refresh csv.
 # async def my_task():
     # await client.wait_until_ready()

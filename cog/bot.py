@@ -3,7 +3,11 @@
 """
 Discord bot class
 
-API: https://discordpy.readthedocs.io/en/latest/api.html
+API:
+    https://discordpy.readthedocs.io/en/latest/api.html
+
+Small Python Async tutorial:
+    https://snarky.ca/how-the-heck-does-async-await-work-in-python-3-5/
 """
 from __future__ import absolute_import, print_function
 import logging
@@ -11,6 +15,15 @@ import logging
 import discord
 
 import cog.share
+
+
+# TODO: investigate use of discord.ext.bot || make own bot class
+# TODO: Secure commands against servers/channels/users
+# TODO: Allow management commands to add/remove above
+# TODO: Add basic whois support, default lookup in local to channel db
+# TODO: Add wider search, across server, inara and other sources
+# TODO: Possible image export: http://effbot.org/imagingbook/imagefont.htm
+# TODO: Perhaps implement a simple LFG system to track people looking to wing.
 
 
 class CogBot(discord.Client):
