@@ -14,9 +14,9 @@ class ArgumentParseError(Exception):
 
 class ArgumentHelpError(Exception):
     """ Error raised on request to print help for command. """
-    def __init__(self, help):
+    def __init__(self, help_str):
         super(ArgumentHelpError, self).__init__()
-        self.help = help
+        self.message = message
 
 
 class ColOverflow(Exception):

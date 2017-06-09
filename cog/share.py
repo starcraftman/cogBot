@@ -32,7 +32,7 @@ YAML_FILE = os.path.join(ROOT_DIR, '.secrets', 'config.yaml')
 
 
 class ThrowArggumentParser(argparse.ArgumentParser):
-    def print_help(self):
+    def print_help(self, file=None):
         raise cog.exc.ArgumentHelpError(self.format_help())
 
     def error(self, message):

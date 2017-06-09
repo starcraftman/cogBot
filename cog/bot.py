@@ -97,7 +97,7 @@ class CogBot(discord.Client):
             response = exc.message
         except cog.exc.ArgumentHelpError as exc:
             log.info("User requested help. '%s' | %s", author.name, msg)
-            response = exc.help
+            response = exc.message
 
         log.info("Responding to %s with %s.", author.name, response)
         await self.send_message(channel, response)
