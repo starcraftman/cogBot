@@ -15,8 +15,10 @@ ROOT = os.path.abspath(os.path.dirname(__file__))
 if os.path.dirname(__file__) == '':
     ROOT = os.getcwd()
 
-
-SHORT_DESC = 'The Elite Federal Discord Bot'
+try:
+    input = raw_input
+except NameError:
+    pass
 
 
 def rec_search(wildcard):
@@ -51,7 +53,8 @@ class CleanCommand(Command):
         eggs = ' '.join(glob.glob('*.egg-info') + glob.glob('*.egg'))
         cmd = 'rm -vrf .eggs .tox build dist {0} {1}'.format(eggs, pycs)
         print('Executing: ' + cmd)
-        if input('OK? y/n  ').strip().lower()[0] == 'y':
+        recv = input('OK? y/n  ').strip().lower()
+        if  recv.startswith('y'):
             subprocess.call(shlex.split(cmd))
 
 
@@ -96,7 +99,7 @@ class UMLDocs(Command):
                                       stdout=dnull, stderr=dnull)
         except OSError:
             print('Missing pylint library (pyreverse). Please run:')
-            print('pip install pylint')
+            print('pip install pylint pyreverse')
             sys.exit(1)
         try:
             with open(os.devnull, 'w') as dnull:
@@ -113,9 +116,12 @@ class UMLDocs(Command):
         os.chdir(ROOT)
 
         cmds = [
-            'pyreverse pakit',
-            'dot -Tps classes_No_Name.dot -o class_diagram.ps',
-            'dot -Tps packages_No_Name.dot -o module_diagram.ps',
+            'pyreverse cog',
+            'dot -Tps classes_No_Name.dot -o cog_class_diagram.ps',
+            'pyreverse cogdb',
+            'dot -Tps classes_No_Name.dot -o cogdb_class_diagram.ps',
+            'pyreverse cog cogdb tests',
+            'dot -Tps packages_No_Name.dot -o overall_modules_diagram.ps',
         ]
         for cmd in cmds:
             subprocess.call(shlex.split(cmd))
@@ -127,10 +133,11 @@ class UMLDocs(Command):
         os.chdir(old_cwd)
 
 
+SHORT_DESC = 'The Elite Federal Discord Bot'
 MY_NAME = 'Jeremy Pallats / starcraft.man'
 MY_EMAIL = 'N/A'
 RUN_DEPS = ['argparse', 'discord.py', 'google-api-python-client', 'pyyaml', 'SQLalchemy']
-TEST_DEPS = ['coverage', 'flake8', 'mock', 'pytest', 'sphinx', 'tox']
+TEST_DEPS = ['coverage', 'flake8', 'mock', 'pylint', 'pyreverse', 'pytest', 'sphinx', 'tox']
 setup(
     name='cogbot',
     version='0.1.0',

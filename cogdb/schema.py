@@ -169,7 +169,7 @@ class System(Base):
     """
     __tablename__ = 'systems'
 
-    header = ['System', 'Trigger', 'Missing', 'UM', 'Notes']
+    header = ['System', 'Missing', 'Merits (Fort%/UM%)', 'Notes']
 
     id = sqla.Column(sqla.Integer, primary_key=True)
     name = sqla.Column(sqla.String, unique=True)
@@ -199,6 +199,11 @@ class System(Base):
 
     def __str__(self):
         return "ID='{}', ".format(self.id) + self.__repr__()
+
+    @property
+    def ump(self):
+        """ Return the undermine percentage, stored as decimal. """
+        return '{:.1f}'.format(self.undermine * 100)
 
     @property
     def current_status(self):
@@ -243,12 +248,10 @@ class System(Base):
         Each element should be mapped to separate column.
         See header.
         """
-        status = '{:>4}/{:4} ({:2}%)'.format(self.current_status,
-                                             self.trigger,
-                                             self.completion)
-        missing = 'N/A' if self.skip else '{:>4}'.format(self.missing)
+        status = '{:>4}/{:4} ({}%/{}%)'.format(self.current_status, self.trigger,
+                                               self.completion, self.ump)
 
-        return (self.name, status, missing, '{:.1f}%'.format(self.undermine), self.notes)
+        return (self.name, '{:>4}'.format(self.missing), status, self.notes)
 
     def __eq__(self, other):
         return (self.name, self.sheet_col, self.sheet_order, self.fort_status,

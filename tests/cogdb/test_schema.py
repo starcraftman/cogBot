@@ -193,9 +193,8 @@ def test_system_table_row():
     result = cogdb.schema.system_result_dict(SYSTEM_DATA, 0, 'F')
     system = cogdb.schema.System(**result)
 
-    assert system.table_row == ('Frey', '4910/4910 (100.0%)', '   0', '0.0%', '')
     system.notes = 'Leave'
-    assert system.table_row == ('Frey', '4910/4910 (100.0%)', 'N/A', '0.0%', 'Leave')
+    assert system.table_row == ('Frey', '   0', '4910/4910 (100.0%/0.0%)', 'Leave')
 
 
 def test_parse_int():
