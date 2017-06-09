@@ -29,11 +29,11 @@ def main():
     """
     cog.share.init_logging()
     cog.share.init_db(cog.share.get_config('hudson', 'cattle', 'id'))
-    logging.getLogger('cog.local').error('Local loop is ready.')
 
     try:
         parser = cog.share.make_parser('!')
 
+        print('Local loop is ready.')
         while True:
             try:
                 line = sys.stdin.readline().rstrip()

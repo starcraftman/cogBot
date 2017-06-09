@@ -94,7 +94,14 @@ class CogBot(discord.Client):
             response += str(exc)
         except cog.exc.ArgumentParseError as exc:
             log.exception("Failed to parse command. '%s' | %s", author.name, msg)
-            response = exc.message
+            if 'invalid choice' in exc.message:
+                response = exc.message
+            else:  # Valid subcommand, bad usage. Show subcommand help.
+                try:
+                    parser.parse_args(msg.split(' ')[0:1] + ['--help'])
+                except cog.exc.ArgumentHelpError as exc:
+                    response = 'Invalid command/arguments. See help below.'
+                    response += '\n{}\n{}'.format(len(response) * '-', exc.message)
         except cog.exc.ArgumentHelpError as exc:
             log.info("User requested help. '%s' | %s", author.name, msg)
             response = exc.message
