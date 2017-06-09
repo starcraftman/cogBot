@@ -14,7 +14,7 @@ class ArgumentParseError(Exception):
 
 class ArgumentHelpError(Exception):
     """ Error raised on request to print help for command. """
-    def __init__(self, help_str):
+    def __init__(self, message):
         super(ArgumentHelpError, self).__init__()
         self.message = message
 
