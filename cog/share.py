@@ -253,10 +253,9 @@ def parse_time(**_):
         weekly_tick += date.timedelta(days=1)
 
     lines = [
-        'All times are UTC',
-        'Game Time: ' + str(now.strftime('%H:%M:%S')),
-        'Time to BGS Tick: {} ({})'.format(daily_tick - now, daily_tick),
-        'Time to Cycle Tick: {} ({})'.format(weekly_tick - now, weekly_tick),
+        'Game Time: {} UTC'.format(now.strftime('%H:%M:%S')),
+        'Time to BGS Tick: {} ({} UTC)'.format(daily_tick - now, daily_tick),
+        'Time to Cycle Tick: {} ({} UTC)'.format(weekly_tick - now, weekly_tick),
     ]
     return '\n'.join(lines)
 
