@@ -2,6 +2,7 @@
 Common functions.
 """
 from __future__ import absolute_import, print_function
+import datetime as date
 import functools
 import logging
 import logging.handlers
@@ -176,6 +177,9 @@ def make_parser(prefix):
     sub = subs.add_parser(prefix + 'scan', description='Scan the sheet for changes.')
     sub.set_defaults(func=parse_scan)
 
+    sub = subs.add_parser(prefix + 'time', description='Time in game and to ticks.')
+    sub.set_defaults(func=parse_time)
+
     sub = subs.add_parser(prefix + 'user', description='Manipulate sheet users.')
     sub.add_argument('-a', '--add', action='store_true', default=False,
                      help='Add a user to table if not present.')
@@ -226,6 +230,35 @@ def parse_scan(**_):
     cogdb.schema.drop_scanned_tables()
     init_db(get_config('hudson', 'cattle', 'id'))
     return 'The database has been updated with the latest sheet data.'
+
+
+def parse_time(**_):
+    """
+    Parse the 'time' command.
+
+    Shows the time ...
+      - In game
+      - To daily BGS tick
+      - To weekly tick
+    """
+    now = date.datetime.utcnow().replace(microsecond=0)
+    today = now.replace(hour=0, minute=0, second=0)
+
+    daily_tick = today + date.timedelta(hours=16)
+    if daily_tick < now:
+        daily_tick = daily_tick + date.timedelta(days=1)
+
+    weekly_tick = today + date.timedelta(hours=7)
+    while weekly_tick.strftime('%A') != 'Thursday':
+        weekly_tick += date.timedelta(days=1)
+
+    lines = [
+        'All times are UTC',
+        'Game Time: ' + str(now.strftime('%H:%M:%S')),
+        'Time to BGS Tick: {} ({})'.format(daily_tick - now, daily_tick),
+        'Time to Cycle Tick: {} ({})'.format(weekly_tick - now, weekly_tick),
+    ]
+    return '\n'.join(lines)
 
 
 def parse_info(**kwargs):
