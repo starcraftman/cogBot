@@ -101,6 +101,7 @@ def get_all_systems_by_state(session):
         'fortified': [],
         'left': [],
         'undermined': [],
+        'skip': [],
     }
 
     for system in get_all_systems(session):
@@ -112,6 +113,8 @@ def get_all_systems_by_state(session):
             states['fortified'].append(system)
         else:
             states['left'].append(system)
+        if system.skip:
+            states['skip'].append(system)
 
     return states
 

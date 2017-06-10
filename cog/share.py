@@ -177,13 +177,16 @@ def make_parser(prefix):
     sub = subs.add_parser(prefix + 'scan', description='Scan the sheet for changes.')
     sub.set_defaults(func=parse_scan)
 
+    sub = subs.add_parser(prefix + 'status', description='Show the status of systems by state.')
+    sub.set_defaults(func=parse_status)
+
     sub = subs.add_parser(prefix + 'time', description='Time in game and to ticks.')
     sub.set_defaults(func=parse_time)
 
     sub = subs.add_parser(prefix + 'user', description='Manipulate sheet users.')
-    sub.add_argument('-a', '--add', action='store_true', default=False,
+    sub.add_argument('-a', '--add', action='store_true',
                      help='Add a user to table if not present.')
-    sub.add_argument('-q', '--query', action='store_true', default=False,
+    sub.add_argument('-q', '--query', action='store_true',
                      help='Return username and row if exists.')
     sub.add_argument('user', nargs='+',
                      help='The user to interact with.')
@@ -206,8 +209,9 @@ def parse_help(**_):
         ['!fort', 'Get information about our fort systems.'],
         ['!info', 'Display information on a user.'],
         ['!scan', 'Rebuild the database by fetching and parsing latest data.'],
+        ['!status', 'Show stats of fort sheet.'],
         ['!time', 'Show game time and time to ticks.'],
-        ['!user', 'Manage users.'],
+        ['!user', 'UNUSED ATM. Manage users.'],
         ['!help', 'This help message.'],
     ]
     return over + cog.tbl.wrap_markdown(cog.tbl.format_table(lines, header=True))
@@ -230,6 +234,32 @@ def parse_scan(**_):
     cogdb.schema.drop_scanned_tables()
     init_db(get_config('hudson', 'cattle', 'id'))
     return 'The database has been updated with the latest sheet data.'
+
+
+def parse_status(**_):
+    """
+    Parse the 'status' command.
+    """
+    session = cogdb.Session()
+
+    systems = cogdb.query.get_all_systems_by_state(session)
+    total = len(cogdb.query.get_all_systems(session))
+    lines = [
+        'Systems: {}'.format(total),
+        'Cancelled: {}'.format(len(systems['cancelled'])),
+        'Fortified: {}'.format(len(systems['fortified'])),
+        'Undermined: {}'.format(len(systems['undermined'])),
+        'Remaining: {}'.format(len(systems['left'])),
+        'Skipped: {}'.format(len(systems['skip'])),
+    ]
+    return '\n'.join(lines)
+
+    # TODO: Revisit, 2000 char limit impedes feature.
+    # for key in systems:
+        # systems[key] = ['{:8} {}/{}'.format(sys.name[:8], sys.completion, sys.ump)
+                        # for sys in systems[key][:8]]
+    # lines = dict_to_columns(systems)
+    # return cog.tbl.wrap_markdown(cog.tbl.format_table(lines, sep='|', header=True))
 
 
 def parse_time(**_):
@@ -388,6 +418,28 @@ def parse_drop(**kwargs):
 
     lines = [fort.system.__class__.header, fort.system.table_row]
     return cog.tbl.wrap_markdown(cog.tbl.format_table(lines, sep='|', header=True))
+
+
+def dict_to_columns(data):
+    """
+    Transform the dict into columnar form with keys as column headers.
+    """
+    lines = []
+    header = []
+
+    for col, key in enumerate(sorted(data)):
+        header.append('{} ({})'.format(key, len(data[key])))
+
+        for row, item in enumerate(data[key]):
+            try:
+                lines[row]
+            except IndexError:
+                lines.append([])
+            while len(lines[row]) != col:
+                lines[row].append('')
+            lines[row].append(item)
+
+    return [header] + lines
 
 
 def get_or_create_sheet_user(session, duser):

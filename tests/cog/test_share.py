@@ -9,6 +9,23 @@ import cog.exc
 import cog.share
 
 
+def test_dict_to_columns():
+    data = {
+        'first': [1, 2, 3],
+        'more': [100],
+        'second': [10, 30, 50],
+        'three': [22, 19, 26, 23],
+    }
+    expect = [
+        ['first (3)', 'more (1)', 'second (3)', 'three (4)'],
+        [1, 100, 10, 22],
+        [2, '', 30, 19],
+        [3, '', 50, 26],
+        ['', '', '', 23]
+    ]
+    assert cog.share.dict_to_columns(data) == expect
+
+
 def test_get_config():
     assert cog.share.get_config('secrets', 'sheets', 'json') == '.secrets/sheets.json'
 
