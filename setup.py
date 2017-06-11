@@ -49,9 +49,10 @@ class CleanCommand(Command):
         pass
 
     def run(self):
-        pycs = ' '.join(rec_search('*.pyc'))
-        eggs = ' '.join(glob.glob('*.egg-info') + glob.glob('*.egg'))
-        cmd = 'rm -vrf .eggs .tox build dist {0} {1}'.format(eggs, pycs)
+        matched = ' '.join(rec_search('*.pyc'))
+        matched += ' '.join(glob.glob('*.egg-info') + glob.glob('*.egg'))
+        matched += ' '.join(glob.glob('*.png'))
+        cmd = 'rm -vrf .eggs .tox build dist ' + matched
         print('Executing: ' + cmd)
         recv = input('OK? y/n  ').strip().lower()
         if recv.startswith('y'):
@@ -113,24 +114,29 @@ class UMLDocs(Command):
     def run(self):
         self.check_prereqs()
         old_cwd = os.getcwd()
-        os.chdir(ROOT)
-
+        diagrams = []
         cmds = [
             'pyreverse cog',
-            'dot -Tps classes_No_Name.dot -o cog_class_diagram.ps',
+            'dot -Tpng classes.dot -o cog_class_diagram.png',
             'pyreverse cogdb',
-            'dot -Tps classes_No_Name.dot -o cogdb_class_diagram.ps',
+            'dot -Tpng classes.dot -o cogdb_class_diagram.png',
             'pyreverse cog cogdb tests',
-            'dot -Tps packages_No_Name.dot -o overall_modules_diagram.ps',
+            'dot -Tpng packages.dot -o overall_modules_diagram.png',
         ]
-        for cmd in cmds:
-            subprocess.call(shlex.split(cmd))
-        for fname in glob.glob('*.dot'):
-            os.remove(fname)
-        print('Diagrams available in: ' + ROOT)
-        print('Use any postscript viewer to open them.')
 
-        os.chdir(old_cwd)
+        try:
+            os.chdir(ROOT)
+            for cmd in cmds:
+                subprocess.call(shlex.split(cmd))
+            diagrams = [os.path.abspath(pic) for pic in glob.glob('*.png')]
+        finally:
+            for fname in glob.glob('*.dot'):
+                os.remove(fname)
+                os.chdir(old_cwd)
+
+        print('Diagrams generated:')
+        print('\n  ' + '\n  '.join(diagrams))
+
 
 
 SHORT_DESC = 'The Elite Federal Discord Bot'
