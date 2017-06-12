@@ -50,8 +50,8 @@ class CleanCommand(Command):
 
     def run(self):
         matched = ' '.join(rec_search('*.pyc'))
-        matched += ' '.join(glob.glob('*.egg-info') + glob.glob('*.egg'))
-        matched += ' '.join(glob.glob('*.png'))
+        matched += ' ' + ' '.join(glob.glob('*.egg-info') + glob.glob('*.egg'))
+        matched += ' ' + ' '.join(glob.glob('*.png'))
         cmd = 'rm -vrf .eggs .tox build dist ' + matched
         print('Executing: ' + cmd)
         recv = input('OK? y/n  ').strip().lower()
