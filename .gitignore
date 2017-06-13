@@ -1,10 +1,14 @@
 .cache
+.coverage
 .python-version
-.secrets
 .tox
+
+build
+data
+dist
 venv
 z_scratch
 
-*.egg-info
-*private
+*.egg*
+*.private
 *.png

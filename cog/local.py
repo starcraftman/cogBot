@@ -27,7 +27,7 @@ def main():
     Simply operate the bot locally by command line input.
     """
     cog.share.init_logging()
-    cog.share.init_db(cog.share.get_config('hudson', 'cattle', 'id'))
+    cog.share.init_db(cog.share.get_config('hudson', 'cattle'))
 
     try:
         parser = cog.share.make_parser('!')

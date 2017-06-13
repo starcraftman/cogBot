@@ -27,7 +27,7 @@ def test_dict_to_columns():
 
 
 def test_get_config():
-    assert cog.share.get_config('secrets', 'sheets', 'json') == '.secrets/sheets.json'
+    assert cog.share.get_config('paths', 'log_conf') == 'data/log.yml'
 
 
 def test_make_parser_throws():

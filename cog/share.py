@@ -27,7 +27,7 @@ import cog.tbl
 
 
 ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-YAML_FILE = os.path.join(ROOT_DIR, '.secrets', 'config.yaml')
+YAML_FILE = os.path.join(ROOT_DIR, 'data', 'config.yml')
 
 
 # TODO: I may be trying too hard to use argparse. May be easier to make small custom parser.
@@ -85,7 +85,7 @@ def init_logging():
         pass
     print('LOGGING FOLDER:', log_folder)
 
-    with open(rel_to_abs('log.yaml')) as fin:
+    with open(rel_to_abs(get_config('paths', 'log_conf'))) as fin:
         log_conf = yaml.load(fin, Loader=Loader)
     logging.config.dictConfig(log_conf)
 
@@ -105,12 +105,13 @@ def init_db(sheet_id):
     session = cogdb.Session()
 
     if not session.query(cogdb.schema.System).all():
-        secrets = get_config('secrets', 'sheets')
-        sheet = cog.sheets.GSheet(sheet_id, rel_to_abs(secrets['json']),
-                                  rel_to_abs(secrets['token']))
+        paths = get_config('paths')
+        sheet = cog.sheets.GSheet(sheet_id,
+                                  rel_to_abs(paths['oauth_json']),
+                                  rel_to_abs(paths['oauth_token']))
 
-        system_col = cogdb.query.first_system_column(sheet.get_with_formatting('!A10:J10'))
         cells = sheet.whole_sheet()
+        system_col = cogdb.query.first_system_column(sheet.get_with_formatting('!A10:J10'))
         user_col, user_row = cogdb.query.first_user_row(cells)
 
         # Prep callbacks for later use
@@ -131,11 +132,11 @@ def init_db(sheet_id):
         session.commit()
 
 
-def rel_to_abs(path):
+def rel_to_abs(*path_parts):
     """
     Convert an internally relative path to an absolute one.
     """
-    return os.path.join(ROOT_DIR, path)
+    return os.path.join(ROOT_DIR, *path_parts)
 
 
 def make_parser(prefix):
@@ -232,7 +233,7 @@ def parse_scan(**_):
     Parse the 'scan' command.
     """
     cogdb.schema.drop_scanned_tables()
-    init_db(get_config('hudson', 'cattle', 'id'))
+    init_db(get_config('hudson', 'cattle'))
     return 'The database has been updated with the latest sheet data.'
 
 

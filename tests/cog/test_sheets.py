@@ -17,7 +17,7 @@ def fort_sheet():
     """
     Yield fixture returns fort sheet.
     """
-    sheet_id = cog.share.get_config('hudson', 'cattle', 'id')
+    sheet_id = cog.share.get_config('hudson', 'cattle')
     secrets = cog.share.get_config('secrets', 'sheets')
     f_sheet = cog.sheets.GSheet(sheet_id, secrets['json'], secrets['token'])
 
@@ -31,7 +31,7 @@ def fort_sheet_reset():
 
     N.B. Test in cells cleaned in cell_ranges.
     """
-    sheet_id = cog.share.get_config('hudson', 'cattle', 'id')
+    sheet_id = cog.share.get_config('hudson', 'cattle')
     secrets = cog.share.get_config('secrets', 'sheets')
     f_sheet = cog.sheets.GSheet(sheet_id, secrets['json'], secrets['token'])
 

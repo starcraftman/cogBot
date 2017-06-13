@@ -112,10 +112,10 @@ class CogBot(discord.Client):
 
 def main():
     cog.share.init_logging()
-    cog.share.init_db(cog.share.get_config('hudson', 'cattle', 'id'))
+    cog.share.init_db(cog.share.get_config('hudson', 'cattle'))
     try:
         bot = CogBot('!')
-        bot.run(cog.share.get_config('secrets', 'discord_token'))
+        bot.run(cog.share.get_config('discord_token'))
     finally:
         bot.close()
 

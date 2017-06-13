@@ -138,7 +138,6 @@ class UMLDocs(Command):
         print('\n  ' + '\n  '.join(diagrams))
 
 
-
 SHORT_DESC = 'The Elite Federal Discord Bot'
 MY_NAME = 'Jeremy Pallats / starcraft.man'
 MY_EMAIL = 'N/A'
