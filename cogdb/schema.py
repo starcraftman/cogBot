@@ -326,11 +326,8 @@ def drop_all_tables():
     Drop all tables.
     """
     session = cogdb.Session()
-    session.query(DUser).delete()
-    session.query(SUser).delete()
-    session.query(Command).delete()
-    session.query(System).delete()
-    session.query(Fort).delete()
+    for cls in [Fort, Command, SUser, System, DUser]:
+        session.query(cls).delete()
     session.commit()
 
 
@@ -340,9 +337,8 @@ def drop_scanned_tables():
     """
     # TODO: Temp fix, should make an update method to update based on parsed objects.
     session = cogdb.Session()
-    session.query(SUser).delete()
-    session.query(System).delete()
-    session.query(Fort).delete()
+    for cls in [Fort, SUser, System]:
+        session.query(cls).delete()
     session.commit()
 
 
