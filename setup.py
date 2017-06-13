@@ -100,7 +100,7 @@ class UMLDocs(Command):
                                       stdout=dnull, stderr=dnull)
         except OSError:
             print('Missing pylint library (pyreverse). Please run:')
-            print('pip install pylint pyreverse')
+            print('pip install pylint')
             sys.exit(1)
         try:
             with open(os.devnull, 'w') as dnull:
@@ -142,7 +142,7 @@ SHORT_DESC = 'The Elite Federal Discord Bot'
 MY_NAME = 'Jeremy Pallats / starcraft.man'
 MY_EMAIL = 'N/A'
 RUN_DEPS = ['argparse', 'discord.py', 'google-api-python-client', 'pyyaml', 'SQLalchemy']
-TEST_DEPS = ['coverage', 'flake8', 'mock', 'pylint', 'pyreverse', 'pytest', 'sphinx', 'tox']
+TEST_DEPS = ['coverage', 'flake8', 'mock', 'pylint', 'pytest', 'pytest-cov', 'sphinx', 'tox']
 setup(
     name='cogbot',
     version='0.1.0',
