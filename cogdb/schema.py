@@ -26,21 +26,19 @@ class Command(Base):
     discord_id = sqla.Column(sqla.String, sqla.ForeignKey('dusers.discord_id'))
 
     def __repr__(self):
-        if getattr(self, 'duser', None):
-            duser = "display_name='{}'".format(self.duser.display_name)
-        else:
-            duser = "discord_id='{}'".format(self.discord_id)
+        args = {}
+        for key in ['cmd_str', 'date', 'discord_id']:
+            args[key] = getattr(self, key)
 
-        args = {
-            'duser': duser,
-            'cmd_str': self.cmd_str,
-            'date': self.date,
-        }
-        return "<Command({duser}, cmd_str='{cmd_str}', "\
-            "date='{date}')>".format(**args)
+        return self.__class__.__name__ + "(discord_id={discord_id!r}, cmd_str={cmd_str!r}, "\
+            "date={date!r})".format(**args)
 
     def __str__(self):
-        return "ID='{}', ".format(self.id) + self.__repr__()
+        duser = None
+        if getattr(self, 'duser', None):
+            duser = self.duser.display_name
+
+        return "id={}, display_name={}, {}".format(repr(self.id), repr(duser), self.__repr__())
 
     def __eq__(self, other):
         return (self.cmd_str, self.discord_id, self.date) == (
@@ -54,23 +52,21 @@ class DUser(Base):
     __tablename__ = 'dusers'
 
     id = sqla.Column(sqla.Integer, primary_key=True)
+    capacity = sqla.Column(sqla.Integer)
     discord_id = sqla.Column(sqla.String, unique=True)
     display_name = sqla.Column(sqla.String)
-    capacity = sqla.Column(sqla.Integer)
     sheet_name = sqla.Column(sqla.String, sqla.ForeignKey('susers.sheet_name'))
 
     def __repr__(self):
-        args = {
-            'discord_id': self.discord_id,
-            'display_name': self.display_name,
-            'capacity': self.capacity,
-            'sheet_name': self.sheet_name,
-        }
-        return "<DUser(display_name='{display_name}', discord_id='{discord_id}', "\
-            "capacity='{capacity}', sheet_name='{sheet_name}')>".format(**args)
+        args = {}
+        for key in ['capacity', 'discord_id', 'display_name', 'sheet_name']:
+            args[key] = getattr(self, key)
+
+        return "DUser(display_name={display_name!r}, discord_id={discord_id!r}, "\
+            "capacity={capacity!r}, sheet_name={sheet_name!r})".format(**args)
 
     def __str__(self):
-        return "ID='{}', ".format(self.id) + self.__repr__()
+        return "id={}, {}".format(repr(self.id), self.__repr__())
 
     def __eq__(self, other):
         return (self.discord_id, self.display_name, self.capacity, self.sheet_name) == (
@@ -88,14 +84,14 @@ class SUser(Base):
     sheet_row = sqla.Column(sqla.Integer)
 
     def __repr__(self):
-        args = {
-            'sheet': self.sheet_name,
-            'row': self.sheet_row,
-        }
-        return "<SUser(sheet_name='{sheet}', sheet_row='{row}')>".format(**args)
+        args = {}
+        for key in ['sheet_name', 'sheet_row']:
+            args[key] = getattr(self, key)
+
+        return "SUser(sheet_name={sheet_name!r}, sheet_row={sheet_row!r})".format(**args)
 
     def __str__(self):
-        return "ID='{}', ".format(self.id) + self.__repr__()
+        return "id={}, {}".format(repr(self.id), self.__repr__())
 
     def __eq__(self, other):
         return (self.sheet_name, self.sheet_row) == (other.sheet_name, other.sheet_row)
@@ -117,31 +113,29 @@ class Fort(Base):
     __tablename__ = 'forts'
 
     id = sqla.Column(sqla.Integer, primary_key=True)
-    user_id = sqla.Column(sqla.Integer, sqla.ForeignKey('susers.id'))
-    system_id = sqla.Column(sqla.String, sqla.ForeignKey('systems.id'))
     amount = sqla.Column(sqla.Integer)
+    system_id = sqla.Column(sqla.Integer, sqla.ForeignKey('systems.id'))
+    user_id = sqla.Column(sqla.Integer, sqla.ForeignKey('susers.id'))
 
     def __repr__(self):
-        if getattr(self, 'suser', None):
-            user = self.suser.sheet_name
-        else:
-            user = 'UID-{}'.format(self.user_id)
+        args = {}
+        for key in ['amount', 'system_id', 'user_id']:
+            args[key] = getattr(self, key)
 
-        if getattr(self, 'system', None):
-            system = self.system.name
-        else:
-            system = 'SID-{}'.format(self.system_id)
-
-        args = {
-            'user': user,
-            'system': system,
-            'amount': self.amount,
-        }
-        return "<Fort(user='{user}', "\
-               "system='{system}', amount='{amount}')>".format(**args)
+        return "Fort(user_id={user_id!r}, "\
+               "system_id={system_id!r}, amount={amount!r})".format(**args)
 
     def __str__(self):
-        return "ID='{}', ".format(self.id) + self.__repr__()
+        sheet_user = None
+        if getattr(self, 'suser', None):
+            sheet_user = self.suser.sheet_name
+
+        system_name = None
+        if getattr(self, 'system', None):
+            system_name = self.system.name
+
+        return "id={}, sheet_name={}, system_name={}, {}".format(
+            repr(self.id), repr(sheet_user), repr(system_name), self.__repr__())
 
     def __eq__(self, other):
         return (self.user_id, self.system_id, self.amount) == (
@@ -173,32 +167,27 @@ class System(Base):
 
     id = sqla.Column(sqla.Integer, primary_key=True)
     name = sqla.Column(sqla.String, unique=True)
+    cmdr_merits = sqla.Column(sqla.Integer)
+    fort_status = sqla.Column(sqla.Integer)
+    notes = sqla.Column(sqla.String)
     sheet_col = sqla.Column(sqla.String)
     sheet_order = sqla.Column(sqla.Integer)
-    fort_status = sqla.Column(sqla.Integer)
-    cmdr_merits = sqla.Column(sqla.Integer)
     trigger = sqla.Column(sqla.Integer)
     undermine = sqla.Column(sqla.Float)
-    notes = sqla.Column(sqla.String)
 
     def __repr__(self):
         """ Dump object data. """
-        args = {
-            'name': self.name,
-            'order': self.sheet_order,
-            'col': self.sheet_col,
-            'cur': self.fort_status,
-            'merits': self.cmdr_merits,
-            'trig': self.trigger,
-            'under': self.undermine,
-            'notes': self.notes
-        }
-        return "<System(name='{name}', sheet_order='{order}', sheet_col='{col}', "\
-               "merits='{merits}', fort_status='{cur}', trigger='{trig}', "\
-               "undermine='{under}', notes='{notes}')>".format(**args)
+        args = {}
+        for key in ['name', 'cmdr_merits', 'fort_status', 'notes', 'sheet_col', 'sheet_order',
+                    'trigger', 'undermine']:
+            args[key] = getattr(self, key)
+
+        return "System(name={name!r}, sheet_order={sheet_order!r}, sheet_col={sheet_col!r}, "\
+               "cmdr_merits={cmdr_merits!r}, fort_status={fort_status!r}, trigger={trigger!r}, "\
+               "undermine={undermine!r}, notes={notes!r})".format(**args)
 
     def __str__(self):
-        return "ID='{}', ".format(self.id) + self.__repr__()
+        return "id={}, {}".format(repr(self.id), self.__repr__())
 
     @property
     def ump(self):
@@ -380,7 +369,8 @@ def main():
     session = cogdb.Session()
 
     dusers = (
-        DUser(discord_id='197221', display_name='GearsandCogs', capacity=0, sheet_name='GearsandCogs'),
+        DUser(discord_id='197221', display_name='GearsandCogs', capacity=0,
+              sheet_name='GearsandCogs'),
         DUser(discord_id='299221', display_name='rjwhite', capacity=0, sheet_name='rjwhite'),
         DUser(discord_id='293211', display_name='vampyregtx', capacity=0, sheet_name='vampyregtx'),
     )

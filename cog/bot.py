@@ -22,8 +22,9 @@ import cog.share
 # TODO: Allow management commands to add/remove above
 # TODO: Add basic whois support, default lookup in local to channel db
 # TODO: Add wider search, across server, inara and other sources
-# TODO: Possible image export: http://effbot.org/imagingbook/imagefont.htm
 # TODO: Perhaps implement a simple LFG system to track people looking to wing.
+# TODO: Possible image export: http://effbot.org/imagingbook/imagefont.htm
+# TODO: Possible OCR for scout reports, see z_scratch/image1.py
 
 
 class CogBot(discord.Client):
