@@ -12,6 +12,8 @@ import cogdb
 
 
 Base = sqlalchemy.ext.declarative.declarative_base()
+# TODO: Subdivide db between Winters/Hudson,
+#   http://docs.sqlalchemy.org/en/latest/orm/inheritance.html#single-table-inheritance
 
 
 class Command(Base):
@@ -357,6 +359,7 @@ DUser.cmds = sqla_orm.relationship('Command',
 Command.duser = sqla_orm.relationship('DUser', back_populates='cmds')
 DUser.suser = sqla_orm.relationship('SUser', uselist=False, back_populates='duser')
 SUser.duser = sqla_orm.relationship('DUser', uselist=False, back_populates='suser')
+
 
 Base.metadata.create_all(cogdb.mem_engine)
 

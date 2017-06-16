@@ -106,106 +106,228 @@ def test_drop_scanned_tables():
 
 
 @db_cleanup
-def test_command_creation():
+def test_command__eq__():
+    dtime = datetime.datetime.now()
     duser = cogdb.schema.DUser(discord_id='1111', display_name='test user', capacity=0,
                                sheet_name='test user')
-    dtime = datetime.datetime.now()
     cmd = cogdb.schema.Command(discord_id=duser.discord_id, cmd_str='drop 400', date=dtime)
 
     session = cogdb.Session()
-    session.add(duser)
-    session.add(cmd)
+    session.add_all([duser, cmd])
+    session.commit()
+
+    assert cmd.duser == duser
+    assert cmd == cogdb.schema.Command(discord_id=duser.discord_id, cmd_str='drop 400', date=dtime)
+
+
+@db_cleanup
+def test_command__repr__():
+    dtime = datetime.datetime.now()
+    duser = cogdb.schema.DUser(discord_id='1111', display_name='test user', capacity=0,
+                               sheet_name='test user')
+    cmd = cogdb.schema.Command(discord_id=duser.discord_id, cmd_str='drop 400', date=dtime)
+
+    session = cogdb.Session()
+    session.add_all([duser, cmd])
     session.commit()
 
     assert repr(cmd) == "Command(discord_id='1111', cmd_str='drop 400', date={!r})".format(dtime)
-    assert str(cmd) == "id=1, display_name='test user', Command(discord_id='1111', cmd_str='drop 400', date={!r})".format(dtime)
-    assert cmd.duser == duser
-
-    Command = cogdb.schema.Command
-    assert cmd == eval(repr(cmd))
+    assert cmd == eval(repr(cmd).replace('Command', 'cogdb.schema.Command'))
 
 
 @db_cleanup
-def test_duser_creation():
+def test_command__str__():
+    dtime = datetime.datetime.now()
+    duser = cogdb.schema.DUser(discord_id='1111', display_name='test user', capacity=0,
+                               sheet_name='test user')
+    cmd = cogdb.schema.Command(discord_id=duser.discord_id, cmd_str='drop 400', date=dtime)
+
+    session = cogdb.Session()
+    session.add_all([duser, cmd])
+    session.commit()
+
+    assert str(cmd) == "id=1, display_name='test user', Command(discord_id='1111', "\
+                       "cmd_str='drop 400', date={!r})".format(dtime)
+
+
+@db_cleanup
+def test_duser__eq__():
     duser = cogdb.schema.DUser(discord_id='1111', display_name='test user', capacity=0,
                                sheet_name='test user')
     suser = cogdb.schema.SUser(sheet_name='test user', sheet_row=2)
 
     session = cogdb.Session()
-    session.add(duser)
-    session.add(suser)
+    session.add_all([suser, duser])
     session.commit()
 
-    assert repr(duser) == "DUser(display_name='test user', discord_id='1111', capacity=0, sheet_name='test user')"
-    assert str(duser) == "id=1, DUser(display_name='test user', discord_id='1111', capacity=0, sheet_name='test user')"
+    assert suser.duser == duser
+    assert duser.suser == suser
+    assert duser == cogdb.schema.DUser(discord_id='1111', display_name='test user', capacity=0,
+                                       sheet_name='test user')
+
+
+@db_cleanup
+def test_duser__repr__():
+    duser = cogdb.schema.DUser(discord_id='1111', display_name='test user', capacity=0,
+                               sheet_name='test user')
+    suser = cogdb.schema.SUser(sheet_name='test user', sheet_row=2)
+
+    session = cogdb.Session()
+    session.add_all([suser, duser])
+    session.commit()
+
+    assert repr(duser) == "DUser(display_name='test user', discord_id='1111', "\
+                          "capacity=0, sheet_name='test user')"
+    assert duser == eval(repr(duser).replace('DUser', 'cogdb.schema.DUser'))
+
+
+@db_cleanup
+def test_duser__str__():
+    duser = cogdb.schema.DUser(discord_id='1111', display_name='test user', capacity=0,
+                               sheet_name='test user')
+    suser = cogdb.schema.SUser(sheet_name='test user', sheet_row=2)
+
+    session = cogdb.Session()
+    session.add_all([suser, duser])
+    session.commit()
+
+    assert str(duser) == "id=1, DUser(display_name='test user', discord_id='1111', "\
+                         "capacity=0, sheet_name='test user')"
+
+
+@db_cleanup
+def test_suser__eq__():
+    duser = cogdb.schema.DUser(discord_id='1111', display_name='test user', capacity=0,
+                               sheet_name='test user')
+    suser = cogdb.schema.SUser(sheet_name='test user', sheet_row=2)
+
+    session = cogdb.Session()
+    session.add_all([suser, duser])
+    session.commit()
+
+    assert suser == cogdb.schema.SUser(sheet_name='test user', sheet_row=2)
     assert suser.duser == duser
     assert duser.suser == suser
 
-    DUser = cogdb.schema.DUser
-    assert duser == eval(repr(duser))
-
 
 @db_cleanup
-def test_suser_creation():
+def test_suser__repr__():
     duser = cogdb.schema.DUser(discord_id='1111', display_name='test user', capacity=0,
                                sheet_name='test user')
     suser = cogdb.schema.SUser(sheet_name='test user', sheet_row=2)
-    assert repr(suser) == "SUser(sheet_name='test user', sheet_row=2)"
-    assert str(suser) == "id=None, SUser(sheet_name='test user', sheet_row=2)"
 
     session = cogdb.Session()
-    session.add(suser)
-    session.add(duser)
+    session.add_all([suser, duser])
     session.commit()
 
     assert repr(suser) == "SUser(sheet_name='test user', sheet_row=2)"
+    assert suser == eval(repr(suser).replace('SUser', 'cogdb.schema.SUser'))
+
+
+@db_cleanup
+def test_suser__str__():
+    duser = cogdb.schema.DUser(discord_id='1111', display_name='test user', capacity=0,
+                               sheet_name='test user')
+    suser = cogdb.schema.SUser(sheet_name='test user', sheet_row=2)
+
+    session = cogdb.Session()
+    session.add_all([suser, duser])
+    session.commit()
+
     assert str(suser) == "id=1, SUser(sheet_name='test user', sheet_row=2)"
-    assert suser.duser == duser
-    assert duser.suser == suser
-
-    SUser = cogdb.schema.SUser
-    assert suser == eval(repr(suser))
 
 
 @db_cleanup
-def test_fort_creation():
+def test_fort__eq__():
     user = cogdb.schema.SUser(sheet_name='test user', sheet_row=2)
     result = cogdb.schema.system_result_dict(SYSTEM_DATA, 0, 'F')
     system = cogdb.schema.System(**result)
 
     session = cogdb.Session()
-    session.add(system)
-    session.add(user)
+    session.add_all([system, user])
     session.commit()
-
     fort = cogdb.schema.Fort(amount=400, user_id=user.id, system_id=system.id)
     session.add(fort)
     session.commit()
-    assert repr(fort) == "Fort(user_id=1, system_id=1, amount=400)"
-    assert str(fort) == "id=1, sheet_name='test user', system_name='Frey', Fort(user_id=1, system_id=1, amount=400)"
+
+    assert fort == cogdb.schema.Fort(amount=400, user_id=user.id, system_id=system.id)
     assert fort.suser == user
     assert fort.system == system
 
-    Fort = cogdb.schema.Fort
-    assert fort == eval(repr(fort))
-
 
 @db_cleanup
-def test_system_creation():
+def test_fort__repr__():
+    user = cogdb.schema.SUser(sheet_name='test user', sheet_row=2)
     result = cogdb.schema.system_result_dict(SYSTEM_DATA, 0, 'F')
     system = cogdb.schema.System(**result)
 
-    assert system.id is None
+    session = cogdb.Session()
+    session.add_all([system, user])
+    session.commit()
+    fort = cogdb.schema.Fort(amount=400, user_id=user.id, system_id=system.id)
+    session.add(fort)
+    session.commit()
+
+    assert repr(fort) == "Fort(user_id=1, system_id=1, amount=400)"
+    assert fort == eval(repr(fort).replace('Fort', 'cogdb.schema.Fort'))
+
+
+@db_cleanup
+def test_fort__str__():
+    user = cogdb.schema.SUser(sheet_name='test user', sheet_row=2)
+    result = cogdb.schema.system_result_dict(SYSTEM_DATA, 0, 'F')
+    system = cogdb.schema.System(**result)
+
+    session = cogdb.Session()
+    session.add_all([system, user])
+    session.commit()
+    fort = cogdb.schema.Fort(amount=400, user_id=user.id, system_id=system.id)
+    session.add(fort)
+    session.commit()
+
+    assert str(fort) == "id=1, sheet_name='test user', system_name='Frey', "\
+                        "Fort(user_id=1, system_id=1, amount=400)"
+
+
+@db_cleanup
+def test_system__eq__():
+    result = cogdb.schema.system_result_dict(SYSTEM_DATA, 0, 'F')
+    system = cogdb.schema.System(**result)
+
     session = cogdb.Session()
     session.add(system)
     session.commit()
 
-    assert system.id == 1
-    assert repr(system) == "System(name='Frey', sheet_order=0, sheet_col='F', cmdr_merits=4322, fort_status=4910, trigger=4910, undermine=0.0, notes='')"
-    assert str(system) == "id=1, System(name='Frey', sheet_order=0, sheet_col='F', cmdr_merits=4322, fort_status=4910, trigger=4910, undermine=0.0, notes='')"
+    assert system == cogdb.schema.System(**result)
 
-    System = cogdb.schema.System
-    assert system == eval(repr(system))
+
+@db_cleanup
+def test_system__repr__():
+    result = cogdb.schema.system_result_dict(SYSTEM_DATA, 0, 'F')
+    system = cogdb.schema.System(**result)
+
+    session = cogdb.Session()
+    session.add(system)
+    session.commit()
+
+    assert repr(system) == "System(name='Frey', sheet_order=0, sheet_col='F', "\
+                           "cmdr_merits=4322, fort_status=4910, trigger=4910, "\
+                           "undermine=0.0, notes='')"
+    assert system == eval(repr(system).replace('System', 'cogdb.schema.System'))
+
+
+@db_cleanup
+def test_system__str__():
+    result = cogdb.schema.system_result_dict(SYSTEM_DATA, 0, 'F')
+    system = cogdb.schema.System(**result)
+
+    session = cogdb.Session()
+    session.add(system)
+    session.commit()
+
+    assert str(system) == "id=1, System(name='Frey', sheet_order=0, sheet_col='F', "\
+                          "cmdr_merits=4322, fort_status=4910, trigger=4910, "\
+                          "undermine=0.0, notes='')"
 
 
 def test_system_current_status():
