@@ -238,6 +238,27 @@ def test_suser__str__():
 
 
 @db_cleanup
+def test_suser_merits():
+    suser = cogdb.schema.SUser(sheet_name='test user', sheet_row=2)
+    result = cogdb.schema.system_result_dict(SYSTEM_DATA, 0, 'F')
+    system = cogdb.schema.System(**result)
+    result = cogdb.schema.system_result_dict(SYSTEM_DATA, 0, 'G')
+    system2 = cogdb.schema.System(**result)
+    system2.name = 'Sol'
+    session = cogdb.Session()
+    session.add_all([system, system2, suser])
+    session.commit()
+
+    fort = cogdb.schema.Fort(amount=400, user_id=suser.id, system_id=system.id)
+    fort2 = cogdb.schema.Fort(amount=200, user_id=suser.id, system_id=system2.id)
+    session = cogdb.Session()
+    session.add_all([fort, fort2])
+    session.commit()
+
+    assert suser.merits == 600
+
+
+@db_cleanup
 def test_fort__eq__():
     user = cogdb.schema.SUser(sheet_name='test user', sheet_row=2)
     result = cogdb.schema.system_result_dict(SYSTEM_DATA, 0, 'F')
@@ -385,6 +406,8 @@ def test_system_completion():
     result = cogdb.schema.system_result_dict(SYSTEM_DATA, 0, 'F')
     system = cogdb.schema.System(**result)
     assert system.completion == '100.0'
+    system.trigger = 0
+    assert system.completion == '0.0'
 
 
 def test_system_table_row():
@@ -417,6 +440,9 @@ def test_system_result_dict():
     assert result['name'] == 'Frey'
     assert result['sheet_col'] == 'F'
     assert result['sheet_order'] == 0
+
+    with pytest.raises(cog.exc.IncorrectData):
+        cogdb.schema.system_result_dict(['' for _ in range(0, 10)], 1, 'A')
 
     with pytest.raises(cog.exc.IncorrectData):
         cogdb.schema.system_result_dict([], 1, 'A')

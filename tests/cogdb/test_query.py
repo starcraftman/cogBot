@@ -227,6 +227,54 @@ def test_get_sheet_user_by_name():
 
 @db_cleanup
 @db_data
+def test_get_or_create_sheet_user_no_create():
+    member = mock.Mock()
+    member.sheet_name = 'GearsandCogs'
+
+    session = cogdb.Session()
+    suser = cogdb.query.get_or_create_sheet_user(session, member)
+    assert suser.sheet_row == 22
+
+
+@db_cleanup
+@db_data
+@mock.patch('cog.sheets.callback_add_user')
+def test_get_or_create_sheet_user_create(mock_callback):
+    member = mock.Mock()
+    member.sheet_name = 'notGears'
+
+    session = cogdb.Session()
+    suser = cogdb.query.get_or_create_sheet_user(session, member)
+    assert suser.sheet_name == 'notGears'
+    assert suser.sheet_row == session.query(cogdb.schema.SUser).all()[-2].sheet_row + 1
+    assert mock_callback.called
+
+
+@db_cleanup
+@db_data
+def test_get_or_create_duser_no_create():
+    member = mock.Mock()
+    member.id = '1111'
+    duser = cogdb.query.get_or_create_duser(member)
+    assert duser.display_name == 'GearsandCogs'
+
+
+@db_cleanup
+@db_data
+def test_get_or_create_duser_create():
+    member = mock.Mock()
+    member.id = '1112'
+    member.display_name = 'someuser'
+    duser = cogdb.query.get_or_create_duser(member)
+    assert duser.display_name == member.display_name
+
+    session = cogdb.Session()
+    last_user = session.query(cogdb.schema.DUser).all()[-1]
+    assert last_user.display_name == member.display_name
+
+
+@db_cleanup
+@db_data
 def test_add_suser():
     session = cogdb.Session()
     mock_call = mock.Mock()

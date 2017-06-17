@@ -14,6 +14,7 @@ import logging
 
 import discord
 
+import cogdb.query
 import cog.share
 
 
@@ -84,7 +85,7 @@ class CogBot(discord.Client):
                  channel.server, channel.name, author.name, msg)
 
         try:
-            cog.share.get_or_create_duser(author)
+            cogdb.query.get_or_create_duser(author)
             parser = cog.share.make_parser(self.prefix)
             args = parser.parse_args(msg.split(' '))
             response = args.func(client=self, msg=message, args=args)

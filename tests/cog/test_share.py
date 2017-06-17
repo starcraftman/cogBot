@@ -2,11 +2,26 @@
 Test any shared logic
 """
 from __future__ import absolute_import, print_function
+import os
 
+import mock
 import pytest
 
 import cog.exc
 import cog.share
+
+
+def test_modformatter_record():
+    record = mock.Mock()
+    record.__dict__['pathname'] = cog.share.rel_to_abs('cog', 'share.py')
+    with pytest.raises(TypeError):
+        cog.share.ModFormatter().format(record)
+    assert record.__dict__['relmod'] == 'cog/share'
+
+
+def test_rel_to_abs():
+    expect = os.path.join(cog.share.ROOT_DIR, 'data', 'log.yml')
+    assert cog.share.rel_to_abs('data', 'log.yml') == expect
 
 
 def test_dict_to_columns():

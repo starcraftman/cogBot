@@ -398,7 +398,7 @@ def parse_drop(**kwargs):
         duser.display_name = duser.sheet_name
     else:
         duser = cogdb.query.get_discord_user_by_id(session, msg.author.id)
-        get_or_create_sheet_user(session, duser)
+        cogdb.query.get_or_create_sheet_user(session, duser)
     log.info('DROP - Matched duser %s with id %s.',
              args.user if args.user else msg.author.display_name, duser.display_name)
 
@@ -441,36 +441,3 @@ def dict_to_columns(data):
             lines[row].append(item)
 
     return [header] + lines
-
-
-def get_or_create_sheet_user(session, duser):
-    """
-    Try to find a user's entry in the sheet. If sheet_name is set, use that
-    otherwise fall back to display_name (their server nickname).
-    """
-    look_for = duser.sheet_name if duser.sheet_name else duser.display_name
-
-    try:
-        suser = cogdb.query.get_sheet_user_by_name(session, look_for)
-        duser.sheet_name = suser.sheet_name
-    except cog.exc.NoMatch:
-        duser.sheet_name = duser.display_name
-        suser = cogdb.query.add_suser(session, cog.sheets.callback_add_user,
-                                      sheet_name=duser.sheet_name)
-
-    return suser
-
-
-def get_or_create_duser(member):
-    """
-    Ensure a member has an entry in the dusers table.
-
-    Returns: The DUser object.
-    """
-    try:
-        session = cogdb.Session()
-        duser = cogdb.query.get_discord_user_by_id(session, member.id)
-    except cog.exc.NoMatch:
-        duser = cogdb.query.add_duser(session, member)
-
-    return duser
