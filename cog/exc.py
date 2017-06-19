@@ -66,6 +66,13 @@ class MoreThanOneMatch(Exception):
         return header + matched
 
 
+class MsgTooLong(Exception):
+    """
+    Reached Discord's maximum message length.
+    """
+    pass
+
+
 class NoMatch(Exception):
     """
     No match was found for sequence.

@@ -31,6 +31,9 @@ YAML_FILE = os.path.join(ROOT_DIR, 'data', 'config.yml')
 
 
 class ThrowArggumentParser(argparse.ArgumentParser):
+    """
+    ArgumentParser subclass that does NOT terminate the program.
+    """
     def print_help(self, file=None):  # pylint: disable=redefined-builtin
         raise cog.exc.ArgumentHelpError(self.format_help())
 
@@ -151,10 +154,10 @@ def make_parser(prefix):
                      help='The system to drop at.')
     sub.add_argument('-u', '--user', nargs='+',
                      help='The user to drop for.')
-    sub.set_defaults(func=parse_drop)
+    sub.set_defaults(func=functools.partial(action_factory, 'DropAction'))
 
     sub = subs.add_parser(prefix + 'dump', description='Dump the current db.')
-    sub.set_defaults(func=parse_dumpdb)
+    sub.set_defaults(func=functools.partial(action_factory, 'DumpAction'))
 
     sub = subs.add_parser(prefix + 'fort', description='Show next fort target.')
     sub.add_argument('-s', '--systems', nargs='+',
@@ -165,254 +168,304 @@ def make_parser(prefix):
                      help='show NUM systems after current')
     sub.add_argument('num', nargs='?', type=int, default=5,
                      help='number of systems to display')
-    sub.set_defaults(func=parse_fort)
+    sub.set_defaults(func=functools.partial(action_factory, 'FortAction'))
 
     sub = subs.add_parser(prefix + 'info', description='Get information on things.')
     sub.add_argument('user', nargs='?',
                      help='Display information about user.')
-    sub.set_defaults(func=parse_info)
+    sub.set_defaults(func=functools.partial(action_factory, 'InfoAction'))
 
     sub = subs.add_parser(prefix + 'scan', description='Scan the sheet for changes.')
-    sub.set_defaults(func=parse_scan)
-
-    sub = subs.add_parser(prefix + 'status', description='Show the status of systems by state.')
-    sub.set_defaults(func=parse_status)
+    sub.set_defaults(func=functools.partial(action_factory, 'ScanAction'))
 
     sub = subs.add_parser(prefix + 'time', description='Time in game and to ticks.')
-    sub.set_defaults(func=parse_time)
+    sub.set_defaults(func=functools.partial(action_factory, 'TimeAction'))
 
     sub = subs.add_parser(prefix + 'user', description='Manipulate sheet users.')
-    sub.add_argument('-a', '--add', action='store_true',
-                     help='Add a user to table if not present.')
-    sub.add_argument('-q', '--query', action='store_true',
-                     help='Return username and row if exists.')
-    sub.add_argument('user', nargs='+',
-                     help='The user to interact with.')
-    sub.set_defaults(func=parse_user)
+    sub.add_argument('--cry', nargs='+',
+                     help='Set your tag in the sheets.')
+    sub.add_argument('--name', nargs='+',
+                     help='Set your name in the sheets.')
+    sub.add_argument('--winters', action='store_true',
+                     help='Set yourself to use the Winters sheets.')
+    sub.add_argument('--hudson', action='store_true',
+                     help='Set yourself to use the Hudson sheets.')
+    sub.set_defaults(func=functools.partial(action_factory, 'UserAction'))
 
     sub = subs.add_parser(prefix + 'help', description='Show overall help message.')
-    sub.set_defaults(func=parse_help)
+    sub.set_defaults(func=functools.partial(action_factory, 'HelpAction'))
     return parser
 
 
-def parse_help(**_):
+def action_factory(cls, **kwargs):
     """
-    Parse the 'help' command.
+    Simple factory to make the right action.
     """
-    over = 'Here is an overview of my commands.\nFor more information do: ![Command] -h\n'
-    lines = [
-        ['Command', 'Effect'],
-        ['!drop', 'Drop forts into the fort sheet.'],
-        ['!dump', 'Dump the database to the server console. For admins.'],
-        ['!fort', 'Get information about our fort systems.'],
-        ['!info', 'Display information on a user.'],
-        ['!scan', 'Rebuild the database by fetching and parsing latest data.'],
-        ['!status', 'Show stats of fort sheet.'],
-        ['!time', 'Show game time and time to ticks.'],
-        ['!user', 'UNUSED ATM. Manage users.'],
-        ['!help', 'This help message.'],
-    ]
-    return over + cog.tbl.wrap_markdown(cog.tbl.format_table(lines, header=True))
+    return getattr(sys.modules[__name__], cls)(**kwargs)
 
 
-def parse_dumpdb(**_):
+class Action(object):
     """
-    Parse the 'dump' command.
-
-    DB is ONLY dumped to console.
+    Base class to implement actions on behalf of bot users.
     """
-    cogdb.query.dump_db()
-    return 'Db has been dumped to console.'
+    def __init__(self, **kwargs):
+        self.client = kwargs.get('client')
+        self.message = kwargs.get('message')
+        self.args = kwargs.get('args')
+        self.resolve_args()
+
+    def execute(self):
+        """
+        Take whatever action is required.
+        """
+        raise NotImplementedError
+
+    def log(self, *args, **kwargs):
+        """
+        Transparent wrapper around logger, prepend Action class name.
+        """
+        lvl = kwargs.get('lvl', 'info')
+        cls = self.__class__.__name__
+        log = logging.getLogger('cog.share')
+        getattr(log, lvl)("Cls: %s, " + args[0], cls, *args[1:])
+
+    def resolve_args(self):
+        """
+        Do any postprocessing of the arguments.
+        """
+        pass
+
+    def reply(self, msg):
+        """
+        Send response to the channel the user posted from.
+        """
+        if len(msg) > 1999:
+            raise cog.exc.MsgTooLong(msg)
+
+        self.log("Responding to %s with %s.", self.message.author.name, msg)
+        self.client.send_message(self.message.channel, msg)
 
 
-def parse_scan(**_):
+class HelpAction(Action):
     """
-    Parse the 'scan' command.
+    Provide an overview of help.
     """
-    cogdb.schema.drop_scanned_tables()
-    init_db(get_config('hudson', 'cattle'))
-    return 'The database has been updated with the latest sheet data.'
+    def execute(self):
+        over = 'Here is an overview of my commands.\nFor more information do: ![Command] -h\n'
+        lines = [
+            ['Command', 'Effect'],
+            ['!drop', 'Drop forts into the fort sheet.'],
+            ['!dump', 'Dump the database to the server console. For admins.'],
+            ['!fort', 'Get information about our fort systems.'],
+            ['!info', 'Display information on a user.'],
+            ['!scan', 'Rebuild the database by fetching and parsing latest data.'],
+            ['!time', 'Show game time and time to ticks.'],
+            ['!user', 'UNUSED ATM. Manage users.'],
+            ['!help', 'This help message.'],
+        ]
+
+        response = over + cog.tbl.wrap_markdown(cog.tbl.format_table(lines, header=True))
+        self.reply(response)
 
 
-def parse_status(**_):
+class DumpAction(Action):
     """
-    Parse the 'status' command.
+    For debugging, able to dump the database quickly to console.
     """
-    session = cogdb.Session()
-
-    systems = cogdb.query.get_all_systems_by_state(session)
-    total = len(cogdb.query.get_all_systems(session))
-    lines = [
-        'Systems: {}'.format(total),
-        'Cancelled: {}'.format(len(systems['cancelled'])),
-        'Fortified: {}'.format(len(systems['fortified'])),
-        'Undermined: {}'.format(len(systems['undermined'])),
-        'Remaining: {}'.format(len(systems['left'])),
-        'Skipped: {}'.format(len(systems['skip'])),
-    ]
-    return '\n'.join(lines)
-
-    # for key in systems:
-        # systems[key] = ['{:8} {}/{}'.format(sys.name[:8], sys.completion, sys.ump)
-                        # for sys in systems[key][:8]]
-    # lines = dict_to_columns(systems)
-    # return cog.tbl.wrap_markdown(cog.tbl.format_table(lines, sep='|', header=True))
+    def execute(self):
+        cogdb.query.dump_db()
+        self.reply('Db has been dumped to server console.')
 
 
-def parse_time(**_):
+class ScanAction(Action):
     """
-    Parse the 'time' command.
+    Allow reindexing the sheets when out of date with new edits.
+    """
+    def execute(self):
+        cogdb.schema.drop_scanned_tables()
+        init_db(get_config('hudson', 'cattle'))
+        self.reply('The database has been updated with the latest sheet data.')
+
+
+class TimeAction(Action):
+    """
+    Provide the time command.
 
     Shows the time ...
-      - In game
-      - To daily BGS tick
-      - To weekly tick
+    - In game
+    - To daily BGS tick
+    - To weekly tick
     """
-    now = date.datetime.utcnow().replace(microsecond=0)
-    today = now.replace(hour=0, minute=0, second=0)
+    def execute(self):
+        now = date.datetime.utcnow().replace(microsecond=0)
+        today = now.replace(hour=0, minute=0, second=0)
 
-    daily_tick = today + date.timedelta(hours=16)
-    if daily_tick < now:
-        daily_tick = daily_tick + date.timedelta(days=1)
+        daily_tick = today + date.timedelta(hours=16)
+        if daily_tick < now:
+            daily_tick = daily_tick + date.timedelta(days=1)
 
-    weekly_tick = today + date.timedelta(hours=7)
-    while weekly_tick.strftime('%A') != 'Thursday':
-        weekly_tick += date.timedelta(days=1)
+        weekly_tick = today + date.timedelta(hours=7)
+        while weekly_tick.strftime('%A') != 'Thursday':
+            weekly_tick += date.timedelta(days=1)
 
-    lines = [
-        'Game Time: **{}**'.format(now.strftime('%H:%M:%S')),
-        'Time to BGS Tick: **{}** ({})'.format(daily_tick - now, daily_tick),
-        'Time to Cycle Tick: **{}** ({})'.format(weekly_tick - now, weekly_tick),
-        'All Times UTC',
-    ]
-    return '\n'.join(lines)
+        lines = [
+            'Game Time: **{}**'.format(now.strftime('%H:%M:%S')),
+            'Time to BGS Tick: **{}** ({})'.format(daily_tick - now, daily_tick),
+            'Time to Cycle Tick: **{}** ({})'.format(weekly_tick - now, weekly_tick),
+            'All Times UTC',
+        ]
+        self.reply('\n'.join(lines))
 
 
-def parse_info(**kwargs):
+class FortAction(Action):
     """
-    Parse the 'info' command.
+    Provide information on and manage the fort sheet.
     """
-    args = kwargs['args']
-    msg = kwargs['msg']
-    if args.user:
-        members = msg.channel.server.members
-        user = cogdb.query.fuzzy_find(args.user, members, obj_attr='display_name')
-    else:
-        user = msg.author
+    def execute(self):
+        session = cogdb.Session()
+        args = self.args
+        cur_index = cogdb.query.find_current_target(session)
 
-    lines = [
-        '**' + user.display_name + '**',
-        '-' * (len(user.display_name) + 6),
-        'Username: {}#{}'.format(user.name, user.discriminator),
-        'ID: ' + user.id,
-        'Status: ' + str(user.status),
-        'Join Date: ' + str(user.joined_at),
-        'Roles: ' + str([str(role) for role in user.roles[1:]]),
-        'Highest Role: ' + str(user.top_role).replace('@', '@ '),
-    ]
-    response = '\n'.join(lines)
-
-    return response
-
-
-def parse_fort(**kwargs):
-    """
-    Parse the 'fort' command.
-    """
-    session = cogdb.Session()
-    args = kwargs['args']
-    cur_index = cogdb.query.find_current_target(session)
-
-    if args.systems:
-        args.long = True
-        systems = []
-        for system in args.systems:
-            try:
-                systems.append(cogdb.query.get_system_by_name(session, system, search_all=True))
-            except cog.exc.NoMatch:
-                pass
-            except cog.exc.MoreThanOneMatch as exc:
-                systems.extend(exc.matches)
-    elif args.next:
-        systems = cogdb.query.get_next_fort_targets(session, cur_index, count=args.num)
-    else:
-        systems = cogdb.query.get_fort_targets(session, cur_index)
-
-    if args.long:
-        lines = [systems[0].__class__.header] + [system.table_row for system in systems]
-        response = cog.tbl.wrap_markdown(cog.tbl.format_table(lines, sep='|', header=True))
-    else:
-        lines = [system.short_display() for system in systems]
-        response = '\n'.join(lines)
-
-    return response
-
-
-def parse_user(**kwargs):
-    """
-    Parse the 'user' command.
-    """
-    session = cogdb.Session()
-    args = kwargs['args']
-    try:
-        args.user = ' '.join(args.user)
-        user = cogdb.query.get_sheet_user_by_name(session, args.user)
-    except cog.exc.NoMatch:
-        user = None
-
-    if user:
-        if args.query or args.add:
-            response = "User '{}' already present in row {}.".format(user.sheet_name,
-                                                                     user.sheet_row)
-    else:
-        if args.add:
-            new_user = cogdb.query.add_suser(session, callback_add_user, args.user)  # pylint: disable=undefined-variable
-            response = "Added '{}' to row {}.".format(new_user.sheet_name,
-                                                      new_user.sheet_row)
+        if args.systems:
+            args.long = True
+            systems = []
+            for system in args.systems:
+                try:
+                    systems.append(cogdb.query.get_system_by_name(session, system, search_all=True))
+                except cog.exc.NoMatch:
+                    pass
+                except cog.exc.MoreThanOneMatch as exc:
+                    systems.extend(exc.matches)
+        elif args.next:
+            systems = cogdb.query.get_next_fort_targets(session, cur_index, count=args.num)
         else:
-            response = "User '{}' not found.".format(args.user)
+            systems = cogdb.query.get_fort_targets(session, cur_index)
 
-    return response
+        if args.long:
+            lines = [systems[0].__class__.header] + [system.table_row for system in systems]
+            response = cog.tbl.wrap_markdown(cog.tbl.format_table(lines, sep='|', header=True))
+        else:
+            lines = [system.short_display() for system in systems]
+            response = '\n'.join(lines)
+
+        self.reply(response)
+
+    def status_execute(self):
+        """
+        To integrate better into above execute.
+        """
+        session = cogdb.Session()
+        systems = cogdb.query.get_all_systems_by_state(session)
+        total = len(cogdb.query.get_all_systems(session))
+
+        lines = [
+            'Systems: {}'.format(total),
+            'Cancelled: {}'.format(len(systems['cancelled'])),
+            'Fortified: {}'.format(len(systems['fortified'])),
+            'Undermined: {}'.format(len(systems['undermined'])),
+            'Remaining: {}'.format(len(systems['left'])),
+            'Skipped: {}'.format(len(systems['skip'])),
+        ]
+        self.reply('\n'.join(lines))
+
+        # for key in systems:
+            # systems[key] = ['{:8} {}/{}'.format(sys.name[:8], sys.completion, sys.ump)
+                            # for sys in systems[key][:8]]
+        # lines = dict_to_columns(systems)
+        # return cog.tbl.wrap_markdown(cog.tbl.format_table(lines, sep='|', header=True))
 
 
-def parse_drop(**kwargs):
+class InfoAction(Action):
     """
-    Parse the 'drop' command.
+    Provide information about the discord server.
     """
-    log = logging.getLogger('cog.share')
-    session = cogdb.Session()
-    args = kwargs['args']
-    msg = kwargs['msg']
+    def execute(self):
+        if self.args.user:
+            members = self.message.channel.server.members
+            user = cogdb.query.fuzzy_find(self.args.user, members, obj_attr='display_name')
+        else:
+            user = self.message.author
 
-    if args.user:
-        args.user = ' '.join(args.user)
-        import mock
-        duser = mock.Mock()
-        duser.suser = cogdb.query.get_sheet_user_by_name(session, args.user)
-        duser.sheet_name = duser.suser.sheet_name
-        duser.display_name = duser.sheet_name
-    else:
-        duser = cogdb.query.get_discord_user_by_id(session, msg.author.id)
-        cogdb.query.get_or_create_sheet_user(session, duser)
-    log.info('DROP - Matched duser %s with id %s.',
-             args.user if args.user else msg.author.display_name, duser.display_name)
+        lines = [
+            '**' + user.display_name + '**',
+            '-' * (len(user.display_name) + 6),
+            'Username: {}#{}'.format(user.name, user.discriminator),
+            'ID: ' + user.id,
+            'Status: ' + str(user.status),
+            'Join Date: ' + str(user.joined_at),
+            'Roles: ' + str([str(role) for role in user.roles[1:]]),
+            'Highest Role: ' + str(user.top_role).replace('@', '@ '),
+        ]
+        self.reply('\n'.join(lines))
 
-    if args.system:
-        args.system = ' '.join(args.system)
-        system = cogdb.query.get_system_by_name(session, args.system)
-    else:
-        current = cogdb.query.find_current_target(session)
-        system = cogdb.query.get_fort_targets(session, current)[0]
-    log.info('DROP - Matched system %s based on args: %s.',
-             system.name, args.system)
 
-    fort = cogdb.query.add_fort(session, callback_add_fort,  # pylint: disable=undefined-variable
-                                system=system, user=duser.suser,
-                                amount=args.amount)
-    log.info('DROP - Sucessfully dropped %d at %s for %s.',
-             args.amount, system.name, duser.display_name)
+class UserAction(Action):
+    """
+    Manage user properties.
+    """
+    def execute(self):
+        session = cogdb.Session()
+        args = self.args
+        try:
+            args.user = ' '.join(args.user)
+            user = cogdb.query.get_sheet_user_by_name(session, args.user)
+        except cog.exc.NoMatch:
+            user = None
 
-    return fort.system.short_display()
+        if user:
+            if args.query or args.add:
+                response = "User '{}' already present in row {}.".format(user.sheet_name,
+                                                                         user.sheet_row)
+        else:
+            if args.add:
+                new_user = cogdb.query.add_suser(session, callback_add_user, args.user)  # pylint: disable=undefined-variable
+                response = "Added '{}' to row {}.".format(new_user.sheet_name,
+                                                          new_user.sheet_row)
+            else:
+                response = "User '{}' not found.".format(args.user)
+
+        self.reply(response)
+
+
+class DropAction(Action):
+    """
+    Drop forts at the fortification target.
+    """
+    def execute(self):
+        log = logging.getLogger('cog.share')
+        session = cogdb.Session()
+        args = self.args
+        msg = self.message
+
+        if args.user:
+            args.user = ' '.join(args.user)
+            import mock
+            duser = mock.Mock()
+            duser.suser = cogdb.query.get_sheet_user_by_name(session, args.user)
+            duser.sheet_name = duser.suser.sheet_name
+            duser.display_name = duser.sheet_name
+        else:
+            duser = cogdb.query.get_discord_user_by_id(session, msg.author.id)
+            cogdb.query.get_or_create_sheet_user(session, duser)
+        log.info('DROP - Matched duser %s with id %s.',
+                 args.user if args.user else msg.author.display_name, duser.display_name)
+
+        if args.system:
+            args.system = ' '.join(args.system)
+            system = cogdb.query.get_system_by_name(session, args.system)
+        else:
+            current = cogdb.query.find_current_target(session)
+            system = cogdb.query.get_fort_targets(session, current)[0]
+        log.info('DROP - Matched system %s based on args: %s.',
+                 system.name, args.system)
+
+        fort = cogdb.query.add_fort(session, callback_add_fort,  # pylint: disable=undefined-variable
+                                    system=system, user=duser.suser,
+                                    amount=args.amount)
+        log.info('DROP - Sucessfully dropped %d at %s for %s.',
+                 args.amount, system.name, duser.display_name)
+
+        self.reply(fort.system.short_display())
 
 
 def dict_to_columns(data):

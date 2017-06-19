@@ -78,12 +78,13 @@ class CogBot(discord.Client):
             cogdb.query.get_or_create_duser(author)
             parser = cog.share.make_parser(self.prefix)
             args = parser.parse_args(msg.split(' '))
-            response = args.func(client=self, msg=message, args=args)
+            action = args.func(client=self, message=message, args=args)
+            await action.execute()
         except (cog.exc.NoMatch, cog.exc.MoreThanOneMatch) as exc:
             log.error("Loose cmd failed to match excatly one. '%s' | %s", author.name, msg)
             log.error(exc)
-            response = 'Check command arguments ...\n'
-            response += str(exc)
+            response = 'Check command arguments ...\n' + str(exc)
+            await self.send_message(channel, response)
         except cog.exc.ArgumentParseError as exc:
             log.exception("Failed to parse command. '%s' | %s", author.name, msg)
             if 'invalid choice' in exc.message:
@@ -94,12 +95,10 @@ class CogBot(discord.Client):
                 except cog.exc.ArgumentHelpError as exc:
                     response = 'Invalid command/arguments. See help below.'
                     response += '\n{}\n{}'.format(len(response) * '-', exc.message)
+            await self.send_message(channel, response)
         except cog.exc.ArgumentHelpError as exc:
             log.info("User requested help. '%s' | %s", author.name, msg)
-            response = exc.message
-
-        log.info("Responding to %s with %s.", author.name, response)
-        await self.send_message(channel, response)
+            await self.send_message(channel, exc.message)
 
 
 def main():
