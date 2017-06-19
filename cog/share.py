@@ -30,9 +30,6 @@ ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 YAML_FILE = os.path.join(ROOT_DIR, 'data', 'config.yml')
 
 
-# TODO: I may be trying too hard to use argparse. May be easier to make small custom parser.
-
-
 class ThrowArggumentParser(argparse.ArgumentParser):
     def print_help(self, file=None):  # pylint: disable=redefined-builtin
         raise cog.exc.ArgumentHelpError(self.format_help())
@@ -255,7 +252,6 @@ def parse_status(**_):
     ]
     return '\n'.join(lines)
 
-    # TODO: Revisit, 2000 char limit impedes feature.
     # for key in systems:
         # systems[key] = ['{:8} {}/{}'.format(sys.name[:8], sys.completion, sys.ump)
                         # for sys in systems[key][:8]]
@@ -323,7 +319,6 @@ def parse_fort(**kwargs):
     """
     Parse the 'fort' command.
     """
-    # TODO: Allow lookup by status (--summary)
     session = cogdb.Session()
     args = kwargs['args']
     cur_index = cogdb.query.find_current_target(session)
@@ -388,7 +383,6 @@ def parse_drop(**kwargs):
     args = kwargs['args']
     msg = kwargs['msg']
 
-    # FIXME: Refactor this area. Or alternative to connect parsed commands to actions.
     if args.user:
         args.user = ' '.join(args.user)
         import mock

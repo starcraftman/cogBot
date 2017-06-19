@@ -12,16 +12,14 @@ import cogdb
 
 
 Base = sqlalchemy.ext.declarative.declarative_base()
-# TODO: Subdivide db between Winters/Hudson,
-#   http://docs.sqlalchemy.org/en/latest/orm/inheritance.html#single-table-inheritance
 
 
 class Command(Base):
     """
     Represents a command that was issued. Track all commands for now.
     """
-    # TODO: Possible rollback/undo later of commands.
     __tablename__ = 'commands'
+
     id = sqla.Column(sqla.Integer, primary_key=True)
     cmd_str = sqla.Column(sqla.String)
     date = sqla.Column(sqla.DateTime)
@@ -326,7 +324,6 @@ def drop_scanned_tables():
     """
     Drop only tables related to data parsed from sheet.
     """
-    # TODO: Temp fix, should make an update method to update based on parsed objects.
     session = cogdb.Session()
     for cls in [Fort, SUser, System]:
         session.query(cls).delete()
