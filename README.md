@@ -1,5 +1,7 @@
 ## Simple Python Discord Bot
 
+[![Stories in Ready][WaffleShield]][WaffleDash]
+
 ### Overview
 
 This bot is designed to facilitate Powerplay for the federal forces.
@@ -15,7 +17,7 @@ Optionally, install python3.5.3.
 Execute following commands on linux box.
 - sudo apt-get install python3-dev libffi-dev
 - pip install wheel setuptools
-- pip install discord.py pyyaml pytest google-api-python-client
+- python setup.py deps
 
 ### Dependencies
 
@@ -31,3 +33,7 @@ pytest
 
 Edit Discord CSS:
 1) Ctrl + Shift + I
+
+<!-- Links -->
+[WaffleShield]: https://badge.waffle.io/starcraftman/cogBot.svg?label=ready&title=Ready
+[WaffleDash]: http://waffle.io/starcraftman/cogBot
