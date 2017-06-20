@@ -58,6 +58,13 @@ class ModFormatter(logging.Formatter):
         return super(ModFormatter, self).format(record)
 
 
+def rel_to_abs(*path_parts):
+    """
+    Convert an internally relative path to an absolute one.
+    """
+    return os.path.join(ROOT_DIR, *path_parts)
+
+
 def get_config(*keys):
     """
     Return keys straight from yaml config.
@@ -130,13 +137,6 @@ def init_db(sheet_id):
         forts = scanner.forts(systems, users)
         session.add_all(forts)
         session.commit()
-
-
-def rel_to_abs(*path_parts):
-    """
-    Convert an internally relative path to an absolute one.
-    """
-    return os.path.join(ROOT_DIR, *path_parts)
 
 
 def make_parser(prefix):

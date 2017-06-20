@@ -11,6 +11,16 @@ import cog.exc
 import cog.share
 
 
+def test_throw_argument_parser():
+    parser = cog.share.ThrowArggumentParser()
+    with pytest.raises(cog.exc.ArgumentHelpError):
+        parser.print_help()
+    with pytest.raises(cog.exc.ArgumentParseError):
+        parser.error('blank')
+    with pytest.raises(cog.exc.ArgumentParseError):
+        parser.exit()
+
+
 def test_modformatter_record():
     record = mock.Mock()
     record.__dict__['pathname'] = cog.share.rel_to_abs('cog', 'share.py')
@@ -22,6 +32,10 @@ def test_modformatter_record():
 def test_rel_to_abs():
     expect = os.path.join(cog.share.ROOT_DIR, 'data', 'log.yml')
     assert cog.share.rel_to_abs('data', 'log.yml') == expect
+
+
+def test_get_config():
+    assert cog.share.get_config('paths', 'log_conf') == 'data/log.yml'
 
 
 def test_dict_to_columns():
@@ -39,10 +53,6 @@ def test_dict_to_columns():
         ['', '', '', 23]
     ]
     assert cog.share.dict_to_columns(data) == expect
-
-
-def test_get_config():
-    assert cog.share.get_config('paths', 'log_conf') == 'data/log.yml'
 
 
 def test_make_parser_throws():
