@@ -9,6 +9,7 @@ import os
 import shlex
 import subprocess
 import sys
+import tempfile
 from setuptools import setup, find_packages, Command
 
 ROOT = os.path.abspath(os.path.dirname(__file__))
@@ -19,6 +20,14 @@ try:
     input = raw_input
 except NameError:
     pass
+
+
+try:
+    assert sys.version_info[0:2] >= (3, 5)
+except AssertionError:
+    print('This entire program must be run with python >= 3.5.')
+    print('If unavailable on platform, see https://github.com/pyenv/pyenv')
+    sys.exit(1)
 
 
 def rec_search(wildcard):
@@ -36,7 +45,7 @@ def rec_search(wildcard):
     return matched
 
 
-class CleanCommand(Command):
+class Clean(Command):
     """
     Equivalent of make clean.
     """
@@ -78,6 +87,95 @@ class InstallDeps(Command):
         subprocess.call(shlex.split(cmd))
 
 
+class Test(Command):
+    """
+    Run the tests and track coverage.
+    """
+    user_options = []
+
+    def initialize_options(self):
+        pass
+
+    def finalize_options(self):
+        pass
+
+    def check_prereqs(self):
+        """
+        Checks required programs.
+        """
+        tfile = tempfile.NamedTemporaryFile()
+        with open(os.devnull, 'w') as dnull:
+            with open(tfile.name, 'w') as fout:
+                subprocess.Popen(shlex.split('py.test --version'),
+                                 stdout=dnull, stderr=fout).wait()
+            with open(tfile.name, 'r') as fin:
+                out = '\n'.join(fin.readlines())
+            if 'pytest-cov' not in out:
+                print('Please run: python setup.py deps')
+                sys.exit(1)
+
+    def run(self):
+        self.check_prereqs()
+        old_cwd = os.getcwd()
+
+        try:
+            os.chdir(ROOT)
+            subprocess.call(shlex.split('py.test --cov=cog --cov=cogdb'))
+        finally:
+            os.chdir(old_cwd)
+
+
+class Coverage(Command):
+    """
+    Run the tests and generage html coverage report.
+    """
+    user_options = []
+
+    def initialize_options(self):
+        pass
+
+    def finalize_options(self):
+        pass
+
+    def check_prereqs(self):
+        """
+        Checks required programs.
+        """
+        tfile = tempfile.NamedTemporaryFile()
+        with open(os.devnull, 'w') as dnull:
+            with open(tfile.name, 'w') as fout:
+                subprocess.Popen(shlex.split('py.test --version'),
+                                 stdout=dnull, stderr=fout).wait()
+            with open(tfile.name, 'r') as fin:
+                out = '\n'.join(fin.readlines())
+            if 'pytest-cov' not in out:
+                print('Please run: python setup.py deps')
+                sys.exit(1)
+        try:
+            with open(os.devnull, 'w') as dnull:
+                subprocess.check_call(shlex.split('coverage --version'), stderr=dnull)
+        except subprocess.CalledProcessError:
+            print('Please run: python setup.py deps')
+            sys.exit(1)
+
+    def run(self):
+        self.check_prereqs()
+        old_cwd = os.getcwd()
+        cov_dir = os.path.join(tempfile.gettempdir(), 'cogCoverage')
+        cmds = [
+            'py.test --cov=cog --cov=cogdb',
+            'coverage html -d ' + cov_dir,
+            'xdg-open ' + os.path.join(cov_dir, 'index.html'),
+        ]
+
+        try:
+            os.chdir(ROOT)
+            for cmd in cmds:
+                subprocess.call(shlex.split(cmd))
+        finally:
+            os.chdir(old_cwd)
+
+
 class UMLDocs(Command):
     """
     Generate UML class and module diagrams.
@@ -98,13 +196,12 @@ class UMLDocs(Command):
             with open(os.devnull, 'w') as dnull:
                 subprocess.check_call(shlex.split('pyreverse -h'),
                                       stdout=dnull, stderr=dnull)
-        except OSError:
-            print('Missing pylint library (pyreverse). Please run:')
-            print('pip install pylint')
+        except subprocess.CalledProcessError:
+            print('Please run: python setup.py deps')
             sys.exit(1)
         try:
             with open(os.devnull, 'w') as dnull:
-                subprocess.check_call(shlex.split('dot -V'),
+                subprocess.check_call(shlex.split('dot -V'), check=True,
                                       stdout=dnull, stderr=dnull)
         except OSError:
             print('Missing graphviz library (dot). Please run:')
@@ -132,7 +229,7 @@ class UMLDocs(Command):
         finally:
             for fname in glob.glob('*.dot'):
                 os.remove(fname)
-                os.chdir(old_cwd)
+            os.chdir(old_cwd)
 
         print('Diagrams generated:')
         print('\n  ' + '\n  '.join(diagrams))
@@ -223,8 +320,10 @@ setup(
     },
 
     cmdclass={
-        'clean': CleanCommand,
+        'clean': Clean,
+        'coverage': Coverage,
         'deps': InstallDeps,
+        'test': Test,
         'uml': UMLDocs,
     }
 )
