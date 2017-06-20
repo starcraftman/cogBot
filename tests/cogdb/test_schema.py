@@ -351,6 +351,16 @@ def test_system__str__():
                           "undermine=0.0, notes='')"
 
 
+def test_system_short_display():
+    result = cogdb.schema.system_result_dict(SYSTEM_DATA, 0, 'F')
+    system = cogdb.schema.System(**result)
+    assert system.short_display() == 'Frey :Fortifying: 4910/4910'
+
+    system.fort_status = 4000
+    system.cmdr_merits = 4000
+    assert system.short_display() == 'Frey :Fortifying: 4000/4910, missing: 910'
+
+
 def test_system_current_status():
     result = cogdb.schema.system_result_dict(SYSTEM_DATA, 0, 'F')
     system = cogdb.schema.System(**result)

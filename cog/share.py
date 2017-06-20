@@ -342,7 +342,8 @@ def parse_fort(**kwargs):
         lines = [systems[0].__class__.header] + [system.table_row for system in systems]
         response = cog.tbl.wrap_markdown(cog.tbl.format_table(lines, sep='|', header=True))
     else:
-        response = '\n'.join([system.name for system in systems])
+        lines = [system.short_display() for system in systems]
+        response = '\n'.join(lines)
 
     return response
 
@@ -411,8 +412,7 @@ def parse_drop(**kwargs):
     log.info('DROP - Sucessfully dropped %d at %s for %s.',
              args.amount, system.name, duser.display_name)
 
-    lines = [fort.system.__class__.header, fort.system.table_row]
-    return cog.tbl.wrap_markdown(cog.tbl.format_table(lines, sep='|', header=True))
+    return fort.system.short_display()
 
 
 def dict_to_columns(data):

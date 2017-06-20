@@ -242,6 +242,17 @@ class System(Base):
 
         return (self.name, '{:>4}'.format(self.missing), status, self.notes)
 
+    def short_display(self):
+        """
+        Return a useful short representation of System.
+        """
+        msg = '{} :Fortifying: {}/{}'.format(self.name, self.current_status, self.trigger)
+
+        if self.missing and self.missing < 1400:
+            msg += ', missing: ' + str(self.missing)
+
+        return msg
+
     def __eq__(self, other):
         return (self.name, self.sheet_col, self.sheet_order, self.fort_status,
                 self.cmdr_merits, self.trigger, self.undermine, self.notes) == (
