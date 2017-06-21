@@ -60,7 +60,7 @@ class Clean(Command):
     def run(self):
         matched = ' '.join(rec_search('*.pyc'))
         matched += ' ' + ' '.join(glob.glob('*.egg-info') + glob.glob('*.egg'))
-        matched += ' ' + ' '.join(glob.glob('*.png'))
+        matched += ' ' + ' '.join(rec_search('*diagram.png'))
         cmd = 'rm -vrf .eggs .tox build dist ' + matched
         print('Executing: ' + cmd)
         recv = input('OK? y/n  ').strip().lower()
@@ -81,10 +81,12 @@ class InstallDeps(Command):
         pass
 
     def run(self):
-        print('Installing runtime & testing dependencies')
-        cmd = 'pip install ' + ' '.join(RUN_DEPS + TEST_DEPS)
-        print('Will execute: ' + cmd)
-        subprocess.call(shlex.split(cmd))
+        print('Installing/Upgrading runtime & testing dependencies')
+        cmd = 'pip install -U ' + ' '.join(RUN_DEPS + TEST_DEPS)
+        print('Executing: ' + cmd)
+        recv = input('OK? y/n  ').strip().lower()
+        if recv.startswith('y'):
+            subprocess.call(shlex.split(cmd))
 
 
 class Test(Command):
@@ -127,7 +129,7 @@ class Test(Command):
 
 class Coverage(Command):
     """
-    Run the tests and generage html coverage report.
+    Run the tests, generate the coverage html report and open it in your browser.
     """
     user_options = []
 
@@ -201,7 +203,7 @@ class UMLDocs(Command):
             sys.exit(1)
         try:
             with open(os.devnull, 'w') as dnull:
-                subprocess.check_call(shlex.split('dot -V'), check=True,
+                subprocess.check_call(shlex.split('dot -V'),
                                       stdout=dnull, stderr=dnull)
         except OSError:
             print('Missing graphviz library (dot). Please run:')
@@ -214,18 +216,18 @@ class UMLDocs(Command):
         diagrams = []
         cmds = [
             'pyreverse cog',
-            'dot -Tpng classes.dot -o cog_class_diagram.png',
+            'dot -Tpng classes.dot -o ./extras/cog_class_diagram.png',
             'pyreverse cogdb',
-            'dot -Tpng classes.dot -o cogdb_class_diagram.png',
-            'pyreverse cog cogdb tests',
-            'dot -Tpng packages.dot -o overall_modules_diagram.png',
+            'dot -Tpng classes.dot -o ./extras/cogdb_class_diagram.png',
+            'pyreverse cog cogdb',
+            'dot -Tpng packages.dot -o ./extras/overall_modules_diagram.png',
         ]
 
         try:
             os.chdir(ROOT)
             for cmd in cmds:
                 subprocess.call(shlex.split(cmd))
-            diagrams = [os.path.abspath(pic) for pic in glob.glob('*.png')]
+            diagrams = [os.path.abspath(pic) for pic in glob.glob('extras/*.png')]
         finally:
             for fname in glob.glob('*.dot'):
                 os.remove(fname)
