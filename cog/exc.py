@@ -26,13 +26,6 @@ class ColOverflow(Exception):
     pass
 
 
-class IncorrectData(Exception):
-    """
-    Raise when data no longer contains useful information.
-    """
-    pass
-
-
 class InvalidCommandArgs(Exception):
     """
     Unable to process command due to bad arguements.

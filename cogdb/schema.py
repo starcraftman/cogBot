@@ -295,7 +295,7 @@ def system_result_dict(lines, order, column):
     """
     try:
         if lines[9] == '':
-            raise cog.exc.IncorrectData
+            raise cog.exc.SheetParsingError
 
         return {
             'undermine': parse_float(lines[0]),
@@ -308,7 +308,7 @@ def system_result_dict(lines, order, column):
             'sheet_order': order,
         }
     except (IndexError, TypeError):
-        raise cog.exc.IncorrectData
+        raise cog.exc.SheetParsingError
 
 
 def make_file_engine(abs_path):

@@ -451,11 +451,11 @@ def test_system_result_dict():
     assert result['sheet_col'] == 'F'
     assert result['sheet_order'] == 0
 
-    with pytest.raises(cog.exc.IncorrectData):
+    with pytest.raises(cog.exc.SheetParsingError):
         cogdb.schema.system_result_dict(['' for _ in range(0, 10)], 1, 'A')
 
-    with pytest.raises(cog.exc.IncorrectData):
+    with pytest.raises(cog.exc.SheetParsingError):
         cogdb.schema.system_result_dict([], 1, 'A')
 
-    with pytest.raises(cog.exc.IncorrectData):
+    with pytest.raises(cog.exc.SheetParsingError):
         cogdb.schema.system_result_dict(SYSTEM_DATA[:-2], 1, 'A')

@@ -186,7 +186,7 @@ def test_get_all_systems_by_state():
     assert [sys.name for sys in systems['fortified']] == ["Frey"]
     assert [sys.name for sys in systems['left']] == ["LHS 3749", "Sol", "Alpha Fornacis", "Othime"]
     assert [sys.name for sys in systems['undermined']] == ["Dongkum"]
-    assert [sys.name for sys in systems['skip']] == ['Sol']
+    assert [sys.name for sys in systems['skipped']] == ['Sol']
 
 
 @db_cleanup

@@ -101,7 +101,7 @@ def get_all_systems_by_state(session):
         'fortified': [],
         'left': [],
         'undermined': [],
-        'skip': [],
+        'skipped': [],
     }
 
     for system in get_all_systems(session):
@@ -114,7 +114,7 @@ def get_all_systems_by_state(session):
         else:
             states['left'].append(system)
         if system.skip:
-            states['skip'].append(system)
+            states['skipped'].append(system)
 
     return states
 
@@ -283,7 +283,7 @@ class SheetScanner(object):
                 found.append(System(**kwargs))
                 order = order + 1
                 cell_column.next()
-        except cog.exc.IncorrectData:
+        except cog.exc.SheetParsingError:
             pass
 
         return found

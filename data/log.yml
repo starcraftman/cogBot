@@ -38,7 +38,7 @@ loggers:
     handlers: [cog_error, cog_info, err_stream]
   cogdb:
     level: INFO
-    handlers: [cogdb_warn, err_stream]
+    handlers: [cogdb, err_stream]
 
 #root:
     #level: ERROR

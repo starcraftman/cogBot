@@ -220,21 +220,21 @@ class UMLDocs(Command):
             'pyreverse cogdb',
             'dot -Tpng classes.dot -o ./extras/cogdb_class_diagram.png',
             'pyreverse cog cogdb',
-            'dot -Tpng packages.dot -o ./extras/overall_modules_diagram.png',
+            'dot -Tpng packages.dot -o ./extras/overall_module_diagram.png',
         ]
 
         try:
             os.chdir(ROOT)
             for cmd in cmds:
                 subprocess.call(shlex.split(cmd))
-            diagrams = [os.path.abspath(pic) for pic in glob.glob('extras/*.png')]
+            diagrams = [os.path.abspath(pic) for pic in glob.glob('extras/*diagram.png')]
         finally:
             for fname in glob.glob('*.dot'):
                 os.remove(fname)
             os.chdir(old_cwd)
 
-        print('Diagrams generated:')
-        print('\n  ' + '\n  '.join(diagrams))
+        print('\nDiagrams generated:')
+        print('  ' + '\n  '.join(diagrams))
 
 
 SHORT_DESC = 'The Elite Federal Discord Bot'
