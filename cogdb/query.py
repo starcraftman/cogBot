@@ -268,6 +268,18 @@ class SheetScanner(object):
         self.user_col = user_col
         self.user_row = user_row
 
+    def scan(self, session):
+        """
+        Update db with scanned information from sheet.
+        """
+        systems = self.systems()
+        users = self.users()
+        session.add_all(systems + users)
+        session.commit()
+
+        session.add_all(self.forts(systems, users))
+        session.commit()
+
     def systems(self):
         """
         Scan the systems in the fortification sheet and return System objects that can be inserted.
@@ -336,6 +348,49 @@ class SheetScanner(object):
         return found
 
 
+def first_system_column(fmt_cells):
+    """
+    Find the first column that has a system cell in it.
+
+    Determined based on cell's background color.
+    """
+    column = cog.sheets.Column()
+    # System's always use this background color.
+    system_colors = {'red': 0.42745098, 'blue': 0.92156863, 'green': 0.61960787}
+
+    for val in fmt_cells['sheets'][0]['data'][0]['rowData'][0]['values']:
+        if val['effectiveFormat']['backgroundColor'] == system_colors:
+            return str(column)
+
+        column.next()
+
+    raise cog.exc.SheetParsingError
+
+
+def first_user_row(cells):
+    """
+    cells: List of columns in sheet, each column is a list of rows.
+
+    Returns: First row and column that has users in it.
+
+    Raises: SheetParsingError when fails to locate expected anchor in cells.
+    """
+    cell_anchor = 'CMDR Name'
+    col_count = cog.sheets.Column('A')
+
+    for column in cells:
+        col_count.next()
+        if cell_anchor not in column:
+            continue
+
+        col_count.prev()  # Gone past by one
+        for row_count, row in enumerate(column):
+            if row == cell_anchor:
+                return (str(col_count), row_count + 2)
+
+    raise cog.exc.SheetParsingError
+
+
 def subseq_match(needle, line, ignore_case=True):
     """
     True iff the subsequence needle present in line.
@@ -385,49 +440,6 @@ def fuzzy_find(needle, stack, obj_attr='zzzz', ignore_case=True):
         raise cog.exc.NoMatch(needle, cls)
     else:
         raise cog.exc.MoreThanOneMatch(needle, matches, obj_attr)
-
-
-def first_system_column(fmt_cells):
-    """
-    Find the first column that has a system cell in it.
-
-    Determined based on cell's background color.
-    """
-    column = cog.sheets.Column()
-    # System's always use this background color.
-    system_colors = {'red': 0.42745098, 'blue': 0.92156863, 'green': 0.61960787}
-
-    for val in fmt_cells['sheets'][0]['data'][0]['rowData'][0]['values']:
-        if val['effectiveFormat']['backgroundColor'] == system_colors:
-            return str(column)
-
-        column.next()
-
-    raise cog.exc.SheetParsingError
-
-
-def first_user_row(cells):
-    """
-    cells: List of columns in sheet, each column is a list of rows.
-
-    Returns: First row and column that has users in it.
-
-    Raises: SheetParsingError when fails to locate expected anchor in cells.
-    """
-    cell_anchor = 'CMDR Name'
-    col_count = cog.sheets.Column('A')
-
-    for column in cells:
-        col_count.next()
-        if cell_anchor not in column:
-            continue
-
-        col_count.prev()  # Gone past by one
-        for row_count, row in enumerate(column):
-            if row == cell_anchor:
-                return (str(col_count), row_count + 2)
-
-    raise cog.exc.SheetParsingError
 
 
 def dump_db():
