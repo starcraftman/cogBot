@@ -237,8 +237,7 @@ def test_get_or_create_sheet_user_no_create():
 
 @db_cleanup
 @db_data
-@mock.patch('cog.sheets.callback_add_user')
-def test_get_or_create_sheet_user_create(mock_callback):
+def test_get_or_create_sheet_user_create():
     member = mock.Mock()
     member.sheet_name = 'notGears'
 
@@ -246,7 +245,6 @@ def test_get_or_create_sheet_user_create(mock_callback):
     suser = cogdb.query.get_or_create_sheet_user(session, member)
     assert suser.sheet_name == 'notGears'
     assert suser.sheet_row == session.query(cogdb.schema.SUser).all()[-2].sheet_row + 1
-    assert mock_callback.called
 
 
 @db_cleanup
@@ -276,10 +274,8 @@ def test_get_or_create_duser_create():
 @db_data
 def test_add_suser():
     session = cogdb.Session()
-    mock_call = mock.Mock()
-    user = cogdb.query.add_suser(session, mock_call.callback, 'NewestUser')
+    cogdb.query.add_suser(session, 'NewestUser')
     assert cogdb.query.get_all_users(session)[-1].sheet_name == 'NewestUser'
-    mock_call.callback.assert_called_with(user)
 
 
 @db_cleanup
@@ -304,11 +300,9 @@ def test_add_fort():
         session.query(cogdb.schema.Fort).filter_by(user_id=user.id, system_id=system.id).one()
     old_fort = system.fort_status
     old_cmdr = system.cmdr_merits
-    mock_call = mock.Mock()
 
-    fort = cogdb.query.add_fort(session, mock_call.callback, system=system, user=user, amount=400)
+    fort = cogdb.query.add_fort(session, system=system, user=user, amount=400)
 
-    mock_call.callback.assert_called_with(fort)
     assert fort.amount == 400
     assert system.fort_status == old_fort + 400
     assert system.cmdr_merits == old_cmdr + 400

@@ -176,8 +176,7 @@ def get_or_create_sheet_user(session, duser):
         duser.sheet_name = suser.sheet_name
     except cog.exc.NoMatch:
         duser.sheet_name = look_for
-        suser = cogdb.query.add_suser(session, cog.sheets.callback_add_user,
-                                      sheet_name=duser.sheet_name)
+        suser = cogdb.query.add_suser(session, sheet_name=duser.sheet_name)
         session.commit()
 
     return suser
@@ -212,7 +211,7 @@ def add_duser(session, member, capacity=0, sheet_name=''):
     return new_duser
 
 
-def add_suser(session, callback, sheet_name):
+def add_suser(session, sheet_name):
     """
     Simply add user past last user in sheet.
     """
@@ -221,12 +220,10 @@ def add_suser(session, callback, sheet_name):
     session.add(new_user)
     session.commit()
 
-    callback(new_user)
-
     return new_user
 
 
-def add_fort(session, callback, **kwargs):
+def add_fort(session, **kwargs):
     """
     Add a fort for 'amount' to the database where fort intersects at:
         System.name and User.sheet_name
@@ -250,8 +247,6 @@ def add_fort(session, callback, **kwargs):
     system.cmdr_merits = system.cmdr_merits + amount
     session.commit()
 
-    callback(fort)
-
     return fort
 
 
@@ -270,6 +265,9 @@ class SheetScanner(object):
 
     @property
     def cells(self):
+        """
+        Access a cached version of the cells.
+        """
         if not self.__cells:
             self.__cells = self.gsheet.whole_sheet()
 
@@ -394,6 +392,31 @@ class SheetScanner(object):
             column.next()
 
         raise cog.exc.SheetParsingError
+
+    # Calls to modify the sheet All asynchronous, register them as futures and move on.
+    def add_user(self, user):
+        """
+        Add a user to sheet.
+        """
+        cell_range = '!{col}{row}:{col}{row}'.format(col=self.user_col, row=user.sheet_row)
+        self.gsheet.update(cell_range, [[user.sheet_name]])
+
+    def add_fort(self, fort):
+        """
+        Add a fort to the sheet.
+        """
+        cell_range = '!{col}{row}:{col}{row}'.format(col=fort.system.sheet_col,
+                                                     row=fort.suser.sheet_row)
+        self.gsheet.update(cell_range, [[fort.amount]])
+
+    def update_system(self, system):
+        """
+        Update the system column of the sheet.
+        """
+        cell_range = '!{col}{start}:{col}{end}'.format(col=system.sheet_col,
+                                                       start=6, end=9)
+        self.gsheet.update(cell_range, [[system.current_status, system.um_status,
+                                         system.distance, system.notes]], dim='COLUMNS')
 
 
 def subseq_match(needle, line, ignore_case=True):

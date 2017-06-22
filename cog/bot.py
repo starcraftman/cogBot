@@ -11,7 +11,6 @@ Small Python Async tutorial:
 """
 from __future__ import absolute_import, print_function
 import datetime as date
-import functools
 import logging
 import logging.handlers
 import logging.config
@@ -26,19 +25,16 @@ import cog.share
 import cog.sheets
 import cog.tbl
 
+# TODO: Move query.get_or_create_duser and get_or_create_sheet_user up here to CogBot
 
 class CogBot(discord.Client):
     """
     The main bot, hooks onto on_message primarily and waits for commands.
     """
-    def __init__(self, prefix, **kwargs):
+    def __init__(self, **kwargs):
         super(CogBot, self).__init__(**kwargs)
-        self.prefix = prefix
-        self.callback_add_fort = None
-        self.callback_add_user = None
-
-    def set_callbacks(self, callbacks):
-        self.callback_add_user, self.callback_add_fort = callbacks
+        self.prefix = kwargs.get('prefix')
+        self.scanner = kwargs.get('scanner')
 
     # Events hooked by bot.
     async def on_member_join(self, member):
@@ -173,9 +169,9 @@ class CogBot(discord.Client):
         log.info('DROP - Matched system %s based on args: %s.',
                  system.name, args.system)
 
-        fort = cogdb.query.add_fort(session, self.callback_add_fort,
-                                    system=system, user=duser.suser,
-                                    amount=args.amount)
+        fort = cogdb.query.add_fort(session, system=system, user=duser.suser, amount=args.amount)
+        self.loop.ensure_future(self.scanner.add_fort(fort))
+
         log.info('DROP - Sucessfully dropped %d at %s for %s.',
                  args.amount, system.name, duser.display_name)
 
@@ -324,18 +320,14 @@ def init_db(sheet_id):
         scanner = cogdb.query.SheetScanner(sheet)
         scanner.scan(session)
 
-        # Return callbacks
-        return (
-            functools.partial(cog.sheets.callback_add_user, sheet, scanner.user_col),
-            functools.partial(cog.sheets.callback_add_fort, sheet),
-        )
+        return scanner
 
 
 def main():
     cog.share.init_logging()
     try:
-        bot = CogBot('!')
-        bot.set_callbacks(init_db(cog.share.get_config('hudson', 'cattle')))
+        scanner = init_db(cog.share.get_config('hudson', 'cattle'))
+        bot = CogBot(prefix='!', scanner=scanner)
         bot.run(cog.share.get_config('discord_token'))
     finally:
         bot.close()
