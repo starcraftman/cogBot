@@ -4,15 +4,24 @@ Test the schema for the database.
 from __future__ import absolute_import, print_function
 import datetime
 
+import mock
 import pytest
 
 import cog.exc
 import cogdb
 import cogdb.schema
 
-from tests.cogdb import CELLS
+from tests.cogdb import CELLS, FMT_CELLS
 
 SYSTEM_DATA = ['', 1, 4910, 0, 4322, 4910, 0, 116.99, '', 'Frey']
+
+
+@pytest.fixture
+def mock_sheet():
+    fake_sheet = mock.Mock()
+    fake_sheet.whole_sheet.return_value = CELLS
+    fake_sheet.get_with_formatting.return_value = FMT_CELLS
+    yield fake_sheet
 
 
 def db_cleanup(function):
@@ -39,17 +48,11 @@ def db_data(function):
     """
     def call():
         session = cogdb.Session()
-
-        user_col, user_row = cogdb.query.first_user_row(CELLS)
-        scanner = cogdb.query.SheetScanner(CELLS, 'F', user_col, user_row)
-        systems = scanner.systems()
-        users = scanner.users()
-        session.add_all(systems + users)
-        session.commit()
-
-        forts = scanner.forts(systems, users)
-        session.add_all(forts)
-        session.commit()
+        mock_sheet = mock.Mock()
+        mock_sheet.whole_sheet.return_value = CELLS
+        mock_sheet.get_with_formatting.return_value = FMT_CELLS
+        scanner = cogdb.query.SheetScanner(mock_sheet)
+        scanner.scan(session)
 
         duser = cogdb.schema.DUser(discord_id='1111', display_name='GearsandCogs',
                                    capacity=0, sheet_name='GearsandCogs')

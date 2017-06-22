@@ -321,15 +321,12 @@ def init_db(sheet_id):
                                   cog.share.rel_to_abs(paths['json']),
                                   cog.share.rel_to_abs(paths['token']))
 
-        cells = sheet.whole_sheet()
-        system_col = cogdb.query.first_system_column(sheet.get_with_formatting('!A10:J10'))
-        user_col, user_row = cogdb.query.first_user_row(cells)
-        scanner = cogdb.query.SheetScanner(cells, system_col, user_col, user_row)
+        scanner = cogdb.query.SheetScanner(sheet)
         scanner.scan(session)
 
         # Return callbacks
         return (
-            functools.partial(cog.sheets.callback_add_user, sheet, user_col),
+            functools.partial(cog.sheets.callback_add_user, sheet, scanner.user_col),
             functools.partial(cog.sheets.callback_add_fort, sheet),
         )
 

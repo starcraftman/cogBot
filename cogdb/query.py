@@ -262,11 +262,18 @@ class SheetScanner(object):
     Whole sheets can be fetched by simply getting far beyond expected column end.
         i.e. sheet.get('!A:EA', dim='COLUMNS')
     """
-    def __init__(self, cells, system_col='A', user_col='A', user_row=1):
-        self.cells = cells
-        self.system_col = system_col
-        self.user_col = user_col
-        self.user_row = user_row
+    def __init__(self, gsheet):
+        self.gsheet = gsheet
+        self.__cells = None
+        self.system_col = self.find_system_column()
+        self.user_col, self.user_row = self.find_user_row()
+
+    @property
+    def cells(self):
+        if not self.__cells:
+            self.__cells = self.gsheet.whole_sheet()
+
+        return self.__cells
 
     def scan(self, session):
         """
@@ -347,48 +354,46 @@ class SheetScanner(object):
 
         return found
 
+    def find_user_row(self):
+        """
+        Returns: First row and column that has users in it.
 
-def first_system_column(fmt_cells):
-    """
-    Find the first column that has a system cell in it.
+        Raises: SheetParsingError when fails to locate expected anchor in cells.
+        """
+        cell_anchor = 'CMDR Name'
+        col_count = cog.sheets.Column('A')
 
-    Determined based on cell's background color.
-    """
-    column = cog.sheets.Column()
-    # System's always use this background color.
-    system_colors = {'red': 0.42745098, 'blue': 0.92156863, 'green': 0.61960787}
+        for column in self.cells:
+            col_count.next()
+            if cell_anchor not in column:
+                continue
 
-    for val in fmt_cells['sheets'][0]['data'][0]['rowData'][0]['values']:
-        if val['effectiveFormat']['backgroundColor'] == system_colors:
-            return str(column)
+            col_count.prev()  # Gone past by one
+            for row_count, row in enumerate(column):
+                if row == cell_anchor:
+                    return (str(col_count), row_count + 2)
 
-        column.next()
+        raise cog.exc.SheetParsingError
 
-    raise cog.exc.SheetParsingError
+    def find_system_column(self):
+        """
+        Find the first column that has a system cell in it.
+        Determined based on cell's background color.
 
+        Raises: SheetParsingError when fails to locate expected anchor in cells.
+        """
+        column = cog.sheets.Column()
+        # System's always use this background color.
+        system_colors = {'red': 0.42745098, 'blue': 0.92156863, 'green': 0.61960787}
 
-def first_user_row(cells):
-    """
-    cells: List of columns in sheet, each column is a list of rows.
+        fmt_cells = self.gsheet.get_with_formatting('!A10:J10')
+        for val in fmt_cells['sheets'][0]['data'][0]['rowData'][0]['values']:
+            if val['effectiveFormat']['backgroundColor'] == system_colors:
+                return str(column)
 
-    Returns: First row and column that has users in it.
+            column.next()
 
-    Raises: SheetParsingError when fails to locate expected anchor in cells.
-    """
-    cell_anchor = 'CMDR Name'
-    col_count = cog.sheets.Column('A')
-
-    for column in cells:
-        col_count.next()
-        if cell_anchor not in column:
-            continue
-
-        col_count.prev()  # Gone past by one
-        for row_count, row in enumerate(column):
-            if row == cell_anchor:
-                return (str(col_count), row_count + 2)
-
-    raise cog.exc.SheetParsingError
+        raise cog.exc.SheetParsingError
 
 
 def subseq_match(needle, line, ignore_case=True):

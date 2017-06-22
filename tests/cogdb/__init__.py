@@ -1,7 +1,7 @@
 """
 Common test data for the database tests.
 """
-
+import json
 
 SYSTEMS = [
     "Frey", "Nurundere", "LHS 3749", "Sol", "Dongkum", "Alpha Fornacis",
@@ -254,7 +254,7 @@ CELLS = [
         "Othime"
     ],
 ]
-FMT_CELLS = """{
+FMT_CELLS = json.loads("""{
     "sheets": [
         {
             "data": [
@@ -348,4 +348,4 @@ FMT_CELLS = """{
         }
     ]
 }
-"""
+""")

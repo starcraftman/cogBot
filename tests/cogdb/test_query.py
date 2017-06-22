@@ -2,14 +2,14 @@
 Test cogdb.query module.
 """
 from __future__ import absolute_import, print_function
-import json
+import copy
 
 import mock
 import pytest
 
 import cog.exc
-from tests.cogdb import CELLS, FMT_CELLS, SYSTEMS, USERS
-from tests.cogdb.test_schema import db_cleanup, db_data
+from tests.cogdb import FMT_CELLS, SYSTEMS, USERS
+from tests.cogdb.test_schema import db_cleanup, db_data, mock_sheet
 import cogdb
 import cogdb.schema
 import cogdb.query
@@ -43,17 +43,17 @@ def test_fuzzy_find():
     assert cogdb.query.fuzzy_find('tun', SYSTEMS) == 'Tun'
 
 
-def test_first_system_column():
-    col_start = cogdb.query.first_system_column(json.loads(FMT_CELLS))
-    assert col_start == 'F'
+def test_sheetscanner_find_system_column(mock_sheet):
+    scanner = cogdb.query.SheetScanner(mock_sheet)
+    assert scanner.system_col == 'F'
 
-    cells = json.loads(FMT_CELLS)
-    cells['sheets'][0]['data'][0]['rowData'][0]['values'] = []
+    mock_sheet.get_with_formatting.return_value = copy.deepcopy(FMT_CELLS)
+    mock_sheet.get_with_formatting.return_value['sheets'][0]['data'][0]['rowData'][0]['values'] = []
     with pytest.raises(cog.exc.SheetParsingError):
-        assert cogdb.query.first_system_column(cells)
+        cogdb.query.SheetScanner(mock_sheet)
 
 
-def test_first_user_row():
+def test_sheetscanner_find_user_row(mock_sheet):
     cells = [
         ['', 'First column!'],
         ['', 'High', 342033, 243333, 13200, 'UPDATE>>>',
@@ -62,16 +62,17 @@ def test_first_user_row():
         ['', 'Fourth column ...'],
         ['', 'Cinco'],
     ]
-    assert cogdb.query.first_user_row(cells) == ('B', 11)
+    mock_sheet.whole_sheet.return_value = cells
+    scanner = cogdb.query.SheetScanner(mock_sheet)
+    assert (scanner.user_col, scanner.user_row) == ('B', 11)
 
-    miss_col = cells[:1] + cells[2:]
+    mock_sheet.whole_sheet.return_value = cells[:1] + cells[2:]
     with pytest.raises(cog.exc.SheetParsingError):
-        assert cogdb.query.first_user_row(miss_col)
+        cogdb.query.SheetScanner(mock_sheet)
 
 
-def test_sheetscanner_forts():
-    u_col, u_row = cogdb.query.first_user_row(CELLS)
-    scanner = cogdb.query.SheetScanner(CELLS, 'F', u_col, u_row)
+def test_sheetscanner_forts(mock_sheet):
+    scanner = cogdb.query.SheetScanner(mock_sheet)
     systems = scanner.systems()
     users = scanner.users()
 
@@ -93,16 +94,14 @@ def test_sheetscanner_forts():
     assert fort2.user_id == 4
 
 
-def test_sheetscanner_systems():
-    u_col, u_row = cogdb.query.first_user_row(CELLS)
-    scanner = cogdb.query.SheetScanner(CELLS, 'F', u_col, u_row)
+def test_sheetscanner_systems(mock_sheet):
+    scanner = cogdb.query.SheetScanner(mock_sheet)
     result = [sys.name for sys in scanner.systems()]
     assert result == SYSTEMS[:6] + ['Othime']
 
 
-def test_sheetscanner_users():
-    u_col, u_row = cogdb.query.first_user_row(CELLS)
-    scanner = cogdb.query.SheetScanner(CELLS, 'F', u_col, u_row)
+def test_sheetscanner_users(mock_sheet):
+    scanner = cogdb.query.SheetScanner(mock_sheet)
     result = [user.sheet_name for user in scanner.users()]
     assert result == USERS
 
