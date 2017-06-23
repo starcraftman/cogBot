@@ -169,6 +169,9 @@ class CogBot(discord.Client):
                  system.name, args.system)
 
         fort = cogdb.query.add_fort(session, system=system, user=duser.suser, amount=args.amount)
+        if args.set:
+            system.set_status(args.set)
+            session.commit()
         asyncio.ensure_future(self.scanner.add_fort(fort))
         asyncio.ensure_future(self.scanner.update_system(fort.system))
 
@@ -193,11 +196,9 @@ class CogBot(discord.Client):
         session = kwargs.get('session')
         systems = []
 
-        if args.systems:
-            args.long = True
-            for system in args.systems:
-                systems.append(cogdb.query.get_system_by_name(session,
-                                                              system, search_all=True))
+        if args.system:
+            systems.append(cogdb.query.get_system_by_name(session, args.system,
+                                                          search_all=True))
         elif args.next:
             cur_index = cogdb.query.find_current_target(session)
             systems = cogdb.query.get_next_fort_targets(session,
@@ -216,6 +217,12 @@ class CogBot(discord.Client):
                 ['{}/{}'.format(len(states[key]), total) for key in keys],
             ]
             response = cog.tbl.wrap_markdown(cog.tbl.format_table(lines, sep='|', header=True))
+        elif args.set:
+            system = systems[0]
+            system.set_status(args.set)
+            session.commit()
+            asyncio.ensure_future(self.scanner.update_system(system, max_fort=False))
+            response = system.short_display(missing=False) + ', um: {}'.format(system.um_status)
         elif args.long:
             lines = [systems[0].__class__.header] + [system.table_row for system in systems]
             response = cog.tbl.wrap_markdown(cog.tbl.format_table(lines, sep='|', header=True))

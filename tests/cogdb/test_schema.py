@@ -362,6 +362,21 @@ def test_system_short_display():
     system.fort_status = 4000
     system.cmdr_merits = 4000
     assert system.short_display() == 'Frey :Fortifying: 4000/4910, missing: 910'
+    assert system.short_display(missing=False) == 'Frey :Fortifying: 4000/4910'
+
+
+def test_system_set_status():
+    result = cogdb.schema.system_result_dict(SYSTEM_DATA, 0, 'F')
+    system = cogdb.schema.System(**result)
+    assert system.fort_status == 4910
+
+    system.set_status('4000')
+    system.fort_status = 4000
+    system.um_status = 0
+
+    system.set_status('2200:2000')
+    system.fort_status = 2200
+    system.um_status = 2000
 
 
 def test_system_current_status():

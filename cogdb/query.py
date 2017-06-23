@@ -409,13 +409,14 @@ class SheetScanner(object):
                                                      row=fort.suser.sheet_row)
         self.gsheet.update(cell_range, [[fort.amount]])
 
-    async def update_system(self, system):
+    async def update_system(self, system, max_fort=True):
         """
         Update the system column of the sheet.
         """
         cell_range = '!{col}{start}:{col}{end}'.format(col=system.sheet_col,
                                                        start=6, end=9)
-        self.gsheet.update(cell_range, [[system.current_status, system.um_status,
+        fort_status = system.current_status if max_fort else system.fort_status
+        self.gsheet.update(cell_range, [[fort_status, system.um_status,
                                          system.distance, system.notes]], dim='COLUMNS')
 
 

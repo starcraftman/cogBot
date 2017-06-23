@@ -245,13 +245,21 @@ class System(Base):
 
         return (self.name, '{:>4}'.format(self.missing), status, self.notes)
 
-    def short_display(self):
+    def set_status(self, new_status):
+        """
+        Update the fort_status and um_status of this System based on new_status.
+        Format of new_status: fort_status[:um_status]
+        """
+        for val, attr in zip(new_status.split(':'), ['fort_status', 'um_status']):
+            setattr(self, attr, val)
+
+    def short_display(self, missing=True):
         """
         Return a useful short representation of System.
         """
         msg = '{} :Fortifying: {}/{}'.format(self.name, self.current_status, self.trigger)
 
-        if self.missing and self.missing < 1400:
+        if missing and self.missing and self.missing < 1400:
             msg += ', missing: ' + str(self.missing)
 
         return msg

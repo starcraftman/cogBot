@@ -106,6 +106,8 @@ def make_parser(prefix):
 
     sub = subs.add_parser(prefix + 'drop', description='Drop forts for user at system.')
     sub.add_argument('amount', type=int, help='The amount to drop.')
+    sub.add_argument('--set',
+                     help='Set the fort:um status of system. Example-> --set 3400:200')
     sub.add_argument('-s', '--system', nargs='+',
                      help='The system to drop at.')
     sub.add_argument('-u', '--user', nargs='+',
@@ -116,14 +118,16 @@ def make_parser(prefix):
     sub.set_defaults(cmd='dump')
 
     sub = subs.add_parser(prefix + 'fort', description='Show next fort target.')
+    sub.add_argument('--set',
+                     help='Set the fort:um status of system. Example-> --set 3400:200')
     sub.add_argument('--summary', action='store_true',
                      help='Provide an overview of the fort systems.')
-    sub.add_argument('--systems', nargs='+',
-                     help='Show status of these systems.')
+    sub.add_argument('-s', '--system',
+                     help='Select this system that matches.')
     sub.add_argument('-l', '--long', action='store_true',
-                     help='show detailed stats')
+                     help='Show detailed stats')
     sub.add_argument('-n', '--next', type=int,
-                     help='show NUM systems after current')
+                     help='Show NUM systems after current')
     sub.set_defaults(cmd='fort')
 
     sub = subs.add_parser(prefix + 'info', description='Get information on things.')
