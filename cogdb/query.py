@@ -164,35 +164,34 @@ def get_system_by_name(session, system_name, search_all=False):
         return fuzzy_find(system_name, systems, 'name')
 
 
-def get_or_create_sheet_user(session, duser):
+def check_suser_exists(session, duser, create_hook):
     """
-    Try to find a user's entry in the sheet. If sheet_name is set, use that
-    otherwise fall back to display_name (their server nickname).
-    """
-    look_for = duser.sheet_name if duser.sheet_name else duser.display_name
+    Try to find a user's name in sheet.
+    If not create and add user to
 
+    Returns: The SUser
+    """
     try:
-        suser = cogdb.query.get_sheet_user_by_name(session, look_for)
-        duser.sheet_name = suser.sheet_name
+        suser = get_sheet_user_by_name(session, duser.sheet_name)
     except cog.exc.NoMatch:
-        duser.sheet_name = look_for
-        suser = cogdb.query.add_suser(session, sheet_name=duser.sheet_name)
+        suser = add_suser(session, sheet_name=duser.sheet_name)
         session.commit()
+        create_hook(suser)
 
     return suser
 
 
-def get_or_create_duser(member):
+def check_duser(member):
     """
     Ensure a member has an entry in the dusers table.
 
-    Returns: The DUser object.
+    Returns: The DUser
     """
     try:
         session = cogdb.Session()
-        duser = cogdb.query.get_discord_user_by_id(session, member.id)
+        duser = get_discord_user_by_id(session, member.id)
     except cog.exc.NoMatch:
-        duser = cogdb.query.add_duser(session, member)
+        duser = add_duser(session, member)
         session.commit()
 
     return duser
@@ -208,6 +207,7 @@ def add_duser(session, member, capacity=0, sheet_name=''):
                       capacity=capacity, sheet_name=sheet_name)
     session.add(new_duser)
     session.commit()
+
     return new_duser
 
 
@@ -394,14 +394,14 @@ class SheetScanner(object):
         raise cog.exc.SheetParsingError
 
     # Calls to modify the sheet All asynchronous, register them as futures and move on.
-    def add_user(self, user):
+    async def add_user(self, user):
         """
         Add a user to sheet.
         """
         cell_range = '!{col}{row}:{col}{row}'.format(col=self.user_col, row=user.sheet_row)
         self.gsheet.update(cell_range, [[user.sheet_name]])
 
-    def add_fort(self, fort):
+    async def add_fort(self, fort):
         """
         Add a fort to the sheet.
         """
@@ -409,7 +409,7 @@ class SheetScanner(object):
                                                      row=fort.suser.sheet_row)
         self.gsheet.update(cell_range, [[fort.amount]])
 
-    def update_system(self, system):
+    async def update_system(self, system):
         """
         Update the system column of the sheet.
         """

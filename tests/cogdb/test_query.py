@@ -226,43 +226,48 @@ def test_get_sheet_user_by_name():
 
 @db_cleanup
 @db_data
-def test_get_or_create_sheet_user_no_create():
+def test_check_suser_exists_no_create():
     member = mock.Mock()
     member.sheet_name = 'GearsandCogs'
+    create_hook = mock.Mock()
 
     session = cogdb.Session()
-    suser = cogdb.query.get_or_create_sheet_user(session, member)
+    suser = cogdb.query.check_suser_exists(session, member, create_hook)
     assert suser.sheet_row == 22
+    assert not create_hook.called
 
 
 @db_cleanup
 @db_data
-def test_get_or_create_sheet_user_create():
+def test_check_suser_exists_create():
     member = mock.Mock()
     member.sheet_name = 'notGears'
+    create_hook = mock.Mock()
 
     session = cogdb.Session()
-    suser = cogdb.query.get_or_create_sheet_user(session, member)
+    suser = cogdb.query.check_suser_exists(session, member, create_hook)
+    assert suser.sheet_row == 26
     assert suser.sheet_name == 'notGears'
     assert suser.sheet_row == session.query(cogdb.schema.SUser).all()[-2].sheet_row + 1
+    assert create_hook.called
 
 
 @db_cleanup
 @db_data
-def test_get_or_create_duser_no_create():
+def test_check_duser_no_create():
     member = mock.Mock()
     member.id = '1111'
-    duser = cogdb.query.get_or_create_duser(member)
+    duser = cogdb.query.check_duser(member)
     assert duser.display_name == 'GearsandCogs'
 
 
 @db_cleanup
 @db_data
-def test_get_or_create_duser_create():
+def test_check_duser_create():
     member = mock.Mock()
     member.id = '1112'
     member.display_name = 'someuser'
-    duser = cogdb.query.get_or_create_duser(member)
+    duser = cogdb.query.check_duser(member)
     assert duser.display_name == member.display_name
 
     session = cogdb.Session()

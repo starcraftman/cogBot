@@ -336,7 +336,7 @@ def test_system__repr__():
 
     assert repr(system) == "System(name='Frey', sheet_order=0, sheet_col='F', "\
                            "cmdr_merits=4322, fort_status=4910, trigger=4910, "\
-                           "undermine=0.0, notes='')"
+                           "undermine=0.0, um_status=0, distance=116.99, notes='')"
     assert system == eval(repr(system).replace('System', 'cogdb.schema.System'))
 
 
@@ -351,7 +351,7 @@ def test_system__str__():
 
     assert str(system) == "id=1, System(name='Frey', sheet_order=0, sheet_col='F', "\
                           "cmdr_merits=4322, fort_status=4910, trigger=4910, "\
-                          "undermine=0.0, notes='')"
+                          "undermine=0.0, um_status=0, distance=116.99, notes='')"
 
 
 def test_system_short_display():

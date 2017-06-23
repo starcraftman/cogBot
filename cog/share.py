@@ -116,7 +116,7 @@ def make_parser(prefix):
     sub.set_defaults(cmd='dump')
 
     sub = subs.add_parser(prefix + 'fort', description='Show next fort target.')
-    sub.add_argument('--status', action='store_true',
+    sub.add_argument('--summary', action='store_true',
                      help='Provide an overview of the fort systems.')
     sub.add_argument('--systems', nargs='+',
                      help='Show status of these systems.')

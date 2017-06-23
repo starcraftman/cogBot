@@ -168,7 +168,9 @@ class System(Base):
     id = sqla.Column(sqla.Integer, primary_key=True)
     name = sqla.Column(sqla.String, unique=True)
     cmdr_merits = sqla.Column(sqla.Integer)
+    distance = sqla.Column(sqla.Float)
     fort_status = sqla.Column(sqla.Integer)
+    um_status = sqla.Column(sqla.Integer)
     notes = sqla.Column(sqla.String)
     sheet_col = sqla.Column(sqla.String)
     sheet_order = sqla.Column(sqla.Integer)
@@ -179,12 +181,13 @@ class System(Base):
         """ Dump object data. """
         args = {}
         for key in ['name', 'cmdr_merits', 'fort_status', 'notes', 'sheet_col', 'sheet_order',
-                    'trigger', 'undermine']:
+                    'trigger', 'undermine', 'um_status', 'distance']:
             args[key] = getattr(self, key)
 
         return "System(name={name!r}, sheet_order={sheet_order!r}, sheet_col={sheet_col!r}, "\
                "cmdr_merits={cmdr_merits!r}, fort_status={fort_status!r}, trigger={trigger!r}, "\
-               "undermine={undermine!r}, notes={notes!r})".format(**args)
+               "undermine={undermine!r}, um_status={um_status!r}, distance={distance!r}, "\
+               "notes={notes!r})".format(**args)
 
     def __str__(self):
         return "id={}, {}".format(repr(self.id), self.__repr__())
@@ -302,6 +305,8 @@ def system_result_dict(lines, order, column):
             'trigger': parse_int(lines[2]),
             'cmdr_merits': lines[4],
             'fort_status': parse_int(lines[5]),
+            'um_status': parse_int(lines[6]),
+            'distance': parse_float(lines[7]),
             'notes': lines[8],
             'name': lines[9],
             'sheet_col': column,

@@ -10,6 +10,7 @@ Small Python Async tutorial:
     https://snarky.ca/how-the-heck-does-async-await-work-in-python-3-5/
 """
 from __future__ import absolute_import, print_function
+import asyncio
 import datetime as date
 import logging
 import logging.handlers
@@ -25,7 +26,6 @@ import cog.share
 import cog.sheets
 import cog.tbl
 
-# TODO: Move query.get_or_create_duser and get_or_create_sheet_user up here to CogBot
 
 class CogBot(discord.Client):
     """
@@ -86,7 +86,7 @@ class CogBot(discord.Client):
                  channel.server, channel.name, author.name, msg)
 
         try:
-            cogdb.query.get_or_create_duser(author)
+            cogdb.query.check_duser(author)
             parser = cog.share.make_parser(self.prefix)
             args = parser.parse_args(msg.split(' '))
             await self.dispatch_command(message=message, args=args, session=cogdb.Session())
@@ -144,21 +144,20 @@ class CogBot(discord.Client):
         """
         log = logging.getLogger('cog.bot')
         args = kwargs.get('args')
-        msg = kwargs.get('message')
+        message = kwargs.get('message')
         session = kwargs.get('session')
 
         if args.user:
             args.user = ' '.join(args.user)
-            import mock
-            duser = mock.Mock()
-            duser.suser = cogdb.query.get_sheet_user_by_name(session, args.user)
-            duser.sheet_name = duser.suser.sheet_name
-            duser.display_name = duser.sheet_name
+            duser = cogdb.query.get_sheet_user_by_name(session, args.user).duser
         else:
-            duser = cogdb.query.get_discord_user_by_id(session, msg.author.id)
-            cogdb.query.get_or_create_sheet_user(session, duser)
+            duser = cogdb.query.get_discord_user_by_id(session, message.author.id)
+            cogdb.query.check_suser_exists(
+                session, duser,
+                lambda x: asyncio.ensure_future(self.scanner.add_user(x))
+            )
         log.info('DROP - Matched duser %s with id %s.',
-                 args.user if args.user else msg.author.display_name, duser.display_name)
+                 args.user if args.user else message.author.display_name, duser.id)
 
         if args.system:
             args.system = ' '.join(args.system)
@@ -170,12 +169,12 @@ class CogBot(discord.Client):
                  system.name, args.system)
 
         fort = cogdb.query.add_fort(session, system=system, user=duser.suser, amount=args.amount)
-        self.loop.ensure_future(self.scanner.add_fort(fort))
+        asyncio.ensure_future(self.scanner.add_fort(fort))
+        asyncio.ensure_future(self.scanner.update_system(fort.system))
 
         log.info('DROP - Sucessfully dropped %d at %s for %s.',
                  args.amount, system.name, duser.display_name)
 
-        message = kwargs.get('message')
         await self.send_message(message.channel, fort.system.short_display())
 
     async def command_dump(self, **kwargs):
@@ -197,12 +196,8 @@ class CogBot(discord.Client):
         if args.systems:
             args.long = True
             for system in args.systems:
-                try:
-                    systems.append(cogdb.query.get_system_by_name(session,
-                                                                  system, search_all=True))
-                except (cog.exc.NoMatch, cog.exc.MoreThanOneMatch):
-                    pass
-
+                systems.append(cogdb.query.get_system_by_name(session,
+                                                              system, search_all=True))
         elif args.next:
             cur_index = cogdb.query.find_current_target(session)
             systems = cogdb.query.get_next_fort_targets(session,
@@ -211,7 +206,7 @@ class CogBot(discord.Client):
             cur_index = cogdb.query.find_current_target(session)
             systems = cogdb.query.get_fort_targets(session, cur_index)
 
-        if args.status:
+        if args.summary:
             states = cogdb.query.get_all_systems_by_state(session)
             total = len(cogdb.query.get_all_systems(session))
 
@@ -262,9 +257,9 @@ class CogBot(discord.Client):
         Allow reindexing the sheets when out of date with new edits.
         """
         cogdb.schema.drop_scanned_tables()
-        init_db(cog.share.get_config('hudson', 'cattle'))
+        self.scanner.scan(kwargs.get('session'))
         message = kwargs.get('message')
-        await self.send_messsage(message.channel, 'The database has been updated.')
+        await self.send_message(message.channel, 'The database has been updated.')
 
     async def command_time(self, **kwargs):
         """
