@@ -2,6 +2,7 @@
 Manage the database and its tables.
 """
 from __future__ import absolute_import, print_function
+import functools
 
 import sqlalchemy as sqla
 import sqlalchemy.orm as sqla_orm
@@ -23,7 +24,7 @@ class Command(Base):
     id = sqla.Column(sqla.Integer, primary_key=True)
     cmd_str = sqla.Column(sqla.String)
     date = sqla.Column(sqla.DateTime)
-    discord_id = sqla.Column(sqla.String, sqla.ForeignKey('dusers.discord_id'))
+    discord_id = sqla.Column(sqla.String, sqla.ForeignKey('discord_users.discord_id'))
 
     def __repr__(self):
         args = {}
@@ -38,71 +39,72 @@ class Command(Base):
         if getattr(self, 'duser', None):
             duser = self.duser.display_name
 
-        return "id={}, display_name={}, {}".format(repr(self.id), repr(duser), self.__repr__())
+        return "id={!r}, display_name={!r}, {!r}".format(self.id, duser, self)
 
     def __eq__(self, other):
         return (self.cmd_str, self.discord_id, self.date) == (
             other.cmd_str, other.discord_id, other.date)
 
 
+# TODO: Revert cattle_name to cattle_id, bad decision.
 class DUser(Base):
     """
     Database to store discord users and their permanent preferences.
     """
-    __tablename__ = 'dusers'
+    __tablename__ = 'discord_users'
 
-    id = sqla.Column(sqla.Integer, primary_key=True)
-    capacity = sqla.Column(sqla.Integer)
-    discord_id = sqla.Column(sqla.String, unique=True)
+    discord_id = sqla.Column(sqla.String, primary_key=True)
     display_name = sqla.Column(sqla.String)
-    sheet_name = sqla.Column(sqla.String, sqla.ForeignKey('susers.sheet_name'))
+    capacity = sqla.Column(sqla.Integer)
+    cattle_name = sqla.Column(sqla.String, sqla.ForeignKey('sheet_users.name'))
 
     def __repr__(self):
         args = {}
-        for key in ['capacity', 'discord_id', 'display_name', 'sheet_name']:
+        for key in ['capacity', 'discord_id', 'display_name', 'cattle_name']:
             args[key] = getattr(self, key)
 
         return "DUser(display_name={display_name!r}, discord_id={discord_id!r}, "\
-            "capacity={capacity!r}, sheet_name={sheet_name!r})".format(**args)
+            "capacity={capacity!r}, cattle_name={cattle_name!r})".format(**args)
 
     def __str__(self):
-        return "id={}, {}".format(repr(self.id), self.__repr__())
+        return self.__repr__()
 
     def __eq__(self, other):
-        return (self.discord_id, self.display_name, self.capacity, self.sheet_name) == (
-            other.discord_id, other.display_name, other.capacity, other.sheet_name)
+        return self.discord_id == other.discord_id
 
 
 class SUser(Base):
     """
-    Every user of bot, has an entry here. Discord name must be unique.
+    Track all infomration about the user in a row of the cattle sheet.
     """
-    __tablename__ = 'susers'
+    __tablename__ = 'sheet_users'
 
     id = sqla.Column(sqla.Integer, primary_key=True)
-    sheet_name = sqla.Column(sqla.String, unique=True)
-    sheet_row = sqla.Column(sqla.Integer)
+    name = sqla.Column(sqla.String, unique=True)
+    cry = sqla.Column(sqla.String, default='')
+    row = sqla.Column(sqla.Integer)
 
     def __repr__(self):
         args = {}
-        for key in ['sheet_name', 'sheet_row']:
+        for key in ['name', 'row', 'cry']:
             args[key] = getattr(self, key)
 
-        return "SUser(sheet_name={sheet_name!r}, sheet_row={sheet_row!r})".format(**args)
+        return "SUser(name={name!r}, row={row!r}, cry={cry!r})".format(**args)
 
     def __str__(self):
-        return "id={}, {}".format(repr(self.id), self.__repr__())
+        return "id={!r}, {!r}".format(self.id, self)
 
     def __eq__(self, other):
-        return (self.sheet_name, self.sheet_row) == (other.sheet_name, other.sheet_row)
+        return (self.name, self.row) == (other.name, other.row)
 
     @property
-    def merits(self):
+    def fort_merits(self):
         amount = 0
         for fort in self.forts:
             amount += fort.amount
 
         return amount
+        # return functools.reduce(lambda x, y: x.amount + y.amount, self.forts)
 
 
 class Fort(Base):
@@ -114,32 +116,23 @@ class Fort(Base):
 
     id = sqla.Column(sqla.Integer, primary_key=True)
     amount = sqla.Column(sqla.Integer)
-    system_id = sqla.Column(sqla.Integer, sqla.ForeignKey('systems.id'))
-    user_id = sqla.Column(sqla.Integer, sqla.ForeignKey('susers.id'))
+    system_name = sqla.Column(sqla.Integer, sqla.ForeignKey('systems.name'))
+    cattle_name = sqla.Column(sqla.Integer, sqla.ForeignKey('sheet_users.name'))
 
     def __repr__(self):
         args = {}
-        for key in ['amount', 'system_id', 'user_id']:
+        for key in ['amount', 'cattle_name', 'system_name']:
             args[key] = getattr(self, key)
 
-        return "Fort(user_id={user_id!r}, "\
-               "system_id={system_id!r}, amount={amount!r})".format(**args)
+        return "Fort(cattle_name={cattle_name!r}, "\
+               "system_name={system_name!r}, amount={amount!r})".format(**args)
 
     def __str__(self):
-        sheet_user = None
-        if getattr(self, 'suser', None):
-            sheet_user = self.suser.sheet_name
-
-        system_name = None
-        if getattr(self, 'system', None):
-            system_name = self.system.name
-
-        return "id={}, sheet_name={}, system_name={}, {}".format(
-            repr(self.id), repr(sheet_user), repr(system_name), self.__repr__())
+        return "id={!r}, {!r}".format(self.id, self)
 
     def __eq__(self, other):
-        return (self.user_id, self.system_id, self.amount) == (
-            other.user_id, other.system_id, other.amount)
+        return (self.cattle_name, self.system_name, self.amount) == (
+            other.cattle_name, other.system_name, other.amount)
 
 
 class System(Base):
@@ -165,8 +158,7 @@ class System(Base):
 
     header = ['System', 'Missing', 'Merits (Fort%/UM%)', 'Notes']
 
-    id = sqla.Column(sqla.Integer, primary_key=True)
-    name = sqla.Column(sqla.String, unique=True)
+    name = sqla.Column(sqla.String, primary_key=True)
     cmdr_merits = sqla.Column(sqla.Integer)
     distance = sqla.Column(sqla.Float)
     fort_status = sqla.Column(sqla.Integer)
@@ -190,7 +182,7 @@ class System(Base):
                "notes={notes!r})".format(**args)
 
     def __str__(self):
-        return "id={}, {}".format(repr(self.id), self.__repr__())
+        return self.__repr__()
 
     @property
     def ump(self):
@@ -364,17 +356,17 @@ def recreate_tables():
 
 # Relationships
 Fort.suser = sqla_orm.relationship('SUser', uselist=False, back_populates='forts')
-Fort.system = sqla_orm.relationship('System', uselist=False, back_populates='forts')
 SUser.forts = sqla_orm.relationship('Fort',
                                     # collection_class=sqa_attr_map('system.name'),
                                     cascade='all, delete, delete-orphan',
                                     back_populates='suser')
+Fort.system = sqla_orm.relationship('System', uselist=False, back_populates='forts')
 System.forts = sqla_orm.relationship('Fort',
-                                     # collection_class=sqa_attr_map('user.sheet_name'),
+                                     # collection_class=sqa_attr_map('user.name'),
                                      cascade='all, delete, delete-orphan',
                                      back_populates='system')
 DUser.cmds = sqla_orm.relationship('Command',
-                                   # collection_class=sqa_attr_map('user.sheet_name'),
+                                   # collection_class=sqa_attr_map('user.name'),
                                    cascade='all, delete, delete-orphan',
                                    back_populates='duser')
 Command.duser = sqla_orm.relationship('DUser', back_populates='cmds')
@@ -394,9 +386,9 @@ def main():
 
     dusers = (
         DUser(discord_id='197221', display_name='GearsandCogs', capacity=0,
-              sheet_name='GearsandCogs'),
-        DUser(discord_id='299221', display_name='rjwhite', capacity=0, sheet_name='rjwhite'),
-        DUser(discord_id='293211', display_name='vampyregtx', capacity=0, sheet_name='vampyregtx'),
+              name='GearsandCogs'),
+        DUser(discord_id='299221', display_name='rjwhite', capacity=0, name='rjwhite'),
+        DUser(discord_id='293211', display_name='vampyregtx', capacity=0, name='vampyregtx'),
     )
     session.add_all(dusers)
     session.commit()
@@ -410,9 +402,9 @@ def main():
     session.commit()
 
     susers = (
-        SUser(sheet_name='GearsandCogs', sheet_row=15),
-        SUser(sheet_name='rjwhite', sheet_row=16),
-        SUser(sheet_name='vampyregtx', sheet_row=17),
+        SUser(name='GearsandCogs', row=15),
+        SUser(name='rjwhite', row=16),
+        SUser(name='vampyregtx', row=17),
     )
     session.add_all(susers)
     session.commit()
@@ -429,11 +421,11 @@ def main():
     session.commit()
 
     forts = (
-        Fort(user_id=susers[0].id, system_id=systems[0].id, amount=700),
-        Fort(user_id=susers[1].id, system_id=systems[0].id, amount=700),
-        Fort(user_id=susers[0].id, system_id=systems[2].id, amount=1400),
-        Fort(user_id=susers[2].id, system_id=systems[1].id, amount=2100),
-        Fort(user_id=susers[2].id, system_id=systems[0].id, amount=300),
+        Fort(cattle_name=susers[0].name, system_name=systems[0].name, amount=700),
+        Fort(cattle_name=susers[1].name, system_name=systems[0].name, amount=700),
+        Fort(cattle_name=susers[0].name, system_name=systems[2].name, amount=1400),
+        Fort(cattle_name=susers[2].name, system_name=systems[1].name, amount=2100),
+        Fort(cattle_name=susers[2].name, system_name=systems[0].name, amount=300),
     )
     session.add_all(forts)
     session.commit()
@@ -449,12 +441,12 @@ def main():
         mprint(cmd)
         mprint(pad, cmd.duser)
 
-    print('DUsers----------')
+    print('DiscordUsers----------')
     for user in session.query(DUser):
         mprint(user)
         mprint(pad, user.suser)
 
-    print('SUsers----------')
+    print('SheetUsers----------')
     for user in session.query(SUser):
         mprint(user)
         mprint(pad, user.forts)

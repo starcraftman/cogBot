@@ -76,22 +76,16 @@ def test_sheetscanner_forts(mock_sheet):
     systems = scanner.systems()
     users = scanner.users()
 
-    # Manually set since not in db.
-    for ind, sys in enumerate(systems):
-        sys.id = ind + 1
-    for ind, usr in enumerate(users):
-        usr.id = ind + 1
-
     forts = scanner.forts(systems, users)
     fort1, fort2 = forts[0], forts[1]
 
     assert fort1.amount == 2222
-    assert fort1.system_id == 1
-    assert fort1.user_id == 2
+    assert fort1.system_name == 'Frey'
+    assert fort1.cattle_name == 'Toliman'
 
     assert fort2.amount == 80
-    assert fort2.system_id == 1
-    assert fort2.user_id == 4
+    assert fort2.system_name == 'Frey'
+    assert fort2.cattle_name == 'Oskiboy[XB1/PC]'
 
 
 def test_sheetscanner_systems(mock_sheet):
@@ -102,7 +96,7 @@ def test_sheetscanner_systems(mock_sheet):
 
 def test_sheetscanner_users(mock_sheet):
     scanner = cogdb.query.SheetScanner(mock_sheet)
-    result = [user.sheet_name for user in scanner.users()]
+    result = [suser.name for suser in scanner.users()]
     assert result == USERS
 
 
@@ -135,11 +129,11 @@ def test_get_systems_not_othime():
 
 @db_cleanup
 @db_data
-def test_get_all_users():
+def test_get_all_sheet_users():
     session = cogdb.Session()
-    users = cogdb.query.get_all_users(session)
+    users = cogdb.query.get_all_sheet_users(session)
     assert len(users) == 15
-    assert users[0].sheet_name == 'Alexander Astropath'
+    assert users[0].name == 'Alexander Astropath'
 
 
 @db_cleanup
@@ -216,58 +210,58 @@ def test_get_discord_user_by_id():
 @db_data
 def test_get_sheet_user_by_name():
     session = cogdb.Session()
-    user = cogdb.query.get_sheet_user_by_name(session, 'Shepron')
-    assert isinstance(user, cogdb.schema.SUser)
-    assert user.sheet_name == 'Shepron'
+    suser = cogdb.query.get_sheet_user_by_name(session, 'Shepron')
+    assert isinstance(suser, cogdb.schema.SUser)
+    assert suser.name == 'Shepron'
 
-    user = cogdb.query.get_sheet_user_by_name(session, 'gear')
-    assert user.sheet_name == 'GearsandCogs'
+    suser = cogdb.query.get_sheet_user_by_name(session, 'gear')
+    assert suser.name == 'GearsandCogs'
 
 
 @db_cleanup
 @db_data
-def test_check_suser_exists_no_create():
+def test_check_sheet_user_no_create():
     member = mock.Mock()
-    member.sheet_name = 'GearsandCogs'
+    member.cattle_name = 'GearsandCogs'
     create_hook = mock.Mock()
 
     session = cogdb.Session()
-    suser = cogdb.query.check_suser_exists(session, member, create_hook)
-    assert suser.sheet_row == 22
+    suser = cogdb.query.check_sheet_user(session, member, create_hook)
+    assert suser.row == 22
     assert not create_hook.called
 
 
 @db_cleanup
 @db_data
-def test_check_suser_exists_create():
+def test_check_sheet_user_create():
     member = mock.Mock()
-    member.sheet_name = 'notGears'
+    member.cattle_name = 'notGears'
     create_hook = mock.Mock()
 
     session = cogdb.Session()
-    suser = cogdb.query.check_suser_exists(session, member, create_hook)
-    assert suser.sheet_row == 26
-    assert suser.sheet_name == 'notGears'
-    assert suser.sheet_row == session.query(cogdb.schema.SUser).all()[-2].sheet_row + 1
+    suser = cogdb.query.check_sheet_user(session, member, create_hook)
+    assert suser.row == 26
+    assert suser.name == 'notGears'
+    assert suser.row == session.query(cogdb.schema.SUser).all()[-2].row + 1
     assert create_hook.called
 
 
 @db_cleanup
 @db_data
-def test_check_duser_no_create():
+def test_check_discord_user_no_create():
     member = mock.Mock()
     member.id = '1111'
-    duser = cogdb.query.check_duser(member)
+    duser = cogdb.query.check_discord_user(member)
     assert duser.display_name == 'GearsandCogs'
 
 
 @db_cleanup
 @db_data
-def test_check_duser_create():
+def test_check_discord_user_create():
     member = mock.Mock()
     member.id = '1112'
     member.display_name = 'someuser'
-    duser = cogdb.query.check_duser(member)
+    duser = cogdb.query.check_discord_user(member)
     assert duser.display_name == member.display_name
 
     session = cogdb.Session()
@@ -277,19 +271,19 @@ def test_check_duser_create():
 
 @db_cleanup
 @db_data
-def test_add_suser():
+def test_add_sheet_user():
     session = cogdb.Session()
-    cogdb.query.add_suser(session, 'NewestUser')
-    assert cogdb.query.get_all_users(session)[-1].sheet_name == 'NewestUser'
+    cogdb.query.add_sheet_user(session, 'NewestUser')
+    assert cogdb.query.get_all_sheet_users(session)[-1].name == 'NewestUser'
 
 
 @db_cleanup
-def test_add_duser():
+def test_add_discord_user():
     member = mock.Mock()
     member.id = '1111'
     member.display_name = 'NewestUser'
     session = cogdb.Session()
-    duser = cogdb.query.add_duser(session, member, capacity=50)
+    duser = cogdb.query.add_discord_user(session, member, capacity=50)
     assert cogdb.query.get_discord_user_by_id(session, '1111') == duser
 
 
@@ -299,16 +293,18 @@ def test_add_fort():
     import sqlalchemy.orm.exc
     session = cogdb.Session()
     system = cogdb.query.get_all_systems(session)[2]
-    user = cogdb.query.get_all_users(session)[4]
+    suser = cogdb.query.get_all_sheet_users(session)[4]
 
     with pytest.raises(sqlalchemy.orm.exc.NoResultFound):
-        session.query(cogdb.schema.Fort).filter_by(user_id=user.id, system_id=system.id).one()
+        session.query(cogdb.schema.Fort).filter_by(cattle_name=suser.name,
+                                                   system_name=system.name).one()
     old_fort = system.fort_status
     old_cmdr = system.cmdr_merits
 
-    fort = cogdb.query.add_fort(session, system=system, user=user, amount=400)
+    fort = cogdb.query.add_fort(session, system=system, suser=suser, amount=400)
 
     assert fort.amount == 400
     assert system.fort_status == old_fort + 400
     assert system.cmdr_merits == old_cmdr + 400
-    assert session.query(cogdb.schema.Fort).filter_by(user_id=user.id, system_id=system.id).one()
+    assert session.query(cogdb.schema.Fort).filter_by(cattle_name=suser.name,
+                                                      system_name=system.name).one()

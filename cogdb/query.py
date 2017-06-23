@@ -32,7 +32,7 @@ def get_all_systems(session):
     return session.query(System).all()
 
 
-def get_all_users(session):
+def get_all_sheet_users(session):
     """
     Return a list of all Users.
     """
@@ -121,7 +121,7 @@ def get_all_systems_by_state(session):
 
 def get_discord_user_by_id(session, did):
     """
-    Return the User with User.sheet_name that matches.
+    Return the DUser that has the same discord_id.
 
     Raises:
         NoMatch - No possible match found.
@@ -134,17 +134,17 @@ def get_discord_user_by_id(session, did):
 
 def get_sheet_user_by_name(session, name):
     """
-    Return the User with User.sheet_name that matches.
+    Return the SUser with SUser.name that matches.
 
     Raises:
         NoMatch - No possible match found.
         MoreThanOneMatch - Too many matches possible, ask user to resubmit.
     """
     try:
-        return session.query(SUser).filter_by(sheet_name=name).one()
+        return session.query(SUser).filter_by(name=name).one()
     except (sqa_exc.NoResultFound, sqa_exc.MultipleResultsFound):
-        users = get_all_users(session)
-        return fuzzy_find(name, users, 'sheet_name')
+        users = get_all_sheet_users(session)
+        return fuzzy_find(name, users, 'name')
 
 
 def get_system_by_name(session, system_name, search_all=False):
@@ -164,24 +164,24 @@ def get_system_by_name(session, system_name, search_all=False):
         return fuzzy_find(system_name, systems, 'name')
 
 
-def check_suser_exists(session, duser, create_hook):
+def check_sheet_user(session, duser, create_hook):
     """
     Try to find a user's name in sheet.
-    If not create and add user to
+    If not create and add user to the sheet with hook.
 
     Returns: The SUser
     """
     try:
-        suser = get_sheet_user_by_name(session, duser.sheet_name)
+        suser = get_sheet_user_by_name(session, duser.cattle_name)
     except cog.exc.NoMatch:
-        suser = add_suser(session, sheet_name=duser.sheet_name)
+        suser = add_sheet_user(session, name=duser.cattle_name)
         session.commit()
         create_hook(suser)
 
     return suser
 
 
-def check_duser(member):
+def check_discord_user(member):
     """
     Ensure a member has an entry in the dusers table.
 
@@ -191,32 +191,32 @@ def check_duser(member):
         session = cogdb.Session()
         duser = get_discord_user_by_id(session, member.id)
     except cog.exc.NoMatch:
-        duser = add_duser(session, member)
+        duser = add_discord_user(session, member)
         session.commit()
 
     return duser
 
 
-def add_duser(session, member, capacity=0, sheet_name=''):
+def add_discord_user(session, member, capacity=0, cattle_name=''):
     """
     Add a discord user to the database.
     """
-    if not sheet_name:
-        sheet_name = member.display_name
+    if not cattle_name:
+        cattle_name = member.display_name
     new_duser = DUser(discord_id=member.id, display_name=member.display_name,
-                      capacity=capacity, sheet_name=sheet_name)
+                      capacity=capacity, cattle_name=cattle_name)
     session.add(new_duser)
     session.commit()
 
     return new_duser
 
 
-def add_suser(session, sheet_name):
+def add_sheet_user(session, name):
     """
     Simply add user past last user in sheet.
     """
-    next_row = get_all_users(session)[-1].sheet_row + 1
-    new_user = SUser(sheet_name=sheet_name, sheet_row=next_row)
+    next_row = get_all_sheet_users(session)[-1].row + 1
+    new_user = SUser(name=name, row=next_row)
     session.add(new_user)
     session.commit()
 
@@ -226,7 +226,7 @@ def add_suser(session, sheet_name):
 def add_fort(session, **kwargs):
     """
     Add a fort for 'amount' to the database where fort intersects at:
-        System.name and User.sheet_name
+        System.name and SUser.name
     If fort exists, increment its value. Else add it to database.
 
     Kwargs: system, user, amount
@@ -234,14 +234,15 @@ def add_fort(session, **kwargs):
     Returns: The Fort object.
     """
     system = kwargs['system']
-    user = kwargs['user']
+    suser = kwargs['suser']
     amount = kwargs['amount']
 
     try:
-        fort = session.query(Fort).filter_by(user_id=user.id, system_id=system.id).one()
+        fort = session.query(Fort).filter_by(cattle_name=suser.name,
+                                             system_name=system.name).one()
         fort.amount = fort.amount + amount
     except sqa_exc.NoResultFound:
-        fort = Fort(user_id=user.id, system_id=system.id, amount=amount)
+        fort = Fort(cattle_name=suser.name, system_name=system.name, amount=amount)
         session.add(fort)
     system.fort_status = system.fort_status + amount
     system.cmdr_merits = system.cmdr_merits + amount
@@ -321,11 +322,11 @@ class SheetScanner(object):
             if user == '':  # Users sometimes miss an entry
                 continue
 
-            found.append(SUser(sheet_name=user, sheet_row=row))
+            found.append(SUser(name=user, row=row))
 
         return found
 
-    def forts(self, systems, users):
+    def forts(self, systems, susers):
         """
         Scan the fortification area of the sheet and return Fort objects representing
         fortification of each system.
@@ -339,14 +340,15 @@ class SheetScanner(object):
 
         for system in systems:
             try:
-                for user in users:
+                for suser in susers:
                     col_ind = col_offset + system.sheet_order
-                    amount = self.cells[col_ind][user.sheet_row - 1]
+                    amount = self.cells[col_ind][suser.row - 1]
 
                     if amount == '':  # Some rows just placeholders if empty
                         continue
 
-                    found.append(Fort(user_id=user.id, system_id=system.id, amount=amount))
+                    found.append(Fort(cattle_name=suser.name, system_name=system.name,
+                                      amount=amount))
             except IndexError:
                 pass  # No more amounts in column
 
@@ -394,19 +396,12 @@ class SheetScanner(object):
         raise cog.exc.SheetParsingError
 
     # Calls to modify the sheet All asynchronous, register them as futures and move on.
-    async def add_user(self, user):
-        """
-        Add a user to sheet.
-        """
-        cell_range = '!{col}{row}:{col}{row}'.format(col=self.user_col, row=user.sheet_row)
-        self.gsheet.update(cell_range, [[user.sheet_name]])
-
-    async def add_fort(self, fort):
+    async def update_fort(self, fort):
         """
         Add a fort to the sheet.
         """
         cell_range = '!{col}{row}:{col}{row}'.format(col=fort.system.sheet_col,
-                                                     row=fort.suser.sheet_row)
+                                                     row=fort.suser.row)
         self.gsheet.update(cell_range, [[fort.amount]])
 
     async def update_system(self, system, max_fort=True):
@@ -418,6 +413,15 @@ class SheetScanner(object):
         fort_status = system.current_status if max_fort else system.fort_status
         self.gsheet.update(cell_range, [[fort_status, system.um_status,
                                          system.distance, system.notes]], dim='COLUMNS')
+
+    async def update_sheet_user(self, suser):
+        """
+        Update the user cry and name on the given row.
+        """
+        col1 = cog.sheets.Column(self.user_col).prev()
+        cell_range = '!{col1}{row}:{col2}{row}'.format(row=suser.row, col1=col1,
+                                                       col2=self.user_col)
+        self.gsheet.update(cell_range, [[suser.cry, suser.name]])
 
 
 def subseq_match(needle, line, ignore_case=True):

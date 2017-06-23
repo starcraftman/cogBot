@@ -86,7 +86,7 @@ class CogBot(discord.Client):
                  channel.server, channel.name, author.name, msg)
 
         try:
-            cogdb.query.check_duser(author)
+            cogdb.query.check_discord_user(author)
             parser = cog.share.make_parser(self.prefix)
             args = parser.parse_args(msg.split(' '))
             await self.dispatch_command(message=message, args=args, session=cogdb.Session())
@@ -152,9 +152,9 @@ class CogBot(discord.Client):
             duser = cogdb.query.get_sheet_user_by_name(session, args.user).duser
         else:
             duser = cogdb.query.get_discord_user_by_id(session, message.author.id)
-            cogdb.query.check_suser_exists(
+            cogdb.query.check_sheet_user(
                 session, duser,
-                lambda x: asyncio.ensure_future(self.scanner.add_user(x))
+                lambda x: asyncio.ensure_future(self.scanner.update_user(x))
             )
         log.info('DROP - Matched duser %s with id %s.',
                  args.user if args.user else message.author.display_name, duser.id)
@@ -168,11 +168,11 @@ class CogBot(discord.Client):
         log.info('DROP - Matched system %s based on args: %s.',
                  system.name, args.system)
 
-        fort = cogdb.query.add_fort(session, system=system, user=duser.suser, amount=args.amount)
+        fort = cogdb.query.add_fort(session, system=system, suser=duser.suser, amount=args.amount)
         if args.set:
             system.set_status(args.set)
             session.commit()
-        asyncio.ensure_future(self.scanner.add_fort(fort))
+        asyncio.ensure_future(self.scanner.update_fort(fort))
         asyncio.ensure_future(self.scanner.update_system(fort.system))
 
         log.info('DROP - Sucessfully dropped %d at %s for %s.',
@@ -299,8 +299,32 @@ class CogBot(discord.Client):
         await self.send_message(message.channel, '\n'.join(lines))
 
     async def command_user(self, **kwargs):
+        """
+        Allow a user to manage his/herself in the sheets.
+        """
+        args = kwargs.get('args')
         message = kwargs.get('message')
-        await self.send_message(message.channel, 'Reserved for future use.')
+        session = kwargs.get('session')
+
+        duser = cogdb.query.get_discord_user_by_id(session, message.author.id)
+        suser = duser.suser
+
+        if args.name:
+            suser.name = ' '.join(args.name)
+        if args.cry:
+            suser.cry = ' '.join(args.cry)
+        if args.name or args.cry:
+            asyncio.ensure_future(self.scanner.update_sheet_user(suser))
+
+        lines = [
+            '**{}**'.format(message.author.display_name),
+            'Cattle',
+            '  Name: {}'.format(suser.name),
+            '  Cry: {}'.format(suser.cry),
+            '  Merits: {}'.format(suser.fort_merits),
+        ]
+
+        await self.send_message(message.channel, '\n'.join(lines))
 
 
 def init_db(sheet_id):
