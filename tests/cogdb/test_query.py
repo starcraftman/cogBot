@@ -221,7 +221,7 @@ def test_get_sheet_user_by_name():
 @db_data
 def test_check_sheet_user_no_create():
     member = mock.Mock()
-    member.cattle_name = 'GearsandCogs'
+    member.pref_name = 'GearsandCogs'
     create_hook = mock.Mock()
 
     session = cogdb.Session()
@@ -234,7 +234,8 @@ def test_check_sheet_user_no_create():
 @db_data
 def test_check_sheet_user_create():
     member = mock.Mock()
-    member.cattle_name = 'notGears'
+    member.pref_name = 'notGears'
+    create_hook = mock.Mock()
     create_hook = mock.Mock()
 
     session = cogdb.Session()
@@ -248,22 +249,23 @@ def test_check_sheet_user_create():
 @db_cleanup
 @db_data
 def test_check_discord_user_no_create():
+    session = cogdb.Session()
     member = mock.Mock()
     member.id = '1111'
-    duser = cogdb.query.check_discord_user(member)
+    duser = cogdb.query.check_discord_user(session, member)
     assert duser.display_name == 'GearsandCogs'
 
 
 @db_cleanup
 @db_data
 def test_check_discord_user_create():
+    session = cogdb.Session()
     member = mock.Mock()
     member.id = '1112'
     member.display_name = 'someuser'
-    duser = cogdb.query.check_discord_user(member)
+    duser = cogdb.query.check_discord_user(session, member)
     assert duser.display_name == member.display_name
 
-    session = cogdb.Session()
     last_user = session.query(cogdb.schema.DUser).all()[-1]
     assert last_user.display_name == member.display_name
 

@@ -86,10 +86,11 @@ class CogBot(discord.Client):
                  channel.server, channel.name, author.name, msg)
 
         try:
-            cogdb.query.check_discord_user(author)
+            session = cogdb.Session()
+            cogdb.query.check_discord_user(session, author)
             parser = cog.share.make_parser(self.prefix)
             args = parser.parse_args(msg.split(' '))
-            await self.dispatch_command(message=message, args=args, session=cogdb.Session())
+            await self.dispatch_command(message=message, args=args, session=session)
         except (cog.exc.NoMatch, cog.exc.MoreThanOneMatch) as exc:
             log.error("Loose cmd failed to match excatly one. '%s' | %s", author.name, msg)
             log.error(exc)
@@ -307,21 +308,25 @@ class CogBot(discord.Client):
         session = kwargs.get('session')
 
         duser = cogdb.query.get_discord_user_by_id(session, message.author.id)
-        suser = duser.suser
+
+        if not duser.suser:
+            cogdb.query.check_sheet_user(session, duser)
 
         if args.name:
-            suser.name = ' '.join(args.name)
+            duser.pref_name = ' '.join(args.name)
+            duser.suser.name = duser.pref_name
+
         if args.cry:
-            suser.cry = ' '.join(args.cry)
+            duser.suser.cry = ' '.join(args.cry)
         if args.name or args.cry:
-            asyncio.ensure_future(self.scanner.update_sheet_user(suser))
+            asyncio.ensure_future(self.scanner.update_sheet_user(duser.suser))
 
         lines = [
             '**{}**'.format(message.author.display_name),
             'Cattle',
-            '  Name: {}'.format(suser.name),
-            '  Cry: {}'.format(suser.cry),
-            '  Merits: {}'.format(suser.fort_merits),
+            '  Name: {}'.format(duser.suser.name),
+            '  Cry: {}'.format(duser.suser.cry),
+            '  Merits: {}'.format(duser.suser.merits),
         ]
 
         await self.send_message(message.channel, '\n'.join(lines))
@@ -358,7 +363,7 @@ def main():
     finally:
         try:
             bot.close()
-        except AttributeError:
+        except UnboundLocalError:
             pass
 
 

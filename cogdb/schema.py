@@ -2,7 +2,6 @@
 Manage the database and its tables.
 """
 from __future__ import absolute_import, print_function
-import functools
 
 import sqlalchemy as sqla
 import sqlalchemy.orm as sqla_orm
@@ -103,7 +102,11 @@ class SUser(Base):
 
     @property
     def merits(self):
-        return functools.reduce(lambda x, y: x.amount + y.amount, self.forts)
+        total = 0
+        for fort in self.forts:
+            total += fort.amount
+
+        return total
 
 
 class Fort(Base):

@@ -34,7 +34,7 @@ def get_all_systems(session):
 
 def get_all_sheet_users(session):
     """
-    Return a list of all Users.
+    Return a list of all SUsers.
     """
     return session.query(SUser).all()
 
@@ -164,7 +164,7 @@ def get_system_by_name(session, system_name, search_all=False):
         return fuzzy_find(system_name, systems, 'name')
 
 
-def check_sheet_user(session, duser, create_hook):
+def check_sheet_user(session, duser, create_hook=None):
     """
     Try to find a user's name in sheet.
     If not create and add user to the sheet with hook.
@@ -172,23 +172,27 @@ def check_sheet_user(session, duser, create_hook):
     Returns: The SUser
     """
     try:
-        suser = get_sheet_user_by_name(session, duser.cattle_name)
+        suser = get_sheet_user_by_name(session, duser.pref_name)
     except cog.exc.NoMatch:
-        suser = add_sheet_user(session, name=duser.cattle_name)
+        suser = add_sheet_user(session, name=duser.pref_name)
         session.commit()
-        create_hook(suser)
+
+        if create_hook:
+            create_hook(suser)
+
+    duser.set_cattle(suser)
+    session.commit()
 
     return suser
 
 
-def check_discord_user(member):
+def check_discord_user(session, member):
     """
     Ensure a member has an entry in the dusers table.
 
     Returns: The DUser
     """
     try:
-        session = cogdb.Session()
         duser = get_discord_user_by_id(session, member.id)
     except cog.exc.NoMatch:
         duser = add_discord_user(session, member)
@@ -309,12 +313,11 @@ class SheetScanner(object):
     def users(self):
         """
         Scan the users in the fortification sheet and return User objects that can be inserted.
-
-        Ensure Users and Systems have been flushed to link ids.
         """
         found = []
         row = self.user_row - 1
         user_column = cog.sheets.column_to_index(self.user_col)
+        cry_column = user_column - 1
 
         for user in self.cells[user_column][row:]:
             row += 1
@@ -322,7 +325,12 @@ class SheetScanner(object):
             if user == '':  # Users sometimes miss an entry
                 continue
 
-            found.append(SUser(name=user, row=row))
+            try:
+                cry = self.cells[cry_column][row - 1]
+            except IndexError:
+                cry = ''
+
+            found.append(SUser(name=user, row=row, cry=cry))
 
         return found
 
