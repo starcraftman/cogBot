@@ -356,7 +356,10 @@ def main():
         bot = CogBot(prefix='!', scanner=scanner)
         bot.run(cog.share.get_config('discord_token'))
     finally:
-        bot.close()
+        try:
+            bot.close()
+        except AttributeError:
+            pass
 
 
 if __name__ == "__main__":

@@ -35,18 +35,17 @@ class Command(Base):
             "date={date!r})".format(**args)
 
     def __str__(self):
-        duser = None
+        duser = ''
         if getattr(self, 'duser', None):
-            duser = self.duser.display_name
+            duser = "display_name={!r}, ".format(self.duser.display_name)
 
-        return "id={!r}, display_name={!r}, {!r}".format(self.id, duser, self)
+        return "id={}, {}{!r}".format(self.id, duser, self)
 
     def __eq__(self, other):
         return (self.cmd_str, self.discord_id, self.date) == (
             other.cmd_str, other.discord_id, other.date)
 
 
-# TODO: Revert cattle_name to cattle_id, bad decision.
 class DUser(Base):
     """
     Database to store discord users and their permanent preferences.
@@ -55,22 +54,27 @@ class DUser(Base):
 
     discord_id = sqla.Column(sqla.String, primary_key=True)
     display_name = sqla.Column(sqla.String)
-    capacity = sqla.Column(sqla.Integer)
-    cattle_name = sqla.Column(sqla.String, sqla.ForeignKey('sheet_users.name'))
+    pref_name = sqla.Column(sqla.String)  # pref_name == display_name until user changes it
+    capacity = sqla.Column(sqla.Integer, default=0)
+    cattle_id = sqla.Column(sqla.Integer, sqla.ForeignKey('sheet_users.id'))
 
     def __repr__(self):
-        args = {}
-        for key in ['capacity', 'discord_id', 'display_name', 'cattle_name']:
-            args[key] = getattr(self, key)
+        keys = ['discord_id', 'display_name', 'pref_name', 'capacity', 'cattle_id']
+        kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
 
-        return "DUser(display_name={display_name!r}, discord_id={discord_id!r}, "\
-            "capacity={capacity!r}, cattle_name={cattle_name!r})".format(**args)
+        return "DUser({})".format(', '.join(kwargs))
 
     def __str__(self):
         return self.__repr__()
 
     def __eq__(self, other):
         return self.discord_id == other.discord_id
+
+    def set_cattle(self, suser):
+        """
+        Set the users cattle sheet row.
+        """
+        self.cattle_id = suser.id
 
 
 class SUser(Base):
@@ -98,13 +102,8 @@ class SUser(Base):
         return (self.name, self.row) == (other.name, other.row)
 
     @property
-    def fort_merits(self):
-        amount = 0
-        for fort in self.forts:
-            amount += fort.amount
-
-        return amount
-        # return functools.reduce(lambda x, y: x.amount + y.amount, self.forts)
+    def merits(self):
+        return functools.reduce(lambda x, y: x.amount + y.amount, self.forts)
 
 
 class Fort(Base):
@@ -116,23 +115,29 @@ class Fort(Base):
 
     id = sqla.Column(sqla.Integer, primary_key=True)
     amount = sqla.Column(sqla.Integer)
-    system_name = sqla.Column(sqla.Integer, sqla.ForeignKey('systems.name'))
-    cattle_name = sqla.Column(sqla.Integer, sqla.ForeignKey('sheet_users.name'))
+    system_id = sqla.Column(sqla.Integer, sqla.ForeignKey('systems.id'))
+    user_id = sqla.Column(sqla.Integer, sqla.ForeignKey('sheet_users.id'))
 
     def __repr__(self):
-        args = {}
-        for key in ['amount', 'cattle_name', 'system_name']:
-            args[key] = getattr(self, key)
+        keys = ['system_id', 'user_id', 'amount']
+        kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
 
-        return "Fort(cattle_name={cattle_name!r}, "\
-               "system_name={system_name!r}, amount={amount!r})".format(**args)
+        return "Fort({})".format(', '.join(kwargs))
 
     def __str__(self):
-        return "id={!r}, {!r}".format(self.id, self)
+        system = ''
+        if getattr(self, 'system', None):
+            system = "system_name={!r}, ".format(self.system.name)
+
+        suser = ''
+        if getattr(self, 'suser', None):
+            suser = "suser_name={!r}, ".format(self.suser.name)
+
+        return "id={!r}, {}{}{!r}".format(self.id, system, suser, self)
 
     def __eq__(self, other):
-        return (self.cattle_name, self.system_name, self.amount) == (
-            other.cattle_name, other.system_name, other.amount)
+        return (self.user_id, self.system_id, self.amount) == (
+            other.user_id, other.system_id, other.amount)
 
 
 class System(Base):
@@ -146,7 +151,7 @@ class System(Base):
     args:
         id: Set by the database, unique id.
         name: Name of the system. (string)
-        current_status: Current reported status from galmap/users. (int)
+        fort_status: Current reported status from galmap/users. (int)
         cmdr_merits: Total merits dropped by cmdrs. (int)
         trigger: Total trigger of merits required. (int)
         undermine: Percentage of undermining of the system. (float)
@@ -158,31 +163,33 @@ class System(Base):
 
     header = ['System', 'Missing', 'Merits (Fort%/UM%)', 'Notes']
 
-    name = sqla.Column(sqla.String, primary_key=True)
+    id = sqla.Column(sqla.Integer, primary_key=True)
+    name = sqla.Column(sqla.String, unique=True)
     cmdr_merits = sqla.Column(sqla.Integer)
-    distance = sqla.Column(sqla.Float)
     fort_status = sqla.Column(sqla.Integer)
-    um_status = sqla.Column(sqla.Integer)
-    notes = sqla.Column(sqla.String)
+    trigger = sqla.Column(sqla.Integer)
+    um_status = sqla.Column(sqla.Integer, default=0)
+    undermine = sqla.Column(sqla.Float, default=0.0)
+    distance = sqla.Column(sqla.Float)
+    notes = sqla.Column(sqla.String, default='')
     sheet_col = sqla.Column(sqla.String)
     sheet_order = sqla.Column(sqla.Integer)
-    trigger = sqla.Column(sqla.Integer)
-    undermine = sqla.Column(sqla.Float)
 
     def __repr__(self):
-        """ Dump object data. """
-        args = {}
-        for key in ['name', 'cmdr_merits', 'fort_status', 'notes', 'sheet_col', 'sheet_order',
-                    'trigger', 'undermine', 'um_status', 'distance']:
-            args[key] = getattr(self, key)
+        keys = ['name', 'cmdr_merits', 'fort_status', 'trigger', 'um_status',
+                'undermine', 'distance', 'notes', 'sheet_col', 'sheet_order']
+        kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
 
-        return "System(name={name!r}, sheet_order={sheet_order!r}, sheet_col={sheet_col!r}, "\
-               "cmdr_merits={cmdr_merits!r}, fort_status={fort_status!r}, trigger={trigger!r}, "\
-               "undermine={undermine!r}, um_status={um_status!r}, distance={distance!r}, "\
-               "notes={notes!r})".format(**args)
+        return "System({})".format(', '.join(kwargs))
 
     def __str__(self):
-        return self.__repr__()
+        return "id={!r}, {!r}".format(self.id, self)
+
+    def __eq__(self, other):
+        return (self.name, self.fort_status, self.cmdr_merits, self.trigger,
+                self.undermine, self.um_status, self.distance, self.notes) == (
+                    other.name, other.fort_status, other.cmdr_merits, other.trigger,
+                    other.undermine, self.um_status, self.distance, other.notes)
 
     @property
     def ump(self):
@@ -208,7 +215,7 @@ class System(Base):
     @property
     def is_undermined(self):
         """ The system has been undermined """
-        return self.undermine >= 0.99
+        return self.undermine >= 1.00
 
     @property
     def missing(self):
@@ -252,15 +259,9 @@ class System(Base):
         msg = '{} :Fortifying: {}/{}'.format(self.name, self.current_status, self.trigger)
 
         if missing and self.missing and self.missing < 1400:
-            msg += ', missing: ' + str(self.missing)
+            msg += '\nMissing: ' + str(self.missing)
 
         return msg
-
-    def __eq__(self, other):
-        return (self.name, self.sheet_col, self.sheet_order, self.fort_status,
-                self.cmdr_merits, self.trigger, self.undermine, self.notes) == (
-                    other.name, other.sheet_col, other.sheet_order, other.fort_status,
-                    other.cmdr_merits, other.trigger, other.undermine, other.notes)
 
 
 def parse_int(word):
@@ -385,10 +386,9 @@ def main():
     session = cogdb.Session()
 
     dusers = (
-        DUser(discord_id='197221', display_name='GearsandCogs', capacity=0,
-              name='GearsandCogs'),
-        DUser(discord_id='299221', display_name='rjwhite', capacity=0, name='rjwhite'),
-        DUser(discord_id='293211', display_name='vampyregtx', capacity=0, name='vampyregtx'),
+        DUser(discord_id='197221', pref_name='GearsandCogs', capacity=0),
+        DUser(discord_id='299221', pref_name='rjwhite', capacity=0),
+        DUser(discord_id='293211', pref_name='vampyregtx', capacity=0),
     )
     session.add_all(dusers)
     session.commit()
@@ -406,7 +406,11 @@ def main():
         SUser(name='rjwhite', row=16),
         SUser(name='vampyregtx', row=17),
     )
+
     session.add_all(susers)
+    session.commit()
+    for ind in range(0, 3):
+        dusers[ind].set_cattle(susers[ind])
     session.commit()
 
     systems = (
@@ -421,11 +425,11 @@ def main():
     session.commit()
 
     forts = (
-        Fort(cattle_name=susers[0].name, system_name=systems[0].name, amount=700),
-        Fort(cattle_name=susers[1].name, system_name=systems[0].name, amount=700),
-        Fort(cattle_name=susers[0].name, system_name=systems[2].name, amount=1400),
-        Fort(cattle_name=susers[2].name, system_name=systems[1].name, amount=2100),
-        Fort(cattle_name=susers[2].name, system_name=systems[0].name, amount=300),
+        Fort(user_id=susers[0].id, system_id=systems[0].id, amount=700),
+        Fort(user_id=susers[1].id, system_id=systems[0].id, amount=700),
+        Fort(user_id=susers[0].id, system_id=systems[2].id, amount=1400),
+        Fort(user_id=susers[2].id, system_id=systems[1].id, amount=2100),
+        Fort(user_id=susers[2].id, system_id=systems[0].id, amount=300),
     )
     session.add_all(forts)
     session.commit()

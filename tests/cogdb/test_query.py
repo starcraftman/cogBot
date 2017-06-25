@@ -72,20 +72,19 @@ def test_sheetscanner_find_user_row(mock_sheet):
 
 
 def test_sheetscanner_forts(mock_sheet):
-    scanner = cogdb.query.SheetScanner(mock_sheet)
-    systems = scanner.systems()
-    users = scanner.users()
+    try:
+        session = cogdb.Session()
+        scanner = cogdb.query.SheetScanner(mock_sheet)
+        scanner.scan(session)
 
-    forts = scanner.forts(systems, users)
-    fort1, fort2 = forts[0], forts[1]
-
-    assert fort1.amount == 2222
-    assert fort1.system_name == 'Frey'
-    assert fort1.cattle_name == 'Toliman'
-
-    assert fort2.amount == 80
-    assert fort2.system_name == 'Frey'
-    assert fort2.cattle_name == 'Oskiboy[XB1/PC]'
+        fort1 = session.query(cogdb.schema.Fort).all()[0]
+        assert fort1.amount == 2222
+        assert fort1.system.name == 'Frey'
+        assert fort1.system_id == 1
+        assert fort1.suser.name == 'Toliman'
+        assert fort1.user_id == 2
+    finally:
+        cogdb.schema.drop_all_tables()
 
 
 def test_sheetscanner_systems(mock_sheet):
@@ -296,8 +295,8 @@ def test_add_fort():
     suser = cogdb.query.get_all_sheet_users(session)[4]
 
     with pytest.raises(sqlalchemy.orm.exc.NoResultFound):
-        session.query(cogdb.schema.Fort).filter_by(cattle_name=suser.name,
-                                                   system_name=system.name).one()
+        session.query(cogdb.schema.Fort).filter_by(user_id=suser.id,
+                                                   system_id=system.id).one()
     old_fort = system.fort_status
     old_cmdr = system.cmdr_merits
 
@@ -306,5 +305,5 @@ def test_add_fort():
     assert fort.amount == 400
     assert system.fort_status == old_fort + 400
     assert system.cmdr_merits == old_cmdr + 400
-    assert session.query(cogdb.schema.Fort).filter_by(cattle_name=suser.name,
-                                                      system_name=system.name).one()
+    assert session.query(cogdb.schema.Fort).filter_by(user_id=suser.id,
+                                                      system_id=system.id).one()

@@ -197,14 +197,14 @@ def check_discord_user(member):
     return duser
 
 
-def add_discord_user(session, member, capacity=0, cattle_name=''):
+def add_discord_user(session, member, capacity=0, pref_name=None):
     """
     Add a discord user to the database.
     """
-    if not cattle_name:
-        cattle_name = member.display_name
+    if not pref_name:
+        pref_name = member.display_name
     new_duser = DUser(discord_id=member.id, display_name=member.display_name,
-                      capacity=capacity, cattle_name=cattle_name)
+                      capacity=capacity, pref_name=pref_name)
     session.add(new_duser)
     session.commit()
 
@@ -238,11 +238,11 @@ def add_fort(session, **kwargs):
     amount = kwargs['amount']
 
     try:
-        fort = session.query(Fort).filter_by(cattle_name=suser.name,
-                                             system_name=system.name).one()
+        fort = session.query(Fort).filter_by(user_id=suser.id,
+                                             system_id=system.id).one()
         fort.amount = fort.amount + amount
     except sqa_exc.NoResultFound:
-        fort = Fort(cattle_name=suser.name, system_name=system.name, amount=amount)
+        fort = Fort(user_id=suser.id, system_id=system.id, amount=amount)
         session.add(fort)
     system.fort_status = system.fort_status + amount
     system.cmdr_merits = system.cmdr_merits + amount
@@ -347,7 +347,7 @@ class SheetScanner(object):
                     if amount == '':  # Some rows just placeholders if empty
                         continue
 
-                    found.append(Fort(cattle_name=suser.name, system_name=system.name,
+                    found.append(Fort(user_id=suser.id, system_id=system.id,
                                       amount=amount))
             except IndexError:
                 pass  # No more amounts in column
