@@ -9,7 +9,7 @@ import pytest
 
 import cog.exc
 from tests.cogdb import FMT_CELLS, SYSTEMS, USERS
-from tests.cogdb.test_schema import db_cleanup, db_data, mock_sheet
+from tests.cogdb.test_schema import db_cleanup, db_data, mock_sheet, mock_um_sheet
 import cogdb
 import cogdb.schema
 import cogdb.query

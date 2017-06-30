@@ -267,6 +267,104 @@ class System(Base):
         return msg
 
 
+class UMMerits(Base):
+    __tablename__ = 'um_merits'
+
+    id = sqla.Column(sqla.Integer, primary_key=True)
+    system_id = sqla.Column(sqla.Integer)
+    user_id = sqla.Column(sqla.Integer)
+    held = sqla.Column(sqla.Integer)
+    redeemed = sqla.Column(sqla.Integer)
+
+    def __repr__(self):
+        keys = ['system_id', 'user_id', 'held', 'redeemed']
+        kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
+
+        return "UMMerits({})".format(', '.join(kwargs))
+
+    def __str__(self):
+        return "id={!r}, {!r}".format(self.id, self)
+
+    def __eq__(self, other):
+        return (self.system_id, self.user_id, self.held, self.redeemed) == (
+            other.system_id, other.user_id, other.held, other.redeemed)
+
+
+class ExpSystem(Base):
+    __tablename__ = 'um_systems'
+
+    id = sqla.Column(sqla.Integer, primary_key=True)
+    name = sqla.Column(sqla.String, unique=True)
+    trigger = sqla.Column(sqla.Integer)
+    margin = sqla.Column(sqla.Float)
+    completion = sqla.Column(sqla.Float)
+    goal = sqla.Column(sqla.Integer)
+    cmdr_merits = sqla.Column(sqla.Integer)
+    missing = sqla.Column(sqla.Integer)
+    security = sqla.Column(sqla.String)
+    notes = sqla.Column(sqla.String)
+    close_control = sqla.Column(sqla.String)
+    progress_us = sqla.Column(sqla.Integer)
+    progress_them = sqla.Column(sqla.Float)
+    sheet_col = sqla.Column(sqla.String)
+
+    def __repr__(self):
+        keys = ['name', 'sheet_col', 'completion', 'goal', 'cmdr_merits', 'missing',
+                'progress_us', 'progress_them', 'trigger', 'margin',
+                'security', 'notes', 'close_control']
+        kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
+
+        return "ExpSystem({})".format(', '.join(kwargs))
+
+    def __str__(self):
+        return "id={!r}, {!r}".format(self.id, self)
+
+    def __eq__(self, other):
+        return (self.name, self.completion, self.goal, self.cmdr_merits, self.missing) == (
+            other.name, other.completion, other.goal, other.cmdr_merits, other.missing)
+
+
+def kwargs_exp_system(cells, sheet_col):
+    """
+    Return keyword args parsed from cell frame.
+
+    Format !D1:E11:
+        1: Title | Title
+        2: Exp Trigger/Opp. Tigger | % safety margin  -> If cells blank, not expansion system.
+        3: Leading by xx% OR behind by xx% (
+        4: Estimated Goal (integer)
+        5: CMDR Merits (Total merits)
+        6: Missing Merits
+        7: Security Level | Notes
+        8: Closest Control (string)
+        9: System Name (string)
+        10: Our Progress (integer) | Type String (Ignore)
+        11: Enemy Progress (percentage) | Type String (Ignore)
+    """
+    main_col, sec_col = cells[0], cells[1]
+    try:
+        if main_col[9] == '':
+            raise cog.exc.SheetParsingError
+
+        return {
+            'trigger': parse_int(main_col[1]),
+            'margin': parse_float(sec_col[1]),
+            'completion': parse_float(main_col[2].split()[-1][:-1]) / 100,
+            'goal': parse_int(main_col[3]),
+            'cmdr_merits': parse_int(main_col[4]),
+            'missing': parse_int(main_col[5]),
+            'security': main_col[6],
+            'notes': sec_col[6],
+            'close_control':  main_col[7],
+            'name': main_col[8],
+            'progress_us': parse_int(main_col[9]),
+            'progress_them': parse_float(main_col[10]),
+            'sheet_col': sheet_col,
+        }
+    except (IndexError, TypeError):
+        raise cog.exc.SheetParsingError
+
+
 def parse_int(word):
     try:
         return int(word)

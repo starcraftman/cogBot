@@ -11,7 +11,7 @@ import cog.exc
 import cogdb
 import cogdb.schema
 
-from tests.cogdb import CELLS, FMT_CELLS
+from tests.cogdb import CELLS, FMT_CELLS, UM_CELLS
 
 SYSTEM_DATA = ['', 1, 4910, 0, 4322, 4910, 0, 116.99, '', 'Frey']
 
@@ -23,6 +23,25 @@ def mock_sheet():
     fake_sheet.get_with_formatting.return_value = FMT_CELLS
 
     yield fake_sheet
+
+
+@pytest.fixture
+def mock_umsheet():
+    fake_sheet = mock.Mock()
+    fake_sheet.whole_sheet.return_value = UM_CELLS
+
+    yield fake_sheet
+
+
+def dec_exp_system(function):
+    def call():
+        sys_cols = UM_CELLS[3:5]
+        kwargs = cogdb.schema.kwargs_exp_system(sys_cols, 'D')
+        system = cogdb.schema.ExpSystem(**kwargs)
+
+        function(kwargs=kwargs, system=system)
+
+    return call
 
 
 def duser_and_suser(function):
@@ -425,6 +444,56 @@ def test_system_table_row():
     system.notes = 'Leave'
     assert system.table_row == ('Frey', '   0', '4910/4910 (100.0%/0.0%)', 'Leave')
 
+
+@dec_exp_system
+def test_exp_system__repr__(**kwargs):
+    system = kwargs['system']
+
+    assert repr(system) == "ExpSystem(name='Burr', sheet_col='D', completion=-0.84, "\
+        "goal=364297, cmdr_merits=160472, missing=127277, progress_us=161630, "\
+        "progress_them=35.0, trigger=6939, margin=0.5, security='Sec: Low', notes='', "\
+        "close_control='Dongkum')"
+    assert system == eval(repr(system).replace('ExpSystem', 'cogdb.schema.ExpSystem'))
+
+
+@dec_exp_system
+def test_exp_system__str__(**kwargs):
+    system = kwargs['system']
+    assert str(system) == "id=None, ExpSystem(name='Burr', sheet_col='D', completion=-0.84, "\
+        "goal=364297, cmdr_merits=160472, missing=127277, progress_us=161630, "\
+        "progress_them=35.0, trigger=6939, margin=0.5, security='Sec: Low', notes='', "\
+        "close_control='Dongkum')"
+
+
+@dec_exp_system
+def test_exp_system__eq__(**kwargs):
+    system = kwargs['system']
+
+    assert system == cogdb.schema.ExpSystem(name='Burr', sheet_col='D', completion=-0.84,
+        goal=364297, cmdr_merits=160472, missing=127277, progress_us=161630,
+        progress_them=35.0, trigger=6939, margin=0.5, security='Sec: Low', notes='',
+        close_control='Dongkum')
+
+
+@dec_exp_system
+def test_kwargs_exp_system(**kwargs):
+    expect = {
+        'close_control': 'Dongkum',
+        'cmdr_merits': 160472,
+        'completion': -0.84,
+        'goal': 364297,
+        'margin': 0.5,
+        'missing': 127277,
+        'name': 'Burr',
+        'notes': '',
+        'progress_us': 161630,
+        'progress_them': 35.0,
+        'security': 'Sec: Low',
+        'sheet_col': 'D',
+        'trigger': 6939
+    }
+
+    assert kwargs['kwargs'] == expect
 
 def test_parse_int():
     assert cogdb.schema.parse_int('') == 0

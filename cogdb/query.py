@@ -432,6 +432,72 @@ class SheetScanner(object):
         self.gsheet.update(cell_range, [[suser.cry, suser.name]])
 
 
+class UMScanner(object):
+    """
+    Scanner for the undermine sheet.
+    """
+    def __init__(self, gsheet):
+        self.gsheet = gsheet
+        self.__cells = None
+        self.user_col = 'C'
+        self.user_row = 14
+
+    @property
+    def cells(self):
+        """
+        Access a cached version of the cells.
+        """
+        if not self.__cells:
+            self.__cells = self.gsheet.whole_sheet()
+
+        return self.__cells
+
+    def scan(self, session):
+        """
+        Update db with scanned information from sheet.
+        """
+        systems = self.columns()
+        users = self.rows()
+        session.add_all(systems + users)
+        session.commit()
+
+        session.add_all(self.joined_data(systems, users))
+        session.commit()
+
+    def columns(self):
+        """
+        Scan the system column information.
+        """
+        pass
+
+    def rows(self):
+        """
+        Scan the users in the sheet and return SUser objects.
+        """
+        found = []
+        row = self.user_row - 1
+        user_column = cog.sheets.column_to_index(self.user_col)
+        cry_column = user_column - 1
+
+        for user in self.cells[user_column][row:]:
+            row += 1
+
+            if user == '':  # Users sometimes miss an entry
+                continue
+
+            try:
+                cry = self.cells[cry_column][row - 1]
+            except IndexError:
+                cry = ''
+
+            found.append(SUser(name=user, row=row, cry=cry))
+
+        return found
+
+    def joined_data(self, rows, columns):
+        pass
+
+
 def subseq_match(needle, line, ignore_case=True):
     """
     True iff the subsequence needle present in line.
