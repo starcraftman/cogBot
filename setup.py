@@ -22,6 +22,32 @@ except NameError:
     pass
 
 
+def make_get_input():
+    """
+    Simple wrapper to get input from user.
+    When --yes in sys.argv, skip input and assume yes to any request.
+    """
+    default = False
+    if '--yes' in sys.argv:
+        sys.argv.remove('--yes')
+        default = True
+
+    def inner_get_input(msg):
+        """
+        The actual function that emulates input.
+        """
+        if default:
+            return 'yes'
+
+        return input(msg)
+    inner_get_input.default = default
+
+    return inner_get_input
+
+
+get_input = make_get_input()
+
+
 def rec_search(wildcard):
     """
     Traverse all subfolders and match files against the wildcard.
@@ -55,7 +81,7 @@ class Clean(Command):
         matched += ' ' + ' '.join(rec_search('*diagram.png'))
         cmd = 'rm -vrf .eggs .tox build dist ' + matched
         print('Executing: ' + cmd)
-        recv = input('OK? y/n  ').strip().lower()
+        recv = get_input('OK? y/n  ').strip().lower()
         if recv.startswith('y'):
             subprocess.call(shlex.split(cmd))
 
@@ -76,9 +102,14 @@ class InstallDeps(Command):
         print('Installing/Upgrading runtime & testing dependencies')
         cmd = 'pip install -U ' + ' '.join(RUN_DEPS + TEST_DEPS)
         print('Executing: ' + cmd)
-        recv = input('OK? y/n  ').strip().lower()
+        recv = get_input('OK? y/n  ').strip().lower()
         if recv.startswith('y'):
-            subprocess.call(shlex.split(cmd))
+            out = subprocess.DEVNULL if get_input.default else None
+            timeout = 150
+            try:
+                subprocess.Popen(shlex.split(cmd), stdout=out).wait(timeout)
+            except subprocess.TimeoutExpired:
+                print('Deps installation took over {} seconds, something is wrong.'.format(timeout))
 
 
 class Test(Command):
@@ -232,7 +263,8 @@ class UMLDocs(Command):
 SHORT_DESC = 'The Elite Federal Discord Bot'
 MY_NAME = 'Jeremy Pallats / starcraft.man'
 MY_EMAIL = 'N/A'
-RUN_DEPS = ['argparse', 'discord.py', 'google-api-python-client', 'pyyaml', 'SQLalchemy']
+RUN_DEPS = ['argparse', 'decorator', 'discord.py', 'google-api-python-client',
+            'pyyaml', 'SQLalchemy']
 TEST_DEPS = ['coverage', 'flake8', 'mock', 'pylint', 'pytest', 'pytest-cov', 'sphinx', 'tox']
 setup(
     name='cogbot',
