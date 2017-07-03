@@ -22,14 +22,6 @@ except NameError:
     pass
 
 
-try:
-    assert sys.version_info[0:2] >= (3, 5)
-except AssertionError:
-    print('This entire program must be run with python >= 3.5')
-    print('If unavailable on platform, see https://github.com/pyenv/pyenv')
-    sys.exit(1)
-
-
 def rec_search(wildcard):
     """
     Traverse all subfolders and match files against the wildcard.
