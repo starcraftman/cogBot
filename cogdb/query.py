@@ -356,7 +356,7 @@ class SheetScanner(object):
         session.add_all(systems + users)
         session.commit()
 
-        session.add_all(self.forts(systems, users))
+        session.add_all(self.merits(systems, users))
         session.commit()
 
         self.__cells = None
@@ -405,10 +405,10 @@ class SheetScanner(object):
 
         return found
 
-    def forts(self, systems, susers):
+    def merits(self, systems, susers):
         """
         Scan the fortification area of the sheet and return Drop objects representing
-        fortification of each system.
+        merits each user has dropped in System.
 
         Args:
             systems: The list of Systems in the order entered in the sheet.

@@ -71,20 +71,18 @@ def test_sheetscanner_find_user_row(mock_sheet):
         cogdb.query.SheetScanner(mock_sheet)
 
 
-def test_sheetscanner_forts(mock_sheet):
-    try:
-        session = cogdb.Session()
-        scanner = cogdb.query.SheetScanner(mock_sheet)
-        scanner.scan(session)
+@db_cleanup
+def test_sheetscanner_merits(mock_sheet):
+    session = cogdb.Session()
+    scanner = cogdb.query.SheetScanner(mock_sheet)
+    scanner.scan(session)
 
-        fort1 = session.query(cogdb.schema.Drop).all()[0]
-        assert fort1.amount == 2222
-        assert fort1.system.name == 'Frey'
-        assert fort1.system_id == 1
-        assert fort1.suser.name == 'Toliman'
-        assert fort1.user_id == 2
-    finally:
-        cogdb.schema.drop_all_tables()
+    fort1 = session.query(cogdb.schema.Drop).all()[0]
+    assert fort1.amount == 2222
+    assert fort1.system.name == 'Frey'
+    assert fort1.system_id == 1
+    assert fort1.suser.name == 'Toliman'
+    assert fort1.user_id == 2
 
 
 def test_sheetscanner_systems(mock_sheet):
@@ -120,17 +118,16 @@ def test_umscanner_users(mock_umsheet):
 
 
 @db_cleanup
-def test_umscanner_ummerits(mock_umsheet):
+def test_umscanner_merits(mock_umsheet):
     session = cogdb.Session()
     scanner = cogdb.query.UMScanner(mock_umsheet)
-    systems = scanner.systems()
-    users = scanner.users()
-    session.add_all(systems + users)
+    scanner.scan(session)
     session.commit()
-    merit = scanner.merits(systems, users)[0]
-    assert merit.held == 28750
-    assert merit.redeemed == 0
-    assert merit.system_id == 1
+
+    hold = session.query(cogdb.schema.Hold).all()[0]
+    assert hold.held == 28750
+    assert hold.redeemed == 0
+    assert hold.system_id == 1
 
 
 @db_cleanup

@@ -130,10 +130,10 @@ class CogBot(discord.Client):
             ['!fort', 'Get information about our fort systems.'],
             ['!hold', 'Declare held merits or redeem them.'],
             ['!info', 'Display information on a user.'],
-            ['!scan', 'Rebuild the database by fetching and parsing latest data.'],
+            ['!scan', 'Rebuild the database with latest sheet data.'],
             ['!time', 'Show game time and time to ticks.'],
             ['!um', 'Get information about undermining targets.'],
-            ['!user', 'UNUSED ATM. Manage users.'],
+            ['!user', 'Manage your user, set sheet name and tag.'],
             ['!help', 'This help message.'],
         ]
 
