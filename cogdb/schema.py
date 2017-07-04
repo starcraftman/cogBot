@@ -399,8 +399,8 @@ def kwargs_um_system(cells, sheet_col):
         10: Our Progress (integer) | Type String (Ignore)
         11: Enemy Progress (percentage) | Type String (Ignore)
     """
-    main_col, sec_col = cells[0], cells[1]
     try:
+        main_col, sec_col = cells[0], cells[1]
         if main_col[8] == '' or 'template' in main_col[8].lower():
             raise cog.exc.SheetParsingError
 

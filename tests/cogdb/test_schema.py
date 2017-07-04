@@ -2,6 +2,7 @@
 Test the schema for the database.
 """
 from __future__ import absolute_import, print_function
+import copy
 import datetime
 
 import decorator
@@ -107,7 +108,7 @@ def duser_and_suser(function):
     return call
 
 
-def dec_fort(function):
+def dec_drop(function):
     def call():
         suser = cogdb.schema.SUser(name='test user', row=2)
         result = cogdb.schema.kwargs_fort_system(SYSTEM_DATA, 0, 'F')
@@ -116,11 +117,11 @@ def dec_fort(function):
         session = cogdb.Session()
         session.add_all([system, suser])
         session.commit()
-        fort = cogdb.schema.Drop(amount=400, user_id=suser.id, system_id=system.id)
-        session.add(fort)
+        drop = cogdb.schema.Drop(amount=400, user_id=suser.id, system_id=system.id)
+        session.add(drop)
         session.commit()
 
-        function(session=session, suser=suser, system=system, fort=fort)
+        function(session=session, suser=suser, system=system, drop=drop)
 
     return call
 
@@ -291,28 +292,28 @@ def test_suser_merits():
 
 
 @db_cleanup
-@dec_fort
-def test_fort__eq__(**kwargs):
-    suser, system, fort = (kwargs['suser'], kwargs['system'], kwargs['fort'])
-    assert fort == cogdb.schema.Drop(amount=400, user_id=suser.id,
+@dec_drop
+def test_drop__eq__(**kwargs):
+    suser, system, drop = (kwargs['suser'], kwargs['system'], kwargs['drop'])
+    assert drop == cogdb.schema.Drop(amount=400, user_id=suser.id,
                                      system_id=system.id)
-    assert fort.suser == suser
-    assert fort.system == system
+    assert drop.suser == suser
+    assert drop.system == system
 
 
 @db_cleanup
-@dec_fort
-def test_fort__repr__(**kwargs):
-    fort = kwargs['fort']
-    assert repr(fort) == "Drop(system_id=1, user_id=1, amount=400)"
-    assert fort == eval(repr(fort).replace('Drop', 'cogdb.schema.Drop'))
+@dec_drop
+def test_drop__repr__(**kwargs):
+    drop = kwargs['drop']
+    assert repr(drop) == "Drop(system_id=1, user_id=1, amount=400)"
+    assert drop == eval(repr(drop).replace('Drop', 'cogdb.schema.Drop'))
 
 
 @db_cleanup
-@dec_fort
-def test_fort__str__(**kwargs):
-    fort = kwargs['fort']
-    assert str(fort) == "id=1, system_name='Frey', suser_name='test user', "\
+@dec_drop
+def test_drop__str__(**kwargs):
+    drop = kwargs['drop']
+    assert str(drop) == "id=1, system_name='Frey', suser_name='test user', "\
                         "Drop(system_id=1, user_id=1, amount=400)"
 
 
@@ -498,8 +499,44 @@ def test_kwargs_system_um(**kwargs):
         'trigger': 6939,
         'type': 'expand',
     }
+    sys_cols = copy.deepcopy(UM_CELLS[3:5])
+    assert cogdb.schema.kwargs_um_system(sys_cols, 'D') == expect
 
-    assert kwargs['kwargs'] == expect
+    sys_cols[0][0] = 'Opp.'
+    expect['type'] = cogdb.schema.SystemUM.T_OPPOSE
+    assert cogdb.schema.kwargs_um_system(sys_cols, 'D') == expect
+
+    sys_cols[0][0] = ''
+    expect['type'] = cogdb.schema.SystemUM.T_CONTROL
+    assert cogdb.schema.kwargs_um_system(sys_cols, 'D') == expect
+
+    with pytest.raises(cog.exc.SheetParsingError):
+        cogdb.schema.kwargs_um_system([], 'D')
+
+
+def test_kwargs_fort_system():
+    expect = {
+        'cmdr_merits': 4322,
+        'distance': 116.99,
+        'fort_status': 4910,
+        'name': 'Frey',
+        'notes': '',
+        'sheet_col': 'F',
+        'sheet_order': 0,
+        'trigger': 4910,
+        'um_status': 0,
+        'undermine': 0.0,
+    }
+    assert cogdb.schema.kwargs_fort_system(SYSTEM_DATA, 0, 'F') == expect
+
+    with pytest.raises(cog.exc.SheetParsingError):
+        cogdb.schema.kwargs_fort_system(['' for _ in range(0, 10)], 1, 'A')
+
+    with pytest.raises(cog.exc.SheetParsingError):
+        cogdb.schema.kwargs_fort_system([], 1, 'A')
+
+    with pytest.raises(cog.exc.SheetParsingError):
+        cogdb.schema.kwargs_fort_system(SYSTEM_DATA[:-2], 1, 'A')
 
 
 def test_parse_int():
@@ -512,24 +549,3 @@ def test_parse_float():
     assert cogdb.schema.parse_float('') == 0.0
     assert cogdb.schema.parse_float('2') == 2.0
     assert cogdb.schema.parse_float(0.5) == 0.5
-
-
-def test_kwargs_fort_system():
-    result = cogdb.schema.kwargs_fort_system(SYSTEM_DATA, 0, 'F')
-    assert result['undermine'] == 0.0
-    assert result['trigger'] == 4910
-    assert result['cmdr_merits'] == 4322
-    assert result['fort_status'] == 4910
-    assert result['notes'] == ''
-    assert result['name'] == 'Frey'
-    assert result['sheet_col'] == 'F'
-    assert result['sheet_order'] == 0
-
-    with pytest.raises(cog.exc.SheetParsingError):
-        cogdb.schema.kwargs_fort_system(['' for _ in range(0, 10)], 1, 'A')
-
-    with pytest.raises(cog.exc.SheetParsingError):
-        cogdb.schema.kwargs_fort_system([], 1, 'A')
-
-    with pytest.raises(cog.exc.SheetParsingError):
-        cogdb.schema.kwargs_fort_system(SYSTEM_DATA[:-2], 1, 'A')

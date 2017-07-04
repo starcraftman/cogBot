@@ -323,11 +323,6 @@ class CogBot(discord.Client):
         """
         Command to show um systems and update status.
         """
-        # sub = subs.add_parser(prefix + 'um', description='Query and update the um sheet.')
-        # sub.set_defaults(cmd='um')
-        # sub.add_argument('system', nargs='?', help='The system to update/show.')
-        # sub.add_argument('--set',
-                        # help='Set the System status of system, us:them. Example-> --set 3400:200')
         args = kwargs.get('args')
         message = kwargs.get('message')
 
