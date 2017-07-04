@@ -9,30 +9,21 @@ The bot runs and monitors our discord channel and manages our powerplay objectiv
 
 ### Install
 
-Optionally, install python3.5.3.
-- Install [pyenv](https://github.com/pyenv/pyenv)
-- pyenv install 3.5.3
-- pyenv global 3.5.3
+This bot requires python >= 3.5. I suggest using pyenv to provide python and isolate from system.
 
-Execute following commands on linux box.
+- Install [pyenv](https://github.com/pyenv/pyenv) however you prefer
+- sudo apt-get install libsqlite-dev
+- pyenv install 3.5.3
+- pyenv local 3.5.3 (in project root)
+
+Now to setup dependent python libraries.
 - sudo apt-get install python3-dev libffi-dev
 - pip install wheel setuptools
 - python setup.py deps
 
 ### Dependencies
 
-Run Time:
-asyncio (Python 3.5+)
-pyyaml
-discord.py
-google-api-python-client
-SQLalchemy
-
-Testing:
-pytest
-
-Edit Discord CSS:
-1) Ctrl + Shift + I
+Read setup.py, RUN_DEPS and TEST_DEPS variables hold this projects dependencies.
 
 <!-- Links -->
 [WaffleShield]: https://badge.waffle.io/starcraftman/cogBot.svg?label=ready&title=Ready

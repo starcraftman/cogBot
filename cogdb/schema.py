@@ -56,6 +56,7 @@ class DUser(Base):
     pref_name = sqla.Column(sqla.String)  # pref_name == display_name until user changes it
     capacity = sqla.Column(sqla.Integer, default=0)
     cattle_id = sqla.Column(sqla.Integer, sqla.ForeignKey('sheet_users.id'))
+    um_id = sqla.Column(sqla.Integer, sqla.ForeignKey('um_sheet_users.id'))
 
     def __repr__(self):
         keys = ['discord_id', 'display_name', 'pref_name', 'capacity', 'cattle_id']
@@ -75,6 +76,12 @@ class DUser(Base):
         """
         self.cattle_id = suser.id
 
+    def set_um(self, suser):
+        """
+        Set the users um sheet row.
+        """
+        self.um_id = suser.id
+
 
 class SUser(Base):
     """
@@ -82,17 +89,16 @@ class SUser(Base):
     """
     __tablename__ = 'sheet_users'
 
-    id = sqla.Column(sqla.Integer, primary_key=True)
+    id = sqla.Column(sqla.Integer, primary_key=True, autoincrement=True)
     name = sqla.Column(sqla.String, unique=True)
     cry = sqla.Column(sqla.String, default='')
     row = sqla.Column(sqla.Integer)
 
     def __repr__(self):
-        args = {}
-        for key in ['name', 'row', 'cry']:
-            args[key] = getattr(self, key)
+        keys = ['name', 'row', 'cry']
+        kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
 
-        return "SUser(name={name!r}, row={row!r}, cry={cry!r})".format(**args)
+        return "SUser({})".format(', '.join(kwargs))
 
     def __str__(self):
         return "id={!r}, {!r}".format(self.id, self)
@@ -103,29 +109,61 @@ class SUser(Base):
     @property
     def merits(self):
         total = 0
-        for fort in self.forts:
-            total += fort.amount
+        for drop in self.drops:
+            total += drop.amount
 
         return total
 
 
-class Fort(Base):
+class SUserUM(Base):
+    """
+    Track all infomration about the user in a row of the cattle sheet.
+    """
+    __tablename__ = 'um_sheet_users'
+
+    id = sqla.Column(sqla.Integer, primary_key=True, autoincrement=True)
+    name = sqla.Column(sqla.String, unique=True)
+    cry = sqla.Column(sqla.String, default='')
+    row = sqla.Column(sqla.Integer)
+
+    def __repr__(self):
+        keys = ['name', 'row', 'cry']
+        kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
+
+        return "SUserUM({})".format(', '.join(kwargs))
+
+    def __str__(self):
+        return "id={!r}, {!r}".format(self.id, self)
+
+    def __eq__(self, other):
+        return (self.name, self.row) == (other.name, other.row)
+
+    @property
+    def merits(self):
+        total = 0
+        for hold in self.holds:
+            total += hold.redeemed
+
+        return total
+
+
+class Drop(Base):
     """
     Every drop made by a user creates a fort entry here.
     User maintains a sub collection of these for easy access.
     """
-    __tablename__ = 'forts'
+    __tablename__ = 'merits'
 
     id = sqla.Column(sqla.Integer, primary_key=True)
     amount = sqla.Column(sqla.Integer)
-    system_id = sqla.Column(sqla.Integer, sqla.ForeignKey('systems.id'))
-    user_id = sqla.Column(sqla.Integer, sqla.ForeignKey('sheet_users.id'))
+    system_id = sqla.Column(sqla.Integer, sqla.ForeignKey('systems.id'), nullable=False)
+    user_id = sqla.Column(sqla.Integer, sqla.ForeignKey('sheet_users.id'), nullable=False)
 
     def __repr__(self):
         keys = ['system_id', 'user_id', 'amount']
         kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
 
-        return "Fort({})".format(', '.join(kwargs))
+        return "Drop({})".format(', '.join(kwargs))
 
     def __str__(self):
         system = ''
@@ -141,6 +179,37 @@ class Fort(Base):
     def __eq__(self, other):
         return (self.user_id, self.system_id, self.amount) == (
             other.user_id, other.system_id, other.amount)
+
+
+class Hold(Base):
+    __tablename__ = 'um_merits'
+
+    id = sqla.Column(sqla.Integer, primary_key=True)
+    system_id = sqla.Column(sqla.Integer, sqla.ForeignKey('um_systems.id'), nullable=False)
+    user_id = sqla.Column(sqla.Integer, sqla.ForeignKey('um_sheet_users.id'), nullable=False)
+    held = sqla.Column(sqla.Integer)
+    redeemed = sqla.Column(sqla.Integer)
+
+    def __repr__(self):
+        keys = ['system_id', 'user_id', 'held', 'redeemed']
+        kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
+
+        return "Hold({})".format(', '.join(kwargs))
+
+    def __str__(self):
+        system = ''
+        if getattr(self, 'system', None):
+            system = "system_name={!r}, ".format(self.system.name)
+
+        suser = ''
+        if getattr(self, 'suser', None):
+            suser = "suser_name={!r}, ".format(self.suser.name)
+
+        return "id={!r}, {}{}{!r}".format(self.id, system, suser, self)
+
+    def __eq__(self, other):
+        return (self.system_id, self.user_id, self.held, self.redeemed) == (
+            other.system_id, other.user_id, other.held, other.redeemed)
 
 
 class System(Base):
@@ -267,36 +336,21 @@ class System(Base):
         return msg
 
 
-class UMMerits(Base):
-    __tablename__ = 'um_merits'
-
-    id = sqla.Column(sqla.Integer, primary_key=True)
-    system_id = sqla.Column(sqla.Integer)
-    user_id = sqla.Column(sqla.Integer)
-    held = sqla.Column(sqla.Integer)
-    redeemed = sqla.Column(sqla.Integer)
-
-    def __repr__(self):
-        keys = ['system_id', 'user_id', 'held', 'redeemed']
-        kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
-
-        return "UMMerits({})".format(', '.join(kwargs))
-
-    def __str__(self):
-        return "id={!r}, {!r}".format(self.id, self)
-
-    def __eq__(self, other):
-        return (self.system_id, self.user_id, self.held, self.redeemed) == (
-            other.system_id, other.user_id, other.held, other.redeemed)
-
-
-class ExpSystem(Base):
+class SystemUM(Base):
+    """
+    Any system we intend on undermining, may be a simple enemy
+    control system or an expansion we want to support/oppose.
+    """
     __tablename__ = 'um_systems'
+
+    # Enum
+    T_CONTROL = 'control'
+    T_OPPOSE = 'oppose'
+    T_EXPAND = 'expand'
 
     id = sqla.Column(sqla.Integer, primary_key=True)
     name = sqla.Column(sqla.String, unique=True)
-    trigger = sqla.Column(sqla.Integer)
-    margin = sqla.Column(sqla.Float)
+    sheet_col = sqla.Column(sqla.String)
     completion = sqla.Column(sqla.Float)
     goal = sqla.Column(sqla.Integer)
     cmdr_merits = sqla.Column(sqla.Integer)
@@ -306,15 +360,19 @@ class ExpSystem(Base):
     close_control = sqla.Column(sqla.String)
     progress_us = sqla.Column(sqla.Integer)
     progress_them = sqla.Column(sqla.Float)
-    sheet_col = sqla.Column(sqla.String)
+
+    # Expansion/Opposition only, top cells
+    trigger = sqla.Column(sqla.Integer)
+    margin = sqla.Column(sqla.Float)
+    type = sqla.Column(sqla.Integer)  # Some subtle differences, not enough for subclasses
 
     def __repr__(self):
-        keys = ['name', 'sheet_col', 'completion', 'goal', 'cmdr_merits', 'missing',
+        keys = ['name', 'type', 'sheet_col', 'completion', 'goal', 'cmdr_merits', 'missing',
                 'progress_us', 'progress_them', 'trigger', 'margin',
                 'security', 'notes', 'close_control']
         kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
 
-        return "ExpSystem({})".format(', '.join(kwargs))
+        return "SystemUM({})".format(', '.join(kwargs))
 
     def __str__(self):
         return "id={!r}, {!r}".format(self.id, self)
@@ -324,7 +382,7 @@ class ExpSystem(Base):
             other.name, other.completion, other.goal, other.cmdr_merits, other.missing)
 
 
-def kwargs_exp_system(cells, sheet_col):
+def kwargs_um_system(cells, sheet_col):
     """
     Return keyword args parsed from cell frame.
 
@@ -343,8 +401,15 @@ def kwargs_exp_system(cells, sheet_col):
     """
     main_col, sec_col = cells[0], cells[1]
     try:
-        if main_col[9] == '':
+        if main_col[8] == '' or 'template' in main_col[8].lower():
             raise cog.exc.SheetParsingError
+
+        if main_col[0].startswith('Exp.'):
+            sys_type = SystemUM.T_EXPAND
+        elif main_col[0] != '':
+            sys_type = SystemUM.T_OPPOSE
+        else:
+            sys_type = SystemUM.T_CONTROL
 
         return {
             'trigger': parse_int(main_col[1]),
@@ -355,31 +420,18 @@ def kwargs_exp_system(cells, sheet_col):
             'missing': parse_int(main_col[5]),
             'security': main_col[6],
             'notes': sec_col[6],
-            'close_control':  main_col[7],
+            'close_control': main_col[7],
             'name': main_col[8],
             'progress_us': parse_int(main_col[9]),
             'progress_them': parse_float(main_col[10]),
             'sheet_col': sheet_col,
+            'type': sys_type,
         }
     except (IndexError, TypeError):
         raise cog.exc.SheetParsingError
 
 
-def parse_int(word):
-    try:
-        return int(word)
-    except ValueError:
-        return 0
-
-
-def parse_float(word):
-    try:
-        return float(word)
-    except ValueError:
-        return 0.0
-
-
-def system_result_dict(lines, order, column):
+def kwargs_fort_system(lines, order, column):
     """
     Simple adapter that parses the data and puts it into kwargs to
     be used when initializing the System object.
@@ -418,6 +470,20 @@ def system_result_dict(lines, order, column):
         raise cog.exc.SheetParsingError
 
 
+def parse_int(word):
+    try:
+        return int(word)
+    except ValueError:
+        return 0
+
+
+def parse_float(word):
+    try:
+        return float(word)
+    except ValueError:
+        return 0.0
+
+
 def make_file_engine(abs_path):
     """
     Make an sqlite file engine.
@@ -433,7 +499,7 @@ def drop_all_tables():
     Drop all tables.
     """
     session = cogdb.Session()
-    for cls in [Fort, Command, SUser, System, DUser]:
+    for cls in [Drop, Hold, Command, System, SystemUM, SUser, SUserUM, DUser]:
         session.query(cls).delete()
     session.commit()
 
@@ -443,7 +509,7 @@ def drop_scanned_tables():
     Drop only tables related to data parsed from sheet.
     """
     session = cogdb.Session()
-    for cls in [Fort, SUser, System]:
+    for cls in [Drop, Hold, System, SystemUM, SUser, SUserUM]:
         session.query(cls).delete()
     session.commit()
 
@@ -457,23 +523,39 @@ def recreate_tables():
 
 
 # Relationships
-Fort.suser = sqla_orm.relationship('SUser', uselist=False, back_populates='forts')
-SUser.forts = sqla_orm.relationship('Fort',
-                                    # collection_class=sqa_attr_map('system.name'),
-                                    cascade='all, delete, delete-orphan',
-                                    back_populates='suser')
-Fort.system = sqla_orm.relationship('System', uselist=False, back_populates='forts')
-System.forts = sqla_orm.relationship('Fort',
-                                     # collection_class=sqa_attr_map('user.name'),
-                                     cascade='all, delete, delete-orphan',
-                                     back_populates='system')
 DUser.cmds = sqla_orm.relationship('Command',
                                    # collection_class=sqa_attr_map('user.name'),
                                    cascade='all, delete, delete-orphan',
                                    back_populates='duser')
 Command.duser = sqla_orm.relationship('DUser', back_populates='cmds')
+
+# Fortification relations
 DUser.suser = sqla_orm.relationship('SUser', uselist=False, back_populates='duser')
 SUser.duser = sqla_orm.relationship('DUser', uselist=False, back_populates='suser')
+Drop.suser = sqla_orm.relationship('SUser', uselist=False, back_populates='drops')
+SUser.drops = sqla_orm.relationship('Drop',
+                                    # collection_class=sqa_attr_map('system.name'),
+                                    cascade='all, delete, delete-orphan',
+                                    back_populates='suser')
+Drop.system = sqla_orm.relationship('System', uselist=False, back_populates='drops')
+System.drops = sqla_orm.relationship('Drop',
+                                     # collection_class=sqa_attr_map('user.name'),
+                                     cascade='all, delete, delete-orphan',
+                                     back_populates='system')
+
+# Undermining relations
+DUser.suserum = sqla_orm.relationship('SUserUM', uselist=False, back_populates='duser')
+SUserUM.duser = sqla_orm.relationship('DUser', uselist=False, back_populates='suserum')
+Hold.suser = sqla_orm.relationship('SUserUM', uselist=False, back_populates='holds')
+SUserUM.holds = sqla_orm.relationship('Hold',
+                                      # collection_class=sqa_attr_map('system.name'),
+                                      cascade='all, delete, delete-orphan',
+                                      back_populates='suser')
+Hold.system = sqla_orm.relationship('SystemUM', uselist=False, back_populates='holds')
+SystemUM.holds = sqla_orm.relationship('Hold',
+                                       # collection_class=sqa_attr_map('user.name'),
+                                       cascade='all, delete, delete-orphan',
+                                       back_populates='system')
 
 
 Base.metadata.create_all(cogdb.mem_engine)
@@ -508,10 +590,17 @@ def main():
         SUser(name='vampyregtx', row=17),
     )
 
-    session.add_all(susers)
+    susers_um = (
+        SUserUM(name='GearsandCogs', row=20),
+        SUserUM(name='rjwhite', row=13),
+        SUserUM(name='vampyregtx', row=16),
+    )
+
+    session.add_all(susers + susers_um)
     session.commit()
     for ind in range(0, 3):
         dusers[ind].set_cattle(susers[ind])
+        dusers[ind].set_um(susers_um[ind])
     session.commit()
 
     systems = (
@@ -525,14 +614,14 @@ def main():
     session.add_all(systems)
     session.commit()
 
-    forts = (
-        Fort(user_id=susers[0].id, system_id=systems[0].id, amount=700),
-        Fort(user_id=susers[1].id, system_id=systems[0].id, amount=700),
-        Fort(user_id=susers[0].id, system_id=systems[2].id, amount=1400),
-        Fort(user_id=susers[2].id, system_id=systems[1].id, amount=2100),
-        Fort(user_id=susers[2].id, system_id=systems[0].id, amount=300),
+    drops = (
+        Drop(user_id=susers[0].id, system_id=systems[0].id, amount=700),
+        Drop(user_id=susers[1].id, system_id=systems[0].id, amount=700),
+        Drop(user_id=susers[0].id, system_id=systems[2].id, amount=1400),
+        Drop(user_id=susers[2].id, system_id=systems[1].id, amount=2100),
+        Drop(user_id=susers[2].id, system_id=systems[0].id, amount=300),
     )
-    session.add_all(forts)
+    session.add_all(drops)
     session.commit()
 
     def mprint(*args):
@@ -554,19 +643,19 @@ def main():
     print('SheetUsers----------')
     for user in session.query(SUser):
         mprint(user)
-        mprint(pad, user.forts)
+        mprint(pad, user.drops)
         mprint(pad, user.duser)
 
     print('Systems----------')
     for sys in session.query(System):
         mprint(sys)
-        mprint(pad, sys.forts)
+        mprint(pad, sys.drops)
 
-    print('Forts----------')
-    for fort in session.query(Fort):
-        mprint(fort)
-        mprint(pad, fort.suser)
-        mprint(pad, fort.system)
+    print('Drops----------')
+    for drop in session.query(Drop):
+        mprint(drop)
+        mprint(pad, drop.suser)
+        mprint(pad, drop.system)
 
 
 if __name__ == "__main__":

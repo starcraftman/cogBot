@@ -4,6 +4,7 @@ Test the schema for the database.
 from __future__ import absolute_import, print_function
 import datetime
 
+import decorator
 import mock
 import pytest
 
@@ -14,6 +15,51 @@ import cogdb.schema
 from tests.cogdb import CELLS, FMT_CELLS, UM_CELLS
 
 SYSTEM_DATA = ['', 1, 4910, 0, 4322, 4910, 0, 116.99, '', 'Frey']
+
+
+def db_cleanup(function):
+    """
+    Clean the whole database. Guarantee it is empty.
+    """
+    def wrapper(function, *args, **kwargs):
+        try:
+            function(*args, **kwargs)
+        finally:
+            cogdb.schema.drop_all_tables()
+            session = cogdb.Session()
+            assert session.query(cogdb.schema.DUser).all() == []
+            assert session.query(cogdb.schema.SUser).all() == []
+            assert session.query(cogdb.schema.SUserUM).all() == []
+            assert session.query(cogdb.schema.SystemUM).all() == []
+            assert session.query(cogdb.schema.System).all() == []
+            assert session.query(cogdb.schema.Hold).all() == []
+            assert session.query(cogdb.schema.Hold).all() == []
+            assert session.query(cogdb.schema.Command).all() == []
+    return decorator.decorator(wrapper, function)
+
+
+def db_data(function):
+    """
+    Wrap a test and setup database with dummy data.
+    """
+    def wrapper(function, *args, **kwargs):
+        session = cogdb.Session()
+        mock_sheet = mock.Mock()
+        mock_sheet.whole_sheet.return_value = CELLS
+        mock_sheet.get_with_formatting.return_value = FMT_CELLS
+        scanner = cogdb.query.SheetScanner(mock_sheet)
+        scanner.scan(session)
+
+        duser = cogdb.schema.DUser(discord_id='1111', display_name='GearsandCogs',
+                                   capacity=0, pref_name='GearsandCogs')
+        cmd = cogdb.schema.Command(discord_id=duser.discord_id,
+                                   cmd_str='drop 700', date=datetime.datetime.now())
+        session.add(cmd)
+        session.add(duser)
+        session.commit()
+
+        function(*args, **kwargs)
+    return decorator.decorator(wrapper, function)
 
 
 @pytest.fixture
@@ -33,11 +79,11 @@ def mock_umsheet():
     yield fake_sheet
 
 
-def dec_exp_system(function):
+def dec_system_um(function):
     def call():
         sys_cols = UM_CELLS[3:5]
-        kwargs = cogdb.schema.kwargs_exp_system(sys_cols, 'D')
-        system = cogdb.schema.ExpSystem(**kwargs)
+        kwargs = cogdb.schema.kwargs_um_system(sys_cols, 'D')
+        system = cogdb.schema.SystemUM(**kwargs)
 
         function(kwargs=kwargs, system=system)
 
@@ -64,13 +110,13 @@ def duser_and_suser(function):
 def dec_fort(function):
     def call():
         suser = cogdb.schema.SUser(name='test user', row=2)
-        result = cogdb.schema.system_result_dict(SYSTEM_DATA, 0, 'F')
+        result = cogdb.schema.kwargs_fort_system(SYSTEM_DATA, 0, 'F')
         system = cogdb.schema.System(**result)
 
         session = cogdb.Session()
         session.add_all([system, suser])
         session.commit()
-        fort = cogdb.schema.Fort(amount=400, user_id=suser.id, system_id=system.id)
+        fort = cogdb.schema.Drop(amount=400, user_id=suser.id, system_id=system.id)
         session.add(fort)
         session.commit()
 
@@ -97,48 +143,6 @@ def dec_cmd(function):
     return call
 
 
-def db_cleanup(function):
-    """
-    Clean the whole database. Guarantee it is empty.
-    """
-    def call():
-        try:
-            function()
-        finally:
-            cogdb.schema.drop_all_tables()
-            session = cogdb.Session()
-            assert session.query(cogdb.schema.DUser).all() == []
-            assert session.query(cogdb.schema.SUser).all() == []
-            assert session.query(cogdb.schema.Command).all() == []
-            assert session.query(cogdb.schema.Fort).all() == []
-            assert session.query(cogdb.schema.System).all() == []
-    return call
-
-
-def db_data(function):
-    """
-    Wrap a test and setup database with dummy data.
-    """
-    def call():
-        session = cogdb.Session()
-        mock_sheet = mock.Mock()
-        mock_sheet.whole_sheet.return_value = CELLS
-        mock_sheet.get_with_formatting.return_value = FMT_CELLS
-        scanner = cogdb.query.SheetScanner(mock_sheet)
-        scanner.scan(session)
-
-        duser = cogdb.schema.DUser(discord_id='1111', display_name='GearsandCogs',
-                                   capacity=0, pref_name='GearsandCogs')
-        cmd = cogdb.schema.Command(discord_id=duser.discord_id,
-                                   cmd_str='drop 700', date=datetime.datetime.now())
-        session.add(cmd)
-        session.add(duser)
-        session.commit()
-
-        function()
-    return call
-
-
 @db_cleanup
 @db_data
 def test_drop_all_tables():
@@ -150,13 +154,13 @@ def test_drop_all_tables():
     assert session.query(cogdb.schema.DUser).all()
     assert session.query(cogdb.schema.SUser).all()
     assert session.query(cogdb.schema.Command).all()
-    assert session.query(cogdb.schema.Fort).all()
+    assert session.query(cogdb.schema.Drop).all()
     assert session.query(cogdb.schema.System).all()
     cogdb.schema.drop_all_tables()
     assert session.query(cogdb.schema.DUser).all() == []
     assert session.query(cogdb.schema.SUser).all() == []
     assert session.query(cogdb.schema.Command).all() == []
-    assert session.query(cogdb.schema.Fort).all() == []
+    assert session.query(cogdb.schema.Drop).all() == []
     assert session.query(cogdb.schema.System).all() == []
 
 
@@ -171,13 +175,13 @@ def test_drop_scanned_tables():
     assert session.query(cogdb.schema.DUser).all()
     assert session.query(cogdb.schema.SUser).all()
     assert session.query(cogdb.schema.Command).all()
-    assert session.query(cogdb.schema.Fort).all()
+    assert session.query(cogdb.schema.Drop).all()
     assert session.query(cogdb.schema.System).all()
     cogdb.schema.drop_scanned_tables()
     assert session.query(cogdb.schema.DUser).all()
     assert session.query(cogdb.schema.SUser).all() == []
     assert session.query(cogdb.schema.Command).all()
-    assert session.query(cogdb.schema.Fort).all() == []
+    assert session.query(cogdb.schema.Drop).all() == []
     assert session.query(cogdb.schema.System).all() == []
 
 
@@ -268,17 +272,17 @@ def test_suser__str__(**kwargs):
 @db_cleanup
 def test_suser_merits():
     suser = cogdb.schema.SUser(name='test user', row=2)
-    result = cogdb.schema.system_result_dict(SYSTEM_DATA, 0, 'F')
+    result = cogdb.schema.kwargs_fort_system(SYSTEM_DATA, 0, 'F')
     system = cogdb.schema.System(**result)
-    result = cogdb.schema.system_result_dict(SYSTEM_DATA, 0, 'G')
+    result = cogdb.schema.kwargs_fort_system(SYSTEM_DATA, 0, 'G')
     result['name'] = 'Sol'
     system2 = cogdb.schema.System(**result)
     session = cogdb.Session()
     session.add_all([system, system2, suser])
     session.commit()
 
-    fort = cogdb.schema.Fort(amount=400, user_id=suser.id, system_id=system.id)
-    fort2 = cogdb.schema.Fort(amount=200, user_id=suser.id, system_id=system2.id)
+    fort = cogdb.schema.Drop(amount=400, user_id=suser.id, system_id=system.id)
+    fort2 = cogdb.schema.Drop(amount=200, user_id=suser.id, system_id=system2.id)
     session = cogdb.Session()
     session.add_all([fort, fort2])
     session.commit()
@@ -290,7 +294,7 @@ def test_suser_merits():
 @dec_fort
 def test_fort__eq__(**kwargs):
     suser, system, fort = (kwargs['suser'], kwargs['system'], kwargs['fort'])
-    assert fort == cogdb.schema.Fort(amount=400, user_id=suser.id,
+    assert fort == cogdb.schema.Drop(amount=400, user_id=suser.id,
                                      system_id=system.id)
     assert fort.suser == suser
     assert fort.system == system
@@ -300,8 +304,8 @@ def test_fort__eq__(**kwargs):
 @dec_fort
 def test_fort__repr__(**kwargs):
     fort = kwargs['fort']
-    assert repr(fort) == "Fort(system_id=1, user_id=1, amount=400)"
-    assert fort == eval(repr(fort).replace('Fort', 'cogdb.schema.Fort'))
+    assert repr(fort) == "Drop(system_id=1, user_id=1, amount=400)"
+    assert fort == eval(repr(fort).replace('Drop', 'cogdb.schema.Drop'))
 
 
 @db_cleanup
@@ -309,12 +313,12 @@ def test_fort__repr__(**kwargs):
 def test_fort__str__(**kwargs):
     fort = kwargs['fort']
     assert str(fort) == "id=1, system_name='Frey', suser_name='test user', "\
-                        "Fort(system_id=1, user_id=1, amount=400)"
+                        "Drop(system_id=1, user_id=1, amount=400)"
 
 
 @db_cleanup
 def test_system__eq__():
-    result = cogdb.schema.system_result_dict(SYSTEM_DATA, 0, 'F')
+    result = cogdb.schema.kwargs_fort_system(SYSTEM_DATA, 0, 'F')
     system = cogdb.schema.System(**result)
 
     session = cogdb.Session()
@@ -326,7 +330,7 @@ def test_system__eq__():
 
 @db_cleanup
 def test_system__repr__():
-    result = cogdb.schema.system_result_dict(SYSTEM_DATA, 0, 'F')
+    result = cogdb.schema.kwargs_fort_system(SYSTEM_DATA, 0, 'F')
     system = cogdb.schema.System(**result)
 
     session = cogdb.Session()
@@ -341,7 +345,7 @@ def test_system__repr__():
 
 @db_cleanup
 def test_system__str__():
-    result = cogdb.schema.system_result_dict(SYSTEM_DATA, 0, 'F')
+    result = cogdb.schema.kwargs_fort_system(SYSTEM_DATA, 0, 'F')
     system = cogdb.schema.System(**result)
 
     session = cogdb.Session()
@@ -354,7 +358,7 @@ def test_system__str__():
 
 
 def test_system_short_display():
-    result = cogdb.schema.system_result_dict(SYSTEM_DATA, 0, 'F')
+    result = cogdb.schema.kwargs_fort_system(SYSTEM_DATA, 0, 'F')
     system = cogdb.schema.System(**result)
     assert system.short_display() == 'Frey :Fortifying: 4910/4910'
 
@@ -365,7 +369,7 @@ def test_system_short_display():
 
 
 def test_system_set_status():
-    result = cogdb.schema.system_result_dict(SYSTEM_DATA, 0, 'F')
+    result = cogdb.schema.kwargs_fort_system(SYSTEM_DATA, 0, 'F')
     system = cogdb.schema.System(**result)
     assert system.fort_status == 4910
 
@@ -379,13 +383,13 @@ def test_system_set_status():
 
 
 def test_system_current_status():
-    result = cogdb.schema.system_result_dict(SYSTEM_DATA, 0, 'F')
+    result = cogdb.schema.kwargs_fort_system(SYSTEM_DATA, 0, 'F')
     system = cogdb.schema.System(**result)
     assert system.current_status == 4910
 
 
 def test_system_skip():
-    result = cogdb.schema.system_result_dict(SYSTEM_DATA, 0, 'F')
+    result = cogdb.schema.kwargs_fort_system(SYSTEM_DATA, 0, 'F')
     system = cogdb.schema.System(**result)
     assert system.skip is False
 
@@ -394,7 +398,7 @@ def test_system_skip():
 
 
 def test_system_is_fortified():
-    result = cogdb.schema.system_result_dict(SYSTEM_DATA, 0, 'F')
+    result = cogdb.schema.kwargs_fort_system(SYSTEM_DATA, 0, 'F')
     system = cogdb.schema.System(**result)
     system.fort_status = system.trigger
     assert system.is_fortified is True
@@ -404,7 +408,7 @@ def test_system_is_fortified():
 
 
 def test_system_is_undermined():
-    result = cogdb.schema.system_result_dict(SYSTEM_DATA, 0, 'F')
+    result = cogdb.schema.kwargs_fort_system(SYSTEM_DATA, 0, 'F')
     system = cogdb.schema.System(**result)
 
     system.undermine = 1.0
@@ -415,7 +419,7 @@ def test_system_is_undermined():
 
 
 def test_system_missing():
-    result = cogdb.schema.system_result_dict(SYSTEM_DATA, 0, 'F')
+    result = cogdb.schema.kwargs_fort_system(SYSTEM_DATA, 0, 'F')
     system = cogdb.schema.System(**result)
     system.cmdr_merits = 0
 
@@ -430,7 +434,7 @@ def test_system_missing():
 
 
 def test_system_completion():
-    result = cogdb.schema.system_result_dict(SYSTEM_DATA, 0, 'F')
+    result = cogdb.schema.kwargs_fort_system(SYSTEM_DATA, 0, 'F')
     system = cogdb.schema.System(**result)
     assert system.completion == '100.0'
     system.trigger = 0
@@ -438,45 +442,46 @@ def test_system_completion():
 
 
 def test_system_table_row():
-    result = cogdb.schema.system_result_dict(SYSTEM_DATA, 0, 'F')
+    result = cogdb.schema.kwargs_fort_system(SYSTEM_DATA, 0, 'F')
     system = cogdb.schema.System(**result)
 
     system.notes = 'Leave'
     assert system.table_row == ('Frey', '   0', '4910/4910 (100.0%/0.0%)', 'Leave')
 
 
-@dec_exp_system
-def test_exp_system__repr__(**kwargs):
+@dec_system_um
+def test_system_um__repr__(**kwargs):
     system = kwargs['system']
 
-    assert repr(system) == "ExpSystem(name='Burr', sheet_col='D', completion=-0.84, "\
-        "goal=364297, cmdr_merits=160472, missing=127277, progress_us=161630, "\
+    assert repr(system) == "SystemUM(name='Burr', type='expand', sheet_col='D', "\
+        "completion=-0.84, goal=364297, cmdr_merits=160472, missing=127277, progress_us=161630, "\
         "progress_them=35.0, trigger=6939, margin=0.5, security='Sec: Low', notes='', "\
         "close_control='Dongkum')"
-    assert system == eval(repr(system).replace('ExpSystem', 'cogdb.schema.ExpSystem'))
+    assert system == eval(repr(system).replace('SystemUM', 'cogdb.schema.SystemUM'))
 
 
-@dec_exp_system
-def test_exp_system__str__(**kwargs):
+@dec_system_um
+def test_system_um__str__(**kwargs):
     system = kwargs['system']
-    assert str(system) == "id=None, ExpSystem(name='Burr', sheet_col='D', completion=-0.84, "\
-        "goal=364297, cmdr_merits=160472, missing=127277, progress_us=161630, "\
+    assert str(system) == "id=None, SystemUM(name='Burr', type='expand', sheet_col='D', "\
+        "completion=-0.84, goal=364297, cmdr_merits=160472, missing=127277, progress_us=161630, "\
         "progress_them=35.0, trigger=6939, margin=0.5, security='Sec: Low', notes='', "\
         "close_control='Dongkum')"
 
 
-@dec_exp_system
-def test_exp_system__eq__(**kwargs):
+@dec_system_um
+def test_system_um__eq__(**kwargs):
     system = kwargs['system']
 
-    assert system == cogdb.schema.ExpSystem(name='Burr', sheet_col='D', completion=-0.84,
-        goal=364297, cmdr_merits=160472, missing=127277, progress_us=161630,
-        progress_them=35.0, trigger=6939, margin=0.5, security='Sec: Low', notes='',
-        close_control='Dongkum')
+    assert system == cogdb.schema.SystemUM(name='Burr', sheet_col='D', completion=-0.84,
+                                           goal=364297, cmdr_merits=160472, missing=127277,
+                                           progress_us=161630, progress_them=35.0, trigger=6939,
+                                           margin=0.5, security='Sec: Low', notes='',
+                                           close_control='Dongkum')
 
 
-@dec_exp_system
-def test_kwargs_exp_system(**kwargs):
+@dec_system_um
+def test_kwargs_system_um(**kwargs):
     expect = {
         'close_control': 'Dongkum',
         'cmdr_merits': 160472,
@@ -490,10 +495,12 @@ def test_kwargs_exp_system(**kwargs):
         'progress_them': 35.0,
         'security': 'Sec: Low',
         'sheet_col': 'D',
-        'trigger': 6939
+        'trigger': 6939,
+        'type': 'expand',
     }
 
     assert kwargs['kwargs'] == expect
+
 
 def test_parse_int():
     assert cogdb.schema.parse_int('') == 0
@@ -507,8 +514,8 @@ def test_parse_float():
     assert cogdb.schema.parse_float(0.5) == 0.5
 
 
-def test_system_result_dict():
-    result = cogdb.schema.system_result_dict(SYSTEM_DATA, 0, 'F')
+def test_kwargs_fort_system():
+    result = cogdb.schema.kwargs_fort_system(SYSTEM_DATA, 0, 'F')
     assert result['undermine'] == 0.0
     assert result['trigger'] == 4910
     assert result['cmdr_merits'] == 4322
@@ -519,10 +526,10 @@ def test_system_result_dict():
     assert result['sheet_order'] == 0
 
     with pytest.raises(cog.exc.SheetParsingError):
-        cogdb.schema.system_result_dict(['' for _ in range(0, 10)], 1, 'A')
+        cogdb.schema.kwargs_fort_system(['' for _ in range(0, 10)], 1, 'A')
 
     with pytest.raises(cog.exc.SheetParsingError):
-        cogdb.schema.system_result_dict([], 1, 'A')
+        cogdb.schema.kwargs_fort_system([], 1, 'A')
 
     with pytest.raises(cog.exc.SheetParsingError):
-        cogdb.schema.system_result_dict(SYSTEM_DATA[:-2], 1, 'A')
+        cogdb.schema.kwargs_fort_system(SYSTEM_DATA[:-2], 1, 'A')

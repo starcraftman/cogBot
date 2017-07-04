@@ -8,6 +8,7 @@ import logging.config
 import os
 
 import argparse
+from argparse import RawDescriptionHelpFormatter as RawHelp
 import tempfile
 import yaml
 try:
@@ -105,6 +106,7 @@ def make_parser(prefix):
                                  description='The subcommands of cog')
 
     sub = subs.add_parser(prefix + 'drop', description='Drop forts for user at system.')
+    sub.set_defaults(cmd='drop')
     sub.add_argument('amount', type=int, help='The amount to drop.')
     sub.add_argument('--set',
                      help='Set the fort:um status of system. Example-> --set 3400:200')
@@ -112,12 +114,12 @@ def make_parser(prefix):
                      help='The system to drop at.')
     sub.add_argument('-u', '--user', nargs='+',
                      help='The user to drop for.')
-    sub.set_defaults(cmd='drop')
 
     sub = subs.add_parser(prefix + 'dump', description='Dump the current db.')
     sub.set_defaults(cmd='dump')
 
     sub = subs.add_parser(prefix + 'fort', description='Show next fort target.')
+    sub.set_defaults(cmd='fort')
     sub.add_argument('--set',
                      help='Set the fort:um status of system. Example-> --set 3400:200')
     sub.add_argument('--summary', action='store_true',
@@ -128,12 +130,24 @@ def make_parser(prefix):
                      help='Show detailed stats')
     sub.add_argument('-n', '--next', type=int,
                      help='Show NUM systems after current')
-    sub.set_defaults(cmd='fort')
+
+    desc = """Update a user's held or redeemed merits. Examples:
+
+    {prefix}hold burr 1200  | Set my held merits at System Burr to 1200 held.
+    {prefix}hold --died         | Reset held merits to 0 due to dying.
+    {prefix}hold --redeem   | Move all held merits to redeemed column.
+    """.format(prefix=prefix)
+    sub = subs.add_parser(prefix + 'hold', description=desc, formatter_class=RawHelp)
+    sub.set_defaults(cmd='hold')
+    sub.add_argument('system', nargs='?', help='The system being undermined.')
+    sub.add_argument('held', nargs='?', type=int, help='The amount of merits held.')
+    sub.add_argument('--redeem', action='store_true', help='Redeem all held merits.')
+    sub.add_argument('--died', action='store_true', help='Zero out held merits on death.')
 
     sub = subs.add_parser(prefix + 'info', description='Get information on things.')
+    sub.set_defaults(cmd='info')
     sub.add_argument('user', nargs='?',
                      help='Display information about user.')
-    sub.set_defaults(cmd='info')
 
     sub = subs.add_parser(prefix + 'scan', description='Scan the sheet for changes.')
     sub.set_defaults(cmd='scan')
@@ -141,7 +155,14 @@ def make_parser(prefix):
     sub = subs.add_parser(prefix + 'time', description='Time in game and to ticks.')
     sub.set_defaults(cmd='time')
 
+    sub = subs.add_parser(prefix + 'um', description='Query and update the um sheet.')
+    sub.set_defaults(cmd='um')
+    sub.add_argument('system', nargs='?', help='The system to update/show.')
+    sub.add_argument('--set',
+                     help='Set the System status of system, us:them. Example-> --set 3400:200')
+
     sub = subs.add_parser(prefix + 'user', description='Manipulate sheet users.')
+    sub.set_defaults(cmd='user')
     sub.add_argument('--cry', nargs='+',
                      help='Set your tag in the sheets.')
     sub.add_argument('--name', nargs='+',
@@ -150,7 +171,6 @@ def make_parser(prefix):
                      help='Set yourself to use the Winters sheets.')
     sub.add_argument('--hudson', action='store_true',
                      help='Set yourself to use the Hudson sheets.')
-    sub.set_defaults(cmd='user')
 
     sub = subs.add_parser(prefix + 'help', description='Show overall help message.')
     sub.set_defaults(cmd='help')

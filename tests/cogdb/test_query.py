@@ -9,7 +9,7 @@ import pytest
 
 import cog.exc
 from tests.cogdb import FMT_CELLS, SYSTEMS, USERS
-from tests.cogdb.test_schema import db_cleanup, db_data, mock_sheet, mock_um_sheet
+from tests.cogdb.test_schema import db_cleanup, db_data, mock_sheet, mock_umsheet
 import cogdb
 import cogdb.schema
 import cogdb.query
@@ -77,7 +77,7 @@ def test_sheetscanner_forts(mock_sheet):
         scanner = cogdb.query.SheetScanner(mock_sheet)
         scanner.scan(session)
 
-        fort1 = session.query(cogdb.schema.Fort).all()[0]
+        fort1 = session.query(cogdb.schema.Drop).all()[0]
         assert fort1.amount == 2222
         assert fort1.system.name == 'Frey'
         assert fort1.system_id == 1
@@ -99,18 +99,52 @@ def test_sheetscanner_users(mock_sheet):
     assert result == USERS
 
 
+def test_umscanner_systems(mock_umsheet):
+    scanner = cogdb.query.UMScanner(mock_umsheet)
+    system = scanner.systems()[0]
+    assert system.name == 'Burr'
+    assert system.type == system.__class__.T_EXPAND
+
+
+def test_umscanner_users(mock_umsheet):
+    scanner = cogdb.query.UMScanner(mock_umsheet)
+    result = [suser.name for suser in scanner.users()]
+    expect = ['Haphollas', 'Rico Char', 'MalvadoDiablo', 'Harmsus', 'Otorno', 'Blackneto',
+              'Paul Redpath', 'Xxxreaper752xxx ', 'FRENZY86', 'Sardaukar17', 'SpongeDoc',
+              'ActionFace', 'ilNibbio', 'Tomis[XB1]', 'UEG LONE', 'tfcheps', 'xxSNEAKELLAMAxx',
+              'Alexander Astropath', 'Rimos', 'Shepron', 'Willa', 'North Man', 'Tiddymun',
+              'Horizon', 'Phantom50Elite', 'BaronGreenback', 'Fod4u2', 'Eastbourne',
+              'KineticTrauma', 'CyberCarnivore', 'Renegade Bovine', 'crazyjay', 'harlequin_420th',
+              'NascentChemist', 'Oskiboy[PC/XB1]', 'Muaddib', 'DRAGON DARKO', 'Gaz Cullen']
+    assert result == expect
+
+
 @db_cleanup
-@db_data
-def test_get_othime():
+def test_umscanner_ummerits(mock_umsheet):
     session = cogdb.Session()
-    assert cogdb.query.get_othime(session).name == 'Othime'
+    scanner = cogdb.query.UMScanner(mock_umsheet)
+    systems = scanner.systems()
+    users = scanner.users()
+    session.add_all(systems + users)
+    session.commit()
+    merit = scanner.merits(systems, users)[0]
+    assert merit.held == 28750
+    assert merit.redeemed == 0
+    assert merit.system_id == 1
 
 
 @db_cleanup
 @db_data
-def test_get_all_systems():
+def test_fort_get_othime():
     session = cogdb.Session()
-    systems = cogdb.query.get_all_systems(session)
+    assert cogdb.query.fort_get_othime(session).name == 'Othime'
+
+
+@db_cleanup
+@db_data
+def test_fort_get_systems():
+    session = cogdb.Session()
+    systems = cogdb.query.fort_get_systems(session)
     assert len(systems) == 7
     assert systems[0].name == 'Frey'
     assert systems[-1].name == 'Othime'
@@ -118,9 +152,9 @@ def test_get_all_systems():
 
 @db_cleanup
 @db_data
-def test_get_systems_not_othime():
+def test_fort_get_systems_not_othime():
     session = cogdb.Session()
-    systems = cogdb.query.get_systems_not_othime(session)
+    systems = cogdb.query.fort_get_systems(session, not_othime=True)
     assert len(systems) == 6
     assert systems[0].name == 'Frey'
     assert systems[-1].name == 'Alpha Fornacis'
@@ -128,52 +162,54 @@ def test_get_systems_not_othime():
 
 @db_cleanup
 @db_data
-def test_get_all_sheet_users():
+def test_fort_get_sheet_users():
     session = cogdb.Session()
-    users = cogdb.query.get_all_sheet_users(session)
+    users = cogdb.query.fort_get_sheet_users(session)
     assert len(users) == 15
     assert users[0].name == 'Alexander Astropath'
 
 
 @db_cleanup
 @db_data
-def test_find_current_target():
+def test_fort_find_current_index():
     session = cogdb.Session()
-    assert cogdb.query.find_current_target(session) == 1
+    assert cogdb.query.fort_find_current_index(session) == 1
 
 
 @db_cleanup
 @db_data
-def test_get_fort_targets():
+def test_fort_get_targets():
     session = cogdb.Session()
-    targets = cogdb.query.get_fort_targets(session, cogdb.query.find_current_target(session))
+    targets = cogdb.query.fort_get_targets(session, cogdb.query.fort_find_current_index(session))
     assert [sys.name for sys in targets] == ['Nurundere', 'Othime']
 
 
 @db_cleanup
 @db_data
-def test_get_next_fort_targets():
+def test_fort_get_next_targets():
     session = cogdb.Session()
-    targets = cogdb.query.get_next_fort_targets(session, cogdb.query.find_current_target(session))
+    targets = cogdb.query.fort_get_next_targets(session,
+                                                cogdb.query.fort_find_current_index(session))
     assert [sys.name for sys in targets] == ["LHS 3749", "Dongkum", "Alpha Fornacis"]
 
-    targets = cogdb.query.get_next_fort_targets(session, cogdb.query.find_current_target(session),
+    targets = cogdb.query.fort_get_next_targets(session,
+                                                cogdb.query.fort_find_current_index(session),
                                                 count=2)
     assert [sys.name for sys in targets] == ["LHS 3749", "Dongkum"]
 
 
 @db_cleanup
 @db_data
-def test_get_all_systems_by_state():
+def test_fort_get_systems_by_state():
     session = cogdb.Session()
-    systems = cogdb.query.get_all_systems(session)
+    systems = cogdb.query.fort_get_systems(session)
     systems[1].fort_status = 8425
     systems[1].undermine = 1.0
     systems[4].undermine = 1.9
     session.commit()
 
     # print(systems[1].is_fortified, systems[1].is_undermined, systems[2].is_undermined())
-    systems = cogdb.query.get_all_systems_by_state(session)
+    systems = cogdb.query.fort_get_systems_by_state(session)
     assert [sys.name for sys in systems['cancelled']] == ["Nurundere"]
     assert [sys.name for sys in systems['fortified']] == ["Frey"]
     assert [sys.name for sys in systems['left']] == ["LHS 3749", "Sol", "Alpha Fornacis", "Othime"]
@@ -183,13 +219,13 @@ def test_get_all_systems_by_state():
 
 @db_cleanup
 @db_data
-def test_get_system_by_name():
+def test_fort_find_system():
     session = cogdb.Session()
-    sys = cogdb.query.get_system_by_name(session, 'Sol')
+    sys = cogdb.query.fort_find_system(session, 'Sol')
     assert isinstance(sys, cogdb.schema.System)
     assert sys.name == 'Sol'
 
-    sys = cogdb.query.get_system_by_name(session, 'alp')
+    sys = cogdb.query.fort_find_system(session, 'alp')
     assert sys.name == 'Alpha Fornacis'
 
 
@@ -272,10 +308,10 @@ def test_check_discord_user_create():
 
 @db_cleanup
 @db_data
-def test_add_sheet_user():
+def test_fort_add_sheet_user():
     session = cogdb.Session()
-    cogdb.query.add_sheet_user(session, 'NewestUser')
-    assert cogdb.query.get_all_sheet_users(session)[-1].name == 'NewestUser'
+    cogdb.query.fort_add_sheet_user(session, 'NewestUser')
+    assert cogdb.query.fort_get_sheet_users(session)[-1].name == 'NewestUser'
 
 
 @db_cleanup
@@ -290,22 +326,22 @@ def test_add_discord_user():
 
 @db_cleanup
 @db_data
-def test_add_fort():
+def test_fort_add_drop():
     import sqlalchemy.orm.exc
     session = cogdb.Session()
-    system = cogdb.query.get_all_systems(session)[2]
-    suser = cogdb.query.get_all_sheet_users(session)[4]
+    system = cogdb.query.fort_get_systems(session)[2]
+    suser = cogdb.query.fort_get_sheet_users(session)[4]
 
     with pytest.raises(sqlalchemy.orm.exc.NoResultFound):
-        session.query(cogdb.schema.Fort).filter_by(user_id=suser.id,
+        session.query(cogdb.schema.Drop).filter_by(user_id=suser.id,
                                                    system_id=system.id).one()
     old_fort = system.fort_status
     old_cmdr = system.cmdr_merits
 
-    fort = cogdb.query.add_fort(session, system=system, suser=suser, amount=400)
+    drop = cogdb.query.fort_add_drop(session, system=system, suser=suser, amount=400)
 
-    assert fort.amount == 400
+    assert drop.amount == 400
     assert system.fort_status == old_fort + 400
     assert system.cmdr_merits == old_cmdr + 400
-    assert session.query(cogdb.schema.Fort).filter_by(user_id=suser.id,
+    assert session.query(cogdb.schema.Drop).filter_by(user_id=suser.id,
                                                       system_id=system.id).one()

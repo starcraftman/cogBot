@@ -128,9 +128,11 @@ class CogBot(discord.Client):
             ['!drop', 'Drop forts into the fort sheet.'],
             ['!dump', 'Dump the database to the server console. For admins.'],
             ['!fort', 'Get information about our fort systems.'],
+            ['!hold', 'Declare held merits or redeem them.'],
             ['!info', 'Display information on a user.'],
             ['!scan', 'Rebuild the database by fetching and parsing latest data.'],
             ['!time', 'Show game time and time to ticks.'],
+            ['!um', 'Get information about undermining targets.'],
             ['!user', 'UNUSED ATM. Manage users.'],
             ['!help', 'This help message.'],
         ]
@@ -162,24 +164,25 @@ class CogBot(discord.Client):
 
         if args.system:
             args.system = ' '.join(args.system)
-            system = cogdb.query.get_system_by_name(session, args.system)
+            system = cogdb.query.fort_find_system(session, args.system)
         else:
-            current = cogdb.query.find_current_target(session)
-            system = cogdb.query.get_fort_targets(session, current)[0]
+            current = cogdb.query.fort_find_current_index(session)
+            system = cogdb.query.fort_get_targets(session, current)[0]
         log.info('DROP - Matched system %s based on args: %s.',
                  system.name, args.system)
 
-        fort = cogdb.query.add_fort(session, system=system, suser=duser.suser, amount=args.amount)
+        drop = cogdb.query.fort_add_drop(session, system=system,
+                                         suser=duser.suser, amount=args.amount)
         if args.set:
             system.set_status(args.set)
             session.commit()
-        asyncio.ensure_future(self.scanner.update_fort(fort))
-        asyncio.ensure_future(self.scanner.update_system(fort.system))
+        asyncio.ensure_future(self.scanner.update_drop(drop))
+        asyncio.ensure_future(self.scanner.update_system(drop.system))
 
         log.info('DROP - Sucessfully dropped %d at %s for %s.',
                  args.amount, system.name, duser.display_name)
 
-        await self.send_message(message.channel, fort.system.short_display())
+        await self.send_message(message.channel, drop.system.short_display())
 
     async def command_dump(self, **kwargs):
         """
@@ -196,21 +199,20 @@ class CogBot(discord.Client):
         args = kwargs.get('args')
         session = kwargs.get('session')
         systems = []
+        cur_index = cogdb.query.fort_find_current_index(session)
 
         if args.system:
-            systems.append(cogdb.query.get_system_by_name(session, args.system,
-                                                          search_all=True))
+            systems.append(cogdb.query.fort_find_system(session, args.system,
+                                                        search_all=True))
         elif args.next:
-            cur_index = cogdb.query.find_current_target(session)
-            systems = cogdb.query.get_next_fort_targets(session,
+            systems = cogdb.query.fort_get_next_targets(session,
                                                         cur_index, count=args.next)
         else:
-            cur_index = cogdb.query.find_current_target(session)
-            systems = cogdb.query.get_fort_targets(session, cur_index)
+            systems = cogdb.query.fort_get_targets(session, cur_index)
 
         if args.summary:
-            states = cogdb.query.get_all_systems_by_state(session)
-            total = len(cogdb.query.get_all_systems(session))
+            states = cogdb.query.fort_get_systems_by_state(session)
+            total = len(cogdb.query.fort_get_systems(session))
 
             keys = ['cancelled', 'fortified', 'undermined', 'skipped', 'left']
             lines = [
@@ -232,6 +234,24 @@ class CogBot(discord.Client):
             response = '\n'.join(lines)
 
         message = kwargs.get('message')
+        await self.send_message(message.channel, response)
+
+    async def command_hold(self, **kwargs):
+        """
+        Update a user's held merits.
+        """
+        args = kwargs.get('args')
+        message = kwargs.get('message')
+
+        if args.died:
+            response = 'You died. All merits reset.'
+        elif args.redeem:
+            response = 'You have redeemed {} new merits, total this cycle {}.'.format(0, 0)
+        elif args.held and args.system:
+            response = 'Holding {} merits in {}.'.format(args.held, args.system)
+        else:
+            response = 'Holding these merits:'
+
         await self.send_message(message.channel, response)
 
     async def command_info(self, **kwargs):
@@ -298,6 +318,27 @@ class CogBot(discord.Client):
 
         message = kwargs.get('message')
         await self.send_message(message.channel, '\n'.join(lines))
+
+    async def command_um(self, **kwargs):
+        """
+        Command to show um systems and update status.
+        """
+        # sub = subs.add_parser(prefix + 'um', description='Query and update the um sheet.')
+        # sub.set_defaults(cmd='um')
+        # sub.add_argument('system', nargs='?', help='The system to update/show.')
+        # sub.add_argument('--set',
+                        # help='Set the System status of system, us:them. Example-> --set 3400:200')
+        args = kwargs.get('args')
+        message = kwargs.get('message')
+
+        if args.system:
+            response = 'Show the system requested.'
+            if args.set:
+                response = 'Show system post update.'
+        else:
+            response = 'Show all incomplete systems.'
+
+        await self.send_message(message.channel, response)
 
     async def command_user(self, **kwargs):
         """
