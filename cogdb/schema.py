@@ -5,7 +5,6 @@ from __future__ import absolute_import, print_function
 
 import sqlalchemy as sqla
 import sqlalchemy.orm as sqla_orm
-# from sqlalchemy.orm.collections import attribute_mapped_collection
 import sqlalchemy.ext.declarative
 
 import cog.exc
@@ -21,10 +20,12 @@ class EFaction(object):
     winters = 'winters'
 
 
-class EType(object):
+class ESheetType(object):
     """ Type of sheet. """
-    cattle = 'cattle'
-    um = 'um'
+    hudson_cattle = 'hudson_cattle'
+    winters_cattle = 'winters_cattle'
+    hudson_um = 'hudson_um'
+    winters_um = 'winters_um'
 
 
 class DUser(Base):
@@ -56,50 +57,90 @@ class DUser(Base):
             new_faction = EFaction.hudson if self.faction == EFaction.winters else EFaction.winters
         self.faction = new_faction
 
-    def get_suser(self, sheet_type, **kwargs):
+    def get_sheet(self, sheet_type):
         """
-        Get a SUser for a given faction and type combination
+        Get a sheet belonging to a certain type. See ESheetType.
+        Alternatively, query and filter to get this, like:
+        session.query(HudsonCattle).filter(HudsonCattle.name == 'name').all()
 
-        Args:
-            faction: A value of EFaction
-            type: A value of EType. Required.
+        Returns a SheetRow subclass.
         """
-        faction = kwargs.get('faction', self.faction)
-
-        for user in self.susers:
-            if user.faction == faction and user.type == sheet_type:
-                return user
+        for sheet in self.sheets:
+            if sheet.type == sheet_type:
+                return sheet
 
         return None
 
+    @property
+    def cattle(self):
+        """ Get users current cattle sheet. """
+        return self.get_sheet(self.faction + '_cattle')
 
-class SUser(Base):
+    @property
+    def undermine(self):
+        """ Get users current undermining sheet. """
+        return self.get_sheet(self.faction + '_um')
+
+
+class SheetRow(Base):
     """
     Track all infomration about the user in a row of the cattle sheet.
     """
     __tablename__ = 'sheet_users'
-    __table_args__ = (
-        sqla.UniqueConstraint('name', 'faction', 'type'),
-    )
 
     id = sqla.Column(sqla.Integer, primary_key=True)
+    type = sqla.Column(sqla.String)  # See ESheetType
     name = sqla.Column(sqla.String, sqla.ForeignKey('discord_users.pref_name'))
-    faction = sqla.Column(sqla.String, default=EFaction.hudson)  # See EFaction
-    type = sqla.Column(sqla.String, default=EType.cattle)  # See EType
     cry = sqla.Column(sqla.String, default='')
     row = sqla.Column(sqla.Integer)
 
+    __table_args__ = (
+        sqla.UniqueConstraint('name', 'type'),
+    )
+    __mapper_args__ = {
+        'polymorphic_identity': 'base_row',
+        'polymorphic_on': type
+    }
+
     def __repr__(self):
-        keys = ['name', 'faction', 'type', 'row', 'cry']
+        keys = ['type', 'name', 'row', 'cry']
         kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
 
-        return "SUser({})".format(', '.join(kwargs))
+        return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
 
     def __str__(self):
         return "id={!r}, {!r}".format(self.id, self)
 
     def __eq__(self, other):
         return (self.name, self.faction, self.type) == (other.name, other.faction, other.type)
+
+
+class HudsonCattle(SheetRow):
+    """ Track user in Hudson cattle sheet. """
+    __mapper_args__ = {
+        'polymorphic_identity': ESheetType.hudson_cattle,
+    }
+
+
+class HudsonUM(SheetRow):
+    """ Track user in Hudson undermining sheet. """
+    __mapper_args__ = {
+        'polymorphic_identity': ESheetType.hudson_um,
+    }
+
+
+class WintersCattle(SheetRow):
+    """ Track user in Winters cattle sheet. """
+    __mapper_args__ = {
+        'polymorphic_identity': ESheetType.winters_cattle,
+    }
+
+
+class WintersUM(SheetRow):
+    """ Track user in Winters undermining sheet. """
+    __mapper_args__ = {
+        'polymorphic_identity': ESheetType.winters_um,
+    }
 
 
 class Drop(Base):
@@ -524,7 +565,7 @@ def drop_all_tables():
     Drop all tables.
     """
     session = cogdb.Session()
-    for cls in [Drop, Hold, Command, System, SystemUM, SUser, DUser]:
+    for cls in [Drop, Hold, Command, System, SystemUM, SheetRow, DUser]:
         session.query(cls).delete()
     session.commit()
 
@@ -534,7 +575,7 @@ def drop_scanned_tables():
     Drop only tables related to data parsed from sheet.
     """
     session = cogdb.Session()
-    for cls in [Drop, Hold, System, SystemUM, SUser]:
+    for cls in [Drop, Hold, System, SystemUM, SheetRow]:
         session.query(cls).delete()
     session.commit()
 
@@ -553,34 +594,30 @@ DUser.cmds = sqla_orm.relationship('Command',
                                    cascade='all, delete, delete-orphan',
                                    back_populates='duser')
 Command.duser = sqla_orm.relationship('DUser', back_populates='cmds')
-DUser.susers = sqla_orm.relationship('SUser', uselist=True,
-                                     # collection_class=attribute_mapped_collection('type'),
-                                     cascade='all, delete, delete-orphan',
+DUser.sheets = sqla_orm.relationship('SheetRow',
+                                     uselist=True,
                                      single_parent=True,
                                      back_populates='duser')
-SUser.duser = sqla_orm.relationship('DUser', uselist=False, back_populates='susers')
+SheetRow.duser = sqla_orm.relationship('DUser', uselist=False,
+                                       back_populates='sheets')
 
 # Fortification relations
-Drop.suser = sqla_orm.relationship('SUser', uselist=False, back_populates='drops')
-SUser.drops = sqla_orm.relationship('Drop',
-                                    # collection_class=sqa_attr_map('system.name'),
-                                    cascade='all, delete, delete-orphan',
-                                    back_populates='suser')
+Drop.user = sqla_orm.relationship('HudsonCattle', uselist=False, back_populates='drops')
+HudsonCattle.drops = sqla_orm.relationship('Drop',
+                                           cascade='all, delete, delete-orphan',
+                                           back_populates='user')
 Drop.system = sqla_orm.relationship('System', uselist=False, back_populates='drops')
 System.drops = sqla_orm.relationship('Drop',
-                                     # collection_class=sqa_attr_map('user.name'),
                                      cascade='all, delete, delete-orphan',
                                      back_populates='system')
 
 # Undermining relations
-Hold.suser = sqla_orm.relationship('SUser', uselist=False, back_populates='holds')
-SUser.holds = sqla_orm.relationship('Hold',
-                                    # collection_class=sqa_attr_map('system.name'),
-                                    cascade='all, delete, delete-orphan',
-                                    back_populates='suser')
+Hold.user = sqla_orm.relationship('HudsonUM', uselist=False, back_populates='holds')
+HudsonUM.holds = sqla_orm.relationship('Hold',
+                                       cascade='all, delete, delete-orphan',
+                                       back_populates='user')
 Hold.system = sqla_orm.relationship('SystemUM', uselist=False, back_populates='holds')
 SystemUM.holds = sqla_orm.relationship('Hold',
-                                       # collection_class=sqa_attr_map('user.name'),
                                        cascade='all, delete, delete-orphan',
                                        back_populates='system')
 
@@ -590,7 +627,7 @@ Base.metadata.create_all(cogdb.mem_engine)
 
 def main():
     """
-    Exists only as old example code.
+    This continues to exist only as a sanity test for schema and relations.
     """
     import datetime as date
     session = cogdb.Session()
@@ -611,16 +648,16 @@ def main():
     session.add_all(cmds)
     session.commit()
 
-    susers = (
-        SUser(name='GearsandCogs', row=15),
-        SUser(name='rjwhite', row=16),
-        SUser(name='vampyregtx', row=17),
-        SUser(name='vampyregtx', type=EType.um, row=22),
-        SUser(name='vampyregtx', faction=EFaction.winters, type=EType.cattle, row=22),
-        SUser(name='vampyregtx', faction=EFaction.winters, type=EType.um, row=22),
+    sheets = (
+        HudsonCattle(name='GearsandCogs', row=15),
+        HudsonCattle(name='rjwhite', row=16),
+        HudsonCattle(name='vampyregtx', row=17),
+        HudsonUM(name='vampyregtx', row=22),
+        WintersCattle(name='vampyregtx', row=22),
+        WintersUM(name='vampyregtx', row=22),
     )
 
-    session.add_all(susers)
+    session.add_all(sheets)
     session.commit()
 
     systems = (
@@ -635,11 +672,11 @@ def main():
     session.commit()
 
     drops = (
-        Drop(user_id=susers[0].id, system_id=systems[0].id, amount=700),
-        Drop(user_id=susers[1].id, system_id=systems[0].id, amount=700),
-        Drop(user_id=susers[0].id, system_id=systems[2].id, amount=1400),
-        Drop(user_id=susers[2].id, system_id=systems[1].id, amount=2100),
-        Drop(user_id=susers[2].id, system_id=systems[0].id, amount=300),
+        Drop(user_id=sheets[0].id, system_id=systems[0].id, amount=700),
+        Drop(user_id=sheets[1].id, system_id=systems[0].id, amount=700),
+        Drop(user_id=sheets[0].id, system_id=systems[2].id, amount=1400),
+        Drop(user_id=sheets[2].id, system_id=systems[1].id, amount=2100),
+        Drop(user_id=sheets[2].id, system_id=systems[0].id, amount=300),
     )
     session.add_all(drops)
     session.commit()
@@ -658,10 +695,11 @@ def main():
     print('DiscordUsers----------')
     for user in session.query(DUser):
         mprint(user)
-        mprint(pad, user.susers)
+        mprint(pad, user.sheets)
+        mprint(user.cattle)
 
     print('SheetUsers----------')
-    for user in session.query(SUser):
+    for user in session.query(SheetRow):
         mprint(user)
         mprint(pad, user.duser)
 
@@ -673,7 +711,7 @@ def main():
     print('Drops----------')
     for drop in session.query(Drop):
         mprint(drop)
-        mprint(pad, drop.suser)
+        mprint(pad, drop.user)
         mprint(pad, drop.system)
 
 
