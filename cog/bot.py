@@ -384,7 +384,7 @@ def init_db(sheet_id):
                                   cog.share.rel_to_abs(paths['json']),
                                   cog.share.rel_to_abs(paths['token']))
 
-        scanner = cogdb.query.SheetScanner(sheet)
+        scanner = cogdb.query.FortScanner(sheet)
         scanner.scan(session)
 
         return scanner

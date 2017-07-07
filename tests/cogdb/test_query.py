@@ -44,13 +44,13 @@ def test_fuzzy_find():
 
 
 def test_sheetscanner_find_system_column(mock_sheet):
-    scanner = cogdb.query.SheetScanner(mock_sheet)
+    scanner = cogdb.query.FortScanner(mock_sheet)
     assert scanner.system_col == 'F'
 
     mock_sheet.get_with_formatting.return_value = copy.deepcopy(FMT_CELLS)
     mock_sheet.get_with_formatting.return_value['sheets'][0]['data'][0]['rowData'][0]['values'] = []
     with pytest.raises(cog.exc.SheetParsingError):
-        cogdb.query.SheetScanner(mock_sheet)
+        cogdb.query.FortScanner(mock_sheet)
 
 
 def test_sheetscanner_find_user_row(mock_sheet):
@@ -63,18 +63,18 @@ def test_sheetscanner_find_user_row(mock_sheet):
         ['', 'Cinco'],
     ]
     mock_sheet.whole_sheet.return_value = cells
-    scanner = cogdb.query.SheetScanner(mock_sheet)
+    scanner = cogdb.query.FortScanner(mock_sheet)
     assert (scanner.user_col, scanner.user_row) == ('B', 11)
 
     mock_sheet.whole_sheet.return_value = cells[:1] + cells[2:]
     with pytest.raises(cog.exc.SheetParsingError):
-        cogdb.query.SheetScanner(mock_sheet)
+        cogdb.query.FortScanner(mock_sheet)
 
 
 @db_cleanup
 def test_sheetscanner_merits(mock_sheet):
     session = cogdb.Session()
-    scanner = cogdb.query.SheetScanner(mock_sheet)
+    scanner = cogdb.query.FortScanner(mock_sheet)
     scanner.scan(session)
 
     fort1 = session.query(cogdb.schema.Drop).all()[0]
@@ -86,13 +86,13 @@ def test_sheetscanner_merits(mock_sheet):
 
 
 def test_sheetscanner_systems(mock_sheet):
-    scanner = cogdb.query.SheetScanner(mock_sheet)
+    scanner = cogdb.query.FortScanner(mock_sheet)
     result = [sys.name for sys in scanner.systems()]
     assert result == SYSTEMS[:6] + ['Othime']
 
 
 def test_sheetscanner_users(mock_sheet):
-    scanner = cogdb.query.SheetScanner(mock_sheet)
+    scanner = cogdb.query.FortScanner(mock_sheet)
     result = [suser.name for suser in scanner.users()]
     assert result == USERS
 

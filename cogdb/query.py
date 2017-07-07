@@ -325,16 +325,20 @@ def fort_add_drop(session, **kwargs):
 
 class SheetScanner(object):
     """
-    Scan a sheet's cells for useful information.
+    Scan a sheet to populate the database with information
+    Also provide methods to update the sheet with new data
 
-    Whole sheets can be fetched by simply getting far beyond expected column end.
-        i.e. sheet.get('!A:EA', dim='COLUMNS')
+    Process whole sheets at a time with gsheet.whole_sheet()
+
+    Important Note:
+        Calls to modify the sheet should be asynchronous.
+        Register them as futures and allow them to finish without waiting on.
     """
     def __init__(self, gsheet):
         self.gsheet = gsheet
         self.__cells = None
-        self.system_col = self.find_system_column()
-        self.user_col, self.user_row = self.find_user_row()
+        self.user_col = None
+        self.user_row = None
 
     @property
     def cells(self):
@@ -348,7 +352,7 @@ class SheetScanner(object):
 
     def scan(self, session):
         """
-        Update db with scanned information from sheet.
+        Main function, scan the sheet into the database.
         """
         systems = self.systems()
         users = self.users()
@@ -360,9 +364,64 @@ class SheetScanner(object):
 
         self.__cells = None
 
+    def users(self):
+        """
+        Scan the users in the sheet and return SUser objects.
+        """
+        row = self.user_row - 1
+        user_column = cog.sheets.column_to_index(self.user_col)
+        cry_column = user_column - 1
+
+        found = []
+        for user in self.cells[user_column][row:]:
+            row += 1
+
+            if user == '':  # Users sometimes miss an entry
+                continue
+
+            try:
+                cry = self.cells[cry_column][row - 1]
+            except IndexError:
+                cry = ''
+
+            found.append(SUser(name=user, type=EType.um, row=row, cry=cry))
+
+        return found
+
     def systems(self):
         """
-        Scan the systems in the fortification sheet and return System objects that can be inserted.
+        Scan and parse the system information.
+        """
+        raise NotImplementedError
+
+    def merits(self, systems, users):
+        """
+        Scan and parse the merit information by system and user.
+        """
+        raise NotImplementedError
+
+    async def update_sheet_user(self, suser):
+        """
+        Update the user cry and name on the given row.
+        """
+        col1 = cog.sheets.Column(self.user_col).prev()
+        cell_range = '!{col1}{row}:{col2}{row}'.format(row=suser.row, col1=col1,
+                                                       col2=self.user_col)
+        self.gsheet.update(cell_range, [[suser.cry, suser.name]])
+
+
+class FortScanner(SheetScanner):
+    """
+    Scanner for the Hudson fort sheet.
+    """
+    def __init__(self, gsheet):
+        super(FortScanner, self).__init__(gsheet)
+        self.system_col = self.find_system_column()
+        self.user_col, self.user_row = self.find_user_row()
+
+    def systems(self):
+        """
+        Scan and parse the system information into System objects.
         """
         found = []
         cell_column = cog.sheets.Column(self.system_col)
@@ -380,31 +439,7 @@ class SheetScanner(object):
 
         return found
 
-    def users(self):
-        """
-        Scan the users in the fortification sheet and return User objects that can be inserted.
-        """
-        found = []
-        row = self.user_row - 1
-        user_column = cog.sheets.column_to_index(self.user_col)
-        cry_column = user_column - 1
-
-        for user in self.cells[user_column][row:]:
-            row += 1
-
-            if user == '':  # Users sometimes miss an entry
-                continue
-
-            try:
-                cry = self.cells[cry_column][row - 1]
-            except IndexError:
-                cry = ''
-
-            found.append(SUser(name=user, type=EType.cattle, row=row, cry=cry))
-
-        return found
-
-    def merits(self, systems, susers):
+    def merits(self, systems, users):
         """
         Scan the fortification area of the sheet and return Drop objects representing
         merits each user has dropped in System.
@@ -418,14 +453,14 @@ class SheetScanner(object):
 
         for system in systems:
             try:
-                for suser in susers:
+                for user in users:
                     col_ind = col_offset + system.sheet_order
-                    amount = self.cells[col_ind][suser.row - 1]
+                    amount = self.cells[col_ind][user.row - 1]
 
                     if amount == '':  # Some rows just placeholders if empty
                         continue
 
-                    found.append(Drop(user_id=suser.id, system_id=system.id,
+                    found.append(Drop(user_id=user.id, system_id=system.id,
                                       amount=amount))
             except IndexError:
                 pass  # No more amounts in column
@@ -473,7 +508,6 @@ class SheetScanner(object):
 
         raise cog.exc.SheetParsingError
 
-    # Calls to modify the sheet All asynchronous, register them as futures and move on.
     async def update_drop(self, drop):
         """
         Update a drop to the sheet.
@@ -492,14 +526,80 @@ class SheetScanner(object):
         self.gsheet.update(cell_range, [[fort_status, system.um_status,
                                          system.distance, system.notes]], dim='COLUMNS')
 
-    async def update_sheet_user(self, suser):
+
+class UMScanner(SheetScanner):
+    """
+    Scanner for the Hudson undermine sheet.
+    """
+    def __init__(self, gsheet):
+        super(UMScanner, self).__init__(gsheet)
+        # These are fixed based on current format
+        self.system_col = 'D'
+        self.user_col = 'B'
+        self.user_row = 14
+
+    def systems(self):
         """
-        Update the user cry and name on the given row.
+        Scan the system column information.
         """
-        col1 = cog.sheets.Column(self.user_col).prev()
-        cell_range = '!{col1}{row}:{col2}{row}'.format(row=suser.row, col1=col1,
-                                                       col2=self.user_col)
-        self.gsheet.update(cell_range, [[suser.cry, suser.name]])
+        cell_column = cog.sheets.Column(self.system_col)
+
+        found = []
+        try:
+            while True:
+                col = cog.sheets.column_to_index(str(cell_column))
+                kwargs = kwargs_um_system(self.cells[col:col + 2], str(cell_column))
+                found.append(SystemUM(**kwargs))
+                cell_column.offset(2)
+        except cog.exc.SheetParsingError:
+            pass
+
+        return found
+
+    def merits(self, systems, users):
+        """
+        Scan the merits held/redeemed area.
+
+        Args:
+            systems: The list of Systems in the order entered in the sheet.
+            users: The list of Users in order the order entered in the sheet.
+        """
+        found = []
+        for system in systems:
+            try:
+                col_ind = cog.sheets.column_to_index(system.sheet_col)
+                for user in users:
+                    held = cogdb.schema.parse_int(self.cells[col_ind][user.row - 1])
+                    redeemed = cogdb.schema.parse_int(self.cells[col_ind + 1][user.row - 1])
+
+                    if held == '' and redeemed == '':  # Some rows just placeholders if empty
+                        continue
+
+                    found.append(Hold(user_id=user.id, system_id=system.id,
+                                      held=held, redeemed=redeemed))
+            except IndexError:
+                pass  # No more amounts in column
+
+        return found
+
+    # Calls to modify the sheet All asynchronous, register them as futures and move on.
+    async def update_hold(self, hold):
+        """
+        Update a hold on the sheet.
+        """
+        cell_range = '!{col}{row1}:{col}{row2}'.format(col=hold.system.sheet_col,
+                                                       row1=hold.suser.row,
+                                                       row2=hold.suser.row + 1)
+        self.gsheet.update(cell_range, [[hold.held, hold.redeemed]])
+
+    async def update_system(self, system):
+        """
+        Update the system column of the sheet.
+        """
+        cell_range = '!{col}{start}:{col}{end}'.format(col=system.sheet_col,
+                                                       start=9, end=10)
+        self.gsheet.update(cell_range, [[system.progress_us, system.progress_them]],
+                           dim='COLUMNS')
 
 
 def um_find_system(session, system_name):
@@ -562,136 +662,3 @@ def um_add_hold(session, **kwargs):
     session.commit()
 
     return hold
-
-
-class UMScanner(object):
-    """
-    Scanner for the undermine sheet.
-    """
-    def __init__(self, gsheet):
-        self.gsheet = gsheet
-        self.__cells = None
-        # These are fixed based on current format
-        self.system_col = 'D'
-        self.user_col = 'B'
-        self.user_row = 14
-
-    @property
-    def cells(self):
-        """
-        Access a cached version of the cells.
-        """
-        if not self.__cells:
-            self.__cells = self.gsheet.whole_sheet()
-
-        return self.__cells
-
-    def scan(self, session):
-        """
-        Update db with scanned information from sheet.
-        """
-        systems = self.systems()
-        users = self.users()
-        session.add_all(systems + users)
-        session.commit()
-
-        session.add_all(self.merits(systems, users))
-        session.commit()
-
-        self.__cells = None
-
-    def systems(self):
-        """
-        Scan the system column information.
-        """
-        cell_column = cog.sheets.Column(self.system_col)
-
-        found = []
-        try:
-            while True:
-                col = cog.sheets.column_to_index(str(cell_column))
-                kwargs = kwargs_um_system(self.cells[col:col + 2], str(cell_column))
-                found.append(SystemUM(**kwargs))
-                cell_column.offset(2)
-        except cog.exc.SheetParsingError:
-            pass
-
-        return found
-
-    def users(self):
-        """
-        Scan the users in the sheet and return SUser objects.
-        """
-        row = self.user_row - 1
-        user_column = cog.sheets.column_to_index(self.user_col)
-        cry_column = user_column - 1
-
-        found = []
-        for user in self.cells[user_column][row:]:
-            row += 1
-
-            if user == '':  # Users sometimes miss an entry
-                continue
-
-            try:
-                cry = self.cells[cry_column][row - 1]
-            except IndexError:
-                cry = ''
-
-            found.append(SUser(name=user, type=EType.um, row=row, cry=cry))
-
-        return found
-
-    def merits(self, systems, users):
-        """
-        Scan the merits held/redeemed area.
-
-        Args:
-            systems: The list of Systems in the order entered in the sheet.
-            users: The list of Users in order the order entered in the sheet.
-        """
-        found = []
-        for system in systems:
-            try:
-                col_ind = cog.sheets.column_to_index(system.sheet_col)
-                for user in users:
-                    held = cogdb.schema.parse_int(self.cells[col_ind][user.row - 1])
-                    redeemed = cogdb.schema.parse_int(self.cells[col_ind + 1][user.row - 1])
-
-                    if held == '' and redeemed == '':  # Some rows just placeholders if empty
-                        continue
-
-                    found.append(Hold(user_id=user.id, system_id=system.id,
-                                      held=held, redeemed=redeemed))
-            except IndexError:
-                pass  # No more amounts in column
-
-        return found
-
-    # Calls to modify the sheet All asynchronous, register them as futures and move on.
-    async def update_hold(self, hold):
-        """
-        Update a hold on the sheet.
-        """
-        cell_range = '!{col}{row1}:{col}{row2}'.format(col=hold.system.sheet_col,
-                                                       row1=hold.suser.row,
-                                                       row2=hold.suser.row + 1)
-        self.gsheet.update(cell_range, [[hold.held, hold.redeemed]])
-
-    async def update_system(self, system):
-        """
-        Update the system column of the sheet.
-        """
-        cell_range = '!{col}{start}:{col}{end}'.format(col=system.sheet_col,
-                                                       start=9, end=10)
-        self.gsheet.update(cell_range, [[system.progress_us, system.progress_them]],
-                           dim='COLUMNS')
-
-    async def update_sheet_user(self, suser):
-        """
-        Update the user cry and name on the given row.
-        """
-        col1 = cog.sheets.Column(self.user_col).prev()
-        cell_range = '!{col1}{row}:{col2}{row}'.format(row=suser.row, col1=col1,
-                                                       col2=self.user_col)
-        self.gsheet.update(cell_range, [[suser.cry, suser.name]])

@@ -59,7 +59,7 @@ def db_data(function):
         mock_sheet = mock.Mock()
         mock_sheet.whole_sheet.return_value = CELLS
         mock_sheet.get_with_formatting.return_value = FMT_CELLS
-        scanner = cogdb.query.SheetScanner(mock_sheet)
+        scanner = cogdb.query.FortScanner(mock_sheet)
         scanner.scan(session)
 
         duser = cogdb.schema.DUser(discord_id='1111', display_name='GearsandCogs',
