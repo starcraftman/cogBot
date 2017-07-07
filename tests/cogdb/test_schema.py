@@ -16,6 +16,18 @@ import cogdb.schema
 from tests.cogdb import CELLS, FMT_CELLS, UM_CELLS
 
 SYSTEM_DATA = ['', 1, 4910, 0, 4322, 4910, 0, 116.99, '', 'Frey']
+SYSTEMUM_EXPAND = [
+    ['Exp', 0, 0, 364298, 160472, 127278, 'Sec: Low', 'Dongkum', 'Burr', 161630, 35, 0, 76548],
+    [0, 0, 0, 0, 0, 0, ''],
+]
+SYSTEMUM_OPPOSE = [
+    ['Opp', 0, 0, 59877, 10470, 12147, 'Sec: Low', 'Atropos', 'AF Leopris', 47739, 1.69, 0, 23960],
+    [0, 0, 0, 0, 0, 0, ''],
+]
+SYSTEMUM_CONTROL = [
+    ['', 0, 0, 14878, 13950, -452, 'Sec: Medium', 'Unknown', 'Cemplangpa', 13830, 1, 0, 1380],
+    [0, 0, 0, 0, 0, 0, ''],
+]
 
 
 def db_cleanup(function):
@@ -30,7 +42,6 @@ def db_cleanup(function):
             session = cogdb.Session()
             assert session.query(cogdb.schema.DUser).all() == []
             assert session.query(cogdb.schema.SUser).all() == []
-            assert session.query(cogdb.schema.SUserUM).all() == []
             assert session.query(cogdb.schema.SystemUM).all() == []
             assert session.query(cogdb.schema.System).all() == []
             assert session.query(cogdb.schema.Hold).all() == []
@@ -80,17 +91,6 @@ def mock_umsheet():
     yield fake_sheet
 
 
-def dec_system_um(function):
-    def call():
-        sys_cols = UM_CELLS[3:5]
-        kwargs = cogdb.schema.kwargs_um_system(sys_cols, 'D')
-        system = cogdb.schema.SystemUM(**kwargs)
-
-        function(kwargs=kwargs, system=system)
-
-    return call
-
-
 def duser_and_suser(function):
     def call():
         duser = cogdb.schema.DUser(discord_id='1111', display_name='test user',
@@ -99,8 +99,6 @@ def duser_and_suser(function):
 
         session = cogdb.Session()
         session.add_all([suser, duser])
-        session.commit()
-        duser.set_cattle(suser)
         session.commit()
 
         function(session=session, duser=duser, suser=suser)
@@ -215,7 +213,7 @@ def test_command__str__(**kwargs):
 def test_duser__eq__(**kwargs):
     suser, duser = (kwargs['suser'], kwargs['duser'])
     assert suser.duser == duser
-    assert duser.suser == suser
+    assert duser.get_suser(cogdb.schema.EType.cattle) == suser
     assert duser == cogdb.schema.DUser(discord_id='1111', display_name='test user',
                                        pref_name='test user')
 
@@ -225,8 +223,10 @@ def test_duser__eq__(**kwargs):
 def test_duser__repr__(**kwargs):
     duser = kwargs['duser']
     assert repr(duser) == "DUser(discord_id='1111', display_name='test user', "\
-                          "pref_name='test user', capacity=0, cattle_id=1)"
-    assert duser == eval(repr(duser).replace('DUser', 'cogdb.schema.DUser'))
+                          "faction='hudson', pref_name='test user', capacity=0)"
+    duser_str = repr(duser).replace('DUser', 'cogdb.schema.DUser')
+    duser_str = duser_str.replace('EFaction', 'cogdb.schema.EFaction')
+    assert duser == eval(duser_str)
 
 
 @db_cleanup
@@ -234,32 +234,33 @@ def test_duser__repr__(**kwargs):
 def test_duser__str__(**kwargs):
     duser = kwargs['duser']
     assert str(duser) == "DUser(discord_id='1111', display_name='test user', "\
-                         "pref_name='test user', capacity=0, cattle_id=1)"
+                         "faction='hudson', pref_name='test user', capacity=0)"
 
 
 @db_cleanup
 @duser_and_suser
-def test_duser_set_cattle(**kwargs):
-    duser, suser = (kwargs['duser'], kwargs['suser'])
-    suser.id = 10
-    duser.set_cattle(suser)
-    assert duser.cattle_id == 10
+def test_duser_get_suser(**kwargs):
+    suser, duser = kwargs['suser'], kwargs['duser']
+    assert duser.get_suser(cogdb.schema.EType.cattle) == suser
 
 
 @db_cleanup
 @duser_and_suser
 def test_suser__eq__(**kwargs):
     suser, duser = (kwargs['suser'], kwargs['duser'])
-    assert suser == cogdb.schema.SUser(name='test user', row=2)
+    assert suser == cogdb.schema.SUser(name='test user', faction=cogdb.schema.EFaction.hudson,
+                                       type=cogdb.schema.EType.cattle, row=2)
     assert suser.duser == duser
-    assert duser.suser == suser
+    assert duser.get_suser(cogdb.schema.EType.cattle) == suser
 
 
 @db_cleanup
 @duser_and_suser
 def test_suser__repr__(**kwargs):
     suser = kwargs['suser']
-    assert repr(suser) == "SUser(name='test user', row=2, cry='')"
+    assert repr(suser) == "SUser(name='test user', faction='hudson', "\
+                          "type='cattle', row=2, cry='')"
+
     assert suser == eval(repr(suser).replace('SUser', 'cogdb.schema.SUser'))
 
 
@@ -267,28 +268,8 @@ def test_suser__repr__(**kwargs):
 @duser_and_suser
 def test_suser__str__(**kwargs):
     suser = kwargs['suser']
-    assert str(suser) == "id=1, SUser(name='test user', row=2, cry='')"
-
-
-@db_cleanup
-def test_suser_merits():
-    suser = cogdb.schema.SUser(name='test user', row=2)
-    result = cogdb.schema.kwargs_fort_system(SYSTEM_DATA, 0, 'F')
-    system = cogdb.schema.System(**result)
-    result = cogdb.schema.kwargs_fort_system(SYSTEM_DATA, 0, 'G')
-    result['name'] = 'Sol'
-    system2 = cogdb.schema.System(**result)
-    session = cogdb.Session()
-    session.add_all([system, system2, suser])
-    session.commit()
-
-    fort = cogdb.schema.Drop(amount=400, user_id=suser.id, system_id=system.id)
-    fort2 = cogdb.schema.Drop(amount=200, user_id=suser.id, system_id=system2.id)
-    session = cogdb.Session()
-    session.add_all([fort, fort2])
-    session.commit()
-
-    assert suser.merits == 600
+    assert str(suser) == "id=1, SUser(name='test user', faction='hudson', "\
+                         "type='cattle', row=2, cry='')"
 
 
 @db_cleanup
@@ -450,56 +431,111 @@ def test_system_table_row():
     assert system.table_row == ('Frey', '   0', '4910/4910 (100.0%/0.0%)', 'Leave')
 
 
-@dec_system_um
-def test_system_um__repr__(**kwargs):
-    system = kwargs['system']
+def test_system_um__repr__():
+    kwargs = cogdb.schema.kwargs_um_system(SYSTEMUM_EXPAND, 'D')
+    system = cogdb.schema.SystemUM(**kwargs)
 
-    assert repr(system) == "SystemUM(name='Burr', type='expand', sheet_col='D', "\
-        "completion=-0.84, goal=364297, cmdr_merits=160472, missing=127277, progress_us=161630, "\
-        "progress_them=35.0, trigger=6939, margin=0.5, security='Sec: Low', notes='', "\
-        "close_control='Dongkum')"
+    assert repr(system) == "SystemUM(name='Burr', type='expansion', sheet_col='D', goal=364298, "\
+        "security='Low', notes='', progress_us=161630, progress_them=35.0, "\
+        "close_control='Dongkum', map_offset=76548)"
     assert system == eval(repr(system).replace('SystemUM', 'cogdb.schema.SystemUM'))
 
 
-@dec_system_um
-def test_system_um__str__(**kwargs):
-    system = kwargs['system']
-    assert str(system) == "id=None, SystemUM(name='Burr', type='expand', sheet_col='D', "\
-        "completion=-0.84, goal=364297, cmdr_merits=160472, missing=127277, progress_us=161630, "\
-        "progress_them=35.0, trigger=6939, margin=0.5, security='Sec: Low', notes='', "\
-        "close_control='Dongkum')"
+@db_cleanup
+def test_system_um__str__():
+    session = cogdb.Session()
+    kwargs = cogdb.schema.kwargs_um_system(SYSTEMUM_CONTROL, 'D')
+    system = cogdb.schema.SystemUM(**kwargs)
+    session.add(system)
+    session.commit()
+    session.add(cogdb.schema.Hold(user_id=1, system_id=system.id, held=0, redeemed=13950))
+    session.commit()
+
+    assert str(system) == "Type: Control, Name: Cemplangpa\n"\
+                          "Completion: 103%, Missing: -452\n"\
+                          "Security: Medium, Close Control: Unknown"
 
 
-@dec_system_um
-def test_system_um__eq__(**kwargs):
-    system = kwargs['system']
+def test_system_um__eq__():
+    kwargs = cogdb.schema.kwargs_um_system(SYSTEMUM_EXPAND, 'D')
+    system = cogdb.schema.SystemUM(**kwargs)
 
-    assert system == cogdb.schema.SystemUM(name='Burr', sheet_col='D', completion=-0.84,
-                                           goal=364297, cmdr_merits=160472, missing=127277,
-                                           progress_us=161630, progress_them=35.0, trigger=6939,
-                                           margin=0.5, security='Sec: Low', notes='',
-                                           close_control='Dongkum')
+    assert system == cogdb.schema.SystemUM(**kwargs)
 
 
-@dec_system_um
-def test_kwargs_system_um(**kwargs):
+def test_is_control():
+    kwargs = cogdb.schema.kwargs_um_system(SYSTEMUM_EXPAND, 'D')
+    system = cogdb.schema.SystemUM(**kwargs)
+    assert not system.is_control
+
+    kwargs = cogdb.schema.kwargs_um_system(SYSTEMUM_CONTROL, 'D')
+    system = cogdb.schema.SystemUM(**kwargs)
+    assert system.is_control
+
+
+@db_cleanup
+def test_system_um_cmdr_merits():
+    session = cogdb.Session()
+    kwargs = cogdb.schema.kwargs_um_system(SYSTEMUM_CONTROL, 'D')
+    system = cogdb.schema.SystemUM(**kwargs)
+    session.add(system)
+    session.commit()
+
+    session.add(cogdb.schema.Hold(user_id=1, system_id=system.id, held=750, redeemed=750))
+    session.add(cogdb.schema.Hold(user_id=2, system_id=system.id, held=0, redeemed=1500))
+    session.add(cogdb.schema.Hold(user_id=3, system_id=system.id, held=2000, redeemed=0))
+    session.commit()
+
+    assert system.cmdr_merits == 5000
+
+
+@db_cleanup
+def test_system_um_missing():
+    session = cogdb.Session()
+    kwargs = cogdb.schema.kwargs_um_system(SYSTEMUM_CONTROL, 'D')
+    system = cogdb.schema.SystemUM(**kwargs)
+    session.add(system)
+    session.commit()
+
+    session.add(cogdb.schema.Hold(user_id=1, system_id=system.id, held=0, redeemed=13950))
+    session.commit()
+
+    system.progress_us = 0
+    assert system.missing == -452
+
+    system.progress_us = 15000
+    system.map_offset = 0
+    assert system.missing == -122
+
+
+@db_cleanup
+def test_system_um_completion():
+    session = cogdb.Session()
+    kwargs = cogdb.schema.kwargs_um_system(SYSTEMUM_CONTROL, 'D')
+    system = cogdb.schema.SystemUM(**kwargs)
+    session.add(system)
+    session.commit()
+
+    session.add(cogdb.schema.Hold(user_id=1, system_id=system.id, held=0, redeemed=13950))
+    session.commit()
+
+    assert system.completion == '103%'
+
+
+def test_kwargs_system_um():
     expect = {
         'close_control': 'Dongkum',
-        'cmdr_merits': 160472,
-        'completion': -0.84,
-        'goal': 364297,
-        'margin': 0.5,
-        'missing': 127277,
+        'goal': 364298,
         'name': 'Burr',
         'notes': '',
         'progress_us': 161630,
         'progress_them': 35.0,
-        'security': 'Sec: Low',
+        'security': 'Low',
         'sheet_col': 'D',
-        'trigger': 6939,
-        'type': 'expand',
+        'type': cogdb.schema.SystemUM.T_EXPAND,
+        'map_offset': 76548,
     }
-    sys_cols = copy.deepcopy(UM_CELLS[3:5])
+    sys_cols = copy.deepcopy(SYSTEMUM_EXPAND)
     assert cogdb.schema.kwargs_um_system(sys_cols, 'D') == expect
 
     sys_cols[0][0] = 'Opp.'

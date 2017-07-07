@@ -8,8 +8,8 @@ import sqlalchemy.orm.exc as sqa_exc
 import cog.exc
 import cog.sheets
 import cogdb
-from cogdb.schema import (DUser, System, SUser, Drop, kwargs_fort_system,
-                          SystemUM, SUserUM, Hold, kwargs_um_system)
+from cogdb.schema import (DUser, System, SUser, Drop, SystemUM, Hold, EFaction, EType,
+                          kwargs_fort_system, kwargs_um_system)
 
 
 def subseq_match(needle, line, ignore_case=True):
@@ -158,7 +158,6 @@ def check_sheet_user(session, duser, create_hook=None):
         if create_hook:
             create_hook(suser)
 
-    duser.set_cattle(suser)
     session.commit()
 
     return suser
@@ -401,7 +400,7 @@ class SheetScanner(object):
             except IndexError:
                 cry = ''
 
-            found.append(SUser(name=user, row=row, cry=cry))
+            found.append(SUser(name=user, type=EType.cattle, row=row, cry=cry))
 
         return found
 
@@ -501,6 +500,40 @@ class SheetScanner(object):
         cell_range = '!{col1}{row}:{col2}{row}'.format(row=suser.row, col1=col1,
                                                        col2=self.user_col)
         self.gsheet.update(cell_range, [[suser.cry, suser.name]])
+
+
+def um_find_system(session, system_name):
+    """
+    Find the SystemUM with system_name
+    """
+    try:
+        return session.query(SystemUM).filter_by(name=system_name).one()
+    except (sqa_exc.NoResultFound, sqa_exc.MultipleResultsFound):
+        systems = um_get_systems(session)
+        return fuzzy_find(system_name, systems, 'name')
+
+
+def um_get_hold(session, duser, system):
+    """
+    Return the hold for a user in a system
+    """
+    return session.query(Hold).filter_by(user_id=duser.um_id,
+                                         system_id=system.id).one()
+
+
+def um_get_systems(session, finished=False):
+    """
+    Return a list of all current undermining targets.
+
+    kwargs:
+        finished: Return just the finished targets.
+    """
+    raise NotImplementedError
+    # query = session.query(System)
+    # if not_othime:
+        # query = query.filter(System.name != 'Othime')
+
+    # return query.all()
 
 
 def um_add_hold(session, **kwargs):
@@ -605,7 +638,7 @@ class UMScanner(object):
             except IndexError:
                 cry = ''
 
-            found.append(SUserUM(name=user, row=row, cry=cry))
+            found.append(SUser(name=user, type=EType.um, row=row, cry=cry))
 
         return found
 
