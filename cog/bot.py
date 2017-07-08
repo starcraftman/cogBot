@@ -154,7 +154,7 @@ class CogBot(discord.Client):
             args.user = ' '.join(args.user)
             duser = cogdb.query.get_sheet_user_by_name(session, args.user).duser
         else:
-            duser = cogdb.query.get_discord_user_by_id(session, message.author.id)
+            duser = cogdb.query.get_duser(session, message.author.id)
             cogdb.query.check_sheet_user(
                 session, duser,
                 lambda x: asyncio.ensure_future(self.scanner.update_user(x))
@@ -343,7 +343,7 @@ class CogBot(discord.Client):
         message = kwargs.get('message')
         session = kwargs.get('session')
 
-        duser = cogdb.query.get_discord_user_by_id(session, message.author.id)
+        duser = cogdb.query.get_duser(session, message.author.id)
 
         if not duser.suser:
             cogdb.query.check_sheet_user(session, duser)

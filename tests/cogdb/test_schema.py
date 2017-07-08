@@ -17,7 +17,7 @@ from cogdb.schema import (DUser, System, Drop, Hold, Command,
                           SystemUM, UMControl, UMExpand, UMOppose,
                           EFaction, ESheetType, kwargs_um_system, kwargs_fort_system)
 
-from tests.data import (SYSTEMS_DATA, SYSTEMSUM_DATA, SYSTEMUM_EXPAND)
+from tests.data import SYSTEMS_DATA, SYSTEMSUM_DATA, SYSTEMUM_EXPAND
 
 
 def db_cleanup(function):
@@ -276,8 +276,7 @@ def test_drop__eq__(f_dusers, f_sheets, f_systems, f_drops):
     user = f_sheets[0]
     system = f_systems[0]
     drop = f_drops[0]
-    assert drop == Drop(amount=700, user_id=user.id,
-                                     system_id=system.id)
+    assert drop == Drop(amount=700, user_id=user.id, system_id=system.id)
     assert drop.user == user
     assert drop.system == system
 
@@ -310,6 +309,7 @@ def test_system_um__str__(f_dusers, f_sheets, f_systemsum, f_holds):
     assert str(system) == "Type: Control, Name: Cemplangpa\n"\
                           "Completion: 103%, Missing: -452\n"\
                           "Security: Medium, Close Control: Sol"
+
 
 def test_system_um__eq__(f_dusers, f_sheets, f_systemsum, f_holds):
 

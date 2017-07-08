@@ -354,7 +354,7 @@ class SystemUM(Base):
 
     id = sqla.Column(sqla.Integer, primary_key=True)
     name = sqla.Column(sqla.String, unique=True)
-    type = sqla.Column(sqla.String)  #  EUMType
+    type = sqla.Column(sqla.String)  # EUMType
     sheet_col = sqla.Column(sqla.String)
     goal = sqla.Column(sqla.Integer)
     security = sqla.Column(sqla.String)

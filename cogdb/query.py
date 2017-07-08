@@ -69,15 +69,14 @@ def dump_db():
     """
     session = cogdb.Session()
     print('Printing filled databases')
-    classes = [cogdb.schema.Command, cogdb.schema.DUser,
-               cogdb.schema.SUser, cogdb.schema.Drop, cogdb.schema.System]
+    classes = [DUser, SheetRow, System, SystemUM, Drop, Hold]
     for cls in classes:
         print('---- ' + str(cls) + ' ----')
         for obj in session.query(cls):
             print(obj)
 
 
-def get_duser(session, did):
+def get_duser(session, discord_id):
     """
     Return the DUser that has the same discord_id.
 
@@ -85,9 +84,9 @@ def get_duser(session, did):
         NoMatch - No possible match found.
     """
     try:
-        return session.query(DUser).filter_by(discord_id=did).one()
+        return session.query(DUser).filter_by(discord_id=discord_id).one()
     except sqa_exc.NoResultFound:
-        raise cog.exc.NoMatch(did, 'DUser')
+        raise cog.exc.NoMatch(discord_id, 'DUser')
 
 
 # def check_discord_user(session, member):
@@ -97,7 +96,7 @@ def get_duser(session, did):
     # Returns: The DUser
     # """
     # try:
-        # duser = get_discord_user_by_id(session, member.id)
+        # duser = get_duser(session, member.id)
     # except cog.exc.NoMatch:
         # duser = add_discord_user(session, member)
         # session.commit()

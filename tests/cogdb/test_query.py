@@ -10,7 +10,7 @@ import pytest
 import cog.exc
 from tests.data import CELLS_FORT_FMT, SYSTEMS, USERS
 import cogdb
-import cogdb.schema
+from cogdb.schema import DUser
 import cogdb.query
 
 
@@ -43,10 +43,9 @@ def test_fuzzy_find():
 
 
 def test_get_duser(session, f_dusers):
-    duser = f_dusers[0]
     duserQ = cogdb.query.get_duser(session, '1000')
-    assert isinstance(duser, cogdb.schema.DUser)
-    assert duser.display_name == 'GearsandCogs'
+    assert isinstance(duserQ, DUser)
+    assert duserQ.display_name == 'GearsandCogs'
 
     with pytest.raises(cog.exc.NoMatch):
         cogdb.query.get_duser(session, '0')
@@ -316,7 +315,7 @@ def test_get_duser(session, f_dusers):
     # member.display_name = 'NewestUser'
     # session = cogdb.Session()
     # duser = cogdb.query.add_discord_user(session, member, capacity=50)
-    # assert cogdb.query.get_discord_user_by_id(session, '1111') == duser
+    # assert cogdb.query.get_duser(session, '1111') == duser
 
 
 # @db_cleanup
