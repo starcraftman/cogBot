@@ -13,7 +13,7 @@ import cog.exc
 import cogdb
 import cogdb.schema
 from cogdb.schema import (DUser, System, Drop, Hold, Command,
-                          SheetRow, HudsonCattle, HudsonUM,
+                          SheetRow, SheetCattle, SheetUM,
                           SystemUM, UMControl, UMExpand, UMOppose,
                           EFaction, ESheetType, kwargs_um_system, kwargs_fort_system)
 
@@ -107,27 +107,27 @@ def test_duser__str__(f_dusers, f_sheets):
 
 def test_duser_get_sheet(f_dusers, f_sheets):
     duser = f_dusers[0]
-    assert not duser.get_sheet('winters_um')
-    assert duser.get_sheet('hudson_cattle')
-    assert isinstance(duser.get_sheet(ESheetType.hudson_cattle), HudsonCattle)
+    assert not duser.get_sheet('um', faction=EFaction.winters)
+    assert duser.get_sheet('cattle')
+    assert isinstance(duser.get_sheet(ESheetType.cattle), SheetCattle)
 
 
 def test_duser_cattle(session, f_dusers, f_sheets):
     duser = f_dusers[0]
-    cattle = session.query(HudsonCattle).filter(HudsonCattle.name == duser.pref_name).one()
+    cattle = session.query(SheetCattle).filter(SheetCattle.name == duser.pref_name).one()
 
     assert duser.cattle == cattle
-    assert isinstance(duser.cattle, HudsonCattle)
+    assert isinstance(duser.cattle, SheetCattle)
     duser.switch_faction()
     assert not duser.cattle
 
 
 def test_duser_undermine(session, f_dusers, f_sheets):
     duser = f_dusers[0]
-    undermine = session.query(HudsonUM).filter(HudsonUM.name == duser.pref_name).one()
+    undermine = session.query(SheetUM).filter(SheetUM.name == duser.pref_name).one()
 
     assert duser.undermine == undermine
-    assert isinstance(duser.undermine, HudsonUM)
+    assert isinstance(duser.undermine, SheetUM)
     duser.switch_faction()
     assert not duser.undermine
 
@@ -144,8 +144,8 @@ def test_duser_switch_faction(f_dusers, f_sheets):
 
 def test_sheetrow__eq__(f_dusers, f_sheets):
     sheet = f_sheets[0]
-    equal = HudsonCattle(type='hudson_cattle', name='GearsandCogs', row=15,
-                         cry='Gears are forting late!')
+    equal = SheetCattle(name='GearsandCogs', type=ESheetType.cattle, faction=EFaction.hudson,
+                        row=15, cry='Gears are forting late!')
     assert sheet == equal
     equal.name = 'notGears'
     assert sheet != equal
@@ -153,7 +153,7 @@ def test_sheetrow__eq__(f_dusers, f_sheets):
 
 def test_sheetrow__repr__(f_dusers, f_sheets):
     sheet = f_sheets[0]
-    assert repr(sheet) == "HudsonCattle(type='hudson_cattle', name='GearsandCogs', "\
+    assert repr(sheet) == "SheetCattle(name='GearsandCogs', type='cattle', faction='hudson', "\
                           "row=15, cry='Gears are forting late!')"
 
     assert sheet == eval(repr(sheet))
@@ -161,7 +161,7 @@ def test_sheetrow__repr__(f_dusers, f_sheets):
 
 def test_sheetrow__str__(f_dusers, f_sheets):
     sheet = f_sheets[0]
-    assert str(sheet) == "id=1, HudsonCattle(type='hudson_cattle', name='GearsandCogs', "\
+    assert str(sheet) == "id=1, SheetCattle(name='GearsandCogs', type='cattle', faction='hudson', "\
                          "row=15, cry='Gears are forting late!')"
 
 

@@ -9,7 +9,7 @@ import pytest
 
 import cogdb
 from cogdb.schema import (DUser, System, Drop, Hold, Command,
-                          SheetRow, HudsonCattle, HudsonUM,
+                          SheetRow, SheetCattle, SheetUM,
                           SystemUM,
                           EFaction, kwargs_um_system, kwargs_fort_system)
 from tests.data import CELLS_FORT, CELLS_FORT_FMT, CELLS_UM, SYSTEMS_DATA, SYSTEMSUM_DATA
@@ -69,11 +69,11 @@ def f_sheets(session):
     assert dusers
 
     sheets = (
-        HudsonCattle(name=dusers[0].pref_name, row=15, cry='Gears are forting late!'),
-        HudsonUM(name=dusers[0].pref_name, row=18, cry='Gears are pew pew!'),
-        HudsonCattle(name=dusers[1].pref_name, row=16, cry=''),
-        HudsonUM(name=dusers[1].pref_name, row=19, cry='Shooting time'),
-        HudsonCattle(name=dusers[2].pref_name, row=17, cry='Vamp the boss'),
+        SheetCattle(name=dusers[0].pref_name, row=15, cry='Gears are forting late!'),
+        SheetUM(name=dusers[0].pref_name, row=18, cry='Gears are pew pew!'),
+        SheetCattle(name=dusers[1].pref_name, row=16, cry=''),
+        SheetUM(name=dusers[1].pref_name, row=19, cry='Shooting time'),
+        SheetCattle(name=dusers[2].pref_name, row=17, cry='Vamp the boss'),
     )
     session.add_all(sheets)
     session.commit()
@@ -137,7 +137,7 @@ def f_drops(session):
 
     Depends on: f_sheets, f_systems
     """
-    users = session.query(HudsonCattle).all()
+    users = session.query(SheetCattle).all()
     systems = session.query(System).all()
 
     drops = (
@@ -180,7 +180,7 @@ def f_holds(session):
 
     Depends on: f_sheets, f_systemsum
     """
-    users = session.query(HudsonUM).all()
+    users = session.query(SheetUM).all()
     systems = session.query(SystemUM).all()
 
     drops = (

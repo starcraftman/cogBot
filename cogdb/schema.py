@@ -1,5 +1,7 @@
 """
-Manage the database and its tables.
+Define the database schema and some helpers.
+
+N.B. Schema defaults only applied once object commited.
 """
 from __future__ import absolute_import, print_function
 
@@ -29,10 +31,8 @@ class EFaction(object):
 
 class ESheetType(object):
     """ Type of sheet. """
-    hudson_cattle = 'hudson_cattle'
-    winters_cattle = 'winters_cattle'
-    hudson_um = 'hudson_um'
-    winters_um = 'winters_um'
+    cattle = 'cattle'
+    um = 'um'
 
 
 class EUMType(object):
@@ -71,7 +71,7 @@ class DUser(Base):
             new_faction = EFaction.hudson if self.faction == EFaction.winters else EFaction.winters
         self.faction = new_faction
 
-    def get_sheet(self, sheet_type):
+    def get_sheet(self, sheet_type, *, faction=None):
         """
         Get a sheet belonging to a certain type. See ESheetType.
         Alternatively, query and filter to get this, like:
@@ -79,8 +79,11 @@ class DUser(Base):
 
         Returns a SheetRow subclass. None if not set.
         """
+        if not faction:
+            faction = self.faction
+
         for sheet in self.sheets:
-            if sheet.type == sheet_type:
+            if sheet.type == sheet_type and sheet.faction == faction:
                 return sheet
 
         return None
@@ -88,12 +91,12 @@ class DUser(Base):
     @property
     def cattle(self):
         """ Get users current cattle sheet. """
-        return self.get_sheet(self.faction + '_cattle')
+        return self.get_sheet(ESheetType.cattle)
 
     @property
     def undermine(self):
         """ Get users current undermining sheet. """
-        return self.get_sheet(self.faction + '_um')
+        return self.get_sheet(ESheetType.um)
 
 
 class SheetRow(Base):
@@ -104,12 +107,13 @@ class SheetRow(Base):
 
     id = sqla.Column(sqla.Integer, primary_key=True)
     type = sqla.Column(sqla.String)  # See ESheetType
+    faction = sqla.Column(sqla.String, default=EFaction.hudson)
     name = sqla.Column(sqla.String, sqla.ForeignKey('discord_users.pref_name'))
     cry = sqla.Column(sqla.String, default='')
     row = sqla.Column(sqla.Integer)
 
     __table_args__ = (
-        sqla.UniqueConstraint('name', 'type'),
+        sqla.UniqueConstraint('name', 'type', 'faction'),
     )
     __mapper_args__ = {
         'polymorphic_identity': 'base_row',
@@ -117,7 +121,7 @@ class SheetRow(Base):
     }
 
     def __repr__(self):
-        keys = ['type', 'name', 'row', 'cry']
+        keys = ['name', 'type', 'faction', 'row', 'cry']
         kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
 
         return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
@@ -126,34 +130,20 @@ class SheetRow(Base):
         return "id={!r}, {!r}".format(self.id, self)
 
     def __eq__(self, other):
-        return (self.name, self.type) == (other.name, other.type)
+        return (self.name, self.type, self.faction) == (other.name, other.type, other.faction)
 
 
-class HudsonCattle(SheetRow):
+class SheetCattle(SheetRow):
     """ Track user in Hudson cattle sheet. """
     __mapper_args__ = {
-        'polymorphic_identity': ESheetType.hudson_cattle,
+        'polymorphic_identity': ESheetType.cattle,
     }
 
 
-class HudsonUM(SheetRow):
+class SheetUM(SheetRow):
     """ Track user in Hudson undermining sheet. """
     __mapper_args__ = {
-        'polymorphic_identity': ESheetType.hudson_um,
-    }
-
-
-class WintersCattle(SheetRow):
-    """ Track user in Winters cattle sheet. """
-    __mapper_args__ = {
-        'polymorphic_identity': ESheetType.winters_cattle,
-    }
-
-
-class WintersUM(SheetRow):
-    """ Track user in Winters undermining sheet. """
-    __mapper_args__ = {
-        'polymorphic_identity': ESheetType.winters_um,
+        'polymorphic_identity': ESheetType.um,
     }
 
 
@@ -642,20 +632,20 @@ SheetRow.duser = sqla_orm.relationship('DUser', uselist=False,
                                        back_populates='sheets')
 
 # Fortification relations
-Drop.user = sqla_orm.relationship('HudsonCattle', uselist=False, back_populates='drops')
-HudsonCattle.drops = sqla_orm.relationship('Drop',
-                                           cascade='all, delete, delete-orphan',
-                                           back_populates='user')
+Drop.user = sqla_orm.relationship('SheetCattle', uselist=False, back_populates='drops')
+SheetCattle.drops = sqla_orm.relationship('Drop',
+                                          cascade='all, delete, delete-orphan',
+                                          back_populates='user')
 Drop.system = sqla_orm.relationship('System', uselist=False, back_populates='drops')
 System.drops = sqla_orm.relationship('Drop',
                                      cascade='all, delete, delete-orphan',
                                      back_populates='system')
 
 # Undermining relations
-Hold.user = sqla_orm.relationship('HudsonUM', uselist=False, back_populates='holds')
-HudsonUM.holds = sqla_orm.relationship('Hold',
-                                       cascade='all, delete, delete-orphan',
-                                       back_populates='user')
+Hold.user = sqla_orm.relationship('SheetUM', uselist=False, back_populates='holds')
+SheetUM.holds = sqla_orm.relationship('Hold',
+                                      cascade='all, delete, delete-orphan',
+                                      back_populates='user')
 Hold.system = sqla_orm.relationship('SystemUM', uselist=False, back_populates='holds')
 SystemUM.holds = sqla_orm.relationship('Hold',
                                        cascade='all, delete, delete-orphan',
@@ -689,12 +679,12 @@ def main():
     session.commit()
 
     sheets = (
-        HudsonCattle(name='GearsandCogs', row=15),
-        HudsonCattle(name='rjwhite', row=16),
-        HudsonCattle(name='vampyregtx', row=17),
-        HudsonUM(name='vampyregtx', row=22),
-        WintersCattle(name='vampyregtx', row=22),
-        WintersUM(name='vampyregtx', row=22),
+        SheetCattle(name='GearsandCogs', row=15),
+        SheetCattle(name='rjwhite', row=16),
+        SheetCattle(name='vampyregtx', row=17),
+        SheetUM(name='vampyregtx', row=22),
+        SheetCattle(name='vampyregtx', faction=EFaction.winters, row=22),
+        SheetUM(name='vampyregtx', faction=EFaction.winters, row=22),
     )
 
     session.add_all(sheets)
