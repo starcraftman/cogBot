@@ -5,7 +5,6 @@ from __future__ import absolute_import, print_function
 import copy
 import datetime
 
-import decorator
 import mock
 import pytest
 
@@ -18,24 +17,6 @@ from cogdb.schema import (DUser, System, Drop, Hold, Command,
                           EFaction, ESheetType, kwargs_um_system, kwargs_fort_system)
 
 from tests.data import SYSTEMS_DATA, SYSTEMSUM_DATA, SYSTEMUM_EXPAND
-
-
-def db_cleanup(function):
-    """
-    Clean the whole database. Guarantee it is empty.
-    """
-    def wrapper(function, *args, **kwargs):
-        try:
-            function(*args, **kwargs)
-        finally:
-            cogdb.schema.drop_tables(all=True)
-            session = cogdb.Session()
-
-            classes = [DUser, SheetRow, System, SystemUM, Drop, Hold, Command]
-            for cls in classes:
-                assert session.query(cls) == []
-
-    return decorator.decorator(wrapper, function)
 
 
 # def db_data(function):
@@ -86,22 +67,22 @@ def test_drop_scanned_tables(session, f_dusers, f_sheets, f_systems, f_drops, f_
 
 def test_duser__eq__(f_dusers, f_sheets):
     duser = f_dusers[0]
-    assert duser != DUser(discord_id='1111', display_name='test user',
+    assert duser != DUser(id='1111', display_name='test user',
                           pref_name='test user')
-    assert duser == DUser(discord_id=duser.discord_id, display_name='test user',
+    assert duser == DUser(id=duser.id, display_name='test user',
                           pref_name='test user')
 
 
 def test_duser__repr__(f_dusers, f_sheets):
     duser = f_dusers[0]
-    assert repr(duser) == "DUser(discord_id='1000', display_name='GearsandCogs', "\
+    assert repr(duser) == "DUser(id='1000', display_name='GearsandCogs', "\
                           "pref_name='GearsandCogs', faction='hudson', capacity=750)"
     assert duser == eval(repr(duser))
 
 
 def test_duser__str__(f_dusers, f_sheets):
     duser = f_dusers[0]
-    assert str(duser) == "DUser(discord_id='1000', display_name='GearsandCogs', "\
+    assert str(duser) == "DUser(id='1000', display_name='GearsandCogs', "\
                           "pref_name='GearsandCogs', faction='hudson', capacity=750)"
 
 

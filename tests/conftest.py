@@ -8,9 +8,8 @@ import mock
 import pytest
 
 import cogdb
-from cogdb.schema import (DUser, System, Drop, Hold, Command,
+from cogdb.schema import (DUser, System, SystemUM, Drop, Hold, Command,
                           SheetRow, SheetCattle, SheetUM,
-                          SystemUM,
                           EFaction, kwargs_um_system, kwargs_fort_system)
 from tests.data import CELLS_FORT, CELLS_FORT_FMT, CELLS_UM, SYSTEMS_DATA, SYSTEMSUM_DATA
 
@@ -38,16 +37,31 @@ def session():
 
 
 @pytest.fixture
+def db_cleanup(session):
+    """
+    Clean the whole database. Guarantee it is empty.
+    Used when tests don't use a fixture.
+    """
+    yield
+
+    cogdb.schema.drop_tables(all=True)
+
+    classes = [DUser, SheetRow, System, SystemUM, Drop, Hold, Command]
+    for cls in classes:
+        assert session.query(cls).all() == []
+
+
+@pytest.fixture
 def f_dusers(session):
     """
     Fixture to insert some test DUsers.
     """
     dusers = (
-        DUser(discord_id='1000', display_name='GearsandCogs',
+        DUser(id='1000', display_name='GearsandCogs',
               capacity=750, pref_name='GearsandCogs', faction=EFaction.hudson),
-        DUser(discord_id='1001', display_name='rjwhite',
+        DUser(id='1001', display_name='rjwhite',
               capacity=450, pref_name='rjwhite', faction=EFaction.hudson),
-        DUser(discord_id='1002', display_name='vampyregtx',
+        DUser(id='1002', display_name='vampyregtx',
               capacity=700, pref_name='not_vamp', faction=EFaction.hudson),
     )
     session.add_all(dusers)
@@ -96,9 +110,9 @@ def f_commands(session):
 
     dtime = datetime.datetime.now()
     commands = (
-        Command(discord_id=dusers[0].discord_id, cmd_str='drop 400', date=dtime),
-        Command(discord_id=dusers[0].discord_id, cmd_str='drop 700', date=dtime),
-        Command(discord_id=dusers[0].discord_id, cmd_str='user', date=dtime),
+        Command(discord_id=dusers[0].id, cmd_str='drop 400', date=dtime),
+        Command(discord_id=dusers[0].id, cmd_str='drop 700', date=dtime),
+        Command(discord_id=dusers[0].id, cmd_str='user', date=dtime),
     )
     session.add_all(commands)
     session.commit()

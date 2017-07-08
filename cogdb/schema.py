@@ -44,18 +44,18 @@ class EUMType(object):
 
 class DUser(Base):
     """
-    Database to store discord users and their permanent preferences.
+    Table to store discord users and their permanent preferences.
     """
     __tablename__ = 'discord_users'
 
-    discord_id = sqla.Column(sqla.String, primary_key=True)
+    id = sqla.Column(sqla.String, primary_key=True, autoincrement=False)  # Discord id
     display_name = sqla.Column(sqla.String)
     pref_name = sqla.Column(sqla.String, unique=True)  # pref_name == display_name until change
     capacity = sqla.Column(sqla.Integer, default=0)
     faction = sqla.Column(sqla.String, default=EFaction.hudson)
 
     def __repr__(self):
-        keys = ['discord_id', 'display_name', 'pref_name', 'faction', 'capacity']
+        keys = ['id', 'display_name', 'pref_name', 'faction', 'capacity']
         kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
 
         return "DUser({})".format(', '.join(kwargs))
@@ -64,7 +64,7 @@ class DUser(Base):
         return self.__repr__()
 
     def __eq__(self, other):
-        return self.discord_id == other.discord_id
+        return self.id == other.id
 
     def switch_faction(self, new_faction=None):
         if not new_faction:
@@ -75,7 +75,7 @@ class DUser(Base):
         """
         Get a sheet belonging to a certain type. See ESheetType.
         Alternatively, query and filter to get this, like:
-        session.query(HudsonCattle).filter(HudsonCattle.name == 'name').all()
+        session.query(SheetCattle).filter(SheetCattle.name == 'name' and faction == 'hudson').all()
 
         Returns a SheetRow subclass. None if not set.
         """
@@ -464,7 +464,7 @@ class Command(Base):
     id = sqla.Column(sqla.Integer, primary_key=True)
     cmd_str = sqla.Column(sqla.String)
     date = sqla.Column(sqla.DateTime)
-    discord_id = sqla.Column(sqla.String, sqla.ForeignKey('discord_users.discord_id'))
+    discord_id = sqla.Column(sqla.String, sqla.ForeignKey('discord_users.id'))
 
     def __repr__(self):
         args = {}
@@ -663,17 +663,17 @@ def main():
     session = cogdb.Session()
 
     dusers = (
-        DUser(discord_id='197221', pref_name='GearsandCogs', capacity=0),
-        DUser(discord_id='299221', pref_name='rjwhite', capacity=0),
-        DUser(discord_id='293211', pref_name='vampyregtx', capacity=0),
+        DUser(id='197221', pref_name='GearsandCogs', capacity=0),
+        DUser(id='299221', pref_name='rjwhite', capacity=0),
+        DUser(id='293211', pref_name='vampyregtx', capacity=0),
     )
     session.add_all(dusers)
     session.commit()
 
     cmds = (
-        Command(discord_id=dusers[0].discord_id, cmd_str='info Shepron', date=date.datetime.now()),
-        Command(discord_id=dusers[0].discord_id, cmd_str='drop 700', date=date.datetime.now()),
-        Command(discord_id=dusers[1].discord_id, cmd_str='ban rjwhite', date=date.datetime.now()),
+        Command(discord_id=dusers[0].id, cmd_str='info Shepron', date=date.datetime.now()),
+        Command(discord_id=dusers[0].id, cmd_str='drop 700', date=date.datetime.now()),
+        Command(discord_id=dusers[1].id, cmd_str='ban rjwhite', date=date.datetime.now()),
     )
     session.add_all(cmds)
     session.commit()
