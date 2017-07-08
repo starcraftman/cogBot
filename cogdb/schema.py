@@ -11,6 +11,13 @@ import cog.exc
 import cogdb
 
 
+# TODO: System hierarchy mapped to single table. Fair bit of overlap here.
+# Example
+# SystemBase --> SystemFort -> SystemPrep
+#           \--> SystemUM  --> UMControl
+#                         \--> UMExpand --> UMOppose
+# TODO: Maybe make Merit -> FortMerit, UMMerit
+
 Base = sqlalchemy.ext.declarative.declarative_base()
 
 
@@ -28,6 +35,13 @@ class ESheetType(object):
     winters_um = 'winters_um'
 
 
+class EUMType(object):
+    """ Type of undermine system. """
+    control = 'control'
+    expand = 'expansion'
+    oppose = 'opposition'
+
+
 class DUser(Base):
     """
     Database to store discord users and their permanent preferences.
@@ -41,7 +55,7 @@ class DUser(Base):
     faction = sqla.Column(sqla.String, default=EFaction.hudson)
 
     def __repr__(self):
-        keys = ['discord_id', 'display_name', 'faction', 'pref_name', 'capacity']
+        keys = ['discord_id', 'display_name', 'pref_name', 'faction', 'capacity']
         kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
 
         return "DUser({})".format(', '.join(kwargs))
@@ -63,7 +77,7 @@ class DUser(Base):
         Alternatively, query and filter to get this, like:
         session.query(HudsonCattle).filter(HudsonCattle.name == 'name').all()
 
-        Returns a SheetRow subclass.
+        Returns a SheetRow subclass. None if not set.
         """
         for sheet in self.sheets:
             if sheet.type == sheet_type:
@@ -112,7 +126,7 @@ class SheetRow(Base):
         return "id={!r}, {!r}".format(self.id, self)
 
     def __eq__(self, other):
-        return (self.name, self.faction, self.type) == (other.name, other.faction, other.type)
+        return (self.name, self.type) == (other.name, other.type)
 
 
 class HudsonCattle(SheetRow):
@@ -163,12 +177,12 @@ class Drop(Base):
 
     def __str__(self):
         system = ''
-        if getattr(self, 'system', None):
+        if getattr(self, 'system'):
             system = "system_name={!r}, ".format(self.system.name)
 
         suser = ''
-        if getattr(self, 'suser', None):
-            suser = "suser_name={!r}, ".format(self.suser.name)
+        if getattr(self, 'user'):
+            suser = "user_name={!r}, ".format(self.user.name)
 
         return "id={!r}, {}{}{!r}".format(self.id, system, suser, self)
 
@@ -207,7 +221,6 @@ class Hold(Base):
         return (self.system_id, self.user_id) == (other.system_id, other.user_id)
 
 
-# TODO: System hierarchy mapped to single table, Column -> System -> SystemUM,SystemFort
 class System(Base):
     """
     Represent a single system for fortification.
@@ -313,17 +326,21 @@ class System(Base):
         """
         Update the fort_status and um_status of this System based on new_status.
         Format of new_status: fort_status[:um_status]
+
+        Raises: ValueError
         """
         for val, attr in zip(new_status.split(':'), ['fort_status', 'um_status']):
-            setattr(self, attr, val)
+            setattr(self, attr, int(val))
 
     def short_display(self, missing=True):
         """
         Return a useful short representation of System.
         """
-        msg = '{} :Fortifying: {}/{}'.format(self.name, self.current_status, self.trigger)
+        msg = '{} :Fortif{}: {}/{}'.format(self.name,
+                                           'ied' if self.is_fortified else 'ying',
+                                           self.current_status, self.trigger)
 
-        if missing and self.missing and self.missing < 1400:
+        if missing and self.missing and self.missing < 1500:
             msg += '\nMissing: ' + str(self.missing)
 
         return msg
@@ -335,13 +352,9 @@ class SystemUM(Base):
     """
     __tablename__ = 'um_systems'
 
-    T_CONTROL = 'control'
-    T_EXPAND = 'expansion'
-    T_OPPOSE = 'opposition'
-    type = sqla.Column(sqla.String)  # Slight differences between control and expansions. Use enum.
-
     id = sqla.Column(sqla.Integer, primary_key=True)
     name = sqla.Column(sqla.String, unique=True)
+    type = sqla.Column(sqla.String)  #  EUMType
     sheet_col = sqla.Column(sqla.String)
     goal = sqla.Column(sqla.Integer)
     security = sqla.Column(sqla.String)
@@ -351,6 +364,17 @@ class SystemUM(Base):
     progress_them = sqla.Column(sqla.Float)
     map_offset = sqla.Column(sqla.Integer, default=0)
 
+    __mapper_args__ = {
+        'polymorphic_identity': 'base_system',
+        'polymorphic_on': type
+    }
+
+    @staticmethod
+    def factory(kwargs):
+        """ Simple factory to make undermining systems. """
+        cls = kwargs.pop('cls')
+        return cls(**kwargs)
+
     def __repr__(self):
         keys = ['name', 'type', 'sheet_col', 'goal', 'security', 'notes',
                 'progress_us', 'progress_them', 'close_control', 'map_offset']
@@ -359,7 +383,6 @@ class SystemUM(Base):
         return "SystemUM({})".format(', '.join(kwargs))
 
     def __str__(self):
-        # return "id={!r}, {!r}".format(self.id, self)
         """
         Format a simple summary for users.
         """
@@ -395,11 +418,30 @@ class SystemUM(Base):
         return self.missing <= 0
 
     @property
-    def is_control(self):
-        """
-        Return true iff normal control system.
-        """
-        return self.type == self.__class__.T_CONTROL
+    def completion(self):
+        """ The completion percentage formatted as a string """
+        try:
+            comp_cent = (self.goal - self.missing) / self.goal * 100
+        except ZeroDivisionError:
+            comp_cent = 0
+
+        completion = '{:.0f}%'.format(comp_cent)
+
+        return completion
+
+
+class UMControl(SystemUM):
+    """ Undermine an enemy control system. """
+    __mapper_args__ = {
+        'polymorphic_identity': EUMType.control,
+    }
+
+
+class UMExpand(SystemUM):
+    """ An expansion we want. """
+    __mapper_args__ = {
+        'polymorphic_identity': EUMType.expand,
+    }
 
     @property
     def completion(self):
@@ -409,14 +451,18 @@ class SystemUM(Base):
         except ZeroDivisionError:
             comp_cent = 0
 
-        if self.is_control:
-            completion = '{:.0f}%'.format(comp_cent)
-        else:
-            comp_cent -= 100.0
-            prefix = 'leading by' if comp_cent >= 0 else 'behind by'
-            completion = '{} {:.0f}%'.format(prefix, abs(comp_cent))
+        comp_cent -= 100.0
+        prefix = 'leading by' if comp_cent >= 0 else 'behind by'
+        completion = '{} {:.0f}%'.format(prefix, abs(comp_cent))
 
         return completion
+
+
+class UMOppose(UMExpand):
+    """ We want to oppose the expansion. """
+    __mapper_args__ = {
+        'polymorphic_identity': EUMType.oppose,
+    }
 
 
 class Command(Base):
@@ -475,11 +521,11 @@ def kwargs_um_system(cells, sheet_col):
             raise cog.exc.SheetParsingError
 
         if main_col[0].startswith('Exp'):
-            sys_type = SystemUM.T_EXPAND
+            cls = UMExpand
         elif main_col[0] != '':
-            sys_type = SystemUM.T_OPPOSE
+            cls = UMOppose
         else:
-            sys_type = SystemUM.T_CONTROL
+            cls = UMControl
 
         return {
             'goal': parse_int(main_col[3]),  # FIXME: May come down as float. This would truncate.
@@ -491,7 +537,7 @@ def kwargs_um_system(cells, sheet_col):
             'progress_them': parse_float(main_col[10]),
             'map_offset': parse_int(main_col[12]),
             'sheet_col': sheet_col,
-            'type': sys_type,
+            'cls': cls,
         }
     except (IndexError, TypeError):
         raise cog.exc.SheetParsingError
@@ -560,22 +606,16 @@ def make_file_engine(abs_path):
     return sqla.create_engine('sqlite:////{}'.format(abs_path), echo=False)
 
 
-def drop_all_tables():
+def drop_tables(**kwargs):
     """
     Drop all tables.
     """
-    session = cogdb.Session()
-    for cls in [Drop, Hold, Command, System, SystemUM, SheetRow, DUser]:
-        session.query(cls).delete()
-    session.commit()
+    classes = [Drop, Hold, System, SystemUM, SheetRow]
+    if kwargs.get('all', True):
+        classes += [DUser]
 
-
-def drop_scanned_tables():
-    """
-    Drop only tables related to data parsed from sheet.
-    """
     session = cogdb.Session()
-    for cls in [Drop, Hold, System, SystemUM, SheetRow]:
+    for cls in classes:
         session.query(cls).delete()
     session.commit()
 
@@ -584,7 +624,7 @@ def recreate_tables():
     """
     Recreate all tables after start.
     """
-    drop_all_tables()
+    drop_tables(all=True)
     Base.metadata.create_all(cogdb.mem_engine)
 
 
