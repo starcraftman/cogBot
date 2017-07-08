@@ -1,0 +1,199 @@
+"""
+Used for pytest fixtures and anything else test setup/teardown related.
+"""
+from __future__ import absolute_import, print_function
+import datetime
+
+import mock
+import pytest
+
+import cogdb
+from cogdb.schema import (DUser, System, Drop, Hold, Command,
+                          SheetRow, HudsonCattle, HudsonUM,
+                          SystemUM,
+                          EFaction, kwargs_um_system, kwargs_fort_system)
+from tests.data import CELLS_FORT, CELLS_FORT_FMT, CELLS_UM, SYSTEMS_DATA, SYSTEMSUM_DATA
+
+
+@pytest.fixture
+def mock_sheet():
+    fake_sheet = mock.Mock()
+    fake_sheet.whole_sheet.return_value = CELLS_FORT
+    fake_sheet.get_with_formatting.return_value = CELLS_FORT_FMT
+
+    yield fake_sheet
+
+
+@pytest.fixture
+def mock_umsheet():
+    fake_sheet = mock.Mock()
+    fake_sheet.whole_sheet.return_value = CELLS_UM
+
+    yield fake_sheet
+
+
+@pytest.fixture
+def session():
+    return cogdb.Session()
+
+
+@pytest.fixture
+def f_dusers(session):
+    """
+    Fixture to insert some test DUsers.
+    """
+    dusers = (
+        DUser(discord_id='1000', display_name='GearsandCogs',
+              capacity=750, pref_name='GearsandCogs', faction=EFaction.hudson),
+        DUser(discord_id='1001', display_name='rjwhite',
+              capacity=450, pref_name='rjwhite', faction=EFaction.hudson),
+        DUser(discord_id='1002', display_name='vampyregtx',
+              capacity=700, pref_name='not_vamp', faction=EFaction.hudson),
+    )
+    session.add_all(dusers)
+    session.commit()
+
+    yield dusers
+
+    session.query(DUser).delete()
+
+
+@pytest.fixture
+def f_sheets(session):
+    """
+    Fixture to insert some test SheetRows.
+
+    Depends on: f_dusers
+    """
+    dusers = session.query(DUser).all()
+    assert dusers
+
+    sheets = (
+        HudsonCattle(name=dusers[0].pref_name, row=15, cry='Gears are forting late!'),
+        HudsonUM(name=dusers[0].pref_name, row=18, cry='Gears are pew pew!'),
+        HudsonCattle(name=dusers[1].pref_name, row=16, cry=''),
+        HudsonUM(name=dusers[1].pref_name, row=19, cry='Shooting time'),
+        HudsonCattle(name=dusers[2].pref_name, row=17, cry='Vamp the boss'),
+    )
+    session.add_all(sheets)
+    session.commit()
+
+    yield sheets
+
+    session.query(SheetRow).delete()
+
+
+@pytest.fixture
+def f_commands(session):
+    """
+    Fixture to insert some test Commands.
+
+    Depends on: f_dusers
+    Last element of fixture is dtime of insertions.
+    """
+    dusers = session.query(DUser).all()
+    assert dusers
+
+    dtime = datetime.datetime.now()
+    commands = (
+        Command(discord_id=dusers[0].discord_id, cmd_str='drop 400', date=dtime),
+        Command(discord_id=dusers[0].discord_id, cmd_str='drop 700', date=dtime),
+        Command(discord_id=dusers[0].discord_id, cmd_str='user', date=dtime),
+    )
+    session.add_all(commands)
+    session.commit()
+
+    yield commands + (dtime,)
+
+    session.query(Command).delete()
+
+
+@pytest.fixture
+def f_systems(session):
+    """
+    Fixture to insert some test Systems.
+    """
+    session = cogdb.Session()
+
+    order = 1
+    column = 'F'
+    systems = []
+    for data in SYSTEMS_DATA:
+        systems.append(System(**kwargs_fort_system(data, order, column)))
+        order += 1
+        column = chr(ord(column) + 1)
+    session.add_all(systems)
+    session.commit()
+
+    yield systems
+
+    session.query(System).delete()
+
+
+@pytest.fixture
+def f_drops(session):
+    """
+    Fixture to insert some test Drops.
+
+    Depends on: f_sheets, f_systems
+    """
+    users = session.query(HudsonCattle).all()
+    systems = session.query(System).all()
+
+    drops = (
+        Drop(amount=700, user_id=users[0].id, system_id=systems[0].id),
+        Drop(amount=400, user_id=users[0].id, system_id=systems[1].id),
+        Drop(amount=1200, user_id=users[1].id, system_id=systems[0].id),
+        Drop(amount=1800, user_id=users[2].id, system_id=systems[0].id),
+        Drop(amount=800, user_id=users[1].id, system_id=systems[1].id),
+    )
+    session.add_all(drops)
+    session.commit()
+
+    yield drops
+
+    session.query(Drop).delete()
+
+
+@pytest.fixture
+def f_systemsum(session):
+    """
+    Fixture to insert some test Systems.
+    """
+    column = 'D'
+    systems = []
+    for data in SYSTEMSUM_DATA[:1]:
+        systems.append(SystemUM.factory(kwargs_um_system(data, column)))
+        column = chr(ord(column) + 2)
+    session.add_all(systems)
+    session.commit()
+
+    yield systems
+
+    session.query(SystemUM).delete()
+
+
+@pytest.fixture
+def f_holds(session):
+    """
+    Fixture to insert some test Holds.
+
+    Depends on: f_sheets, f_systemsum
+    """
+    users = session.query(HudsonUM).all()
+    systems = session.query(SystemUM).all()
+
+    drops = (
+        Hold(held=0, redeemed=4000, user_id=users[1].id, system_id=systems[0].id),
+        Hold(held=400, redeemed=1550, user_id=users[1].id, system_id=systems[0].id),
+        Hold(held=2200, redeemed=5800, user_id=users[1].id, system_id=systems[0].id),
+        # Hold(held=450, redeemed=2000, user_id=users[0].id, system_id=systems[0].id),
+        # Hold(held=2400, redeemed=0, user_id=users[0].id, system_id=systems[1].id),
+        # Hold(held=0, redeemed=1200, user_id=users[1].id, system_id=systems[0].id),
+    )
+    session.add_all(drops)
+    session.commit()
+
+    yield drops
+
+    session.query(Hold).delete()

@@ -17,41 +17,7 @@ from cogdb.schema import (DUser, System, Drop, Hold, Command,
                           SystemUM, UMControl, UMExpand, UMOppose,
                           EFaction, ESheetType, kwargs_um_system, kwargs_fort_system)
 
-from tests.cogdb import CELLS, FMT_CELLS, UM_CELLS
-
-SYSTEMS_DATA = [
-    ['', 1, 4910, 0, 4322, 4910, 0, 116.99, '', 'Frey'],
-    ['', 1, 8425, 0, 3844, 5422, 0, 99.51, '', 'Nurundere'],
-    ['', 1, 5974, 0, 0, 0, 0, 80, '', 'LHS 3749'],
-    ['', 1, 5211, 0, 0, 2500, 0, 75, '', 'Sol'],
-    ['', 1, 7239, 0, 0, 0, 0, 102.4, '', 'Dongkum'],
-]
-SYSTEMSUM_DATA = [
-    [
-        ['', 0, 0, 14878, 13950, -452, 'Sec: Medium', 'Sol', 'Cemplangpa', 13830, 1, 0, 1380],
-        [0, 0, 0, 0, 0, 0, ''],
-    ],
-    [
-        ['Exp', 0, 0, 364298, 160472, 127278, 'Sec: Low', 'Dongkum', 'Burr', 161630, 35, 0, 76548],
-        [0, 0, 0, 0, 0, 0, ''],
-    ],
-    [
-        ['Opp', 0, 0, 59877, 10470, 12147, 'Sec: Low', 'Atropos', 'AF Leopris', 47739, 1.69, 0, 23960],
-        [0, 0, 0, 0, 0, 0, ''],
-    ],
-]
-SYSTEMUM_EXPAND = [
-    ['Exp', 0, 0, 364298, 160472, 127278, 'Sec: Low', 'Dongkum', 'Burr', 161630, 35, 0, 76548],
-    [0, 0, 0, 0, 0, 0, ''],
-]
-SYSTEMUM_OPPOSE = [
-    ['Opp', 0, 0, 59877, 10470, 12147, 'Sec: Low', 'Atropos', 'AF Leopris', 47739, 1.69, 0, 23960],
-    [0, 0, 0, 0, 0, 0, ''],
-]
-SYSTEMUM_CONTROL = [
-    ['', 0, 0, 14878, 13950, -452, 'Sec: Medium', 'Unknown', 'Cemplangpa', 13830, 1, 0, 1380],
-    [0, 0, 0, 0, 0, 0, ''],
-]
+from tests.data import (SYSTEMS_DATA, SYSTEMSUM_DATA, SYSTEMUM_EXPAND)
 
 
 def db_cleanup(function):
@@ -70,192 +36,6 @@ def db_cleanup(function):
                 assert session.query(cls) == []
 
     return decorator.decorator(wrapper, function)
-
-
-@pytest.fixture
-def mock_sheet():
-    fake_sheet = mock.Mock()
-    fake_sheet.whole_sheet.return_value = CELLS
-    fake_sheet.get_with_formatting.return_value = FMT_CELLS
-
-    yield fake_sheet
-
-
-@pytest.fixture
-def mock_umsheet():
-    fake_sheet = mock.Mock()
-    fake_sheet.whole_sheet.return_value = UM_CELLS
-
-    yield fake_sheet
-
-
-@pytest.fixture
-def f_dusers():
-    """
-    Fixture to insert some test DUsers.
-    """
-    session = cogdb.Session()
-    dusers = (
-        DUser(discord_id='1000', display_name='GearsandCogs',
-              capacity=750, pref_name='GearsandCogs', faction=EFaction.hudson),
-        DUser(discord_id='1001', display_name='rjwhite',
-              capacity=450, pref_name='rjwhite', faction=EFaction.hudson),
-        DUser(discord_id='1002', display_name='vampyregtx',
-              capacity=700, pref_name='not_vamp', faction=EFaction.hudson),
-    )
-    session.add_all(dusers)
-    session.commit()
-
-    yield dusers
-
-    session.query(DUser).delete()
-
-
-@pytest.fixture
-def f_sheets():
-    """
-    Fixture to insert some test SheetRows.
-
-    Depends on: f_dusers
-    """
-    session = cogdb.Session()
-    dusers = session.query(DUser).all()
-    assert dusers
-
-    sheets = (
-        HudsonCattle(name=dusers[0].pref_name, row=15, cry='Gears are forting late!'),
-        HudsonUM(name=dusers[0].pref_name, row=18, cry='Gears are pew pew!'),
-        HudsonCattle(name=dusers[1].pref_name, row=16, cry=''),
-        HudsonUM(name=dusers[1].pref_name, row=19, cry='Shooting time'),
-        HudsonCattle(name=dusers[2].pref_name, row=17, cry='Vamp the boss'),
-    )
-    session.add_all(sheets)
-    session.commit()
-
-    yield sheets
-
-    session.query(SheetRow).delete()
-
-
-@pytest.fixture
-def f_commands():
-    """
-    Fixture to insert some test Commands.
-
-    Depends on: f_dusers
-    Last element of fixture is dtime of insertions.
-    """
-    session = cogdb.Session()
-    dusers = session.query(DUser).all()
-    assert dusers
-
-    dtime = datetime.datetime.now()
-    commands = (
-        Command(discord_id=dusers[0].discord_id, cmd_str='drop 400', date=dtime),
-        Command(discord_id=dusers[0].discord_id, cmd_str='drop 700', date=dtime),
-        Command(discord_id=dusers[0].discord_id, cmd_str='user', date=dtime),
-    )
-    session.add_all(commands)
-    session.commit()
-
-    yield commands + (dtime,)
-
-    session.query(Command).delete()
-
-
-@pytest.fixture
-def f_systems():
-    """
-    Fixture to insert some test Systems.
-    """
-    session = cogdb.Session()
-
-    order = 1
-    column = 'F'
-    systems = []
-    for data in SYSTEMS_DATA:
-        systems.append(System(**kwargs_fort_system(data, order, column)))
-        order += 1
-        column = chr(ord(column) + 1)
-    session.add_all(systems)
-    session.commit()
-
-    yield systems
-
-    session.query(System).delete()
-
-
-@pytest.fixture
-def f_drops():
-    """
-    Fixture to insert some test Drops.
-
-    Depends on: f_sheets, f_systems
-    """
-    session = cogdb.Session()
-    users = session.query(HudsonCattle).all()
-    systems = session.query(System).all()
-
-    drops = (
-        Drop(amount=700, user_id=users[0].id, system_id=systems[0].id),
-        Drop(amount=400, user_id=users[0].id, system_id=systems[1].id),
-        Drop(amount=1200, user_id=users[1].id, system_id=systems[0].id),
-        Drop(amount=1800, user_id=users[2].id, system_id=systems[0].id),
-        Drop(amount=800, user_id=users[1].id, system_id=systems[1].id),
-    )
-    session.add_all(drops)
-    session.commit()
-
-    yield drops
-
-    session.query(Drop).delete()
-
-
-@pytest.fixture
-def f_systemsum():
-    """
-    Fixture to insert some test Systems.
-    """
-    session = cogdb.Session()
-
-    column = 'D'
-    systems = []
-    for data in SYSTEMSUM_DATA[:1]:
-        systems.append(SystemUM.factory(kwargs_um_system(data, column)))
-        column = chr(ord(column) + 2)
-    session.add_all(systems)
-    session.commit()
-
-    yield systems
-
-    session.query(SystemUM).delete()
-
-
-@pytest.fixture
-def f_holds():
-    """
-    Fixture to insert some test Holds.
-
-    Depends on: f_sheets, f_systemsum
-    """
-    session = cogdb.Session()
-    users = session.query(HudsonUM).all()
-    systems = session.query(SystemUM).all()
-
-    drops = (
-        Hold(held=0, redeemed=4000, user_id=users[1].id, system_id=systems[0].id),
-        Hold(held=400, redeemed=1550, user_id=users[1].id, system_id=systems[0].id),
-        Hold(held=2200, redeemed=5800, user_id=users[1].id, system_id=systems[0].id),
-        # Hold(held=450, redeemed=2000, user_id=users[0].id, system_id=systems[0].id),
-        # Hold(held=2400, redeemed=0, user_id=users[0].id, system_id=systems[1].id),
-        # Hold(held=0, redeemed=1200, user_id=users[1].id, system_id=systems[0].id),
-    )
-    session.add_all(drops)
-    session.commit()
-
-    yield drops
-
-    session.query(Hold).delete()
 
 
 # def db_data(function):
@@ -283,9 +63,7 @@ def f_holds():
     # return decorator.decorator(wrapper, function)
 
 
-def test_drop_tables_all(f_dusers, f_sheets, f_systems, f_drops, f_systemsum, f_holds):
-    session = cogdb.Session()
-
+def test_drop_tables_all(session, f_dusers, f_sheets, f_systems, f_drops, f_systemsum, f_holds):
     classes = [DUser, SheetRow, System, SystemUM, Drop, Hold]
     for cls in classes:
         assert session.query(cls).all()
@@ -294,9 +72,7 @@ def test_drop_tables_all(f_dusers, f_sheets, f_systems, f_drops, f_systemsum, f_
         assert session.query(cls).all() == []
 
 
-def test_drop_scanned_tables(f_dusers, f_sheets, f_systems, f_drops, f_systemsum, f_holds):
-    session = cogdb.Session()
-
+def test_drop_scanned_tables(session, f_dusers, f_sheets, f_systems, f_drops, f_systemsum, f_holds):
     classes = [DUser, SheetRow, System, SystemUM, Drop, Hold]
     for cls in classes:
         assert session.query(cls).all()
@@ -336,9 +112,8 @@ def test_duser_get_sheet(f_dusers, f_sheets):
     assert isinstance(duser.get_sheet(ESheetType.hudson_cattle), HudsonCattle)
 
 
-def test_duser_cattle(f_dusers, f_sheets):
+def test_duser_cattle(session, f_dusers, f_sheets):
     duser = f_dusers[0]
-    session = cogdb.Session()
     cattle = session.query(HudsonCattle).filter(HudsonCattle.name == duser.pref_name).one()
 
     assert duser.cattle == cattle
@@ -347,9 +122,8 @@ def test_duser_cattle(f_dusers, f_sheets):
     assert not duser.cattle
 
 
-def test_duser_undermine(f_dusers, f_sheets):
+def test_duser_undermine(session, f_dusers, f_sheets):
     duser = f_dusers[0]
-    session = cogdb.Session()
     undermine = session.query(HudsonUM).filter(HudsonUM.name == duser.pref_name).one()
 
     assert duser.undermine == undermine
