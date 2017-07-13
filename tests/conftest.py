@@ -8,10 +8,27 @@ import mock
 import pytest
 
 import cogdb
+import cogdb.query
 from cogdb.schema import (DUser, System, SystemUM, Drop, Hold, Command,
                           SheetRow, SheetCattle, SheetUM,
                           EFaction, kwargs_um_system, kwargs_fort_system)
 from tests.data import CELLS_FORT, CELLS_FORT_FMT, CELLS_UM, SYSTEMS_DATA, SYSTEMSUM_DATA
+
+
+# @pytest.yield_fixture(scope='function', autouse=True)
+# def around_all_tests(session):
+    # """
+    # Executes before and after EVERY test.
+
+    # Can be helpful for tracking bugs, like dirty database after test.
+    # Disabled unless needed. Non-trivial overhead.
+    # """
+
+    # yield
+
+    # classes = [DUser, SheetRow, System, SystemUM, Drop, Hold]
+    # for cls in classes:
+        # assert not session.query(cls).all()
 
 
 @pytest.fixture

@@ -176,14 +176,15 @@ class GSheet(object):
         ],
     }
     """
-    def __init__(self, sheet_id, json_secret, sheet_token):
+    def __init__(self, sheet, json_secret, sheet_token):
         """
         Args:
             sheet_id: The id of the google sheet to interact with.
             json_secret: Path to the secret json api for client.
             sheet_token: Path to store token authorizing api.
         """
-        self.sheet_id = sheet_id
+        self.sheet_id = sheet['id']
+        self.page = "'{}'".format(sheet['page'])
         self.credentials = get_credentials(json_secret, sheet_token)
         http = self.credentials.authorize(httplib2.Http())
         discovery_url = ('https://sheets.googleapis.com/$discovery/rest?'
@@ -208,7 +209,8 @@ class GSheet(object):
         Returns: A list of rows in the area.
         """
         # Default returns by row, use majorDimension = 'COLUMNS' to flip.
-        result = self.values.get(spreadsheetId=self.sheet_id, range=cell_range,
+        result = self.values.get(spreadsheetId=self.sheet_id,
+                                 range=self.page + cell_range,
                                  majorDimension=dim,
                                  valueRenderOption='UNFORMATTED_VALUE').execute()
         return result.get('values', [])
@@ -227,13 +229,14 @@ class GSheet(object):
             'majorDimension': dim,
             'values': n_vals
         }
-        self.values.update(spreadsheetId=self.sheet_id, range=cell_range,
+        self.values.update(spreadsheetId=self.sheet_id, range=self.page + cell_range,
                            valueInputOption='RAW', body=body).execute()
 
     def batch_get(self, cell_ranges, dim='ROWS'):
         """
         Similar to get_range except take a list of cell_ranges.
         """
+        cell_ranges = [self.page + crange for crange in cell_ranges]
         result = self.values.batchGet(spreadsheetId=self.sheet_id, ranges=cell_ranges,
                                       majorDimension=dim,
                                       valueRenderOption='UNFORMATTED_VALUE').execute()
@@ -244,6 +247,7 @@ class GSheet(object):
         """
         Similar to set_range except take a list of lists for ranges and n_vals.
         """
+        cell_ranges = [self.page + crange for crange in cell_ranges]
         body = {
             'valueInputOption': 'RAW',
             'data': [],
@@ -261,7 +265,7 @@ class GSheet(object):
         Get cells with formatting information.
         """
         sheets = self.service.spreadsheets()  # pylint: disable=no-member
-        return sheets.get(spreadsheetId=self.sheet_id, ranges=cell_range,
+        return sheets.get(spreadsheetId=self.sheet_id, ranges=self.page + cell_range,
                           includeGridData=True).execute()
 
     def whole_sheet(self, dim='COLUMNS'):

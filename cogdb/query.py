@@ -2,6 +2,7 @@
 Module should handle logic related to querying/manipulating tables from a high level.
 """
 from __future__ import absolute_import, print_function
+import sys
 
 import sqlalchemy.orm.exc as sqa_exc
 
@@ -9,7 +10,7 @@ import cog.exc
 import cog.sheets
 import cogdb
 from cogdb.schema import (DUser, System, SheetRow, Drop, SystemUM, Hold, SheetCattle, SheetUM,
-                          EFaction, kwargs_fort_system, kwargs_um_system)
+                          EFaction, ESheetType, kwargs_fort_system, kwargs_um_system)
 
 
 def subseq_match(needle, line, ignore_case=True):
@@ -76,7 +77,7 @@ def dump_db():
             print(obj)
 
 
-def duser_get(session, discord_id):
+def get_duser(session, discord_id):
     """
     Return the DUser that has the same discord_id.
 
@@ -89,21 +90,21 @@ def duser_get(session, discord_id):
         raise cog.exc.NoMatch(discord_id, 'DUser')
 
 
-def duser_ensure(session, member):
+def ensure_duser(session, member):
     """
     Ensure a member has an entry in the dusers table. A DUser is required by all users.
 
     Returns: The DUser
     """
     try:
-        duser = duser_get(session, member.id)
+        duser = get_duser(session, member.id)
     except cog.exc.NoMatch:
-        duser = duser_add(session, member)
+        duser = add_duser(session, member)
 
     return duser
 
 
-def duser_add(session, member, *, faction=EFaction.hudson):
+def add_duser(session, member, *, faction=EFaction.hudson):
     """
     Add a discord user to the database.
     """
@@ -114,6 +115,39 @@ def duser_add(session, member, *, faction=EFaction.hudson):
     session.commit()
 
     return new_duser
+
+
+def add_sheet(session, name, **kwargs):
+    """
+    Simply add user past last user in sheet.
+
+    Kwargs:
+        faction: By default Hudson. Any of EFaction.
+        type: By default cattle sheet. Any of SheetRow subclasses.
+    """
+    faction = kwargs.get('faction', EFaction.hudson)
+    cls = getattr(sys.modules[__name__], kwargs.get('type', ESheetType.cattle))
+
+    next_row = session.query(cls).filter_by(faction=faction).all()[-1].row + 1
+    sheet = cls(name=name, row=next_row, faction=faction)
+    session.add(sheet)
+    session.commit()
+
+    return sheet
+
+
+def find_duser_by_sheetname(session, name):
+    """
+    Useful only if in a context where cannot get invokers DUser
+    Find the SheetRow  with the same name, type and faction (default faction == Hudson)
+    Can also be used to get the DUser that owns it via SheetRow.duser
+
+    Returns DUser
+    """
+    try:
+        return session.query(DUser).filter_by(pref_name=name).one()
+    except (sqa_exc.NoResultFound, sqa_exc.MultipleResultsFound):
+        return fuzzy_find(name, session.query(DUser).all(), 'pref_name')
 
 
 def fort_get_othime(session):
@@ -236,123 +270,31 @@ def fort_get_next_targets(session, current, count=5):
     return targets
 
 
-# def fort_add_drop(session, **kwargs):
-    # """
-    # Add a Drop for 'amount' to the database where Drop intersects at:
-        # System.name and SUser.name
-    # If fort exists, increment its value. Else add it to database.
+def fort_add_drop(session, **kwargs):
+    """
+    Add a Drop for 'amount' to the database where Drop intersects at:
+        System.name and SUser.name
+    If fort exists, increment its value. Else add it to database.
 
-    # Kwargs: system, user, amount
+    Kwargs: system, user, amount
 
-    # Returns: The Drop object.
-    # """
-    # system = kwargs['system']
-    # suser = kwargs['suser']
-    # amount = kwargs['amount']
+    Returns: The Drop object.
+    """
+    system = kwargs['system']
+    user = kwargs['user']
+    amount = kwargs['amount']
 
-    # try:
-        # fort = session.query(Drop).filter_by(user_id=suser.id,
-                                             # system_id=system.id).one()
-        # fort.amount = fort.amount + amount
-    # except sqa_exc.NoResultFound:
-        # fort = Drop(user_id=suser.id, system_id=system.id, amount=amount)
-        # session.add(fort)
-    # system.fort_status = system.fort_status + amount
-    # system.cmdr_merits = system.cmdr_merits + amount
-    # session.commit()
+    try:
+        drop = session.query(Drop).filter_by(user_id=user.id, system_id=system.id).one()
+        drop.amount = drop.amount + amount
+    except sqa_exc.NoResultFound:
+        drop = Drop(user_id=user.id, system_id=system.id, amount=amount)
+        session.add(drop)
 
-    # return fort
+    system.fort_status = system.fort_status + amount
+    session.commit()
 
-
-# def add_sheet_user(session, name, **kwargs):
-    # """
-    # Simply add user past last user in sheet.
-    # """
-    # faction = kwargs.get('faction', EFaction.hudson)
-    # type = kwargs.get('type', EType.cattle)
-
-    # next_row = get_sheet_users(session, faction=faction, type=type)[-1].row + 1
-    # new_user = SUser(name=name, row=next_row, faction=faction, type=type)
-    # session.add(new_user)
-    # session.commit()
-
-    # return new_user
-
-
-# def get_sheet_users(session, **kwargs):
-    # """
-    # Return a list of all SUsers. Optionally filter by kwargs faction or type.
-    # """
-    # query = session.query(SUser)
-
-    # faction = kwargs.get('faction')
-    # if faction:
-        # query.filter(SUser.faction == faction)
-
-    # type = kwargs.get('type')
-    # if type:
-        # query.filter(SUser.type == type)
-
-    # return query.all()
-
-
-# # def get_sheet_user_by_name(session, name):
-    # # """
-    # # Return the SUser with SUser.name that matches.
-
-    # # Raises:
-        # # NoMatch - No possible match found.
-        # # MoreThanOneMatch - Too many matches possible, ask user to resubmit.
-    # # """
-    # # try:
-        # # return session.query(SUser).filter_by(name=name).one()
-    # # except (sqa_exc.NoResultFound, sqa_exc.MultipleResultsFound):
-        # # users = fort_get_sheet_users(session)
-        # # return fuzzy_find(name, users, 'name')
-
-
-# def ensure_suser_exists(session, duser, type=EType.cattle, create_hook=None):
-    # """
-    # Ensure that the required SUser exists. If not create it and append to sheet via create_hook.
-
-    # Returns: The SUser
-    # """
-    # if not duser.get_suser(type):
-        # pass
-
-    # try:
-        # suser = get_sheet_user_by_name(session, duser.pref_name)
-    # except cog.exc.NoMatch:
-        # suser = fort_add_sheet_user(session, name=duser.pref_name)
-        # session.commit()
-
-        # if create_hook:
-            # create_hook(suser)
-
-    # session.commit()
-
-    # return suser
-
-
-# # def check_sheet_user(session, duser, create_hook=None):
-    # # """
-    # # Try to find a user's name in sheet.
-    # # If not create and add user to the sheet with hook.
-
-    # # Returns: The SUser
-    # # """
-    # # try:
-        # # suser = get_sheet_user_by_name(session, duser.pref_name)
-    # # except cog.exc.NoMatch:
-        # # suser = fort_add_sheet_user(session, name=duser.pref_name)
-        # # session.commit()
-
-        # # if create_hook:
-            # # create_hook(suser)
-
-    # # session.commit()
-
-    # # return suser
+    return drop
 
 
 class SheetScanner(object):
@@ -577,7 +519,8 @@ class UMScanner(SheetScanner):
 
     def systems(self):
         """
-        Scan the system column information.
+        Scan all the systems in the sheet.
+        A UM System takes up two adjacent columns.
         """
         cell_column = cog.sheets.Column(self.system_col)
 
@@ -594,40 +537,84 @@ class UMScanner(SheetScanner):
 
         return found
 
+    def held_merits(self, systems, users, holds):
+        """
+        Parse the held merits that fall under the same column as System.
+
+        Args:
+            systems: The SystemUMs parsed from sheet.
+            users: The SheetRows parsed from sheet.
+            holds: The partially finished Holds.
+        """
+        for system in systems:
+            col_ind = cog.sheets.column_to_index(system.sheet_col)
+
+            try:
+                for user in users:
+                    held = self.cells[col_ind][user.row - 1]
+                    if held == '':
+                        continue
+
+                    key = '{}_{}'.format(system.id, user.id)
+                    hold = holds.get(key, Hold(user_id=user.id, system_id=system.id,
+                                               held=0, redeemed=0))
+                    hold.held += cogdb.schema.parse_int(held)
+                    holds[key] = hold
+            except IndexError:
+                pass  # No more in column
+
+        return holds
+
+    def redeemed_merits(self, systems, users, holds):
+        """
+        Parse the redeemed merits that fall under the same column as System.
+
+        Args:
+            systems: The SystemUMs parsed from sheet.
+            users: The SheetRows parsed from sheet.
+            holds: The partially finished Holds.
+        """
+        for system in systems:
+            col_ind = cog.sheets.column_to_index(system.sheet_col) + 1
+
+            try:
+                for user in users:
+                    redeemed = self.cells[col_ind][user.row - 1]
+                    if redeemed == '':
+                        continue
+
+                    key = '{}_{}'.format(system.id, user.id)
+                    hold = holds.get(key, Hold(user_id=user.id, system_id=system.id,
+                                               held=0, redeemed=0))
+                    hold.redeemed += cogdb.schema.parse_int(redeemed)
+                    holds[key] = hold
+            except IndexError:
+                pass  # No more in column
+
+        return holds
+
     def merits(self, systems, users):
         """
-        Scan the merits held/redeemed area.
+        Scan the merits in the held/redeemed area.
 
         Args:
             systems: The list of Systems in the order entered in the sheet.
             users: The list of Users in order the order entered in the sheet.
         """
-        found = []
-        for system in systems:
-            try:
-                col_ind = cog.sheets.column_to_index(system.sheet_col)
-                for user in users:
-                    held = cogdb.schema.parse_int(self.cells[col_ind][user.row - 1])
-                    redeemed = cogdb.schema.parse_int(self.cells[col_ind + 1][user.row - 1])
-
-                    if held == '' and redeemed == '':  # Some rows just placeholders if empty
-                        continue
-
-                    found.append(Hold(user_id=user.id, system_id=system.id,
-                                      held=held, redeemed=redeemed))
-            except IndexError:
-                pass  # No more amounts in column
-
-        return found
+        holds = {}
+        self.held_merits(systems, users, holds)
+        self.redeemed_merits(systems, users, holds)
+        return holds.values()
 
     # Calls to modify the sheet All asynchronous, register them as futures and move on.
     async def update_hold(self, hold):
         """
         Update a hold on the sheet.
         """
-        cell_range = '!{col}{row1}:{col}{row2}'.format(col=hold.system.sheet_col,
-                                                       row1=hold.suser.row,
-                                                       row2=hold.suser.row + 1)
+        col2 = cog.sheets.Column(hold.system.sheet_col).next()
+        cell_range = '!{col1}{row1}:{col2}{row2}'.format(col1=hold.system.sheet_col, col2=col2,
+                                                         row1=hold.suser.row,
+                                                         row2=hold.suser.row + 1)
         self.gsheet.update(cell_range, [[hold.held, hold.redeemed]])
 
     async def update_system(self, system):
@@ -635,68 +622,79 @@ class UMScanner(SheetScanner):
         Update the system column of the sheet.
         """
         cell_range = '!{col}{start}:{col}{end}'.format(col=system.sheet_col,
-                                                       start=9, end=10)
+                                                       start=10, end=11)
         self.gsheet.update(cell_range, [[system.progress_us, system.progress_them]],
                            dim='COLUMNS')
 
 
-# def um_find_system(session, system_name):
-    # """
-    # Find the SystemUM with system_name
-    # """
-    # try:
-        # return session.query(SystemUM).filter_by(name=system_name).one()
-    # except (sqa_exc.NoResultFound, sqa_exc.MultipleResultsFound):
-        # systems = um_get_systems(session)
-        # return fuzzy_find(system_name, systems, 'name')
+def um_find_system(session, system_name):
+    """
+    Find the SystemUM with system_name
+    """
+    try:
+        return session.query(SystemUM).filter_by(name=system_name).one()
+    except (sqa_exc.NoResultFound, sqa_exc.MultipleResultsFound):
+        systems = session.query(SystemUM).all()
+        return fuzzy_find(system_name, systems, 'name')
 
 
-# def um_get_hold(session, duser, system):
-    # """
-    # Return the hold for a user in a system
-    # """
-    # return session.query(Hold).filter_by(user_id=duser.um_id,
-                                         # system_id=system.id).one()
+def um_get_systems(session, exclude_finished=True):
+    """
+    Return a list of all current undermining targets.
+
+    kwargs:
+        finished: Return just the finished targets.
+    """
+    systems = session.query(SystemUM).all()
+    if exclude_finished:
+        systems = [system for system in systems if not system.is_undermined]
+
+    return systems
 
 
-# def um_get_systems(session, finished=False):
-    # """
-    # Return a list of all current undermining targets.
+def um_reset_held(session, user_id):
+    """
+    Reset all held merits to 0.
+    """
+    for hold in session.query(Hold).filter(user_id=user_id):
+        hold.held = 0
 
-    # kwargs:
-        # finished: Return just the finished targets.
-    # """
-    # raise NotImplementedError
-    # # query = session.query(System)
-    # # if not_othime:
-        # # query = query.filter(System.name != 'Othime')
-
-    # # return query.all()
+    session.commit()
 
 
-# def um_add_hold(session, **kwargs):
-    # """
-    # Add or update the user's Hold, that is their UM merits held or redeemed.
-        # System.name and SUser.name
-    # If fort exists, increment its value. Else add it to database.
+def um_redeem_merits(session, user_id):
+    """
+    Redeem all held merits for user.
+    """
+    total = 0
+    for hold in session.query(Hold).filter(user_id=user_id):
+        total += hold.held
+        hold.redeemed = hold.redeemed + hold.held
+        hold.held = 0
 
-    # Kwa
+    session.commit()
+    return total
 
-    # Returns: The Drop object.
-    # """
-    # system = kwargs['system']
-    # suser = kwargs['suser']
-    # held = kwargs['held']
-    # redeemed = kwargs['redeemed']
 
-    # try:
-        # hold = session.query(Hold).filter_by(user_id=suser.id,
-                                             # system_id=system.id).one()
-        # hold.held = held
-        # hold.held = redeemed
-    # except sqa_exc.NoResultFound:
-        # hold = Hold(user_id=suser.id, system_id=system.id, held=held, redeemed=redeemed)
-        # session.add(hold)
-    # session.commit()
+def um_add_hold(session, **kwargs):
+    """
+    Add or update the user's Hold, that is their UM merits held or redeemed.
+        System.name and SUser.name
+    If Hold exists, increment the held value. Otherwise add it to database.
 
-    # return hold
+    Returns: The Hold object.
+    """
+    system = kwargs['system']
+    user = kwargs['user']
+    held = kwargs['held']
+
+    try:
+        hold = session.query(Hold).filter_by(user_id=user.id,
+                                             system_id=system.id).one()
+        hold.held = held
+    except sqa_exc.NoResultFound:
+        hold = Hold(user_id=user.id, system_id=system.id, held=held, redeemed=0)
+        session.add(hold)
+    session.commit()
+
+    return hold

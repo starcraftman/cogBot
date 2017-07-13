@@ -12,14 +12,19 @@ import cog.share
 import cog.sheets
 
 
+# TODO: Set parameter to run GSheet tests.
+# https://docs.pytest.org/en/latest/example/parametrize.html
+# Run all tests with test config.yml
+
+
 @pytest.fixture()
 def fort_sheet():
     """
     Yield fixture returns fort sheet.
     """
-    sheet_id = cog.share.get_config('hudson', 'cattle')
-    secrets = cog.share.get_config('secrets', 'sheets')
-    f_sheet = cog.sheets.GSheet(sheet_id, secrets['json'], secrets['token'])
+    sheet = cog.share.get_config('hudson', 'cattle')
+    paths = cog.share.get_config('paths')
+    f_sheet = cog.sheets.GSheet(sheet, paths['json'], paths['token'])
 
     yield f_sheet
 
@@ -31,9 +36,9 @@ def fort_sheet_reset():
 
     N.B. Test in cells cleaned in cell_ranges.
     """
-    sheet_id = cog.share.get_config('hudson', 'cattle')
-    secrets = cog.share.get_config('secrets', 'sheets')
-    f_sheet = cog.sheets.GSheet(sheet_id, secrets['json'], secrets['token'])
+    sheet = cog.share.get_config('hudson', 'cattle')
+    paths = cog.share.get_config('paths')
+    f_sheet = cog.sheets.GSheet(sheet, paths['json'], paths['token'])
 
     yield f_sheet
 

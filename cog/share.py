@@ -112,8 +112,6 @@ def make_parser(prefix):
                      help='Set the fort:um status of system. Example-> --set 3400:200')
     sub.add_argument('-s', '--system', nargs='+',
                      help='The system to drop at.')
-    sub.add_argument('-u', '--user', nargs='+',
-                     help='The user to drop for.')
 
     sub = subs.add_parser(prefix + 'dump', description='Dump the current db.')
     sub.set_defaults(cmd='dump')
@@ -139,10 +137,11 @@ def make_parser(prefix):
     """.format(prefix=prefix)
     sub = subs.add_parser(prefix + 'hold', description=desc, formatter_class=RawHelp)
     sub.set_defaults(cmd='hold')
-    sub.add_argument('system', nargs='?', help='The system being undermined.')
     sub.add_argument('held', nargs='?', type=int, help='The amount of merits held.')
+    sub.add_argument('system', nargs='*', help='The system being undermined.')
     sub.add_argument('--redeem', action='store_true', help='Redeem all held merits.')
     sub.add_argument('--died', action='store_true', help='Zero out held merits on death.')
+    sub.add_argument('--set', help='Update the galmap progress us:them.')
 
     sub = subs.add_parser(prefix + 'info', description='Get information on things.')
     sub.set_defaults(cmd='info')
@@ -157,7 +156,9 @@ def make_parser(prefix):
 
     sub = subs.add_parser(prefix + 'um', description='Query and update the um sheet.')
     sub.set_defaults(cmd='um')
-    sub.add_argument('system', nargs='?', help='The system to update/show.')
+    # sub.add_argument('system', nargs='?', help='The system to update/show.')
+    sub.add_argument('system', nargs='*',
+                     help='The system to update or show.')
     sub.add_argument('--set',
                      help='Set the System status of system, us:them. Example-> --set 3400:200')
 

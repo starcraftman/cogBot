@@ -31,8 +31,8 @@ class EFaction(object):
 
 class ESheetType(object):
     """ Type of sheet. """
-    cattle = 'cattle'
-    um = 'um'
+    cattle = 'SheetCattle'
+    um = 'SheetUM'
 
 
 class EUMType(object):
@@ -64,7 +64,7 @@ class DUser(Base):
         return self.__repr__()
 
     def __eq__(self, other):
-        return self.id == other.id
+        return isinstance(other, DUser) and self.id == other.id
 
     def switch_faction(self, new_faction=None):
         if not new_faction:
@@ -130,7 +130,8 @@ class SheetRow(Base):
         return "id={!r}, {!r}".format(self.id, self)
 
     def __eq__(self, other):
-        return (self.name, self.type, self.faction) == (other.name, other.type, other.faction)
+        return isinstance(other, SheetRow) and (self.name, self.type, self.faction) == (
+            other.name, other.type, other.faction)
 
 
 class SheetCattle(SheetRow):
@@ -139,12 +140,32 @@ class SheetCattle(SheetRow):
         'polymorphic_identity': ESheetType.cattle,
     }
 
+    @property
+    def merits(self):
+        """ Summarize user merits. """
+        total = 0
+        for drop in self.drops:
+            total += drop.amount
+
+        return '{}'.format(total)
+
 
 class SheetUM(SheetRow):
     """ Track user in Hudson undermining sheet. """
     __mapper_args__ = {
         'polymorphic_identity': ESheetType.um,
     }
+
+    @property
+    def merits(self):
+        """ Summarize user merits. """
+        held = 0
+        redeemed = 0
+        for hold in self.holds:
+            held += hold.held
+            redeemed += hold.redeemed
+
+        return 'Redeemed: {}, Holding: {}'.format(redeemed, held)
 
 
 class Drop(Base):
@@ -168,17 +189,17 @@ class Drop(Base):
     def __str__(self):
         system = ''
         if getattr(self, 'system'):
-            system = "system_name={!r}, ".format(self.system.name)
+            system = "system={!r}, ".format(self.system.name)
 
         suser = ''
         if getattr(self, 'user'):
-            suser = "user_name={!r}, ".format(self.user.name)
+            suser = "user={!r}, ".format(self.user.name)
 
         return "id={!r}, {}{}{!r}".format(self.id, system, suser, self)
 
     def __eq__(self, other):
-        return (self.user_id, self.system_id, self.amount) == (
-            other.user_id, other.system_id, other.amount)
+        return isinstance(other, Drop) and (self.user_id, self.system_id) == (
+            other.user_id, other.system_id)
 
 
 class Hold(Base):
@@ -199,16 +220,17 @@ class Hold(Base):
     def __str__(self):
         system = ''
         if getattr(self, 'system', None):
-            system = "system_name={!r}, ".format(self.system.name)
+            system = "system={!r}, ".format(self.system.name)
 
         suser = ''
-        if getattr(self, 'suser', None):
-            suser = "suser_name={!r}, ".format(self.suser.name)
+        if getattr(self, 'user', None):
+            suser = "user={!r}, ".format(self.user.name)
 
         return "id={!r}, {}{}{!r}".format(self.id, system, suser, self)
 
     def __eq__(self, other):
-        return (self.system_id, self.user_id) == (other.system_id, other.user_id)
+        return isinstance(other, Hold) and (self.user_id, self.system_id) == (
+            other.user_id, other.system_id)
 
 
 class System(Base):
@@ -257,7 +279,7 @@ class System(Base):
         return "id={!r}, {!r}".format(self.id, self)
 
     def __eq__(self, other):
-        return self.name == other.name
+        return isinstance(other, System) and self.name == other.name
 
     @property
     def ump(self):
@@ -377,15 +399,15 @@ class SystemUM(Base):
         Format a simple summary for users.
         """
         lines = [
-            'Type: {}, Name: {}'.format(self.type.capitalize(), self.name),
-            'Completion: {}, Missing: {}'.format(self.completion, self.missing),
-            'Security: {}, Close Control: {}'.format(self.security, self.close_control),
+            '{}: {}'.format(self.type.capitalize(), self.name),
+            '    Completion: {}, Missing: {}'.format(self.completion, self.missing),
+            '    Security: {}, Close Control: {}'.format(self.security, self.close_control),
         ]
 
         return '\n'.join(lines)
 
     def __eq__(self, other):
-        return self.name == other.name
+        return isinstance(other, SystemUM) and self.name == other.name
 
     @property
     def cmdr_merits(self):
@@ -406,6 +428,16 @@ class SystemUM(Base):
         Return true only if the system is undermined.
         """
         return self.missing <= 0
+
+    def set_status(self, new_status):
+        """
+        Update the fort_status and um_status of this System based on new_status.
+        Format of new_status: fort_status[:um_status]
+
+        Raises: ValueError
+        """
+        for val, attr in zip(new_status.split(':'), ['progress_us', 'progress_them']):
+            setattr(self, attr, int(val))
 
     @property
     def completion(self):
@@ -432,6 +464,13 @@ class UMExpand(SystemUM):
     __mapper_args__ = {
         'polymorphic_identity': EUMType.expand,
     }
+
+    @property
+    def is_undermined(self):
+        """
+        Expansions are never finished until tick.
+        """
+        return False
 
     @property
     def completion(self):
@@ -482,7 +521,7 @@ class Command(Base):
         return "id={}, {}{!r}".format(self.id, duser, self)
 
     def __eq__(self, other):
-        return (self.cmd_str, self.discord_id, self.date) == (
+        return isinstance(other, Command) and (self.cmd_str, self.discord_id, self.date) == (
             other.cmd_str, other.discord_id, other.date)
 
 
@@ -507,6 +546,7 @@ def kwargs_um_system(cells, sheet_col):
     """
     try:
         main_col, sec_col = cells[0], cells[1]
+
         if main_col[8] == '' or 'template' in main_col[8].lower():
             raise cog.exc.SheetParsingError
 
@@ -517,6 +557,12 @@ def kwargs_um_system(cells, sheet_col):
         else:
             cls = UMControl
 
+        # Cell is not guaranteed to exist in list
+        try:
+            map_offset = parse_int(main_col[12])
+        except IndexError:
+            map_offset = 0
+
         return {
             'goal': parse_int(main_col[3]),  # FIXME: May come down as float. This would truncate.
             'security': main_col[6].replace('Sec: ', ''),
@@ -525,7 +571,7 @@ def kwargs_um_system(cells, sheet_col):
             'name': main_col[8],
             'progress_us': parse_int(main_col[9]),
             'progress_them': parse_float(main_col[10]),
-            'map_offset': parse_int(main_col[12]),
+            'map_offset': map_offset,
             'sheet_col': sheet_col,
             'cls': cls,
         }

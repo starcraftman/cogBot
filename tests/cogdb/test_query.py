@@ -4,12 +4,13 @@ Test cogdb.query module.
 from __future__ import absolute_import, print_function
 import copy
 
+import sqlalchemy.orm.exc
 import mock
 import pytest
 
 import cog.exc
 import cogdb
-from cogdb.schema import DUser, SheetCattle, SheetUM, UMExpand, EFaction
+from cogdb.schema import DUser, System, SheetCattle, SheetUM, UMExpand, EFaction
 import cogdb.query
 
 from tests.data import CELLS_FORT_FMT, SYSTEMS, USERS
@@ -43,45 +44,45 @@ def test_fuzzy_find():
     assert cogdb.query.fuzzy_find('tun', SYSTEMS) == 'Tun'
 
 
-def test_duser_get(session, f_dusers):
-    duserQ = cogdb.query.duser_get(session, '1000')
+def test_get_duser(session, f_dusers):
+    duserQ = cogdb.query.get_duser(session, '1000')
     assert isinstance(duserQ, DUser)
     assert duserQ.display_name == 'GearsandCogs'
 
     with pytest.raises(cog.exc.NoMatch):
-        cogdb.query.duser_get(session, '0')
+        cogdb.query.get_duser(session, '0')
 
 
-def test_duser_ensure_no_create(session, f_dusers):
+def test_ensure_duser_no_create(session, f_dusers):
     expect = f_dusers[0]
     member = mock.Mock()
     member.id = '1000'
-    duser = cogdb.query.duser_ensure(session, member)
+    duser = cogdb.query.ensure_duser(session, member)
     assert duser == expect
 
 
-def test_duser_ensure_create(session, f_dusers):
+def test_ensure_duser_create(session, f_dusers):
     member = mock.Mock()
     member.id = '2000'
     member.display_name = 'NewUser'
-    duser = cogdb.query.duser_ensure(session, member)
+    duser = cogdb.query.ensure_duser(session, member)
     assert duser.display_name == member.display_name
 
     last_user = session.query(DUser).all()[-1]
     assert last_user == duser
 
 
-def test_duser_add(session, f_dusers):
+def test_add_duser(session, f_dusers):
     member = mock.Mock()
     member.id = '2000'
     member.display_name = 'NewUser'
 
-    cogdb.query.duser_add(session, member)
+    cogdb.query.add_duser(session, member)
     assert session.query(DUser).all()[-1].id == member.id
 
     member.id = '2001'
     member.display_name += '2'
-    cogdb.query.duser_add(session, member, faction=EFaction.winters)
+    cogdb.query.add_duser(session, member, faction=EFaction.winters)
     assert session.query(DUser).all()[-1].id == member.id
 
 
@@ -149,15 +150,15 @@ def test_fort_get_next_targets(session, f_systems):
 
 
 # FIXME: Disabled during Schema rewrite.
-# def test_fort_get_sheet_users():
+
+def test_get_sheetrow():
+    pass
     # session = cogdb.Session()
     # users = cogdb.query.fort_get_sheet_users(session)
     # assert len(users) == 15
     # assert users[0].name == 'Alexander Astropath'
 
 
-# @db_cleanup
-# @db_data
 # def test_get_sheet_user_by_name():
     # session = cogdb.Session()
     # suser = cogdb.query.get_sheet_user_by_name(session, 'Shepron')
@@ -168,64 +169,26 @@ def test_fort_get_next_targets(session, f_systems):
     # assert suser.name == 'GearsandCogs'
 
 
-# @db_cleanup
-# @db_data
-# def test_check_sheet_user_no_create():
-    # member = mock.Mock()
-    # member.pref_name = 'GearsandCogs'
-    # create_hook = mock.Mock()
-
-    # session = cogdb.Session()
-    # suser = cogdb.query.check_sheet_user(session, member, create_hook)
-    # assert suser.row == 22
-    # assert not create_hook.called
-
-
-# @db_cleanup
-# @db_data
-# def test_check_sheet_user_create():
-    # member = mock.Mock()
-    # member.pref_name = 'notGears'
-    # create_hook = mock.Mock()
-    # create_hook = mock.Mock()
-
-    # session = cogdb.Session()
-    # suser = cogdb.query.check_sheet_user(session, member, create_hook)
-    # assert suser.row == 26
-    # assert suser.name == 'notGears'
-    # assert suser.row == session.query(cogdb.schema.SUser).all()[-2].row + 1
-    # assert create_hook.called
-
-
-# @db_cleanup
-# @db_data
-# def test_fort_add_sheet_user():
-    # session = cogdb.Session()
-    # cogdb.query.fort_add_sheet_user(session, 'NewestUser')
+# def test_add_cattle_sheet(session):
+    # cogdb.query.add_sheet(session, 'NewestUser', )
     # assert cogdb.query.fort_get_sheet_users(session)[-1].name == 'NewestUser'
 
 
-# @db_cleanup
-# @db_data
-# def test_fort_add_drop():
-    # import sqlalchemy.orm.exc
-    # session = cogdb.Session()
-    # system = cogdb.query.fort_get_systems(session)[2]
-    # suser = cogdb.query.fort_get_sheet_users(session)[4]
+def test_fort_add_drop(session, f_dusers, f_sheets, f_systems, db_cleanup):
+    system = session.query(System).filter(System.name == 'Sol').one()
+    user = f_sheets[4]
 
-    # with pytest.raises(sqlalchemy.orm.exc.NoResultFound):
-        # session.query(cogdb.schema.Drop).filter_by(user_id=suser.id,
-                                                   # system_id=system.id).one()
-    # old_fort = system.fort_status
-    # old_cmdr = system.cmdr_merits
+    with pytest.raises(sqlalchemy.orm.exc.NoResultFound):
+        session.query(cogdb.schema.Drop).filter_by(user_id=user.id,
+                                                   system_id=system.id).one()
 
-    # drop = cogdb.query.fort_add_drop(session, system=system, suser=suser, amount=400)
+    old_fort = system.fort_status
+    drop = cogdb.query.fort_add_drop(session, system=system, user=user, amount=400)
+    session.commit()
 
-    # assert drop.amount == 400
-    # assert system.fort_status == old_fort + 400
-    # assert system.cmdr_merits == old_cmdr + 400
-    # assert session.query(cogdb.schema.Drop).filter_by(user_id=suser.id,
-                                                      # system_id=system.id).one()
+    assert drop.amount == 400
+    assert system.fort_status == old_fort + 400
+    assert session.query(cogdb.schema.Drop).filter_by(user_id=user.id, system_id=system.id).one()
 
 
 def test_sheetscanner_find_system_column(mock_sheet):
@@ -303,9 +266,7 @@ def test_umscanner_users(mock_umsheet):
     assert isinstance(users[0], SheetUM)
 
 
-# @db_cleanup
-# def test_umscanner_merits(mock_umsheet):
-    # session = cogdb.Session()
+# def test_umscanner_merits(session, mock_umsheet, db_cleanup):
     # scanner = cogdb.query.UMScanner(mock_umsheet)
     # scanner.scan(session)
     # session.commit()

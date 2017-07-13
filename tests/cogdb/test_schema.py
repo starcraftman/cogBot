@@ -83,13 +83,13 @@ def test_duser__repr__(f_dusers, f_sheets):
 def test_duser__str__(f_dusers, f_sheets):
     duser = f_dusers[0]
     assert str(duser) == "DUser(id='1000', display_name='GearsandCogs', "\
-                          "pref_name='GearsandCogs', faction='hudson', capacity=750)"
+                         "pref_name='GearsandCogs', faction='hudson', capacity=750)"
 
 
 def test_duser_get_sheet(f_dusers, f_sheets):
     duser = f_dusers[0]
     assert not duser.get_sheet('um', faction=EFaction.winters)
-    assert duser.get_sheet('cattle')
+    assert duser.get_sheet(ESheetType.cattle)
     assert isinstance(duser.get_sheet(ESheetType.cattle), SheetCattle)
 
 
@@ -134,16 +134,16 @@ def test_sheetrow__eq__(f_dusers, f_sheets):
 
 def test_sheetrow__repr__(f_dusers, f_sheets):
     sheet = f_sheets[0]
-    assert repr(sheet) == "SheetCattle(name='GearsandCogs', type='cattle', faction='hudson', "\
-                          "row=15, cry='Gears are forting late!')"
+    assert repr(sheet) == "SheetCattle(name='GearsandCogs', type='SheetCattle', "\
+                          "faction='hudson', row=15, cry='Gears are forting late!')"
 
     assert sheet == eval(repr(sheet))
 
 
 def test_sheetrow__str__(f_dusers, f_sheets):
     sheet = f_sheets[0]
-    assert str(sheet) == "id=1, SheetCattle(name='GearsandCogs', type='cattle', faction='hudson', "\
-                         "row=15, cry='Gears are forting late!')"
+    assert str(sheet) == "id=1, SheetCattle(name='GearsandCogs', type='SheetCattle', "\
+                         "faction='hudson', row=15, cry='Gears are forting late!')"
 
 
 def test_system__eq__(f_systems):
@@ -270,7 +270,7 @@ def test_drop__repr__(f_dusers, f_sheets, f_systems, f_drops):
 
 def test_drop__str__(f_dusers, f_sheets, f_systems, f_drops):
     drop = f_drops[0]
-    assert str(drop) == "id=1, system_name='Frey', user_name='GearsandCogs', "\
+    assert str(drop) == "id=1, system='Frey', user='GearsandCogs', "\
                         "Drop(system_id=1, user_id=1, amount=700)"
 
 
@@ -278,9 +278,9 @@ def test_system_um__repr__(f_dusers, f_sheets, f_systemsum, f_holds):
     system = f_systemsum[0]
 
     assert repr(system) == "SystemUM(name='Cemplangpa', type='control', sheet_col='D', "\
-            "goal=14878, security='Medium', notes='', "\
-            "progress_us=13830, progress_them=1.0, "\
-            "close_control='Sol', map_offset=1380)"
+                           "goal=14878, security='Medium', notes='', "\
+                           "progress_us=13830, progress_them=1.0, "\
+                           "close_control='Sol', map_offset=1380)"
     assert system == eval(repr(system))
 
 
