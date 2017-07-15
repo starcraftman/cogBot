@@ -70,6 +70,6 @@ def test_make_parser():
     Simply verify it works, not all parser paths.
     """
     parser = cog.share.make_parser('!')
-    args = parser.parse_args('!fort --long --next 5'.split())
+    args = parser.parse_args('!fort --long --nextn 5'.split())
     assert args.long is True
-    assert args.next == 5
+    assert args.nextn == 5

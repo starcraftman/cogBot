@@ -38,8 +38,8 @@ class ESheetType(object):
 class EUMType(object):
     """ Type of undermine system. """
     control = 'control'
-    expand = 'expansion'
-    oppose = 'opposition'
+    expand = 'expanding'
+    oppose = 'opposing'
 
 
 class DUser(Base):
@@ -165,7 +165,7 @@ class SheetUM(SheetRow):
             held += hold.held
             redeemed += hold.redeemed
 
-        return 'Redeemed: {}, Holding: {}'.format(redeemed, held)
+        return 'Holding: {}, Redeemed: {}'.format(held, redeemed)
 
 
 class Drop(Base):
@@ -238,14 +238,13 @@ class System(Base):
     Represent a single system for fortification.
     Object can be flushed and queried from the database.
 
-    data: List to be unpacked: ump, trigger, cmdr_merits, status, notes):
+    data: List to be unpacked: ump, trigger, status, notes):
     Data tuple is to be used to make a table, with header
 
     args:
         id: Set by the database, unique id.
         name: Name of the system. (string)
         fort_status: Current reported status from galmap/users. (int)
-        cmdr_merits: Total merits dropped by cmdrs. (int)
         trigger: Total trigger of merits required. (int)
         undermine: Percentage of undermining of the system. (float)
         notes: Any notes attached to the system. (string)
@@ -258,7 +257,6 @@ class System(Base):
 
     id = sqla.Column(sqla.Integer, primary_key=True)
     name = sqla.Column(sqla.String, unique=True)
-    cmdr_merits = sqla.Column(sqla.Integer)
     fort_status = sqla.Column(sqla.Integer)
     trigger = sqla.Column(sqla.Integer)
     um_status = sqla.Column(sqla.Integer, default=0)
@@ -269,7 +267,7 @@ class System(Base):
     sheet_order = sqla.Column(sqla.Integer)
 
     def __repr__(self):
-        keys = ['name', 'cmdr_merits', 'fort_status', 'trigger', 'um_status',
+        keys = ['name', 'fort_status', 'trigger', 'um_status',
                 'undermine', 'distance', 'notes', 'sheet_col', 'sheet_order']
         kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
 
@@ -280,6 +278,14 @@ class System(Base):
 
     def __eq__(self, other):
         return isinstance(other, System) and self.name == other.name
+
+    @property
+    def cmdr_merits(self):
+        """ Total merits dropped by cmdrs """
+        total = 0
+        for drop in self.drops:
+            total += drop.amount
+        return total
 
     @property
     def ump(self):
@@ -375,6 +381,7 @@ class SystemUM(Base):
     progress_us = sqla.Column(sqla.Integer)
     progress_them = sqla.Column(sqla.Float)
     map_offset = sqla.Column(sqla.Integer, default=0)
+    exp_trigger = sqla.Column(sqla.Integer, default=0)
 
     __mapper_args__ = {
         'polymorphic_identity': 'base_system',
@@ -399,9 +406,10 @@ class SystemUM(Base):
         Format a simple summary for users.
         """
         lines = [
-            '{}: {}'.format(self.type.capitalize(), self.name),
-            '    Completion: {}, Missing: {}'.format(self.completion, self.missing),
-            '    Security: {}, Close Control: {}'.format(self.security, self.close_control),
+            '{}: **{}**, Nearest Control: {}'.format(self.descriptor, self.name,
+                                                     self.close_control),
+            '    Sec: {}, {}, Missing: {}'.format(self.security[0].upper(),
+                                                  self.completion, self.missing),
         ]
 
         return '\n'.join(lines)
@@ -423,6 +431,11 @@ class SystemUM(Base):
         return self.goal - max(self.cmdr_merits + self.map_offset, self.progress_us)
 
     @property
+    def descriptor(self):
+        """ Descriptive prefix for string. """
+        return self.type.capitalize()
+
+    @property
     def is_undermined(self):
         """
         Return true only if the system is undermined.
@@ -436,8 +449,10 @@ class SystemUM(Base):
 
         Raises: ValueError
         """
-        for val, attr in zip(new_status.split(':'), ['progress_us', 'progress_them']):
-            setattr(self, attr, int(val))
+        vals = new_status.split(':')
+        if len(vals) == 2:
+            self.progress_them = float(vals[1]) / 100
+        self.progress_us = int(vals[0])
 
     @property
     def completion(self):
@@ -447,7 +462,7 @@ class SystemUM(Base):
         except ZeroDivisionError:
             comp_cent = 0
 
-        completion = '{:.0f}%'.format(comp_cent)
+        completion = 'Completion: {:.0f}%'.format(comp_cent)
 
         return completion
 
@@ -476,12 +491,13 @@ class UMExpand(SystemUM):
     def completion(self):
         """ The completion percentage formatted as a string """
         try:
-            comp_cent = (self.goal - self.missing) / self.goal * 100
+            comp_cent = max(self.progress_us,
+                            self.cmdr_merits + self.map_offset) / self.exp_trigger * 100
         except ZeroDivisionError:
             comp_cent = 0
 
-        comp_cent -= 100.0
-        prefix = 'leading by' if comp_cent >= 0 else 'behind by'
+        comp_cent -= self.progress_them * 100
+        prefix = 'Leading by' if comp_cent >= 0 else 'Behind by'
         completion = '{} {:.0f}%'.format(prefix, abs(comp_cent))
 
         return completion
@@ -492,6 +508,11 @@ class UMOppose(UMExpand):
     __mapper_args__ = {
         'polymorphic_identity': EUMType.oppose,
     }
+
+    @property
+    def descriptor(self):
+        """ Descriptive prefix for string. """
+        return 'Opposing ' + self.notes.split()[0]
 
 
 class Command(Base):
@@ -564,11 +585,12 @@ def kwargs_um_system(cells, sheet_col):
             map_offset = 0
 
         return {
+            'exp_trigger': parse_int(main_col[1]),
             'goal': parse_int(main_col[3]),  # FIXME: May come down as float. This would truncate.
-            'security': main_col[6].replace('Sec: ', ''),
-            'notes': sec_col[6],
-            'close_control': main_col[7],
-            'name': main_col[8],
+            'security': main_col[6].strip().replace('Sec: ', ''),
+            'notes': sec_col[6].strip(),
+            'close_control': main_col[7].strip(),
+            'name': main_col[8].strip(),
             'progress_us': parse_int(main_col[9]),
             'progress_them': parse_float(main_col[10]),
             'map_offset': map_offset,
@@ -605,12 +627,11 @@ def kwargs_fort_system(lines, order, column):
         return {
             'undermine': parse_float(lines[0]),
             'trigger': parse_int(lines[2]),
-            'cmdr_merits': lines[4],
             'fort_status': parse_int(lines[5]),
             'um_status': parse_int(lines[6]),
             'distance': parse_float(lines[7]),
-            'notes': lines[8],
-            'name': lines[9],
+            'notes': lines[8].strip(),
+            'name': lines[9].strip(),
             'sheet_col': column,
             'sheet_order': order,
         }
@@ -738,11 +759,11 @@ def main():
 
     systems = (
         System(name='Frey', sheet_col='F', sheet_order=1, fort_status=0,
-               cmdr_merits=0, trigger=7400, undermine=0),
+               trigger=7400, undermine=0),
         System(name='Adeo', sheet_col='G', sheet_order=2, fort_status=0,
-               cmdr_merits=0, trigger=5400, undermine=0),
+               trigger=5400, undermine=0),
         System(name='Sol', sheet_col='H', sheet_order=3, fort_status=0,
-               cmdr_merits=0, trigger=6000, undermine=0),
+               trigger=6000, undermine=0),
     )
     session.add_all(systems)
     session.commit()

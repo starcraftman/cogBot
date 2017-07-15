@@ -111,7 +111,6 @@ def test_fort_get_systems_by_state(session, f_systems):
     systems[4].undermine = 1.9
     session.commit()
 
-    # print(systems[1].is_fortified, systems[1].is_undermined, systems[2].is_undermined())
     systems = cogdb.query.fort_get_systems_by_state(session)
     assert [sys.name for sys in systems['cancelled']] == ["Nurundere"]
     assert [sys.name for sys in systems['fortified']] == ["Frey"]

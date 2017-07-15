@@ -212,9 +212,11 @@ class CogBot(discord.Client):
         log.info('DROP - Sucessfully dropped %d at %s for %s.',
                  args.amount, system.name, duser.display_name)
 
-        # if drop.system.is_fortified():
-            # message.content = self.prefix + 'fort'
-            # asyncio.ensure_future(self.on_message(message))
+        response = drop.system.short_display()
+        if drop.system.is_fortified:
+            new_index = cogdb.query.fort_find_current_index(session)
+            new_target = cogdb.query.fort_get_targets(session, new_index)[0]
+            response += '\n\nNext Target: ' + new_target.short_display()
         await self.send_message(message.channel, drop.system.short_display())
 
     async def command_dump(self, **kwargs):
@@ -234,12 +236,15 @@ class CogBot(discord.Client):
         systems = []
         cur_index = cogdb.query.fort_find_current_index(session)
 
+        if args.next:
+            args.nextn = 1
+
         if args.system:
-            systems.append(cogdb.query.fort_find_system(session, args.system,
+            systems.append(cogdb.query.fort_find_system(session, ' '.join(args.system),
                                                         search_all=True))
-        elif args.next:
+        elif args.nextn:
             systems = cogdb.query.fort_get_next_targets(session,
-                                                        cur_index, count=args.next)
+                                                        cur_index, count=args.nextn)
         else:
             systems = cogdb.query.fort_get_targets(session, cur_index)
 
@@ -263,8 +268,9 @@ class CogBot(discord.Client):
             lines = [systems[0].__class__.header] + [system.table_row for system in systems]
             response = cog.tbl.wrap_markdown(cog.tbl.format_table(lines, sep='|', header=True))
         else:
+            response = '__{} Fort Targets__\n\n'.format('Next' if args.nextn else 'Current')
             lines = [system.short_display() for system in systems]
-            response = '\n'.join(lines)
+            response += '\n'.join(lines)
 
         message = kwargs.get('message')
         await self.send_message(message.channel, response)
@@ -295,37 +301,36 @@ class CogBot(discord.Client):
         log.info('HOLD - Matched duser %s with id %s.', duser.display_name, duser.id[:6])
 
         if args.died:
-            cogdb.query.um_reset_held(session, duser.undermine)
+            holds = cogdb.query.um_reset_held(session, duser.undermine)
             log.info('HOLD - User died %s.', duser.display_name)
-            await self.send_message(message.channel, 'Sorry you died :(. Held merits reset.')
-            return
+            response = 'Sorry you died :(. Held merits reset.'
+
         elif args.redeem:
-            redeemed = cogdb.query.um_redeem_merits(session, duser.undermine)
+            holds, redeemed = cogdb.query.um_redeem_merits(session, duser.undermine)
             log.info('HOLD - User %s redeemed %d merits.', duser.display_name, redeemed)
-            response = 'You have redeemed {} merits.\n{}'.format(redeemed, duser.undermine.merits)
-            await self.send_message(message.channel, response)
-            return
+            response = 'You redeemed {} new merits.\n{}'.format(redeemed, duser.undermine.merits)
 
-        # Default case, add a hold.
-        search = ''.join(args.system)
-        print(search)
+        else:  # Default case, update the hold for a system
+            system = cogdb.query.um_find_system(session, ' '.join(args.system))
+            log.info('HOLD - Matched system %s based on args: %s.', system.name, args.system)
+            hold = cogdb.query.um_add_hold(session, system=system,
+                                           user=duser.undermine, held=args.amount)
+            holds = [hold]
 
-        system = cogdb.query.um_find_system(session, search)
-        log.info('HOLD - Matched system %s based on args: %s.', system.name, args.system)
-        hold = cogdb.query.um_add_hold(session, system=system,
-                                       user=duser.undermine, held=args.held)
-        if args.set:
-            system.set_status(args.set)
-            session.commit()
-        asyncio.ensure_future(self.scanner_um.update_hold(hold))
-        # asyncio.ensure_future(self.scanner_um.update_system(hold.system))
+            if args.set:
+                system.set_status(args.set)
+                session.commit()
+                # asyncio.ensure_future(self.scanner_um.update_system(hold.system))
 
-        log.info('Hold - Sucessfully dropped %d at %s for %s.',
-                 args.amount, system.name, duser.display_name)
+            log.info('Hold - Sucessfully dropped %d at %s for %s.',
+                     args.amount, system.name, duser.display_name)
 
-        response = str(hold.system)
-        if hold.system.is_undermined():
-            response += '\n\nPlaceholder for other UM targets.'
+            response = str(hold.system)
+            if hold.system.is_undermined:
+                response += '\n\nPlaceholder for other UM targets.'
+
+        for hold in holds:
+            asyncio.ensure_future(self.scanner_um.update_hold(hold))
         await self.send_message(message.channel, response)
 
     async def command_info(self, **kwargs):
@@ -402,14 +407,26 @@ class CogBot(discord.Client):
         message = kwargs.get('message')
         session = kwargs.get('session')
 
-        if args.system:
+        # Sanity check
+        if (args.set or args.offset) and not args.system:
+            response = 'Forgot to specify system to update'
+
+        elif args.system:
             system = cogdb.query.um_find_system(session, ' '.join(args.system))
-            response = str(system)
+
+            if args.offset:
+                system.map_offset = args.offset
             if args.set:
-                response = 'Show system post update.'
+                system.set_status(args.set)
+            if args.set or args.offset:
+                session.commit()
+                asyncio.ensure_future(self.scanner_um.update_system(system))
+
+            response = str(system)
+
         else:
             systems = cogdb.query.um_get_systems(session)
-            response = '\n'.join([str(system) for system in systems])
+            response = '__Current UM Targets__\n\n' + '\n'.join([str(system) for system in systems])
 
         await self.send_message(message.channel, response)
 
@@ -428,6 +445,7 @@ class CogBot(discord.Client):
             for sheet in duser.sheets:
                 sheet.name = new_name
             duser.pref_name = new_name
+            session.commit()
 
         if args.cry:
             for sheet in duser.sheets:
@@ -435,6 +453,7 @@ class CogBot(discord.Client):
 
         if args.name or args.cry:
             asyncio.ensure_future(self.scanner.update_sheet_user(duser.cattle))
+            asyncio.ensure_future(self.scanner_um.update_sheet_user(duser.undermine))
 
         lines = [
             '**{}**'.format(message.author.display_name),
@@ -443,15 +462,15 @@ class CogBot(discord.Client):
         for sheet in duser.sheets:
             lines += [
                 '{} {}'.format(sheet.faction.capitalize(), sheet.type.replace('Sheet', '')),
-                '  Name: {}'.format(sheet.name),
-                '  Cry: {}'.format(sheet.cry),
-                '  Merits: {}'.format(sheet.merits),
+                '    Name: {}'.format(sheet.name),
+                '    Cry: {}'.format(sheet.cry),
+                '    Merits: {}'.format(sheet.merits),
             ]
 
         await self.send_message(message.channel, '\n'.join(lines))
 
 
-def scan_sheet(sheet_id, cls):
+def scan_sheet(sheet, cls):
     """
     Run common database initialization.
 
@@ -461,7 +480,7 @@ def scan_sheet(sheet_id, cls):
     session = cogdb.Session()
 
     paths = cog.share.get_config('paths')
-    sheet = cog.sheets.GSheet(sheet_id,
+    sheet = cog.sheets.GSheet(sheet,
                               cog.share.rel_to_abs(paths['json']),
                               cog.share.rel_to_abs(paths['token']))
 
@@ -472,12 +491,12 @@ def scan_sheet(sheet_id, cls):
 
 
 def main():
+    """ Entry here!  """
     cog.share.init_logging()
     try:
         scanner = scan_sheet(cog.share.get_config('hudson', 'cattle'), cogdb.query.FortScanner)
         scanner_um = scan_sheet(cog.share.get_config('hudson', 'um'), cogdb.query.UMScanner)
         bot = CogBot(prefix='!', scanner=scanner, scanner_um=scanner_um)
-        # bot = CogBot(prefix='!', scanner=scanner, scanner_um=None)
         bot.run(cog.share.get_config('discord_token'))
     finally:
         try:

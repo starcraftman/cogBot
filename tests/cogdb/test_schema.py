@@ -156,8 +156,8 @@ def test_system__eq__(f_systems):
 def test_system__repr__(f_systems):
     system = f_systems[0]
 
-    assert repr(system) == "System(name='Frey', cmdr_merits=4322, fort_status=4910, "\
-                           "trigger=4910, um_status=0, undermine=0.0, distance=116.99, "\
+    assert repr(system) == "System(name='Frey', fort_status=4910, trigger=4910, "\
+                           "um_status=0, undermine=0.0, distance=116.99, "\
                            "notes='', sheet_col='F', sheet_order=1)"
     assert system == eval(repr(system))
 
@@ -165,7 +165,7 @@ def test_system__repr__(f_systems):
 def test_system__str__(f_systems):
     system = f_systems[0]
 
-    assert str(system) == "id=1, System(name='Frey', cmdr_merits=4322, fort_status=4910, "\
+    assert str(system) == "id=1, System(name='Frey', fort_status=4910, "\
                           "trigger=4910, um_status=0, undermine=0.0, distance=116.99, "\
                           "notes='', sheet_col='F', sheet_order=1)"
 
@@ -175,7 +175,6 @@ def test_system_short_display(f_systems):
     assert system.short_display() == 'Frey :Fortified: 4910/4910'
 
     system.fort_status = 4000
-    system.cmdr_merits = 4000
     assert system.short_display() == 'Frey :Fortifying: 4000/4910\nMissing: 910'
     assert system.short_display(missing=False) == 'Frey :Fortifying: 4000/4910'
 
@@ -228,7 +227,6 @@ def test_system_is_undermined(f_systems):
 
 def test_system_missing(f_systems):
     system = f_systems[0]
-    system.cmdr_merits = 0
 
     system.fort_status = system.trigger - 1000
     assert system.missing == 1000
@@ -287,9 +285,8 @@ def test_system_um__repr__(f_dusers, f_sheets, f_systemsum, f_holds):
 def test_system_um__str__(f_dusers, f_sheets, f_systemsum, f_holds):
     system = f_systemsum[0]
 
-    assert str(system) == "Type: Control, Name: Cemplangpa\n"\
-                          "Completion: 103%, Missing: -452\n"\
-                          "Security: Medium, Close Control: Sol"
+    assert str(system) == "Control: **Cemplangpa**, Nearest Control: Sol\n"\
+                          "    Sec: M, Completion: 103%, Missing: -452"
 
 
 def test_system_um__eq__(f_dusers, f_sheets, f_systemsum, f_holds):
@@ -320,12 +317,13 @@ def test_system_um_missing(f_dusers, f_sheets, f_systemsum, f_holds):
 def test_system_um_completion(f_dusers, f_sheets, f_systemsum, f_holds):
     system = f_systemsum[0]
 
-    assert system.completion == '103%'
+    assert system.completion == 'Completion: 103%'
 
 
 def test_kwargs_system_um():
     expect = {
         'close_control': 'Dongkum',
+        'exp_trigger': 0,
         'goal': 364298,
         'name': 'Burr',
         'notes': '',
@@ -353,7 +351,6 @@ def test_kwargs_system_um():
 
 def test_kwargs_fort_system():
     expect = {
-        'cmdr_merits': 4322,
         'distance': 116.99,
         'fort_status': 4910,
         'name': 'Frey',

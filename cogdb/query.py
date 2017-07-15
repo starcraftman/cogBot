@@ -379,14 +379,14 @@ class SheetScanner(object):
         """
         raise NotImplementedError
 
-    async def update_sheet_user(self, suser):
+    async def update_sheet_user(self, user):
         """
         Update the user cry and name on the given row.
         """
         col1 = cog.sheets.Column(self.user_col).prev()
-        cell_range = '!{col1}{row}:{col2}{row}'.format(row=suser.row, col1=col1,
+        cell_range = '!{col1}{row}:{col2}{row}'.format(row=user.row, col1=col1,
                                                        col2=self.user_col)
-        self.gsheet.update(cell_range, [[suser.cry, suser.name]])
+        self.gsheet.update(cell_range, [[user.cry, user.name]])
 
 
 class FortScanner(SheetScanner):
@@ -492,7 +492,7 @@ class FortScanner(SheetScanner):
         Update a drop to the sheet.
         """
         cell_range = '!{col}{row}:{col}{row}'.format(col=drop.system.sheet_col,
-                                                     row=drop.suser.row)
+                                                     row=drop.user.row)
         self.gsheet.update(cell_range, [[drop.amount]])
 
     async def update_system(self, system, max_fort=True):
@@ -613,8 +613,8 @@ class UMScanner(SheetScanner):
         """
         col2 = cog.sheets.Column(hold.system.sheet_col).next()
         cell_range = '!{col1}{row1}:{col2}{row2}'.format(col1=hold.system.sheet_col, col2=col2,
-                                                         row1=hold.suser.row,
-                                                         row2=hold.suser.row + 1)
+                                                         row1=hold.user.row,
+                                                         row2=hold.user.row + 1)
         self.gsheet.update(cell_range, [[hold.held, hold.redeemed]])
 
     async def update_system(self, system):
@@ -622,9 +622,9 @@ class UMScanner(SheetScanner):
         Update the system column of the sheet.
         """
         cell_range = '!{col}{start}:{col}{end}'.format(col=system.sheet_col,
-                                                       start=10, end=11)
-        self.gsheet.update(cell_range, [[system.progress_us, system.progress_them]],
-                           dim='COLUMNS')
+                                                       start=10, end=13)
+        self.gsheet.update(cell_range, [[system.progress_us, system.progress_them,
+                                         'Hold Merits', system.map_offset]], dim='COLUMNS')
 
 
 def um_find_system(session, system_name):
@@ -652,28 +652,31 @@ def um_get_systems(session, exclude_finished=True):
     return systems
 
 
-def um_reset_held(session, user_id):
+def um_reset_held(session, user):
     """
     Reset all held merits to 0.
     """
-    for hold in session.query(Hold).filter(user_id=user_id):
+    holds = session.query(Hold).filter_by(user_id=user.id).all()
+    for hold in holds:
         hold.held = 0
 
     session.commit()
+    return holds
 
 
-def um_redeem_merits(session, user_id):
+def um_redeem_merits(session, user):
     """
     Redeem all held merits for user.
     """
     total = 0
-    for hold in session.query(Hold).filter(user_id=user_id):
+    holds = session.query(Hold).filter_by(user_id=user.id).all()
+    for hold in holds:
         total += hold.held
         hold.redeemed = hold.redeemed + hold.held
         hold.held = 0
 
     session.commit()
-    return total
+    return (holds, total)
 
 
 def um_add_hold(session, **kwargs):
