@@ -146,6 +146,24 @@ def test_sheetrow__str__(f_dusers, f_sheets):
                          "faction='hudson', row=15, cry='Gears are forting late!')"
 
 
+def test_sheetcattle_merits(session, f_dusers, f_sheets, f_systems, f_drops):
+    sheet = f_sheets[0]
+    total = 0
+    for drop in session.query(Drop).filter_by(user_id=sheet.id).all():
+        total += drop.amount
+    assert sheet.merits == '{}'.format(total)
+
+
+def test_sheetum_merits(session, f_dusers, f_sheets, f_systemsum, f_holds):
+    sheet = [sheet for sheet in f_sheets if sheet.name == 'GearsandCogs' and
+             sheet.type == ESheetType.um][0]
+    held, redeemed = 0, 0
+    for hold in sheet.holds:
+        held += hold.held
+        redeemed += hold.redeemed
+    assert sheet.merits == 'Holding {}, Redeemed {}'.format(held, redeemed)
+
+
 def test_system__eq__(f_systems):
     system = f_systems[0]
 
@@ -272,24 +290,46 @@ def test_drop__str__(f_dusers, f_sheets, f_systems, f_drops):
                         "Drop(system_id=1, user_id=1, amount=700)"
 
 
-def test_system_um__repr__(f_dusers, f_sheets, f_systemsum, f_holds):
+def test_hold__eq__(f_dusers, f_sheets, f_systemsum, f_holds):
+    user = f_sheets[1]
+    system = f_systemsum[0]
+    hold = f_holds[0]
+
+    assert hold == Hold(held=0, redeemed=4000, user_id=user.id, system_id=system.id)
+    assert hold.user == user
+    assert hold.system == system
+
+
+def test_hold__repr__(f_dusers, f_sheets, f_systemsum, f_holds):
+    hold = f_holds[0]
+    assert repr(hold) == "Hold(system_id=1, user_id=2, held=0, redeemed=4000)"
+    assert hold == eval(repr(hold))
+
+
+def test_hold__str__(f_dusers, f_sheets, f_systemsum, f_holds):
+    hold = f_holds[0]
+    assert str(hold) == "id=1, system='Cemplangpa', user='GearsandCogs', "\
+                        "Hold(system_id=1, user_id=2, held=0, redeemed=4000)"
+
+
+def test_systemum__repr__(f_dusers, f_sheets, f_systemsum, f_holds):
     system = f_systemsum[0]
 
     assert repr(system) == "SystemUM(name='Cemplangpa', type='control', sheet_col='D', "\
                            "goal=14878, security='Medium', notes='', "\
-                           "progress_us=13830, progress_them=1.0, "\
+                           "progress_us=15000, progress_them=1.0, "\
                            "close_control='Sol', map_offset=1380)"
     assert system == eval(repr(system))
 
 
-def test_system_um__str__(f_dusers, f_sheets, f_systemsum, f_holds):
+def test_systemum__str__(f_dusers, f_sheets, f_systemsum, f_holds):
     system = f_systemsum[0]
 
     assert str(system) == "Control: **Cemplangpa**, Nearest Control: Sol\n"\
-                          "    Sec: M, Completion: 103%, Missing: -452"
+                          "    Sec: M, Completion: 101%, Missing: -122"
 
 
-def test_system_um__eq__(f_dusers, f_sheets, f_systemsum, f_holds):
+def test_systemum__eq__(f_dusers, f_sheets, f_systemsum, f_holds):
 
     expect = SystemUM.factory(kwargs_um_system(SYSTEMSUM_DATA[0], 'F'))
     system = f_systemsum[0]
@@ -297,27 +337,67 @@ def test_system_um__eq__(f_dusers, f_sheets, f_systemsum, f_holds):
     assert system == expect
 
 
-def test_system_um_cmdr_merits(f_dusers, f_sheets, f_systemsum, f_holds):
+def test_systemum_cmdr_merits(session, f_dusers, f_sheets, f_systemsum, f_holds):
     system = f_systemsum[0]
 
-    assert system.cmdr_merits == 13950
+    assert system.cmdr_merits == 6450
 
 
-def test_system_um_missing(f_dusers, f_sheets, f_systemsum, f_holds):
+def test_systemum_missing(f_dusers, f_sheets, f_systemsum, f_holds):
     system = f_systemsum[0]
 
     system.progress_us = 0
-    assert system.missing == -452
+    assert system.missing == 7048
 
     system.progress_us = 15000
     system.map_offset = 0
     assert system.missing == -122
 
 
-def test_system_um_completion(f_dusers, f_sheets, f_systemsum, f_holds):
+def test_systemum_is_undermined(session, f_dusers, f_sheets, f_systemsum, f_holds):
+    control = f_systemsum[1]
+    assert not control.is_undermined
+    control.progress_us = control.goal
+    assert control.is_undermined
+
+    exp = f_systemsum[-1]
+    assert not exp.is_undermined
+
+
+def test_systemum_set_status(f_systemsum):
     system = f_systemsum[0]
 
-    assert system.completion == 'Completion: 103%'
+    system.set_status('4000')
+    assert system.progress_us == 4000
+    assert system.progress_them == 1.0
+
+    system.set_status('2200:55')
+    assert system.progress_us == 2200
+    assert system.progress_them == 0.55
+
+
+def test_systemum_completion(f_dusers, f_sheets, f_systemsum, f_holds):
+    system = f_systemsum[0]
+
+    assert system.completion == 'Completion: 101%'
+    system.goal = 0
+    assert system.completion == 'Completion: 0%'
+
+
+def test_umexpand_completion(f_dusers, f_sheets, f_systemsum, f_holds):
+    system = [system for system in f_systemsum if isinstance(system, UMExpand)][0]
+    assert system.completion == 'Behind by 3500%'
+
+    system.exp_trigger = 0
+    assert system.completion == 'Behind by 3500%'
+
+
+def test_umoppose_descriptor(f_dusers, f_sheets, f_systemsum, f_holds):
+    system = [system for system in f_systemsum if isinstance(system, UMOppose)][0]
+    assert system.descriptor == 'Opposing expansion'
+
+    system.notes = 'AD expansion'
+    assert system.descriptor == 'Opposing AD'
 
 
 def test_kwargs_system_um():
@@ -343,6 +423,10 @@ def test_kwargs_system_um():
 
     sys_cols[0][0] = ''
     expect['cls'] = UMControl
+    assert cogdb.schema.kwargs_um_system(sys_cols, 'D') == expect
+
+    expect['map_offset'] = 0
+    sys_cols[0] = sys_cols[0][:-1]
     assert cogdb.schema.kwargs_um_system(sys_cols, 'D') == expect
 
     with pytest.raises(cog.exc.SheetParsingError):

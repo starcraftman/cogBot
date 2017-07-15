@@ -196,8 +196,7 @@ class CogBot(discord.Client):
             args.system = ' '.join(args.system)
             system = cogdb.query.fort_find_system(session, args.system)
         else:
-            current = cogdb.query.fort_find_current_index(session)
-            system = cogdb.query.fort_get_targets(session, current)[0]
+            system = cogdb.query.fort_get_targets(session)[0]
         log.info('DROP - Matched system %s based on args: %s.',
                  system.name, args.system)
 
@@ -214,8 +213,7 @@ class CogBot(discord.Client):
 
         response = drop.system.short_display()
         if drop.system.is_fortified:
-            new_index = cogdb.query.fort_find_current_index(session)
-            new_target = cogdb.query.fort_get_targets(session, new_index)[0]
+            new_target = cogdb.query.fort_get_targets(session)[0]
             response += '\n\nNext Target: ' + new_target.short_display()
         await self.send_message(message.channel, drop.system.short_display())
 
@@ -234,7 +232,6 @@ class CogBot(discord.Client):
         args = kwargs.get('args')
         session = kwargs.get('session')
         systems = []
-        cur_index = cogdb.query.fort_find_current_index(session)
 
         if args.next:
             args.nextn = 1
@@ -243,10 +240,9 @@ class CogBot(discord.Client):
             systems.append(cogdb.query.fort_find_system(session, ' '.join(args.system),
                                                         search_all=True))
         elif args.nextn:
-            systems = cogdb.query.fort_get_next_targets(session,
-                                                        cur_index, count=args.nextn)
+            systems = cogdb.query.fort_get_next_targets(session, count=args.nextn)
         else:
-            systems = cogdb.query.fort_get_targets(session, cur_index)
+            systems = cogdb.query.fort_get_targets(session)
 
         if args.summary:
             states = cogdb.query.fort_get_systems_by_state(session)
@@ -490,7 +486,7 @@ def scan_sheet(sheet, cls):
     return scanner
 
 
-def main():
+def main():  # pragma: no cover
     """ Entry here!  """
     cog.share.init_logging()
     try:
@@ -505,5 +501,5 @@ def main():
             pass
 
 
-if __name__ == "__main__":
+if __name__ == "__main__":  # pragma: no cover
     main()

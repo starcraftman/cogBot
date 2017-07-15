@@ -64,7 +64,7 @@ def fuzzy_find(needle, stack, obj_attr='zzzz', ignore_case=True):
         raise cog.exc.MoreThanOneMatch(needle, matches, obj_attr)
 
 
-def dump_db():
+def dump_db():  # pragma: no cover
     """
     Purely debug function, prints locally database.
     """
@@ -122,32 +122,24 @@ def add_sheet(session, name, **kwargs):
     Simply add user past last user in sheet.
 
     Kwargs:
+        cry: The cry to use.
         faction: By default Hudson. Any of EFaction.
         type: By default cattle sheet. Any of SheetRow subclasses.
+        start_row: Starting row if none inserted.
     """
     faction = kwargs.get('faction', EFaction.hudson)
     cls = getattr(sys.modules[__name__], kwargs.get('type', ESheetType.cattle))
+    cry = kwargs.get('cry', '')
 
-    next_row = session.query(cls).filter_by(faction=faction).all()[-1].row + 1
-    sheet = cls(name=name, row=next_row, faction=faction)
+    try:
+        next_row = session.query(cls).filter_by(faction=faction).all()[-1].row + 1
+    except IndexError:
+        next_row = kwargs['start_row']
+    sheet = cls(name=name, cry=cry, row=next_row, faction=faction)
     session.add(sheet)
     session.commit()
 
     return sheet
-
-
-def find_duser_by_sheetname(session, name):
-    """
-    Useful only if in a context where cannot get invokers DUser
-    Find the SheetRow  with the same name, type and faction (default faction == Hudson)
-    Can also be used to get the DUser that owns it via SheetRow.duser
-
-    Returns DUser
-    """
-    try:
-        return session.query(DUser).filter_by(pref_name=name).one()
-    except (sqa_exc.NoResultFound, sqa_exc.MultipleResultsFound):
-        return fuzzy_find(name, session.query(DUser).all(), 'pref_name')
 
 
 def fort_get_othime(session):
@@ -233,12 +225,13 @@ def fort_get_systems_by_state(session):
     return states
 
 
-def fort_get_targets(session, current):
+def fort_get_targets(session):
     """
     Returns a list of Systems that should be fortified.
     First System is not Othime and is unfortified.
     Second System if prsent is Othime, only when not fortified.
     """
+    current = fort_find_current_index(session)
     systems = fort_get_systems(session, not_othime=True)
     othime = fort_get_othime(session)
 
@@ -249,10 +242,11 @@ def fort_get_targets(session, current):
     return targets
 
 
-def fort_get_next_targets(session, current, count=5):
+def fort_get_next_targets(session, count=1):
     """
     Return next 'count' fort targets.
     """
+    current = fort_find_current_index(session)
     targets = []
     systems = fort_get_systems(session, not_othime=True)
 

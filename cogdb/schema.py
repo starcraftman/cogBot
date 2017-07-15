@@ -165,7 +165,7 @@ class SheetUM(SheetRow):
             held += hold.held
             redeemed += hold.redeemed
 
-        return 'Holding: {}, Redeemed: {}'.format(held, redeemed)
+        return 'Holding {}, Redeemed {}'.format(held, redeemed)
 
 
 class Drop(Base):
@@ -492,7 +492,7 @@ class UMExpand(SystemUM):
         """ The completion percentage formatted as a string """
         try:
             comp_cent = max(self.progress_us,
-                            self.cmdr_merits + self.map_offset) / self.exp_trigger * 100
+                            self.cmdr_merits + self.map_offset) * 100 / self.exp_trigger
         except ZeroDivisionError:
             comp_cent = 0
 
@@ -512,7 +512,10 @@ class UMOppose(UMExpand):
     @property
     def descriptor(self):
         """ Descriptive prefix for string. """
-        return 'Opposing ' + self.notes.split()[0]
+        suffix = 'expansion'
+        if self.notes != '':
+            suffix = self.notes.split()[0]
+        return 'Opposing ' + suffix
 
 
 class Command(Base):
@@ -722,7 +725,7 @@ SystemUM.holds = sqla_orm.relationship('Hold',
 Base.metadata.create_all(cogdb.mem_engine)
 
 
-def main():
+def main():  # pragma: no cover
     """
     This continues to exist only as a sanity test for schema and relations.
     """
@@ -812,5 +815,5 @@ def main():
         mprint(pad, drop.system)
 
 
-if __name__ == "__main__":
+if __name__ == "__main__":  # pragma: no cover
     main()

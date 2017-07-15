@@ -32,7 +32,7 @@ from tests.data import CELLS_FORT, CELLS_FORT_FMT, CELLS_UM, SYSTEMS_DATA, SYSTE
 
 
 @pytest.fixture
-def mock_sheet():
+def mock_sheet(db_cleanup):
     fake_sheet = mock.Mock()
     fake_sheet.whole_sheet.return_value = CELLS_FORT
     fake_sheet.get_with_formatting.return_value = CELLS_FORT_FMT
@@ -41,7 +41,7 @@ def mock_sheet():
 
 
 @pytest.fixture
-def mock_umsheet():
+def mock_umsheet(db_cleanup):
     fake_sheet = mock.Mock()
     fake_sheet.whole_sheet.return_value = CELLS_UM
 
@@ -193,7 +193,7 @@ def f_systemsum(session):
     """
     column = 'D'
     systems = []
-    for data in SYSTEMSUM_DATA[:1]:
+    for data in SYSTEMSUM_DATA:
         systems.append(SystemUM.factory(kwargs_um_system(data, column)))
         column = chr(ord(column) + 2)
     session.add_all(systems)
@@ -214,17 +214,17 @@ def f_holds(session):
     users = session.query(SheetUM).all()
     systems = session.query(SystemUM).all()
 
-    drops = (
-        Hold(held=0, redeemed=4000, user_id=users[1].id, system_id=systems[0].id),
-        Hold(held=400, redeemed=1550, user_id=users[1].id, system_id=systems[0].id),
-        Hold(held=2200, redeemed=5800, user_id=users[1].id, system_id=systems[0].id),
-        # Hold(held=450, redeemed=2000, user_id=users[0].id, system_id=systems[0].id),
-        # Hold(held=2400, redeemed=0, user_id=users[0].id, system_id=systems[1].id),
-        # Hold(held=0, redeemed=1200, user_id=users[1].id, system_id=systems[0].id),
+    holds = (
+        Hold(held=0, redeemed=4000, user_id=users[0].id, system_id=systems[0].id),
+        Hold(held=400, redeemed=1550, user_id=users[0].id, system_id=systems[1].id),
+        Hold(held=2200, redeemed=5800, user_id=users[0].id, system_id=systems[2].id),
+        Hold(held=450, redeemed=2000, user_id=users[1].id, system_id=systems[0].id),
+        Hold(held=2400, redeemed=0, user_id=users[1].id, system_id=systems[1].id),
+        Hold(held=0, redeemed=1200, user_id=users[1].id, system_id=systems[2].id),
     )
-    session.add_all(drops)
+    session.add_all(holds)
     session.commit()
 
-    yield drops
+    yield holds
 
     session.query(Hold).delete()

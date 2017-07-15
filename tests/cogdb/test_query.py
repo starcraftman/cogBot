@@ -10,7 +10,8 @@ import pytest
 
 import cog.exc
 import cogdb
-from cogdb.schema import DUser, System, SheetCattle, SheetUM, UMExpand, EFaction
+from cogdb.schema import (DUser, System, SheetRow, SheetCattle, SheetUM,
+                          Hold, UMExpand, EFaction, ESheetType)
 import cogdb.query
 
 from tests.data import CELLS_FORT_FMT, SYSTEMS, USERS
@@ -86,6 +87,28 @@ def test_add_duser(session, f_dusers):
     assert session.query(DUser).all()[-1].id == member.id
 
 
+def test_add_sheet(session, f_dusers):
+    test_name = 'Jack'
+    test_cry = 'I do not cry'
+    cogdb.query.add_sheet(session, test_name, cry=test_cry, faction=EFaction.winters,
+                          type=ESheetType.um, start_row=5)
+    latest = session.query(SheetRow).all()[-1]
+    assert latest.name == test_name
+    assert latest.cry == test_cry
+    assert latest.row == 5
+    assert latest.type == ESheetType.um
+
+    test_name = 'John'
+    test_cry = 'I cry'
+    cogdb.query.add_sheet(session, test_name, cry=test_cry, faction=EFaction.winters,
+                          type=ESheetType.um, start_row=5)
+    latest = session.query(SheetRow).all()[-1]
+    assert latest.name == test_name
+    assert latest.cry == test_cry
+    assert latest.row == 6
+    assert latest.type == ESheetType.um
+
+
 def test_fort_get_othime(session, f_systems):
     assert cogdb.query.fort_get_othime(session).name == 'Othime'
 
@@ -133,44 +156,16 @@ def test_fort_find_system(session, f_systems):
 
 
 def test_fort_get_targets(session, f_systems):
-    targets = cogdb.query.fort_get_targets(session, cogdb.query.fort_find_current_index(session))
+    targets = cogdb.query.fort_get_targets(session)
     assert [sys.name for sys in targets] == ['Nurundere', 'Othime']
 
 
 def test_fort_get_next_targets(session, f_systems):
-    targets = cogdb.query.fort_get_next_targets(session,
-                                                cogdb.query.fort_find_current_index(session))
-    assert [sys.name for sys in targets] == ["LHS 3749", "Dongkum", "Alpha Fornacis"]
+    targets = cogdb.query.fort_get_next_targets(session)
+    assert [sys.name for sys in targets] == ["LHS 3749"]
 
-    targets = cogdb.query.fort_get_next_targets(session,
-                                                cogdb.query.fort_find_current_index(session),
-                                                count=2)
+    targets = cogdb.query.fort_get_next_targets(session, count=2)
     assert [sys.name for sys in targets] == ["LHS 3749", "Dongkum"]
-
-
-# FIXME: Disabled during Schema rewrite.
-
-def test_get_sheetrow():
-    pass
-    # session = cogdb.Session()
-    # users = cogdb.query.fort_get_sheet_users(session)
-    # assert len(users) == 15
-    # assert users[0].name == 'Alexander Astropath'
-
-
-# def test_get_sheet_user_by_name():
-    # session = cogdb.Session()
-    # suser = cogdb.query.get_sheet_user_by_name(session, 'Shepron')
-    # assert isinstance(suser, cogdb.schema.SUser)
-    # assert suser.name == 'Shepron'
-
-    # suser = cogdb.query.get_sheet_user_by_name(session, 'gear')
-    # assert suser.name == 'GearsandCogs'
-
-
-# def test_add_cattle_sheet(session):
-    # cogdb.query.add_sheet(session, 'NewestUser', )
-    # assert cogdb.query.fort_get_sheet_users(session)[-1].name == 'NewestUser'
 
 
 def test_fort_add_drop(session, f_dusers, f_sheets, f_systems, db_cleanup):
@@ -265,12 +260,64 @@ def test_umscanner_users(mock_umsheet):
     assert isinstance(users[0], SheetUM)
 
 
-# def test_umscanner_merits(session, mock_umsheet, db_cleanup):
-    # scanner = cogdb.query.UMScanner(mock_umsheet)
-    # scanner.scan(session)
-    # session.commit()
+def test_umscanner_merits(session, mock_umsheet):
+    scanner = cogdb.query.UMScanner(mock_umsheet)
+    scanner.scan(session)
+    session.commit()
 
-    # hold = session.query(cogdb.schema.Hold).all()[0]
-    # assert hold.held == 28750
-    # assert hold.redeemed == 0
-    # assert hold.system_id == 1
+    holds = session.query(cogdb.schema.Hold).all()
+    hold = [hold for hold in holds if
+            hold.system.name == 'Burr' and hold.user.name == 'Tomis[XB1]'][0]
+    assert hold.held == 7330
+    assert hold.redeemed == 890
+
+
+def test_um_find_system(session, f_systemsum):
+    system = cogdb.query.um_find_system(session, 'Cemplangpa')
+    assert system.name == 'Cemplangpa'
+
+    system = cogdb.query.um_find_system(session, 'Cemp')
+    assert system.name == 'Cemplangpa'
+
+    with pytest.raises(cog.exc.NoMatch):
+        cogdb.query.um_find_system(session, 'NotThere')
+
+    with pytest.raises(cog.exc.MoreThanOneMatch):
+        cogdb.query.um_find_system(session, 'r')
+
+
+def test_um_get_systems(session, f_systemsum):
+    systems = [system.name for system in cogdb.query.um_get_systems(session)]
+    assert 'Cemplangpa' not in systems
+
+    systems = [system.name for system in
+               cogdb.query.um_get_systems(session, exclude_finished=False)]
+    assert 'Cemplangpa' in systems
+
+
+def test_um_reset_held(session, f_dusers, f_sheets, f_systemsum, f_holds):
+    sheet = f_sheets[1]
+    assert sheet.merits == 'Holding 2600, Redeemed 11350'
+    cogdb.query.um_reset_held(session, sheet)
+    assert sheet.merits == 'Holding 0, Redeemed 11350'
+
+
+def test_um_redeem_merits(session, f_dusers, f_sheets, f_systemsum, f_holds):
+    sheet = f_sheets[1]
+    assert sheet.merits == 'Holding 2600, Redeemed 11350'
+    cogdb.query.um_redeem_merits(session, sheet)
+    assert sheet.merits == 'Holding 0, Redeemed 13950'
+
+
+def test_um_add_hold(session, f_dusers, f_sheets, f_systemsum, db_cleanup):
+    sheet = f_sheets[1]
+    system = f_systemsum[0]
+    assert not session.query(Hold).all()
+
+    cogdb.query.um_add_hold(session, held=600, system=system, user=sheet)
+    hold = session.query(Hold).filter_by(system_id=system.id, user_id=sheet.id).one()
+    assert hold.held == 600
+
+    hold = cogdb.query.um_add_hold(session, held=2000, system=system, user=sheet)
+    hold = session.query(Hold).filter_by(system_id=system.id, user_id=sheet.id).one()
+    assert hold.held == 2000
