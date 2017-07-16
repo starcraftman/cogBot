@@ -72,3 +72,16 @@ def test_make_parser():
     parser = cog.share.make_parser('!')
     args = parser.parse_args('!fort --next'.split())
     assert args.next
+
+
+def test_extract_emoji():
+    message = 'This is a fort message: :Fortifying: do :not touch this.\n:Word:'
+    assert set(cog.share.extract_emoji(message)) == set([':Fortifying:', ':Word:'])
+
+
+def test_substr_matcher():
+    stack = ["Word1", "NotWorrd", "Word2"]
+    assert cog.share.substr_matcher("Word", stack) == ["Word1", "Word2"]
+
+    stack = [mock.Mock(msg=word) for word in stack]
+    assert cog.share.substr_matcher("Word", stack, 'msg') == [stack[0], stack[2]]

@@ -121,6 +121,25 @@ class CogBot(discord.Client):
             await self.send_ttl_message(channel, str(exc))
             asyncio.ensure_future(self.delete_message(message))
 
+    def fix_emoji(self, content):
+        """
+        Expand any emojis for bot before sending.
+
+        Embed emojis into text surrounded by ':', example:
+            Status update :Fortifying:
+        """
+        embeds = cog.share.extract_emoji(content)
+        all_emoji = list(self.get_all_emojis())
+        for embed in embeds:
+            matched = cog.share.substr_matcher(embed[1:-1], all_emoji, 'name')
+            if len(matched) == 1:
+                content = content.replace(embed, str(matched[0]))
+            else:
+                logging.getLogger('cog.bot').warning('FIX_EMOJI: Multiple emoji matches, %s',
+                                                     str(matched))
+
+        return content
+
     async def send_ttl_message(self, channel, content, *, time=30):
         """
         Send a message to channel and delete it after time seconds.
@@ -282,7 +301,7 @@ class CogBot(discord.Client):
             response += '\n'.join(lines)
 
         message = kwargs.get('message')
-        await self.send_message(message.channel, response)
+        await self.send_message(message.channel, self.fix_emoji(response))
 
     async def command_hold(self, **kwargs):
         """
