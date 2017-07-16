@@ -546,7 +546,7 @@ def main():  # pragma: no cover
         scanner = scan_sheet(cog.share.get_config('hudson', 'cattle'), cogdb.query.FortScanner)
         scanner_um = scan_sheet(cog.share.get_config('hudson', 'um'), cogdb.query.UMScanner)
         bot = CogBot(prefix='!', scanner=scanner, scanner_um=scanner_um)
-        bot.run(cog.share.get_config('discord', os.environ.get('COG_TOKEN', 'cogdev')))
+        bot.run(cog.share.get_config('discord', os.environ.get('COG_TOKEN', 'dev')))
     finally:
         try:
             bot.close()
