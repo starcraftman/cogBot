@@ -242,21 +242,3 @@ def extract_emoji(text):
     Find and extract all emoji eanchors in message. Return in list.
     """
     return list(set(re.findall(r':\S+:', text)))
-
-
-def substr_matcher(needle, stack, obj_attr=None):
-    """
-    Simple substring matcher, find all matches for the substring in the stack.
-
-    Args:
-        needle: Substring to search for.
-        stack: List of strings or objects with attributes that are strings.
-        obj_attr: If not None, match against this attribute on stack object.
-    """
-    matched = []
-    for word in stack:
-        text = getattr(word, obj_attr) if obj_attr else word
-        if needle in text:
-            matched.append(word)
-
-    return matched

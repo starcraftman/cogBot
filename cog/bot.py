@@ -130,13 +130,15 @@ class CogBot(discord.Client):
         """
         embeds = cog.share.extract_emoji(content)
         all_emoji = list(self.get_all_emojis())
+        all_emoji_names = [emoji.name for emoji in all_emoji]
+        emoji_dict = dict(zip(all_emoji_names, all_emoji))
         for embed in embeds:
-            matched = cog.share.substr_matcher(embed[1:-1], all_emoji, 'name')
-            if len(matched) == 1:
-                content = content.replace(embed, str(matched[0]))
+            emoji = emoji_dict.get(embed[1:-1])
+            if emoji:
+                content = content.replace(embed, str(emoji))
             else:
-                logging.getLogger('cog.bot').warning('FIX_EMOJI: Multiple emoji matches, %s',
-                                                     str(matched))
+                logging.getLogger('cog.bot').warning('FIX_EMOJI: Could not find emoji for: %s',
+                                                     str(embed))
 
         return content
 
