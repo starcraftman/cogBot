@@ -51,11 +51,12 @@ class DUser(Base):
     id = sqla.Column(sqla.String, primary_key=True, autoincrement=False)  # Discord id
     display_name = sqla.Column(sqla.String)
     pref_name = sqla.Column(sqla.String, unique=True)  # pref_name == display_name until change
+    pref_cry = sqla.Column(sqla.String, default='')
     capacity = sqla.Column(sqla.Integer, default=0)
     faction = sqla.Column(sqla.String, default=EFaction.hudson)
 
     def __repr__(self):
-        keys = ['id', 'display_name', 'pref_name', 'faction', 'capacity']
+        keys = ['id', 'display_name', 'pref_name', 'pref_cry', 'faction', 'capacity']
         kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
 
         return "DUser({})".format(', '.join(kwargs))

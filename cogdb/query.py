@@ -98,6 +98,7 @@ def ensure_duser(session, member):
     """
     try:
         duser = get_duser(session, member.id)
+        duser.display_name = member.display_name
     except cog.exc.NoMatch:
         duser = add_duser(session, member)
 

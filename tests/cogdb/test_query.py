@@ -58,6 +58,7 @@ def test_ensure_duser_no_create(session, f_dusers):
     expect = f_dusers[0]
     member = mock.Mock()
     member.id = '1000'
+    member.display_name = 'default'
     duser = cogdb.query.ensure_duser(session, member)
     assert duser == expect
 

@@ -116,6 +116,10 @@ class CogBot(discord.Client):
             log.info("User requested help. '%s' | %s", author.name, msg)
             await self.send_ttl_message(channel, exc.message)
             asyncio.ensure_future(self.delete_message(message))
+        except cog.exc.InvalidCommandArgs as exc:
+            log.info('Invalid combination of arguments. %s | %s', author.name, msg)
+            await self.send_ttl_message(channel, str(exc))
+            asyncio.ensure_future(self.delete_message(message))
 
     async def send_ttl_message(self, channel, content, *, time=30):
         """
@@ -177,40 +181,49 @@ class CogBot(discord.Client):
         session = kwargs.get('session')
 
         # If a user mentions another, assume drop for mentioned user
-        author = message.author
         if message.mentions:
-            author = message.mentions[0]
-        duser = cogdb.query.get_duser(session, author.id)
+            if len(message.mentions) != 1:
+                raise cog.exc.InvalidCommandArgs('Mention only 1 member per command.')
 
+            log.info('DROP %s - Substituting author -> %s.',
+                     message.author, message.mentions[0])
+            message.author = message.mentions[0]
+            message.mentions = []
+            asyncio.ensure_future(self.on_message(message))
+            return
+
+        duser = cogdb.query.get_duser(session, message.author.id)
         if not duser.cattle:
-            cogdb.query.add_sheet(session, duser.pref_name,
+            cogdb.query.add_sheet(session, duser.pref_name, cry=duser.pref_cry,
                                   type=cogdb.schema.ESheetType.cattle)
-            asyncio.ensure_future(self.scanner.update_user(duser.cattle))
+            asyncio.ensure_future(self.scanner.update_sheet_user(duser.cattle))
             notice = 'Automatically added {} to cattle sheet. See !user command to change.'
             asyncio.ensure_future(self.send_message(message.channel,
                                                     notice.format(duser.pref_name)))
 
-        log.info('DROP - Matched duser %s with id %s.', duser.display_name, duser.id[:6])
+        log.info('DROP %s - Matched duser with id %s.', duser.display_name, duser.id[:6])
 
         if args.system:
             args.system = ' '.join(args.system)
             system = cogdb.query.fort_find_system(session, args.system)
+            log.info('DROP %s - Matched system %s from: %s.',
+                     duser.display_name, system.name, args.system)
         else:
             system = cogdb.query.fort_get_targets(session)[0]
-        log.info('DROP - Matched system %s based on args: %s.',
-                 system.name, args.system)
+            log.info('DROP %s - Matched current target: %s.',
+                     duser.display_name, system.name)
 
         drop = cogdb.query.fort_add_drop(session, system=system,
                                          user=duser.cattle, amount=args.amount)
         if args.set:
             system.set_status(args.set)
-            session.commit()
         asyncio.ensure_future(self.scanner.update_drop(drop))
         asyncio.ensure_future(self.scanner.update_system(drop.system))
 
-        log.info('DROP - Sucessfully dropped %d at %s for %s.',
-                 args.amount, system.name, duser.display_name)
+        log.info('DROP %s - Sucessfully dropped %d at %s.',
+                 duser.display_name, args.amount, system.name)
 
+        session.commit()
         response = drop.system.short_display()
         if drop.system.is_fortified:
             new_target = cogdb.query.fort_get_targets(session)[0]
@@ -280,51 +293,59 @@ class CogBot(discord.Client):
         message = kwargs.get('message')
         session = kwargs.get('session')
 
-        # If a user mentions another, assume working for mentioned user
-        author = message.author
+        # If a user mentions another, assume drop for mentioned user
         if message.mentions:
-            author = message.mentions[0]
-        duser = cogdb.query.get_duser(session, author.id)
+            if len(message.mentions) != 1:
+                raise cog.exc.InvalidCommandArgs('Mention only 1 member per command.')
 
+            log.info('HOLD - Substituting author: %s ->  %s in message.',
+                     message.author, message.mentions[0])
+            message.author = message.mentions[0]
+            message.mentions = []
+            asyncio.ensure_future(self.on_message(message))
+            return
+
+        duser = cogdb.query.get_duser(session, message.author.id)
         if not duser.undermine:
-            cogdb.query.add_sheet(session, duser.pref_name,
+            cogdb.query.add_sheet(session, duser.pref_name, cry=duser.pref_cry,
                                   type=cogdb.schema.ESheetType.um)
             asyncio.ensure_future(self.scanner_um.update_sheet_user(duser.undermine))
             notice = 'Automatically added {} to undermine sheet. See !user command to change.'
             asyncio.ensure_future(self.send_message(message.channel,
                                                     notice.format(duser.pref_name)))
 
-        log.info('HOLD - Matched duser %s with id %s.', duser.display_name, duser.id[:6])
+        log.info('HOLD %s - Matched duser with id %s.', duser.display_name, duser.id[:6])
 
         if args.died:
             holds = cogdb.query.um_reset_held(session, duser.undermine)
-            log.info('HOLD - User died %s.', duser.display_name)
+            log.info('HOLD %s - User reset merits.', duser.display_name)
             response = 'Sorry you died :(. Held merits reset.'
 
         elif args.redeem:
             holds, redeemed = cogdb.query.um_redeem_merits(session, duser.undermine)
-            log.info('HOLD - User %s redeemed %d merits.', duser.display_name, redeemed)
+            log.info('HOLD %s - Redeemed %d merits.', duser.display_name, redeemed)
             response = 'You redeemed {} new merits.\n{}'.format(redeemed, duser.undermine.merits)
 
         else:  # Default case, update the hold for a system
             system = cogdb.query.um_find_system(session, ' '.join(args.system))
-            log.info('HOLD - Matched system %s based on args: %s.', system.name, args.system)
+            log.info('HOLD %s - Matched system %s from: %s.',
+                     duser.display_name, system.name, args.system)
             hold = cogdb.query.um_add_hold(session, system=system,
                                            user=duser.undermine, held=args.amount)
             holds = [hold]
 
             if args.set:
                 system.set_status(args.set)
-                session.commit()
-                # asyncio.ensure_future(self.scanner_um.update_system(hold.system))
+                asyncio.ensure_future(self.scanner_um.update_system(hold.system))
 
-            log.info('Hold - Sucessfully dropped %d at %s for %s.',
-                     args.amount, system.name, duser.display_name)
+            log.info('Hold %s - Update hold of  %d at %s.',
+                     duser.display_name, args.amount, system.name)
 
             response = str(hold.system)
             if hold.system.is_undermined:
                 response += '\n\nPlaceholder for other UM targets.'
 
+        session.commit()
         for hold in holds:
             asyncio.ensure_future(self.scanner_um.update_hold(hold))
         await self.send_message(message.channel, response)
@@ -433,27 +454,33 @@ class CogBot(discord.Client):
         args = kwargs.get('args')
         message = kwargs.get('message')
         session = kwargs.get('session')
+        log = logging.getLogger('cog.bot')
 
         duser = cogdb.query.get_duser(session, message.author.id)
-
         if args.name:
-            new_name = ' '.join(args.name)
+            args.name = ' '.join(args.name)
+            log.info('USER %s - DUser.pref_name from %s -> %s.',
+                     duser.display_name, duser.pref_name, args.name)
             for sheet in duser.sheets:
-                sheet.name = new_name
-            duser.pref_name = new_name
-            session.commit()
+                sheet.name = args.name
+            duser.pref_name = args.name
 
         if args.cry:
+            args.cry = ' '.join(args.cry)
+            log.info('USER %s - DUser.pref_cry from %s -> %s.',
+                     duser.display_name, duser.pref_cry, args.cry)
             for sheet in duser.sheets:
                 sheet.cry = args.cry
+            duser.pref_cry = args.cry
 
-        if args.name or args.cry:
-            asyncio.ensure_future(self.scanner.update_sheet_user(duser.cattle))
-            asyncio.ensure_future(self.scanner_um.update_sheet_user(duser.undermine))
+        if args.hudson:
+            log.info('USER %s - Duser.faction -> hudson.', duser.display_name)
+
+        if args.winters:
+            log.info('USER %s - Duser.faction -> winters.', duser.display_name)
 
         lines = [
             '**{}**'.format(message.author.display_name),
-            'Fort Capacity: {}'.format(duser.capacity)
         ]
         for sheet in duser.sheets:
             lines += [
@@ -463,6 +490,10 @@ class CogBot(discord.Client):
                 '    Merits: {}'.format(sheet.merits),
             ]
 
+        if args.name or args.cry:
+            asyncio.ensure_future(self.scanner.update_sheet_user(duser.cattle))
+            asyncio.ensure_future(self.scanner_um.update_sheet_user(duser.undermine))
+        session.commit()
         await self.send_message(message.channel, '\n'.join(lines))
 
 
@@ -493,7 +524,7 @@ def main():  # pragma: no cover
         scanner = scan_sheet(cog.share.get_config('hudson', 'cattle'), cogdb.query.FortScanner)
         scanner_um = scan_sheet(cog.share.get_config('hudson', 'um'), cogdb.query.UMScanner)
         bot = CogBot(prefix='!', scanner=scanner, scanner_um=scanner_um)
-        bot.run(cog.share.get_config('discord_token'))
+        bot.run(cog.share.get_config('discord', 'cogdev'))
     finally:
         try:
             bot.close()
