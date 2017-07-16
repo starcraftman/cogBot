@@ -193,7 +193,7 @@ def test_system_short_display(f_systems):
     assert system.short_display() == 'Frey :Fortified: 4910/4910'
 
     system.fort_status = 4000
-    assert system.short_display() == 'Frey :Fortifying: 4000/4910\nMissing: 910'
+    assert system.short_display() == 'Frey :Fortifying: 4000/4910\n    Missing: 910'
     assert system.short_display(missing=False) == 'Frey :Fortifying: 4000/4910'
 
 
@@ -266,7 +266,17 @@ def test_system_completion(f_systems):
 def test_system_table_row(f_systems):
     system = f_systems[0]
     system.notes = 'Leave'
-    assert system.table_row == ('Frey', '   0', '4910/4910 (100.0%/0.0%)', 'Leave')
+    assert system.table_row == ('Fort', 'Frey', '   0', '4910/4910 (100.0%/0.0%)', 'Leave')
+
+
+def test_prepsystem_short_dispay(f_prepsystem):
+    assert f_prepsystem.short_display() == "**Prep System**: Muncheim :Fortifying: 5100/10000, "\
+                                           "Nearest Control: Atropos"
+
+
+def test_prepsystem_is_fortified(f_prepsystem):
+    f_prepsystem.fort_status = 10 * f_prepsystem.trigger
+    assert not f_prepsystem.is_fortified
 
 
 def test_drop__eq__(f_dusers, f_sheets, f_systems, f_drops):

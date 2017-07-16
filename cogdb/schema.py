@@ -254,7 +254,7 @@ class System(Base):
     """
     __tablename__ = 'systems'
 
-    header = ['System', 'Missing', 'Merits (Fort%/UM%)', 'Notes']
+    header = ['Type', 'System', 'Missing', 'Merits (Fort%/UM%)', 'Notes']
 
     id = sqla.Column(sqla.Integer, primary_key=True)
     name = sqla.Column(sqla.String, unique=True)
@@ -266,6 +266,12 @@ class System(Base):
     notes = sqla.Column(sqla.String, default='')
     sheet_col = sqla.Column(sqla.String)
     sheet_order = sqla.Column(sqla.Integer)
+    type = sqla.Column(sqla.String)
+
+    __mapper_args__ = {
+        'polymorphic_identity': 'fort',
+        'polymorphic_on': type
+    }
 
     def __repr__(self):
         keys = ['name', 'fort_status', 'trigger', 'um_status',
@@ -336,10 +342,11 @@ class System(Base):
         Each element should be mapped to separate column.
         See header.
         """
-        status = '{:>4}/{:4} ({}%/{}%)'.format(self.current_status, self.trigger,
-                                               self.completion, self.ump)
+        status = '{:>4}/{} ({}%/{}%)'.format(self.current_status, self.trigger,
+                                             self.completion, self.ump)
 
-        return (self.name, '{:>4}'.format(self.missing), status, self.notes)
+        return (self.type.capitalize(), self.name,
+                '{:>4}'.format(self.missing), status, self.notes)
 
     def set_status(self, new_status):
         """
@@ -355,12 +362,37 @@ class System(Base):
         """
         Return a useful short representation of System.
         """
-        msg = '{} :Fortif{}: {}/{}'.format(self.name,
-                                           'ied' if self.is_fortified else 'ying',
-                                           self.current_status, self.trigger)
+        msg = '{} :Fortif{}: {:>4}/{}{}'.format(
+            self.name, 'ied' if self.is_fortified else 'ying',
+            self.current_status, self.trigger,
+            ', {}'.format(self.notes) if self.notes else '')
 
         if missing and self.missing and self.missing < 1500:
-            msg += '\nMissing: ' + str(self.missing)
+            msg += '\n    Missing: ' + str(self.missing)
+
+        return msg
+
+
+class PrepSystem(System):
+    """
+    A prep system that must be fortified for expansion.
+    """
+    __mapper_args__ = {
+        'polymorphic_identity': 'prep',
+    }
+
+    @property
+    def is_fortified(self):
+        """ Prep systems never get finished. """
+        return False
+
+    def short_display(self, missing=True):
+        """
+        Return a useful short representation of PrepSystem.
+        """
+        msg = '**Prep System**: {} :Fortifying: {:>4}/{}{}'.format(
+            self.name, self.current_status, self.trigger,
+            ', Nearest Control: ' + self.notes if self.notes else '')
 
         return msg
 

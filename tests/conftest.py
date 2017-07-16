@@ -9,7 +9,7 @@ import pytest
 
 import cogdb
 import cogdb.query
-from cogdb.schema import (DUser, System, SystemUM, Drop, Hold, Command,
+from cogdb.schema import (DUser, PrepSystem, System, SystemUM, Drop, Hold, Command,
                           SheetRow, SheetCattle, SheetUM,
                           EFaction, kwargs_um_system, kwargs_fort_system)
 from tests.data import CELLS_FORT, CELLS_FORT_FMT, CELLS_UM, SYSTEMS_DATA, SYSTEMSUM_DATA
@@ -144,8 +144,6 @@ def f_systems(session):
     """
     Fixture to insert some test Systems.
     """
-    session = cogdb.Session()
-
     order = 1
     column = 'F'
     systems = []
@@ -159,6 +157,19 @@ def f_systems(session):
     yield systems
 
     session.query(System).delete()
+
+
+@pytest.fixture
+def f_prepsystem(session):
+    prep = PrepSystem(name='Muncheim', trigger=10000, fort_status=5100, um_status=0,
+                      undermine=0.0, distance=65.55, notes='Atropos', sheet_col='D',
+                      sheet_order=0)
+    session.add(prep)
+    session.commit()
+
+    yield prep
+
+    session.query(PrepSystem).delete()
 
 
 @pytest.fixture

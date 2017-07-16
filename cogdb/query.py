@@ -9,8 +9,8 @@ import sqlalchemy.orm.exc as sqa_exc
 import cog.exc
 import cog.sheets
 import cogdb
-from cogdb.schema import (DUser, System, SheetRow, Drop, SystemUM, Hold, SheetCattle, SheetUM,
-                          EFaction, ESheetType, kwargs_fort_system, kwargs_um_system)
+from cogdb.schema import (DUser, System, PrepSystem, SystemUM, SheetRow, SheetCattle, SheetUM,
+                          Drop, Hold, EFaction, ESheetType, kwargs_fort_system, kwargs_um_system)
 
 
 def subseq_match(needle, line, ignore_case=True):
@@ -152,16 +152,23 @@ def fort_get_othime(session):
 
 def fort_get_systems(session, not_othime=False):
     """
-    Return a list of all Systems.
+    Return a list of all Systems. PrepSystems are not included.
 
-    kwargs:
+    args:
         not_othime: If true, remove Othime from Systems results.
     """
-    query = session.query(System)
+    query = session.query(System).filter(System.type != 'prep')
     if not_othime:
         query = query.filter(System.name != 'Othime')
 
     return query.all()
+
+
+def fort_get_preps(session):
+    """
+    Return a list of all PrepSystems.
+    """
+    return session.query(PrepSystem).all()
 
 
 def fort_find_current_index(session):
@@ -189,8 +196,7 @@ def fort_find_system(session, system_name, search_all=False):
         return session.query(System).filter_by(name=system_name).one()
     except (sqa_exc.NoResultFound, sqa_exc.MultipleResultsFound):
         index = 0 if search_all else fort_find_current_index(session)
-
-        systems = fort_get_systems(session)[index:]
+        systems = fort_get_preps(session) + fort_get_systems(session)[index:]
         return fuzzy_find(system_name, systems, 'name')
 
 
@@ -229,8 +235,10 @@ def fort_get_systems_by_state(session):
 def fort_get_targets(session):
     """
     Returns a list of Systems that should be fortified.
-    First System is not Othime and is unfortified.
-    Second System if prsent is Othime, only when not fortified.
+
+    - First System is not Othime and is unfortified.
+    - Second System if prsent is Othime, only when not fortified.
+    - All Systems after are prep targets.
     """
     current = fort_find_current_index(session)
     systems = fort_get_systems(session, not_othime=True)
@@ -239,6 +247,7 @@ def fort_get_targets(session):
     targets = [systems[current]]
     if not othime.is_fortified:
         targets.append(othime)
+    targets += fort_get_preps(session)
 
     return targets
 
@@ -394,20 +403,50 @@ class FortScanner(SheetScanner):
         self.user_col, self.user_row = self.find_user_row()
 
     def systems(self):
+        return self.fort_systems() + self.prep_systems()
+
+    def fort_systems(self):
         """
         Scan and parse the system information into System objects.
         """
         found = []
         cell_column = cog.sheets.Column(self.system_col)
-        first_system_col = cog.sheets.column_to_index(self.system_col)
+        first_system = cog.sheets.column_to_index(str(cell_column))
         order = 1
 
         try:
-            for col in self.cells[first_system_col:]:
+            for col in self.cells[first_system:]:
                 kwargs = kwargs_fort_system(col, order, str(cell_column))
                 found.append(System(**kwargs))
                 order = order + 1
                 cell_column.next()
+        except cog.exc.SheetParsingError:
+            pass
+
+        return found
+
+    def prep_systems(self):
+        """
+        Scan the Prep systems if any into the System db.
+
+        Preps exist in range [D, system_col)
+        """
+        found = []
+        cell_column = cog.sheets.Column('D')
+        first_prep = cog.sheets.column_to_index(str(cell_column))
+        first_system = cog.sheets.column_to_index(self.system_col)
+        order = 1
+
+        try:
+            for col in self.cells[first_prep:first_system]:
+                kwargs = kwargs_fort_system(col, order, str(cell_column))
+                order = order + 1
+                cell_column.next()
+
+                if kwargs['name'] == 'TBA':
+                    continue
+
+                found.append(PrepSystem(**kwargs))
         except cog.exc.SheetParsingError:
             pass
 

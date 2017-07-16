@@ -121,6 +121,11 @@ def test_fort_get_systems(session, f_systems):
     assert systems[-1].name == 'Othime'
 
 
+def test_fort_get_preps(session, f_prepsystem):
+    systems = cogdb.query.fort_get_preps(session)
+    assert [system.name for system in systems] == ['Muncheim']
+
+
 def test_fort_get_systems_not_othime(session, f_systems):
     systems = cogdb.query.fort_get_systems(session, not_othime=True)
     assert len(systems) == 6
@@ -156,9 +161,9 @@ def test_fort_find_system(session, f_systems):
     assert sys.name == 'Alpha Fornacis'
 
 
-def test_fort_get_targets(session, f_systems):
+def test_fort_get_targets(session, f_systems, f_prepsystem):
     targets = cogdb.query.fort_get_targets(session)
-    assert [sys.name for sys in targets] == ['Nurundere', 'Othime']
+    assert [sys.name for sys in targets] == ['Nurundere', 'Othime', 'Muncheim']
 
 
 def test_fort_get_next_targets(session, f_systems):
