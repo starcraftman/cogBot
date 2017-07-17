@@ -19,31 +19,6 @@ from cogdb.schema import (DUser, System, Drop, Hold, Command,
 from tests.data import SYSTEMS_DATA, SYSTEMSUM_DATA, SYSTEMUM_EXPAND
 
 
-# def db_data(function):
-    # """
-    # Wrap a test and setup database with dummy data.
-    # """
-    # def wrapper(function, *args, **kwargs):
-        # session = cogdb.Session()
-        # mock_sheet = mock.Mock()
-        # mock_sheet.whole_sheet.return_value = CELLS
-        # mock_sheet.get_with_formatting.return_value = FMT_CELLS
-        # scanner = cogdb.query.FortScanner(mock_sheet)
-        # scanner.scan(session)
-
-        # duser = DUser(discord_id='1111', display_name='GearsandCogs',
-                                   # capacity=0, pref_name='GearsandCogs')
-        # cmd = Command(discord_id=duser.discord_id,
-                                   # cmd_str='drop 700', date=datetime.datetime.now())
-        # session.add(cmd)
-        # session.add(duser)
-        # session.commit()
-
-        # function(*args, **kwargs)
-
-    # return decorator.decorator(wrapper, function)
-
-
 def test_drop_tables_all(session, f_dusers, f_sheets, f_systems, f_drops, f_systemsum, f_holds):
     classes = [DUser, SheetRow, System, SystemUM, Drop, Hold]
     for cls in classes:

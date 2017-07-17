@@ -31,7 +31,9 @@ class ThrowArggumentParser(argparse.ArgumentParser):
     ArgumentParser subclass that does NOT terminate the program.
     """
     def print_help(self, file=None):  # pylint: disable=redefined-builtin
-        raise cog.exc.ArgumentHelpError(self.format_help())
+        formatter = self._get_formatter()
+        formatter.add_text(self.description)
+        raise cog.exc.ArgumentHelpError(formatter.format_help())
 
     def error(self, message):
         raise cog.exc.ArgumentParseError(message, self.format_usage())
@@ -106,105 +108,100 @@ def make_parser(prefix):
     subs = parser.add_subparsers(title='subcommands',
                                  description='The subcommands of cog')
 
-    desc = """Update the cattle sheet with your drops at a system. Examples:
+    sub = subs.add_parser(prefix + 'admin', description='Admin only commands.')
+    sub.set_defaults(cmd='admin')
+    admin_subs = sub.add_subparsers(title='subcommands',
+                                    description='Admin subcommands', dest='subcmd')
+    admin_subs.add_parser('dump', help='Dump the db to console.')
+    admin_subs.add_parser('halt', help='Stop accepting commands and halt bot.')
+    admin_subs.add_parser('scan', help='Scan the sheets for updates.')
+    admin_sub = admin_subs.add_parser('info', help='Get info about discord users.')
+    admin_sub.add_argument('user', nargs='?', help='The user to get info on.')
 
-    {prefix}drop 600\n          - Drop 600 supplies for yourself at the main fortification target.
-    {prefix}drop 600 @Shepron\n          - Drop 600 supplies for Shepron at the main fortification target.
-    {prefix}drop 600 othime\n           - Drop 600 supplies for yourself at current main fortification target.
-    {prefix}drop 600 othime @rjwhite\n           - Drop 600 supplies for rjwhite at current main fortification target.
-    {prefix}drop --set 4560:2000 600 Othime\n           - Drop 600 supplies at Othime for yourself, set Othime fort status to 4500 and UM status to 2000.
+    desc = """Update the cattle sheet when you drop at a system. Examples:
+
+    {prefix}drop 600\n           Drop 600 supplies for yourself at the current fortification target.
+    {prefix}drop 600 @Shepron\n           Drop 600 supplies for Shepron at the current fortification target.
+    {prefix}drop 600 Othime\n           Drop 600 supplies for yourself at Othime.
+    {prefix}drop 600 Othime @rjwhite\n           Drop 600 supplies for rjwhite Othime.
+    {prefix}drop 600 lala\n           Drop 600 supplies for yourself at Lalande 39866, search used when name is not exact.
+    {prefix}drop 600 Othime --set 4560:2000\n           Drop 600 supplies at Othime for yourself, set fort status to 4500 and UM status to 2000.
     """.format(prefix=prefix)
     sub = subs.add_parser(prefix + 'drop', description=desc, formatter_class=RawHelp)
     sub.set_defaults(cmd='drop')
     sub.add_argument('amount', type=int, help='The amount to drop.')
-    sub.add_argument('system', nargs='*',
-                     help='The system to drop at.')
+    sub.add_argument('system', nargs='*', help='The system to drop at.')
     sub.add_argument('--set',
                      help='Set the fort:um status of the system. Example-> --set 3400:200')
 
-    sub = subs.add_parser(prefix + 'dump', description='Admin only. Dump db.')
-    sub.set_defaults(cmd='dump')
-
     desc = """Show fortification status and targets. Examples:
 
-    {prefix}fort\n            - Show current Large fort target and Othime if not finished.
-    {prefix}fort --next\n           - Show the next fortification target (excludes Othime and skipped).
-    {prefix}fort --nextn 3\n           - Show the next 3 fortification targets (excludes Othime and skipped).
-    {prefix}fort --summary\n            - Show a breakdown by states of our systems.
-    {prefix}fort Othime --set 7500:2000\n           - Set othime to 7500 fort status and 200 um status.
+    {prefix}fort\n           Show current fort targets.
+    {prefix}fort --next\n           Show the next fortification target (excludes Othime and skipped).
+    {prefix}fort --nextn 3\n           Show the next 3 fortification targets (excludes Othime and skipped).
+    {prefix}fort --summary\n           Show a breakdown by states of our systems.
+    {prefix}fort alpha\n           Show the fortification status of Alpha Fornacis.
+    {prefix}fort Othime --set 7500:2000\n           Set othime to 7500 fort status and 2000 um status.
     """.format(prefix=prefix)
     sub = subs.add_parser(prefix + 'fort', description=desc, formatter_class=RawHelp)
     sub.set_defaults(cmd='fort')
-    sub.add_argument('system', nargs='*',
-                     help='Select this system that matches.')
+    sub.add_argument('system', nargs='*', help='Select this system.')
     sub.add_argument('--set',
                      help='Set the fort:um status of system. Example-> --set 3400:200')
     sub.add_argument('--summary', action='store_true',
                      help='Provide an overview of the fort systems.')
-    sub.add_argument('-l', '--long', action='store_true',
-                     help='Show detailed stats')
+    sub.add_argument('-l', '--long', action='store_true', help='Show systems in table format')
     sub.add_argument('--nextn', type=int,
-                     help='Show the next NUM systems after current')
+                     help='Show the next NUM fort targets after current')
     sub.add_argument('-n', '--next', action='store_true',
                      help='Show the next fort target')
 
     desc = """Update a user's held or redeemed merits. Examples:
 
-    {prefix}hold 1200 burr\n            - Set my held merits at System Burr to 1200 held.
-    {prefix}hold --died\n           - Reset held merits to 0 due to dying.
-    {prefix}hold --redeem\n         -Move all held merits to redeemed column.
-    {prefix}hold --set 60000:130 burr\n         -Update Burr expansion to 60000 merits and 130% opposition.
+    {prefix}hold 1200 burr\n           Set your held merits at Burr to 1200.
+    {prefix}hold 900 af leopris @Memau\n           Set held merits at System AF Leopris to 900 held for Memau.
+    {prefix}hold --died\n           Reset your held merits to 0 due to dying.
+    {prefix}hold --redeem\n           Move all held merits to redeemed column.
+    {prefix}hold 720 burr --set 60000:130\n           Update held merits to 720 at Burr expansion and set progress to 60000 merits and 130% opposition.
     """.format(prefix=prefix)
     sub = subs.add_parser(prefix + 'hold', description=desc, formatter_class=RawHelp)
     sub.set_defaults(cmd='hold')
     sub.add_argument('amount', nargs='?', type=int, help='The amount of merits held.')
-    sub.add_argument('system', nargs='*', help='The system being undermined.')
+    sub.add_argument('system', nargs='*', help='The system merits are held in.')
     sub.add_argument('--redeem', action='store_true', help='Redeem all held merits.')
-    sub.add_argument('--died', action='store_true', help='Zero out held merits on death.')
-    sub.add_argument('--set', help='Update the galmap progress us:them.')
-
-    sub = subs.add_parser(prefix + 'info', description='Get information on things.')
-    sub.set_defaults(cmd='info')
-    sub.add_argument('user', nargs='?',
-                     help='Display information about user.')
-
-    sub = subs.add_parser(prefix + 'scan', description='Parse the sheets for new information.')
-    sub.set_defaults(cmd='scan')
+    sub.add_argument('--died', action='store_true', help='Zero out held merits.')
+    sub.add_argument('--set', help='Update the galmap progress us:them. Example: --set 3500:200')
 
     sub = subs.add_parser(prefix + 'time', description='Time in game and to ticks.')
     sub.set_defaults(cmd='time')
 
     desc = """Get undermining targets and update their galmap status. Examples:
 
-    {prefix}um\n            - Show current active undermining targets.
-    {prefix}um burr\n           - Show the current status and information on Burr.
-    {prefix}um --set 60000:130\n            - Set the galmap status of Burr to 60000 and opposition to 130%.
-    {prefix}um --offset 4000\n          - Set the offset difference of cmdr merits and galmap.
+    {prefix}um\n           Show current active undermining targets.
+    {prefix}um burr\n           Show the current status and information on Burr.
+    {prefix}um afl\n           Show the current status and information on AF Leopris, matched search.
+    {prefix}um burr --set 60000:130\n           Set the galmap status of Burr to 60000 and opposition to 130%.
+    {prefix}um burr --offset 4000\n           Set the offset difference of cmdr merits and galmap.
     """.format(prefix=prefix)
-    sub = subs.add_parser(prefix + 'um', description='', formatter_class=RawHelp)
+    sub = subs.add_parser(prefix + 'um', description=desc, formatter_class=RawHelp)
     sub.set_defaults(cmd='um')
-    # sub.add_argument('system', nargs='?', help='The system to update/show.')
-    sub.add_argument('system', nargs='*',
-                     help='The system to update or show.')
+    sub.add_argument('system', nargs='*', help='The system to update or show.')
     sub.add_argument('--set',
-                     help='Set the System status of system, us:them. Example-> --set 3400:200')
-    sub.add_argument('--offset', type=int,
-                     help='Set the System galmap offset.')
+                     help='Set the status of the system, us:them. Example-> --set 3500:200')
+    sub.add_argument('--offset', type=int, help='Set the system galmap offset.')
 
     desc = """Manipulate your user settings. Examples:
 
-    {prefix}user\n          - Show your sheet name, crys and merits per sheet.
-    {prefix}um --name NotGears\n            - Set your name to NotGears.
-    {prefix}um --cry The bots are invading!\n           - Set your battle cry to "The bots are invading!".
-    {prefix}um --hudson\n           - Switch to Hudson's sheets.
-    {prefix}um --winters\n          - Switch to Winters' sheets.
+    {prefix}user\n           Show your sheet name, crys and merits per sheet.
+    {prefix}user --name Not Gears\n           Set your name to 'Not Gears'.
+    {prefix}user --cry The bots are invading!\n           Set your battle cry to "The bots are invading!".
+    {prefix}user --hudson\n           Switch to Hudson's sheets.
+    {prefix}user --winters\n           Switch to Winters' sheets.
     """.format(prefix=prefix)
     sub = subs.add_parser(prefix + 'user', description=desc, formatter_class=RawHelp)
     sub.set_defaults(cmd='user')
-    sub.add_argument('--cry', nargs='+',
-                     help='Set your tag in the sheets.')
-    sub.add_argument('--name', nargs='+',
-                     help='Set your name in the sheets.')
+    sub.add_argument('--cry', nargs='+', help='Set your tag/cry in the sheets.')
+    sub.add_argument('--name', nargs='+', help='Set your name in the sheets.')
     sub.add_argument('--winters', action='store_true',
                      help='Set yourself to use the Winters sheets.')
     sub.add_argument('--hudson', action='store_true',

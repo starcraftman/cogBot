@@ -17,6 +17,7 @@ import logging.handlers
 import logging.config
 import os
 import re
+import sys
 
 import discord
 
@@ -38,6 +39,7 @@ class CogBot(discord.Client):
         self.prefix = kwargs.get('prefix')
         self.scanner = kwargs.get('scanner')
         self.scanner_um = kwargs.get('scanner_um')
+        self.deny_commands = True
 
     # Events hooked by bot.
     async def on_member_join(self, member):
@@ -58,6 +60,7 @@ class CogBot(discord.Client):
         for server in self.servers:
             log.info('  "%s" with id %s', server.name, server.id)
         print('GBot Ready!')
+        self.deny_commands = False
 
     async def on_message(self, message):
         """
@@ -80,8 +83,8 @@ class CogBot(discord.Client):
         channel = message.channel
         response = ''
 
-        # Ignore lines not directed at bot
-        if author.bot or not msg.startswith(self.prefix):
+        # Ignore lines not directed at bot or when denying commands
+        if author.bot or self.deny_commands or not msg.startswith(self.prefix):
             return
 
         log = logging.getLogger('cog.bot')
@@ -122,6 +125,14 @@ class CogBot(discord.Client):
             await self.send_ttl_message(channel, str(exc))
             asyncio.ensure_future(self.delete_message(message))
 
+    async def bot_shutdown(self):
+        """
+        Shutdown the bot. Not ideal, I should reconsider later.
+        """
+        await asyncio.sleep(1)
+        await self.logout()
+        sys.exit(0)
+
     def fix_emoji(self, content):
         """
         Expand any emojis for bot before sending.
@@ -154,7 +165,7 @@ class CogBot(discord.Client):
             time: The TTL before deletion.
             extra: Additional messages to delete at same time.
         """
-        content += '\n\nThis message will be deleted in {} seconds.'.format(time)
+        content += '\nThis message will be deleted in {} seconds.'.format(time)
         message = await self.send_message(channel, content)
 
         await asyncio.sleep(time)
@@ -167,31 +178,86 @@ class CogBot(discord.Client):
         Simply inspect class and dispatch command. Guaranteed to be valid.
         """
         await getattr(self, 'command_' + kwargs.get('args').cmd)(**kwargs)
-        # asyncio.ensure_future(self.delete_message(kwargs.get('message')))
 
     async def command_help(self, **kwargs):
         """
         Provide an overview of help.
         """
+        message = kwargs.get('message')
         over = 'Here is an overview of my commands.\nFor more information do: ![Command] -h\n'
         lines = [
             ['Command', 'Effect'],
-            ['!drop', 'Drop forts into the fort sheet.'],
-            ['!dump', 'Dump the database to the server console. For admins.'],
-            ['!fort', 'Get information about our fort systems.'],
-            ['!hold', 'Declare held merits or redeem them.'],
-            ['!info', 'Display information on a user.'],
-            ['!scan', 'Rebuild the database with latest sheet data.'],
-            ['!time', 'Show game time and time to ticks.'],
-            ['!um', 'Get information about undermining targets.'],
-            ['!user', 'Manage your user, set sheet name and tag.'],
-            ['!help', 'This help message.'],
+            ['{prefix}admin', 'Admin commands'],
+            ['{prefix}drop', 'Drop forts into the fort sheet.'],
+            ['{prefix}fort', 'Get information about our fort systems.'],
+            ['{prefix}hold', 'Declare held merits or redeem them.'],
+            ['{prefix}time', 'Show game time and time to ticks.'],
+            ['{prefix}um', 'Get information about undermining targets.'],
+            ['{prefix}user', 'Manage your user, set sheet name and tag.'],
+            ['{prefix}help', 'This help message.'],
         ]
+        lines = [[line[0].format(prefix=self.prefix), line[1]] for line in lines]
 
         response = over + cog.tbl.wrap_markdown(cog.tbl.format_table(lines, header=True))
-        message = kwargs.get('message')
         await self.send_ttl_message(message.channel, response)
         asyncio.ensure_future(self.delete_message(message))
+
+    async def command_admin(self, **kwargs):
+        """
+        Admin command console. For knowledgeable users only.
+        """
+        args = kwargs.get('args')
+        message = kwargs.get('message')
+        session = kwargs.get('session')
+
+        # TODO: In real solution, check perms on dispatch or make decorator.
+        if message.author.id != '250266447794667520':
+            response = "I'm sorry, {}. I'm afraid I can't do that.".format(
+                message.author.display_name)
+            logging.getLogger('cog.bot').error('Unauthorized Access to !admin: %s %s',
+                                               message.author.id, message.author.display_name)
+            await self.send_message(message.channel, response)
+            return
+
+        if args.subcmd == 'dump':
+            cogdb.query.dump_db()
+            response = 'Db has been dumped to server console.'
+
+        if args.subcmd == 'halt':
+            self.deny_commands = True
+            asyncio.ensure_future(self.send_message(message.channel,
+                                                    'Shutdown in 40s. No more commands accepted.'))
+            await asyncio.sleep(40)
+            asyncio.ensure_future(self.bot_shutdown())
+            response = 'Goodbye!'
+
+        elif args.subcmd == 'scan':
+            await self.send_message(message.channel, 'Wait until scan done.')
+            cogdb.schema.drop_tables(all=False)
+            self.scanner.scan(session)
+            self.scanner_um.scan(session)
+            response = 'Scan finished. The database is current.'
+
+        elif args.subcmd == 'info':
+            if args.user:
+                members = message.channel.server.members
+                user = cogdb.query.fuzzy_find(args.user, members, obj_attr='display_name')
+            else:
+                user = message.author
+
+            lines = [
+                '**' + user.display_name + '**',
+                '-' * (len(user.display_name) + 6),
+                'Username: {}#{}'.format(user.name, user.discriminator),
+                'ID: ' + user.id,
+                'Status: ' + str(user.status),
+                'Join Date: ' + str(user.joined_at),
+                'Roles: ' + str([str(role) for role in user.roles[1:]]),
+                'Highest Role: ' + str(user.top_role).replace('@', '@ '),
+            ]
+            response = '\n'.join(lines)
+
+        await self.send_message(message.channel, response)
 
     async def command_drop(self, **kwargs):
         """
@@ -251,14 +317,6 @@ class CogBot(discord.Client):
             new_target = cogdb.query.fort_get_targets(session)[0]
             response += '\n\nNext Target: ' + new_target.short_display()
         await self.send_message(message.channel, drop.system.short_display())
-
-    async def command_dump(self, **kwargs):
-        """
-        For debugging, able to dump the database quickly to console.
-        """
-        cogdb.query.dump_db()
-        message = kwargs.get('message')
-        await self.send_message(message.channel, 'Db has been dumped to server console.')
 
     async def command_fort(self, **kwargs):
         """
@@ -371,42 +429,6 @@ class CogBot(discord.Client):
         for hold in holds:
             asyncio.ensure_future(self.scanner_um.update_hold(hold))
         await self.send_message(message.channel, response)
-
-    async def command_info(self, **kwargs):
-        """
-        Provide information about the discord server.
-        """
-        args = kwargs.get('args')
-        message = kwargs.get('message')
-
-        if args.user:
-            members = message.channel.server.members
-            user = cogdb.query.fuzzy_find(args.user, members, obj_attr='display_name')
-        else:
-            user = message.author
-
-        lines = [
-            '**' + user.display_name + '**',
-            '-' * (len(user.display_name) + 6),
-            'Username: {}#{}'.format(user.name, user.discriminator),
-            'ID: ' + user.id,
-            'Status: ' + str(user.status),
-            'Join Date: ' + str(user.joined_at),
-            'Roles: ' + str([str(role) for role in user.roles[1:]]),
-            'Highest Role: ' + str(user.top_role).replace('@', '@ '),
-        ]
-
-        await self.send_message(message.channel, '\n'.join(lines))
-
-    async def command_scan(self, **kwargs):
-        """
-        Allow reindexing the sheets when out of date with new edits.
-        """
-        cogdb.schema.drop_tables(all=False)
-        self.scanner.scan(kwargs.get('session'))
-        self.scanner_um.scan(kwargs.get('session'))
-        message = kwargs.get('message')
-        await self.send_message(message.channel, 'The database has been updated.')
 
     async def command_time(self, **kwargs):
         """
@@ -546,10 +568,11 @@ def main():  # pragma: no cover
         scanner = scan_sheet(cog.share.get_config('hudson', 'cattle'), cogdb.query.FortScanner)
         scanner_um = scan_sheet(cog.share.get_config('hudson', 'um'), cogdb.query.UMScanner)
         bot = CogBot(prefix='!', scanner=scanner, scanner_um=scanner_um)
+        # BLOCKING: N.o. e.s.c.a.p.e.
         bot.run(cog.share.get_config('discord', os.environ.get('COG_TOKEN', 'dev')))
     finally:
         try:
-            bot.close()
+            bot.logout()
         except UnboundLocalError:
             pass
 
