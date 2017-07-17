@@ -16,8 +16,10 @@ import logging
 import logging.handlers
 import logging.config
 import os
+import pickle
 import re
 import sys
+import tempfile
 
 import discord
 
@@ -30,6 +32,25 @@ import cog.sheets
 import cog.tbl
 
 
+def write_start_time(fname):  # pragma: no cover
+    """
+    On startup write current UTC datetime.
+    """
+    with open(fname, 'wb') as fout:
+        pickle.dump(date.datetime.utcnow().replace(microsecond=0), fout, pickle.HIGHEST_PROTOCOL)
+
+
+def get_uptime(fname):  # pragma: no cover
+    """
+    Compare now to when started.
+    """
+    with open(fname, 'rb') as fin:
+        old_now = pickle.load(fin)
+
+    now = date.datetime.utcnow().replace(microsecond=0)
+    return str(now - old_now)
+
+
 class CogBot(discord.Client):
     """
     The main bot, hooks onto on_message primarily and waits for commands.
@@ -40,6 +61,8 @@ class CogBot(discord.Client):
         self.scanner = kwargs.get('scanner')
         self.scanner_um = kwargs.get('scanner_um')
         self.deny_commands = True
+        self.uptime_file = tempfile.NamedTemporaryFile()
+        write_start_time(self.uptime_file.name)
 
     # Events hooked by bot.
     async def on_member_join(self, member):
@@ -187,13 +210,14 @@ class CogBot(discord.Client):
         over = 'Here is an overview of my commands.\nFor more information do: ![Command] -h\n'
         lines = [
             ['Command', 'Effect'],
-            ['{prefix}admin', 'Admin commands'],
+            ['{prefix}admin', 'Admin commands.'],
             ['{prefix}drop', 'Drop forts into the fort sheet.'],
             ['{prefix}fort', 'Get information about our fort systems.'],
             ['{prefix}hold', 'Declare held merits or redeem them.'],
             ['{prefix}time', 'Show game time and time to ticks.'],
             ['{prefix}um', 'Get information about undermining targets.'],
             ['{prefix}user', 'Manage your user, set sheet name and tag.'],
+            ['{prefix}status', 'Info about this bot.'],
             ['{prefix}help', 'This help message.'],
         ]
         lines = [[line[0].format(prefix=self.prefix), line[1]] for line in lines]
@@ -429,6 +453,18 @@ class CogBot(discord.Client):
         for hold in holds:
             asyncio.ensure_future(self.scanner_um.update_hold(hold))
         await self.send_message(message.channel, response)
+
+    async def command_status(self, **kwargs):
+        """
+        Simple bot info command.
+        """
+        lines = [
+            ['Created By', 'GearsandCogs'],
+            ['Uptime', get_uptime(self.uptime_file.name)],
+            ['Version', '{}'.format(cog.__version__)],
+        ]
+        response = cog.tbl.wrap_markdown(cog.tbl.format_table(lines))
+        await self.send_message(kwargs.get('message').channel, response)
 
     async def command_time(self, **kwargs):
         """

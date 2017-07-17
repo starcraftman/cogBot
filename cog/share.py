@@ -172,6 +172,9 @@ def make_parser(prefix):
     sub.add_argument('--died', action='store_true', help='Zero out held merits.')
     sub.add_argument('--set', help='Update the galmap progress us:them. Example: --set 3500:200')
 
+    sub = subs.add_parser(prefix + 'status', description='Info about this bot.')
+    sub.set_defaults(cmd='status')
+
     sub = subs.add_parser(prefix + 'time', description='Time in game and to ticks.')
     sub.set_defaults(cmd='time')
 
