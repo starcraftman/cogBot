@@ -689,16 +689,6 @@ def parse_float(word):
         return 0.0
 
 
-def make_file_engine(abs_path):
-    """
-    Make an sqlite file engine.
-
-    Args:
-        abs_path: Absolute path to the database.
-    """
-    return sqla.create_engine('sqlite:////{}'.format(abs_path), echo=False)
-
-
 def drop_tables(**kwargs):
     """
     Drop all tables.
@@ -718,7 +708,7 @@ def recreate_tables():
     Recreate all tables after start.
     """
     drop_tables(all=True)
-    Base.metadata.create_all(cogdb.mem_engine)
+    Base.metadata.create_all(cogdb.engine)
 
 
 # Relationships
@@ -755,7 +745,7 @@ SystemUM.holds = sqla_orm.relationship('Hold',
                                        back_populates='system')
 
 
-Base.metadata.create_all(cogdb.mem_engine)
+Base.metadata.create_all(cogdb.engine)
 
 
 def main():  # pragma: no cover

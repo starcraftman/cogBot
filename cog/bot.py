@@ -565,6 +565,7 @@ def main():  # pragma: no cover
     """ Entry here!  """
     cog.share.init_logging()
     try:
+        cogdb.schema.drop_tables(all=False)  # Only persistent data should be kept on startup
         scanner = scan_sheet(cog.share.get_config('hudson', 'cattle'), cogdb.query.FortScanner)
         scanner_um = scan_sheet(cog.share.get_config('hudson', 'um'), cogdb.query.UMScanner)
         bot = CogBot(prefix='!', scanner=scanner, scanner_um=scanner_um)

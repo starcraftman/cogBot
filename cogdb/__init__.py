@@ -19,7 +19,9 @@ from __future__ import absolute_import, print_function
 import sqlalchemy
 import sqlalchemy.orm
 
-mem_engine = sqlalchemy.create_engine('sqlite://', echo=False)
+import cog.share
 
-# Base.metadata.create_all(engine)
-Session = sqlalchemy.orm.sessionmaker(bind=mem_engine)
+# engine = sqlalchemy.create_engine('sqlite://', echo=False)
+engine = sqlalchemy.create_engine('sqlite:///' + cog.share.rel_to_abs(cog.share.get_config('paths', 'db')), echo=False)
+
+Session = sqlalchemy.orm.sessionmaker(bind=engine)
