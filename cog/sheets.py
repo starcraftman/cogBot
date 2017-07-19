@@ -34,9 +34,10 @@ class ColCnt(object):
         self.high_bound = ord(high) + 1
 
     def __repr__(self):
-        return "<ColCnt(char='{}', low/high bound='{}'/'{}')>".format(chr(self.char),
-                                                                      chr(self.low_bound),
-                                                                      chr(self.high_bound))
+        keys = ['char', 'low_bound', 'high_bound']
+        kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
+
+        return "ColCnt({})".format(', '.join(kwargs))
 
     def __str__(self):
         return chr(self.char)
@@ -92,6 +93,9 @@ class Column(object):
 
         for char in init_col:
             self.counters.insert(0, ColCnt(char))
+
+    def __repr__(self):
+        return "Column({}={!r})".format('counters', self.counters)
 
     def __str__(self):
         msg = ''

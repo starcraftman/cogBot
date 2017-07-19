@@ -22,10 +22,6 @@ import cog.sheets
 import cog.tbl
 
 
-ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-YAML_FILE = os.path.join(ROOT_DIR, 'data', 'config.yml')
-
-
 class ThrowArggumentParser(argparse.ArgumentParser):
     """
     ArgumentParser subclass that does NOT terminate the program.
@@ -242,3 +238,7 @@ def extract_emoji(text):
     Find and extract all emoji eanchors in message. Return in list.
     """
     return list(set(re.findall(r':\S+:', text)))
+
+
+ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+YAML_FILE = rel_to_abs('data', 'config.yml')

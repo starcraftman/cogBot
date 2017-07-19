@@ -75,11 +75,11 @@ def f_dusers(session):
     """
     dusers = (
         DUser(id='1000', display_name='GearsandCogs',
-              capacity=750, pref_name='GearsandCogs', faction=EFaction.hudson),
+              pref_name='GearsandCogs', faction=EFaction.hudson),
         DUser(id='1001', display_name='rjwhite',
-              capacity=450, pref_name='rjwhite', faction=EFaction.hudson),
+              pref_name='rjwhite', faction=EFaction.hudson),
         DUser(id='1002', display_name='vampyregtx',
-              capacity=700, pref_name='not_vamp', faction=EFaction.hudson),
+              pref_name='not_vamp', faction=EFaction.hudson),
     )
     session.add_all(dusers)
     session.commit()

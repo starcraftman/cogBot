@@ -52,11 +52,10 @@ class DUser(Base):
     display_name = sqla.Column(sqla.String)
     pref_name = sqla.Column(sqla.String, unique=True)  # pref_name == display_name until change
     pref_cry = sqla.Column(sqla.String, default='')
-    capacity = sqla.Column(sqla.Integer, default=0)
     faction = sqla.Column(sqla.String, default=EFaction.hudson)
 
     def __repr__(self):
-        keys = ['id', 'display_name', 'pref_name', 'pref_cry', 'faction', 'capacity']
+        keys = ['id', 'display_name', 'pref_name', 'pref_cry', 'faction']
         kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
 
         return "DUser({})".format(', '.join(kwargs))
@@ -756,9 +755,9 @@ def main():  # pragma: no cover
     session = cogdb.Session()
 
     dusers = (
-        DUser(id='197221', pref_name='GearsandCogs', capacity=0),
-        DUser(id='299221', pref_name='rjwhite', capacity=0),
-        DUser(id='293211', pref_name='vampyregtx', capacity=0),
+        DUser(id='197221', pref_name='GearsandCogs'),
+        DUser(id='299221', pref_name='rjwhite'),
+        DUser(id='293211', pref_name='vampyregtx'),
     )
     session.add_all(dusers)
     session.commit()

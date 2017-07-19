@@ -51,14 +51,14 @@ def test_duser__eq__(f_dusers, f_sheets):
 def test_duser__repr__(f_dusers, f_sheets):
     duser = f_dusers[0]
     assert repr(duser) == "DUser(id='1000', display_name='GearsandCogs', "\
-                          "pref_name='GearsandCogs', pref_cry='', faction='hudson', capacity=750)"
+                          "pref_name='GearsandCogs', pref_cry='', faction='hudson')"
     assert duser == eval(repr(duser))
 
 
 def test_duser__str__(f_dusers, f_sheets):
     duser = f_dusers[0]
     assert str(duser) == "DUser(id='1000', display_name='GearsandCogs', "\
-                         "pref_name='GearsandCogs', pref_cry='', faction='hudson', capacity=750)"
+                         "pref_name='GearsandCogs', pref_cry='', faction='hudson')"
 
 
 def test_duser_get_sheet(f_dusers, f_sheets):

@@ -4,6 +4,7 @@ Test sheets api logic
 NOTE: GSheet tests being skipped, they are slow and that code is mostly frozen.
 """
 from __future__ import absolute_import, print_function
+import os
 
 import pytest
 
@@ -12,9 +13,7 @@ import cog.share
 import cog.sheets
 
 
-# TODO: Set parameter to run GSheet tests.
-# https://docs.pytest.org/en/latest/example/parametrize.html
-# Run all tests with test config.yml
+REASON_SLOW = 'Slow as blocking to sheet. To enable, ensure os.environ ALL_TESTS=True'
 
 
 @pytest.fixture()
@@ -22,7 +21,10 @@ def fort_sheet():
     """
     Yield fixture returns fort sheet.
     """
-    sheet = cog.share.get_config('hudson', 'cattle')
+    sheet = {
+        'id': 'ID_EXPUNGED',
+        'page': 'UnitTest',
+    }
     paths = cog.share.get_config('paths')
     f_sheet = cog.sheets.GSheet(sheet, paths['json'], paths['token'])
 
@@ -36,29 +38,32 @@ def fort_sheet_reset():
 
     N.B. Test in cells cleaned in cell_ranges.
     """
-    sheet = cog.share.get_config('hudson', 'cattle')
+    sheet = {
+        'id': 'ID_EXPUNGED',
+        'page': 'UnitTest',
+    }
     paths = cog.share.get_config('paths')
     f_sheet = cog.sheets.GSheet(sheet, paths['json'], paths['token'])
 
     yield f_sheet
 
     # Ensure scratch cells always reset, stuck in catch22 batch_update must work
-    cell_ranges = ['!B16:B17', '!F6:G6']
-    n_vals = [[['Shepron'], ['Grimbald']], [[4910, 4350]]]
+    cell_ranges = ['!B13:B14', '!F6:G6']
+    n_vals = [[['Shepron'], ['TiddyMun']], [[4910, 2671]]]
     f_sheet.batch_update(cell_ranges, n_vals)
 
 
-@pytest.mark.skip(reason='Works, slow as blocking to sheet.')
+@pytest.mark.skipif(not os.environ.get('ALL_TESTS'), reason=REASON_SLOW)
 def test_gsheet_get(fort_sheet):
-    assert fort_sheet.get('!B16:B16') == [['Shepron']]
+    assert fort_sheet.get('!B13:B13') == [['Shepron']]
 
 
-@pytest.mark.skip(reason='Works, slow as blocking to sheet.')
+@pytest.mark.skipif(not os.environ.get('ALL_TESTS'), reason=REASON_SLOW)
 def test_gsheet_batch_get(fort_sheet):
-    assert fort_sheet.batch_get(['!B16:B16', '!F6:G6']) == [[['Shepron']], [[4910, 4350]]]
+    assert fort_sheet.batch_get(['!B13:B13', '!F6:G6']) == [[['Shepron']], [[4910, 2671]]]
 
 
-@pytest.mark.skip(reason='Works, slow as blocking to sheet.')
+@pytest.mark.skipif(not os.environ.get('ALL_TESTS'), reason=REASON_SLOW)
 def test_ghseet_get_with_formatting(fort_sheet):
     fmt_cells = fort_sheet.get_with_formatting('!F10:F10')
     system_colors = {'red': 0.42745098, 'blue': 0.92156863, 'green': 0.61960787}
@@ -67,26 +72,31 @@ def test_ghseet_get_with_formatting(fort_sheet):
         assert val['effectiveFormat']['backgroundColor'] == system_colors
 
 
-@pytest.mark.skip(reason='Works, slow as blocking to sheet.')
+@pytest.mark.skipif(not os.environ.get('ALL_TESTS'), reason=REASON_SLOW)
 def test_gsheet_update(fort_sheet_reset):
-    fort_sheet_reset.update('!B16:B16', [['NotShepron']])
-    assert fort_sheet_reset.get('!B16:B16') == [['NotShepron']]
+    fort_sheet_reset.update('!B13:B13', [['NotShepron']])
+    assert fort_sheet_reset.get('!B13:B13') == [['NotShepron']]
 
 
-@pytest.mark.skip(reason='Works, slow as blocking to sheet.')
+@pytest.mark.skipif(not os.environ.get('ALL_TESTS'), reason=REASON_SLOW)
 def test_gsheet_batch_update(fort_sheet_reset):
-    cell_ranges = ['!B16:B17', '!F6:G6']
+    cell_ranges = ['!B13:B14', '!F6:G6']
     n_vals = [[['NotShepron'], ['Grimbald']], [[2222, 3333]]]
     fort_sheet_reset.batch_update(cell_ranges, n_vals)
 
     assert fort_sheet_reset.batch_get(cell_ranges) == n_vals
 
 
-def test_colcnt_init():
+def test_colcnt__init__():
     col1 = cog.sheets.ColCnt('A')
     assert str(col1) == 'A'
     col2 = cog.sheets.ColCnt('Z')
     assert str(col2) == 'Z'
+
+
+def test_colcnt__repr__():
+    col1 = cog.sheets.ColCnt('A')
+    assert repr(col1) == 'ColCnt(char=65, low_bound=64, high_bound=91)'
 
 
 def test_colcnt_next():
@@ -120,7 +130,7 @@ def test_colcnt_reset():
     assert str(col2) == 'Z'
 
 
-def test_column_init():
+def test_column__init__():
     column = cog.sheets.Column('A')
     assert str(column) == 'A'
     assert str(column.counters[0]) == 'A'
@@ -129,6 +139,12 @@ def test_column_init():
     assert str(column) == 'BA'
     assert str(column.counters[0]) == 'A'
     assert str(column.counters[1]) == 'B'
+
+
+def test_column__repr__():
+    col1 = cog.sheets.Column('AA')
+    assert repr(col1) == "Column(counters=[ColCnt(char=65, low_bound=64, high_bound=91), "\
+                         "ColCnt(char=65, low_bound=64, high_bound=91)])"
 
 
 def test_column_next():
