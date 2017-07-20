@@ -232,7 +232,8 @@ class CogBot(discord.Client):
         Provide an overview of help.
         """
         message = kwargs.get('message')
-        over = 'Here is an overview of my commands.\nFor more information do: ![Command] -h\n'
+        over = 'Here is an overview of my commands.\n\nFor more information do: `!Command -h`\n'
+        over += '       Example: `!drop -h`\n'
         lines = [
             ['Command', 'Effect'],
             ['{prefix}admin', 'Admin commands.'],
