@@ -529,15 +529,13 @@ class FortScanner(SheetScanner):
                                                      row=drop.user.row)
         self.gsheet.update(cell_range, [[drop.amount]])
 
-    async def update_system(self, system, max_fort=True):
+    async def update_system(self, system):
         """
         Update the system column of the sheet.
         """
         cell_range = '!{col}{start}:{col}{end}'.format(col=system.sheet_col,
-                                                       start=6, end=9)
-        fort_status = system.current_status if max_fort else system.fort_status
-        self.gsheet.update(cell_range, [[fort_status, system.um_status,
-                                         system.distance, system.notes]], dim='COLUMNS')
+                                                       start=6, end=7)
+        self.gsheet.update(cell_range, [[system.fort_status, system.um_status]], dim='COLUMNS')
 
 
 class UMScanner(SheetScanner):

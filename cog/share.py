@@ -107,20 +107,30 @@ def make_parser(prefix):
 
     desc = """Admin only commands. Examples:
 
-    {prefix}admin scan\n          Pull and parse the latest sheet information.
-    {prefix}admin halt\n          Shutdown this bot after short delay.
+    {prefix}admin deny\n          Toggle command processing.
     {prefix}admin dump\n          Dump the database to console to inspect.
+    {prefix}admin halt\n          Shutdown this bot after short delay.
+    {prefix}admin scan\n          Pull and parse the latest sheet information.
     {prefix}admin info @User\n          Information about the mentioned User, DMed to admin.
     """.format(prefix=prefix)
     sub = subs.add_parser(prefix + 'admin', description=desc, formatter_class=RawHelp)
     sub.set_defaults(cmd='admin')
     admin_subs = sub.add_subparsers(title='subcommands',
                                     description='Admin subcommands', dest='subcmd')
+    admin_subs.add_parser('deny', help='Toggle command processing.')
     admin_subs.add_parser('dump', help='Dump the db to console.')
     admin_subs.add_parser('halt', help='Stop accepting commands and halt bot.')
     admin_subs.add_parser('scan', help='Scan the sheets for updates.')
     admin_sub = admin_subs.add_parser('info', help='Get info about discord users.')
     admin_sub.add_argument('user', nargs='?', help='The user to get info on.')
+
+    desc = """File a bug report. Example:
+
+    {prefix}bug Explain what went wrong ...\n          File a bug report. Do not spam!
+    """.format(prefix=prefix)
+    sub = subs.add_parser(prefix + 'bug', description=desc, formatter_class=RawHelp)
+    sub.set_defaults(cmd='bug')
+    sub.add_argument('content', nargs='+', help='The bug description.')
 
     desc = """Update the cattle sheet when you drop at a system. Examples:
 

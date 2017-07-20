@@ -165,11 +165,11 @@ def test_system__str__(f_systems):
 
 def test_system_short_display(f_systems):
     system = f_systems[0]
-    assert system.short_display() == 'Frey :Fortified: 4910/4910'
+    assert system.short_display() == 'Fort: **Frey** 4910/4910 :Fortified:'
 
     system.fort_status = 4000
-    assert system.short_display() == 'Frey :Fortifying: 4000/4910\n    Missing: 910'
-    assert system.short_display(missing=False) == 'Frey :Fortifying: 4000/4910'
+    assert system.short_display() == 'Fort: **Frey** 4000/4910 :Fortifying:\n        Missing: 910\n'
+    assert system.short_display(missing=False) == 'Fort: **Frey** 4000/4910 :Fortifying:'
 
 
 def test_system_set_status(f_systems):
@@ -245,7 +245,7 @@ def test_system_table_row(f_systems):
 
 
 def test_prepsystem_short_dispay(f_prepsystem):
-    assert f_prepsystem.short_display() == "**Prep System**: Muncheim :Fortifying: 5100/10000, "\
+    assert f_prepsystem.short_display() == "Prep: **Muncheim** 5100/10000 :Fortifying: "\
                                            "Nearest Control: Atropos"
 
 
@@ -310,8 +310,8 @@ def test_systemum__repr__(f_dusers, f_sheets, f_systemsum, f_holds):
 def test_systemum__str__(f_dusers, f_sheets, f_systemsum, f_holds):
     system = f_systemsum[0]
 
-    assert str(system) == "Control: **Cemplangpa**, Nearest Control: Sol\n"\
-                          "    Sec: M, Completion: 101%, Missing: -122"
+    assert str(system) == "Control: **Cemplangpa**, Security: Medium, Nearest Control: Sol\n"\
+                          "        Completion: 101%, Missing: -122\n"
 
 
 def test_systemum__eq__(f_dusers, f_sheets, f_systemsum, f_holds):

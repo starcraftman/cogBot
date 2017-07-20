@@ -361,13 +361,13 @@ class System(Base):
         """
         Return a useful short representation of System.
         """
-        msg = '{} :Fortif{}: {:>4}/{}{}'.format(
-            self.name, 'ied' if self.is_fortified else 'ying',
-            self.current_status, self.trigger,
-            ', {}'.format(self.notes) if self.notes else '')
+        msg = 'Fort: **{}** {:>4}/{} :Fortif{}:{}'.format(
+            self.name, self.current_status, self.trigger,
+            'ied' if self.is_fortified else 'ying',
+            ' {}'.format(self.notes) if self.notes else '')
 
         if missing and self.missing and self.missing < 1500:
-            msg += '\n    Missing: ' + str(self.missing)
+            msg += '\n        Missing: {}\n'.format(self.missing)
 
         return msg
 
@@ -389,9 +389,9 @@ class PrepSystem(System):
         """
         Return a useful short representation of PrepSystem.
         """
-        msg = '**Prep System**: {} :Fortifying: {:>4}/{}{}'.format(
+        msg = 'Prep: **{}** {:>4}/{} :Fortifying:{}'.format(
             self.name, self.current_status, self.trigger,
-            ', Nearest Control: ' + self.notes if self.notes else '')
+            ' Nearest Control: ' + self.notes if self.notes else '')
 
         return msg
 
@@ -438,13 +438,13 @@ class SystemUM(Base):
         Format a simple summary for users.
         """
         lines = [
-            '{}: **{}**, Nearest Control: {}'.format(self.descriptor, self.name,
-                                                     self.close_control),
-            '    Sec: {}, {}, Missing: {}'.format(self.security[0].upper(),
-                                                  self.completion, self.missing),
+            '{}: **{}**, Security: {}, Nearest Control: {}'.format(self.descriptor, self.name,
+                                                                   self.security,
+                                                                   self.close_control),
+            '        {}, Missing: {}'.format(self.completion, self.missing),
         ]
 
-        return '\n'.join(lines)
+        return '\n'.join(lines) + '\n'
 
     def __eq__(self, other):
         return isinstance(other, SystemUM) and self.name == other.name

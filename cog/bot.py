@@ -127,8 +127,12 @@ class CogBot(discord.Client):
         channel = message.channel
         response = ''
 
-        # Ignore lines not directed at bot or when denying commands
-        if author.bot or self.deny_commands or not msg.startswith(self.prefix):
+        # Ignore lines not directed at bot
+        if author.bot or not msg.startswith(self.prefix):
+            return
+
+        # Accept only admin commands if denying
+        if self.deny_commands and not msg.startswith('{}admin'.format(self.prefix)):
             return
 
         log = logging.getLogger('cog.bot')
@@ -232,6 +236,7 @@ class CogBot(discord.Client):
         lines = [
             ['Command', 'Effect'],
             ['{prefix}admin', 'Admin commands.'],
+            ['{prefix}bug', 'Report a bug.'],
             ['{prefix}drop', 'Drop forts into the fort sheet.'],
             ['{prefix}fort', 'Get information about our fort systems.'],
             ['{prefix}hold', 'Declare held merits or redeem them.'],
@@ -254,6 +259,7 @@ class CogBot(discord.Client):
         args = kwargs.get('args')
         message = kwargs.get('message')
         session = kwargs.get('session')
+        response = ''
 
         # TODO: In real solution, check perms on dispatch or make decorator.
         if message.author.id != '250266447794667520':
@@ -264,11 +270,16 @@ class CogBot(discord.Client):
             await self.send_message(message.channel, response)
             return
 
-        if args.subcmd == 'dump':
+        if args.subcmd == 'deny':
+            self.deny_commands = not self.deny_commands
+            response = 'Command processing: **{}abled**'.format('Dis' if self.deny_commands
+                                                                else 'En')
+
+        elif args.subcmd == 'dump':
             cogdb.query.dump_db()
             response = 'Db has been dumped to server console.'
 
-        if args.subcmd == 'halt':
+        elif args.subcmd == 'halt':
             self.deny_commands = True
             asyncio.ensure_future(self.send_message(message.channel,
                                                     'Shutdown in 40s. No more commands accepted.'))
@@ -279,7 +290,7 @@ class CogBot(discord.Client):
         elif args.subcmd == 'scan':
             await self.send_message(message.channel, 'Updating database. Hold commands please.')
             self.deny_commands = True
-            await asyncio.sleep(5)
+            await asyncio.sleep(2)
 
             cogdb.schema.drop_tables(all=False)
             self.scanner.scan(session)
@@ -297,13 +308,35 @@ class CogBot(discord.Client):
                 response = user_info(message.author)
             message.channel = message.author  # Not for public
 
-        else:
-            try:
-                args.print_help()
-            except cog.exc.ArgumentHelpError as exc:
-                response = str(exc)
+        if response:
+            await self.send_message(message.channel, response)
 
-        await self.send_message(message.channel, response)
+    async def command_bug(self, **kwargs):
+        """
+        Send bug reports to Gears' Hideout -> reports channel.
+        """
+        args = kwargs.get('args')
+        message = kwargs.get('message')
+        lines = [
+            ['Server', message.server.name],
+            ['Channel', message.channel.name],
+            ['Author', message.author.name],
+            ['Time (UTC)', date.datetime.utcnow()],
+        ]
+        response = cog.tbl.wrap_markdown(cog.tbl.format_table(lines)) + '\n\n'
+        response += '__Bug Report Follows__\n\n' + ' '.join(args.content)
+
+        home = None
+        for server in self.servers:
+            if server.name == "Gears' Hideout":
+                home = server
+                break
+        for channel in home.channels:
+            if channel.name == 'reports':
+                home = channel
+                break
+
+        await self.send_message(home, response)
 
     async def command_drop(self, **kwargs):
         """
@@ -351,18 +384,18 @@ class CogBot(discord.Client):
                                          user=duser.cattle, amount=args.amount)
         if args.set:
             system.set_status(args.set)
+            asyncio.ensure_future(self.scanner.update_system(drop.system))
+        session.commit()
         asyncio.ensure_future(self.scanner.update_drop(drop))
-        asyncio.ensure_future(self.scanner.update_system(drop.system))
 
         log.info('DROP %s - Sucessfully dropped %d at %s.',
                  duser.display_name, args.amount, system.name)
 
-        session.commit()
         response = drop.system.short_display()
         if drop.system.is_fortified:
             new_target = cogdb.query.fort_get_targets(session)[0]
-            response += '\n\nNext Target: ' + new_target.short_display()
-        await self.send_message(message.channel, drop.system.short_display())
+            response += '\n\n__Next Fort Target__:\n' + new_target.short_display()
+        await self.send_message(message.channel, self.fix_emoji(response))
 
     async def command_fort(self, **kwargs):
         """
@@ -397,7 +430,7 @@ class CogBot(discord.Client):
             system = systems[0]
             system.set_status(args.set)
             session.commit()
-            asyncio.ensure_future(self.scanner.update_system(system, max_fort=False))
+            asyncio.ensure_future(self.scanner.update_system(system))
             response = system.short_display(missing=False) + ', um: {}'.format(system.um_status)
         elif args.long:
             lines = [systems[0].__class__.header] + [system.table_row for system in systems]
@@ -469,7 +502,7 @@ class CogBot(discord.Client):
 
             response = str(hold.system)
             if hold.system.is_undermined:
-                response += '\n\nPlaceholder for other UM targets.'
+                response += '\nSystem undermined with held merits. See `!um` for more targets.'
 
         session.commit()
         for hold in holds:
@@ -580,6 +613,7 @@ class CogBot(discord.Client):
 
         if args.winters:
             log.info('USER %s - Duser.faction -> winters.', duser.display_name)
+        session.commit()
 
         lines = [
             '**{}**'.format(message.author.display_name),
@@ -595,7 +629,6 @@ class CogBot(discord.Client):
         if args.name or args.cry:
             asyncio.ensure_future(self.scanner.update_sheet_user(duser.cattle))
             asyncio.ensure_future(self.scanner_um.update_sheet_user(duser.undermine))
-        session.commit()
         await self.send_message(message.channel, '\n'.join(lines))
 
 
