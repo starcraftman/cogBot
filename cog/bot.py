@@ -22,6 +22,12 @@ import sys
 import tempfile
 
 import discord
+try:
+    import uvloop
+    asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
+    print('Setting uvloop as asyncio default event loop.')
+except ImportError:
+    pass
 
 import cogdb
 import cogdb.schema
@@ -30,6 +36,21 @@ import cog.exc
 import cog.share
 import cog.sheets
 import cog.tbl
+
+
+def user_info(user):  # pragma: no cover
+    """
+    Trivial message formatter based on user information.
+    """
+    lines = [
+        ['Username', '{}#{}'.format(user.name, user.discriminator)],
+        ['ID', user.id],
+        ['Status', str(user.status)],
+        ['Join Date', str(user.joined_at)],
+        ['All Roles:', str([str(role) for role in user.roles[1:]])],
+        ['Top Role:', str(user.top_role).replace('@', '@ ')],
+    ]
+    return '**' + user.display_name + '**\n' + cog.tbl.wrap_markdown(cog.tbl.format_table(lines))
 
 
 def write_start_time(fname):  # pragma: no cover
@@ -256,30 +277,31 @@ class CogBot(discord.Client):
             response = 'Goodbye!'
 
         elif args.subcmd == 'scan':
-            await self.send_message(message.channel, 'Wait until scan done.')
+            await self.send_message(message.channel, 'Updating database. Hold commands please.')
+            self.deny_commands = True
+            await asyncio.sleep(5)
+
             cogdb.schema.drop_tables(all=False)
             self.scanner.scan(session)
             self.scanner_um.scan(session)
-            response = 'Scan finished. The database is current.'
+
+            self.deny_commands = False
+            response = 'Update finished. Commands now welcome.'
 
         elif args.subcmd == 'info':
-            if args.user:
-                members = message.channel.server.members
-                user = cogdb.query.fuzzy_find(args.user, members, obj_attr='display_name')
+            if message.mentions:
+                response = ''
+                for user in message.mentions:
+                    response += user_info(user) + '\n'
             else:
-                user = message.author
+                response = user_info(message.author)
+            message.channel = message.author  # Not for public
 
-            lines = [
-                '**' + user.display_name + '**',
-                '-' * (len(user.display_name) + 6),
-                'Username: {}#{}'.format(user.name, user.discriminator),
-                'ID: ' + user.id,
-                'Status: ' + str(user.status),
-                'Join Date: ' + str(user.joined_at),
-                'Roles: ' + str([str(role) for role in user.roles[1:]]),
-                'Highest Role: ' + str(user.top_role).replace('@', '@ '),
-            ]
-            response = '\n'.join(lines)
+        else:
+            try:
+                args.print_help()
+            except cog.exc.ArgumentHelpError as exc:
+                response = str(exc)
 
         await self.send_message(message.channel, response)
 

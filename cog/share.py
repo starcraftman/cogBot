@@ -84,7 +84,8 @@ def init_logging():
         os.makedirs(log_folder)
     except OSError:
         pass
-    print('LOGGING FOLDER:', log_folder)
+    print('Logging Folder:', log_folder)
+    print('Main Log File:', os.path.join(log_folder, 'info.log'))
 
     with open(rel_to_abs(get_config('paths', 'log_conf'))) as fin:
         log_conf = yaml.load(fin, Loader=Loader)
@@ -104,7 +105,14 @@ def make_parser(prefix):
     subs = parser.add_subparsers(title='subcommands',
                                  description='The subcommands of cog')
 
-    sub = subs.add_parser(prefix + 'admin', description='Admin only commands.')
+    desc = """Admin only commands. Examples:
+
+    {prefix}admin scan\n          Pull and parse the latest sheet information.
+    {prefix}admin halt\n          Shutdown this bot after short delay.
+    {prefix}admin dump\n          Dump the database to console to inspect.
+    {prefix}admin info @User\n          Information about the mentioned User, DMed to admin.
+    """.format(prefix=prefix)
+    sub = subs.add_parser(prefix + 'admin', description=desc, formatter_class=RawHelp)
     sub.set_defaults(cmd='admin')
     admin_subs = sub.add_subparsers(title='subcommands',
                                     description='Admin subcommands', dest='subcmd')
