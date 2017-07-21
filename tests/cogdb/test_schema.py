@@ -3,15 +3,13 @@ Test the schema for the database.
 """
 from __future__ import absolute_import, print_function
 import copy
-import datetime
 
-import mock
 import pytest
 
 import cog.exc
 import cogdb
 import cogdb.schema
-from cogdb.schema import (DUser, System, Drop, Hold, Command,
+from cogdb.schema import (DUser, System, Drop, Hold,
                           SheetRow, SheetCattle, SheetUM,
                           SystemUM, UMControl, UMExpand, UMOppose,
                           EFaction, ESheetType, kwargs_um_system, kwargs_fort_system)
@@ -400,22 +398,22 @@ def test_kwargs_system_um():
         'map_offset': 76548,
     }
     sys_cols = copy.deepcopy(SYSTEMUM_EXPAND)
-    assert cogdb.schema.kwargs_um_system(sys_cols, 'D') == expect
+    assert kwargs_um_system(sys_cols, 'D') == expect
 
     sys_cols[0][0] = 'Opp.'
     expect['cls'] = UMOppose
-    assert cogdb.schema.kwargs_um_system(sys_cols, 'D') == expect
+    assert kwargs_um_system(sys_cols, 'D') == expect
 
     sys_cols[0][0] = ''
     expect['cls'] = UMControl
-    assert cogdb.schema.kwargs_um_system(sys_cols, 'D') == expect
+    assert kwargs_um_system(sys_cols, 'D') == expect
 
     expect['map_offset'] = 0
     sys_cols[0] = sys_cols[0][:-1]
-    assert cogdb.schema.kwargs_um_system(sys_cols, 'D') == expect
+    assert kwargs_um_system(sys_cols, 'D') == expect
 
     with pytest.raises(cog.exc.SheetParsingError):
-        cogdb.schema.kwargs_um_system([], 'D')
+        kwargs_um_system([], 'D')
 
 
 def test_kwargs_fort_system():
@@ -430,16 +428,16 @@ def test_kwargs_fort_system():
         'um_status': 0,
         'undermine': 0.0,
     }
-    assert cogdb.schema.kwargs_fort_system(SYSTEMS_DATA[0], 1, 'F') == expect
+    assert kwargs_fort_system(SYSTEMS_DATA[0], 1, 'F') == expect
 
     with pytest.raises(cog.exc.SheetParsingError):
-        cogdb.schema.kwargs_fort_system(['' for _ in range(0, 10)], 1, 'A')
+        kwargs_fort_system(['' for _ in range(0, 10)], 1, 'A')
 
     with pytest.raises(cog.exc.SheetParsingError):
-        cogdb.schema.kwargs_fort_system([], 1, 'A')
+        kwargs_fort_system([], 1, 'A')
 
     with pytest.raises(cog.exc.SheetParsingError):
-        cogdb.schema.kwargs_fort_system(SYSTEMS_DATA[0][:-2], 1, 'A')
+        kwargs_fort_system(SYSTEMS_DATA[0][:-2], 1, 'A')
 
 
 def test_parse_int():

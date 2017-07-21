@@ -48,7 +48,7 @@ class DUser(Base):
     """
     __tablename__ = 'discord_users'
 
-    id = sqla.Column(sqla.String, primary_key=True, autoincrement=False)  # Discord id
+    id = sqla.Column(sqla.String, primary_key=True)  # Discord id
     display_name = sqla.Column(sqla.String)
     pref_name = sqla.Column(sqla.String, unique=True)  # pref_name == display_name until change
     pref_cry = sqla.Column(sqla.String, default='')
@@ -67,6 +67,7 @@ class DUser(Base):
         return isinstance(other, DUser) and self.id == other.id
 
     def switch_faction(self, new_faction=None):
+        """ Switch current user faction """
         if not new_faction:
             new_faction = EFaction.hudson if self.faction == EFaction.winters else EFaction.winters
         self.faction = new_faction
@@ -203,6 +204,9 @@ class Drop(Base):
 
 
 class Hold(Base):
+    """
+    Represents a user's held and redeemed merits within an undermining system.
+    """
     __tablename__ = 'um_merits'
 
     id = sqla.Column(sqla.Integer, primary_key=True)
@@ -675,6 +679,7 @@ def kwargs_fort_system(lines, order, column):
 
 
 def parse_int(word):
+    """ Parse into int, on failure return 0 """
     try:
         return int(word)
     except ValueError:
@@ -682,6 +687,7 @@ def parse_int(word):
 
 
 def parse_float(word):
+    """ Parse into float, on failure return 0.0 """
     try:
         return float(word)
     except ValueError:
@@ -804,6 +810,7 @@ def main():  # pragma: no cover
     session.commit()
 
     def mprint(*args):
+        """ Padded print. """
         args = [str(x) for x in args]
         print(*args)
 

@@ -87,10 +87,12 @@ class CogBot(discord.Client):
 
     # Events hooked by bot.
     async def on_member_join(self, member):
+        """ Called when member joins server (login). """
         log = logging.getLogger('cog.bot')
         log.info('Member has joined: ' + member.display_name)
 
     async def on_member_leave(self, member):
+        """ Called when member leaves server (logout). """
         log = logging.getLogger('cog.bot')
         log.info('Member has left: ' + member.display_name)
 
@@ -105,6 +107,25 @@ class CogBot(discord.Client):
             log.info('  "%s" with id %s', server.name, server.id)
         print('GBot Ready!')
         self.deny_commands = False
+
+    def ignore_message(self, message):
+        """
+        Determine whether the message should be ignored.
+
+        Ignore messages not directed at bot and any commands that aren't
+        from an admin during deny_commands == True.
+        """
+        ignore = False
+
+        # Ignore lines not directed at bot
+        if message.author.bot or not message.content.startswith(self.prefix):
+            ignore = True
+
+        # Accept only admin commands if denying
+        if self.deny_commands and not message.content.startswith('{}admin'.format(self.prefix)):
+            ignore = True
+
+        return ignore
 
     async def on_message(self, message):
         """
@@ -127,12 +148,7 @@ class CogBot(discord.Client):
         channel = message.channel
         response = ''
 
-        # Ignore lines not directed at bot
-        if author.bot or not msg.startswith(self.prefix):
-            return
-
-        # Accept only admin commands if denying
-        if self.deny_commands and not msg.startswith('{}admin'.format(self.prefix)):
+        if self.ignore_message(message):
             return
 
         log = logging.getLogger('cog.bot')
@@ -146,12 +162,14 @@ class CogBot(discord.Client):
             msg = re.sub(r'<@\w+>', '', msg).strip()
             args = parser.parse_args(msg.split(' '))
             await self.dispatch_command(message=message, args=args, session=session)
+
         except (cog.exc.NoMatch, cog.exc.MoreThanOneMatch) as exc:
             log.error("Loose cmd failed to match excatly one. '%s' | %s", author.name, msg)
             log.error(exc)
             response = 'Check command arguments ...\n' + str(exc)
             await self.send_ttl_message(channel, response)
             asyncio.ensure_future(self.delete_message(message))
+
         except cog.exc.ArgumentParseError as exc:
             log.exception("Failed to parse command. '%s' | %s", author.name, msg)
             if 'invalid choice' in exc.message:
@@ -164,22 +182,16 @@ class CogBot(discord.Client):
                     response += '\n{}\n{}'.format(len(response) * '-', exc.message)
             await self.send_ttl_message(channel, response)
             asyncio.ensure_future(self.delete_message(message))
+
         except cog.exc.ArgumentHelpError as exc:
             log.info("User requested help. '%s' | %s", author.name, msg)
             await self.send_ttl_message(channel, exc.message)
             asyncio.ensure_future(self.delete_message(message))
+
         except cog.exc.InvalidCommandArgs as exc:
             log.info('Invalid combination of arguments. %s | %s', author.name, msg)
             await self.send_ttl_message(channel, str(exc))
             asyncio.ensure_future(self.delete_message(message))
-
-    async def bot_shutdown(self):
-        """
-        Shutdown the bot. Not ideal, I should reconsider later.
-        """
-        await asyncio.sleep(1)
-        await self.logout()
-        sys.exit(0)
 
     def fix_emoji(self, content):
         """
@@ -202,22 +214,23 @@ class CogBot(discord.Client):
 
         return content
 
-    async def send_ttl_message(self, channel, content, *, time=30):
+    async def send_ttl_message(self, destination, content, **kwargs):
         """
-        Send a message to channel and delete it after time seconds.
-        Any messages passed in as extra list will also be deleted.
+        Behaves excactly like Client.send_message except:
+            After sending message wait 'ttl' seconds then delete message.
 
-        Args:
-            channel: A valid server channel.
-            content: The message to send.
-            time: The TTL before deletion.
-            extra: Additional messages to delete at same time.
+        Extra Kwargs:
+            ttl: The time message lives before deletion (default 30s)
         """
-        content += '\nThis message will be deleted in {} seconds.'.format(time)
-        message = await self.send_message(channel, content)
+        try:
+            ttl = kwargs.pop('ttl')
+        except KeyError:
+            ttl = 30
 
-        await asyncio.sleep(time)
+        content += '\nThis message will be deleted in {} seconds.'.format(ttl)
+        message = await self.send_message(destination, content, **kwargs)
 
+        await asyncio.sleep(ttl)
         asyncio.ensure_future(self.delete_message(message))
 
     # Commands beyond here
@@ -252,6 +265,14 @@ class CogBot(discord.Client):
         response = over + cog.tbl.wrap_markdown(cog.tbl.format_table(lines, header=True))
         await self.send_ttl_message(message.channel, response)
         asyncio.ensure_future(self.delete_message(message))
+
+    async def bot_shutdown(self):
+        """
+        Shutdown the bot. Not ideal, I should reconsider later.
+        """
+        await asyncio.sleep(1)
+        await self.logout()
+        sys.exit(0)
 
     async def command_admin(self, **kwargs):
         """
