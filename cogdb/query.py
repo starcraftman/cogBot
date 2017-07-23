@@ -40,6 +40,20 @@ def subseq_match(needle, line, ignore_case=True):
     return matches == len(needle)
 
 
+def substr_match(needle, line, ignore_case=True):
+    """
+    True iff the substr is present in string. Ignore spaces and optionally case.
+    """
+    needle = needle.replace(' ', '')
+    line = line.replace(' ', '')
+
+    if ignore_case:
+        needle = needle.lower()
+        line = line.lower()
+
+    return needle in line
+
+
 def fuzzy_find(needle, stack, obj_attr='zzzz', ignore_case=True):
     """
     Searches for needle in whole stack and gathers matches. Returns match if only 1.
@@ -49,7 +63,7 @@ def fuzzy_find(needle, stack, obj_attr='zzzz', ignore_case=True):
     matches = []
     for obj in stack:
         try:
-            if subseq_match(needle, getattr(obj, obj_attr, obj), ignore_case):
+            if substr_match(needle, getattr(obj, obj_attr, obj), ignore_case):
                 matches.append(obj)
         except cog.exc.NoMatch:
             pass

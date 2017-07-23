@@ -40,6 +40,15 @@ class MissingConfigFile(Exception):
     pass
 
 
+def emphasize_match(seq, line, fmt='__{}__'):
+    """
+    Emphasize the matched portion of string.
+    """
+    start = line.lower().index(seq)
+    matched = line[start:start + len(seq)]
+    return line.replace(matched, fmt.format(matched))
+
+
 class MoreThanOneMatch(Exception):
     """
     Too many matches were found for sequence.
@@ -54,7 +63,8 @@ class MoreThanOneMatch(Exception):
         header = "Resubmit query with more specific criteria."
         header += "\nToo many matches for '{}' in {}s:".format(
             self.sequence, self.matches[0].__class__.__name__)
-        matched_strings = [getattr(obj, self.obj_attr) for obj in self.matches]
+        matched_strings = [emphasize_match(self.sequence, getattr(obj, self.obj_attr))
+                           for obj in self.matches]
         matched = "\n    - " + "\n    - ".join(matched_strings)
         return header + matched
 

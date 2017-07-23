@@ -29,19 +29,33 @@ def test_subseq_match():
     assert cogdb.query.subseq_match('ALEr', 'Alexander')
 
     with pytest.raises(cog.exc.NoMatch):
-        assert cogdb.query.subseq_match('ALEr', 'Alexander', ignore_case=False)
+        cogdb.query.subseq_match('ALEr', 'Alexander', ignore_case=False)
+
+
+def test_substr_match():
+    assert cogdb.query.substr_match('ale', 'alex')
+
+    assert not cogdb.query.substr_match('not', 'alex')
+
+    assert not cogdb.query.substr_match('longneedle', 'alex')
+
+    assert cogdb.query.substr_match('ALEX', 'Alexander')
+    assert cogdb.query.substr_match('nde', 'Alexander')
+
+    assert not cogdb.query.substr_match('ALe', 'Alexander', ignore_case=False)
 
 
 def test_fuzzy_find():
     assert cogdb.query.fuzzy_find('Alex', USERS) == 'Alexander Astropath'
+    print(SYSTEMS)
     with pytest.raises(cog.exc.MoreThanOneMatch):
-        assert cogdb.query.fuzzy_find('Aa', USERS)
+        cogdb.query.fuzzy_find('ric', USERS)
     with pytest.raises(cog.exc.NoMatch):
-        assert cogdb.query.fuzzy_find('zzzz', SYSTEMS)
+        cogdb.query.fuzzy_find('zzzz', SYSTEMS)
 
     assert cogdb.query.fuzzy_find('WW p', SYSTEMS) == 'WW Piscis Austrini'
     with pytest.raises(cog.exc.MoreThanOneMatch):
-        assert cogdb.query.fuzzy_find('tu', SYSTEMS) == 'Tun'
+        cogdb.query.fuzzy_find('LHS', SYSTEMS)
     assert cogdb.query.fuzzy_find('tun', SYSTEMS) == 'Tun'
 
 
