@@ -47,7 +47,7 @@ def test_substr_match():
 
 def test_fuzzy_find():
     assert cogdb.query.fuzzy_find('Alex', USERS) == 'Alexander Astropath'
-    print(SYSTEMS)
+
     with pytest.raises(cog.exc.MoreThanOneMatch):
         cogdb.query.fuzzy_find('ric', USERS)
     with pytest.raises(cog.exc.NoMatch):

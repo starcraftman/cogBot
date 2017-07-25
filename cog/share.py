@@ -124,19 +124,14 @@ def make_parser(prefix):
     admin_sub = admin_subs.add_parser('info', help='Get info about discord users.')
     admin_sub.add_argument('user', nargs='?', help='The user to get info on.')
 
-    desc = """File a bug report. Example:
-
-    {prefix}bug Explain what went wrong ...\n          File a bug report. Do not spam!
-    """.format(prefix=prefix)
-    sub = subs.add_parser(prefix + 'bug', description=desc, formatter_class=RawHelp)
-    sub.set_defaults(cmd='bug')
-    sub.add_argument('content', nargs='+', help='The bug description.')
-
-    desc = """Update the cattle sheet when you drop at a system. Examples:
+    desc = """Update the cattle sheet when you drop at a system.
+    Amount dropped must be in range [-800, 800]
+    Examples:
 
     {prefix}drop 600\n           Drop 600 supplies for yourself at the current fortification target.
     {prefix}drop 600 @Shepron\n           Drop 600 supplies for Shepron at the current fortification target.
     {prefix}drop 600 Othime\n           Drop 600 supplies for yourself at Othime.
+    {prefix}drop -50 Othime\n           Made a mistake? Subract 50 forts from your drops at Othime.
     {prefix}drop 600 Othime @rjwhite\n           Drop 600 supplies for rjwhite Othime.
     {prefix}drop 600 lala\n           Drop 600 supplies for yourself at Lalande 39866, search used when name is not exact.
     {prefix}drop 600 Othime --set 4560:2000\n           Drop 600 supplies at Othime for yourself, set fort status to 4500 and UM status to 2000.
@@ -185,6 +180,14 @@ def make_parser(prefix):
     sub.add_argument('--redeem', action='store_true', help='Redeem all held merits.')
     sub.add_argument('--died', action='store_true', help='Zero out held merits.')
     sub.add_argument('--set', help='Update the galmap progress us:them. Example: --set 3500:200')
+
+    desc = """Give feedback or report a bug. Example:
+
+    {prefix}bug Explain what went wrong ...\n          File a bug report or give feedback.
+    """.format(prefix=prefix)
+    sub = subs.add_parser(prefix + 'feedback', description=desc, formatter_class=RawHelp)
+    sub.set_defaults(cmd='feedback')
+    sub.add_argument('content', nargs='+', help='The bug description or feedback.')
 
     sub = subs.add_parser(prefix + 'status', description='Info about this bot.')
     sub.set_defaults(cmd='status')

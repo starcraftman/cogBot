@@ -297,18 +297,24 @@ def fort_add_drop(session, **kwargs):
     Kwargs: system, user, amount
 
     Returns: The Drop object.
+
+    Raises:
+        InvalidCommandArgs: User requested an amount outside bounds [-800, 800]
     """
     system = kwargs['system']
     user = kwargs['user']
     amount = kwargs['amount']
 
+    if amount not in range(-800, 801):
+        raise cog.exc.InvalidCommandArgs('Drop amount must be in range [-800, 800]')
+
     try:
         drop = session.query(Drop).filter_by(user_id=user.id, system_id=system.id).one()
-        drop.amount = drop.amount + amount
     except sqa_exc.NoResultFound:
-        drop = Drop(user_id=user.id, system_id=system.id, amount=amount)
+        drop = Drop(user_id=user.id, system_id=system.id, amount=0)
         session.add(drop)
 
+    drop.amount = max(0, drop.amount + amount)
     system.fort_status = system.fort_status + amount
     session.commit()
 
@@ -732,18 +738,25 @@ def um_add_hold(session, **kwargs):
     If Hold exists, increment the held value. Otherwise add it to database.
 
     Returns: The Hold object.
+
+    Raises:
+        InvalidCommandArgs: Hold cannot be negative.
     """
     system = kwargs['system']
     user = kwargs['user']
     held = kwargs['held']
 
+    if held < 0:
+        raise cog.exc.InvalidCommandArgs('Hold amount must be in range [0, \u221E]')
+
     try:
         hold = session.query(Hold).filter_by(user_id=user.id,
                                              system_id=system.id).one()
-        hold.held = held
     except sqa_exc.NoResultFound:
-        hold = Hold(user_id=user.id, system_id=system.id, held=held, redeemed=0)
+        hold = Hold(user_id=user.id, system_id=system.id, held=0, redeemed=0)
         session.add(hold)
+
+    hold.held = held
     session.commit()
 
     return hold

@@ -82,10 +82,10 @@ def format_line(entries, sep=' | ', pads=None, center=False):
     line = ''
     align = '^' if center else ''
 
-    if pads is None:
-        pads = [align for ent in entries]
-    else:
+    if pads:
         pads = [align + str(pad) for pad in pads]
+    else:
+        pads = [align for ent in entries]
 
     ents = []
     for ind, ent in enumerate(entries):

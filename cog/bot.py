@@ -189,7 +189,7 @@ class CogBot(discord.Client):
             asyncio.ensure_future(self.delete_message(message))
 
         except cog.exc.InvalidCommandArgs as exc:
-            log.info('Invalid combination of arguments. %s | %s', author.name, msg)
+            log.info('Invalid combination of arguments or values. %s | %s', author.name, msg)
             await self.send_ttl_message(channel, str(exc))
             asyncio.ensure_future(self.delete_message(message))
 
@@ -225,7 +225,7 @@ class CogBot(discord.Client):
         try:
             ttl = kwargs.pop('ttl')
         except KeyError:
-            ttl = 30
+            ttl = cog.share.get_config('ttl')
 
         content += '\nThis message will be deleted in {} seconds.'.format(ttl)
         message = await self.send_message(destination, content, **kwargs)
@@ -245,24 +245,29 @@ class CogBot(discord.Client):
         Provide an overview of help.
         """
         message = kwargs.get('message')
-        over = 'Here is an overview of my commands.\n\nFor more information do: `{}Command -h`\n'.format(self.prefix)
-        over += '       Example: `{}drop -h`\n'.format(self.prefix)
+        over = [
+            'Here is an overview of my commands.',
+            '',
+            'For more information do: `{}Command -h`'.format(self.prefix),
+            '       Example: `{}drop -h`'.format(self.prefix),
+            '',
+        ]
         lines = [
             ['Command', 'Effect'],
             ['{prefix}admin', 'Admin commands.'],
-            ['{prefix}bug', 'Report a bug.'],
             ['{prefix}drop', 'Drop forts into the fort sheet.'],
+            ['{prefix}feedback', 'Give feedback or report a bug.'],
             ['{prefix}fort', 'Get information about our fort systems.'],
             ['{prefix}hold', 'Declare held merits or redeem them.'],
+            ['{prefix}status', 'Info about this bot.'],
             ['{prefix}time', 'Show game time and time to ticks.'],
             ['{prefix}um', 'Get information about undermining targets.'],
             ['{prefix}user', 'Manage your user, set sheet name and tag.'],
-            ['{prefix}status', 'Info about this bot.'],
             ['{prefix}help', 'This help message.'],
         ]
         lines = [[line[0].format(prefix=self.prefix), line[1]] for line in lines]
 
-        response = over + cog.tbl.wrap_markdown(cog.tbl.format_table(lines, header=True))
+        response = '\n'.join(over) + cog.tbl.wrap_markdown(cog.tbl.format_table(lines, header=True))
         await self.send_ttl_message(message.channel, response)
         asyncio.ensure_future(self.delete_message(message))
 
@@ -333,33 +338,6 @@ class CogBot(discord.Client):
         if response:
             await self.send_message(message.channel, response)
 
-    async def command_bug(self, **kwargs):
-        """
-        Send bug reports to Gears' Hideout -> reports channel.
-        """
-        args = kwargs.get('args')
-        message = kwargs.get('message')
-        lines = [
-            ['Server', message.server.name],
-            ['Channel', message.channel.name],
-            ['Author', message.author.name],
-            ['Time (UTC)', date.datetime.utcnow()],
-        ]
-        response = cog.tbl.wrap_markdown(cog.tbl.format_table(lines)) + '\n\n'
-        response += '__Bug Report Follows__\n\n' + ' '.join(args.content)
-
-        home = None
-        for server in self.servers:
-            if server.name == "Gears' Hideout":
-                home = server
-                break
-        for channel in home.channels:
-            if channel.name == 'reports':
-                home = channel
-                break
-
-        await self.send_message(home, response)
-
     async def command_drop(self, **kwargs):
         """
         Drop forts at the fortification target.
@@ -404,6 +382,7 @@ class CogBot(discord.Client):
 
         drop = cogdb.query.fort_add_drop(session, system=system,
                                          user=duser.cattle, amount=args.amount)
+
         if args.set:
             system.set_status(args.set)
             asyncio.ensure_future(self.scanner.update_system(drop.system))
@@ -530,6 +509,24 @@ class CogBot(discord.Client):
         for hold in holds:
             asyncio.ensure_future(self.scanner_um.update_hold(hold))
         await self.send_message(message.channel, response)
+
+    async def command_feedback(self, **kwargs):
+        """
+        Send bug reports to Gears' Hideout -> reports channel.
+        """
+        args = kwargs.get('args')
+        message = kwargs.get('message')
+        lines = [
+            ['Server', message.server.name],
+            ['Channel', message.channel.name],
+            ['Author', message.author.name],
+            ['Time (UTC)', date.datetime.utcnow()],
+        ]
+        response = cog.tbl.wrap_markdown(cog.tbl.format_table(lines)) + '\n\n'
+        response += '__Bug Report Follows__\n\n' + ' '.join(args.content)
+
+        report_channel = self.get_channel(cog.share.get_config('channels', 'reports'))
+        await self.send_message(report_channel, response)
 
     async def command_status(self, **kwargs):
         """

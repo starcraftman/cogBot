@@ -359,6 +359,10 @@ class System(Base):
         Raises: ValueError
         """
         for val, attr in zip(new_status.split(':'), ['fort_status', 'um_status']):
+            new_val = int(val)
+            if new_val < 0:
+                raise cog.exc.InvalidCommandArgs('New fort/um status must be in range: [0, \u221E]')
+
             setattr(self, attr, int(val))
 
     def short_display(self, missing=True):
@@ -487,8 +491,15 @@ class SystemUM(Base):
         """
         vals = new_status.split(':')
         if len(vals) == 2:
-            self.progress_them = float(vals[1]) / 100
-        self.progress_us = int(vals[0])
+            new_them = float(vals[1]) / 100
+            if new_them < 0:
+                raise cog.exc.InvalidCommandArgs('New "progress them" must be a % in range: [0, \u221E]')
+            self.progress_them = new_them
+
+        new_us = int(vals[0])
+        if new_us < 0:
+            raise cog.exc.InvalidCommandArgs('New "progress us" must be a number merits in range: [0, \u221E]')
+        self.progress_us = new_us
 
     @property
     def completion(self):
