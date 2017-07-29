@@ -17,9 +17,11 @@ This bot requires python >= 3.5. I suggest using pyenv to provide python and iso
 - pyenv local 3.5.3 (in project root)
 
 Now to setup dependent python libraries.
-- sudo apt-get install python3-dev libffi-dev
+- sudo apt-get install python3-dev libffi-dev libczmq-dev libczmq3
 - pip install wheel setuptools
 - python setup.py deps
+
+NB: libczqm3 may not be available on some systems. Not to be confused with similarly named zmq kernel messaging.
 
 ### Dependencies
 

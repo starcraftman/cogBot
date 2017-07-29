@@ -264,7 +264,7 @@ SHORT_DESC = 'The Elite Federal Discord Bot'
 MY_NAME = 'Jeremy Pallats / starcraft.man'
 MY_EMAIL = 'N/A'
 RUN_DEPS = ['argparse', 'decorator', 'discord.py', 'google-api-python-client',
-            'pyyaml', 'SQLalchemy', 'uvloop']
+            'pyyaml', 'pyzmq', 'SQLalchemy', 'uvloop']
 TEST_DEPS = ['coverage', 'flake8', 'mock', 'pylint', 'pytest', 'pytest-cov', 'sphinx', 'tox']
 setup(
     name='cogbot',
