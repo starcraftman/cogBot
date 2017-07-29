@@ -20,6 +20,7 @@ import pickle
 import re
 import sys
 import tempfile
+import time
 
 import discord
 try:
@@ -83,6 +84,7 @@ class CogBot(discord.Client):
         self.scanner_um = kwargs.get('scanner_um')
         self.deny_commands = True
         self.uptime_file = tempfile.NamedTemporaryFile()
+        self.last_cmd = time.time()
         write_start_time(self.uptime_file.name)
 
     # Events hooked by bot.
@@ -238,7 +240,17 @@ class CogBot(discord.Client):
         """
         Simply inspect class and dispatch command. Guaranteed to be valid.
         """
-        await getattr(self, 'command_' + kwargs.get('args').cmd)(**kwargs)
+        # FIXME: Hack due to users editting sheet.
+        last_cmd = self.last_cmd
+        self.last_cmd = time.time()
+        if (time.time() - last_cmd) > 60.0 * 5:
+            message = kwargs.get('message')
+            asyncio.ensure_future(self.send_message(message.channel,
+                'Bot has been inactive 5+ mins. Resubmit after update.'))
+            message.content = '!admin scan'
+            await self.on_message(message)
+        else:
+            await getattr(self, 'command_' + kwargs.get('args').cmd)(**kwargs)
 
     async def command_help(self, **kwargs):
         """
@@ -299,8 +311,7 @@ class CogBot(discord.Client):
 
         if args.subcmd == 'deny':
             self.deny_commands = not self.deny_commands
-            response = 'Command processing: **{}abled**'.format('Dis' if self.deny_commands
-                                                                else 'En')
+            response = 'Commands: **{}abled**'.format('Dis' if self.deny_commands else 'En')
 
         elif args.subcmd == 'dump':
             cogdb.query.dump_db()
@@ -309,14 +320,15 @@ class CogBot(discord.Client):
         elif args.subcmd == 'halt':
             self.deny_commands = True
             asyncio.ensure_future(self.send_message(message.channel,
-                                                    'Shutdown in 40s. No more commands accepted.'))
+                                                    'Shutdown in 40s. Commands: **Disabled**'))
             await asyncio.sleep(40)
             asyncio.ensure_future(self.bot_shutdown())
             response = 'Goodbye!'
 
         elif args.subcmd == 'scan':
-            await self.send_message(message.channel, 'Updating database. Hold commands please.')
             self.deny_commands = True
+            asyncio.ensure_future(self.send_message(message.channel,
+                                                    'Updating database. Commands: **Disabled**'))
             await asyncio.sleep(2)
 
             cogdb.schema.drop_tables(all=False)
@@ -324,7 +336,7 @@ class CogBot(discord.Client):
             self.scanner_um.scan(session)
 
             self.deny_commands = False
-            response = 'Update finished. Commands now welcome.'
+            response = 'Update finished. Commands: **Enabled**'
 
         elif args.subcmd == 'info':
             if message.mentions:
@@ -397,6 +409,25 @@ class CogBot(discord.Client):
             new_target = cogdb.query.fort_get_targets(session)[0]
             response += '\n\n__Next Fort Target__:\n' + new_target.short_display()
         await self.send_message(message.channel, self.fix_emoji(response))
+
+    async def command_feedback(self, **kwargs):
+        """
+        Send bug reports to Gears' Hideout -> reports channel.
+        """
+        args = kwargs.get('args')
+        message = kwargs.get('message')
+        lines = [
+            ['Server', message.server.name],
+            ['Channel', message.channel.name],
+            ['Author', message.author.name],
+            ['Time (UTC)', date.datetime.utcnow()],
+        ]
+        response = cog.tbl.wrap_markdown(cog.tbl.format_table(lines)) + '\n\n'
+        response += '__Bug Report Follows__\n\n' + ' '.join(args.content)
+
+        server = discord.utils.get(self.servers, name="Gears' Hideout")
+        channel = discord.utils.get(server.channels, name="feedback")
+        await self.send_message(report_channel, response)
 
     async def command_fort(self, **kwargs):
         """
@@ -509,24 +540,6 @@ class CogBot(discord.Client):
         for hold in holds:
             asyncio.ensure_future(self.scanner_um.update_hold(hold))
         await self.send_message(message.channel, response)
-
-    async def command_feedback(self, **kwargs):
-        """
-        Send bug reports to Gears' Hideout -> reports channel.
-        """
-        args = kwargs.get('args')
-        message = kwargs.get('message')
-        lines = [
-            ['Server', message.server.name],
-            ['Channel', message.channel.name],
-            ['Author', message.author.name],
-            ['Time (UTC)', date.datetime.utcnow()],
-        ]
-        response = cog.tbl.wrap_markdown(cog.tbl.format_table(lines)) + '\n\n'
-        response += '__Bug Report Follows__\n\n' + ' '.join(args.content)
-
-        report_channel = self.get_channel(cog.share.get_config('channels', 'reports'))
-        await self.send_message(report_channel, response)
 
     async def command_status(self, **kwargs):
         """
