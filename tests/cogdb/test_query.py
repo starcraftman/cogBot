@@ -156,9 +156,10 @@ def test_fort_get_systems_by_state(session, f_systems):
 
     systems = cogdb.query.fort_get_systems_by_state(session)
     assert [sys.name for sys in systems['cancelled']] == ["Nurundere"]
-    assert [sys.name for sys in systems['fortified']] == ["Frey"]
-    assert [sys.name for sys in systems['left']] == ["LHS 3749", "Sol", "Alpha Fornacis", "Othime"]
-    assert [sys.name for sys in systems['undermined']] == ["Dongkum"]
+    assert [sys.name for sys in systems['fortified']] == ["Frey", "Nurundere"]
+    assert [sys.name for sys in systems['left']] == ["LHS 3749", "Dongkum",
+                                                     "Alpha Fornacis", "Othime"]
+    assert [sys.name for sys in systems['undermined']] == ["Nurundere", "Dongkum"]
     assert [sys.name for sys in systems['skipped']] == ['Sol']
 
 

@@ -156,18 +156,18 @@ def test_system__repr__(f_systems):
 def test_system__str__(f_systems):
     system = f_systems[0]
 
-    assert str(system) == "id=1, System(name='Frey', fort_status=4910, "\
+    assert str(system) == "id=1, cmdr_merits=0, System(name='Frey', fort_status=4910, "\
                           "trigger=4910, um_status=0, undermine=0.0, distance=116.99, "\
                           "notes='', sheet_col='F', sheet_order=1)"
 
 
-def test_system_short_display(f_systems):
+def test_system_display(f_systems):
     system = f_systems[0]
-    assert system.short_display() == 'Fort: **Frey** 4910/4910 :Fortified:'
+    assert system.display() == 'Fort: **Frey** 4910/4910 :Fortified:'
 
     system.fort_status = 4000
-    assert system.short_display() == 'Fort: **Frey** 4000/4910 :Fortifying:\n        Missing: 910\n'
-    assert system.short_display(missing=False) == 'Fort: **Frey** 4000/4910 :Fortifying:'
+    assert system.display() == 'Fort: **Frey** 4000/4910 :Fortifying:\n        Missing: 910\n'
+    assert system.display(missing=False) == 'Fort: **Frey** 4000/4910 :Fortifying:'
 
 
 def test_system_set_status(f_systems):
@@ -242,9 +242,9 @@ def test_system_table_row(f_systems):
     assert system.table_row == ('Fort', 'Frey', '   0', '4910/4910 (100.0%/0.0%)', 'Leave')
 
 
-def test_prepsystem_short_dispay(f_prepsystem):
-    assert f_prepsystem.short_display() == "Prep: **Muncheim** 5100/10000 :Fortifying: "\
-                                           "Nearest Control: Atropos"
+def test_prepsystem_dispay(f_prepsystem):
+    assert f_prepsystem.display() == "Prep: **Muncheim** 5100/10000 :Fortifying: "\
+                                     "Atropos"
 
 
 def test_prepsystem_is_fortified(f_prepsystem):
@@ -308,8 +308,20 @@ def test_systemum__repr__(f_dusers, f_sheets, f_systemsum, f_holds):
 def test_systemum__str__(f_dusers, f_sheets, f_systemsum, f_holds):
     system = f_systemsum[0]
 
-    assert str(system) == "Control: **Cemplangpa**, Security: Medium, Nearest Control: Sol\n"\
-                          "        Completion: 101%, Missing: -122\n"
+    assert str(system) == "id=1, cmdr_merits=6450, SystemUM(name='Cemplangpa', "\
+                          "type='control', sheet_col='D', "\
+                          "goal=14878, security='Medium', notes='', "\
+                          "progress_us=15000, progress_them=1.0, "\
+                          "close_control='Sol', map_offset=1380)"
+    assert system == eval(repr(system))
+
+
+def test_systemum_display(f_dusers, f_sheets, f_systemsum, f_holds):
+    system = f_systemsum[0]
+
+    assert system.display() == \
+        "Control: **Cemplangpa**, Security: Medium, Hudson Control: Sol\n"\
+        "        Completion: 101%, Missing: -122\n"
 
 
 def test_systemum__eq__(f_dusers, f_sheets, f_systemsum, f_holds):

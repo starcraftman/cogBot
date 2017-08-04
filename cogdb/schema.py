@@ -284,7 +284,7 @@ class System(Base):
         return "System({})".format(', '.join(kwargs))
 
     def __str__(self):
-        return "id={!r}, {!r}".format(self.id, self)
+        return "id={!r}, cmdr_merits={!r}, {!r}".format(self.id, self.cmdr_merits, self)
 
     def __eq__(self, other):
         return isinstance(other, System) and self.name == other.name
@@ -365,7 +365,7 @@ class System(Base):
 
             setattr(self, attr, int(val))
 
-    def short_display(self, missing=True):
+    def display(self, missing=True):
         """
         Return a useful short representation of System.
         """
@@ -393,13 +393,13 @@ class PrepSystem(System):
         """ Prep systems never get finished. """
         return False
 
-    def short_display(self, missing=True):
+    def display(self, missing=True):
         """
         Return a useful short representation of PrepSystem.
         """
         msg = 'Prep: **{}** {:>4}/{} :Fortifying:{}'.format(
             self.name, self.current_status, self.trigger,
-            ' Nearest Control: ' + self.notes if self.notes else '')
+            ' ' + self.notes if self.notes else '')
 
         return msg
 
@@ -443,12 +443,17 @@ class SystemUM(Base):
 
     def __str__(self):
         """
+        Show additional computed properties.
+        """
+        return "id={!r}, cmdr_merits={!r}, {!r}".format(self.id, self.cmdr_merits, self)
+
+    def display(self):
+        """
         Format a simple summary for users.
         """
         lines = [
-            '{}: **{}**, Security: {}, Nearest Control: {}'.format(self.descriptor, self.name,
-                                                                   self.security,
-                                                                   self.close_control),
+            '{}: **{}**, Security: {}, Hudson Control: {}'.format(
+                self.descriptor, self.name, self.security, self.close_control),
             '        {}, Missing: {}'.format(self.completion, self.missing),
         ]
 

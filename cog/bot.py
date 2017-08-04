@@ -240,17 +240,20 @@ class CogBot(discord.Client):
         """
         Simply inspect class and dispatch command. Guaranteed to be valid.
         """
+        message = kwargs.get('message')
         # FIXME: Hack due to users editting sheet.
         last_cmd = self.last_cmd
         self.last_cmd = time.time()
         if (time.time() - last_cmd) > 60.0 * 5:
-            message = kwargs.get('message')
-            asyncio.ensure_future(self.send_message(message.channel,
-                'Bot has been inactive 5+ mins. Resubmit after update.'))
+            orig_content = message.conent
+            asyncio.ensure_future(self.send_message(
+                message.channel,
+                'Bot has been inactive 5+ mins. Command will execute after update.'))
             message.content = '!admin scan'
             await self.on_message(message)
-        else:
-            await getattr(self, 'command_' + kwargs.get('args').cmd)(**kwargs)
+            await self.send_message(message.channel,
+                                    'Now executing: ' + orig_content)
+        await getattr(self, 'command_' + kwargs.get('args').cmd)(**kwargs)
 
     async def command_help(self, **kwargs):
         """
@@ -301,13 +304,13 @@ class CogBot(discord.Client):
         response = ''
 
         # TODO: In real solution, check perms on dispatch or make decorator.
-        if message.author.id != '250266447794667520':
-            response = "I'm sorry, {}. I'm afraid I can't do that.".format(
-                message.author.display_name)
-            logging.getLogger('cog.bot').error('Unauthorized Access to !admin: %s %s',
-                                               message.author.id, message.author.display_name)
-            await self.send_message(message.channel, response)
-            return
+        # if message.author.id != '250266447794667520':
+            # response = "I'm sorry, {}. I'm afraid I can't do that.".format(
+                # message.author.display_name)
+            # logging.getLogger('cog.bot').error('Unauthorized Access to !admin: %s %s',
+                                               # message.author.id, message.author.display_name)
+            # await self.send_message(message.channel, response)
+            # return
 
         if args.subcmd == 'deny':
             self.deny_commands = not self.deny_commands
@@ -373,6 +376,8 @@ class CogBot(discord.Client):
 
         duser = cogdb.query.get_duser(session, message.author.id)
         if not duser.cattle:
+            log.info('DROP %s - Adding to cattle as %s.',
+                     duser.display_name, duser.pref_name)
             cogdb.query.add_sheet(session, duser.pref_name, cry=duser.pref_cry,
                                   type=cogdb.schema.ESheetType.cattle)
             asyncio.ensure_future(self.scanner.update_sheet_user(duser.cattle))
@@ -380,34 +385,37 @@ class CogBot(discord.Client):
             asyncio.ensure_future(self.send_message(message.channel,
                                                     notice.format(duser.pref_name)))
 
-        log.info('DROP %s - Matched duser with id %s.', duser.display_name, duser.id[:6])
+        log.info('DROP %s - Matched duser with id %s and sheet name %s.',
+                 duser.display_name, duser.id[:6], duser.cattle.name)
 
         if args.system:
             args.system = ' '.join(args.system)
             system = cogdb.query.fort_find_system(session, args.system)
-            log.info('DROP %s - Matched system %s from: %s.',
-                     duser.display_name, system.name, args.system)
+            log.info('DROP %s - Matched system %s from: \n%s.',
+                     duser.display_name, system.name, system)
         else:
             system = cogdb.query.fort_get_targets(session)[0]
-            log.info('DROP %s - Matched current target: %s.',
-                     duser.display_name, system.name)
+            log.info('DROP %s - Matched current target: \n%s.',
+                     duser.display_name, system)
 
         drop = cogdb.query.fort_add_drop(session, system=system,
                                          user=duser.cattle, amount=args.amount)
+        log.info('DROP %s - After drop, Drop: %s\nSystem: %s.',
+                 duser.display_name, drop, system)
 
         if args.set:
             system.set_status(args.set)
-            asyncio.ensure_future(self.scanner.update_system(drop.system))
         session.commit()
         asyncio.ensure_future(self.scanner.update_drop(drop))
+        asyncio.ensure_future(self.scanner.update_system(drop.system))
 
         log.info('DROP %s - Sucessfully dropped %d at %s.',
                  duser.display_name, args.amount, system.name)
 
-        response = drop.system.short_display()
+        response = drop.system.display()
         if drop.system.is_fortified:
             new_target = cogdb.query.fort_get_targets(session)[0]
-            response += '\n\n__Next Fort Target__:\n' + new_target.short_display()
+            response += '\n\n__Next Fort Target__:\n' + new_target.display()
         await self.send_message(message.channel, self.fix_emoji(response))
 
     async def command_feedback(self, **kwargs):
@@ -427,12 +435,13 @@ class CogBot(discord.Client):
 
         server = discord.utils.get(self.servers, name="Gears' Hideout")
         channel = discord.utils.get(server.channels, name="feedback")
-        await self.send_message(report_channel, response)
+        await self.send_message(channel, response)
 
     async def command_fort(self, **kwargs):
         """
         Provide information on and manage the fort sheet.
         """
+        log = logging.getLogger('cog.bot')
         args = kwargs.get('args')
         session = kwargs.get('session')
         systems = []
@@ -450,6 +459,11 @@ class CogBot(discord.Client):
 
         if args.summary:
             states = cogdb.query.fort_get_systems_by_state(session)
+            # FIXME: Excessive to fix
+            log.info("Fort Summary - Start")
+            for key in states:
+                log.info("Fort Summary - %s %s", key,
+                         str([system.name for system in states[key]]))
             total = len(cogdb.query.fort_get_systems(session))
 
             keys = ['cancelled', 'fortified', 'undermined', 'skipped', 'left']
@@ -463,13 +477,13 @@ class CogBot(discord.Client):
             system.set_status(args.set)
             session.commit()
             asyncio.ensure_future(self.scanner.update_system(system))
-            response = system.short_display(missing=False) + ', um: {}'.format(system.um_status)
+            response = system.display(missing=False)
         elif args.long:
             lines = [systems[0].__class__.header] + [system.table_row for system in systems]
             response = cog.tbl.wrap_markdown(cog.tbl.format_table(lines, sep='|', header=True))
         else:
             response = '__{} Fort Targets__\n\n'.format('Next' if args.nextn else 'Current')
-            lines = [system.short_display() for system in systems]
+            lines = [system.display() for system in systems]
             response += '\n'.join(lines)
 
         message = kwargs.get('message')
@@ -498,6 +512,8 @@ class CogBot(discord.Client):
 
         duser = cogdb.query.get_duser(session, message.author.id)
         if not duser.undermine:
+            log.info('HOLD %s - Adding to undermining as %s.',
+                     duser.display_name, duser.pref_name)
             cogdb.query.add_sheet(session, duser.pref_name, cry=duser.pref_cry,
                                   type=cogdb.schema.ESheetType.um)
             asyncio.ensure_future(self.scanner_um.update_sheet_user(duser.undermine))
@@ -505,7 +521,8 @@ class CogBot(discord.Client):
             asyncio.ensure_future(self.send_message(message.channel,
                                                     notice.format(duser.pref_name)))
 
-        log.info('HOLD %s - Matched duser with id %s.', duser.display_name, duser.id[:6])
+        log.info('HOLD %s - Matched duser with id %s and sheet name %s.',
+                 duser.display_name, duser.id[:6], duser.undermine.name)
 
         if args.died:
             holds = cogdb.query.um_reset_held(session, duser.undermine)
@@ -519,8 +536,8 @@ class CogBot(discord.Client):
 
         else:  # Default case, update the hold for a system
             system = cogdb.query.um_find_system(session, ' '.join(args.system))
-            log.info('HOLD %s - Matched system %s from: %s.',
-                     duser.display_name, system.name, args.system)
+            log.info('HOLD %s - Matched system name %s: \n%s.',
+                     duser.display_name, args.system, system)
             hold = cogdb.query.um_add_hold(session, system=system,
                                            user=duser.undermine, held=args.amount)
             holds = [hold]
@@ -529,12 +546,12 @@ class CogBot(discord.Client):
                 system.set_status(args.set)
                 asyncio.ensure_future(self.scanner_um.update_system(hold.system))
 
-            log.info('Hold %s - Update hold of  %d at %s.',
-                     duser.display_name, args.amount, system.name)
+            log.info('Hold %s - After update, hold: %s\nSystem: %s.',
+                     duser.display_name, hold, system)
 
-            response = str(hold.system)
+            response = hold.system.display()
             if hold.system.is_undermined:
-                response += '\nSystem undermined with held merits. See `!um` for more targets.'
+                response += '\n\nSystem is finished with held merits. Type `!um` for more targets.'
 
         session.commit()
         for hold in holds:
@@ -606,11 +623,12 @@ class CogBot(discord.Client):
                 session.commit()
                 asyncio.ensure_future(self.scanner_um.update_system(system))
 
-            response = str(system)
+            response = system.display()
 
         else:
             systems = cogdb.query.um_get_systems(session)
-            response = '__Current UM Targets__\n\n' + '\n'.join([str(system) for system in systems])
+            response = '__Current UM Targets__\n\n' + '\n'.join(
+                [system.display() for system in systems])
 
         await self.send_message(message.channel, response)
 
@@ -692,6 +710,7 @@ def main():  # pragma: no cover
         scanner = scan_sheet(cog.share.get_config('hudson', 'cattle'), cogdb.query.FortScanner)
         scanner_um = scan_sheet(cog.share.get_config('hudson', 'um'), cogdb.query.UMScanner)
         bot = CogBot(prefix='!', scanner=scanner, scanner_um=scanner_um)
+
         # BLOCKING: N.o. e.s.c.a.p.e.
         bot.run(cog.share.get_config('discord', os.environ.get('COG_TOKEN', 'dev')))
     finally:

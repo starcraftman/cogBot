@@ -2,6 +2,7 @@
 Module should handle logic related to querying/manipulating tables from a high level.
 """
 from __future__ import absolute_import, print_function
+import logging
 import sys
 
 import sqlalchemy.orm.exc as sqa_exc
@@ -223,6 +224,7 @@ def fort_get_systems_by_state(session):
         undermined: Has been undermined and not fortified.
         cancelled: Has been both fortified and undermined.
     """
+    log = logging.getLogger('cogdb.query')
     states = {
         'cancelled': [],
         'fortified': [],
@@ -232,13 +234,14 @@ def fort_get_systems_by_state(session):
     }
 
     for system in fort_get_systems(session):
+        log.info('STATE - %s', system)
         if system.is_fortified and system.is_undermined:
             states['cancelled'].append(system)
-        elif system.is_undermined:
+        if system.is_undermined:
             states['undermined'].append(system)
-        elif system.is_fortified:
+        if system.is_fortified:
             states['fortified'].append(system)
-        else:
+        if not system.is_fortified and not system.skip:
             states['left'].append(system)
         if system.skip:
             states['skipped'].append(system)
@@ -314,9 +317,12 @@ def fort_add_drop(session, **kwargs):
         drop = Drop(user_id=user.id, system_id=system.id, amount=0)
         session.add(drop)
 
+    log = logging.getLogger('cogdb.query')
+    log.info('ADD_DROP - Before: Drop %s, System %s', drop, system)
     drop.amount = max(0, drop.amount + amount)
     system.fort_status = system.fort_status + amount
     session.commit()
+    log.info('ADD_DROP - After: Drop %s, System %s', drop, system)
 
     return drop
 
@@ -371,6 +377,7 @@ class SheetScanner(object):
             cls: The subclass of SheetRow
             faction: The faction owning the sheet.
         """
+        log = logging.getLogger('cogdb.query')
         row = self.user_row - 1
         user_column = cog.sheets.column_to_index(self.user_col)
         cry_column = user_column - 1
@@ -378,6 +385,7 @@ class SheetScanner(object):
         found = []
         for user in self.cells[user_column][row:]:
             row += 1
+            log.info('SCANNER - row %d -> user %s', row, user)
 
             if user == '':  # Users sometimes miss an entry
                 continue
@@ -388,6 +396,7 @@ class SheetScanner(object):
                 cry = ''
 
             found.append(cls(name=user, faction=faction, row=row, cry=cry))
+            log.info('SCANNER - ADDING row %d -> user %s, cry: %s', row, user, cry)
 
         return found
 
@@ -429,6 +438,7 @@ class FortScanner(SheetScanner):
         """
         Scan and parse the system information into System objects.
         """
+        log = logging.getLogger('cogdb.query')
         found = []
         cell_column = cog.sheets.Column(self.system_col)
         first_system = cog.sheets.column_to_index(str(cell_column))
@@ -436,8 +446,11 @@ class FortScanner(SheetScanner):
 
         try:
             for col in self.cells[first_system:]:
+                log.info('FSYSSCAN - Cells: %s', str(col[0:10]))
                 kwargs = kwargs_fort_system(col, order, str(cell_column))
+                log.info('FSYSSCAN - Kwargs: %s', str(kwargs))
                 found.append(System(**kwargs))
+                log.info('FSYSSCAN - System Added: %s', found[-1])
                 order = order + 1
                 cell_column.next()
         except cog.exc.SheetParsingError:
@@ -451,6 +464,7 @@ class FortScanner(SheetScanner):
 
         Preps exist in range [D, system_col)
         """
+        log = logging.getLogger('cogdb.query')
         found = []
         cell_column = cog.sheets.Column('D')
         first_prep = cog.sheets.column_to_index(str(cell_column))
@@ -459,7 +473,9 @@ class FortScanner(SheetScanner):
 
         try:
             for col in self.cells[first_prep:first_system]:
+                log.info('PSYSSCAN - Cells: %s', str(col[0:10]))
                 kwargs = kwargs_fort_system(col, order, str(cell_column))
+                log.info('PSYSSCAN - Kwargs: %s', str(kwargs))
                 order = order + 1
                 cell_column.next()
 
@@ -467,6 +483,7 @@ class FortScanner(SheetScanner):
                     continue
 
                 found.append(PrepSystem(**kwargs))
+                log.info('PSYSSCAN - System Added: %s', found[-1])
         except cog.exc.SheetParsingError:
             pass
 
@@ -481,6 +498,7 @@ class FortScanner(SheetScanner):
             systems: The list of Systems in the order entered in the sheet.
             users: The list of Users in order the order entered in the sheet.
         """
+        log = logging.getLogger('cogdb.query')
         found = []
         col_offset = cog.sheets.column_to_index(systems[0].sheet_col) - 1
 
@@ -495,6 +513,7 @@ class FortScanner(SheetScanner):
 
                     found.append(Drop(user_id=user.id, system_id=system.id,
                                       amount=amount))
+                    log.info('DROPSCAN - Adding: %s', found[-1])
             except IndexError:
                 pass  # No more amounts in column
 
@@ -574,15 +593,19 @@ class UMScanner(SheetScanner):
         Scan all the systems in the sheet.
         A UM System takes up two adjacent columns.
         """
+        log = logging.getLogger('cogdb.query')
         cell_column = cog.sheets.Column(self.system_col)
 
         found = []
         try:
             while True:
                 col = cog.sheets.column_to_index(str(cell_column))
+                log.info('UMSYSSCAN - Cells: %s', str(col))
                 kwargs = kwargs_um_system(self.cells[col:col + 2], str(cell_column))
+                log.info('UMSYSSCAN - Kwargs: %s', str(kwargs))
                 cls = kwargs.pop('cls')
                 found.append(cls(**kwargs))
+                log.info('UMSYSSCAN - System Added: %s', found[-1])
                 cell_column.offset(2)
         except cog.exc.SheetParsingError:
             pass
@@ -598,6 +621,7 @@ class UMScanner(SheetScanner):
             users: The SheetRows parsed from sheet.
             holds: The partially finished Holds.
         """
+        log = logging.getLogger('cogdb.query')
         for system in systems:
             col_ind = cog.sheets.column_to_index(system.sheet_col)
 
@@ -612,6 +636,8 @@ class UMScanner(SheetScanner):
                                                held=0, redeemed=0))
                     hold.held += cogdb.schema.parse_int(held)
                     holds[key] = hold
+                    log.info('HOLDSCAN - Held merits: %s', hold)
+
             except IndexError:
                 pass  # No more in column
 
@@ -626,6 +652,7 @@ class UMScanner(SheetScanner):
             users: The SheetRows parsed from sheet.
             holds: The partially finished Holds.
         """
+        log = logging.getLogger('cogdb.query')
         for system in systems:
             col_ind = cog.sheets.column_to_index(system.sheet_col) + 1
 
@@ -640,6 +667,7 @@ class UMScanner(SheetScanner):
                                                held=0, redeemed=0))
                     hold.redeemed += cogdb.schema.parse_int(redeemed)
                     holds[key] = hold
+                    log.info('HOLDSCAN - Redeemed merits: %s', hold)
             except IndexError:
                 pass  # No more in column
 
