@@ -245,7 +245,7 @@ class CogBot(discord.Client):
         last_cmd = self.last_cmd
         self.last_cmd = time.time()
         if (time.time() - last_cmd) > 60.0 * 5:
-            orig_content = message.conent
+            orig_content = message.content
             asyncio.ensure_future(self.send_message(
                 message.channel,
                 'Bot has been inactive 5+ mins. Command will execute after update.'))
