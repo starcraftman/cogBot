@@ -252,7 +252,7 @@ class CogBot(discord.Client):
             message.content = '!admin scan'
             await self.on_message(message)
             await self.send_message(message.channel,
-                                    'Now executing: ' + orig_content)
+                                    'Now executing: **{}**'.format(orig_content))
         await getattr(self, 'command_' + kwargs.get('args').cmd)(**kwargs)
 
     async def command_help(self, **kwargs):
