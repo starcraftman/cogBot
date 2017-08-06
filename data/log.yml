@@ -19,25 +19,25 @@ handlers:
     level: ERROR
     formatter: custom
     stream: ext://sys.stdout
-  cog_info:
+  cog:
     <<: *default_handler
-    level: INFO
-    filename: /tmp/cog/info.log
+    level: DEBUG
+    filename: /tmp/cog/main.log
   cog_error:
     <<: *default_handler
     level: ERROR
     filename: /tmp/cog/error.log
   cogdb:
     <<: *default_handler
-    level: INFO
+    level: DEBUG
     filename: /tmp/cog/db.log
 
 loggers:
   cog:
-    level: INFO
-    handlers: [cog_error, cog_info, err_stream]
+    level: DEBUG
+    handlers: [cog, cog_error, err_stream]
   cogdb:
-    level: INFO
+    level: DEBUG
     handlers: [cogdb, err_stream]
 
 #root:

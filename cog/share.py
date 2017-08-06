@@ -79,6 +79,7 @@ def init_logging():
      - On every start the file logs are rolled over.
      - This should be first invocation on startup to set up logging.
     """
+    # FIXME: May fail, look at paths in yaml.
     log_folder = os.path.join(tempfile.gettempdir(), 'cog')
     try:
         os.makedirs(log_folder)

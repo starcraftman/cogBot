@@ -233,7 +233,10 @@ class CogBot(discord.Client):
         message = await self.send_message(destination, content, **kwargs)
 
         await asyncio.sleep(ttl)
-        asyncio.ensure_future(self.delete_message(message))
+        try:
+            await self.delete_message(message)
+        except discord.NotFound:
+            pass
 
     # Commands beyond here
     async def dispatch_command(self, **kwargs):

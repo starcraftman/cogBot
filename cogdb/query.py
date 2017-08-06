@@ -211,7 +211,7 @@ def fort_find_system(session, system_name, search_all=False):
         return session.query(System).filter_by(name=system_name).one()
     except (sqa_exc.NoResultFound, sqa_exc.MultipleResultsFound):
         index = 0 if search_all else fort_find_current_index(session)
-        systems = fort_get_preps(session) + fort_get_systems(session)[index:]
+        systems = fort_get_systems(session)[index:] + fort_get_preps(session)
         return fuzzy_find(system_name, systems, 'name')
 
 
@@ -385,7 +385,7 @@ class SheetScanner(object):
         found = []
         for user in self.cells[user_column][row:]:
             row += 1
-            log.info('SCANNER - row %d -> user %s', row, user)
+            log.debug('SCANNER - row %d -> user %s', row, user)
 
             if user == '':  # Users sometimes miss an entry
                 continue
@@ -446,9 +446,9 @@ class FortScanner(SheetScanner):
 
         try:
             for col in self.cells[first_system:]:
-                log.info('FSYSSCAN - Cells: %s', str(col[0:10]))
+                log.debug('FSYSSCAN - Cells: %s', str(col[0:10]))
                 kwargs = kwargs_fort_system(col, order, str(cell_column))
-                log.info('FSYSSCAN - Kwargs: %s', str(kwargs))
+                log.debug('FSYSSCAN - Kwargs: %s', str(kwargs))
                 found.append(System(**kwargs))
                 log.info('FSYSSCAN - System Added: %s', found[-1])
                 order = order + 1
@@ -473,9 +473,9 @@ class FortScanner(SheetScanner):
 
         try:
             for col in self.cells[first_prep:first_system]:
-                log.info('PSYSSCAN - Cells: %s', str(col[0:10]))
+                log.debug('PSYSSCAN - Cells: %s', str(col[0:10]))
                 kwargs = kwargs_fort_system(col, order, str(cell_column))
-                log.info('PSYSSCAN - Kwargs: %s', str(kwargs))
+                log.debug('PSYSSCAN - Kwargs: %s', str(kwargs))
                 order = order + 1
                 cell_column.next()
 
@@ -500,13 +500,12 @@ class FortScanner(SheetScanner):
         """
         log = logging.getLogger('cogdb.query')
         found = []
-        col_offset = cog.sheets.column_to_index(systems[0].sheet_col) - 1
 
         for system in systems:
+            sys_ind = cog.sheets.column_to_index(system.sheet_col)
             try:
                 for user in users:
-                    col_ind = col_offset + system.sheet_order
-                    amount = self.cells[col_ind][user.row - 1]
+                    amount = self.cells[sys_ind][user.row - 1]
 
                     if amount == '':  # Some rows just placeholders if empty
                         continue
@@ -600,9 +599,9 @@ class UMScanner(SheetScanner):
         try:
             while True:
                 col = cog.sheets.column_to_index(str(cell_column))
-                log.info('UMSYSSCAN - Cells: %s', str(col))
+                log.debug('UMSYSSCAN - Cells: %s', str(col))
                 kwargs = kwargs_um_system(self.cells[col:col + 2], str(cell_column))
-                log.info('UMSYSSCAN - Kwargs: %s', str(kwargs))
+                log.debug('UMSYSSCAN - Kwargs: %s', str(kwargs))
                 cls = kwargs.pop('cls')
                 found.append(cls(**kwargs))
                 log.info('UMSYSSCAN - System Added: %s', found[-1])
