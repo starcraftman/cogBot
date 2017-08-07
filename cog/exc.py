@@ -108,12 +108,13 @@ class NameCollisionError(SheetParsingError):
 
     def __str__(self):
         lines = [
-            "**Critical Error** ",
+            "**Critical Error, Database Now Invalid**",
+            "----------------------------------------",
             "Cmdr \"{}\" found in rows {} of {} Sheet".format(self.name, str(self.rows),
                                                               self.sheet),
             "",
             "To Resolve:",
-            "    Delete or rename one of the cmdr names. Names must be unique per sheet!",
-            "    Then execute: `!admin scan` to reload the db.",
+            "    Delete or rename the cmdr in one of these rows",
+            "    Then execute: `!admin scan` to reload the db",
         ]
         return "\n".join(lines)

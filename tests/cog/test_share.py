@@ -74,6 +74,6 @@ def test_make_parser():
     assert args.next
 
 
-def test_extract_emoji():
-    message = 'This is a fort message: :Fortifying: do :not touch this.\n:Word:'
-    assert set(cog.share.extract_emoji(message)) == set([':Fortifying:', ':Word:'])
+# def test_extract_emoji():
+    # message = 'This is a fort message: :Fortifying: do :not touch this.\n:Word:'
+    # assert set(cog.share.extract_emoji(message)) == set([':Fortifying:', ':Word:'])

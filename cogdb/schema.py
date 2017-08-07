@@ -369,13 +369,15 @@ class System(Base):
         """
         Return a useful short representation of System.
         """
-        msg = 'Fort: **{}** {:>4}/{} :Fortif{}:{}'.format(
+        msg = 'Fort: **{}** {:>4}/{} :Fortif{}:'.format(
             self.name, self.current_status, self.trigger,
-            'ied' if self.is_fortified else 'ying',
-            ' {}'.format(self.notes) if self.notes else '')
+            'ied' if self.is_fortified else 'ying')
 
         if missing and self.missing and self.missing < 1500:
-            msg += '\n        Missing: {}\n'.format(self.missing)
+            msg += ' (missing {})'.format(self.missing)
+
+        if self.notes:
+            msg += ' ' + self.notes
 
         return msg
 

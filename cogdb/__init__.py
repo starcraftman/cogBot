@@ -24,7 +24,7 @@ import cog.share
 
 # Use memory engine when testing else the regular production db.
 if os.environ.get('COG_TOKEN') == 'prod':
-    spec = 'sqlite:///' + cog.share.rel_to_abs(cog.share.get_config('paths', 'db'))
+    spec = 'sqlite:///' + cog.share.get_config('paths', 'db')
 else:
     spec = 'sqlite://'
 engine = sqlalchemy.create_engine(spec, echo=False)

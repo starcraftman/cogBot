@@ -291,7 +291,7 @@ def fort_get_next_targets(session, count=1):
     return targets
 
 
-def fort_add_drop(session, **kwargs):
+def fort_add_drop(session, *, user, system, amount):
     """
     Add a Drop for 'amount' to the database where Drop intersects at:
         System.name and SUser.name
@@ -304,10 +304,6 @@ def fort_add_drop(session, **kwargs):
     Raises:
         InvalidCommandArgs: User requested an amount outside bounds [-800, 800]
     """
-    system = kwargs['system']
-    user = kwargs['user']
-    amount = kwargs['amount']
-
     if amount not in range(-800, 801):
         raise cog.exc.InvalidCommandArgs('Drop amount must be in range [-800, 800]')
 

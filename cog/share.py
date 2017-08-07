@@ -6,11 +6,10 @@ import logging
 import logging.handlers
 import logging.config
 import os
-import re
+import sys
 
 import argparse
 from argparse import RawDescriptionHelpFormatter as RawHelp
-import tempfile
 import yaml
 try:
     from yaml import CLoader as Loader
@@ -63,8 +62,8 @@ def get_config(*keys):
     """
     Return keys straight from yaml config.
     """
-    with open(YAML_FILE) as conf:
-        conf = yaml.load(conf, Loader=Loader)
+    with open(YAML_FILE) as fin:
+        conf = yaml.load(fin, Loader=Loader)
 
     for key in keys:
         conf = conf[key]
@@ -79,22 +78,24 @@ def init_logging():
      - On every start the file logs are rolled over.
      - This should be first invocation on startup to set up logging.
     """
-    # FIXME: May fail, look at paths in yaml.
-    log_folder = os.path.join(tempfile.gettempdir(), 'cog')
-    try:
-        os.makedirs(log_folder)
-    except OSError:
-        pass
-    print('Logging Folder:', log_folder)
-    print('Main Log File:', os.path.join(log_folder, 'info.log'))
+    with open(get_config('paths', 'log_conf')) as fin:
+        lconf = yaml.load(fin, Loader=Loader)
+        for handler in lconf['handlers']:
+            try:
+                os.makedirs(os.path.dirname(lconf['handlers'][handler]['filename']))
+            except (OSError, KeyError):
+                pass
 
     with open(rel_to_abs(get_config('paths', 'log_conf'))) as fin:
-        log_conf = yaml.load(fin, Loader=Loader)
-    logging.config.dictConfig(log_conf)
+        logging.config.dictConfig(yaml.load(fin, Loader=Loader))
 
-    for handler in logging.getLogger('cog').handlers + logging.getLogger('cogdb').handlers:
-        if isinstance(handler, logging.handlers.RotatingFileHandler):
-            handler.doRollover()
+    print('See main.log for general traces.')
+    print('Enabled rotating file logs:')
+    for top_log in ('asyncio', 'cog', 'cogdb'):
+        for handler in logging.getLogger(top_log).handlers:
+            if isinstance(handler, logging.handlers.RotatingFileHandler):
+                print('    ' + handler.baseFilename)
+                handler.doRollover()
 
 
 def make_parser(prefix):
@@ -106,6 +107,31 @@ def make_parser(prefix):
     subs = parser.add_subparsers(title='subcommands',
                                  description='The subcommands of cog')
 
+    desc = """Give feedback or report a bug. Example:
+
+    {prefix}bug Explain what went wrong ...\n          File a bug report or give feedback.
+    """.format(prefix=prefix)
+    sub = subs.add_parser(prefix + 'feedback', description=desc, formatter_class=RawHelp)
+    sub.set_defaults(cmd='feedback')
+    sub.add_argument('content', nargs='+', help='The bug description or feedback.')
+
+    sub = subs.add_parser(prefix + 'status', description='Info about this bot.')
+    sub.set_defaults(cmd='status')
+
+    sub = subs.add_parser(prefix + 'time', description='Time in game and to ticks.')
+    sub.set_defaults(cmd='time')
+
+    for suffix in ['admin', 'drop', 'fort', 'hold', 'um', 'user']:
+        func = getattr(sys.modules[__name__], 'subs_' + suffix)
+        func(subs, prefix)
+
+    sub = subs.add_parser(prefix + 'help', description='Show overall help message.')
+    sub.set_defaults(cmd='help')
+    return parser
+
+
+def subs_admin(subs, prefix):
+    """ Subcommand parsing for admin """
     desc = """Admin only commands. Examples:
 
     {prefix}admin deny\n          Toggle command processing.
@@ -125,6 +151,9 @@ def make_parser(prefix):
     admin_sub = admin_subs.add_parser('info', help='Get info about discord users.')
     admin_sub.add_argument('user', nargs='?', help='The user to get info on.')
 
+
+def subs_drop(subs, prefix):
+    """ Subcommand parsing for drop """
     desc = """Update the cattle sheet when you drop at a system.
     Amount dropped must be in range [-800, 800]
     Examples:
@@ -144,6 +173,9 @@ def make_parser(prefix):
     sub.add_argument('--set',
                      help='Set the fort:um status of the system. Example-> --set 3400:200')
 
+
+def subs_fort(subs, prefix):
+    """ Subcommand parsing for fort """
     desc = """Show fortification status and targets. Examples:
 
     {prefix}fort\n           Show current fort targets.
@@ -166,6 +198,9 @@ def make_parser(prefix):
     sub.add_argument('-n', '--next', action='store_true',
                      help='Show the next fort target')
 
+
+def subs_hold(subs, prefix):
+    """ Subcommand parsing for hold """
     desc = """Update a user's held or redeemed merits. Examples:
 
     {prefix}hold 1200 burr\n           Set your held merits at Burr to 1200.
@@ -182,20 +217,9 @@ def make_parser(prefix):
     sub.add_argument('--died', action='store_true', help='Zero out held merits.')
     sub.add_argument('--set', help='Update the galmap progress us:them. Example: --set 3500:200')
 
-    desc = """Give feedback or report a bug. Example:
 
-    {prefix}bug Explain what went wrong ...\n          File a bug report or give feedback.
-    """.format(prefix=prefix)
-    sub = subs.add_parser(prefix + 'feedback', description=desc, formatter_class=RawHelp)
-    sub.set_defaults(cmd='feedback')
-    sub.add_argument('content', nargs='+', help='The bug description or feedback.')
-
-    sub = subs.add_parser(prefix + 'status', description='Info about this bot.')
-    sub.set_defaults(cmd='status')
-
-    sub = subs.add_parser(prefix + 'time', description='Time in game and to ticks.')
-    sub.set_defaults(cmd='time')
-
+def subs_um(subs, prefix):
+    """ Subcommand parsing for um """
     desc = """Get undermining targets and update their galmap status. Examples:
 
     {prefix}um\n           Show current active undermining targets.
@@ -211,6 +235,9 @@ def make_parser(prefix):
                      help='Set the status of the system, us:them. Example-> --set 3500:200')
     sub.add_argument('--offset', type=int, help='Set the system galmap offset.')
 
+
+def subs_user(subs, prefix):
+    """ Subcommand parsing for user """
     desc = """Manipulate your user settings. Examples:
 
     {prefix}user\n           Show your sheet name, crys and merits per sheet.
@@ -227,10 +254,6 @@ def make_parser(prefix):
                      help='Set yourself to use the Winters sheets.')
     sub.add_argument('--hudson', action='store_true',
                      help='Set yourself to use the Hudson sheets.')
-
-    sub = subs.add_parser(prefix + 'help', description='Show overall help message.')
-    sub.set_defaults(cmd='help')
-    return parser
 
 
 def dict_to_columns(data):
@@ -253,13 +276,6 @@ def dict_to_columns(data):
             lines[row].append(item)
 
     return [header] + lines
-
-
-def extract_emoji(text):
-    """
-    Find and extract all emoji eanchors in message. Return in list.
-    """
-    return list(set(re.findall(r':\S+:', text)))
 
 
 ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
