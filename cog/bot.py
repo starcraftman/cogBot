@@ -195,6 +195,10 @@ class CogBot(discord.Client):
             await self.send_ttl_message(channel, str(exc))
             asyncio.ensure_future(self.delete_message(message))
 
+        except cog.exc.NameCollisionError as exc:
+            log.error('Cmdr Name Collision\n' + str(exc))
+            asyncio.ensure_future(self.send_message(channel, str(exc)))
+
     def fix_emoji(self, content):
         """
         Expand any emojis for bot before sending.
@@ -332,17 +336,19 @@ class CogBot(discord.Client):
             response = 'Goodbye!'
 
         elif args.subcmd == 'scan':
-            self.deny_commands = True
-            asyncio.ensure_future(self.send_message(message.channel,
-                                                    'Updating database. Commands: **Disabled**'))
-            await asyncio.sleep(2)
+            try:
+                self.deny_commands = True
+                asyncio.ensure_future(self.send_message(message.channel,
+                                                        'Updating db. Commands: **Disabled**'))
+                await asyncio.sleep(2)
 
-            cogdb.schema.drop_tables(all=False)
-            self.scanner.scan(session)
-            self.scanner_um.scan(session)
-
-            self.deny_commands = False
-            response = 'Update finished. Commands: **Enabled**'
+                cogdb.schema.drop_tables(all=False)
+                self.scanner.scan(session)
+                self.scanner_um.scan(session)
+            finally:
+                self.deny_commands = False
+                asyncio.ensure_future(self.send_message(message.channel,
+                                                        'Update finished. Commands: **Enabled**'))
 
         elif args.subcmd == 'info':
             if message.mentions:

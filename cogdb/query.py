@@ -395,7 +395,13 @@ class SheetScanner(object):
             except IndexError:
                 cry = ''
 
-            found.append(cls(name=user, faction=faction, row=row, cry=cry))
+            sheet_user = cls(name=user, faction=faction, row=row, cry=cry)
+            if sheet_user in found:
+                rows = [other.row for other in found if other == sheet_user] + [row]
+                sheet_type = 'Fort' if 'Fort' in self.__class__.__name__ else 'Undermining'
+                raise cog.exc.NameCollisionError(sheet_type, sheet_user.name, rows)
+
+            found.append(sheet_user)
             log.info('SCANNER - ADDING row %d -> user %s, cry: %s', row, user, cry)
 
         return found

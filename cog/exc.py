@@ -54,10 +54,10 @@ class MoreThanOneMatch(Exception):
     Too many matches were found for sequence.
     """
     def __init__(self, sequence, matches, obj_attr):
+        super(MoreThanOneMatch, self).__init__()
         self.sequence = sequence
         self.matches = matches
         self.obj_attr = obj_attr
-        super(MoreThanOneMatch, self).__init__()
 
     def __str__(self):
         header = "Resubmit query with more specific criteria."
@@ -81,9 +81,9 @@ class NoMatch(Exception):
     No match was found for sequence.
     """
     def __init__(self, sequence, cls=None):
+        super(NoMatch, self).__init__()
         self.sequence = sequence
         self.cls = cls if cls else 'String'
-        super(NoMatch, self).__init__()
 
     def __str__(self):
         return "No matches for '{}' in {}s:".format(self.sequence, self.cls)
@@ -94,3 +94,26 @@ class SheetParsingError(Exception):
     During sheet parsing, could not determine cell anchors properly.
     """
     pass
+
+
+class NameCollisionError(SheetParsingError):
+    """
+    During parsing, two cmdr names collided.
+    """
+    def __init__(self, sheet, name, rows):
+        super(NameCollisionError, self).__init__()
+        self.name = name
+        self.sheet = sheet
+        self.rows = rows
+
+    def __str__(self):
+        lines = [
+            "**Critical Error** ",
+            "Cmdr \"{}\" found in rows {} of {} Sheet".format(self.name, str(self.rows),
+                                                              self.sheet),
+            "",
+            "To Resolve:",
+            "    Delete or rename one of the cmdr names. Names must be unique per sheet!",
+            "    Then execute: `!admin scan` to reload the db.",
+        ]
+        return "\n".join(lines)
