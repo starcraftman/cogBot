@@ -78,7 +78,8 @@ def init_logging():
      - On every start the file logs are rolled over.
      - This should be first invocation on startup to set up logging.
     """
-    with open(get_config('paths', 'log_conf')) as fin:
+    log_file = rel_to_abs(get_config('paths', 'log_conf'))
+    with open(log_file) as fin:
         lconf = yaml.load(fin, Loader=Loader)
         for handler in lconf['handlers']:
             try:
@@ -86,7 +87,7 @@ def init_logging():
             except (OSError, KeyError):
                 pass
 
-    with open(rel_to_abs(get_config('paths', 'log_conf'))) as fin:
+    with open(log_file) as fin:
         logging.config.dictConfig(yaml.load(fin, Loader=Loader))
 
     print('See main.log for general traces.')
