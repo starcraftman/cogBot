@@ -5,6 +5,7 @@ Tutorial and reference available at:
     https://developers.google.com/sheets/api/quickstart/python
 """
 from __future__ import absolute_import, print_function
+import logging
 import os
 
 import argparse
@@ -212,11 +213,14 @@ class GSheet(object):
 
         Returns: A list of rows in the area.
         """
+        log = logging.getLogger('cog.sheets')
+        log.info('SHEETS - Get Start')
         # Default returns by row, use majorDimension = 'COLUMNS' to flip.
         result = self.values.get(spreadsheetId=self.sheet_id,
                                  range=self.page + cell_range,
                                  majorDimension=dim,
                                  valueRenderOption='UNFORMATTED_VALUE').execute()
+        log.info('SHEETS - Get End')
         return result.get('values', [])
 
     def update(self, cell_range, n_vals, dim='ROWS'):
@@ -229,12 +233,15 @@ class GSheet(object):
             range: An A1 range that describes a single area to return.
             n_vals: New values to fit into range, list of lists.
         """
+        log = logging.getLogger('cog.sheets')
+        log.info('SHEETS - Update Start')
         body = {
             'majorDimension': dim,
             'values': n_vals
         }
         self.values.update(spreadsheetId=self.sheet_id, range=self.page + cell_range,
                            valueInputOption='RAW', body=body).execute()
+        log.info('SHEETS - Update End')
 
     def batch_get(self, cell_ranges, dim='ROWS'):
         """
@@ -268,9 +275,13 @@ class GSheet(object):
         """
         Get cells with formatting information.
         """
+        log = logging.getLogger('cog.sheets')
+        log.info('SHEETS - FmtGet Start')
         sheets = self.service.spreadsheets()  # pylint: disable=no-member
-        return sheets.get(spreadsheetId=self.sheet_id, ranges=self.page + cell_range,
+        data = sheets.get(spreadsheetId=self.sheet_id, ranges=self.page + cell_range,
                           includeGridData=True).execute()
+        log.info('SHEETS - FmtGet End')
+        return data
 
     def whole_sheet(self, dim='COLUMNS'):
         """
