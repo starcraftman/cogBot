@@ -23,10 +23,7 @@ import sqlalchemy.orm
 import cog.share
 
 # Use memory engine when testing else the regular production db.
-if os.environ.get('COG_TOKEN') == 'prod':
-    spec = 'sqlite:///' + cog.share.get_config('paths', 'db')
-else:
-    spec = 'sqlite://'
-engine = sqlalchemy.create_engine(spec, echo=False)
+# TODO Move to mysql like engine, for each COG_TOKEN make different db to use.
+engine = sqlalchemy.create_engine('sqlite://', echo=False)
 
 Session = sqlalchemy.orm.sessionmaker(bind=engine)
