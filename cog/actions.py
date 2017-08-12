@@ -422,19 +422,20 @@ class Admin(Action):
             response = 'Goodbye!'
 
         elif args.subcmd == 'scan':
-            try:
-                self.bot.deny_commands = True
-                asyncio.ensure_future(self.bot.send_message(message.channel,
-                                                            'Updating db. Commands: **Disabled**'))
-                await asyncio.sleep(2)
+            self.bot.deny_commands = True
+            asyncio.ensure_future(self.bot.send_message(message.channel,
+                                                        'Updating db. Commands: **Disabled**'))
+            await asyncio.sleep(2)
 
-                cogdb.schema.drop_tables(all=False)
-                self.bot.scanner.scan(session)
-                self.bot.scanner_um.scan(session)
-            finally:
-                self.bot.deny_commands = False
-                asyncio.ensure_future(self.bot.send_message(message.channel,
-                                                            'Update finished. Commands: **Enabled**'))
+            # TODO: Blocks here, problematic for async. Use thread for scanners?
+            cogdb.schema.drop_tables(all=False)
+            self.bot.scanner.scan(session)
+            self.bot.scanner_um.scan(session)
+
+            # Commands only accepted if no critical errors during update
+            self.bot.deny_commands = False
+            await self.bot.send_message(message.channel,
+                                        'Update finished. Commands: **Enabled**')
 
         elif args.subcmd == 'info':
             if message.mentions:

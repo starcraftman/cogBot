@@ -348,7 +348,7 @@ class SheetScanner(object):
     """
     def __init__(self, gsheet, user_args):
         self.gsheet = gsheet
-        self.__cells = None
+        self.cells = None
         self.user_col = None
         self.user_row = None
         self.users_args = user_args
@@ -363,10 +363,15 @@ class SheetScanner(object):
 
         return self.__cells
 
+    @cells.setter
+    def cells(self, value):
+        self.__cells = value
+
     def scan(self, session):
         """
         Main function, scan the sheet into the database.
         """
+        self.cells = None
         systems = self.systems()
         users = self.users(*self.users_args)
         session.add_all(systems + users)
@@ -374,8 +379,6 @@ class SheetScanner(object):
 
         session.add_all(self.merits(systems, users))
         session.commit()
-
-        self.__cells = None
 
     def users(self, cls, faction):
         """
