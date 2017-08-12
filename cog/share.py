@@ -179,9 +179,8 @@ def subs_fort(subs, prefix):
     """ Subcommand parsing for fort """
     desc = """Show fortification status and targets. Examples:
 
-    {prefix}fort\n           Show current fort targets.
-    {prefix}fort --next\n           Show the next fortification target (excludes Othime and skipped).
-    {prefix}fort --nextn 3\n           Show the next 3 fortification targets (excludes Othime and skipped).
+    {prefix}fort\n           Show current fort objectives.
+    {prefix}fort --next 5\n           Show the next 5 fortification targets (excluding Othime and skipped).
     {prefix}fort --summary\n           Show a breakdown by states of our systems.
     {prefix}fort alpha\n           Show the fortification status of Alpha Fornacis.
     {prefix}fort Othime --set 7500:2000\n           Set othime to 7500 fort status and 2000 um status.
@@ -193,11 +192,9 @@ def subs_fort(subs, prefix):
                      help='Set the fort:um status of system. Example-> --set 3400:200')
     sub.add_argument('--summary', action='store_true',
                      help='Provide an overview of the fort systems.')
-    sub.add_argument('-l', '--long', action='store_true', help='Show systems in table format')
-    sub.add_argument('--nextn', type=int,
+    # sub.add_argument('-l', '--long', action='store_true', help='Show systems in table format')
+    sub.add_argument('-n', '--next', type=int, default=4,
                      help='Show the next NUM fort targets after current')
-    sub.add_argument('-n', '--next', action='store_true',
-                     help='Show the next fort target')
 
 
 def subs_hold(subs, prefix):

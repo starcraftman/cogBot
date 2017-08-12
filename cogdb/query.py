@@ -14,6 +14,9 @@ from cogdb.schema import (DUser, System, PrepSystem, SystemUM, SheetRow, SheetCa
                           Drop, Hold, EFaction, ESheetType, kwargs_fort_system, kwargs_um_system)
 
 
+DEFER_MISSING = 750
+
+
 def subseq_match(needle, line, ignore_case=True):
     """
     True iff the subsequence needle present in line.
@@ -191,7 +194,7 @@ def fort_find_current_index(session):
     Scan Systems from the beginning to find next unfortified target that is not Othime.
     """
     for ind, system in enumerate(fort_get_systems(session, not_othime=True)):
-        if system.is_fortified or system.skip:
+        if system.is_fortified or system.skip or system.missing < DEFER_MISSING:
             continue
 
         return ind
@@ -259,11 +262,12 @@ def fort_get_targets(session):
     """
     current = fort_find_current_index(session)
     systems = fort_get_systems(session, not_othime=True)
-    othime = fort_get_othime(session)
-
     targets = [systems[current]]
+
+    othime = fort_get_othime(session)
     if not othime.is_fortified:
         targets.append(othime)
+
     targets += fort_get_preps(session)
 
     return targets
@@ -279,7 +283,7 @@ def fort_get_next_targets(session, count=1):
 
     start = current + 1
     for system in systems[start:]:
-        if system.is_fortified or system.skip:
+        if system.is_fortified or system.skip or system.missing < DEFER_MISSING:
             continue
 
         targets.append(system)
@@ -289,6 +293,14 @@ def fort_get_next_targets(session, count=1):
             break
 
     return targets
+
+
+def fort_get_deferred_targets(session):
+    """
+    Return all deferred targets under deferal amount.
+    """
+    return [system for system in fort_get_systems(session)
+            if system.missing < DEFER_MISSING and not system.is_fortified]
 
 
 def fort_add_drop(session, *, user, system, amount):

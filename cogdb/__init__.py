@@ -15,12 +15,9 @@ Constraints:
   http://docs.sqlalchemy.org/en/latest/core/constraints.html#unique-constraint
 """
 from __future__ import absolute_import, print_function
-import os
 
 import sqlalchemy
 import sqlalchemy.orm
-
-import cog.share
 
 # Use memory engine when testing else the regular production db.
 # TODO Move to mysql like engine, for each COG_TOKEN make different db to use.

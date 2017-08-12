@@ -369,7 +369,7 @@ class System(Base):
         """
         Return a useful short representation of System.
         """
-        msg = 'Fort: **{}** {:>4}/{} :Fortif{}:'.format(
+        msg = '**{}** {:>4}/{} :Fortif{}:'.format(
             self.name, self.current_status, self.trigger,
             'ied' if self.is_fortified else 'ying')
 

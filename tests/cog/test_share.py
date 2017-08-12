@@ -70,8 +70,8 @@ def test_make_parser():
     Simply verify it works, not all parser paths.
     """
     parser = cog.share.make_parser('!')
-    args = parser.parse_args('!fort --next'.split())
-    assert args.next
+    args = parser.parse_args('!fort --next 5'.split())
+    assert args.next == 5
 
 
 # def test_extract_emoji():

@@ -340,24 +340,7 @@ class Fort(Action):
     """
     Provide information on and manage the fort sheet.
     """
-    def resolve_systems(self):
-        """ Determine the systems required based on args. """
-        if self.args.next:
-            self.args.nextn = 1
-
-        if self.args.system:
-            systems = [cogdb.query.fort_find_system(self.session, ' '.join(self.args.system),
-                                                    search_all=True)]
-        elif self.args.nextn:
-            systems = cogdb.query.fort_get_next_targets(self.session, count=self.args.nextn)
-        else:
-            systems = cogdb.query.fort_get_targets(self.session)
-
-        return systems
-
     async def execute(self):
-        systems = self.resolve_systems()
-
         if self.args.summary:
             states = cogdb.query.fort_get_systems_by_state(self.session)
 
@@ -376,20 +359,29 @@ class Fort(Action):
             response = cog.tbl.wrap_markdown(cog.tbl.format_table(lines, sep='|', header=True))
 
         elif self.args.set:
-            system = systems[0]
+            system = cogdb.query.fort_find_system(self.session, ' '.join(self.args.system),
+                                                  search_all=True)
             system.set_status(self.args.set)
             self.session.commit()
             asyncio.ensure_future(self.bot.scanner.update_system(system))
             response = system.display(missing=False)
 
-        elif self.args.long:
-            lines = [systems[0].__class__.header] + [system.table_row for system in systems]
-            response = cog.tbl.wrap_markdown(cog.tbl.format_table(lines, sep='|', header=True))
+        # elif self.args.long:
+            # lines = [systems[0].__class__.header] + [system.table_row for system in systems]
+            # response = cog.tbl.wrap_markdown(cog.tbl.format_table(lines, sep='|', header=True))
 
         else:
-            response = '__{} Fort Targets__\n\n'.format('Next' if self.args.nextn else 'Current')
-            lines = [system.display() for system in systems]
-            response += '\n'.join(lines)
+            lines = ['__Active Targets__']
+            lines += [system.display() for system in cogdb.query.fort_get_targets(self.session)]
+            lines += ['\n__Next Targets__']
+            lines += [system.display() for system in
+                      cogdb.query.fort_get_next_targets(self.session, count=self.args.next)]
+
+            defers = cogdb.query.fort_get_deferred_targets(self.session)
+            if defers:
+                lines += ['\n__Almost Done__'] + [system.display() for system in defers]
+
+            response = '\n'.join(lines)
 
         await self.bot.send_message(self.mchannel, self.bot.emoji.fix(response, self.mserver))
 
