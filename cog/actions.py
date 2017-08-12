@@ -18,7 +18,6 @@ import cog.tbl
 
 HOME = "Gears' Hideout"
 FUC = "Federal United Command"
-FEEDBACK = [HOME, "Feedback"]
 
 
 async def bot_shutdown(bot):  # pragma: no cover
@@ -100,11 +99,11 @@ class Action(object):
 
         return self.__duser
 
-    def get_channel(self, server, channel):
-        """ Given a server and channel, get the channel object requested. """
+    def get_channel(self, server, channel_name):
+        """ Given a server and channel_name, get the channel object requested. """
         if not isinstance(server, discord.Server):
             server = discord.utils.get(self.bot.servers, name=server)
-        channel = discord.utils.get(server.channels, name=channel)
+        return discord.utils.get(server.channels, name=channel_name)
 
     async def execute(self):
         """
@@ -162,7 +161,7 @@ class Feedback(Action):
         response += '__Bug Report Follows__\n\n' + ' '.join(self.args.content)
 
         self.log.info('FEEDBACK %s - Left a bug report.', self.mauthor.name)
-        await self.bot.send_message(self.get_channel(*FEEDBACK), response)
+        await self.bot.send_message(self.get_channel(HOME, 'feedback'), response)
 
 
 class Status(Action):
