@@ -193,7 +193,7 @@ def subs_fort(subs, prefix):
     sub.add_argument('--summary', action='store_true',
                      help='Provide an overview of the fort systems.')
     # sub.add_argument('-l', '--long', action='store_true', help='Show systems in table format')
-    sub.add_argument('-n', '--next', type=int, default=4,
+    sub.add_argument('-n', '--next', type=int, default=3,
                      help='Show the next NUM fort targets after current')
 
 
