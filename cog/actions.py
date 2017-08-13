@@ -358,16 +358,27 @@ class Fort(Action):
             response = cog.tbl.wrap_markdown(cog.tbl.format_table(lines, sep='|', header=True))
 
         elif self.args.set:
-            system = cogdb.query.fort_find_system(self.session, ' '.join(self.args.system),
-                                                  search_all=True)
+            system_name = ' '.join(self.args.system)
+            if ',' in system_name:
+                raise cog.exc.InvalidCommandArgs('One system at a time with --set flag')
+
+            system = cogdb.query.fort_find_system(self.session, system_name, search_all=True)
             system.set_status(self.args.set)
             self.session.commit()
             asyncio.ensure_future(self.bot.scanner.update_system(system))
-            response = system.display(missing=False)
+            response = system.display()
 
         # elif self.args.long:
             # lines = [systems[0].__class__.header] + [system.table_row for system in systems]
             # response = cog.tbl.wrap_markdown(cog.tbl.format_table(lines, sep='|', header=True))
+
+        elif self.args.system:
+            lines = ['__Search Results__\n']
+            system_names = ' '.join(self.args.system).split(',')
+            for name in system_names:
+                lines.append(cogdb.query.fort_find_system(self.session,
+                                                          name.strip(), search_all=True).display())
+            response = '\n'.join(lines)
 
         else:
             lines = ['__Active Targets__']

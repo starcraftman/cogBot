@@ -183,6 +183,7 @@ def subs_fort(subs, prefix):
     {prefix}fort --next 5\n           Show the next 5 fortification targets (excluding Othime and skipped).
     {prefix}fort --summary\n           Show a breakdown by states of our systems.
     {prefix}fort alpha\n           Show the fortification status of Alpha Fornacis.
+    {prefix}fort alpha, sol, ran\n           Show the fortification status of Alpha Fornacis, Sol and Rana.
     {prefix}fort Othime --set 7500:2000\n           Set othime to 7500 fort status and 2000 um status.
     """.format(prefix=prefix)
     sub = subs.add_parser(prefix + 'fort', description=desc, formatter_class=RawHelp)
