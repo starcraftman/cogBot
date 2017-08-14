@@ -170,7 +170,6 @@ def subs_drop(subs, prefix):
     Amount dropped must be in range [-800, 800]
     Examples:
 
-    {prefix}drop 600\n           Drop 600 supplies for yourself at the current fortification target.
     {prefix}drop 600 @Shepron\n           Drop 600 supplies for Shepron at the current fortification target.
     {prefix}drop 600 Othime\n           Drop 600 supplies for yourself at Othime.
     {prefix}drop -50 Othime\n           Made a mistake? Subract 50 forts from your drops at Othime.
@@ -181,7 +180,7 @@ def subs_drop(subs, prefix):
     sub = subs.add_parser(prefix + 'drop', description=desc, formatter_class=RawHelp)
     sub.set_defaults(cmd='drop')
     sub.add_argument('amount', type=int, help='The amount to drop.')
-    sub.add_argument('system', nargs='*', help='The system to drop at.')
+    sub.add_argument('system', nargs='+', help='The system to drop at.')
     sub.add_argument('--set',
                      help='Set the fort:um status of the system. Example-> --set 3400:200')
 

@@ -315,19 +315,6 @@ class Drop(Action):
             self.duser.pref_name)
         asyncio.ensure_future(self.bot.send_message(self.mchannel, notice))
 
-    def resolve_system(self):
-        """ Resolve arguments into a selected System to drop at. """
-        if self.args.system:
-            system = cogdb.query.fort_find_system(self.session, ' '.join(self.args.system))
-            self.log.info('DROP %s - Matched system %s from: \n%s.',
-                          self.duser.display_name, system.name, system)
-        else:
-            system = cogdb.query.fort_get_targets(self.session)[0]
-            self.log.info('DROP %s - Matched current target: \n%s.',
-                          self.duser.display_name, system)
-
-        return system
-
     @check_mentions
     async def execute(self):
         """
@@ -337,7 +324,10 @@ class Drop(Action):
         self.log.info('DROP %s - Matched duser with id %s and sheet name %s.',
                       self.duser.display_name, self.duser.id[:6], self.duser.cattle)
 
-        system = self.resolve_system()
+        system = cogdb.query.fort_find_system(self.session, ' '.join(self.args.system))
+        self.log.info('DROP %s - Matched system %s from: \n%s.',
+                        self.duser.display_name, system.name, system)
+
         drop = cogdb.query.fort_add_drop(self.session, system=system,
                                          user=self.duser.cattle, amount=self.args.amount)
         self.log.info('DROP %s - After drop, Drop: %s\nSystem: %s.',
