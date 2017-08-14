@@ -11,6 +11,7 @@ import sys
 
 import decorator
 import discord
+from sqlalchemy.sql import text as sql_text
 
 import cogdb
 import cog.tbl
@@ -179,6 +180,28 @@ class Status(Action):
                                     cog.tbl.wrap_markdown(cog.tbl.format_table(lines)))
 
 
+class Bgs(Action):
+    """
+    Provide bgs related commands.
+    """
+    async def execute(self):
+        remote = cogdb.SideSession()
+
+        system = cogdb.query.fort_find_system(self.session, ' '.join(self.args.system),
+                                              search_all=True)
+        self.log.info('BGS - Looking for: %s', system.name)
+
+        query = sql_text("SELECT * FROM v_age WHERE control=:name ORDER BY age desc")
+        query = query.bindparams(name=system.name)
+
+        result = list(remote.execute(query))
+        self.log.info('BGS - Received from query: %s', str(result))
+
+        lines = [['Control', 'System', 'Age']] + result
+        response = cog.tbl.wrap_markdown(cog.tbl.format_table(lines, header=True))
+        await self.bot.send_message(self.mchannel, response)
+
+
 class Time(Action):
     """
     Provide in game time and time to import in game ticks.
@@ -189,12 +212,14 @@ class Time(Action):
     - To weekly tick
     """
     async def execute(self):
+        remote = cogdb.SideSession()
+        bgs_tick = remote.execute("select tick from bgs_tick order by tick desc limit 1").first()[0]
+
         now = datetime.datetime.utcnow().replace(microsecond=0)
         today = now.replace(hour=0, minute=0, second=0)
 
-        daily_tick = today + datetime.timedelta(hours=16)
-        if daily_tick < now:
-            daily_tick = daily_tick + datetime.timedelta(days=1)
+        if bgs_tick < now:
+            bgs_tick = bgs_tick + datetime.timedelta(days=1)
 
         weekly_tick = today + datetime.timedelta(hours=7)
         while weekly_tick < now and weekly_tick.strftime('%A') != 'Thursday':
@@ -202,8 +227,8 @@ class Time(Action):
 
         lines = [
             'Game Time: **{}**'.format(now.strftime('%H:%M:%S')),
-            'Time to BGS Tick: **{}** ({})'.format(daily_tick - now, daily_tick),
-            'Time to Cycle Tick: **{}** ({})'.format(weekly_tick - now, weekly_tick),
+            'BGS Tick: **{}** (Likely at: {})'.format(bgs_tick - now, bgs_tick),
+            'Cycle Tick: **{}** ({})'.format(weekly_tick - now, weekly_tick),
             'All Times UTC',
         ]
 

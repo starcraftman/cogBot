@@ -122,7 +122,7 @@ def make_parser(prefix):
     sub = subs.add_parser(prefix + 'time', description='Time in game and to ticks.')
     sub.set_defaults(cmd='time')
 
-    for suffix in ['admin', 'drop', 'fort', 'hold', 'um', 'user']:
+    for suffix in ['admin', 'bgs', 'drop', 'fort', 'hold', 'um', 'user']:
         func = getattr(sys.modules[__name__], 'subs_' + suffix)
         func(subs, prefix)
 
@@ -151,6 +151,17 @@ def subs_admin(subs, prefix):
     admin_subs.add_parser('scan', help='Scan the sheets for updates.')
     admin_sub = admin_subs.add_parser('info', help='Get info about discord users.')
     admin_sub.add_argument('user', nargs='?', help='The user to get info on.')
+
+
+def subs_bgs(subs, prefix):
+    """ Subcommand parsing for bgs """
+    desc = """BGS related commands. Examples:
+
+    {prefix}bgs control 16 cygni\n          Show exploiteds in 16 Cygni bubble by age.
+    """.format(prefix=prefix)
+    sub = subs.add_parser(prefix + 'bgs', description=desc, formatter_class=RawHelp)
+    sub.set_defaults(cmd='bgs')
+    sub.add_argument('system', nargs='+', help='Find age of exploited around the system.')
 
 
 def subs_drop(subs, prefix):
