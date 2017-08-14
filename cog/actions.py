@@ -222,13 +222,13 @@ class Time(Action):
             bgs_tick = bgs_tick + datetime.timedelta(days=1)
 
         weekly_tick = today + datetime.timedelta(hours=7)
-        while weekly_tick < now and weekly_tick.strftime('%A') != 'Thursday':
+        while weekly_tick < now or weekly_tick.strftime('%A') != 'Thursday':
             weekly_tick += datetime.timedelta(days=1)
 
         lines = [
             'Game Time: **{}**'.format(now.strftime('%H:%M:%S')),
-            'BGS Tick: **{}** (Likely at: {})'.format(bgs_tick - now, bgs_tick),
-            'Cycle Tick: **{}** ({})'.format(weekly_tick - now, weekly_tick),
+            'BGS Tick in **{}**    (Expected {})'.format(bgs_tick - now, bgs_tick),
+            'Cycle Ends in **{}**'.format(weekly_tick - now),
             'All Times UTC',
         ]
 
