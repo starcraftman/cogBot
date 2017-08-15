@@ -289,6 +289,11 @@ class System(Base):
     def __eq__(self, other):
         return isinstance(other, System) and self.name == other.name
 
+    def __lt__(self, other):
+        """ Order systems by remaining supplies needed. """
+        if isinstance(other, self.__class__):
+            return self.missing < other.missing
+
     @property
     def cmdr_merits(self):
         """ Total merits dropped by cmdrs """
@@ -365,7 +370,7 @@ class System(Base):
 
             setattr(self, attr, int(val))
 
-    def display(self, missing=True):
+    def display(self, missing=True, *, force_miss=False):
         """
         Return a useful short representation of System.
         """
@@ -373,7 +378,7 @@ class System(Base):
             self.name, self.current_status, self.trigger,
             'ied' if self.is_fortified else 'ying')
 
-        if missing and self.missing and self.missing < 1500:
+        if force_miss or (missing and self.missing and self.missing < 1500):
             msg += ' (missing {})'.format(self.missing)
 
         if self.notes:
@@ -395,13 +400,15 @@ class PrepSystem(System):
         """ Prep systems never get finished. """
         return False
 
-    def display(self, missing=True):
+    def display(self, missing=True, *, force_miss=False):
         """
         Return a useful short representation of PrepSystem.
         """
-        msg = 'Prep: **{}** {:>4}/{} :Fortifying:{}'.format(
-            self.name, self.current_status, self.trigger,
-            ' ' + self.notes if self.notes else '')
+        msg = 'Prep: **{}** {:>4}/{} :Fortifying:'.format(
+            self.name, self.current_status, self.trigger)
+
+        if self.notes:
+            msg += ' ' + self.notes
 
         return msg
 

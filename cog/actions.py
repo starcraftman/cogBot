@@ -326,7 +326,7 @@ class Drop(Action):
 
         system = cogdb.query.fort_find_system(self.session, ' '.join(self.args.system))
         self.log.info('DROP %s - Matched system %s from: \n%s.',
-                        self.duser.display_name, system.name, system)
+                      self.duser.display_name, system.name, system)
 
         drop = cogdb.query.fort_add_drop(self.session, system=system,
                                          user=self.duser.cattle, amount=self.args.amount)
@@ -386,6 +386,18 @@ class Fort(Action):
         # elif self.args.long:
             # lines = [systems[0].__class__.header] + [system.table_row for system in systems]
             # response = cog.tbl.wrap_markdown(cog.tbl.format_table(lines, sep='|', header=True))
+
+        elif self.args.miss:
+            lines = ['__Systems Missing {} Supplies__\n'.format(self.args.miss)]
+
+            miss = []
+            for system in cogdb.query.fort_get_systems(self.session):
+                if not system.is_fortified and not system.skip and system.missing <= self.args.miss:
+                    miss.append(system)
+            miss.sort()
+
+            lines += [system.display(force_miss=True) for system in miss]
+            response = '\n'.join(lines)
 
         elif self.args.system:
             lines = ['__Search Results__\n']

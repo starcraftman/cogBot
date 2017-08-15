@@ -190,6 +190,7 @@ def subs_fort(subs, prefix):
     desc = """Show fortification status and targets. Examples:
 
     {prefix}fort\n           Show current fort objectives.
+    {prefix}fort --miss 1000\n          Show all systems missing <= 1000 supplies.
     {prefix}fort --next 5\n           Show the next 5 fortification targets (excluding Othime and skipped).
     {prefix}fort --summary\n           Show a breakdown by states of our systems.
     {prefix}fort alpha\n           Show the fortification status of Alpha Fornacis.
@@ -203,6 +204,8 @@ def subs_fort(subs, prefix):
                      help='Set the fort:um status of system. Example-> --set 3400:200')
     sub.add_argument('--summary', action='store_true',
                      help='Provide an overview of the fort systems.')
+    sub.add_argument('--miss', type=int,
+                     help='Show systems missing <= MISS merits.')
     # sub.add_argument('-l', '--long', action='store_true', help='Show systems in table format')
     sub.add_argument('-n', '--next', type=int, default=3,
                      help='Show the next NUM fort targets after current')
