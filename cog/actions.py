@@ -390,13 +390,10 @@ class Fort(Action):
         elif self.args.miss:
             lines = ['__Systems Missing {} Supplies__\n'.format(self.args.miss)]
 
-            miss = []
             for system in cogdb.query.fort_get_systems(self.session):
                 if not system.is_fortified and not system.skip and system.missing <= self.args.miss:
-                    miss.append(system)
-            miss.sort()
+                    lines.append(system.display(force_miss=True))
 
-            lines += [system.display(force_miss=True) for system in miss]
             response = '\n'.join(lines)
 
         elif self.args.system:
