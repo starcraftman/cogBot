@@ -242,11 +242,15 @@ class CogBot(discord.Client):
         """
         Simply inspect class and dispatch command. Guaranteed to be valid.
         """
+        args = kwargs.get('args')
         message = kwargs.get('message')
+
         # FIXME: Hack due to users editting sheet.
-        last_cmd = self.last_cmd
-        self.last_cmd = time.time()
-        if (time.time() - last_cmd) > 60.0 * 5:
+        sheet_cmds = ['drop', 'hold', 'fort', 'um', 'user']
+        outdated = (time.time() - self.last_cmd) > 300.0
+        if args.cmd in sheet_cmds and outdated:
+            self.last_cmd = time.time()
+
             orig_content = message.content
             asyncio.ensure_future(self.send_message(
                 message.channel,
@@ -256,7 +260,7 @@ class CogBot(discord.Client):
             await self.send_message(message.channel,
                                     'Now executing: **{}**'.format(orig_content))
 
-        cls = getattr(cog.actions, kwargs.get('args').cmd.capitalize())
+        cls = getattr(cog.actions, args.cmd.capitalize())
         await cls(**kwargs).execute()
 
 
