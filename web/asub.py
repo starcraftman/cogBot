@@ -15,11 +15,9 @@ import zmq.asyncio
 zmq.asyncio.install()
 
 
-CTX = zmq.asyncio.Context.instance()
-
-
 async def sub():
-    sock = CTX.socket(zmq.SUB)
+    ctx = zmq.asyncio.Context.instance()
+    sock = ctx.socket(zmq.SUB)
     sock.bind('tcp://127.0.0.1:9000')
     sock.subscribe(b'')
 

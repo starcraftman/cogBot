@@ -28,6 +28,12 @@ try:
     print('Setting uvloop as asyncio loop, enabling debug')
 except ImportError:
     pass
+import zmq
+import zmq.asyncio
+zmq.asyncio.install()
+
+
+CTX = zmq.asyncio.Context.instance()
 
 import cogdb
 import cogdb.schema
@@ -284,6 +290,33 @@ def scan_sheet(sheet, cls):
     return scanner
 
 
+async def bot_updater(client, *, server, channel):
+    """
+    Background task executes while bot alive. On sheet update, receive notification via zmq socket
+    do an admin scan for the altered sheet.
+
+    Args:
+        client: The bot itself.
+        server: Name of a server bot connects to.
+        channel: Name of channel on server bot connects to that messages should be sent to.
+    """
+    await client.wait_until_ready()
+    print('Starting update system')
+    ctx = zmq.asyncio.Context.instance()
+    sock = ctx.socket(zmq.SUB)
+    sock.bind('tcp://127.0.0.1:9000')
+    sock.subscribe(b'')
+
+    while not client.is_closed:
+        data = await sock.recv_json()
+        print('Received: ' + str(data))
+
+        channel = discord.utils.get(discord.utils.get(client.servers, name=server).channels,
+                                    name=channel)
+        asyncio.ensure_future(
+            client.send_message(channel, 'Received POST: {}'.format(data)))
+
+
 def main():  # pragma: no cover
     """ Entry here!  """
     cog.share.init_logging()
@@ -292,6 +325,8 @@ def main():  # pragma: no cover
         scanner = scan_sheet(cog.share.get_config('hudson', 'cattle'), cogdb.query.FortScanner)
         scanner_um = scan_sheet(cog.share.get_config('hudson', 'um'), cogdb.query.UMScanner)
         bot = CogBot(prefix='!', scanner=scanner, scanner_um=scanner_um)
+        bot.loop.create_task(
+            bot_updater(bot, server="Gears' Hideout", channel="test_dev"))
 
         # BLOCKING: N.o. e.s.c.a.p.e.
         bot.run(cog.share.get_config('discord', os.environ.get('COG_TOKEN', 'dev')))
