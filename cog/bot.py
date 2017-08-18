@@ -301,20 +301,23 @@ async def bot_updater(client, *, server, channel):
         channel: Name of channel on server bot connects to that messages should be sent to.
     """
     await client.wait_until_ready()
+    log = logging.getLogger('cog.bot')
     print('Starting update system')
     ctx = zmq.asyncio.Context.instance()
     sock = ctx.socket(zmq.SUB)
     sock.bind('tcp://127.0.0.1:9000')
     sock.subscribe(b'')
 
+    channel = discord.utils.get(discord.utils.get(client.servers, name=server).channels,
+                                name=channel)
+    count = 0
     while not client.is_closed:
         data = await sock.recv_json()
         print('Received: ' + str(data))
+        log.debug('POST Received: %s', str(data))
 
-        channel = discord.utils.get(discord.utils.get(client.servers, name=server).channels,
-                                    name=channel)
-        asyncio.ensure_future(
-            client.send_message(channel, 'Received POST: {}'.format(data)))
+        await client.send_message(channel, 'Receive {} POST: {}'.format(count, data))
+        count += 1
 
 
 def main():  # pragma: no cover

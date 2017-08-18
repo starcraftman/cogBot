@@ -23,6 +23,8 @@ app = Flask(__name__)
 RECV = []
 LOG = os.path.join(tempfile.gettempdir(), 'posts')
 ZCONTEXT = zmq.Context()
+SOCK = ZCONTEXT.socket(zmq.PUB)
+SOCK.connect("tcp://127.0.0.1:9000")
 
 
 def init_log():
@@ -54,22 +56,13 @@ def post():
         if len(RECV) > 20:
             RECV = RECV[1:]
 
-        # Filter this bot's updates
-        user = data.get('user')
-        if user and user == 'gearbot3003':
+        # Filter this bot's own edits
+        if data.get('user') == 'gearbot3003':
             log.info('Ignoring bot edit.')
             return '200'
 
         log.info('Publishing message for %s', data['spreadsheet'])
-        try:
-            socket = ZCONTEXT.socket(zmq.PUB)
-            socket.connect("tcp://127.0.0.1:9000")
-            socket.send_json(data)
-        finally:
-            try:
-                socket.close()
-            except UnboundLocalError:
-                pass
+        SOCK.send_json(data)
 
         return '200'
     else:

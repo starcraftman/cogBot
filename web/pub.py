@@ -33,7 +33,7 @@ def main():
         while True:
             print('pub')
             socket.send_json({'Hello': 'world'})
-            time.sleep(1)
+            time.sleep(3)
     finally:
         socket.close()
 
