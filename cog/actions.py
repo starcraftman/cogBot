@@ -216,10 +216,10 @@ class Time(Action):
         today = now.replace(hour=0, minute=0, second=0)
 
         remote = cogdb.SideSession()
-        query = sql_text("select tick from bgs_tick where year(tick) = :year and "\
-                         "month(tick) = :month and day(tick) = :day")
-        query = query.bindparams(year=today.year, month=today.month, day=today.day)
-        bgs_tick = remote.execute(query).first()[0]
+        query = sql_text('select tick from bgs_tick where tick > :date order by tick asc limit 1')
+        query = query.bindparams(date=str(now))
+        bgs_tick = remote.execute(query).fetchone()[0]
+        self.log.info('BGS_TICK - %s -> %s', str(now), bgs_tick)
 
         if bgs_tick < now:
             bgs_tick = bgs_tick + datetime.timedelta(days=1)
