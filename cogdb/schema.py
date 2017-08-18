@@ -370,7 +370,7 @@ class System(Base):
 
             setattr(self, attr, int(val))
 
-    def display(self, missing=True, *, force_miss=False):
+    def display(self, *, force_miss=False):
         """
         Return a useful short representation of System.
         """
@@ -378,11 +378,15 @@ class System(Base):
             self.name, self.current_status, self.trigger,
             'ied' if self.is_fortified else 'ying')
 
-        if force_miss or (missing and self.missing and self.missing < 1500):
-            msg += ' (missing {})'.format(self.missing)
+        if self.um_status > 0:
+            msg += ', {} :Undermin{}:'.format(
+                self.um_status, 'ed' if self.is_undermined else 'ing')
 
-        if self.notes:
-            msg += ' ' + self.notes
+        if self.is_undermined:
+            msg += ', :Undermined:'
+
+        if force_miss or (self.missing and self.missing < 1500):
+            msg += ' (missing {})'.format(self.missing)
 
         return msg
 

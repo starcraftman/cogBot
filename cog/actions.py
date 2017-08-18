@@ -212,11 +212,14 @@ class Time(Action):
     - To weekly tick
     """
     async def execute(self):
-        remote = cogdb.SideSession()
-        bgs_tick = remote.execute("select tick from bgs_tick order by tick desc limit 1").first()[0]
-
         now = datetime.datetime.utcnow().replace(microsecond=0)
         today = now.replace(hour=0, minute=0, second=0)
+
+        remote = cogdb.SideSession()
+        query = sql_text("select tick from bgs_tick where year(tick) = :year and "\
+                         "month(tick) = :month and day(tick) = :day")
+        query = query.bindparams(year=today.year, month=today.month, day=today.day)
+        bgs_tick = remote.execute(query).first()[0]
 
         if bgs_tick < now:
             bgs_tick = bgs_tick + datetime.timedelta(days=1)
