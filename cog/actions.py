@@ -327,7 +327,8 @@ class Drop(Action):
         self.log.info('DROP %s - Matched duser with id %s and sheet name %s.',
                       self.duser.display_name, self.duser.id[:6], self.duser.cattle)
 
-        system = cogdb.query.fort_find_system(self.session, ' '.join(self.args.system))
+        system = cogdb.query.fort_find_system(self.session, ' '.join(self.args.system),
+                                              search_all=True)
         self.log.info('DROP %s - Matched system %s from: \n%s.',
                       self.duser.display_name, system.name, system)
 
