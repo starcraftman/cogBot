@@ -431,7 +431,6 @@ class Admin(Action):
     async def execute(self):
         args = self.args
         message = self.message
-        session = self.session
         response = ''
 
         # TODO: In real solution, check perms on dispatch or make decorator.
@@ -458,22 +457,6 @@ class Admin(Action):
             await asyncio.sleep(40)
             asyncio.ensure_future(bot_shutdown(self.bot))
             response = 'Goodbye!'
-
-        elif args.subcmd == 'scan':
-            self.bot.deny_commands = True
-            asyncio.ensure_future(self.bot.send_message(message.channel,
-                                                        'Updating db. Commands: **Disabled**'))
-            await asyncio.sleep(2)
-
-            # TODO: Blocks here, problematic for async. Use thread for scanners?
-            cogdb.schema.drop_tables(all=False)
-            self.bot.scanner.scan(session)
-            self.bot.scanner_um.scan(session)
-
-            # Commands only accepted if no critical errors during update
-            self.bot.deny_commands = False
-            await self.bot.send_message(message.channel,
-                                        'Update finished. Commands: **Enabled**')
 
         elif args.subcmd == 'info':
             if message.mentions:

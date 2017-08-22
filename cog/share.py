@@ -138,7 +138,6 @@ def subs_admin(subs, prefix):
     {prefix}admin deny\n          Toggle command processing.
     {prefix}admin dump\n          Dump the database to console to inspect.
     {prefix}admin halt\n          Shutdown this bot after short delay.
-    {prefix}admin scan\n          Pull and parse the latest sheet information.
     {prefix}admin info @User\n          Information about the mentioned User, DMed to admin.
     """.format(prefix=prefix)
     sub = subs.add_parser(prefix + 'admin', description=desc, formatter_class=RawHelp)
@@ -148,7 +147,6 @@ def subs_admin(subs, prefix):
     admin_subs.add_parser('deny', help='Toggle command processing.')
     admin_subs.add_parser('dump', help='Dump the db to console.')
     admin_subs.add_parser('halt', help='Stop accepting commands and halt bot.')
-    admin_subs.add_parser('scan', help='Scan the sheets for updates.')
     admin_sub = admin_subs.add_parser('info', help='Get info about discord users.')
     admin_sub.add_argument('user', nargs='?', help='The user to get info on.')
 

@@ -12,6 +12,7 @@ Small Python Async tutorial:
 from __future__ import absolute_import, print_function
 import asyncio
 import datetime
+import functools
 import logging
 import logging.handlers
 import logging.config
@@ -93,6 +94,7 @@ class CogBot(discord.Client):
         self.prefix = kwargs.get('prefix')
         self.scanner = kwargs.get('scanner')
         self.scanner_um = kwargs.get('scanner_um')
+        self.sched = kwargs.get('sched')
         self.deny_commands = True
         self.last_cmd = time.time()
         self.start_date = datetime.datetime.utcnow().replace(microsecond=0)
@@ -250,20 +252,17 @@ class CogBot(discord.Client):
         args = kwargs.get('args')
         message = kwargs.get('message')
 
-        # FIXME: Hack due to users editting sheet.
-        sheet_cmds = ['drop', 'hold', 'fort', 'um', 'user']
-        outdated = (time.time() - self.last_cmd) > 300.0
-        if args.cmd in sheet_cmds and outdated:
-            self.last_cmd = time.time()
+        if self.sched.disabled(args.cmd):
+            reply = 'Change detected in spreadsheet, bot will synchronize shortly.\n'\
+                    'Execution will resume after update has finished.'
+            await self.send_message(message.channel, reply)
 
-            orig_content = message.content
-            asyncio.ensure_future(self.send_message(
-                message.channel,
-                'Bot has been inactive 5+ mins. Command will execute after update.'))
-            message.content = '!admin scan'
-            await self.on_message(message)
-            await self.send_message(message.channel,
-                                    'Now executing: **{}**'.format(orig_content))
+            while self.sched.disabled(args.cmd):
+                await asyncio.sleep(1)
+
+            await self.send_message(message.channel, 'Resuming command from {}: **{}**'.format(
+                message.author.display_name, message.content))
+
 
         cls = getattr(cog.actions, args.cmd.capitalize())
         await cls(**kwargs).execute()
@@ -273,9 +272,17 @@ async def delay_call(delay, func, *args, **kwargs):
     """ Simply delay then invoke func. """
     log = logging.getLogger('cog.bot')
     await asyncio.sleep(delay)
-    log.info('SCHED - Woke up')
     func(*args, **kwargs)
-    log.info('SCHED - Post func')
+    log.info('SCHED - Finished delayed call.')
+
+
+def done_callback(wrap, _):
+    """ Callback called when future done. """
+    log = logging.getLogger('cog.bot')
+    log.info('SCHED - Finished %s, expected at %s, actual %s',
+             wrap.name, wrap.expected, datetime.datetime.utcnow())
+    wrap.future = None
+    wrap.expected = None
 
 
 class UpdateScheduler(object):
@@ -284,7 +291,7 @@ class UpdateScheduler(object):
     """
     def __init__(self):
         self.bot = None
-        self.delay = 15  # Seconds of timeout before updating
+        self.delay = 20  # Seconds of timeout before updating
         self.scanners = {}
 
     def register(self, name, scanner, cmds):
@@ -296,16 +303,16 @@ class UpdateScheduler(object):
     def schedule(self, data):
         """ Data is a json payload, format still not determined. """
         wrap = self.scanners.get(data['scanner'])
-        wrap.schedule(15)
+        wrap.schedule(self.delay)
 
-    def enabled(self, cmd):
+    def disabled(self, cmd):
         """ Check if a command is disabled due to scheduled update. """
         scheduled = [scanner for scanner in self.scanners.values() if scanner.is_scheduled]
         for scanner in scheduled:
             if cmd in scanner.cmds:
-                return False
+                return True
 
-        return True
+        return False
 
 
 class WrapScanner(object):
@@ -319,30 +326,27 @@ class WrapScanner(object):
         self.future = None
         self.expected = None
 
+    def __str__(self):
+        return 'Wrapper for: {} {}'.format(self.name, self.scanner.__class__.__name__)
+
     def schedule(self, delay):
+        """ Schedule this scanner update after delay seconds. """
+        log = logging.getLogger('cog.bot')
         if self.is_scheduled:
             self.future.cancel()
-        # self.future = asyncio.ensure_future(
-            # delay_call(delay, self.scanner.scan, cogdb.Session()))
         self.future = asyncio.ensure_future(
-            delay_call(delay, print, 'Scheduled message!'))
-        self.future.add_done_callback(self.done_callback)
+            delay_call(delay, self.scanner.scan, cogdb.Session()))
+        self.future.add_done_callback(functools.partial(done_callback, self))
         self.expected = datetime.datetime.utcnow() + datetime.timedelta(seconds=delay)
-
-    def done_callback(self):
-        """ Callback called when future done. """
-        log = logging.getLogger('cog.bot')
-        log.info('SCHED - Finished %s, expected at %s, actual %s',
-                 self.name, self.expected, datetime.datetime.utcnow())
-        self.future = None
-        self.expected = None
+        log.info('SCHED - Update for %s scheduled for %s', self.name, self.expected)
 
     @property
     def is_scheduled(self):
-        return self.future is not None
+        """ Simple naming alias, a wrapper is scheduled if the future is set. """
+        return self.future
 
 
-async def bot_updater(client, updater, *, server, channel):
+async def bot_updater(client, updater):
     """
     Background task executes while bot alive. On sheet update, receive notification via zmq socket
     do an admin scan for the altered sheet.
@@ -360,18 +364,15 @@ async def bot_updater(client, updater, *, server, channel):
     sock.bind('tcp://127.0.0.1:9000')
     sock.subscribe(b'')
 
-    channel = discord.utils.get(discord.utils.get(client.servers, name=server).channels,
-                                name=channel)
     count = 0
     while not client.is_closed:
         data = await sock.recv_json()
-        print('Received: ' + str(data))
-        log.debug('POST Received: %s', str(data))
+        log.debug('POST %d received: %s', count, str(data))
 
-        updater.schedule(data)
+        if data['filter'] == cog.share.get_config('filter'):
+            updater.schedule(data)
 
-        await client.send_message(channel, 'Receive {} POST: {}'.format(count, data))
-        count += 1
+        count = (count + 1) % 100
 
 
 def scan_sheet(sheet, cls):
@@ -402,12 +403,11 @@ def main():  # pragma: no cover
         scanner = scan_sheet(cog.share.get_config('hudson', 'cattle'), cogdb.query.FortScanner)
         scanner_um = scan_sheet(cog.share.get_config('hudson', 'um'), cogdb.query.UMScanner)
         sched = UpdateScheduler()
-        sched.register('cattle', scanner, ['drop', 'fort'])
-        sched.register('um', scanner_um, ['hold', 'um'])
-        bot = CogBot(prefix='!', scanner=scanner, scanner_um=scanner_um)
+        sched.register('hudson_cattle', scanner, ['drop', 'fort', 'user'])
+        sched.register('hudson_um', scanner_um, ['hold', 'um', 'user'])
+        bot = CogBot(prefix='!', sched=sched, scanner=scanner, scanner_um=scanner_um)
         sched.bot = bot
-        bot.loop.create_task(
-            bot_updater(bot, server="Gears' Hideout", channel="test_dev"))
+        bot.loop.create_task(bot_updater(bot, sched))
 
         # BLOCKING: N.o. e.s.c.a.p.e.
         bot.run(cog.share.get_config('discord', os.environ.get('COG_TOKEN', 'dev')))
