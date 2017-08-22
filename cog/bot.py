@@ -298,13 +298,6 @@ class UpdateScheduler(object):
         wrap = self.scanners.get(data['scanner'])
         wrap.schedule(15)
 
-    def callback(self, wrap):
-        log = logging.getLogger('cog.bot')
-        log.info('SCHED - Finished %s, expected at %s, actual %s',
-                 wrap.name, wrap.expected, datetime.datetime.utcnow())
-        wrap.future = None
-        wrap.expected = None
-
     def enabled(self, cmd):
         """ Check if a command is disabled due to scheduled update. """
         scheduled = [scanner for scanner in self.scanners.values() if scanner.is_scheduled]
@@ -329,11 +322,20 @@ class WrapScanner(object):
     def schedule(self, delay):
         if self.is_scheduled:
             self.future.cancel()
-        self.future = asyncio.ensure_future(
-            delay_call(delay, print, 'Scheduled message!'))
         # self.future = asyncio.ensure_future(
             # delay_call(delay, self.scanner.scan, cogdb.Session()))
+        self.future = asyncio.ensure_future(
+            delay_call(delay, print, 'Scheduled message!'))
+        self.future.add_done_callback(self.done_callback)
         self.expected = datetime.datetime.utcnow() + datetime.timedelta(seconds=delay)
+
+    def done_callback(self):
+        """ Callback called when future done. """
+        log = logging.getLogger('cog.bot')
+        log.info('SCHED - Finished %s, expected at %s, actual %s',
+                 self.name, self.expected, datetime.datetime.utcnow())
+        self.future = None
+        self.expected = None
 
     @property
     def is_scheduled(self):
