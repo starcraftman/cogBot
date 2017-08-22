@@ -6,6 +6,7 @@ import time
 
 import zmq
 
+
 def sub(ident):
     print("Sub connecting on: 127.0.0.1:9000")
 

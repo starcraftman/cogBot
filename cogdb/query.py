@@ -352,6 +352,7 @@ class SheetScanner(object):
         self.user_col = None
         self.user_row = None
         self.users_args = user_args
+        self.tables = None
 
     @property
     def cells(self):
@@ -367,11 +368,21 @@ class SheetScanner(object):
     def cells(self, value):
         self.__cells = value
 
+    def drop_tables(self, session):
+        """
+        Before scan, drop tables with old data.
+        """
+        for table in self.tables:
+            session.query(table).delete()
+
     def scan(self, session):
         """
         Main function, scan the sheet into the database.
         """
         self.cells = None
+        self.drop_tables(session)
+        session.commit()
+
         systems = self.systems()
         users = self.users(*self.users_args)
         session.add_all(systems + users)
@@ -447,6 +458,7 @@ class FortScanner(SheetScanner):
         super(FortScanner, self).__init__(gsheet, (SheetCattle, EFaction.hudson))
         self.system_col = self.find_system_column()
         self.user_col, self.user_row = self.find_user_row()
+        self.tables = [Drop, System, SheetCattle]
 
     def systems(self):
         return self.fort_systems() + self.prep_systems()
@@ -603,6 +615,7 @@ class UMScanner(SheetScanner):
         self.system_col = 'D'
         self.user_col = 'B'
         self.user_row = 14
+        self.tables = [Hold, SystemUM, SheetUM]
 
     def systems(self):
         """

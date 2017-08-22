@@ -166,8 +166,8 @@ def test_system_display(f_systems):
     assert system.display() == '**Frey** 4910/4910 :Fortified:'
 
     system.fort_status = 4000
-    assert system.display() == '**Frey** 4000/4910 :Fortifying: (missing 910)'
-    assert system.display(missing=False) == '**Frey** 4000/4910 :Fortifying:'
+    assert system.display() == '**Frey** 4000/4910 :Fortifying: (910 left)'
+    assert system.display(miss=False) == '**Frey** 4000/4910 :Fortifying:'
 
 
 def test_system_set_status(f_systems):

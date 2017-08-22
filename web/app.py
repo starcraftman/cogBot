@@ -22,8 +22,7 @@ from flask import Flask, request
 app = Flask(__name__)
 RECV = []
 LOG = os.path.join(tempfile.gettempdir(), 'posts')
-ZCONTEXT = zmq.Context()
-SOCK = ZCONTEXT.socket(zmq.PUB)
+SOCK = zmq.Context().socket(zmq.PUB)
 SOCK.connect("tcp://127.0.0.1:9000")
 
 
@@ -32,7 +31,8 @@ def init_log():
     logger = logging.getLogger('posts')
     logger.setLevel(logging.DEBUG)
 
-    handler = logging.handlers.RotatingFileHandler(LOG, mode='a', maxBytes=1024*1024*1024,
+    max_size = 1024 * 1024 * 1024
+    handler = logging.handlers.RotatingFileHandler(LOG, mode='a', maxBytes=max_size,
                                                    backupCount=1)
     handler.setLevel(logging.DEBUG)
     shandler = logging.StreamHandler()
@@ -41,11 +41,14 @@ def init_log():
     for hand in [handler, shandler]:
         hand.setFormatter(formatter)
         logger.addHandler(hand)
+
+
 init_log()
 
 
 @app.route('/post', methods=['GET', 'POST'])
 def post():
+    """ Handle post requests. """
     if request.method == 'POST':
         global RECV
         data = request.get_json()
@@ -73,6 +76,7 @@ def post():
 
 
 def main():
+    """ Debug entry point, use gunicorn in prod. """
     app.run(host='0.0.0.0')
 
 

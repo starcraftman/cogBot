@@ -11,7 +11,7 @@ Small Python Async tutorial:
 """
 from __future__ import absolute_import, print_function
 import asyncio
-import datetime as date
+import datetime
 import logging
 import logging.handlers
 import logging.config
@@ -30,10 +30,6 @@ except ImportError:
     pass
 import zmq
 import zmq.asyncio
-zmq.asyncio.install()
-
-
-CTX = zmq.asyncio.Context.instance()
 
 import cogdb
 import cogdb.schema
@@ -43,6 +39,9 @@ import cog.exc
 import cog.share
 import cog.sheets
 import cog.tbl
+
+zmq.asyncio.install()
+CTX = zmq.asyncio.Context.instance()
 
 
 class EmojiResolver(object):
@@ -96,7 +95,7 @@ class CogBot(discord.Client):
         self.scanner_um = kwargs.get('scanner_um')
         self.deny_commands = True
         self.last_cmd = time.time()
-        self.start_date = date.datetime.utcnow().replace(microsecond=0)
+        self.start_date = datetime.datetime.utcnow().replace(microsecond=0)
         self.emoji = EmojiResolver()
 
     @property
@@ -104,7 +103,7 @@ class CogBot(discord.Client):
         """
         Return the uptime since bot was started.
         """
-        return str(date.datetime.utcnow().replace(microsecond=0) - self.start_date)
+        return str(datetime.datetime.utcnow().replace(microsecond=0) - self.start_date)
 
     # Events hooked by bot.
     async def on_member_join(self, member):
@@ -270,27 +269,78 @@ class CogBot(discord.Client):
         await cls(**kwargs).execute()
 
 
-def scan_sheet(sheet, cls):
+async def delay_call(delay, func, *args, **kwargs):
+    """ Simply delay then invoke func. """
+    log = logging.getLogger('cog.bot')
+    await asyncio.sleep(delay)
+    log.info('SCHED - Woke up')
+    func(*args, **kwargs)
+    log.info('SCHED - Post func')
+
+
+class UpdateScheduler(object):
     """
-    Run common database initialization.
-
-    - Fetch the current sheet and parse it.
-    - Fill database with parsed data.
+    Schedule updates for the db and manage permitted commands.
     """
-    session = cogdb.Session()
+    def __init__(self):
+        self.bot = None
+        self.delay = 15  # Seconds of timeout before updating
+        self.scanners = {}
 
-    paths = cog.share.get_config('paths')
-    sheet = cog.sheets.GSheet(sheet,
-                              cog.share.rel_to_abs(paths['json']),
-                              cog.share.rel_to_abs(paths['token']))
+    def register(self, name, scanner, cmds):
+        """
+        Register scanner to be updated.
+        """
+        self.scanners[name] = WrapScanner(name, scanner, cmds)
 
-    scanner = cls(sheet)
-    scanner.scan(session)
+    def schedule(self, data):
+        """ Data is a json payload, format still not determined. """
+        wrap = self.scanners.get(data['scanner'])
+        wrap.schedule(15)
 
-    return scanner
+    def callback(self, wrap):
+        log = logging.getLogger('cog.bot')
+        log.info('SCHED - Finished %s, expected at %s, actual %s',
+                 wrap.name, wrap.expected, datetime.datetime.utcnow())
+        wrap.future = None
+        wrap.expected = None
+
+    def enabled(self, cmd):
+        """ Check if a command is disabled due to scheduled update. """
+        scheduled = [scanner for scanner in self.scanners.values() if scanner.is_scheduled]
+        for scanner in scheduled:
+            if cmd in scanner.cmds:
+                return False
+
+        return True
 
 
-async def bot_updater(client, *, server, channel):
+class WrapScanner(object):
+    """
+    Wrap a scanner with info about scheduling. Mainly a data class.
+    """
+    def __init__(self, name, scanner, cmds):
+        self.name = name
+        self.cmds = cmds
+        self.scanner = scanner
+        self.future = None
+        self.expected = None
+
+    def schedule(self, delay):
+        if self.is_scheduled:
+            self.future.cancel()
+        self.future = asyncio.ensure_future(
+            delay_call(delay, print, 'Scheduled message!'))
+        # self.future = asyncio.ensure_future(
+            # delay_call(delay, self.scanner.scan, cogdb.Session()))
+        self.expected = datetime.datetime.utcnow() + datetime.timedelta(seconds=delay)
+
+    @property
+    def is_scheduled(self):
+        return self.future is not None
+
+
+async def bot_updater(client, updater, *, server, channel):
     """
     Background task executes while bot alive. On sheet update, receive notification via zmq socket
     do an admin scan for the altered sheet.
@@ -316,8 +366,30 @@ async def bot_updater(client, *, server, channel):
         print('Received: ' + str(data))
         log.debug('POST Received: %s', str(data))
 
+        updater.schedule(data)
+
         await client.send_message(channel, 'Receive {} POST: {}'.format(count, data))
         count += 1
+
+
+def scan_sheet(sheet, cls):
+    """
+    Run common database initialization.
+
+    - Fetch the current sheet and parse it.
+    - Fill database with parsed data.
+    """
+    session = cogdb.Session()
+
+    paths = cog.share.get_config('paths')
+    sheet = cog.sheets.GSheet(sheet,
+                              cog.share.rel_to_abs(paths['json']),
+                              cog.share.rel_to_abs(paths['token']))
+
+    scanner = cls(sheet)
+    scanner.scan(session)
+
+    return scanner
 
 
 def main():  # pragma: no cover
@@ -327,7 +399,11 @@ def main():  # pragma: no cover
         cogdb.schema.drop_tables(all=False)  # Only persistent data should be kept on startup
         scanner = scan_sheet(cog.share.get_config('hudson', 'cattle'), cogdb.query.FortScanner)
         scanner_um = scan_sheet(cog.share.get_config('hudson', 'um'), cogdb.query.UMScanner)
+        sched = UpdateScheduler()
+        sched.register('cattle', scanner, ['drop', 'fort'])
+        sched.register('um', scanner_um, ['hold', 'um'])
         bot = CogBot(prefix='!', scanner=scanner, scanner_um=scanner_um)
+        sched.bot = bot
         bot.loop.create_task(
             bot_updater(bot, server="Gears' Hideout", channel="test_dev"))
 

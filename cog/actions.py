@@ -270,11 +270,13 @@ class User(Action):
 
         lines = [
             '**{}**'.format(self.mauthor.display_name),
+            'Sheet Name: ' + self.duser.pref_name,
+            'Sheet Cry: ' + self.duser.pref_cry,
         ]
         for sheet in self.duser.sheets:
             lines += [
-                '{} {}'.format(sheet.faction.capitalize(), sheet.type.replace('Sheet', '')),
-                '    Merits: {}'.format(sheet.merits),
+                '{} {} Merits: {}'.format(sheet.faction.capitalize(),
+                                          sheet.type.replace('Sheet', ''), sheet.merits)
             ]
 
         await self.bot.send_message(self.mchannel, '\n'.join(lines))
@@ -357,23 +359,32 @@ class Fort(Action):
     """
     Provide information on and manage the fort sheet.
     """
+    def find_missing(self, left):
+        """ Show systems with 'left' remaining. """
+        lines = ['__Systems Missing {} Supplies__\n'.format(left)]
+
+        for system in cogdb.query.fort_get_systems(self.session):
+            if not system.is_fortified and not system.skip and system.missing <= left:
+                lines.append(system.display(force_miss=True))
+
+        return '\n'.join(lines)
+
+    def system_summary(self):
+        """ Provide a quick summary of systems. """
+        states = cogdb.query.fort_get_systems_by_state(self.session)
+
+        total = len(cogdb.query.fort_get_systems(self.session))
+        keys = ['cancelled', 'fortified', 'undermined', 'skipped', 'left']
+        lines = [
+            [key.capitalize() for key in keys],
+            ['{}/{}'.format(len(states[key]), total) for key in keys],
+        ]
+
+        return cog.tbl.wrap_markdown(cog.tbl.format_table(lines, sep='|', header=True))
+
     async def execute(self):
         if self.args.summary:
-            states = cogdb.query.fort_get_systems_by_state(self.session)
-
-            # FIXME: Excessive to fix
-            self.log.info("Fort Summary - Start")
-            for key in states:
-                self.log.info("Fort Summary - %s %s", key,
-                              str([system.name for system in states[key]]))
-            total = len(cogdb.query.fort_get_systems(self.session))
-
-            keys = ['cancelled', 'fortified', 'undermined', 'skipped', 'left']
-            lines = [
-                [key.capitalize() for key in keys],
-                ['{}/{}'.format(len(states[key]), total) for key in keys],
-            ]
-            response = cog.tbl.wrap_markdown(cog.tbl.format_table(lines, sep='|', header=True))
+            response = self.system_summary()
 
         elif self.args.set:
             system_name = ' '.join(self.args.system)
@@ -386,18 +397,8 @@ class Fort(Action):
             asyncio.ensure_future(self.bot.scanner.update_system(system))
             response = system.display()
 
-        # elif self.args.long:
-            # lines = [systems[0].__class__.header] + [system.table_row for system in systems]
-            # response = cog.tbl.wrap_markdown(cog.tbl.format_table(lines, sep='|', header=True))
-
         elif self.args.miss:
-            lines = ['__Systems Missing {} Supplies__\n'.format(self.args.miss)]
-
-            for system in cogdb.query.fort_get_systems(self.session):
-                if not system.is_fortified and not system.skip and system.missing <= self.args.miss:
-                    lines.append(system.display(force_miss=True))
-
-            response = '\n'.join(lines)
+            response = self.find_missing(self.args.miss)
 
         elif self.args.system:
             lines = ['__Search Results__\n']
