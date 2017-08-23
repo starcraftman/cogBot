@@ -96,7 +96,6 @@ class CogBot(discord.Client):
         self.scanner_um = kwargs.get('scanner_um')
         self.sched = kwargs.get('sched')
         self.deny_commands = True
-        self.last_cmd = time.time()
         self.start_date = datetime.datetime.utcnow().replace(microsecond=0)
         self.emoji = EmojiResolver()
 
