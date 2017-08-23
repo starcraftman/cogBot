@@ -366,7 +366,7 @@ class Fort(Action):
 
         for system in cogdb.query.fort_get_systems(self.session):
             if not system.is_fortified and not system.skip and system.missing <= left:
-                lines.append(system.display(force_miss=True))
+                lines.append(system.display(miss=True))
 
         return '\n'.join(lines)
 

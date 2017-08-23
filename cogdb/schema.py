@@ -423,7 +423,7 @@ class PrepSystem(System):
         """ Prep systems never get finished. """
         return False
 
-    def display(self, missing=True, *, force_miss=False):
+    def display(self, *, miss=None):
         """
         Return a useful short representation of PrepSystem.
         """
