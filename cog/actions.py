@@ -191,7 +191,7 @@ class Bgs(Action):
                                               search_all=True)
         self.log.info('BGS - Looking for: %s', system.name)
 
-        query = sql_text("SELECT * FROM v_age WHERE control=:name ORDER BY age desc")
+        query = sql_text("SELECT * FROM v_age WHERE control=:name ORDER BY system asc")
         query = query.bindparams(name=system.name)
 
         result = list(remote.execute(query))
@@ -216,7 +216,7 @@ class Time(Action):
         today = now.replace(hour=0, minute=0, second=0)
 
         remote = cogdb.SideSession()
-        query = sql_text('select tick from bgs_tick where tick > :date order by tick asc limit 1')
+        query = sql_text('SELECT tick FROM bgs_tick WHERE tick > :date ORDER BY tick asc LIMIT 1')
         query = query.bindparams(date=str(now))
         bgs_tick = remote.execute(query).fetchone()[0]
         self.log.info('BGS_TICK - %s -> %s', str(now), bgs_tick)
@@ -270,6 +270,8 @@ class User(Action):
 
         lines = [
             '**{}**'.format(self.mauthor.display_name),
+            'Sheet Name: ' + self.duser.pref_name,
+            'Sheet Cry: ' + self.duser.pref_cry,
         ]
         for sheet in self.duser.sheets:
             lines += [
@@ -358,23 +360,32 @@ class Fort(Action):
     """
     Provide information on and manage the fort sheet.
     """
+    def find_missing(self, left):
+        """ Show systems with 'left' remaining. """
+        lines = ['__Systems Missing {} Supplies__\n'.format(left)]
+
+        for system in cogdb.query.fort_get_systems(self.session):
+            if not system.is_fortified and not system.skip and system.missing <= left:
+                lines.append(system.display(force_miss=True))
+
+        return '\n'.join(lines)
+
+    def system_summary(self):
+        """ Provide a quick summary of systems. """
+        states = cogdb.query.fort_get_systems_by_state(self.session)
+
+        total = len(cogdb.query.fort_get_systems(self.session))
+        keys = ['cancelled', 'fortified', 'undermined', 'skipped', 'left']
+        lines = [
+            [key.capitalize() for key in keys],
+            ['{}/{}'.format(len(states[key]), total) for key in keys],
+        ]
+
+        return cog.tbl.wrap_markdown(cog.tbl.format_table(lines, sep='|', header=True))
+
     async def execute(self):
         if self.args.summary:
-            states = cogdb.query.fort_get_systems_by_state(self.session)
-
-            # FIXME: Excessive to fix
-            self.log.info("Fort Summary - Start")
-            for key in states:
-                self.log.info("Fort Summary - %s %s", key,
-                              str([system.name for system in states[key]]))
-            total = len(cogdb.query.fort_get_systems(self.session))
-
-            keys = ['cancelled', 'fortified', 'undermined', 'skipped', 'left']
-            lines = [
-                [key.capitalize() for key in keys],
-                ['{}/{}'.format(len(states[key]), total) for key in keys],
-            ]
-            response = cog.tbl.wrap_markdown(cog.tbl.format_table(lines, sep='|', header=True))
+            response = self.system_summary()
 
         elif self.args.set:
             system_name = ' '.join(self.args.system)
@@ -387,18 +398,8 @@ class Fort(Action):
             asyncio.ensure_future(self.bot.scanner.update_system(system))
             response = system.display()
 
-        # elif self.args.long:
-            # lines = [systems[0].__class__.header] + [system.table_row for system in systems]
-            # response = cog.tbl.wrap_markdown(cog.tbl.format_table(lines, sep='|', header=True))
-
         elif self.args.miss:
-            lines = ['__Systems Missing {} Supplies__\n'.format(self.args.miss)]
-
-            for system in cogdb.query.fort_get_systems(self.session):
-                if not system.is_fortified and not system.skip and system.missing <= self.args.miss:
-                    lines.append(system.display(force_miss=True))
-
-            response = '\n'.join(lines)
+            response = self.find_missing(self.args.miss)
 
         elif self.args.system:
             lines = ['__Search Results__\n']
@@ -431,7 +432,6 @@ class Admin(Action):
     async def execute(self):
         args = self.args
         message = self.message
-        session = self.session
         response = ''
 
         # TODO: In real solution, check perms on dispatch or make decorator.
@@ -466,9 +466,8 @@ class Admin(Action):
             await asyncio.sleep(2)
 
             # TODO: Blocks here, problematic for async. Use thread for scanners?
-            cogdb.schema.drop_tables(all=False)
-            self.bot.scanner.scan(session)
-            self.bot.scanner_um.scan(session)
+            self.bot.scanner.scan(self.session)
+            self.bot.scanner_um.scan(self.session)
 
             # Commands only accepted if no critical errors during update
             self.bot.deny_commands = False

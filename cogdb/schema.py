@@ -370,9 +370,15 @@ class System(Base):
 
             setattr(self, attr, int(val))
 
-    def display(self, *, force_miss=False):
+    def display(self, *, miss=None):
         """
         Return a useful short representation of System.
+
+        Kwargs:
+            missing: A trinary:
+                - None, show missing only if < 1500 left
+                - True, display missing
+                - False, do not display missing
         """
         msg = '**{}** {:>4}/{} :Fortif{}:'.format(
             self.name, self.current_status, self.trigger,
@@ -382,11 +388,14 @@ class System(Base):
             msg += ', {} :Undermin{}:'.format(
                 self.um_status, 'ed' if self.is_undermined else 'ing')
 
-        if self.is_undermined:
+        if self.is_undermined and ':Undermin' not in msg:
             msg += ', :Undermined:'
 
-        if force_miss or (self.missing and self.missing < 1500):
-            msg += ' (missing {})'.format(self.missing)
+        if miss is not False and (self.missing and self.missing < 1500):
+            msg += ' ({} left)'.format(self.missing)
+
+        if self.notes:
+            msg += ' ' + self.notes
 
         return msg
 
@@ -733,7 +742,8 @@ def drop_tables(**kwargs):
 
     session = cogdb.Session()
     for cls in classes:
-        session.query(cls).delete()
+        for matched in session.query(cls):
+            session.delete(matched)
     session.commit()
 
 

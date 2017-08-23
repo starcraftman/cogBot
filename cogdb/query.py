@@ -346,12 +346,13 @@ class SheetScanner(object):
         Calls to modify the sheet should be asynchronous.
         Register them as futures and allow them to finish without waiting on.
     """
-    def __init__(self, gsheet, user_args):
+    def __init__(self, gsheet, user_args, db_classes):
         self.gsheet = gsheet
         self.cells = None
         self.user_col = None
         self.user_row = None
         self.users_args = user_args
+        self.db_classes = db_classes
 
     @property
     def cells(self):
@@ -367,11 +368,22 @@ class SheetScanner(object):
     def cells(self, value):
         self.__cells = value
 
+    def drop_entries(self, session):
+        """
+        Before scan, drop the matching entries in the table.
+        """
+        for cls in self.db_classes:
+            for matched in session.query(cls):
+                session.delete(matched)
+
     def scan(self, session):
         """
         Main function, scan the sheet into the database.
         """
         self.cells = None
+        self.drop_entries(session)
+        session.commit()
+
         systems = self.systems()
         users = self.users(*self.users_args)
         session.add_all(systems + users)
@@ -444,7 +456,8 @@ class FortScanner(SheetScanner):
     Scanner for the Hudson fort sheet.
     """
     def __init__(self, gsheet):
-        super(FortScanner, self).__init__(gsheet, (SheetCattle, EFaction.hudson))
+        super(FortScanner, self).__init__(gsheet, (SheetCattle, EFaction.hudson),
+                                          [Drop, System, SheetCattle])
         self.system_col = self.find_system_column()
         self.user_col, self.user_row = self.find_user_row()
 
@@ -598,7 +611,8 @@ class UMScanner(SheetScanner):
     Scanner for the Hudson undermine sheet.
     """
     def __init__(self, gsheet):
-        super(UMScanner, self).__init__(gsheet, (SheetUM, EFaction.hudson))
+        super(UMScanner, self).__init__(gsheet, (SheetUM, EFaction.hudson),
+                                        [Hold, SystemUM, SheetUM])
         # These are fixed based on current format
         self.system_col = 'D'
         self.user_col = 'B'
