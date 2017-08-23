@@ -439,6 +439,7 @@ def test_kwargs_fort_system():
         'trigger': 4910,
         'um_status': 0,
         'undermine': 0.0,
+        'fort_override': 0.7,
     }
     assert kwargs_fort_system(SYSTEMS_DATA[0], 1, 'F') == expect
 

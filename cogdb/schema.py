@@ -265,6 +265,7 @@ class System(Base):
     trigger = sqla.Column(sqla.Integer)
     um_status = sqla.Column(sqla.Integer, default=0)
     undermine = sqla.Column(sqla.Float, default=0.0)
+    fort_override = sqla.Column(sqla.Float, default=0.0)
     distance = sqla.Column(sqla.Float)
     notes = sqla.Column(sqla.String, default='')
     sheet_col = sqla.Column(sqla.String)
@@ -310,7 +311,12 @@ class System(Base):
     @property
     def current_status(self):
         """ Simply return max fort status reported. """
-        return max(self.fort_status, self.cmdr_merits)
+        # FIXME: Hack until import sheet included.
+        supplies = max(self.fort_status, self.cmdr_merits)
+        if self.fort_override > supplies / self.trigger:
+            return int(self.fort_override * self.trigger)
+        else:
+            return supplies
 
     @property
     def skip(self):
@@ -321,7 +327,11 @@ class System(Base):
     @property
     def is_fortified(self):
         """ The remaining supplies to fortify """
-        return self.current_status >= self.trigger
+        # FIXME: Hack until import sheet included.
+        if self.fort_override >= 1.0:
+            return True
+        else:
+            return self.current_status >= self.trigger
 
     @property
     def is_undermined(self):
@@ -703,6 +713,7 @@ def kwargs_fort_system(lines, order, column):
 
         return {
             'undermine': parse_float(lines[0]),
+            'fort_override': parse_float(lines[1]),
             'trigger': parse_int(lines[2]),
             'fort_status': parse_int(lines[5]),
             'um_status': parse_int(lines[6]),
