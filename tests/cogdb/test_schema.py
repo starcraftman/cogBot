@@ -17,20 +17,24 @@ from cogdb.schema import (DUser, System, Drop, Hold,
 from tests.data import SYSTEMS_DATA, SYSTEMSUM_DATA, SYSTEMUM_EXPAND
 
 
-def test_drop_tables_all(session, f_dusers, f_sheets, f_systems, f_drops, f_systemsum, f_holds):
+def test_empty_tables_all(session, f_dusers, f_sheets, f_systems, f_drops, f_systemsum, f_holds):
     classes = [DUser, SheetRow, System, SystemUM, Drop, Hold]
     for cls in classes:
         assert session.query(cls).all()
-    cogdb.schema.drop_tables(all=True)
+
+    cogdb.schema.empty_tables(session, perm=True)
+    session.commit()
+
     for cls in classes:
         assert session.query(cls).all() == []
 
 
-def test_drop_scanned_tables(session, f_dusers, f_sheets, f_systems, f_drops, f_systemsum, f_holds):
+def test_empty_tables_not_all(session, f_dusers, f_sheets, f_systems, f_drops, f_systemsum, f_holds):
     classes = [DUser, SheetRow, System, SystemUM, Drop, Hold]
     for cls in classes:
         assert session.query(cls).all()
-    cogdb.schema.drop_tables(all=False)
+
+    cogdb.schema.empty_tables(session, perm=False)
 
     classes.remove(DUser)
     for cls in classes:

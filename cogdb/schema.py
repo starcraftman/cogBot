@@ -20,6 +20,10 @@ import cogdb
 #                         \--> UMExpand --> UMOppose
 # TODO: Maybe make Merit -> FortMerit, UMMerit
 
+LEN_DID = 30
+LEN_NAME = 100
+LEN_FACTION = 10
+LEN_SHEET = 15
 Base = sqlalchemy.ext.declarative.declarative_base()
 
 
@@ -48,11 +52,11 @@ class DUser(Base):
     """
     __tablename__ = 'discord_users'
 
-    id = sqla.Column(sqla.String, primary_key=True)  # Discord id
-    display_name = sqla.Column(sqla.String)
-    pref_name = sqla.Column(sqla.String, unique=True)  # pref_name == display_name until change
-    pref_cry = sqla.Column(sqla.String, default='')
-    faction = sqla.Column(sqla.String, default=EFaction.hudson)
+    id = sqla.Column(sqla.String(LEN_DID), primary_key=True)  # Discord id
+    display_name = sqla.Column(sqla.String(LEN_NAME))
+    pref_name = sqla.Column(sqla.String(LEN_NAME), unique=True)  # pref_name == display_name until change
+    pref_cry = sqla.Column(sqla.String(LEN_NAME), default='')
+    faction = sqla.Column(sqla.String(LEN_FACTION), default=EFaction.hudson)
 
     def __repr__(self):
         keys = ['id', 'display_name', 'pref_name', 'pref_cry', 'faction']
@@ -107,10 +111,10 @@ class SheetRow(Base):
     __tablename__ = 'sheet_users'
 
     id = sqla.Column(sqla.Integer, primary_key=True)
-    type = sqla.Column(sqla.String)  # See ESheetType
-    faction = sqla.Column(sqla.String, default=EFaction.hudson)
-    name = sqla.Column(sqla.String, sqla.ForeignKey('discord_users.pref_name'))
-    cry = sqla.Column(sqla.String, default='')
+    type = sqla.Column(sqla.String(LEN_SHEET))  # See ESheetType
+    faction = sqla.Column(sqla.String(LEN_FACTION), default=EFaction.hudson)
+    name = sqla.Column(sqla.String(LEN_NAME))
+    cry = sqla.Column(sqla.String(LEN_NAME), default='')
     row = sqla.Column(sqla.Integer)
 
     __table_args__ = (
@@ -260,17 +264,17 @@ class System(Base):
     header = ['Type', 'System', 'Missing', 'Merits (Fort%/UM%)', 'Notes']
 
     id = sqla.Column(sqla.Integer, primary_key=True)
-    name = sqla.Column(sqla.String, unique=True)
+    name = sqla.Column(sqla.String(LEN_NAME), unique=True)
     fort_status = sqla.Column(sqla.Integer)
     trigger = sqla.Column(sqla.Integer)
     um_status = sqla.Column(sqla.Integer, default=0)
     undermine = sqla.Column(sqla.Float, default=0.0)
     fort_override = sqla.Column(sqla.Float, default=0.0)
     distance = sqla.Column(sqla.Float)
-    notes = sqla.Column(sqla.String, default='')
-    sheet_col = sqla.Column(sqla.String)
+    notes = sqla.Column(sqla.String(LEN_NAME), default='')
+    sheet_col = sqla.Column(sqla.String(5))
     sheet_order = sqla.Column(sqla.Integer)
-    type = sqla.Column(sqla.String)
+    type = sqla.Column(sqla.String(5))
 
     __mapper_args__ = {
         'polymorphic_identity': 'fort',
@@ -315,8 +319,8 @@ class System(Base):
         supplies = max(self.fort_status, self.cmdr_merits)
         if self.fort_override > supplies / self.trigger:
             return int(self.fort_override * self.trigger)
-        else:
-            return supplies
+
+        return supplies
 
     @property
     def skip(self):
@@ -330,8 +334,8 @@ class System(Base):
         # FIXME: Hack until import sheet included.
         if self.fort_override >= 1.0:
             return True
-        else:
-            return self.current_status >= self.trigger
+
+        return self.current_status >= self.trigger
 
     @property
     def is_undermined(self):
@@ -427,13 +431,7 @@ class PrepSystem(System):
         """
         Return a useful short representation of PrepSystem.
         """
-        msg = 'Prep: **{}** {:>4}/{} :Fortifying:'.format(
-            self.name, self.current_status, self.trigger)
-
-        if self.notes:
-            msg += ' ' + self.notes
-
-        return msg
+        return 'Prep: ' + super(PrepSystem, self).display(miss=miss)
 
 
 class SystemUM(Base):
@@ -443,13 +441,13 @@ class SystemUM(Base):
     __tablename__ = 'um_systems'
 
     id = sqla.Column(sqla.Integer, primary_key=True)
-    name = sqla.Column(sqla.String, unique=True)
-    type = sqla.Column(sqla.String)  # EUMType
-    sheet_col = sqla.Column(sqla.String)
+    name = sqla.Column(sqla.String(LEN_NAME), unique=True)
+    type = sqla.Column(sqla.String(15))  # EUMType
+    sheet_col = sqla.Column(sqla.String(5))
     goal = sqla.Column(sqla.Integer)
-    security = sqla.Column(sqla.String)
-    notes = sqla.Column(sqla.String)
-    close_control = sqla.Column(sqla.String)
+    security = sqla.Column(sqla.String(LEN_NAME))
+    notes = sqla.Column(sqla.String(LEN_NAME))
+    close_control = sqla.Column(sqla.String(LEN_NAME))
     progress_us = sqla.Column(sqla.Integer)
     progress_them = sqla.Column(sqla.Float)
     map_offset = sqla.Column(sqla.Integer, default=0)
@@ -602,37 +600,6 @@ class UMOppose(UMExpand):
         return 'Opposing ' + suffix
 
 
-class Command(Base):
-    """
-    Represents a command that was issued. Track all commands for now.
-    """
-    __tablename__ = 'commands'
-
-    id = sqla.Column(sqla.Integer, primary_key=True)
-    cmd_str = sqla.Column(sqla.String)
-    date = sqla.Column(sqla.DateTime)
-    discord_id = sqla.Column(sqla.String, sqla.ForeignKey('discord_users.id'))
-
-    def __repr__(self):
-        args = {}
-        for key in ['cmd_str', 'date', 'discord_id']:
-            args[key] = getattr(self, key)
-
-        return self.__class__.__name__ + "(discord_id={discord_id!r}, cmd_str={cmd_str!r}, "\
-            "date={date!r})".format(**args)
-
-    def __str__(self):
-        duser = ''
-        if getattr(self, 'duser', None):
-            duser = "display_name={!r}, ".format(self.duser.display_name)
-
-        return "id={}, {}{!r}".format(self.id, duser, self)
-
-    def __eq__(self, other):
-        return isinstance(other, Command) and (self.cmd_str, self.discord_id, self.date) == (
-            other.cmd_str, other.discord_id, other.date)
-
-
 def kwargs_um_system(cells, sheet_col):
     """
     Return keyword args parsed from cell frame.
@@ -743,15 +710,14 @@ def parse_float(word):
         return 0.0
 
 
-def drop_tables(**kwargs):
+def empty_tables(session, *, perm=False):
     """
     Drop all tables.
     """
     classes = [Drop, Hold, System, SystemUM, SheetRow]
-    if kwargs.get('all', True):
+    if perm:
         classes += [DUser]
 
-    session = cogdb.Session()
     for cls in classes:
         for matched in session.query(cls):
             session.delete(matched)
@@ -760,24 +726,20 @@ def drop_tables(**kwargs):
 
 def recreate_tables():
     """
-    Recreate all tables after start.
+    Recreate all tables in the database, mainly for schema changes and testing.
     """
-    drop_tables(all=True)
+    Base.metadata.drop_all(cogdb.engine)
     Base.metadata.create_all(cogdb.engine)
 
 
 # Relationships
-DUser.cmds = sqla_orm.relationship('Command',
-                                   # collection_class=sqa_attr_map('user.name'),
-                                   cascade='all, delete, delete-orphan',
-                                   back_populates='duser')
-Command.duser = sqla_orm.relationship('DUser', back_populates='cmds')
-DUser.sheets = sqla_orm.relationship('SheetRow',
-                                     uselist=True,
-                                     single_parent=True,
-                                     back_populates='duser')
-SheetRow.duser = sqla_orm.relationship('DUser', uselist=False,
-                                       back_populates='sheets')
+# TODO: Is there a better way?
+#   I cannot enforce this key constraint as both sides are inserted independently
+#   So instead of a key I make two one way joins and cast the key.
+DUser.sheets = sqla_orm.relationship("SheetRow",
+                                     primaryjoin="DUser.pref_name == foreign(SheetRow.name)")
+SheetRow.duser = sqla_orm.relationship("DUser",
+                                       primaryjoin="SheetRow.name == foreign(DUser.pref_name)")
 
 # Fortification relations
 Drop.user = sqla_orm.relationship('SheetCattle', uselist=False, back_populates='drops')
@@ -801,13 +763,16 @@ SystemUM.holds = sqla_orm.relationship('Hold',
 
 
 Base.metadata.create_all(cogdb.engine)
+if cogdb.TEST_DB:
+    recreate_tables()
 
 
 def main():  # pragma: no cover
     """
     This continues to exist only as a sanity test for schema and relations.
     """
-    import datetime as date
+    Base.metadata.drop_all(cogdb.engine)
+    Base.metadata.create_all(cogdb.engine)
     session = cogdb.Session()
 
     dusers = (
@@ -816,14 +781,6 @@ def main():  # pragma: no cover
         DUser(id='293211', pref_name='vampyregtx'),
     )
     session.add_all(dusers)
-    session.commit()
-
-    cmds = (
-        Command(discord_id=dusers[0].id, cmd_str='info Shepron', date=date.datetime.now()),
-        Command(discord_id=dusers[0].id, cmd_str='drop 700', date=date.datetime.now()),
-        Command(discord_id=dusers[1].id, cmd_str='ban rjwhite', date=date.datetime.now()),
-    )
-    session.add_all(cmds)
     session.commit()
 
     sheets = (
@@ -865,11 +822,6 @@ def main():  # pragma: no cover
         print(*args)
 
     pad = ' ' * 3
-
-    print('Commands----------')
-    for cmd in session.query(Command):
-        mprint(cmd)
-        mprint(pad, cmd.duser)
 
     print('DiscordUsers----------')
     for user in session.query(DUser):

@@ -15,20 +15,36 @@ Constraints:
   http://docs.sqlalchemy.org/en/latest/core/constraints.html#unique-constraint
 """
 from __future__ import absolute_import, print_function
+import logging
+import os
+import sys
 
 import sqlalchemy
 import sqlalchemy.orm
 
 import cog.share
 
-# Use memory engine when testing else the regular production db.
-# TODO Move to mysql like engine, for each COG_TOKEN make different db to use.
-engine = sqlalchemy.create_engine('sqlite://', echo=False)
+# Old engine, just in case
+# engine = sqlalchemy.create_engine('sqlite://', echo=False)
 
+MYSQL_SPEC = 'mysql+pymysql://{user}:{pass}@{host}/{db}'
+CREDS = cog.share.get_config('dbs', 'main')
+
+TEST_DB = False
+if 'pytest' in sys.modules:
+    CREDS['db'] = 'test'
+    TEST_DB = True
+else:
+    CREDS['db'] = os.environ.get('COG_TOKEN', 'dev')
+
+engine = sqlalchemy.create_engine(MYSQL_SPEC.format(**CREDS), echo=False)
 Session = sqlalchemy.orm.sessionmaker(bind=engine)
+logging.getLogger('cogdb').info('Main Engine: %s', engine)
+print('Main Engine Selected: ', engine)
 
 # Remote server tracking bgs
-creds = cog.share.get_config('dbs', 'side')
-side_engine = sqlalchemy.create_engine('mysql+pymysql://{user}:{pass}@{host}/{db}'.format(**creds),
-                                       echo=False)
+CREDS = cog.share.get_config('dbs', 'side')
+side_engine = sqlalchemy.create_engine(MYSQL_SPEC.format(**CREDS), echo=False)
 SideSession = sqlalchemy.orm.sessionmaker(bind=side_engine)
+
+CREDS = None

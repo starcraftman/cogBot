@@ -102,7 +102,7 @@ def test_add_duser(session, f_dusers):
     assert session.query(DUser).all()[-1].id == member.id
 
 
-def test_add_sheet(session, f_dusers):
+def test_add_sheet(session, f_dusers, f_sheets):
     test_name = 'Jack'
     test_cry = 'I do not cry'
     cogdb.query.add_sheet(session, test_name, cry=test_cry, faction=EFaction.winters,
@@ -242,9 +242,7 @@ def test_sheetscanner_merits(mock_sheet, db_cleanup):
     fort1 = session.query(cogdb.schema.Drop).all()[0]
     assert fort1.amount == 2222
     assert fort1.system.name == 'Frey'
-    assert fort1.system_id == 1
     assert fort1.user.name == 'Toliman'
-    assert fort1.user_id == 2
 
 
 def test_sheetscanner_systems(mock_sheet):

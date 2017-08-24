@@ -2,14 +2,13 @@
 Used for pytest fixtures and anything else test setup/teardown related.
 """
 from __future__ import absolute_import, print_function
-import datetime
 
 import mock
 import pytest
 
 import cogdb
 import cogdb.query
-from cogdb.schema import (DUser, PrepSystem, System, SystemUM, Drop, Hold, Command,
+from cogdb.schema import (DUser, PrepSystem, System, SystemUM, Drop, Hold,
                           SheetRow, SheetCattle, SheetUM,
                           EFaction, kwargs_um_system, kwargs_fort_system)
 from tests.data import CELLS_FORT, CELLS_FORT_FMT, CELLS_UM, SYSTEMS_DATA, SYSTEMSUM_DATA
@@ -61,9 +60,9 @@ def db_cleanup(session):
     """
     yield
 
-    cogdb.schema.drop_tables(all=True)
+    cogdb.schema.empty_tables(session, perm=True)
 
-    classes = [DUser, SheetRow, System, SystemUM, Drop, Hold, Command]
+    classes = [DUser, SheetRow, System, SystemUM, Drop, Hold]
     for cls in classes:
         assert session.query(cls).all() == []
 
@@ -86,7 +85,9 @@ def f_dusers(session):
 
     yield dusers
 
-    session.query(DUser).delete()
+    for matched in session.query(DUser):
+        session.delete(matched)
+    session.commit()
 
 
 @pytest.fixture
@@ -100,43 +101,20 @@ def f_sheets(session):
     assert dusers
 
     sheets = (
-        SheetCattle(name=dusers[0].pref_name, row=15, cry='Gears are forting late!'),
-        SheetUM(name=dusers[0].pref_name, row=18, cry='Gears are pew pew!'),
-        SheetCattle(name=dusers[1].pref_name, row=16, cry=''),
-        SheetUM(name=dusers[1].pref_name, row=19, cry='Shooting time'),
-        SheetCattle(name=dusers[2].pref_name, row=17, cry='Vamp the boss'),
+        SheetCattle(id=1, name=dusers[0].pref_name, row=15, cry='Gears are forting late!'),
+        SheetUM(id=2, name=dusers[0].pref_name, row=18, cry='Gears are pew pew!'),
+        SheetCattle(id=3, name=dusers[1].pref_name, row=16, cry=''),
+        SheetUM(id=4, name=dusers[1].pref_name, row=19, cry='Shooting time'),
+        SheetCattle(id=5, name=dusers[2].pref_name, row=17, cry='Vamp the boss'),
     )
     session.add_all(sheets)
     session.commit()
 
     yield sheets
 
-    session.query(SheetRow).delete()
-
-
-@pytest.fixture
-def f_commands(session):
-    """
-    Fixture to insert some test Commands.
-
-    Depends on: f_dusers
-    Last element of fixture is dtime of insertions.
-    """
-    dusers = session.query(DUser).all()
-    assert dusers
-
-    dtime = datetime.datetime.now()
-    commands = (
-        Command(discord_id=dusers[0].id, cmd_str='drop 400', date=dtime),
-        Command(discord_id=dusers[0].id, cmd_str='drop 700', date=dtime),
-        Command(discord_id=dusers[0].id, cmd_str='user', date=dtime),
-    )
-    session.add_all(commands)
+    for matched in session.query(SheetRow):
+        session.delete(matched)
     session.commit()
-
-    yield commands + (dtime,)
-
-    session.query(Command).delete()
 
 
 @pytest.fixture
@@ -148,7 +126,9 @@ def f_systems(session):
     column = 'F'
     systems = []
     for data in SYSTEMS_DATA:
-        systems.append(System(**kwargs_fort_system(data, order, column)))
+        kwargs = kwargs_fort_system(data, order, column)
+        kwargs['id'] = order
+        systems.append(System(**kwargs))
         order += 1
         column = chr(ord(column) + 1)
     session.add_all(systems)
@@ -156,12 +136,14 @@ def f_systems(session):
 
     yield systems
 
-    session.query(System).delete()
+    for matched in session.query(System):
+        session.delete(matched)
+    session.commit()
 
 
 @pytest.fixture
 def f_prepsystem(session):
-    prep = PrepSystem(name='Muncheim', trigger=10000, fort_status=5100, um_status=0,
+    prep = PrepSystem(id=100, name='Muncheim', trigger=10000, fort_status=5100, um_status=0,
                       undermine=0.0, distance=65.55, notes='Atropos', sheet_col='D',
                       sheet_order=0)
     session.add(prep)
@@ -169,7 +151,9 @@ def f_prepsystem(session):
 
     yield prep
 
-    session.query(PrepSystem).delete()
+    for matched in session.query(PrepSystem):
+        session.delete(matched)
+    session.commit()
 
 
 @pytest.fixture
@@ -183,18 +167,20 @@ def f_drops(session):
     systems = session.query(System).all()
 
     drops = (
-        Drop(amount=700, user_id=users[0].id, system_id=systems[0].id),
-        Drop(amount=400, user_id=users[0].id, system_id=systems[1].id),
-        Drop(amount=1200, user_id=users[1].id, system_id=systems[0].id),
-        Drop(amount=1800, user_id=users[2].id, system_id=systems[0].id),
-        Drop(amount=800, user_id=users[1].id, system_id=systems[1].id),
+        Drop(id=1, amount=700, user_id=users[0].id, system_id=systems[0].id),
+        Drop(id=2, amount=400, user_id=users[0].id, system_id=systems[1].id),
+        Drop(id=3, amount=1200, user_id=users[1].id, system_id=systems[0].id),
+        Drop(id=4, amount=1800, user_id=users[2].id, system_id=systems[0].id),
+        Drop(id=5, amount=800, user_id=users[1].id, system_id=systems[1].id),
     )
     session.add_all(drops)
     session.commit()
 
     yield drops
 
-    session.query(Drop).delete()
+    for matched in session.query(Drop):
+        session.delete(matched)
+    session.commit()
 
 
 @pytest.fixture
@@ -204,15 +190,21 @@ def f_systemsum(session):
     """
     column = 'D'
     systems = []
+    count = 1
     for data in SYSTEMSUM_DATA:
-        systems.append(SystemUM.factory(kwargs_um_system(data, column)))
+        kwargs = kwargs_um_system(data, column)
+        kwargs['id'] = count
+        systems.append(SystemUM.factory(kwargs))
         column = chr(ord(column) + 2)
+        count += 1
     session.add_all(systems)
     session.commit()
 
     yield systems
 
-    session.query(SystemUM).delete()
+    for matched in session.query(SystemUM):
+        session.delete(matched)
+    session.commit()
 
 
 @pytest.fixture
@@ -226,16 +218,18 @@ def f_holds(session):
     systems = session.query(SystemUM).all()
 
     holds = (
-        Hold(held=0, redeemed=4000, user_id=users[0].id, system_id=systems[0].id),
-        Hold(held=400, redeemed=1550, user_id=users[0].id, system_id=systems[1].id),
-        Hold(held=2200, redeemed=5800, user_id=users[0].id, system_id=systems[2].id),
-        Hold(held=450, redeemed=2000, user_id=users[1].id, system_id=systems[0].id),
-        Hold(held=2400, redeemed=0, user_id=users[1].id, system_id=systems[1].id),
-        Hold(held=0, redeemed=1200, user_id=users[1].id, system_id=systems[2].id),
+        Hold(id=1, held=0, redeemed=4000, user_id=users[0].id, system_id=systems[0].id),
+        Hold(id=2, held=400, redeemed=1550, user_id=users[0].id, system_id=systems[1].id),
+        Hold(id=3, held=2200, redeemed=5800, user_id=users[0].id, system_id=systems[2].id),
+        Hold(id=4, held=450, redeemed=2000, user_id=users[1].id, system_id=systems[0].id),
+        Hold(id=5, held=2400, redeemed=0, user_id=users[1].id, system_id=systems[1].id),
+        Hold(id=6, held=0, redeemed=1200, user_id=users[1].id, system_id=systems[2].id),
     )
     session.add_all(holds)
     session.commit()
 
     yield holds
 
-    session.query(Hold).delete()
+    for matched in session.query(Hold):
+        session.delete(matched)
+    session.commit()
