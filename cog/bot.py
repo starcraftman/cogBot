@@ -20,6 +20,7 @@ import pprint
 import re
 import time
 
+import apiclient
 import discord
 try:
     import uvloop
@@ -182,39 +183,36 @@ class CogBot(discord.Client):
             args = parser.parse_args(msg.split(' '))
             await self.dispatch_command(args=args, bot=self, message=message)
 
-        except (cog.exc.NoMatch, cog.exc.MoreThanOneMatch) as exc:
-            log.error("Loose cmd failed to match excatly one. '%s' | %s", author.name, msg)
-            log.error(exc)
-            response = 'Check command arguments ...\n' + str(exc)
-            await self.send_ttl_message(channel, response)
-            asyncio.ensure_future(self.delete_message(message))
-
-        except cog.exc.NameCollisionError as exc:
-            log.error('Cmdr Name Collision\n' + str(exc))
-            asyncio.ensure_future(self.send_message(channel, str(exc)))
-
         except cog.exc.ArgumentParseError as exc:
             log.exception("Failed to parse command. '%s' | %s", author.name, msg)
-            if 'invalid choice' in exc.message:
-                response = exc.message
-            else:  # Valid subcommand, bad usage. Show subcommand help.
+            exc.write_log(log, content=msg, author=author, channel=channel)
+            if 'invalid choice' not in exc.message:
                 try:
                     parser.parse_args(msg.split(' ')[0:1] + ['--help'])
-                except cog.exc.ArgumentHelpError as exc:
-                    response = 'Invalid command/arguments. See help below.'
-                    response += '\n{}\n{}'.format(len(response) * '-', exc.message)
-            await self.send_ttl_message(channel, response)
+                except cog.exc.ArgumentHelpError as exc2:
+                    exc.message = 'Invalid command use. Check.'
+                    exc.message += '\n{}\n{}'.format(len(response) * '-', exc2.message)
+            await self.send_ttl_message(channel, exc.reply())
             asyncio.ensure_future(self.delete_message(message))
 
-        except cog.exc.ArgumentHelpError as exc:
-            log.info("User requested help. '%s' | %s", author.name, msg)
-            await self.send_ttl_message(channel, exc.message)
+        except cog.exc.UserException as exc:
+            exc.write_log(log, content=msg, author=author, channel=channel)
+            await self.send_ttl_message(channel, exc.reply())
             asyncio.ensure_future(self.delete_message(message))
 
-        except cog.exc.InvalidCommandArgs as exc:
-            log.info('Invalid combination of arguments or values. %s | %s', author.name, msg)
-            await self.send_ttl_message(channel, str(exc))
-            asyncio.ensure_future(self.delete_message(message))
+        except cog.exc.InternalException as exc:
+            exc.write_log(log, content=msg, author=author, channel=channel)
+            await self.send_message(channel, exc.reply())
+
+        except discord.DiscordException as exc:
+            msg = "Discord.py Library raised an exception"
+            msg += cog.exc.log_format(content=msg, author=author, channel=channel)
+            log.exception(msg)
+
+        except apiclient.errors.Error as exc:
+            msg = "Google Sheets API raised an exception"
+            msg += cog.exc.log_format(content=msg, author=author, channel=channel)
+            log.exception(msg)
 
     async def send_ttl_message(self, destination, content, **kwargs):
         """

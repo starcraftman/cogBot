@@ -31,13 +31,13 @@ class ThrowArggumentParser(argparse.ArgumentParser):
         raise cog.exc.ArgumentHelpError(formatter.format_help())
 
     def error(self, message):
-        raise cog.exc.ArgumentParseError(message, self.format_usage())
+        raise cog.exc.ArgumentParseError(message)
 
     def exit(self, status=0, message=None):
         """
         Suppress default exit behaviour.
         """
-        raise cog.exc.ArgumentParseError(message, self.format_usage())
+        raise cog.exc.ArgumentParseError(message)
 
 
 class ModFormatter(logging.Formatter):

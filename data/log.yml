@@ -22,10 +22,6 @@ handlers:
     <<: *default_handler
     level: DEBUG
     filename: /tmp/cog/main.log
-  cog_error:
-    <<: *default_handler
-    level: ERROR
-    filename: /tmp/cog/error.log
   cogdb:
     <<: *default_handler
     level: DEBUG
@@ -42,7 +38,7 @@ loggers:
     handlers: [asyncio]
   cog:
     level: DEBUG
-    handlers: [cog, cog_error, err_stream]
+    handlers: [cog, err_stream]
   cogdb:
     level: DEBUG
     handlers: [cogdb, err_stream]
