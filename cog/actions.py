@@ -11,9 +11,9 @@ import sys
 
 import decorator
 import discord
-from sqlalchemy.sql import text as sql_text
 
 import cogdb
+import cogdb.side
 import cog.tbl
 
 
@@ -185,19 +185,13 @@ class Bgs(Action):
     Provide bgs related commands.
     """
     async def execute(self):
-        remote = cogdb.SideSession()
-
         system = cogdb.query.fort_find_system(self.session, ' '.join(self.args.system),
                                               search_all=True)
         self.log.info('BGS - Looking for: %s', system.name)
 
-        query = sql_text("SELECT * FROM v_age WHERE control=:name ORDER BY system asc")
-        query = query.bindparams(name=system.name)
+        systems = cogdb.side.exploited_systems_by_age(cogdb.SideSession(), system.name)
 
-        result = list(remote.execute(query))
-        self.log.info('BGS - Received from query: %s', str(result))
-
-        lines = [['Control', 'System', 'Age']] + result
+        lines = [['Control', 'System', 'Age']] + systems
         response = cog.tbl.wrap_markdown(cog.tbl.format_table(lines, header=True))
         await self.bot.send_message(self.mchannel, response)
 
@@ -215,22 +209,13 @@ class Time(Action):
         now = datetime.datetime.utcnow().replace(microsecond=0)
         today = now.replace(hour=0, minute=0, second=0)
 
-        remote = cogdb.SideSession()
-        query = sql_text('SELECT tick FROM bgs_tick WHERE tick > :date ORDER BY tick asc LIMIT 1')
-        query = query.bindparams(date=str(now))
-        bgs_tick = remote.execute(query).fetchone()[0]
-        self.log.info('BGS_TICK - %s -> %s', str(now), bgs_tick)
-
-        if bgs_tick < now:
-            bgs_tick = bgs_tick + datetime.timedelta(days=1)
-
         weekly_tick = today + datetime.timedelta(hours=7)
         while weekly_tick < now or weekly_tick.strftime('%A') != 'Thursday':
             weekly_tick += datetime.timedelta(days=1)
 
         lines = [
             'Game Time: **{}**'.format(now.strftime('%H:%M:%S')),
-            'BGS Tick in **{}**    (Expected {})'.format(bgs_tick - now, bgs_tick),
+            cogdb.side.next_bgs_tick(cogdb.SideSession(), now),
             'Cycle Ends in **{}**'.format(weekly_tick - now),
             'All Times UTC',
         ]
