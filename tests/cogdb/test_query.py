@@ -102,6 +102,28 @@ def test_add_duser(session, f_dusers):
     assert session.query(DUser).all()[-1].id == member.id
 
 
+def test_next_sheet_row(session, f_dusers, f_sheets):
+    expected_row = session.query(SheetCattle).order_by(SheetCattle.row.desc()).first().row + 1
+    row = cogdb.query.next_sheet_row(session, cls=SheetCattle, faction=EFaction.hudson,
+                                     start_row=11)
+    assert row == expected_row
+
+    user = session.query(SheetCattle).order_by(SheetCattle.row).limit(2).all()[1]
+    expected_row = user.row
+    session.delete(user)
+    row = cogdb.query.next_sheet_row(session, cls=SheetCattle, faction=EFaction.hudson,
+                                     start_row=11)
+    assert row == expected_row
+
+    for user in session.query(SheetRow):
+        session.delete(user)
+    session.commit()
+
+    row = cogdb.query.next_sheet_row(session, cls=SheetCattle, faction=EFaction.hudson,
+                                     start_row=11)
+    assert row == 11
+
+
 def test_add_sheet(session, f_dusers, f_sheets):
     test_name = 'Jack'
     test_cry = 'I do not cry'

@@ -299,7 +299,8 @@ class Drop(Action):
         self.log.info('DROP %s - Adding to cattle as %s.',
                       self.duser.display_name, self.duser.pref_name)
         cogdb.query.add_sheet(self.session, self.duser.pref_name, cry=self.duser.pref_cry,
-                              type=cogdb.schema.ESheetType.cattle)
+                              type=cogdb.schema.ESheetType.cattle,
+                              start_row=self.bot.scanner.user_row)
         asyncio.ensure_future(self.bot.scanner.update_sheet_user(self.duser.cattle))
         notice = 'Automatically added {} to cattle sheet. See !user command to change.'.format(
             self.duser.pref_name)
@@ -484,7 +485,8 @@ class Hold(Action):
         self.log.info('DROP %s - Adding to cattle as %s.',
                       self.duser.display_name, self.duser.pref_name)
         cogdb.query.add_sheet(self.session, self.duser.pref_name, cry=self.duser.pref_cry,
-                              type=cogdb.schema.ESheetType.um)
+                              type=cogdb.schema.ESheetType.um,
+                              start_row=self.bot.scanner_um.user_row)
         asyncio.ensure_future(self.bot.scanner_um.update_sheet_user(self.duser.undermine))
         notice = 'Automatically added {} to undermine sheet. See !user command to change.'.format(
             self.duser.pref_name)

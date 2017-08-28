@@ -136,6 +136,27 @@ def add_duser(session, member, *, faction=EFaction.hudson):
     return new_duser
 
 
+def next_sheet_row(session, *, cls, faction, start_row):
+    """
+    Find the next available row to add a SheetRow for.
+
+    Must scan all users, gaps may exist in sheet.
+    """
+    try:
+        users = session.query(cls).filter_by(faction=faction).order_by(cls.row).all()
+        last_user = users[0]
+        next_row = users[-1].row + 1
+        for user in users[1:]:
+            if last_user.row + 1 != user.row:
+                next_row = last_user.row + 1
+                break
+            last_user = user
+    except IndexError:
+        next_row = start_row
+
+    return next_row
+
+
 def add_sheet(session, name, **kwargs):
     """
     Simply add user past last user in sheet.
@@ -150,10 +171,8 @@ def add_sheet(session, name, **kwargs):
     cls = getattr(sys.modules[__name__], kwargs.get('type', ESheetType.cattle))
     cry = kwargs.get('cry', '')
 
-    try:
-        next_row = session.query(cls).filter_by(faction=faction).all()[-1].row + 1
-    except IndexError:
-        next_row = kwargs['start_row']
+    next_row = next_sheet_row(session, cls=cls, faction=faction,
+                              start_row=kwargs['start_row'])
     sheet = cls(name=name, cry=cry, row=next_row, faction=faction)
     session.add(sheet)
     session.commit()
