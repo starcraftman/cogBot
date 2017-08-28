@@ -101,6 +101,16 @@ class Action(object):
 
         return self.__duser
 
+    @property
+    def cattle(self):
+        """ User's current cattle sheet. """
+        return self.duser.cattle(self.session)
+
+    @property
+    def undermine(self):
+        """ User's current undermining sheet. """
+        return self.duser.undermine(self.session)
+
     def get_channel(self, server, channel_name):
         """ Given a server and channel_name, get the channel object requested. """
         if not isinstance(server, discord.Server):
@@ -181,7 +191,7 @@ class Status(Action):
                                     cog.tbl.wrap_markdown(cog.tbl.format_table(lines)))
 
 
-class Bgs(Action):
+class BGS(Action):
     """
     Provide bgs related commands.
     """
@@ -249,18 +259,18 @@ class User(Action):
 
         self.session.commit()
         if args.name or args.cry:
-            if self.duser.cattle:
-                asyncio.ensure_future(self.bot.scanner.update_sheet_user(self.duser.cattle))
-            if self.duser.undermine:
+            if self.cattle:
+                asyncio.ensure_future(self.bot.scanner.update_sheet_user(self.cattle))
+            if self.undermine:
                 asyncio.ensure_future(
-                    self.bot.scanner_um.update_sheet_user(self.duser.undermine))
+                    self.bot.scanner_um.update_sheet_user(self.undermine))
 
         lines = [
             '**{}**'.format(self.mauthor.display_name),
             'Sheet Name: ' + self.duser.pref_name,
-            'Sheet Cry: ' + self.duser.pref_cry,
+            'Sheet Cry:{}'.format(' ' + self.duser.pref_cry if self.duser.pref_cry else ''),
         ]
-        for sheet in self.duser.sheets:
+        for sheet in self.duser.sheets(self.session):
             lines += [
                 '{} {}'.format(sheet.faction.capitalize(), sheet.type.replace('Sheet', '')),
                 '    Merits: {}'.format(sheet.merits),
@@ -275,7 +285,7 @@ class User(Action):
                       self.duser.display_name, self.duser.pref_name, new_name)
         cogdb.query.check_pref_name(self.session, self.duser, new_name)
 
-        for sheet in self.duser.sheets:
+        for sheet in self.duser.sheets(self.session):
             sheet.name = new_name
         self.duser.pref_name = new_name
 
@@ -285,7 +295,7 @@ class User(Action):
         self.log.info('USER %s - DUser.pref_cry from %s -> %s.',
                       self.duser.display_name, self.duser.pref_cry, new_cry)
 
-        for sheet in self.duser.sheets:
+        for sheet in self.duser.sheets(self.session):
             sheet.cry = new_cry
         self.duser.pref_cry = new_cry
 
@@ -296,7 +306,7 @@ class Drop(Action):
     """
     def check_sheet(self):
         """ Check if user present in sheet. """
-        if self.duser.cattle:
+        if self.cattle:
             return
 
         self.log.info('DROP %s - Adding to cattle as %s.',
@@ -304,7 +314,7 @@ class Drop(Action):
         cogdb.query.add_sheet(self.session, self.duser.pref_name, cry=self.duser.pref_cry,
                               type=cogdb.schema.ESheetType.cattle,
                               start_row=self.bot.scanner.user_row)
-        asyncio.ensure_future(self.bot.scanner.update_sheet_user(self.duser.cattle))
+        asyncio.ensure_future(self.bot.scanner.update_sheet_user(self.cattle))
         notice = 'Automatically added {} to cattle sheet. See !user command to change.'.format(
             self.duser.pref_name)
         asyncio.ensure_future(self.bot.send_message(self.mchannel, notice))
@@ -316,7 +326,7 @@ class Drop(Action):
         """
         self.check_sheet()
         self.log.info('DROP %s - Matched duser with id %s and sheet name %s.',
-                      self.duser.display_name, self.duser.id[:6], self.duser.cattle)
+                      self.duser.display_name, self.duser.id[:6], self.cattle)
 
         system = cogdb.query.fort_find_system(self.session, ' '.join(self.args.system),
                                               search_all=True)
@@ -324,7 +334,7 @@ class Drop(Action):
                       self.duser.display_name, system.name, system)
 
         drop = cogdb.query.fort_add_drop(self.session, system=system,
-                                         user=self.duser.cattle, amount=self.args.amount)
+                                         user=self.cattle, amount=self.args.amount)
         self.log.info('DROP %s - After drop, Drop: %s\nSystem: %s.',
                       self.duser.display_name, drop, system)
 
@@ -482,7 +492,7 @@ class Hold(Action):
     """
     def check_sheet(self):
         """ Check if user present in sheet. """
-        if self.duser.undermine:
+        if self.undermine:
             return
 
         self.log.info('DROP %s - Adding to cattle as %s.',
@@ -490,7 +500,7 @@ class Hold(Action):
         cogdb.query.add_sheet(self.session, self.duser.pref_name, cry=self.duser.pref_cry,
                               type=cogdb.schema.ESheetType.um,
                               start_row=self.bot.scanner_um.user_row)
-        asyncio.ensure_future(self.bot.scanner_um.update_sheet_user(self.duser.undermine))
+        asyncio.ensure_future(self.bot.scanner_um.update_sheet_user(self.undermine))
         notice = 'Automatically added {} to undermine sheet. See !user command to change.'.format(
             self.duser.pref_name)
         asyncio.ensure_future(self.bot.send_message(self.mchannel, notice))
@@ -501,7 +511,7 @@ class Hold(Action):
         self.log.info('HOLD %s - Matched system name %s: \n%s.',
                       self.duser.display_name, self.args.system, system)
         hold = cogdb.query.um_add_hold(self.session, system=system,
-                                       user=self.duser.undermine, held=self.args.amount)
+                                       user=self.undermine, held=self.args.amount)
 
         if self.args.set:
             system.set_status(self.args.set)
@@ -520,18 +530,18 @@ class Hold(Action):
     async def execute(self):
         self.check_sheet()
         self.log.info('HOLD %s - Matched self.duser with id %s and sheet name %s.',
-                      self.duser.display_name, self.duser.id[:6], self.duser.undermine)
+                      self.duser.display_name, self.duser.id[:6], self.undermine)
 
         if self.args.died:
-            holds = cogdb.query.um_reset_held(self.session, self.duser.undermine)
+            holds = cogdb.query.um_reset_held(self.session, self.undermine)
             self.log.info('HOLD %s - User reset merits.', self.duser.display_name)
             response = 'Sorry you died :(. Held merits reset.'
 
         elif self.args.redeem:
-            holds, redeemed = cogdb.query.um_redeem_merits(self.session, self.duser.undermine)
+            holds, redeemed = cogdb.query.um_redeem_merits(self.session, self.undermine)
             self.log.info('HOLD %s - Redeemed %d merits.', self.duser.display_name, redeemed)
             response = 'You redeemed {} new merits.\n{}'.format(redeemed,
-                                                                self.duser.undermine.merits)
+                                                                self.undermine.merits)
 
         else:  # Default case, update the hold for a system
             holds, response = self.set_hold()
@@ -542,14 +552,14 @@ class Hold(Action):
         await self.bot.send_message(self.mchannel, response)
 
 
-class Um(Action):
+class UM(Action):
     """
     Command to show um systems and update status.
     """
     async def execute(self):
         # Sanity check
         if (self.args.set or self.args.offset) and not self.args.system:
-            response = 'Forgot to specify system to update'
+            raise cog.exc.InvalidCommandArgs("You forgot to specify a system to update.")
 
         elif self.args.system:
             system = cogdb.query.um_find_system(self.session, ' '.join(self.args.system))

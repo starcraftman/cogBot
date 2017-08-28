@@ -160,21 +160,21 @@ def test_fort_get_othime(session, f_systems):
 
 def test_fort_get_systems(session, f_systems):
     systems = cogdb.query.fort_get_systems(session)
-    assert len(systems) == 7
+    assert len(systems) == 10
     assert systems[0].name == 'Frey'
-    assert systems[-1].name == 'Othime'
+    assert systems[-1].name == 'LPM 229'
 
 
 def test_fort_get_preps(session, f_prepsystem):
     systems = cogdb.query.fort_get_preps(session)
-    assert [system.name for system in systems] == ['Muncheim']
+    assert [system.name for system in systems] == ['Rhea']
 
 
 def test_fort_get_systems_not_othime(session, f_systems):
     systems = cogdb.query.fort_get_systems(session, not_othime=True)
-    assert len(systems) == 6
+    assert len(systems) == 9
     assert systems[0].name == 'Frey'
-    assert systems[-1].name == 'Alpha Fornacis'
+    assert systems[-1].name == 'LPM 229'
 
 
 def test_fort_get_systems_by_state(session, f_systems):
@@ -187,8 +187,8 @@ def test_fort_get_systems_by_state(session, f_systems):
     systems = cogdb.query.fort_get_systems_by_state(session)
     assert [sys.name for sys in systems['cancelled']] == ["Nurundere"]
     assert [sys.name for sys in systems['fortified']] == ["Frey", "Nurundere"]
-    assert [sys.name for sys in systems['left']] == ["LHS 3749", "Dongkum",
-                                                     "Alpha Fornacis", "Othime"]
+    assert [sys.name for sys in systems['left'][0:3]] == ["LHS 3749", "Dongkum",
+                                                          "Alpha Fornacis"]
     assert [sys.name for sys in systems['undermined']] == ["Nurundere", "Dongkum"]
     assert [sys.name for sys in systems['skipped']] == ['Sol']
 
@@ -208,7 +208,7 @@ def test_fort_find_system(session, f_systems):
 
 def test_fort_get_targets(session, f_systems, f_prepsystem):
     targets = cogdb.query.fort_get_targets(session)
-    assert [sys.name for sys in targets] == ['Nurundere', 'Othime', 'Muncheim']
+    assert [sys.name for sys in targets] == ['Nurundere', 'Othime', 'Rhea']
 
 
 def test_fort_get_next_targets(session, f_systems):
@@ -216,7 +216,7 @@ def test_fort_get_next_targets(session, f_systems):
     assert [sys.name for sys in targets] == ["LHS 3749"]
 
     targets = cogdb.query.fort_get_next_targets(session, count=2)
-    assert [sys.name for sys in targets] == ["LHS 3749", "Dongkum"]
+    assert [sys.name for sys in targets] == ["LHS 3749", "Alpha Fornacis"]
 
 
 def test_fort_add_drop(session, f_dusers, f_sheets, f_systems, db_cleanup):

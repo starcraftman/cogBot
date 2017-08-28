@@ -63,31 +63,31 @@ def test_duser__str__(f_dusers, f_sheets):
                          "pref_name='GearsandCogs', pref_cry='', faction='hudson')"
 
 
-def test_duser_get_sheet(f_dusers, f_sheets):
+def test_duser_get_sheet(session, f_dusers, f_sheets):
     duser = f_dusers[0]
-    assert not duser.get_sheet('um', faction=EFaction.winters)
-    assert duser.get_sheet(ESheetType.cattle)
-    assert isinstance(duser.get_sheet(ESheetType.cattle), SheetCattle)
+    assert not duser.get_sheet(session, ESheetType.um, faction=EFaction.winters)
+    assert duser.get_sheet(session, ESheetType.cattle)
+    assert isinstance(duser.get_sheet(session, ESheetType.cattle), SheetCattle)
 
 
 def test_duser_cattle(session, f_dusers, f_sheets):
     duser = f_dusers[0]
     cattle = session.query(SheetCattle).filter(SheetCattle.name == duser.pref_name).one()
 
-    assert duser.cattle == cattle
-    assert isinstance(duser.cattle, SheetCattle)
+    assert duser.cattle(session) == cattle
+    assert isinstance(duser.cattle(session), SheetCattle)
     duser.switch_faction()
-    assert not duser.cattle
+    assert not duser.cattle(session)
 
 
 def test_duser_undermine(session, f_dusers, f_sheets):
     duser = f_dusers[0]
     undermine = session.query(SheetUM).filter(SheetUM.name == duser.pref_name).one()
 
-    assert duser.undermine == undermine
-    assert isinstance(duser.undermine, SheetUM)
+    assert duser.undermine(session) == undermine
+    assert isinstance(duser.undermine(session), SheetUM)
     duser.switch_faction()
-    assert not duser.undermine
+    assert not duser.undermine(session)
 
 
 def test_duser_switch_faction(f_dusers, f_sheets):
@@ -153,7 +153,7 @@ def test_system__repr__(f_systems):
 
     assert repr(system) == "System(name='Frey', fort_status=4910, trigger=4910, "\
                            "um_status=0, undermine=0.0, distance=116.99, "\
-                           "notes='', sheet_col='F', sheet_order=1)"
+                           "notes='', sheet_col='G', sheet_order=1)"
     assert system == eval(repr(system))
 
 
@@ -162,7 +162,7 @@ def test_system__str__(f_systems):
 
     assert str(system) == "id=1, cmdr_merits=0, System(name='Frey', fort_status=4910, "\
                           "trigger=4910, um_status=0, undermine=0.0, distance=116.99, "\
-                          "notes='', sheet_col='F', sheet_order=1)"
+                          "notes='', sheet_col='G', sheet_order=1)"
 
 
 def test_system_display(f_systems):
@@ -247,7 +247,7 @@ def test_system_table_row(f_systems):
 
 
 def test_prepsystem_dispay(f_prepsystem):
-    assert f_prepsystem.display() == "Prep: **Muncheim** 5100/10000 :Fortifying: "\
+    assert f_prepsystem.display() == "Prep: **Rhea** 5100/10000 :Fortifying: "\
                                      "Atropos"
 
 

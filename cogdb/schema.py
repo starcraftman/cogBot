@@ -70,43 +70,38 @@ class DUser(Base):
     def __eq__(self, other):
         return isinstance(other, DUser) and self.id == other.id
 
-    @property
-    def sheets(self):
-        """ Return all sheets found. """
-        return cogdb.Session().query(SheetRow).filter_by(name=self.pref_name).all()
-
     def switch_faction(self, new_faction=None):
         """ Switch current user faction """
         if not new_faction:
             new_faction = EFaction.hudson if self.faction == EFaction.winters else EFaction.winters
         self.faction = new_faction
 
-    def get_sheet(self, sheet_type, *, faction=None):
+    def sheets(self, session):
+        """ Return all sheets found. """
+        return session.query(SheetRow).filter_by(name=self.pref_name).all()
+
+    def get_sheet(self, session, sheet_type, *, faction=None):
         """
         Get a sheet belonging to a certain type. See ESheetType.
-        Alternatively, query and filter to get this, like:
-        session.query(SheetCattle).filter(SheetCattle.name == 'name' and faction == 'hudson').all()
 
         Returns a SheetRow subclass. None if not set.
         """
         if not faction:
             faction = self.faction
 
-        for sheet in self.sheets:
+        for sheet in self.sheets(session):
             if sheet.type == sheet_type and sheet.faction == faction:
                 return sheet
 
         return None
 
-    @property
-    def cattle(self):
+    def cattle(self, session):
         """ Get users current cattle sheet. """
-        return self.get_sheet(ESheetType.cattle)
+        return self.get_sheet(session, ESheetType.cattle)
 
-    @property
-    def undermine(self):
+    def undermine(self, session):
         """ Get users current undermining sheet. """
-        return self.get_sheet(ESheetType.um)
+        return self.get_sheet(session, ESheetType.um)
 
 
 class SheetRow(Base):
@@ -143,9 +138,8 @@ class SheetRow(Base):
         return isinstance(other, SheetRow) and (self.name, self.type, self.faction) == (
             other.name, other.type, other.faction)
 
-    @property
-    def duser(self):
-        return cogdb.Session().query(DUser).filter_by(pref_name=self.name).one()
+    def duser(self, session):
+        return session.query(DUser).filter_by(pref_name=self.name).one()
 
 
 class SheetCattle(SheetRow):

@@ -7,6 +7,17 @@ import datetime
 from sqlalchemy.sql import text as sql_text
 
 import cogdb.side
+from cogdb.side import BGSTick, SystemAge
+
+
+def test_bgstick__repr__(side_session):
+    tick = BGSTick(day=datetime.date(2017, 5, 1), tick=datetime.datetime(2017, 5, 1, 16, 0), unix_from=1493654400, unix_to=1493740800)
+    assert repr(tick) == "BGSTick(day=datetime.date(2017, 5, 1), tick=datetime.datetime(2017, 5, 1, 16, 0), unix_from=1493654400, unix_to=1493740800)"
+
+
+def test_systemage__repr__(side_session):
+    system = SystemAge(control='16 Cygni', system='16 Cygni', age=1)
+    assert repr(system) == "SystemAge(control='16 Cygni', system='16 Cygni', age=1)"
 
 
 def test_next_bgs_tick(side_session):

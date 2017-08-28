@@ -71,7 +71,7 @@ def get_config(*keys):
     return conf
 
 
-def init_logging():
+def init_logging():  # pragma: no cover
     """
     Initialize project wide logging. The setup is described best in config file.
 
@@ -108,26 +108,27 @@ def make_parser(prefix):
     subs = parser.add_subparsers(title='subcommands',
                                  description='The subcommands of cog')
 
+    sub = subs.add_parser(prefix + 'help', description='Show overall help message.')
+    sub.set_defaults(cmd='Help')
+
     desc = """Give feedback or report a bug. Example:
 
     {prefix}bug Explain what went wrong ...\n          File a bug report or give feedback.
     """.format(prefix=prefix)
     sub = subs.add_parser(prefix + 'feedback', description=desc, formatter_class=RawHelp)
-    sub.set_defaults(cmd='feedback')
+    sub.set_defaults(cmd='Feedback')
     sub.add_argument('content', nargs='+', help='The bug description or feedback.')
 
     sub = subs.add_parser(prefix + 'status', description='Info about this bot.')
-    sub.set_defaults(cmd='status')
+    sub.set_defaults(cmd='Status')
 
     sub = subs.add_parser(prefix + 'time', description='Time in game and to ticks.')
-    sub.set_defaults(cmd='time')
+    sub.set_defaults(cmd='Time')
 
     for suffix in ['admin', 'bgs', 'drop', 'fort', 'hold', 'um', 'user']:
         func = getattr(sys.modules[__name__], 'subs_' + suffix)
         func(subs, prefix)
 
-    sub = subs.add_parser(prefix + 'help', description='Show overall help message.')
-    sub.set_defaults(cmd='help')
     return parser
 
 
@@ -142,7 +143,7 @@ def subs_admin(subs, prefix):
     {prefix}admin info @User\n          Information about the mentioned User, DMed to admin.
     """.format(prefix=prefix)
     sub = subs.add_parser(prefix + 'admin', description=desc, formatter_class=RawHelp)
-    sub.set_defaults(cmd='admin')
+    sub.set_defaults(cmd='Admin')
     admin_subs = sub.add_subparsers(title='subcommands',
                                     description='Admin subcommands', dest='subcmd')
     admin_subs.add_parser('deny', help='Toggle command processing.')
@@ -160,7 +161,7 @@ def subs_bgs(subs, prefix):
     {prefix}bgs control 16 cygni\n          Show exploiteds in 16 Cygni bubble by age.
     """.format(prefix=prefix)
     sub = subs.add_parser(prefix + 'bgs', description=desc, formatter_class=RawHelp)
-    sub.set_defaults(cmd='bgs')
+    sub.set_defaults(cmd='BGS')
     sub.add_argument('system', nargs='+', help='Find age of exploited around the system.')
 
 
@@ -170,15 +171,14 @@ def subs_drop(subs, prefix):
     Amount dropped must be in range [-800, 800]
     Examples:
 
-    {prefix}drop 600 @Shepron\n           Drop 600 supplies for Shepron at the current fortification target.
-    {prefix}drop 600 Othime\n           Drop 600 supplies for yourself at Othime.
-    {prefix}drop -50 Othime\n           Made a mistake? Subract 50 forts from your drops at Othime.
-    {prefix}drop 600 Othime @rjwhite\n           Drop 600 supplies for rjwhite Othime.
+    {prefix}drop 600 Rana\n           Drop 600 supplies for yourself at Rana.
+    {prefix}drop -50 Rana\n           Made a mistake? Subract 50 forts from your drops at Rana.
+    {prefix}drop 600 Rana @rjwhite\n           Drop 600 supplies for rjwhite Rana.
     {prefix}drop 600 lala\n           Drop 600 supplies for yourself at Lalande 39866, search used when name is not exact.
-    {prefix}drop 600 Othime --set 4560:2000\n           Drop 600 supplies at Othime for yourself, set fort status to 4500 and UM status to 2000.
+    {prefix}drop 600 Rana --set 4560:2000\n           Drop 600 supplies at Rana for yourself, set fort status to 4500 and UM status to 2000.
     """.format(prefix=prefix)
     sub = subs.add_parser(prefix + 'drop', description=desc, formatter_class=RawHelp)
-    sub.set_defaults(cmd='drop')
+    sub.set_defaults(cmd='Drop')
     sub.add_argument('amount', type=int, help='The amount to drop.')
     sub.add_argument('system', nargs='+', help='The system to drop at.')
     sub.add_argument('--set',
@@ -198,7 +198,7 @@ def subs_fort(subs, prefix):
     {prefix}fort Othime --set 7500:2000\n           Set othime to 7500 fort status and 2000 um status.
     """.format(prefix=prefix)
     sub = subs.add_parser(prefix + 'fort', description=desc, formatter_class=RawHelp)
-    sub.set_defaults(cmd='fort')
+    sub.set_defaults(cmd='Fort')
     sub.add_argument('system', nargs='*', help='Select this system.')
     sub.add_argument('--set',
                      help='Set the fort:um status of system. Example-> --set 3400:200')
@@ -222,7 +222,7 @@ def subs_hold(subs, prefix):
     {prefix}hold 720 burr --set 60000:130\n           Update held merits to 720 at Burr expansion and set progress to 60000 merits and 130% opposition.
     """.format(prefix=prefix)
     sub = subs.add_parser(prefix + 'hold', description=desc, formatter_class=RawHelp)
-    sub.set_defaults(cmd='hold')
+    sub.set_defaults(cmd='Hold')
     sub.add_argument('amount', nargs='?', type=int, help='The amount of merits held.')
     sub.add_argument('system', nargs='*', help='The system merits are held in.')
     sub.add_argument('--redeem', action='store_true', help='Redeem all held merits.')
@@ -241,7 +241,7 @@ def subs_um(subs, prefix):
     {prefix}um burr --offset 4000\n           Set the offset difference of cmdr merits and galmap.
     """.format(prefix=prefix)
     sub = subs.add_parser(prefix + 'um', description=desc, formatter_class=RawHelp)
-    sub.set_defaults(cmd='um')
+    sub.set_defaults(cmd='UM')
     sub.add_argument('system', nargs='*', help='The system to update or show.')
     sub.add_argument('--set',
                      help='Set the status of the system, us:them. Example-> --set 3500:200')
@@ -259,7 +259,7 @@ def subs_user(subs, prefix):
     {prefix}user --winters\n           Switch to Winters' sheets.
     """.format(prefix=prefix)
     sub = subs.add_parser(prefix + 'user', description=desc, formatter_class=RawHelp)
-    sub.set_defaults(cmd='user')
+    sub.set_defaults(cmd='User')
     sub.add_argument('--cry', nargs='+', help='Set your tag/cry in the sheets.')
     sub.add_argument('--name', nargs='+', help='Set your name in the sheets.')
     sub.add_argument('--winters', action='store_true',

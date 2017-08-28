@@ -9,9 +9,10 @@ import pytest
 import cogdb
 import cogdb.query
 from cogdb.schema import (DUser, PrepSystem, System, SystemUM, Drop, Hold,
+                          UMExpand, UMOppose, UMControl,
                           SheetRow, SheetCattle, SheetUM,
-                          EFaction, kwargs_um_system, kwargs_fort_system)
-from tests.data import CELLS_FORT, CELLS_FORT_FMT, CELLS_UM, SYSTEMS_DATA, SYSTEMSUM_DATA
+                          EFaction)
+from tests.data import CELLS_FORT, CELLS_FORT_FMT, CELLS_UM
 
 
 # @pytest.yield_fixture(scope='function', autouse=True)
@@ -49,7 +50,11 @@ def mock_umsheet(db_cleanup):
 
 @pytest.fixture
 def session():
-    return cogdb.Session()
+    session = cogdb.Session()
+
+    yield cogdb.Session()
+
+    session.close()
 
 
 @pytest.fixture
@@ -127,15 +132,18 @@ def f_systems(session):
     """
     Fixture to insert some test Systems.
     """
-    order = 1
-    column = 'F'
-    systems = []
-    for data in SYSTEMS_DATA:
-        kwargs = kwargs_fort_system(data, order, column)
-        kwargs['id'] = order
-        systems.append(System(**kwargs))
-        order += 1
-        column = chr(ord(column) + 1)
+    systems = [
+        System(id=1, name='Frey', fort_status=4910, trigger=4910, fort_override=0.7, um_status=0, undermine=0.0, distance=116.99, notes='', sheet_col='G', sheet_order=1),
+        System(id=2, name='Nurundere', fort_status=5422, trigger=8425, fort_override=0.6, um_status=0, undermine=0.0, distance=99.51, notes='', sheet_col='H', sheet_order=2),
+        System(id=3, name='LHS 3749', fort_status=1850, trigger=5974, um_status=0, undermine=0.0, distance=55.72, notes='', sheet_col='I', sheet_order=3),
+        System(id=4, name='Sol', fort_status=2500, trigger=5211, um_status=2250, undermine=0.0, distance=28.94, notes='Leave For Grinders', sheet_col='J', sheet_order=4),
+        System(id=5, name='Dongkum', fort_status=7000, trigger=7239, um_status=0, undermine=0.0, distance=81.54, notes='', sheet_col='K', sheet_order=5),
+        System(id=6, name='Alpha Fornacis', fort_status=0, trigger=6476, um_status=0, undermine=0.0, distance=67.27, notes='', sheet_col='L', sheet_order=6),
+        System(id=7, name='Phra Mool', fort_status=0, trigger=7968, um_status=0, undermine=0.0, distance=93.02, notes='', sheet_col='M', sheet_order=7),
+        System(id=26, name='Othime', fort_status=0, trigger=7367, um_status=0, undermine=0.0, distance=83.68, notes='Priority for S/M ships (no L pads)', sheet_col='AF', sheet_order=26),
+        System(id=57, name='WW Piscis Austrini', fort_status=0, trigger=8563, um_status=0, undermine=0.0, distance=101.38, notes='', sheet_col='BK', sheet_order=57),
+        System(id=58, name='LPM 229', fort_status=0, trigger=9479, um_status=0, undermine=0.0, distance=112.98, notes='', sheet_col='BL', sheet_order=58),
+    ]
     session.add_all(systems)
     session.commit()
 
@@ -148,7 +156,7 @@ def f_systems(session):
 
 @pytest.fixture
 def f_prepsystem(session):
-    prep = PrepSystem(id=100, name='Muncheim', trigger=10000, fort_status=5100, um_status=0,
+    prep = PrepSystem(id=100, name='Rhea', trigger=10000, fort_status=5100, um_status=0,
                       undermine=0.0, distance=65.55, notes='Atropos', sheet_col='D',
                       sheet_order=0)
     session.add(prep)
@@ -193,15 +201,13 @@ def f_systemsum(session):
     """
     Fixture to insert some test Systems.
     """
-    column = 'D'
-    systems = []
-    count = 1
-    for data in SYSTEMSUM_DATA:
-        kwargs = kwargs_um_system(data, column)
-        kwargs['id'] = count
-        systems.append(SystemUM.factory(kwargs))
-        column = chr(ord(column) + 2)
-        count += 1
+    systems = [
+        UMControl(id=1, name='Cemplangpa', sheet_col='D', goal=14878, security='Medium', notes='', progress_us=15000, progress_them=1.0, close_control='Sol', map_offset=1380),
+        UMControl(id=2, name='Pequen', sheet_col='F', goal=12500, security='Anarchy', notes='', progress_us=10500, progress_them=0.5, close_control='Atropos', map_offset=0),
+        UMExpand(id=3, name='Burr', sheet_col='H', goal=364298, security='Low', notes='', progress_us=161630, progress_them=35.0, close_control='Dongkum', map_offset=76548),
+        UMOppose(id=4, name='AF Leopris', sheet_col='J', goal=59877, security='Low', notes='', progress_us=47739, progress_them=1.69, close_control='Atropos', map_offset=23960),
+        UMControl(id=5, name='Empty', sheet_col='K', goal=10000, security='Medium', notes='', progress_us=0, progress_them=0.0, close_control='Rana', map_offset=0),
+    ]
     session.add_all(systems)
     session.commit()
 
@@ -238,3 +244,9 @@ def f_holds(session):
     for matched in session.query(Hold):
         session.delete(matched)
     session.commit()
+
+
+@pytest.fixture
+def f_testbed(f_dusers, f_sheets, f_systems, f_prepsystem, f_systemsum, f_drops, f_holds):
+
+    yield [f_dusers, f_sheets, f_systems, f_prepsystem, f_systemsum, f_drops, f_holds]

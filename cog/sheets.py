@@ -283,7 +283,7 @@ class GSheet(object):
         log.info('SHEETS - FmtGet End')
         return data
 
-    def whole_sheet(self, dim='COLUMNS'):
+    def whole_sheet(self, dim='COLUMNS'):  # pragma: no cover
         """
         Simple alias to fetch a whole sheet, simply request far beyond
         possible column range.
@@ -307,7 +307,7 @@ def column_to_index(col_str):
     return cnt
 
 
-def get_credentials(json_secret, sheets_token):
+def get_credentials(json_secret, sheets_token):  # pragma: no cover
     """
     Get credentials from OAuth process.
 

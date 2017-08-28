@@ -258,7 +258,7 @@ class CogBot(discord.Client):
             await self.send_message(message.channel,
                                     'Now executing: **{}**'.format(orig_content))
 
-        cls = getattr(cog.actions, args.cmd.capitalize())
+        cls = getattr(cog.actions, args.cmd)
         await cls(**kwargs).execute()
 
 
