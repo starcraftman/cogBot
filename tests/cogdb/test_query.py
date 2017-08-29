@@ -102,6 +102,14 @@ def test_add_duser(session, f_dusers):
     assert session.query(DUser).all()[-1].id == member.id
 
 
+def test_check_pref_name(session, f_dusers, f_sheets):
+    with pytest.raises(cog.exc.InvalidCommandArgs):
+        cogdb.query.check_pref_name(session, f_dusers[1], f_dusers[0].pref_name)
+
+    # No raise
+    cogdb.query.check_pref_name(session, f_dusers[0], f_dusers[0].pref_name)
+
+
 def test_next_sheet_row(session, f_dusers, f_sheets):
     expected_row = session.query(SheetCattle).order_by(SheetCattle.row.desc()).first().row + 1
     row = cogdb.query.next_sheet_row(session, cls=SheetCattle, faction=EFaction.hudson,

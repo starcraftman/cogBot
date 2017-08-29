@@ -136,6 +136,20 @@ def add_duser(session, member, *, faction=EFaction.hudson):
     return new_duser
 
 
+def check_pref_name(session, duser, new_name):
+    """
+    Check that new name is not taken by another DUser.
+
+    Raises:
+        InvalidCommandArgs - DUser.pref_name taken by another DUser.
+    """
+    for other_user in session.query(DUser).filter(DUser.id != duser.id).all():
+        if other_user.pref_name == new_name:
+            msg = "Sheet name {}, taken by {}.\nPlease choose another.".format(
+                other_user.pref_name, other_user.display_name)
+            raise cog.exc.InvalidCommandArgs(msg)
+
+
 def next_sheet_row(session, *, cls, faction, start_row):
     """
     Find the next available row to add a SheetRow for.

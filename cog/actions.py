@@ -97,6 +97,7 @@ class Action(object):
         """ DUser associated with message author. """
         if not self.__duser:
             self.__duser = cogdb.query.ensure_duser(self.session, self.mauthor)
+            self.log.info('DUSER - ' + str(self.__duser))
 
         return self.__duser
 
@@ -271,6 +272,7 @@ class User(Action):
         new_name = ' '.join(self.args.name)
         self.log.info('USER %s - DUser.pref_name from %s -> %s.',
                       self.duser.display_name, self.duser.pref_name, new_name)
+        cogdb.query.check_pref_name(self.session, self.duser, new_name)
 
         for sheet in self.duser.sheets:
             sheet.name = new_name

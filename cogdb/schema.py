@@ -54,7 +54,7 @@ class DUser(Base):
 
     id = sqla.Column(sqla.String(LEN_DID), primary_key=True)  # Discord id
     display_name = sqla.Column(sqla.String(LEN_NAME))
-    pref_name = sqla.Column(sqla.String(LEN_NAME), unique=True)  # pref_name == display_name until change
+    pref_name = sqla.Column(sqla.String(LEN_NAME), unique=True, nullable=False)  # pref_name == display_name until change
     pref_cry = sqla.Column(sqla.String(LEN_NAME), default='')
     faction = sqla.Column(sqla.String(LEN_FACTION), default=EFaction.hudson)
 
@@ -69,6 +69,11 @@ class DUser(Base):
 
     def __eq__(self, other):
         return isinstance(other, DUser) and self.id == other.id
+
+    @property
+    def sheets(self):
+        """ Return all sheets found. """
+        return cogdb.Session().query(SheetRow).filter_by(name=self.pref_name).all()
 
     def switch_faction(self, new_faction=None):
         """ Switch current user faction """
@@ -137,6 +142,10 @@ class SheetRow(Base):
     def __eq__(self, other):
         return isinstance(other, SheetRow) and (self.name, self.type, self.faction) == (
             other.name, other.type, other.faction)
+
+    @property
+    def duser(self):
+        return cogdb.Session().query(DUser).filter_by(pref_name=self.name).one()
 
 
 class SheetCattle(SheetRow):
@@ -734,12 +743,15 @@ def recreate_tables():
 
 # Relationships
 # TODO: Is there a better way?
+#   Now using two one way selects, feels icky.
 #   I cannot enforce this key constraint as both sides are inserted independently
 #   So instead of a key I make two one way joins and cast the key.
-DUser.sheets = sqla_orm.relationship("SheetRow",
-                                     primaryjoin="DUser.pref_name == foreign(SheetRow.name)")
-SheetRow.duser = sqla_orm.relationship("DUser",
-                                       primaryjoin="SheetRow.name == foreign(DUser.pref_name)")
+# DUser.sheets = sqla_orm.relationship("SheetRow",
+                                    # primaryjoin="DUser.pref_name == foreign(SheetRow.name)",
+                                    # cascade_backrefs=False)
+# SheetRow.duser = sqla_orm.relationship("DUser",
+                                    # primaryjoin="SheetRow.name == foreign(DUser.pref_name)",
+                                    # cascade_backrefs=False)
 
 # Fortification relations
 Drop.user = sqla_orm.relationship('SheetCattle', uselist=False, back_populates='drops')
