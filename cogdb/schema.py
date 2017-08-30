@@ -414,7 +414,7 @@ class System(Base):
         if self.is_undermined and ':Undermin' not in msg:
             msg += ', :Undermined:'
 
-        if miss is not False and (self.missing and self.missing < 1500):
+        if miss or miss is not False and (self.missing and self.missing < 1500):
             msg += ' ({} left)'.format(self.missing)
 
         if self.notes:
