@@ -27,7 +27,7 @@ import cog.share
 # Old engine, just in case
 # engine = sqlalchemy.create_engine('sqlite://', echo=False)
 
-MYSQL_SPEC = 'mysql+pymysql://{user}:{pass}@{host}/{db}'
+MYSQL_SPEC = 'mysql+pymysql://{user}:{pass}@{host}/{db}?charset=utf8mb4'
 CREDS = cog.share.get_config('dbs', 'main')
 
 TEST_DB = False
