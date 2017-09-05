@@ -128,6 +128,8 @@ class CogBot(discord.Client):
         self.emoji.update(self.servers)
 
         print('GBot Ready!')
+
+        self.loop.create_task(presence_task(self))
         self.deny_commands = False
 
     def ignore_message(self, message):
@@ -280,6 +282,33 @@ def scan_sheet(sheet, cls):
     scanner.scan(session)
 
     return scanner
+
+
+async def presence_task(bot, delay=180):
+    """
+    Manage the ultra important task of bot's played game.
+    """
+    lines = [
+        'Heating the oven',
+        'Kneading the dough',
+        'Chipping the chocolate',
+        'Adding secret ingredients',
+        'Cutting the shapes',
+        'Putting trays in oven',
+        'Setting the timer',
+        'Baking cookies',
+        'Reading "Cookies Monthly"',
+        'Removing trays from oven',
+        'Letting cookies cool',
+        'Quality control step, yum!',
+        'Sealing in freshness',
+    ]
+    ind = 0
+    while True:
+        if bot.is_logged_in:
+            await bot.change_presence(game=discord.Game(name=lines[ind]))
+        ind = (ind + 1) % len(lines)
+        await asyncio.sleep(delay)
 
 
 def main():  # pragma: no cover
