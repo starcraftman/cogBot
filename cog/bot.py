@@ -263,6 +263,19 @@ class CogBot(discord.Client):
         cls = getattr(cog.actions, args.cmd)
         await cls(**kwargs).execute()
 
+    async def broadcast(self, content, ttl=False, **kwargs):
+        """
+        Broadcast content to ALL channels this bot has send message permissions in.
+        """
+        send = self.send_message
+        if ttl:
+            send = self.send_ttl_message
+
+        for server in self.servers:
+            for channel in server.channels:
+                if channel.permissions_for(server.me).send_messages:
+                    asyncio.ensure_future(send(channel, '**BROADCAST** ' + content, **kwargs))
+
 
 def scan_sheet(sheet, cls):
     """

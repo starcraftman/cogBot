@@ -443,6 +443,10 @@ class Admin(Action):
             # await self.send_message(message.channel, response)
             # return
 
+        if args.subcmd == 'cast':
+            asyncio.ensure_future(self.bot.broadcast(' '.join(self.args.content)))
+            response = 'Broadcast scheduled.'
+
         if args.subcmd == 'deny':
             self.bot.deny_commands = not self.bot.deny_commands
             response = 'Commands: **{}abled**'.format('Dis' if self.bot.deny_commands else 'En')

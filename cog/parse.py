@@ -82,6 +82,7 @@ def subs_admin(subs, prefix):
     """ Subcommand parsing for admin """
     desc = """Admin only commands. Examples:
 
+    {prefix}admin cast A message here\n          Broadcast a message to all channels.
     {prefix}admin deny\n          Toggle command processing.
     {prefix}admin dump\n          Dump the database to console to inspect.
     {prefix}admin halt\n          Shutdown this bot after short delay.
@@ -92,6 +93,8 @@ def subs_admin(subs, prefix):
     sub.set_defaults(cmd='Admin')
     admin_subs = sub.add_subparsers(title='subcommands',
                                     description='Admin subcommands', dest='subcmd')
+    admin_sub = admin_subs.add_parser('cast', help='Broadcast a message to all channels.')
+    admin_sub.add_argument('content', nargs='+', help='The message to send, no hyphens.')
     admin_subs.add_parser('deny', help='Toggle command processing.')
     admin_subs.add_parser('dump', help='Dump the db to console.')
     admin_subs.add_parser('halt', help='Stop accepting commands and halt bot.')
