@@ -3,22 +3,16 @@ Common functions.
 """
 from __future__ import absolute_import, print_function
 import logging
-import logging.handlers
-import logging.config
 import os
 import sys
 
 import argparse
 from argparse import RawDescriptionHelpFormatter as RawHelp
-import yaml
-try:
-    from yaml import CLoader as Loader
-except ImportError:
-    from yaml import Loader
 
 import cog.exc
 import cog.sheets
 import cog.tbl
+from cog.util import ROOT_DIR
 
 
 class ThrowArggumentParser(argparse.ArgumentParser):
@@ -49,54 +43,6 @@ class ModFormatter(logging.Formatter):
         relmod = record.__dict__['pathname'].replace(ROOT_DIR + os.path.sep, '')
         record.__dict__['relmod'] = relmod[:-3]
         return super(ModFormatter, self).format(record)
-
-
-def rel_to_abs(*path_parts):
-    """
-    Convert an internally relative path to an absolute one.
-    """
-    return os.path.join(ROOT_DIR, *path_parts)
-
-
-def get_config(*keys):
-    """
-    Return keys straight from yaml config.
-    """
-    with open(YAML_FILE) as fin:
-        conf = yaml.load(fin, Loader=Loader)
-
-    for key in keys:
-        conf = conf[key]
-
-    return conf
-
-
-def init_logging():  # pragma: no cover
-    """
-    Initialize project wide logging. The setup is described best in config file.
-
-     - On every start the file logs are rolled over.
-     - This should be first invocation on startup to set up logging.
-    """
-    log_file = rel_to_abs(get_config('paths', 'log_conf'))
-    with open(log_file) as fin:
-        lconf = yaml.load(fin, Loader=Loader)
-        for handler in lconf['handlers']:
-            try:
-                os.makedirs(os.path.dirname(lconf['handlers'][handler]['filename']))
-            except (OSError, KeyError):
-                pass
-
-    with open(log_file) as fin:
-        logging.config.dictConfig(yaml.load(fin, Loader=Loader))
-
-    print('See main.log for general traces.')
-    print('Enabled rotating file logs:')
-    for top_log in ('asyncio', 'cog', 'cogdb'):
-        for handler in logging.getLogger(top_log).handlers:
-            if isinstance(handler, logging.handlers.RotatingFileHandler):
-                print('    ' + handler.baseFilename)
-                handler.doRollover()
 
 
 def make_parser(prefix):
@@ -266,29 +212,3 @@ def subs_user(subs, prefix):
                      help='Set yourself to use the Winters sheets.')
     sub.add_argument('--hudson', action='store_true',
                      help='Set yourself to use the Hudson sheets.')
-
-
-def dict_to_columns(data):
-    """
-    Transform the dict into columnar form with keys as column headers.
-    """
-    lines = []
-    header = []
-
-    for col, key in enumerate(sorted(data)):
-        header.append('{} ({})'.format(key, len(data[key])))
-
-        for row, item in enumerate(data[key]):
-            try:
-                lines[row]
-            except IndexError:
-                lines.append([])
-            while len(lines[row]) != col:
-                lines[row].append('')
-            lines[row].append(item)
-
-    return [header] + lines
-
-
-ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-YAML_FILE = rel_to_abs('data', 'config.yml')

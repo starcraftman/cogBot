@@ -14,7 +14,7 @@ import pytest
 
 import cog.actions
 import cog.bot
-import cog.share
+import cog.parse
 import cogdb
 from cogdb.side import SystemAge
 from cogdb.schema import (DUser, SheetCattle, SheetUM,
@@ -199,7 +199,7 @@ def action_map(fake_message, fake_bot):
 
     Exceute with Action.execute() coro or schedule on loop
     """
-    parser = cog.share.make_parser("!")
+    parser = cog.parse.make_parser("!")
     args = parser.parse_args(fake_message.content.split(" "))
     cls = getattr(cog.actions, args.cmd)
 

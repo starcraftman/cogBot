@@ -35,7 +35,8 @@ import cogdb.schema
 import cogdb.query
 import cog.actions
 import cog.exc
-import cog.share
+import cog.parse
+import cog.util
 import cog.sheets
 import cog.tbl
 
@@ -181,7 +182,7 @@ class CogBot(discord.Client):
 
         try:
             msg = re.sub(r'<@\w+>', '', msg).strip()  # Strip mentions from text
-            parser = cog.share.make_parser(self.prefix)
+            parser = cog.parse.make_parser(self.prefix)
             args = parser.parse_args(msg.split(' '))
             await self.dispatch_command(args=args, bot=self, message=message)
 
@@ -227,7 +228,7 @@ class CogBot(discord.Client):
         try:
             ttl = kwargs.pop('ttl')
         except KeyError:
-            ttl = cog.share.get_config('ttl')
+            ttl = cog.util.get_config('ttl')
 
         content += '\n__This message will be deleted in {} seconds__'.format(ttl)
         message = await self.send_message(destination, content, **kwargs)
@@ -246,9 +247,8 @@ class CogBot(discord.Client):
         message = kwargs.get('message')
 
         # FIXME: Hack due to users editting sheet.
-        sheet_cmds = ['drop', 'hold', 'fort', 'um', 'user']
         outdated = (time.time() - self.last_cmd) > 300.0
-        if args.cmd in sheet_cmds and outdated:
+        if args.cmd in cog.actions.SHEET_ACTS and outdated:
             self.last_cmd = time.time()
 
             orig_content = message.content
@@ -273,10 +273,10 @@ def scan_sheet(sheet, cls):
     """
     session = cogdb.Session()
 
-    paths = cog.share.get_config('paths')
+    paths = cog.util.get_config('paths')
     sheet = cog.sheets.GSheet(sheet,
-                              cog.share.rel_to_abs(paths['json']),
-                              cog.share.rel_to_abs(paths['token']))
+                              cog.util.rel_to_abs(paths['json']),
+                              cog.util.rel_to_abs(paths['token']))
 
     scanner = cls(sheet)
     scanner.scan(session)
@@ -313,14 +313,14 @@ async def presence_task(bot, delay=180):
 
 def main():  # pragma: no cover
     """ Entry here!  """
-    cog.share.init_logging()
+    cog.util.init_logging()
     try:
-        scanner = scan_sheet(cog.share.get_config('hudson', 'cattle'), cogdb.query.FortScanner)
-        scanner_um = scan_sheet(cog.share.get_config('hudson', 'um'), cogdb.query.UMScanner)
+        scanner = scan_sheet(cog.util.get_config('hudson', 'cattle'), cogdb.query.FortScanner)
+        scanner_um = scan_sheet(cog.util.get_config('hudson', 'um'), cogdb.query.UMScanner)
         bot = CogBot(prefix='!', scanner=scanner, scanner_um=scanner_um)
 
         # BLOCKING: N.o. e.s.c.a.p.e.
-        bot.run(cog.share.get_config('discord', os.environ.get('COG_TOKEN', 'dev')))
+        bot.run(cog.util.get_config('discord', os.environ.get('COG_TOKEN', 'dev')))
     finally:
         try:
             bot.logout()

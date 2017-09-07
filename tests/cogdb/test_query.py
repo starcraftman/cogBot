@@ -17,34 +17,6 @@ import cogdb.query
 from tests.data import CELLS_FORT_FMT, SYSTEMS, USERS
 
 
-def test_subseq_match():
-    assert cogdb.query.subseq_match('alx', 'alex')
-
-    with pytest.raises(cog.exc.NoMatch):
-        cogdb.query.subseq_match('not', 'alex')
-
-    with pytest.raises(cog.exc.NoMatch):
-        cogdb.query.subseq_match('longneedle', 'alex')
-
-    assert cogdb.query.subseq_match('ALEr', 'Alexander')
-
-    with pytest.raises(cog.exc.NoMatch):
-        cogdb.query.subseq_match('ALEr', 'Alexander', ignore_case=False)
-
-
-def test_substr_match():
-    assert cogdb.query.substr_match('ale', 'alex')
-
-    assert not cogdb.query.substr_match('not', 'alex')
-
-    assert not cogdb.query.substr_match('longneedle', 'alex')
-
-    assert cogdb.query.substr_match('ALEX', 'Alexander')
-    assert cogdb.query.substr_match('nde', 'Alexander')
-
-    assert not cogdb.query.substr_match('ALe', 'Alexander', ignore_case=False)
-
-
 def test_fuzzy_find():
     assert cogdb.query.fuzzy_find('Alex', USERS) == 'Alexander Astropath'
 

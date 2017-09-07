@@ -3,6 +3,8 @@ Common exceptions.
 """
 from __future__ import absolute_import, print_function
 
+import cog.util
+
 
 class CogException(Exception):
     """
@@ -152,8 +154,8 @@ def emphasize_match(seq, line, fmt='__{}__'):
     """
     Emphasize the matched portion of string.
     """
-    start = line.lower().index(seq)
-    matched = line[start:start + len(seq)]
+    start, end = cog.util.substr_ind(seq, line)
+    matched = line[start:end]
     return line.replace(matched, fmt.format(matched))
 
 

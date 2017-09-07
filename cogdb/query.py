@@ -9,53 +9,13 @@ import sqlalchemy.orm.exc as sqa_exc
 
 import cog.exc
 import cog.sheets
+from cog.util import substr_match
 import cogdb
 from cogdb.schema import (DUser, System, PrepSystem, SystemUM, SheetRow, SheetCattle, SheetUM,
                           Drop, Hold, EFaction, ESheetType, kwargs_fort_system, kwargs_um_system)
 
 
 DEFER_MISSING = 750
-
-
-def subseq_match(needle, line, ignore_case=True):
-    """
-    True iff the subsequence needle present in line.
-    """
-    n_index, l_index, matches = 0, 0, 0
-
-    if ignore_case:
-        needle = needle.lower()
-        line = line.lower()
-
-    while n_index != len(needle):
-        while l_index != len(line):
-            if needle[n_index] == line[l_index]:
-                matches += 1
-                l_index += 1
-                break
-
-            # Stop searching if match no longer possible
-            if len(needle[n_index:]) > len(line[l_index + 1:]):
-                raise cog.exc.NoMatch(needle)
-
-            l_index += 1
-        n_index += 1
-
-    return matches == len(needle)
-
-
-def substr_match(needle, line, ignore_case=True):
-    """
-    True iff the substr is present in string. Ignore spaces and optionally case.
-    """
-    needle = needle.replace(' ', '')
-    line = line.replace(' ', '')
-
-    if ignore_case:
-        needle = needle.lower()
-        line = line.lower()
-
-    return needle in line
 
 
 def fuzzy_find(needle, stack, obj_attr='zzzz', ignore_case=True):
@@ -67,7 +27,7 @@ def fuzzy_find(needle, stack, obj_attr='zzzz', ignore_case=True):
     matches = []
     for obj in stack:
         try:
-            if substr_match(needle, getattr(obj, obj_attr, obj), ignore_case):
+            if substr_match(needle, getattr(obj, obj_attr, obj), ignore_case=ignore_case):
                 matches.append(obj)
         except cog.exc.NoMatch:
             pass

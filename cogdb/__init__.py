@@ -22,13 +22,13 @@ import sys
 import sqlalchemy
 import sqlalchemy.orm
 
-import cog.share
+import cog.util
 
 # Old engine, just in case
 # engine = sqlalchemy.create_engine('sqlite://', echo=False)
 
 MYSQL_SPEC = 'mysql+pymysql://{user}:{pass}@{host}/{db}?charset=utf8mb4'
-CREDS = cog.share.get_config('dbs', 'main')
+CREDS = cog.util.get_config('dbs', 'main')
 
 TEST_DB = False
 if 'pytest' in sys.modules:
@@ -43,7 +43,7 @@ logging.getLogger('cogdb').info('Main Engine: %s', engine)
 print('Main Engine Selected: ', engine)
 
 # Remote server tracking bgs
-CREDS = cog.share.get_config('dbs', 'side')
+CREDS = cog.util.get_config('dbs', 'side')
 side_engine = sqlalchemy.create_engine(MYSQL_SPEC.format(**CREDS), echo=False)
 SideSession = sqlalchemy.orm.sessionmaker(bind=side_engine)
 

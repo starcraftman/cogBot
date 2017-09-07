@@ -19,6 +19,7 @@ import cog.tbl
 
 HOME = "Gears' Hideout"
 FUC = "Federal United Command"
+SHEET_ACTS = ['Drop', 'Hold', 'Fort', 'UM', 'User']
 
 
 async def bot_shutdown(bot):  # pragma: no cover

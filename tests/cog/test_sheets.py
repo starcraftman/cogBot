@@ -9,7 +9,6 @@ import os
 import pytest
 
 import cog.exc
-import cog.share
 import cog.sheets
 
 
@@ -25,7 +24,7 @@ def fort_sheet():
         'id': 'ID_EXPUNGED',
         'page': 'UnitTest',
     }
-    paths = cog.share.get_config('paths')
+    paths = cog.util.get_config('paths')
     f_sheet = cog.sheets.GSheet(sheet, paths['json'], paths['token'])
 
     yield f_sheet
@@ -42,7 +41,7 @@ def fort_sheet_reset():
         'id': 'ID_EXPUNGED',
         'page': 'UnitTest',
     }
-    paths = cog.share.get_config('paths')
+    paths = cog.util.get_config('paths')
     f_sheet = cog.sheets.GSheet(sheet, paths['json'], paths['token'])
 
     yield f_sheet
