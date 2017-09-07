@@ -318,16 +318,16 @@ def test_um_get_systems(session, f_systemsum):
 
 def test_um_reset_held(session, f_dusers, f_sheets, f_systemsum, f_holds):
     sheet = f_sheets[1]
-    assert sheet.merits == 'Holding 2600, Redeemed 11350'
+    assert sheet.merit_summary() == 'Holding 2600, Redeemed 11350'
     cogdb.query.um_reset_held(session, sheet)
-    assert sheet.merits == 'Holding 0, Redeemed 11350'
+    assert sheet.merit_summary() == 'Holding 0, Redeemed 11350'
 
 
 def test_um_redeem_merits(session, f_dusers, f_sheets, f_systemsum, f_holds):
     sheet = f_sheets[1]
-    assert sheet.merits == 'Holding 2600, Redeemed 11350'
+    assert sheet.merit_summary() == 'Holding 2600, Redeemed 11350'
     cogdb.query.um_redeem_merits(session, sheet)
-    assert sheet.merits == 'Holding 0, Redeemed 13950'
+    assert sheet.merit_summary() == 'Holding 0, Redeemed 13950'
 
 
 def test_um_add_hold(session, f_dusers, f_sheets, f_systemsum, db_cleanup):

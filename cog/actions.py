@@ -267,15 +267,33 @@ class User(Action):
                     self.bot.scanner_um.update_sheet_user(self.undermine))
 
         lines = [
-            '**{}**'.format(self.mauthor.display_name),
+            '__{}__'.format(self.mauthor.display_name),
             'Sheet Name: ' + self.duser.pref_name,
-            'Sheet Cry:{}'.format(' ' + self.duser.pref_cry if self.duser.pref_cry else ''),
+            'Default Cry:{}'.format(' ' + self.duser.pref_cry if self.duser.pref_cry else ''),
+            '',
         ]
-        for sheet in self.duser.sheets(self.session):
+        if self.cattle:
             lines += [
-                '{} {}'.format(sheet.faction.capitalize(), sheet.type.replace('Sheet', '')),
-                '    Merits: {}'.format(sheet.merits),
+                '__{} {}__'.format(self.cattle.faction.capitalize(),
+                                   self.cattle.type.replace('Sheet', '')),
+                '    Cry: {}'.format(self.cattle.cry),
+                '    Total: {}'.format(self.cattle.merit_summary()),
             ]
+            mlines = [['System', 'Amount']]
+            mlines += [[merit.system.name, merit.amount] for merit in self.cattle.merits
+                       if merit.amount > 0]
+            lines += cog.tbl.wrap_markdown(cog.tbl.format_table(mlines, header=True)).split('\n')
+        if self.undermine:
+            lines += [
+                '__{} {}__'.format(self.undermine.faction.capitalize(),
+                                   self.undermine.type.replace('Sheet', '')),
+                '    Cry: {}'.format(self.undermine.cry),
+                '    Total: {}'.format(self.undermine.merit_summary()),
+            ]
+            mlines = [['System', 'Hold', 'Redeemed']]
+            mlines += [[merit.system.name, merit.held, merit.redeemed] for merit
+                       in self.undermine.merits if merit.held + merit.redeemed > 0]
+            lines += cog.tbl.wrap_markdown(cog.tbl.format_table(mlines, header=True)).split('\n')
 
         await self.bot.send_message(self.mchannel, '\n'.join(lines))
 
@@ -546,7 +564,7 @@ class Hold(Action):
             holds, redeemed = cogdb.query.um_redeem_merits(self.session, self.undermine)
             self.log.info('HOLD %s - Redeemed %d merits.', self.duser.display_name, redeemed)
             response = 'You redeemed {} new merits.\n{}'.format(redeemed,
-                                                                self.undermine.merits)
+                                                                self.undermine.merit_summary())
 
         else:  # Default case, update the hold for a system
             holds, response = self.set_hold()

@@ -603,13 +603,25 @@ async def test_cmd_user(event_loop, f_bot, f_testbed):
 
     await action_map(msg, f_bot).execute()
 
-    expect = """**GearsandCogs**
+    expect = """__GearsandCogs__
 Sheet Name: GearsandCogs
-Sheet Cry:
-Hudson Cattle
-    Merits: 1100
-Hudson UM
-    Merits: Holding 2600, Redeemed 11350"""
+Default Cry:
+
+__Hudson Cattle__
+    Cry: Gears are forting late!
+    Total: Dropped 1100
+``` System   | Amount
+--------- | ------
+Frey      | 700
+Nurundere | 400```
+__Hudson UM__
+    Cry: Gears are pew pew!
+    Total: Holding 2600, Redeemed 11350
+```  System   | Hold | Redeemed
+---------- | ---- | --------
+Cemplangpa | 0    | 4000
+Pequen     | 400  | 1550
+Burr       | 2200 | 5800```"""
     f_bot.send_message.assert_called_with(msg.channel, expect)
 
 
@@ -620,13 +632,25 @@ async def test_cmd_user_set_name(session, event_loop, f_bot, f_testbed):
 
     await action_map(msg, f_bot).execute()
 
-    expect = """**GearsandCogs**
+    expect = """__GearsandCogs__
 Sheet Name: NotGears
-Sheet Cry:
-Hudson Cattle
-    Merits: 1100
-Hudson UM
-    Merits: Holding 2600, Redeemed 11350"""
+Default Cry:
+
+__Hudson Cattle__
+    Cry: Gears are forting late!
+    Total: Dropped 1100
+``` System   | Amount
+--------- | ------
+Frey      | 700
+Nurundere | 400```
+__Hudson UM__
+    Cry: Gears are pew pew!
+    Total: Holding 2600, Redeemed 11350
+```  System   | Hold | Redeemed
+---------- | ---- | --------
+Cemplangpa | 0    | 4000
+Pequen     | 400  | 1550
+Burr       | 2200 | 5800```"""
     f_bot.send_message.assert_called_with(msg.channel, expect)
 
     duser = session.query(DUser).filter_by(id=msg.author.id).one()
@@ -642,13 +666,26 @@ async def test_cmd_user_set_cry(session, event_loop, f_bot, f_testbed):
 
     await action_map(msg, f_bot).execute()
 
-    expect = """**GearsandCogs**
+    expect = """__GearsandCogs__
 Sheet Name: GearsandCogs
-Sheet Cry: A new cry
-Hudson Cattle
-    Merits: 1100
-Hudson UM
-    Merits: Holding 2600, Redeemed 11350"""
+Default Cry: A new cry
+
+__Hudson Cattle__
+    Cry: A new cry
+    Total: Dropped 1100
+``` System   | Amount
+--------- | ------
+Frey      | 700
+Nurundere | 400```
+__Hudson UM__
+    Cry: A new cry
+    Total: Holding 2600, Redeemed 11350
+```  System   | Hold | Redeemed
+---------- | ---- | --------
+Cemplangpa | 0    | 4000
+Pequen     | 400  | 1550
+Burr       | 2200 | 5800```"""
+
     f_bot.send_message.assert_called_with(msg.channel, expect)
 
     duser = session.query(DUser).filter_by(id=msg.author.id).one()

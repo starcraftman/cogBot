@@ -148,14 +148,13 @@ class SheetCattle(SheetRow):
         'polymorphic_identity': ESheetType.cattle,
     }
 
-    @property
-    def merits(self):
+    def merit_summary(self):
         """ Summarize user merits. """
         total = 0
-        for drop in self.drops:
+        for drop in self.merits:
             total += drop.amount
 
-        return '{}'.format(total)
+        return 'Dropped {}'.format(total)
 
 
 class SheetUM(SheetRow):
@@ -164,12 +163,11 @@ class SheetUM(SheetRow):
         'polymorphic_identity': ESheetType.um,
     }
 
-    @property
-    def merits(self):
+    def merit_summary(self):
         """ Summarize user merits. """
         held = 0
         redeemed = 0
-        for hold in self.holds:
+        for hold in self.merits:
             held += hold.held
             redeemed += hold.redeemed
 
@@ -306,7 +304,7 @@ class System(Base):
     def cmdr_merits(self):
         """ Total merits dropped by cmdrs """
         total = 0
-        for drop in self.drops:
+        for drop in self.merits:
             total += drop.amount
         return total
 
@@ -499,7 +497,7 @@ class SystemUM(Base):
     def cmdr_merits(self):
         """ Total merits held and redeemed by cmdrs """
         total = 0
-        for hold in self.holds:
+        for hold in self.merits:
             total += hold.held + hold.redeemed
         return total
 
@@ -748,24 +746,24 @@ def recreate_tables():
                                     # cascade_backrefs=False)
 
 # Fortification relations
-Drop.user = sqla_orm.relationship('SheetCattle', uselist=False, back_populates='drops')
-SheetCattle.drops = sqla_orm.relationship('Drop',
-                                          cascade='all, delete, delete-orphan',
-                                          back_populates='user')
-Drop.system = sqla_orm.relationship('System', uselist=False, back_populates='drops')
-System.drops = sqla_orm.relationship('Drop',
-                                     cascade='all, delete, delete-orphan',
-                                     back_populates='system')
+Drop.user = sqla_orm.relationship('SheetCattle', uselist=False, back_populates='merits')
+SheetCattle.merits = sqla_orm.relationship('Drop',
+                                           cascade='all, delete, delete-orphan',
+                                           back_populates='user')
+Drop.system = sqla_orm.relationship('System', uselist=False, back_populates='merits')
+System.merits = sqla_orm.relationship('Drop',
+                                      cascade='all, delete, delete-orphan',
+                                      back_populates='system')
 
 # Undermining relations
-Hold.user = sqla_orm.relationship('SheetUM', uselist=False, back_populates='holds')
-SheetUM.holds = sqla_orm.relationship('Hold',
-                                      cascade='all, delete, delete-orphan',
-                                      back_populates='user')
-Hold.system = sqla_orm.relationship('SystemUM', uselist=False, back_populates='holds')
-SystemUM.holds = sqla_orm.relationship('Hold',
+Hold.user = sqla_orm.relationship('SheetUM', uselist=False, back_populates='merits')
+SheetUM.merits = sqla_orm.relationship('Hold',
                                        cascade='all, delete, delete-orphan',
-                                       back_populates='system')
+                                       back_populates='user')
+Hold.system = sqla_orm.relationship('SystemUM', uselist=False, back_populates='merits')
+SystemUM.merits = sqla_orm.relationship('Hold',
+                                        cascade='all, delete, delete-orphan',
+                                        back_populates='system')
 
 
 Base.metadata.create_all(cogdb.engine)
@@ -843,7 +841,7 @@ def main():  # pragma: no cover
     print('Systems----------')
     for sys in session.query(System):
         mprint(sys)
-        mprint(pad, sys.drops)
+        mprint(pad, sys.merits)
 
     print('Drops----------')
     for drop in session.query(Drop):

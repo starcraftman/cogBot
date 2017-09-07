@@ -123,22 +123,22 @@ def test_sheetrow__str__(f_dusers, f_sheets):
                          "faction='hudson', row=15, cry='Gears are forting late!')"
 
 
-def test_sheetcattle_merits(session, f_dusers, f_sheets, f_systems, f_drops):
+def test_sheetcattle_merit_summary(session, f_dusers, f_sheets, f_systems, f_drops):
     sheet = f_sheets[0]
     total = 0
     for drop in session.query(Drop).filter_by(user_id=sheet.id).all():
         total += drop.amount
-    assert sheet.merits == '{}'.format(total)
+    assert sheet.merit_summary() == 'Dropped {}'.format(total)
 
 
-def test_sheetum_merits(session, f_dusers, f_sheets, f_systemsum, f_holds):
+def test_sheetum_merit_summary(session, f_dusers, f_sheets, f_systemsum, f_holds):
     sheet = [sheet for sheet in f_sheets if sheet.name == 'GearsandCogs' and
              sheet.type == ESheetType.um][0]
     held, redeemed = 0, 0
-    for hold in sheet.holds:
+    for hold in session.query(Hold).filter_by(user_id=sheet.id).all():
         held += hold.held
         redeemed += hold.redeemed
-    assert sheet.merits == 'Holding {}, Redeemed {}'.format(held, redeemed)
+    assert sheet.merit_summary() == 'Holding {}, Redeemed {}'.format(held, redeemed)
 
 
 def test_system__eq__(f_systems):
