@@ -10,6 +10,7 @@ import pytest
 
 import cog.exc
 import cog.sheets
+import cog.util
 
 
 REASON_SLOW = 'Slow as blocking to sheet. To enable, ensure os.environ ALL_TESTS=True'
@@ -20,10 +21,7 @@ def fort_sheet():
     """
     Yield fixture returns fort sheet.
     """
-    sheet = {
-        'id': 'ID_EXPUNGED',
-        'page': 'UnitTest',
-    }
+    sheet = cog.util.get_config('tests', 'cattle')
     paths = cog.util.get_config('paths')
     f_sheet = cog.sheets.GSheet(sheet, paths['json'], paths['token'])
 
@@ -37,10 +35,7 @@ def fort_sheet_reset():
 
     N.B. Test in cells cleaned in cell_ranges.
     """
-    sheet = {
-        'id': 'ID_EXPUNGED',
-        'page': 'UnitTest',
-    }
+    sheet = cog.util.get_config('tests', 'cattle')
     paths = cog.util.get_config('paths')
     f_sheet = cog.sheets.GSheet(sheet, paths['json'], paths['token'])
 
