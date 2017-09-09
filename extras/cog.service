@@ -9,7 +9,8 @@ User=USER
 Environment=PYTHONPATH=REPLACE/cogBot
 Environment=COG_TOKEN=prod
 ExecStart=REPLACE/cog/.pyenv/shims/python REPLACE/cogBot/cog/bot.py
-Restart=on-abnormal
+Restart=always
+RestartSec=5
 
 [Install]
 WantedBy=multi-user.target
