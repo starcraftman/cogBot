@@ -31,15 +31,29 @@ try:
 except ImportError:
     pass
 
-import cogdb
-import cogdb.schema
-import cogdb.query
 import cog.actions
 import cog.exc
+import cog.jobs
 import cog.parse
 import cog.util
 import cog.sheets
-import cog.tbl
+
+
+async def bot_ready(bot, msg, wait=120):
+    """ Simple busy wait for bot to be ready. """
+    if not bot.deny_commands:
+        return True
+
+    count = 0
+    while count != wait and bot.deny_commands:
+        await asyncio.sleep(1)
+        count += 1
+
+    if bot.deny_commands:
+        await bot.send_message(msg.channel, "Bot could not handle your request at this time. {}".format(msg.author.mention))
+        return False
+
+    return True
 
 
 class EmojiResolver(object):
@@ -81,16 +95,13 @@ class EmojiResolver(object):
         return content
 
 
-# FIXME: Register hook on db object that callsback.
 class CogBot(discord.Client):
     """
     The main bot, hooks onto on_message primarily and waits for commands.
     """
-    def __init__(self, **kwargs):
-        super(CogBot, self).__init__(**kwargs)
-        self.prefix = kwargs.get('prefix')
-        self.scanner = kwargs.get('scanner')
-        self.scanner_um = kwargs.get('scanner_um')
+    def __init__(self, prefix, **kwargs):
+        super().__init__(**kwargs)
+        self.prefix = prefix
         self.deny_commands = True
         self.last_cmd = time.time()
         self.start_date = date.datetime.utcnow().replace(microsecond=0)
@@ -127,12 +138,22 @@ class CogBot(discord.Client):
         log.info('Available on following servers:')
         for server in self.servers:
             log.info('  "%s" with id %s', server.name, server.id)
+
         self.emoji.update(self.servers)
 
-        print('GBot Ready!')
+        if not cog.actions.SCANNERS:
+            asyncio.ensure_future(asyncio.gather(
+                presence_task(self),
+                cog.jobs.pool_starter(self.send_message),
+            ))
 
-        self.loop.create_task(presence_task(self))
-        self.deny_commands = False
+            # TODO: Parallelize startup with scheduler and jobs.
+            for name in cog.util.get_config("scanners"):  # Populate on import
+                cog.actions.init_scanner(name)
+
+            self.deny_commands = False
+
+        print('GBot Ready!')
 
     def ignore_message(self, message):
         """
@@ -141,17 +162,15 @@ class CogBot(discord.Client):
         Ignore messages not directed at bot and any commands that aren't
         from an admin during deny_commands == True.
         """
-        ignore = False
-
         # Ignore lines not directed at bot
         if message.author.bot or not message.content.startswith(self.prefix):
-            ignore = True
+            return True
 
         # Accept only admin commands if denying
         if self.deny_commands and not message.content.startswith('{}admin'.format(self.prefix)):
-            ignore = True
+            return True
 
-        return ignore
+        return False
 
     async def on_message(self, message):
         """
@@ -169,54 +188,54 @@ class CogBot(discord.Client):
                     get_member_by_name -> Search for user by nick
             message.content - The text
         """
-        msg = message.content
+        content = message.content
         author = message.author
         channel = message.channel
-        response = ''
 
+        # TODO: Better filtering, use a loop and filter funcs.
         if self.ignore_message(message):
             return
 
         log = logging.getLogger('cog.bot')
         log.info("Server: '%s' Channel: '%s' User: '%s' | %s",
-                 channel.server, channel.name, author.name, msg)
+                 channel.server, channel.name, author.name, content)
 
         try:
-            msg = re.sub(r'<@\w+>', '', msg).strip()  # Strip mentions from text
+            content = re.sub(r'<@\w+>', '', content).strip()  # Strip mentions from text
             parser = cog.parse.make_parser(self.prefix)
-            args = parser.parse_args(msg.split(' '))
-            await self.dispatch_command(args=args, bot=self, message=message)
+            args = parser.parse_args(re.split(r'\s+', content))
+            await self.dispatch_command(args=args, bot=self, msg=message)
 
         except cog.exc.ArgumentParseError as exc:
-            log.exception("Failed to parse command. '%s' | %s", author.name, msg)
-            exc.write_log(log, content=msg, author=author, channel=channel)
+            log.exception("Failed to parse command. '%s' | %s", author.name, content)
+            exc.write_log(log, content=content, author=author, channel=channel)
             if 'invalid choice' not in exc.message:
                 try:
-                    parser.parse_args(msg.split(' ')[0:1] + ['--help'])
+                    parser.parse_args(content.split(' ')[0:1] + ['--help'])
                 except cog.exc.ArgumentHelpError as exc2:
-                    exc.message = 'Invalid command use. Check.'
-                    exc.message += '\n{}\n{}'.format(len(response) * '-', exc2.message)
+                    exc.message = 'Invalid command use. Check the command help.'
+                    exc.message += '\n{}\n{}'.format(len(exc.message) * '-', exc2.message)
             await self.send_ttl_message(channel, exc.reply())
             asyncio.ensure_future(self.delete_message(message))
 
         except cog.exc.UserException as exc:
-            exc.write_log(log, content=msg, author=author, channel=channel)
+            exc.write_log(log, content=content, author=author, channel=channel)
             await self.send_ttl_message(channel, exc.reply())
             asyncio.ensure_future(self.delete_message(message))
 
         except cog.exc.InternalException as exc:
-            exc.write_log(log, content=msg, author=author, channel=channel)
+            exc.write_log(log, content=content, author=author, channel=channel)
             await self.send_message(channel, exc.reply())
 
         except discord.DiscordException as exc:
-            msg = "Discord.py Library raised an exception"
-            msg += cog.exc.log_format(content=msg, author=author, channel=channel)
-            log.exception(msg)
+            line = "Discord.py Library raised an exception"
+            line += cog.exc.log_format(content=content, author=author, channel=channel)
+            log.exception(line)
 
         except apiclient.errors.Error as exc:
-            msg = "Google Sheets API raised an exception"
-            msg += cog.exc.log_format(content=msg, author=author, channel=channel)
-            log.exception(msg)
+            line = "Google Sheets API raised an exception"
+            line += cog.exc.log_format(content=content, author=author, channel=channel)
+            log.exception(line)
 
     async def send_ttl_message(self, destination, content, **kwargs):
         """
@@ -245,22 +264,29 @@ class CogBot(discord.Client):
         Simply inspect class and dispatch command. Guaranteed to be valid.
         """
         args = kwargs.get('args')
-        message = kwargs.get('message')
+        msg = kwargs.get('msg')
 
         # FIXME: Hack due to users editting sheet.
         outdated = (time.time() - self.last_cmd) > 300.0
         if args.cmd in cog.actions.SHEET_ACTS and outdated:
             self.last_cmd = time.time()
 
-            orig_content = message.content
+            orig_content = msg.content
             asyncio.ensure_future(self.send_message(
-                message.channel,
+                msg.channel,
                 'Bot has been inactive 5+ mins. Command will execute after update.'))
-            message.content = '!admin scan'
-            await self.on_message(message)
-            await self.send_message(message.channel,
+            msg.content = '!admin scan'
+            await self.on_message(msg)
+
+            if not await bot_ready(self, msg):
+                return
+
+            await self.send_message(msg.channel,
                                     'Now executing: **{}**'.format(orig_content))
 
+            msg.content = orig_content
+
+        # TODO: Check perms here.
         cls = getattr(cog.actions, args.cmd)
         await cls(**kwargs).execute()
 
@@ -276,26 +302,6 @@ class CogBot(discord.Client):
             for channel in server.channels:
                 if channel.permissions_for(server.me).send_messages:
                     asyncio.ensure_future(send(channel, '**BROADCAST** ' + content, **kwargs))
-
-
-def scan_sheet(sheet, cls):
-    """
-    Run common database initialization.
-
-    - Fetch the current sheet and parse it.
-    - Fill database with parsed data.
-    """
-    session = cogdb.Session()
-
-    paths = cog.util.get_config('paths')
-    sheet = cog.sheets.GSheet(sheet,
-                              cog.util.rel_to_abs(paths['json']),
-                              cog.util.rel_to_abs(paths['token']))
-
-    scanner = cls(sheet)
-    scanner.scan(session)
-
-    return scanner
 
 
 async def presence_task(bot, delay=180):
@@ -329,13 +335,10 @@ async def presence_task(bot, delay=180):
 
 
 def main():  # pragma: no cover
-    """ Entry here!  """
-    cog.util.init_logging()
+    """ Entry here! """
     try:
-        scanner = scan_sheet(cog.util.get_config('hudson', 'cattle'), cogdb.query.FortScanner)
-        scanner_um = scan_sheet(cog.util.get_config('hudson', 'um'), cogdb.query.UMScanner)
-        bot = CogBot(prefix='!', scanner=scanner, scanner_um=scanner_um)
-
+        cog.util.init_logging()
+        bot = CogBot("!")
         # BLOCKING: N.o. e.s.c.a.p.e.
         bot.run(cog.util.get_config('discord', os.environ.get('COG_TOKEN', 'dev')))
     finally:

@@ -7,7 +7,6 @@ Important Note Regarding DB:
     After executing an action ALWAYS make a new Session(). The old one will still be stale.
 """
 from __future__ import absolute_import, print_function
-import asyncio
 
 import aiomock
 import pytest
@@ -19,14 +18,6 @@ import cogdb
 from cogdb.side import SystemAge
 from cogdb.schema import (DUser, SheetCattle, SheetUM,
                           System, SystemUM, Drop, Hold)
-
-try:
-    import uvloop
-    POLICY = uvloop.EventLoopPolicy
-    print("Test loop policy: uvloop")
-except ImportError:
-    POLICY = asyncio.DefaultEventLoopPolicy
-    print("Test loop policy: default loop")
 
 
 # Fake objects look like discord
@@ -138,29 +129,6 @@ def fake_msg_newuser(content):
 
 
 @pytest.fixture
-def event_loop():
-    """
-    Provide a a new test loop for each test.
-    Save system wide loop policy, and use uvloop if available.
-
-    To test either:
-        1) Mark with pytest.mark.asyncio
-        2) event_loop.run_until_complete(asyncio.gather(futures))
-    """
-    try:
-        old_policy = asyncio.get_event_loop_policy()
-        asyncio.set_event_loop_policy(POLICY())
-        loop = asyncio.get_event_loop()
-        loop.set_debug(True)
-
-        yield loop
-
-        loop.close()
-    finally:
-        asyncio.set_event_loop_policy(old_policy)
-
-
-@pytest.fixture
 def f_bot():
     """
     Return a mocked bot.
@@ -203,7 +171,7 @@ def action_map(fake_message, fake_bot):
     args = parser.parse_args(fake_message.content.split(" "))
     cls = getattr(cog.actions, args.cmd)
 
-    return cls(args=args, bot=fake_bot, message=fake_message)
+    return cls(args=args, bot=fake_bot, msg=fake_message)
 
 
 ##################################################################
@@ -306,16 +274,9 @@ async def test_cmd_fort_next(event_loop, f_bot, f_systems):
 
     await action_map(msg, f_bot).execute()
 
-    expect = """__Active Targets__
-**Nurundere** 5422/8425 :Fortifying:
-**Othime**    0/7367 :Fortifying: Priority for S/M ships (no L pads)
-
-__Next Targets__
+    expect = """__Next Targets__
 **LHS 3749** 1850/5974 :Fortifying:
-**Alpha Fornacis**    0/6476 :Fortifying:
-
-__Almost Done__
-**Dongkum** 7000/7239 :Fortifying: (239 left)"""
+**Alpha Fornacis**    0/6476 :Fortifying:"""
     f_bot.send_message.assert_called_with(msg.channel, expect)
 
 
@@ -326,7 +287,6 @@ async def test_cmd_fort_miss(event_loop, f_bot, f_systems):
     await action_map(msg, f_bot).execute()
 
     expect = """__Systems Missing 1000 Supplies__
-
 **Dongkum** 7000/7239 :Fortifying: (239 left)"""
     f_bot.send_message.assert_called_with(msg.channel, expect)
 
@@ -338,7 +298,6 @@ async def test_cmd_fort_search(event_loop, f_bot, f_systems):
     await action_map(msg, f_bot).execute()
 
     expect = """__Search Results__
-
 **Nurundere** 5422/8425 :Fortifying:
 **Othime**    0/7367 :Fortifying: Priority for S/M ships (no L pads)"""
     f_bot.send_message.assert_called_with(msg.channel, expect)
@@ -408,21 +367,25 @@ async def test_cmd_drop_negative(event_loop, f_bot, f_testbed):
 
 @pytest.mark.asyncio
 async def test_cmd_drop_newuser(event_loop, f_bot, f_testbed):
-    msg = fake_msg_newuser("!drop 500 nuru")
+    try:
+        cog.actions.SCANNERS['hudson_cattle'] = aiomock.Mock()
+        msg = fake_msg_newuser("!drop 500 nuru")
 
-    await action_map(msg, f_bot).execute()
+        await action_map(msg, f_bot).execute()
 
-    expect = 'Automatically added newuser to cattle sheet. See !user command to change.'
-    f_bot.send_message.assert_any_call(msg.channel, expect)
-    f_bot.send_message.assert_any_call(msg.channel, '**Nurundere** 5922/8425 :Fortifying:')
+        expect = 'Automatically added newuser to cattle sheet. See !user command to change.'
+        f_bot.send_message.assert_any_call(msg.channel, expect)
+        f_bot.send_message.assert_any_call(msg.channel, '**Nurundere** 5922/8425 :Fortifying:')
 
-    session = cogdb.Session()
-    system = session.query(System).filter_by(name='Nurundere').one()
-    assert system.current_status == 5922
-    duser = session.query(DUser).filter_by(id=msg.author.id).one()
-    cattle = session.query(SheetCattle).filter_by(name=duser.pref_name).one()
-    drop = session.query(Drop).filter_by(user_id=cattle.id, system_id=system.id).one()
-    assert drop.amount == 500
+        session = cogdb.Session()
+        system = session.query(System).filter_by(name='Nurundere').one()
+        assert system.current_status == 5922
+        duser = session.query(DUser).filter_by(id=msg.author.id).one()
+        sheet = session.query(SheetCattle).filter_by(name=duser.pref_name).one()
+        drop = session.query(Drop).filter_by(user_id=sheet.id, system_id=system.id).one()
+        assert drop.amount == 500
+    finally:
+        cog.actions.SCANNERS = {}
 
 
 @pytest.mark.asyncio
@@ -463,24 +426,28 @@ async def test_cmd_hold_simple(event_loop, f_bot, f_testbed):
 
 @pytest.mark.asyncio
 async def test_cmd_hold_newuser(event_loop, f_bot, f_testbed):
-    msg = fake_msg_newuser("!hold 1000 empty")
+    try:
+        cog.actions.SCANNERS['hudson_undermine'] = aiomock.Mock()
+        msg = fake_msg_newuser("!hold 1000 empty")
 
-    await action_map(msg, f_bot).execute()
+        await action_map(msg, f_bot).execute()
 
-    expect = 'Automatically added newuser to undermine sheet. See !user command to change.'
-    f_bot.send_message.assert_any_call(msg.channel, expect)
-    expect2 = """Control: **Empty**, Security: Medium, Hudson Control: Rana
+        expect = 'Automatically added newuser to undermine sheet. See !user command to change.'
+        f_bot.send_message.assert_any_call(msg.channel, expect)
+        expect2 = """Control: **Empty**, Security: Medium, Hudson Control: Rana
         Completion: 10%, Missing: 9000
 """
-    f_bot.send_message.assert_any_call(msg.channel, expect2)
+        f_bot.send_message.assert_any_call(msg.channel, expect2)
 
-    session = cogdb.Session()
-    system = session.query(SystemUM).filter_by(name='empty').one()
-    assert system.missing == 9000
-    duser = session.query(DUser).filter_by(id=msg.author.id).one()
-    um = session.query(SheetUM).filter_by(name=duser.pref_name).one()
-    hold = session.query(Hold).filter_by(user_id=um.id, system_id=system.id).one()
-    assert hold.held == 1000
+        session = cogdb.Session()
+        system = session.query(SystemUM).filter_by(name='empty').one()
+        assert system.missing == 9000
+        duser = session.query(DUser).filter_by(id=msg.author.id).one()
+        sheet = session.query(SheetUM).filter_by(name=duser.pref_name).one()
+        hold = session.query(Hold).filter_by(user_id=sheet.id, system_id=system.id).one()
+        assert hold.held == 1000
+    finally:
+        cog.actions.SCANNERS = {}
 
 
 @pytest.mark.asyncio

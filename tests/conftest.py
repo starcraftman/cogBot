@@ -2,9 +2,19 @@
 Used for pytest fixtures and anything else test setup/teardown related.
 """
 from __future__ import absolute_import, print_function
+import asyncio
+import copy
+import os
 
 import mock
 import pytest
+try:
+    import uvloop
+    POLICY = uvloop.EventLoopPolicy
+    print("Test loop policy: uvloop")
+except ImportError:
+    POLICY = asyncio.DefaultEventLoopPolicy
+    print("Test loop policy: default loop")
 
 import cogdb
 import cogdb.query
@@ -31,21 +41,32 @@ from tests.data import CELLS_FORT, CELLS_FORT_FMT, CELLS_UM
         # assert not session.query(cls).all()
 
 
-@pytest.fixture
-def mock_sheet(db_cleanup):
-    fake_sheet = mock.Mock()
-    fake_sheet.whole_sheet.return_value = CELLS_FORT
-    fake_sheet.get_with_formatting.return_value = CELLS_FORT_FMT
-
-    yield fake_sheet
+REASON_SLOW = 'Slow as blocking to sheet. To enable, ensure os.environ ALL_TESTS=True'
+SHEET_TEST = pytest.mark.skipif(not os.environ.get('ALL_TESTS'), reason=REASON_SLOW)
+PROC_TEST = SHEET_TEST
 
 
 @pytest.fixture
-def mock_umsheet(db_cleanup):
-    fake_sheet = mock.Mock()
-    fake_sheet.whole_sheet.return_value = CELLS_UM
+def event_loop():
+    """
+    Provide a a new test loop for each test.
+    Save system wide loop policy, and use uvloop if available.
 
-    yield fake_sheet
+    To test either:
+        1) Mark with pytest.mark.asyncio
+        2) event_loop.run_until_complete(asyncio.gather(futures))
+    """
+    try:
+        old_policy = asyncio.get_event_loop_policy()
+        asyncio.set_event_loop_policy(POLICY())
+        loop = asyncio.get_event_loop()
+        loop.set_debug(True)
+
+        yield loop
+
+        loop.close()
+    finally:
+        asyncio.set_event_loop_policy(old_policy)
 
 
 @pytest.fixture
@@ -250,3 +271,20 @@ def f_holds(session):
 def f_testbed(f_dusers, f_sheets, f_systems, f_prepsystem, f_systemsum, f_drops, f_holds):
 
     yield [f_dusers, f_sheets, f_systems, f_prepsystem, f_systemsum, f_drops, f_holds]
+
+
+@pytest.fixture()
+def mock_fortsheet(db_cleanup):
+    fake_sheet = mock.Mock()
+    fake_sheet.whole_sheet.return_value = CELLS_FORT
+    fake_sheet.get_with_formatting.return_value = copy.deepcopy(CELLS_FORT_FMT)
+
+    yield fake_sheet
+
+
+@pytest.fixture()
+def mock_umsheet(db_cleanup):
+    fake_sheet = mock.Mock()
+    fake_sheet.whole_sheet.return_value = CELLS_UM
+
+    return fake_sheet

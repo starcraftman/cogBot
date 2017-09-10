@@ -98,16 +98,21 @@ def add_duser(session, member, *, faction=EFaction.hudson):
 
 def check_pref_name(session, duser, new_name):
     """
-    Check that new name is not taken by another DUser.
+    Check that new name is not taken by another DUser or present as a stray in SheetRows.
 
     Raises:
         InvalidCommandArgs - DUser.pref_name taken by another DUser.
     """
-    for other_user in session.query(DUser).filter(DUser.id != duser.id).all():
-        if other_user.pref_name == new_name:
-            msg = "Sheet name {}, taken by {}.\nPlease choose another.".format(
-                other_user.pref_name, other_user.display_name)
-            raise cog.exc.InvalidCommandArgs(msg)
+    others = session.query(DUser).filter(DUser.id != duser.id, DUser.pref_name == new_name).all()
+    if others:
+        raise cog.exc.InvalidCommandArgs(
+            "Sheet name {}, taken by {}.\n\nPlease choose another.".format(
+                new_name, others[0].display_name))
+
+    # Note: Unlikely needed, should be caught above. However, no fixed relationship guaranteeing.
+    for sheet in session.query(SheetRow).filter(SheetRow.name == new_name).all():
+        if sheet.duser(session).id != duser.id:
+            raise cog.exc.InvalidCommandArgs("Sheet name {}, taken by {}.\n\nPlease choose another.".format(new_name, sheet.duser(session).display_name))
 
 
 def next_sheet_row(session, *, cls, faction, start_row):
@@ -352,26 +357,32 @@ class SheetScanner(object):
         Register them as futures and allow them to finish without waiting on.
     """
     def __init__(self, gsheet, user_args, db_classes):
-        self.gsheet = gsheet
+        """
+        Args:
+            sheet_key: The name of the sheet information in the config, i.e. 'hudson_cattle'
+            user_args: The type of user to create on parsing.
+            db_classes: The classes this scanner manages in the db.
+        """
+        self._gsheet = gsheet
+        self.users_args = user_args
+        self.db_classes = db_classes
         self.cells = None
         self.user_col = None
         self.user_row = None
-        self.users_args = user_args
-        self.db_classes = db_classes
 
     @property
-    def cells(self):
+    def gsheet(self):
         """
-        Access a cached version of the cells.
+        Return on demand GSheet.
         """
-        if not self.__cells:
-            self.__cells = self.gsheet.whole_sheet()
+        # FIXME: Testing hack, I'm open to suggestions.
+        if isinstance(self._gsheet, type({})):
+            paths = cog.util.get_config('paths')
+            return cog.sheets.GSheet(self._gsheet,
+                                     cog.util.rel_to_abs(paths['json']),
+                                     cog.util.rel_to_abs(paths['token']))
 
-        return self.__cells
-
-    @cells.setter
-    def cells(self, value):
-        self.__cells = value
+        return self._gsheet
 
     def drop_entries(self, session):
         """
@@ -381,16 +392,19 @@ class SheetScanner(object):
             for matched in session.query(cls):
                 session.delete(matched)
 
-    def scan(self, session):
+    def scan(self):
         """
         Main function, scan the sheet into the database.
         """
-        self.cells = None
+        self.cells = self.gsheet.whole_sheet()
+
+        session = cogdb.Session()
         self.drop_entries(session)
         session.commit()
 
         systems = self.systems()
         users = self.users(*self.users_args)
+        session = cogdb.Session()
         session.add_all(systems + users)
         session.commit()
 
@@ -446,23 +460,27 @@ class SheetScanner(object):
         """
         raise NotImplementedError
 
-    async def update_sheet_user(self, user):
+    def update_sheet_user(self, user):
         """
         Update the user cry and name on the given row.
         """
         col1 = cog.sheets.Column(self.user_col).prev()
         cell_range = '!{col1}{row}:{col2}{row}'.format(row=user.row, col1=col1,
                                                        col2=self.user_col)
-        self.gsheet.update(cell_range, [[user.cry, user.name]])
+        return self.gsheet.update(cell_range, [[user.cry, user.name]])
 
 
 class FortScanner(SheetScanner):
     """
     Scanner for the Hudson fort sheet.
+
+    args:
+        gsheet: Either a dictionary to create a GSheet from or a premade GSheet.
     """
     def __init__(self, gsheet):
-        super(FortScanner, self).__init__(gsheet, (SheetCattle, EFaction.hudson),
-                                          [Drop, System, SheetCattle])
+        super().__init__(gsheet, (SheetCattle, EFaction.hudson),
+                         [Drop, System, SheetCattle])
+        self.cells = self.gsheet.whole_sheet()
         self.system_col = self.find_system_column()
         self.user_col, self.user_row = self.find_user_row()
 
@@ -594,7 +612,7 @@ class FortScanner(SheetScanner):
 
         raise cog.exc.SheetParsingError
 
-    async def update_drop(self, drop):
+    def update_drop(self, drop):
         """
         Update a drop to the sheet.
         """
@@ -602,7 +620,7 @@ class FortScanner(SheetScanner):
                                                      row=drop.user.row)
         self.gsheet.update(cell_range, [[drop.amount]])
 
-    async def update_system(self, system):
+    def update_system(self, system):
         """
         Update the system column of the sheet.
         """
@@ -614,10 +632,12 @@ class FortScanner(SheetScanner):
 class UMScanner(SheetScanner):
     """
     Scanner for the Hudson undermine sheet.
+
+    args:
+        gsheet: Either a dictionary to create a GSheet from or a premade GSheet.
     """
     def __init__(self, gsheet):
-        super(UMScanner, self).__init__(gsheet, (SheetUM, EFaction.hudson),
-                                        [Hold, SystemUM, SheetUM])
+        super().__init__(gsheet, (SheetUM, EFaction.hudson), [Hold, SystemUM, SheetUM])
         # These are fixed based on current format
         self.system_col = 'D'
         self.user_col = 'B'
@@ -722,7 +742,7 @@ class UMScanner(SheetScanner):
         return holds.values()
 
     # Calls to modify the sheet All asynchronous, register them as futures and move on.
-    async def update_hold(self, hold):
+    def update_hold(self, hold):
         """
         Update a hold on the sheet.
         """
@@ -732,7 +752,7 @@ class UMScanner(SheetScanner):
                                                          row2=hold.user.row + 1)
         self.gsheet.update(cell_range, [[hold.held, hold.redeemed]])
 
-    async def update_system(self, system):
+    def update_system(self, system):
         """
         Update the system column of the sheet.
         """

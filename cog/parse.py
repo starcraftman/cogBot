@@ -42,7 +42,7 @@ class ModFormatter(logging.Formatter):
     def format(self, record):
         relmod = record.__dict__['pathname'].replace(ROOT_DIR + os.path.sep, '')
         record.__dict__['relmod'] = relmod[:-3]
-        return super(ModFormatter, self).format(record)
+        return super().format(record)
 
 
 def make_parser(prefix):
@@ -107,7 +107,7 @@ def subs_bgs(subs, prefix):
     """ Subcommand parsing for bgs """
     desc = """BGS related commands. Examples:
 
-    {prefix}bgs control 16 cygni\n          Show exploiteds in 16 Cygni bubble by age.
+    {prefix}bgs 16 cygni\n          Show exploiteds in 16 Cygni bubble by age.
     """.format(prefix=prefix)
     sub = subs.add_parser(prefix + 'bgs', description=desc, formatter_class=RawHelp)
     sub.set_defaults(cmd='BGS')
@@ -156,7 +156,7 @@ def subs_fort(subs, prefix):
     sub.add_argument('--miss', type=int,
                      help='Show systems missing <= MISS merits.')
     # sub.add_argument('-l', '--long', action='store_true', help='Show systems in table format')
-    sub.add_argument('-n', '--next', type=int, default=3,
+    sub.add_argument('-n', '--next', type=int,
                      help='Show the next NUM fort targets after current')
 
 

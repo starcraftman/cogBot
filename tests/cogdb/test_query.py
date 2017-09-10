@@ -2,8 +2,6 @@
 Test cogdb.query module.
 """
 from __future__ import absolute_import, print_function
-import copy
-
 import sqlalchemy.orm.exc
 import mock
 import pytest
@@ -14,7 +12,7 @@ from cogdb.schema import (DUser, System, SheetRow, SheetCattle, SheetUM,
                           Hold, UMExpand, EFaction, ESheetType)
 import cogdb.query
 
-from tests.data import CELLS_FORT_FMT, SYSTEMS, USERS
+from tests.data import SYSTEMS, USERS
 
 
 def test_fuzzy_find():
@@ -108,22 +106,22 @@ def test_add_sheet(session, f_dusers, f_sheets):
     test_name = 'Jack'
     test_cry = 'I do not cry'
     cogdb.query.add_sheet(session, test_name, cry=test_cry, faction=EFaction.winters,
-                          type=ESheetType.um, start_row=5)
+                          type=ESheetType.undermine, start_row=5)
     latest = session.query(SheetRow).all()[-1]
     assert latest.name == test_name
     assert latest.cry == test_cry
     assert latest.row == 5
-    assert latest.type == ESheetType.um
+    assert latest.type == ESheetType.undermine
 
     test_name = 'John'
     test_cry = 'I cry'
     cogdb.query.add_sheet(session, test_name, cry=test_cry, faction=EFaction.winters,
-                          type=ESheetType.um, start_row=5)
+                          type=ESheetType.undermine, start_row=5)
     latest = session.query(SheetRow).all()[-1]
     assert latest.name == test_name
     assert latest.cry == test_cry
     assert latest.row == 6
-    assert latest.type == ESheetType.um
+    assert latest.type == ESheetType.undermine
 
 
 def test_fort_get_othime(session, f_systems):
@@ -208,17 +206,16 @@ def test_fort_add_drop(session, f_dusers, f_sheets, f_systems, db_cleanup):
     assert session.query(cogdb.schema.Drop).filter_by(user_id=user.id, system_id=system.id).one()
 
 
-def test_sheetscanner_find_system_column(mock_sheet):
-    scanner = cogdb.query.FortScanner(mock_sheet)
+def test_fortscanner_find_system_column(mock_fortsheet):
+    scanner = cogdb.query.FortScanner(mock_fortsheet)
     assert scanner.system_col == 'F'
 
-    mock_sheet.get_with_formatting.return_value = copy.deepcopy(CELLS_FORT_FMT)
-    mock_sheet.get_with_formatting.return_value['sheets'][0]['data'][0]['rowData'][0]['values'] = []
+    mock_fortsheet.get_with_formatting.return_value['sheets'][0]['data'][0]['rowData'][0]['values'] = []
     with pytest.raises(cog.exc.SheetParsingError):
-        cogdb.query.FortScanner(mock_sheet)
+        cogdb.query.FortScanner(gsheet=mock_fortsheet)
 
 
-def test_sheetscanner_find_user_row(mock_sheet):
+def test_fortscanner_find_user_row(mock_fortsheet):
     cells = [
         ['', 'First column!'],
         ['', 'High', 342033, 243333, 13200, 'UPDATE>>>',
@@ -227,47 +224,51 @@ def test_sheetscanner_find_user_row(mock_sheet):
         ['', 'Fourth column ...'],
         ['', 'Cinco'],
     ]
-    mock_sheet.whole_sheet.return_value = cells
-    scanner = cogdb.query.FortScanner(mock_sheet)
-    assert (scanner.user_col, scanner.user_row) == ('B', 11)
+    scanner = cogdb.query.FortScanner(mock_fortsheet)
+    scanner.cells = cells
+    assert scanner.find_user_row() == ('B', 11)
 
-    mock_sheet.whole_sheet.return_value = cells[:1] + cells[2:]
+    mock_fortsheet.whole_sheet.return_value = cells[:1] + cells[2:]
     with pytest.raises(cog.exc.SheetParsingError):
-        cogdb.query.FortScanner(mock_sheet)
+        cogdb.query.FortScanner(gsheet=mock_fortsheet)
 
 
-def test_sheetscanner_merits(mock_sheet, db_cleanup):
+def test_fortscanner_merits(mock_fortsheet):
+    scanner = cogdb.query.FortScanner(mock_fortsheet)
+    scanner.scan()
+
     session = cogdb.Session()
-    scanner = cogdb.query.FortScanner(mock_sheet)
-    scanner.scan(session)
-
     fort1 = session.query(cogdb.schema.Drop).all()[0]
     assert fort1.amount == 2222
     assert fort1.system.name == 'Frey'
     assert fort1.user.name == 'Toliman'
 
 
-def test_sheetscanner_systems(mock_sheet):
-    scanner = cogdb.query.FortScanner(mock_sheet)
+def test_fortscanner_systems(mock_fortsheet):
+    scanner = cogdb.query.FortScanner(mock_fortsheet)
+    scanner.cells = scanner.gsheet.whole_sheet()
     result = [sys.name for sys in scanner.systems()]
     assert result == SYSTEMS[:6] + ['Othime']
 
 
-def test_sheetscanner_users(mock_sheet):
-    scanner = cogdb.query.FortScanner(mock_sheet)
+def test_fortscanner_users(mock_fortsheet):
+    scanner = cogdb.query.FortScanner(mock_fortsheet)
+    scanner.cells = scanner.gsheet.whole_sheet()
     result = [suser.name for suser in scanner.users(SheetCattle, EFaction.hudson)]
     assert result == USERS
 
 
 def test_umscanner_systems(mock_umsheet):
     scanner = cogdb.query.UMScanner(mock_umsheet)
+    scanner.cells = scanner.gsheet.whole_sheet()
     system = scanner.systems()[0]
     assert system.name == 'Burr'
     assert isinstance(system, UMExpand)
 
 
 def test_umscanner_users(mock_umsheet):
-    scanner = cogdb.query.UMScanner(mock_umsheet)
+    scanner = cogdb.query.UMScanner(gsheet=mock_umsheet)
+    scanner.cells = scanner.gsheet.whole_sheet()
     users = scanner.users(SheetUM, EFaction.hudson)
     result = [user.name for user in users]
     expect = ['Haphollas', 'Rico Char', 'MalvadoDiablo', 'Harmsus', 'Otorno', 'Blackneto',
@@ -282,8 +283,8 @@ def test_umscanner_users(mock_umsheet):
 
 
 def test_umscanner_merits(session, mock_umsheet):
-    scanner = cogdb.query.UMScanner(mock_umsheet)
-    scanner.scan(session)
+    scanner = cogdb.query.UMScanner(gsheet=mock_umsheet)
+    scanner.scan()
     session.commit()
 
     holds = session.query(cogdb.schema.Hold).all()

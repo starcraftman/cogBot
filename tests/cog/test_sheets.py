@@ -4,16 +4,13 @@ Test sheets api logic
 NOTE: GSheet tests being skipped, they are slow and that code is mostly frozen.
 """
 from __future__ import absolute_import, print_function
-import os
 
 import pytest
 
 import cog.exc
 import cog.sheets
 import cog.util
-
-
-REASON_SLOW = 'Slow as blocking to sheet. To enable, ensure os.environ ALL_TESTS=True'
+from tests.conftest import SHEET_TEST
 
 
 @pytest.fixture()
@@ -47,17 +44,17 @@ def fort_sheet_reset():
     f_sheet.batch_update(cell_ranges, n_vals)
 
 
-@pytest.mark.skipif(not os.environ.get('ALL_TESTS'), reason=REASON_SLOW)
+@SHEET_TEST
 def test_gsheet_get(fort_sheet):
     assert fort_sheet.get('!B13:B13') == [['Shepron']]
 
 
-@pytest.mark.skipif(not os.environ.get('ALL_TESTS'), reason=REASON_SLOW)
+@SHEET_TEST
 def test_gsheet_batch_get(fort_sheet):
     assert fort_sheet.batch_get(['!B13:B13', '!F6:G6']) == [[['Shepron']], [[4910, 2671]]]
 
 
-@pytest.mark.skipif(not os.environ.get('ALL_TESTS'), reason=REASON_SLOW)
+@SHEET_TEST
 def test_ghseet_get_with_formatting(fort_sheet):
     fmt_cells = fort_sheet.get_with_formatting('!F10:F10')
     system_colors = {'red': 0.42745098, 'blue': 0.92156863, 'green': 0.61960787}
@@ -66,13 +63,13 @@ def test_ghseet_get_with_formatting(fort_sheet):
         assert val['effectiveFormat']['backgroundColor'] == system_colors
 
 
-@pytest.mark.skipif(not os.environ.get('ALL_TESTS'), reason=REASON_SLOW)
+@SHEET_TEST
 def test_gsheet_update(fort_sheet_reset):
     fort_sheet_reset.update('!B13:B13', [['NotShepron']])
     assert fort_sheet_reset.get('!B13:B13') == [['NotShepron']]
 
 
-@pytest.mark.skipif(not os.environ.get('ALL_TESTS'), reason=REASON_SLOW)
+@SHEET_TEST
 def test_gsheet_batch_update(fort_sheet_reset):
     cell_ranges = ['!B13:B14', '!F6:G6']
     n_vals = [[['NotShepron'], ['Grimbald']], [[2222, 3333]]]

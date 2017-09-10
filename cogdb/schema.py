@@ -36,7 +36,7 @@ class EFaction(object):
 class ESheetType(object):
     """ Type of sheet. """
     cattle = 'SheetCattle'
-    um = 'SheetUM'
+    undermine = 'SheetUM'
 
 
 class EUMType(object):
@@ -101,7 +101,7 @@ class DUser(Base):
 
     def undermine(self, session):
         """ Get users current undermining sheet. """
-        return self.get_sheet(session, ESheetType.um)
+        return self.get_sheet(session, ESheetType.undermine)
 
 
 class SheetRow(Base):
@@ -160,7 +160,7 @@ class SheetCattle(SheetRow):
 class SheetUM(SheetRow):
     """ Track user in Hudson undermining sheet. """
     __mapper_args__ = {
-        'polymorphic_identity': ESheetType.um,
+        'polymorphic_identity': ESheetType.undermine,
     }
 
     def merit_summary(self):
@@ -395,16 +395,16 @@ class System(Base):
                 - True, display missing
                 - False, do not display missing
         """
-        msg = '**{}** {:>4}/{} :Fortif{}:'.format(
-            self.name, self.current_status, self.trigger,
-            'ied' if self.is_fortified else 'ying')
-
+        umd = ''
         if self.um_status > 0:
-            msg += ', {} :Undermin{}:'.format(
+            umd = ', {} :Undermin{}:'.format(
                 self.um_status, 'ed' if self.is_undermined else 'ing')
+        elif self.is_undermined:
+            umd = ', :Undermined:'
 
-        if self.is_undermined and ':Undermin' not in msg:
-            msg += ', :Undermined:'
+        msg = '**{}** {:>4}/{} :Fortif{}:{}'.format(
+            self.name, self.current_status, self.trigger,
+            'ied' if self.is_fortified else 'ying', umd)
 
         if miss or miss is not False and (self.missing and self.missing < 1500):
             msg += ' ({} left)'.format(self.missing)
@@ -432,7 +432,7 @@ class PrepSystem(System):
         """
         Return a useful short representation of PrepSystem.
         """
-        return 'Prep: ' + super(PrepSystem, self).display(miss=miss)
+        return 'Prep: ' + super().display(miss=miss)
 
 
 class SystemUM(Base):
@@ -746,24 +746,32 @@ def recreate_tables():
                                     # cascade_backrefs=False)
 
 # Fortification relations
-Drop.user = sqla_orm.relationship('SheetCattle', uselist=False, back_populates='merits')
+Drop.user = sqla_orm.relationship('SheetCattle', uselist=False, back_populates='merits',
+                                  lazy='select')
 SheetCattle.merits = sqla_orm.relationship('Drop',
                                            cascade='all, delete, delete-orphan',
-                                           back_populates='user')
-Drop.system = sqla_orm.relationship('System', uselist=False, back_populates='merits')
+                                           back_populates='user',
+                                           lazy='select')
+Drop.system = sqla_orm.relationship('System', uselist=False, back_populates='merits',
+                                    lazy='select')
 System.merits = sqla_orm.relationship('Drop',
                                       cascade='all, delete, delete-orphan',
-                                      back_populates='system')
+                                      back_populates='system',
+                                      lazy='select')
 
 # Undermining relations
-Hold.user = sqla_orm.relationship('SheetUM', uselist=False, back_populates='merits')
+Hold.user = sqla_orm.relationship('SheetUM', uselist=False, back_populates='merits',
+                                  lazy='select')
 SheetUM.merits = sqla_orm.relationship('Hold',
                                        cascade='all, delete, delete-orphan',
-                                       back_populates='user')
-Hold.system = sqla_orm.relationship('SystemUM', uselist=False, back_populates='merits')
+                                       back_populates='user',
+                                       lazy='select')
+Hold.system = sqla_orm.relationship('SystemUM', uselist=False, back_populates='merits',
+                                    lazy='select')
 SystemUM.merits = sqla_orm.relationship('Hold',
                                         cascade='all, delete, delete-orphan',
-                                        back_populates='system')
+                                        back_populates='system',
+                                        lazy='select')
 
 
 Base.metadata.create_all(cogdb.engine)
