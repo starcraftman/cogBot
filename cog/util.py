@@ -13,6 +13,8 @@ try:
 except ImportError:
     from yaml import Loader
 
+import cog.exc
+
 
 def substr_match(seq, line, *, skip_spaces=True, ignore_case=True):
     """
@@ -68,8 +70,11 @@ def get_config(*keys):
     """
     Return keys straight from yaml config.
     """
-    with open(YAML_FILE) as fin:
-        conf = yaml.load(fin, Loader=Loader)
+    try:
+        with open(YAML_FILE) as fin:
+            conf = yaml.load(fin, Loader=Loader)
+    except FileNotFoundError:
+        raise cog.exc.MissingConfigFile("Missing config.yml. Expected at: " + YAML_FILE)
 
     for key in keys:
         conf = conf[key]
@@ -85,13 +90,17 @@ def init_logging():  # pragma: no cover
      - This should be first invocation on startup to set up logging.
     """
     log_file = rel_to_abs(get_config('paths', 'log_conf'))
-    with open(log_file) as fin:
-        lconf = yaml.load(fin, Loader=Loader)
-        for handler in lconf['handlers']:
-            try:
-                os.makedirs(os.path.dirname(lconf['handlers'][handler]['filename']))
-            except (OSError, KeyError):
-                pass
+    try:
+        with open(log_file) as fin:
+            lconf = yaml.load(fin, Loader=Loader)
+    except FileNotFoundError:
+        raise cog.exc.MissingConfigFile("Missing log.yml. Expected at: " + log_file)
+
+    for handler in lconf['handlers']:
+        try:
+            os.makedirs(os.path.dirname(lconf['handlers'][handler]['filename']))
+        except (OSError, KeyError):
+            pass
 
     with open(log_file) as fin:
         logging.config.dictConfig(yaml.load(fin, Loader=Loader))

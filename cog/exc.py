@@ -118,6 +118,13 @@ class MsgTooLong(InternalException):
     pass
 
 
+class NoMoreTargets(InternalException):
+    """
+    There are no more fort targets.
+    """
+    pass
+
+
 class SheetParsingError(InternalException):
     """
     During sheet parsing, could not determine cell anchors properly.

@@ -369,8 +369,11 @@ class Drop(Action):
 
         response = drop.system.display()
         if drop.system.is_fortified:
-            new_target = cogdb.query.fort_get_targets(self.session)[0]
-            response += '\n\n__Next Fort Target__:\n' + new_target.display()
+            try:
+                new_target = cogdb.query.fort_get_targets(self.session)[0]
+                response += '\n\n__Next Fort Target__:\n' + new_target.display()
+            except cog.exc.NoMoreTargets:
+                response += '\n\n Could not determine next fort target.'
         await self.bot.send_message(self.mchannel, self.bot.emoji.fix(response, self.mserver))
 
 
@@ -488,8 +491,8 @@ class Admin(Action):
             await asyncio.sleep(2)
 
             # TODO: Blocks here, problematic for async. Use thread for scanners?
-            self.bot.scanner.scan(self.session)
-            self.bot.scanner_um.scan(self.session)
+            self.bot.scanner.scan(cogdb.Session())
+            self.bot.scanner_um.scan(cogdb.Session())
 
             # Commands only accepted if no critical errors during update
             self.bot.deny_commands = False

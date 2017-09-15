@@ -185,12 +185,24 @@ def fort_get_preps(session):
 def fort_find_current_index(session):
     """
     Scan Systems from the beginning to find next unfortified target that is not Othime.
+
+    Raises:
+        NoMoreTargets - No more targets left OR a serious problem with data.
     """
     for ind, system in enumerate(fort_get_systems(session, not_othime=True)):
         if system.is_fortified or system.skip or system.missing < DEFER_MISSING:
             continue
 
         return ind
+
+    lines = [
+        "**Critical Error**",
+        "----------------",
+        "Fort information invalid, cannot determine fort targets.",
+        "\nPlease check the fort sheet, it may be broken.",
+        "Once the sheet displays properly run: `!admin scan`",
+    ]
+    raise cog.exc.NoMoreTargets('\n'.join(lines))
 
 
 def fort_find_system(session, system_name, search_all=False):

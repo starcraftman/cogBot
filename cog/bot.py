@@ -22,6 +22,7 @@ import time
 
 import apiclient
 import discord
+import websockets.exceptions
 try:
     import uvloop
     asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
@@ -318,8 +319,11 @@ async def presence_task(bot, delay=180):
     ]
     ind = 0
     while True:
-        if bot.is_logged_in:
+        try:
             await bot.change_presence(game=discord.Game(name=lines[ind]))
+        except websockets.exceptions.ConnectionClosed:
+            pass
+
         ind = (ind + 1) % len(lines)
         await asyncio.sleep(delay)
 
