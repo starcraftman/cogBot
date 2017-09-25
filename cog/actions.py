@@ -151,12 +151,23 @@ class Admin(Action):
     async def execute(self):
         args = self.args
         response = ''
+        admin = cogdb.query.get_admin(self.session, self.duser)
 
-        if args.subcmd == 'cast':
+        if args.subcmd == "add":
+            for member in self.msg.mentions:
+                admin.add(self.session, member)
+            response = "Admins added."
+
+        elif args.subcmd == "remove":
+            for member in self.msg.mentions:
+                admin.remove(self.session, cogdb.query.get_admin(self.session, member))
+            response = "Admins removed."
+
+        elif args.subcmd == 'cast':
             asyncio.ensure_future(self.bot.broadcast(' '.join(self.args.content)))
             response = 'Broadcast scheduled.'
 
-        if args.subcmd == 'deny':
+        elif args.subcmd == 'deny':
             self.bot.deny_commands = not self.bot.deny_commands
             response = 'Commands: **{}abled**'.format('Dis' if self.bot.deny_commands else 'En')
 

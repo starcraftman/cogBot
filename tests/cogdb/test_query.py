@@ -13,6 +13,7 @@ from cogdb.schema import (DUser, System, SheetRow, SheetCattle, SheetUM,
 import cogdb.query
 
 from tests.data import SYSTEMS, USERS
+import tests.cog.test_actions as test_actions
 
 
 def test_fuzzy_find():
@@ -343,3 +344,12 @@ def test_um_add_hold(session, f_dusers, f_sheets, f_systemsum, db_cleanup):
     hold = cogdb.query.um_add_hold(session, held=2000, system=system, user=sheet)
     hold = session.query(Hold).filter_by(system_id=system.id, user_id=sheet.id).one()
     assert hold.held == 2000
+
+
+def test_admin_get(session, f_dusers, f_admins):
+    member = test_actions.Member(f_dusers[0].display_name, None, id=f_dusers[0].id)
+    assert f_admins[0] == cogdb.query.get_admin(session, member)
+
+    member = test_actions.Member("NotThere", None, id="2000")
+    with pytest.raises(cog.exc.NoMatch):
+        cogdb.query.get_admin(session, member)

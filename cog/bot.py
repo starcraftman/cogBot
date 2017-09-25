@@ -37,6 +37,7 @@ import cog.jobs
 import cog.parse
 import cog.util
 import cog.sheets
+import cogdb.query
 
 
 async def bot_ready(bot, msg, wait=120):
@@ -250,7 +251,7 @@ class CogBot(discord.Client):
         except KeyError:
             ttl = cog.util.get_config('ttl')
 
-        content += '\n__This message will be deleted in {} seconds__'.format(ttl)
+        content += '\n\n__This message will be deleted in {} seconds__'.format(ttl)
         message = await self.send_message(destination, content, **kwargs)
 
         await asyncio.sleep(ttl)
@@ -286,7 +287,7 @@ class CogBot(discord.Client):
 
             msg.content = orig_content
 
-        # TODO: Check perms here.
+        cogdb.query.check_perms(msg, args)
         cls = getattr(cog.actions, args.cmd)
         await cls(**kwargs).execute()
 

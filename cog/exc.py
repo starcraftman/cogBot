@@ -59,6 +59,11 @@ class InvalidCommandArgs(UserException):
     pass
 
 
+class InvalidPerms(UserException):
+    """ Unable to process command due to insufficient permissions.  """
+    pass
+
+
 class MoreThanOneMatch(UserException):
     """ Too many matches were found for sequence.  """
     def __init__(self, sequence, matches, obj_attr):

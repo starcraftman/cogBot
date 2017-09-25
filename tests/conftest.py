@@ -4,6 +4,7 @@ Used for pytest fixtures and anything else test setup/teardown related.
 from __future__ import absolute_import, print_function
 import asyncio
 import copy
+import datetime
 import os
 
 import mock
@@ -21,7 +22,7 @@ import cogdb.query
 from cogdb.schema import (DUser, PrepSystem, System, SystemUM, Drop, Hold,
                           UMExpand, UMOppose, UMControl,
                           SheetRow, SheetCattle, SheetUM,
-                          EFaction)
+                          EFaction, Admin)
 from tests.data import CELLS_FORT, CELLS_FORT_FMT, CELLS_UM
 
 
@@ -263,6 +264,27 @@ def f_holds(session):
     yield holds
 
     for matched in session.query(Hold):
+        session.delete(matched)
+    session.commit()
+
+
+@pytest.fixture
+def f_admins(session):
+    """
+    Fixture to insert some test admins.
+
+    Depends on: f_dusers
+    """
+    admins = (
+        Admin(id="1000", date=datetime.datetime(2017, 9, 26, 13, 34, 39, 721018)),
+        Admin(id="1001", date=datetime.datetime(2017, 9, 26, 13, 34, 48, 327031)),
+    )
+    session.add_all(admins)
+    session.commit()
+
+    yield admins
+
+    for matched in session.query(Admin):
         session.delete(matched)
     session.commit()
 

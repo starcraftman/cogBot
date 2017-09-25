@@ -12,7 +12,8 @@ import cogdb.schema
 from cogdb.schema import (DUser, System, Drop, Hold,
                           SheetRow, SheetCattle, SheetUM,
                           SystemUM, UMControl, UMExpand, UMOppose,
-                          EFaction, ESheetType, kwargs_um_system, kwargs_fort_system)
+                          EFaction, ESheetType, kwargs_um_system, kwargs_fort_system,
+                          Admin)
 
 from tests.data import SYSTEMS_DATA, SYSTEMSUM_DATA, SYSTEMUM_EXPAND
 
@@ -40,6 +41,37 @@ def test_empty_tables_not_all(session, f_dusers, f_sheets, f_systems, f_drops, f
     for cls in classes:
         assert session.query(cls).all() == []
     assert session.query(DUser).all()
+
+
+def test_admin_add(session, f_dusers, f_admins):
+    first = f_admins[0]
+    first.add(session, f_dusers[-1])
+
+    assert session.query(Admin).all()[-1].id == f_dusers[-1].id
+
+
+def test_admin_remove(session, f_dusers, f_admins):
+    first, second = f_admins
+    with pytest.raises(cog.exc.InvalidPerms):
+        second.remove(session, first)
+
+    first.remove(session, second)
+    assert len(session.query(Admin).all()) == 1
+
+
+def test_admin__repr__(session, f_dusers, f_admins):
+    assert repr(f_admins[0]) == "Admin(id='1000', date=datetime.datetime(2017, 9, 26, 13, 34, 39))"
+
+
+def test_admin__str__(session, f_dusers, f_admins):
+    assert repr(f_admins[0]) == "Admin(id='1000', date=datetime.datetime(2017, 9, 26, 13, 34, 39))"
+
+
+def test_admin__eq__(session, f_dusers, f_admins):
+    first, second = f_admins
+
+    assert first == Admin(id="1000")
+    assert first != second
 
 
 def test_duser__eq__(f_dusers, f_sheets):

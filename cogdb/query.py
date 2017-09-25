@@ -12,7 +12,8 @@ import cog.sheets
 from cog.util import substr_match
 import cogdb
 from cogdb.schema import (DUser, System, PrepSystem, SystemUM, SheetRow, SheetCattle, SheetUM,
-                          Drop, Hold, EFaction, ESheetType, kwargs_fort_system, kwargs_um_system)
+                          Drop, Hold, EFaction, ESheetType, kwargs_fort_system, kwargs_um_system,
+                          Admin)
 
 
 DEFER_MISSING = 750
@@ -843,3 +844,28 @@ def um_add_hold(session, **kwargs):
     session.commit()
 
     return hold
+
+
+def get_admin(session, member):
+    """
+    If the member is an admin, return the Admin.
+    Otherwise, raise NoMatch.
+    """
+    try:
+        return session.query(Admin).filter_by(id=member.id).one()
+    except sqa_exc.NoResultFound:
+        raise cog.exc.NoMatch(member.display_name, Admin)
+
+
+def check_perms(msg, args):
+    """
+    Check if a user is authorized to issue this command.
+
+    Raises if any error was encountered.
+    """
+    session = cogdb.Session()
+    if args.cmd == "Admin":
+        try:
+            get_admin(session, msg.author)
+        except cog.exc.NoMatch:
+            raise cog.exc.InvalidPerms("{} You are not an admin!".format(msg.author.mention))

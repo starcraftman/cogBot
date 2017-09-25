@@ -4,6 +4,7 @@ Define the database schema and some helpers.
 N.B. Schema defaults only applied once object commited.
 """
 from __future__ import absolute_import, print_function
+import datetime
 
 import sqlalchemy as sqla
 import sqlalchemy.orm as sqla_orm
@@ -20,6 +21,7 @@ import cogdb
 #                         \--> UMExpand --> UMOppose
 # TODO: Maybe make Merit -> FortMerit, UMMerit
 
+LEN_CMD = 15  # Max length of a subclass of cog.actions
 LEN_DID = 30
 LEN_NAME = 100
 LEN_FACTION = 10
@@ -44,6 +46,46 @@ class EUMType(object):
     control = 'control'
     expand = 'expanding'
     oppose = 'opposing'
+
+
+class Admin(Base):
+    """
+    Table that lists admins. Essentially just a boolean.
+    All admins are equal, except for removing other admins, then seniority is considered by date.
+    This shouldn't be a problem practically.
+    """
+    __tablename__ = 'admins'
+
+    id = sqla.Column(sqla.String(LEN_DID), primary_key=True)
+    date = sqla.Column(sqla.DateTime, default=datetime.datetime.utcnow)  # All dates UTC
+
+    def add(self, session, member):
+        """
+        Add a new admin.
+        """
+        session.add(Admin(id=member.id))
+        session.commit()
+
+    def remove(self, session, other):
+        """
+        Remove an existing admin.
+        """
+        if self.date > other.date:
+            raise cog.exc.InvalidPerms("You are not the senior admin. Refusing.")
+        session.delete(other)
+        session.commit()
+
+    def __repr__(self):
+        keys = ['id', 'date']
+        kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
+
+        return "Admin({})".format(', '.join(kwargs))
+
+    def __str__(self):
+        return self.__repr__()
+
+    def __eq__(self, other):
+        return self.id == other.id
 
 
 class DUser(Base):
@@ -774,9 +816,10 @@ SystemUM.merits = sqla_orm.relationship('Hold',
                                         lazy='select')
 
 
-Base.metadata.create_all(cogdb.engine)
 if cogdb.TEST_DB:
     recreate_tables()
+else:
+    Base.metadata.create_all(cogdb.engine)
 
 
 def main():  # pragma: no cover
