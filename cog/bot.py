@@ -272,20 +272,18 @@ class CogBot(discord.Client):
         if args.cmd in cog.actions.SHEET_ACTS and outdated:
             self.last_cmd = time.time()
 
-            orig_content = msg.content
             asyncio.ensure_future(self.send_message(
                 msg.channel,
-                'Bot has been inactive 5+ mins. Command will execute after update.'))
-            msg.content = '!admin scan'
-            await self.on_message(msg)
+                'Bot has been inactive 5+ mins. Command will execute after update.'
+                '\n\nUpdating db. Commands: **Disabled**'))
+
+            cog.actions.update_db(self, msg)
 
             if not await bot_ready(self, msg):
                 return
 
             await self.send_message(msg.channel,
-                                    'Now executing: **{}**'.format(orig_content))
-
-            msg.content = orig_content
+                                    'Now executing: **{}**'.format(msg.content))
 
         cogdb.query.check_perms(msg, args)
         cls = getattr(cog.actions, args.cmd)

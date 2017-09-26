@@ -187,11 +187,10 @@ class Admin(Action):
             self.bot.deny_commands = True
             asyncio.ensure_future(self.bot.send_message(self.msg.channel,
                                                         'Updating db. Commands: **Disabled**'))
+
             await asyncio.sleep(2)
 
-            job = cog.jobs.Job(scan_all_sheets, self.msg, attempts=5, timeout=12, step=3)
-            job.register(partial(scan_all_sheets_cb, self.bot, self.msg))
-            cog.jobs.QUE.put_nowait(job)
+            update_db(self.bot, self.msg)
 
         elif args.subcmd == 'info':
             if self.msg.mentions:
@@ -611,6 +610,14 @@ class User(Action):
         for sheet in self.duser.sheets(self.session):
             sheet.cry = new_cry
         self.duser.pref_cry = new_cry
+
+
+def update_db(bot, msg):
+    """ Simple hook to use from bot. """
+    bot.deny_commands = True
+    job = cog.jobs.Job(scan_all_sheets, msg, attempts=5, timeout=12, step=3)
+    job.register(partial(scan_all_sheets_cb, bot, msg))
+    cog.jobs.QUE.put_nowait(job)
 
 
 def scan_all_sheets():
