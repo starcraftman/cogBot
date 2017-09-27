@@ -113,6 +113,21 @@ def init_logging():  # pragma: no cover
                 print('    ' + handler.baseFilename)
                 handler.doRollover()
 
+    # Can't configure discord without cloberring existing, so manually setting
+    cog_rot = logging.getLogger('cog').handlers[0]
+    rhand_file = os.path.join(os.path.dirname(cog_rot.baseFilename), 'discord.log')
+    handler = logging.handlers.RotatingFileHandler(filename=rhand_file, encoding=cog_rot.encoding,
+                                                   backupCount=cog_rot.backupCount,
+                                                   maxBytes=cog_rot.maxBytes)
+    handler.setLevel(logging.DEBUG)
+    handler.setFormatter(cog_rot.formatter)
+    print('    ' + handler.baseFilename)
+
+    dlog = logging.getLogger('discord')
+    dlog.setLevel(logging.DEBUG)
+    dlog.addHandler(handler)
+    dlog.addHandler(logging.getLogger('cog').handlers[-1])
+
 
 def dict_to_columns(data):
     """

@@ -5,6 +5,7 @@ from __future__ import absolute_import, print_function
 import logging
 
 import sqlalchemy as sqla
+import sqlalchemy.exc as sqla_exe
 import sqlalchemy.ext.declarative
 
 
@@ -69,28 +70,38 @@ def next_bgs_tick(session, now):
         - If not, return message it isn't available.
     """
     log = logging.getLogger("cogdb.side")
-    result = session.query(BGSTick).filter(BGSTick.tick > now).order_by(BGSTick.tick).\
-        limit(1).first()
-
-    if result:
-        log.info("BGS_TICK - %s -> %s", str(now), result.tick)
-        bgs = "BGS Tick in **{}**    (Expected {})".format(result.tick - now, result.tick)
-    else:
-        log.warning("BGS_TICK - Remote query returned nothing")
-        bgs = "BGS Tick estimate unavailable. Try again later or ask Sidewinder40."
+    try:
+        result = session.query(BGSTick).filter(BGSTick.tick > now).order_by(BGSTick.tick).\
+            limit(1).first()
+        if result:
+            log.info("BGS_TICK - %s -> %s", str(now), result.tick)
+            bgs = "BGS Tick in **{}**    (Expected {})".format(result.tick - now, result.tick)
+        else:
+            log.warning("BGS_TICK - Remote out of estimates")
+            result = session.query(BGSTick).limit(1).first()
+            bgs = "BGS Tick estimate unavailable. No more estimates, ask @Sidewinder40"
+    except sqla_exe.OperationalError:
+        bgs = "Could not connect to remote. Lost connection or Sidewinder DB down."
+        log.warning(bgs)
 
     return bgs
-
 
 def exploited_systems_by_age(session, control):
     """
     Return a list off all (possible empty) systems around the control
     that have outdated information.
-    """
-    result = session.query(SystemAge).filter(SystemAge.control == control).\
-        order_by(SystemAge.system).all()
 
+    If loses connection, returns an error message for user.
+    """
     log = logging.getLogger("cogdb.side")
-    log.info("BGS - Received from query: %s", str(result))
+    try:
+        result = session.query(SystemAge).filter(SystemAge.control == control).\
+            order_by(SystemAge.system).all()
+
+        log.info("BGS - Received from query: %s", str(result))
+    except sqla_exe.OperationalError:
+        # TODO: Add a LostRemoteDB exceiont?
+        result = "Could not connect to remote. Lost connection or Sidewinder DB down."
+        log.warning(result)
 
     return result

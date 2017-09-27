@@ -215,10 +215,12 @@ class BGS(Action):
         self.log.info('BGS - Looking for: %s', system.name)
 
         lines = [['Control', 'System', 'Age']]
-        lines += [[system.control, system.system, system.age] for system in
-                  cogdb.side.exploited_systems_by_age(cogdb.SideSession(), system.name)]
-
-        response = cog.tbl.wrap_markdown(cog.tbl.format_table(lines, header=True))
+        systems = cogdb.side.exploited_systems_by_age(cogdb.SideSession(), system.name)
+        if isinstance(systems, type([])):
+            lines += [[system.control, system.system, system.age] for system in systems]
+            response = cog.tbl.wrap_markdown(cog.tbl.format_table(lines, header=True))
+        else:
+            response = systems
         await self.bot.send_message(self.msg.channel, response)
 
 
