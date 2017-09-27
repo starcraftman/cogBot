@@ -173,6 +173,13 @@ class CogBot(discord.Client):
 
         return False
 
+    async def on_message_edit(self, before, after):
+        """
+        Only process commands that were different from before.
+        """
+        if before.content != after.content and after.content.startswith(self.prefix):
+            asyncio.ensure_future(self.on_message(after))
+
     async def on_message(self, message):
         """
         Intercepts every message sent to server!
