@@ -85,9 +85,8 @@ def check_sheet(scanner_name, stype):
                                           type=getattr(cogdb.schema.ESheetType, stype),
                                           start_row=get_scanner(scanner_name).user_row)
 
-            unbound_sheet = self.session.query(sheet.__class__).filter_by(id=sheet.id).one()
-            self.session.expunge(unbound_sheet)
-            sync_func = partial(sync_sheet_user, scanner_name, unbound_sheet)
+            sync_func = partial(get_scanner(scanner_name).update_sheet_user,
+                                sheet.row, sheet.cry, sheet.name)
             cog.jobs.QUE.put_nowait(cog.jobs.Job(sync_func, self.msg))
 
             notice = 'Automatically added {} to {} sheet. See !user command to change.'.format(
@@ -252,7 +251,9 @@ class Drop(Action):
             system.set_status(self.args.set)
         self.session.commit()
 
-        cog.jobs.QUE.put_nowait(cog.jobs.Job(partial(sync_drop, drop.id), self.msg))
+        sync_func = partial(sync_drop, [drop.system.sheet_col, drop.user.row, drop.amount],
+                            [drop.system.sheet_col, drop.system.fort_status, drop.system.um_status])
+        cog.jobs.QUE.put_nowait(cog.jobs.Job(sync_func, self.msg))
 
         self.log.info('DROP %s - Sucessfully dropped %d at %s.',
                       self.duser.display_name, self.args.amount, system.name)
@@ -308,7 +309,9 @@ class Fort(Action):
             system.set_status(self.args.set)
             self.session.commit()
 
-            sync_func = partial(sync_system, "hudson_cattle", system)
+
+            sync_func = partial(get_scanner("hudson_cattle").update_system,
+                                system.sheet_col, system.fort_status, system.um_status)
             cog.jobs.QUE.put_nowait(cog.jobs.Job(sync_func, self.msg))
             response = system.display()
 
@@ -415,7 +418,8 @@ class Hold(Action):
 
         if self.args.set:
             system.set_status(self.args.set)
-            sync_func = partial(sync_system, "hudson_undermine", hold.system)
+            sync_func = partial(get_scanner("hudson_undermine").update_system,
+                                system.sheet_col, system.progress_us, system.progress_them, system.map_offset)
             cog.jobs.QUE.put_nowait(cog.jobs.Job(sync_func, self.msg))
 
         self.log.info('Hold %s - After update, hold: %s\nSystem: %s.',
@@ -449,8 +453,8 @@ class Hold(Action):
             holds, response = self.set_hold()
 
         self.session.commit()
-        cog.jobs.QUE.put_nowait(
-            cog.jobs.Job(partial(sync_holds, [hold.id for hold in holds]), self.msg))
+        holds = [[hold.system.sheet_col, hold.user.row, hold.held, hold.redeemed] for hold in holds]
+        cog.jobs.QUE.put_nowait(cog.jobs.Job(partial(sync_holds, holds), self.msg))
 
         await self.bot.send_message(self.msg.channel, response)
 
@@ -515,7 +519,8 @@ class UM(Action):
                 system.set_status(self.args.set)
             if self.args.set or self.args.offset:
                 self.session.commit()
-                sync_func = partial(sync_system, "hudson_undermine", system)
+                sync_func = partial(get_scanner("hudson_undermine").update_system,
+                                    system.sheet_col, system.progress_us, system.progress_them, system.map_offset)
                 cog.jobs.QUE.put_nowait(cog.jobs.Job(sync_func, self.msg))
 
             response = system.display()
@@ -555,10 +560,14 @@ class User(Action):
         self.session.commit()
         if args.name or args.cry:
             if self.cattle:
-                sync_func = partial(sync_sheet_user, 'hudson_cattle', self.cattle)
+                sheet = self.cattle
+                sync_func = partial(get_scanner("hudson_cattle").update_sheet_user,
+                                    sheet.row, sheet.cry, sheet.name)
                 cog.jobs.QUE.put_nowait(cog.jobs.Job(sync_func, self.msg))
             if self.undermine:
-                sync_func = partial(sync_sheet_user, 'hudson_undermine', self.undermine)
+                sheet = self.undermine
+                sync_func = partial(get_scanner("hudson_undermine").update_sheet_user,
+                                    sheet.row, sheet.cry, sheet.name)
                 cog.jobs.QUE.put_nowait(cog.jobs.Job(sync_func, self.msg))
 
         lines = [
@@ -636,33 +645,19 @@ def scan_all_sheets_cb(bot, msg):
         bot.send_message(msg.channel, 'Update finished. Commands: **Enabled**'))
 
 
-def sync_drop(drop_id):
+def sync_drop(drop_args, system_args):
     """ Executes in another process. """
-    drop = cogdb.Session().query(cogdb.schema.Drop).filter_by(id=drop_id).one()
     scanner = get_scanner("hudson_cattle")
-    scanner.update_drop(drop)
-    scanner.update_system(drop.system)
+    scanner.update_drop(*drop_args)
+    scanner.update_system(*system_args)
 
 
-def sync_holds(hold_ids):
+def sync_holds(holds):
     """ Executes in another process. """
     # TODO: Expand the holds to a continuous rectangle and one update.
     scanner = get_scanner("hudson_undermine")
-    session = cogdb.Session()
-    for hold in session.query(cogdb.schema.Hold).filter(cogdb.schema.Hold.id.in_(hold_ids)):
-        scanner.update_hold(hold)
-
-
-def sync_sheet_user(scanner_name, user):
-    """ Executes in another process. """
-    sheet_user = cogdb.Session().query(user.__class__).filter_by(id=user.id).one()
-    get_scanner(scanner_name).update_sheet_user(sheet_user)
-
-
-def sync_system(scanner_name, system):
-    """ Executes in another process. """
-    system = cogdb.Session().query(system.__class__).filter_by(id=system.id).one()
-    get_scanner(scanner_name).update_system(system)
+    for hold in holds:
+        scanner.update_hold(*hold)
 
 
 def init_scanner(name):

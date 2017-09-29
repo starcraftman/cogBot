@@ -461,14 +461,14 @@ class SheetScanner(object):
         """
         raise NotImplementedError
 
-    def update_sheet_user(self, user):
+    def update_sheet_user(self, row, cry, name):
         """
         Update the user cry and name on the given row.
         """
         col1 = cog.sheets.Column(self.user_col).prev()
-        cell_range = '!{col1}{row}:{col2}{row}'.format(row=user.row, col1=col1,
+        cell_range = '!{col1}{row}:{col2}{row}'.format(row=row, col1=col1,
                                                        col2=self.user_col)
-        return self.gsheet.update(cell_range, [[user.cry, user.name]])
+        return self.gsheet.update(cell_range, [[cry, name]])
 
 
 class FortScanner(SheetScanner):
@@ -613,21 +613,19 @@ class FortScanner(SheetScanner):
 
         raise cog.exc.SheetParsingError
 
-    def update_drop(self, drop):
+    def update_drop(self, system_col, user_row, amount):
         """
         Update a drop to the sheet.
         """
-        cell_range = '!{col}{row}:{col}{row}'.format(col=drop.system.sheet_col,
-                                                     row=drop.user.row)
-        self.gsheet.update(cell_range, [[drop.amount]])
+        cell_range = '!{col}{row}:{col}{row}'.format(col=system_col, row=user_row)
+        self.gsheet.update(cell_range, [[amount]])
 
-    def update_system(self, system):
+    def update_system(self, col, fort_status, um_status):
         """
         Update the system column of the sheet.
         """
-        cell_range = '!{col}{start}:{col}{end}'.format(col=system.sheet_col,
-                                                       start=6, end=7)
-        self.gsheet.update(cell_range, [[system.fort_status, system.um_status]], dim='COLUMNS')
+        cell_range = '!{col}{start}:{col}{end}'.format(col=col, start=6, end=7)
+        self.gsheet.update(cell_range, [[fort_status, um_status]], dim='COLUMNS')
 
 
 class UMScanner(SheetScanner):
@@ -743,24 +741,21 @@ class UMScanner(SheetScanner):
         return holds.values()
 
     # Calls to modify the sheet All asynchronous, register them as futures and move on.
-    def update_hold(self, hold):
+    def update_hold(self, system_col, user_row, held, redeemed):
         """
         Update a hold on the sheet.
         """
-        col2 = cog.sheets.Column(hold.system.sheet_col).next()
-        cell_range = '!{col1}{row1}:{col2}{row2}'.format(col1=hold.system.sheet_col, col2=col2,
-                                                         row1=hold.user.row,
-                                                         row2=hold.user.row + 1)
-        self.gsheet.update(cell_range, [[hold.held, hold.redeemed]])
+        col2 = cog.sheets.Column(system_col).next()
+        cell_range = '!{col1}{row1}:{col2}{row2}'.format(col1=system_col, col2=col2,
+                                                         row1=user_row, row2=user_row + 1)
+        self.gsheet.update(cell_range, [[held, redeemed]])
 
-    def update_system(self, system):
+    def update_system(self, col, progress_us, progress_them, map_offset):
         """
         Update the system column of the sheet.
         """
-        cell_range = '!{col}{start}:{col}{end}'.format(col=system.sheet_col,
-                                                       start=10, end=13)
-        self.gsheet.update(cell_range, [[system.progress_us, system.progress_them,
-                                         'Hold Merits', system.map_offset]], dim='COLUMNS')
+        cell_range = '!{col}{start}:{col}{end}'.format(col=col, start=10, end=13)
+        self.gsheet.update(cell_range, [[progress_us, progress_them, 'Hold Merits', map_offset]], dim='COLUMNS')
 
 
 def um_find_system(session, system_name):
