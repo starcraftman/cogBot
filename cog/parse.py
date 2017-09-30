@@ -111,11 +111,17 @@ def subs_bgs(subs, prefix):
     """ Subcommand parsing for bgs """
     desc = """BGS related commands. Examples:
 
-    {prefix}bgs 16 cygni\n          Show exploiteds in 16 Cygni bubble by age.
+    {prefix}bgs age 16 cygni\n          Show exploiteds in 16 Cygni bubble by age.
+    {prefix}bgs inf Sol\n          Show the factions and their influence in Sol.
     """.format(prefix=prefix)
     sub = subs.add_parser(prefix + 'bgs', description=desc, formatter_class=RawHelp)
     sub.set_defaults(cmd='BGS')
-    sub.add_argument('system', nargs='+', help='Find age of exploited around the system.')
+    bgs_subs = sub.add_subparsers(title='subcommands',
+                                  description='BGS subcommands', dest='subcmd')
+    bgs_sub = bgs_subs.add_parser('age', help='Get the age of exploiteds around a control.')
+    bgs_sub.add_argument('system', nargs='+', help='The system to lookup.')
+    bgs_sub = bgs_subs.add_parser('inf', help='Get the influence of factions inside a system.')
+    bgs_sub.add_argument('system', nargs='+', help='The system to lookup.')
 
 
 def subs_drop(subs, prefix):

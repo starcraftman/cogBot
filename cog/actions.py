@@ -208,18 +208,42 @@ class BGS(Action):
     """
     Provide bgs related commands.
     """
-    async def execute(self):
-        system = cogdb.query.fort_find_system(self.session, ' '.join(self.args.system),
-                                              search_all=True)
-        self.log.info('BGS - Looking for: %s', system.name)
+    def age_system(self, system):
+        """ Handle age subcmd. """
+        system = cogdb.query.fort_find_system(self.session, system, search_all=True)
+        self.log.info('BGS - Looking for age around: %s', system.name)
 
         lines = [['Control', 'System', 'Age']]
         systems = cogdb.side.exploited_systems_by_age(cogdb.SideSession(), system.name)
         if isinstance(systems, type([])):
             lines += [[system.control, system.system, system.age] for system in systems]
-            response = cog.tbl.wrap_markdown(cog.tbl.format_table(lines, header=True))
-        else:
-            response = systems
+            return cog.tbl.wrap_markdown(cog.tbl.format_table(lines, header=True))
+
+        return systems
+
+    def inf_system(self, system):
+        """ Handle influence subcmd. """
+        self.log.info('BGS - Looking for influence like: %s', system)
+        infs = cogdb.side.influence_in_system(cogdb.SideSession(), system)
+
+        if infs:
+            header = "**{}**\n{} (UTC)\n\n".format(system, infs[0][-1])
+            lines = [['Faction Name', 'Inf', 'Player?']]
+            lines += [inf[:-1] for inf in infs]
+            return header + cog.tbl.wrap_markdown(cog.tbl.format_table(lines, header=True))
+
+        return "Received an empty list, check the system name."
+
+    async def execute(self):
+        try:
+            system_name = ' '.join(self.args.system)
+            if self.args.subcmd == 'age':
+                response = self.age_system(system_name)
+            elif self.args.subcmd == 'inf':
+                response = self.inf_system(system_name)
+        except (cog.exc.NoMoreTargets, cog.exc.RemoteDBUnreachable) as exc:
+            response = exc.reply()
+
         await self.bot.send_message(self.msg.channel, response)
 
 
@@ -308,7 +332,6 @@ class Fort(Action):
             system = cogdb.query.fort_find_system(self.session, system_name, search_all=True)
             system.set_status(self.args.set)
             self.session.commit()
-
 
             sync_func = partial(get_scanner("hudson_cattle").update_system,
                                 system.sheet_col, system.fort_status, system.um_status)

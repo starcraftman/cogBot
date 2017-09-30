@@ -130,6 +130,13 @@ class NoMoreTargets(InternalException):
     pass
 
 
+class RemoteDBUnreachable(InternalException):
+    """
+    Can no longer communicate with a remote DB.
+    """
+    pass
+
+
 class SheetParsingError(InternalException):
     """
     During sheet parsing, could not determine cell anchors properly.

@@ -7,7 +7,6 @@ Important Note Regarding DB:
     After executing an action ALWAYS make a new Session(). The old one will still be stale.
 """
 from __future__ import absolute_import, print_function
-
 import aiomock
 import pytest
 
@@ -215,16 +214,25 @@ async def test_cmd_invalid_flag(event_loop, f_bot):
 
 
 @pytest.mark.asyncio
-async def test_cmd_bgs(side_session, event_loop, f_bot, f_systems):
+async def test_cmd_bgs_age(side_session, event_loop, f_bot, f_systems):
     systems = [system.name for system in f_systems]
     row = side_session.query(SystemAge).filter(
         SystemAge.control.in_(systems)).order_by(SystemAge.system).first()
-    msg = fake_msg_gears("!bgs " + row.control)
+    msg = fake_msg_gears("!bgs age " + row.control)
 
     await action_map(msg, f_bot).execute()
 
     line = [word.strip() for word in str(f_bot.send_message.call_args).split('\\n')[2].split('|')]
     assert line == [row.control, row.system, str(row.age)]
+
+
+@pytest.mark.asyncio
+async def test_cmd_bgs_inf(side_session, event_loop, f_bot, f_systems):
+    msg = fake_msg_gears("!bgs inf Sol")
+
+    await action_map(msg, f_bot).execute()
+
+    assert "Mother Gaia" in str(f_bot.send_message.call_args).replace("\\n", "\n")
 
 
 @pytest.mark.asyncio
@@ -307,7 +315,13 @@ async def test_cmd_fort_search(event_loop, f_bot, f_systems):
 async def test_cmd_fort_set(event_loop, f_bot, f_systems):
     msg = fake_msg_gears("!fort --set 7000:222 nuru")
 
-    await action_map(msg, f_bot).execute()
+    try:
+        scanner = aiomock.Mock()
+        scanner.update_system.return_value = None
+        cog.actions.SCANNERS = {'hudson_cattle': scanner, 'hudson_undermine': scanner}
+        await action_map(msg, f_bot).execute()
+    finally:
+        cog.actions.SCANNERS = {}
 
     expect = """**Nurundere** 7000/8425 :Fortifying:, 222 :Undermining: (1425 left)"""
     f_bot.send_message.assert_called_with(msg.channel, expect)
@@ -552,7 +566,13 @@ async def test_cmd_um_set_works(session, event_loop, f_bot, f_testbed):
     before = session.query(SystemUM).filter_by(name='Pequen').one()
     msg = fake_msg_gears("!um --set {}:40 {} --offset 600".format(before.progress_us + 1500, before.name))
 
-    await action_map(msg, f_bot).execute()
+    try:
+        scanner = aiomock.Mock()
+        scanner.update_system.return_value = None
+        cog.actions.SCANNERS = {'hudson_cattle': scanner, 'hudson_undermine': scanner}
+        await action_map(msg, f_bot).execute()
+    finally:
+        cog.actions.SCANNERS = {}
 
     expect = """Control: **Pequen**, Security: Anarchy, Hudson Control: Atropos
         Completion: 96%, Missing: 500
@@ -597,7 +617,13 @@ async def test_cmd_user_set_name(session, event_loop, f_bot, f_testbed):
     new_name = "NotGears"
     msg = fake_msg_gears("!user --name " + new_name)
 
-    await action_map(msg, f_bot).execute()
+    try:
+        scanner = aiomock.Mock()
+        scanner.update_sheet_user.return_value = None
+        cog.actions.SCANNERS = {'hudson_cattle': scanner, 'hudson_undermine': scanner}
+        await action_map(msg, f_bot).execute()
+    finally:
+        cog.actions.SCANNERS = {}
 
     expect = """__GearsandCogs__
 Sheet Name: NotGears
@@ -631,7 +657,13 @@ async def test_cmd_user_set_cry(session, event_loop, f_bot, f_testbed):
     new_cry = "A new cry"
     msg = fake_msg_gears("!user --cry " + new_cry)
 
-    await action_map(msg, f_bot).execute()
+    try:
+        scanner = aiomock.Mock()
+        scanner.update_sheet_user.return_value = None
+        cog.actions.SCANNERS = {'hudson_cattle': scanner, 'hudson_undermine': scanner}
+        await action_map(msg, f_bot).execute()
+    finally:
+        cog.actions.SCANNERS = {}
 
     expect = """__GearsandCogs__
 Sheet Name: GearsandCogs
