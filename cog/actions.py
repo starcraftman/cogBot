@@ -514,9 +514,13 @@ class Time(Action):
         while weekly_tick < now or weekly_tick.strftime('%A') != 'Thursday':
             weekly_tick += datetime.timedelta(days=1)
 
+        try:
+            tick = cogdb.side.next_bgs_tick(cogdb.SideSession(), now),
+        except cog.exc.NoMoreTargets as exc:
+            tick = exc.reply()
         lines = [
             'Game Time: **{}**'.format(now.strftime('%H:%M:%S')),
-            cogdb.side.next_bgs_tick(cogdb.SideSession(), now),
+            tick,
             'Cycle Ends in **{}**'.format(weekly_tick - now),
             'All Times UTC',
         ]

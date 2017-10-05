@@ -367,6 +367,7 @@ def exploited_systems_by_age(session, control):
     that have outdated information.
 
     Raises:
+        NoMoreTargets - Ran out of ticks.
         RemoteDBUnreachable - Cannot communicate with remote.
     """
     log = logging.getLogger("cogdb.side")
