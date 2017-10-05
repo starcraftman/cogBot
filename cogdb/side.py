@@ -55,25 +55,6 @@ class BGSTick(SideBase):
         return isinstance(self, BGSTick) and isinstance(other, BGSTick) and self.day == other.day
 
 
-class FactionState(SideBase):
-    """ The state a faction is in. """
-    __tablename__ = "faction_state"
-
-    id = sqla.Column(sqla.Date, primary_key=True)  # Ignore not accurate
-    text = sqla.Column(sqla.String(12))
-    eddn = sqla.Column(sqla.String(12))
-
-    def __repr__(self):
-        keys = ['day', 'tick', 'unix_from', 'unix_to']
-        kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
-
-        return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
-
-    def __eq__(self, other):
-        return (isinstance(self, FactionState) and isinstance(other, FactionState) and
-                self.id == other.id)
-
-
 class Faction(SideBase):
     """ Information about a faction. """
     __tablename__ = "factions"
@@ -98,11 +79,30 @@ class Faction(SideBase):
         return isinstance(self, Faction) and isinstance(other, Faction) and self.id == other.id
 
 
-class GovType(SideBase):
+class FactionState(SideBase):
+    """ The state a faction is in. """
+    __tablename__ = "faction_state"
+
+    id = sqla.Column(sqla.Integer, primary_key=True)
+    text = sqla.Column(sqla.String(12))
+    eddn = sqla.Column(sqla.String(12))
+
+    def __repr__(self):
+        keys = ['id', 'text', 'eddn']
+        kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
+
+        return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
+
+    def __eq__(self, other):
+        return (isinstance(self, FactionState) and isinstance(other, FactionState) and
+                self.id == other.id)
+
+
+class Government(SideBase):
     """ All faction government types. """
     __tablename__ = "gov_type"
 
-    id = sqla.Column(sqla.Date, primary_key=True)  # Ignore not accurate
+    id = sqla.Column(sqla.Integer, primary_key=True)
     text = sqla.Column(sqla.String(13))
     eddn = sqla.Column(sqla.String(20))
 
@@ -113,7 +113,7 @@ class GovType(SideBase):
         return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
 
     def __eq__(self, other):
-        return (isinstance(self, GovType) and isinstance(other, GovType) and
+        return (isinstance(self, Government) and isinstance(other, Government) and
                 self.id == other.id)
 
 
@@ -234,24 +234,6 @@ class SettlementSize(SideBase):
                 self.id == other.id)
 
 
-class StationType(SideBase):
-    """ The type of a station. """
-    __tablename__ = "station_type"
-
-    id = sqla.Column(sqla.Integer, primary_key=True)
-    text = sqla.Column(sqla.String(20))
-
-    def __repr__(self):
-        keys = ['id', 'text']
-        kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
-
-        return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
-
-    def __eq__(self, other):
-        return (isinstance(self, StationType) and isinstance(other, StationType) and
-                self.id == other.id)
-
-
 class Station(SideBase):
     """ Represents a station in a system. """
     __tablename__ = "stations"
@@ -276,6 +258,24 @@ class Station(SideBase):
 
     def __eq__(self, other):
         return (isinstance(self, Station) and isinstance(other, Station) and
+                self.id == other.id)
+
+
+class StationType(SideBase):
+    """ The type of a station. """
+    __tablename__ = "station_type"
+
+    id = sqla.Column(sqla.Integer, primary_key=True)
+    text = sqla.Column(sqla.String(20))
+
+    def __repr__(self):
+        keys = ['id', 'text']
+        kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
+
+        return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
+
+    def __eq__(self, other):
+        return (isinstance(self, StationType) and isinstance(other, StationType) and
                 self.id == other.id)
 
 
