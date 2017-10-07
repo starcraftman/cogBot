@@ -84,10 +84,10 @@ def get_config(*keys):
 
 def init_logging():  # pragma: no cover
     """
-    Initialize project wide logging. The setup is described best in config file.
+    Initialize project wide logging. See config file for details and reference on module.
 
      - On every start the file logs are rolled over.
-     - This should be first invocation on startup to set up logging.
+     - This must be the first invocation on startup to set up logging.
     """
     log_file = rel_to_abs(get_config('paths', 'log_conf'))
     try:

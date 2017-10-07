@@ -111,9 +111,9 @@ def check_pref_name(session, duser, new_name):
                 new_name, others[0].display_name))
 
     # Note: Unlikely needed, should be caught above. However, no fixed relationship guaranteeing.
-    for sheet in session.query(SheetRow).filter(SheetRow.name == new_name).all():
-        if sheet.duser(session).id != duser.id:
-            raise cog.exc.InvalidCommandArgs("Sheet name {}, taken by {}.\n\nPlease choose another.".format(new_name, sheet.duser(session).display_name))
+    # for sheet in session.query(SheetRow).filter(SheetRow.name == new_name).all():
+        # if sheet.duser(session).id != duser.id:
+            # raise cog.exc.InvalidCommandArgs("Sheet name {}, taken by {}.\n\nPlease choose another.".format(new_name, sheet.duser(session).display_name))
 
 
 def next_sheet_row(session, *, cls, faction, start_row):
@@ -411,6 +411,8 @@ class SheetScanner(object):
 
         session.add_all(self.merits(systems, users))
         session.commit()
+
+        return True
 
     def users(self, cls, faction):
         """
@@ -856,11 +858,6 @@ def check_perms(msg, args):
     """
     Check if a user is authorized to issue this command.
 
-    Raises if any error was encountered.
+    Raises InvalidPerms if any permission issue.
     """
-    session = cogdb.Session()
-    if args.cmd == "Admin":
-        try:
-            get_admin(session, msg.author)
-        except cog.exc.NoMatch:
-            raise cog.exc.InvalidPerms("{} You are not an admin!".format(msg.author.mention))
+    pass

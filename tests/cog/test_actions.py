@@ -7,6 +7,8 @@ Important Note Regarding DB:
     After executing an action ALWAYS make a new Session(). The old one will still be stale.
 """
 from __future__ import absolute_import, print_function
+import datetime
+
 import aiomock
 import pytest
 
@@ -17,6 +19,39 @@ import cogdb
 from cogdb.side import SystemAge
 from cogdb.schema import (DUser, SheetCattle, SheetUM,
                           System, SystemUM, Drop, Hold)
+
+
+# Important, these get auto run to patch things
+pytestmark = pytest.mark.usefixtures("patch_pool", "patch_scanners")
+
+
+@pytest.fixture
+def patch_pool():
+    """ Patch the pool to silently ignore jobs. """
+    old_pool = cog.jobs.POOL
+    cog.jobs.POOL = aiomock.Mock()
+    cog.jobs.POOL.schedule.return_value = None
+
+    yield
+
+    cog.jobs.POOL = old_pool
+
+
+@pytest.fixture
+def patch_scanners():
+    """ Patch the scanners. """
+    old_scanners = cog.actions.SCANNERS
+
+    scanner = aiomock.Mock()
+    scanner.update_system.return_value = None
+    scanner.update_drop.return_value = None
+    scanner.update_hold.return_value = None
+    scanner.update_sheet_user.return_value = None
+    cog.actions.SCANNERS = {'hudson_cattle': scanner, 'hudson_undermine': scanner}
+
+    yield
+
+    cog.actions.SCANNERS = old_scanners
 
 
 # Fake objects look like discord
@@ -69,6 +104,10 @@ class Member(FakeObject):
         self.display_name = self.name
         self.roles = roles
 
+    @property
+    def mention(self):
+        return self.display_name
+
     def __repr__(self):
         roles = "Roles:  " + ", ".join([rol.name for rol in self.roles])
         return super().__repr__() + ", Display: {} ".format(self.display_name) + roles
@@ -91,6 +130,10 @@ class Message(FakeObject):
         self.content = content
         self.mentions = mentions
         self.server = srv
+
+    @property
+    def timestamp(self):
+        return datetime.datetime.utcnow()
 
     def __repr__(self):
         return super().__repr__() + "\n  Content: {}\n  Author: {}\n  Channel: {}\n  Server: {}".format(
@@ -148,13 +191,6 @@ def f_bot():
     fake_bot.delete_message.async_return_value = None
     fake_bot.emoji.fix = lambda x, y: x
     fake_bot.servers = fake_servers()
-
-    fake_bot.scanner.update_sheet_user.async_return_value = None
-    fake_bot.scanner.update_system.async_return_value = None
-    fake_bot.scanner.update_drop.async_return_value = None
-    fake_bot.scanner_um.update_sheet_user.async_return_value = None
-    fake_bot.scanner_um.update_system.async_return_value = None
-    fake_bot.scanner_um.update_hold.async_return_value = None
 
     yield fake_bot
 
@@ -315,13 +351,7 @@ async def test_cmd_fort_search(event_loop, f_bot, f_systems):
 async def test_cmd_fort_set(event_loop, f_bot, f_systems):
     msg = fake_msg_gears("!fort --set 7000:222 nuru")
 
-    try:
-        scanner = aiomock.Mock()
-        scanner.update_system.return_value = None
-        cog.actions.SCANNERS = {'hudson_cattle': scanner, 'hudson_undermine': scanner}
-        await action_map(msg, f_bot).execute()
-    finally:
-        cog.actions.SCANNERS = {}
+    await action_map(msg, f_bot).execute()
 
     expect = """**Nurundere** 7000/8425 :Fortifying:, 222 :Undermining: (1425 left)"""
     f_bot.send_message.assert_called_with(msg.channel, expect)
@@ -381,25 +411,21 @@ async def test_cmd_drop_negative(event_loop, f_bot, f_testbed):
 
 @pytest.mark.asyncio
 async def test_cmd_drop_newuser(event_loop, f_bot, f_testbed):
-    try:
-        cog.actions.SCANNERS['hudson_cattle'] = aiomock.Mock()
-        msg = fake_msg_newuser("!drop 500 nuru")
+    msg = fake_msg_newuser("!drop 500 nuru")
 
-        await action_map(msg, f_bot).execute()
+    await action_map(msg, f_bot).execute()
 
-        expect = 'Automatically added newuser to cattle sheet. See !user command to change.'
-        f_bot.send_message.assert_any_call(msg.channel, expect)
-        f_bot.send_message.assert_any_call(msg.channel, '**Nurundere** 5922/8425 :Fortifying:')
+    expect = 'Automatically added newuser to cattle sheet. See !user command to change.'
+    f_bot.send_message.assert_any_call(msg.channel, expect)
+    f_bot.send_message.assert_any_call(msg.channel, '**Nurundere** 5922/8425 :Fortifying:')
 
-        session = cogdb.Session()
-        system = session.query(System).filter_by(name='Nurundere').one()
-        assert system.current_status == 5922
-        duser = session.query(DUser).filter_by(id=msg.author.id).one()
-        sheet = session.query(SheetCattle).filter_by(name=duser.pref_name).one()
-        drop = session.query(Drop).filter_by(user_id=sheet.id, system_id=system.id).one()
-        assert drop.amount == 500
-    finally:
-        cog.actions.SCANNERS = {}
+    session = cogdb.Session()
+    system = session.query(System).filter_by(name='Nurundere').one()
+    assert system.current_status == 5922
+    duser = session.query(DUser).filter_by(id=msg.author.id).one()
+    sheet = session.query(SheetCattle).filter_by(name=duser.pref_name).one()
+    drop = session.query(Drop).filter_by(user_id=sheet.id, system_id=system.id).one()
+    assert drop.amount == 500
 
 
 @pytest.mark.asyncio
@@ -440,28 +466,24 @@ async def test_cmd_hold_simple(event_loop, f_bot, f_testbed):
 
 @pytest.mark.asyncio
 async def test_cmd_hold_newuser(event_loop, f_bot, f_testbed):
-    try:
-        cog.actions.SCANNERS['hudson_undermine'] = aiomock.Mock()
-        msg = fake_msg_newuser("!hold 1000 empty")
+    msg = fake_msg_newuser("!hold 1000 empty")
 
-        await action_map(msg, f_bot).execute()
+    await action_map(msg, f_bot).execute()
 
-        expect = 'Automatically added newuser to undermine sheet. See !user command to change.'
-        f_bot.send_message.assert_any_call(msg.channel, expect)
-        expect2 = """Control: **Empty**, Security: Medium, Hudson Control: Rana
+    expect = 'Automatically added newuser to undermine sheet. See !user command to change.'
+    f_bot.send_message.assert_any_call(msg.channel, expect)
+    expect2 = """Control: **Empty**, Security: Medium, Hudson Control: Rana
         Completion: 10%, Missing: 9000
 """
-        f_bot.send_message.assert_any_call(msg.channel, expect2)
+    f_bot.send_message.assert_any_call(msg.channel, expect2)
 
-        session = cogdb.Session()
-        system = session.query(SystemUM).filter_by(name='empty').one()
-        assert system.missing == 9000
-        duser = session.query(DUser).filter_by(id=msg.author.id).one()
-        sheet = session.query(SheetUM).filter_by(name=duser.pref_name).one()
-        hold = session.query(Hold).filter_by(user_id=sheet.id, system_id=system.id).one()
-        assert hold.held == 1000
-    finally:
-        cog.actions.SCANNERS = {}
+    session = cogdb.Session()
+    system = session.query(SystemUM).filter_by(name='empty').one()
+    assert system.missing == 9000
+    duser = session.query(DUser).filter_by(id=msg.author.id).one()
+    sheet = session.query(SheetUM).filter_by(name=duser.pref_name).one()
+    hold = session.query(Hold).filter_by(user_id=sheet.id, system_id=system.id).one()
+    assert hold.held == 1000
 
 
 @pytest.mark.asyncio
@@ -566,13 +588,7 @@ async def test_cmd_um_set_works(session, event_loop, f_bot, f_testbed):
     before = session.query(SystemUM).filter_by(name='Pequen').one()
     msg = fake_msg_gears("!um --set {}:40 {} --offset 600".format(before.progress_us + 1500, before.name))
 
-    try:
-        scanner = aiomock.Mock()
-        scanner.update_system.return_value = None
-        cog.actions.SCANNERS = {'hudson_cattle': scanner, 'hudson_undermine': scanner}
-        await action_map(msg, f_bot).execute()
-    finally:
-        cog.actions.SCANNERS = {}
+    await action_map(msg, f_bot).execute()
 
     expect = """Control: **Pequen**, Security: Anarchy, Hudson Control: Atropos
         Completion: 96%, Missing: 500
@@ -617,13 +633,7 @@ async def test_cmd_user_set_name(session, event_loop, f_bot, f_testbed):
     new_name = "NotGears"
     msg = fake_msg_gears("!user --name " + new_name)
 
-    try:
-        scanner = aiomock.Mock()
-        scanner.update_sheet_user.return_value = None
-        cog.actions.SCANNERS = {'hudson_cattle': scanner, 'hudson_undermine': scanner}
-        await action_map(msg, f_bot).execute()
-    finally:
-        cog.actions.SCANNERS = {}
+    await action_map(msg, f_bot).execute()
 
     expect = """__GearsandCogs__
 Sheet Name: NotGears
@@ -657,13 +667,7 @@ async def test_cmd_user_set_cry(session, event_loop, f_bot, f_testbed):
     new_cry = "A new cry"
     msg = fake_msg_gears("!user --cry " + new_cry)
 
-    try:
-        scanner = aiomock.Mock()
-        scanner.update_sheet_user.return_value = None
-        cog.actions.SCANNERS = {'hudson_cattle': scanner, 'hudson_undermine': scanner}
-        await action_map(msg, f_bot).execute()
-    finally:
-        cog.actions.SCANNERS = {}
+    await action_map(msg, f_bot).execute()
 
     expect = """__GearsandCogs__
 Sheet Name: GearsandCogs

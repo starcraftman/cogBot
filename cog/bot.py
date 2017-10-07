@@ -1,17 +1,27 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
 """
-Discord bot class
+This is the main bot. Everything is started upon main() execution. To invoke from root:
+    python -m cog.bot
 
-API:
+Some useful docs on libraries
+-----------------------------
+Python 3.5 async tutorial:
+    https://snarky.ca/how-the-heck-does-async-await-work-in-python-3-5/
+
+asyncio (builtin package):
+    https://docs.python.org/3/library/asyncio.html
+
+discord.py: The main discord library, hooks events.
     https://discordpy.readthedocs.io/en/latest/api.html
 
-Small Python Async tutorial:
-    https://snarky.ca/how-the-heck-does-async-await-work-in-python-3-5/
+pyzmq: Python bindings for zmq. (import is named zmq)
+    http://pyzmq.readthedocs.io/en/latest/
+
+ZeroMQ: Listed mainly as a reference for core concepts.
+    http://zguide.zeromq.org/py:all
 """
 from __future__ import absolute_import, print_function
 import asyncio
-import datetime as date
+import datetime
 import logging
 import logging.handlers
 import logging.config
@@ -24,37 +34,26 @@ import apiclient
 import discord
 import websockets.exceptions
 try:
-    import uvloop
-    asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
+    # TODO: Cannot use uvloop + pyzmq. Investigate later uvloop + aiozmq
+    #       Not a high priority problem, loop rarely bottleneck.
+    import zmq.asyncio
+    zmq.asyncio.install()
     asyncio.get_event_loop().set_debug(True)
-    print('Setting uvloop as asyncio loop, enabling debug')
 except ImportError:
-    pass
+    print("Missing Core Lib: pyzmq\n    Run: python ./setup.py deps")
+    import sys
+    sys.exit(1)
+finally:
+    print("Default event loop:", asyncio.get_event_loop())
 
 import cog.actions
 import cog.exc
 import cog.jobs
 import cog.parse
-import cog.util
+import cog.scheduler
 import cog.sheets
+import cog.util
 import cogdb.query
-
-
-async def bot_ready(bot, msg, wait=120):
-    """ Simple busy wait for bot to be ready. """
-    if not bot.deny_commands:
-        return True
-
-    count = 0
-    while count != wait and bot.deny_commands:
-        await asyncio.sleep(1)
-        count += 1
-
-    if bot.deny_commands:
-        await bot.send_message(msg.channel, "Bot could not handle your request at this time. {}".format(msg.author.mention))
-        return False
-
-    return True
 
 
 class EmojiResolver(object):
@@ -104,16 +103,40 @@ class CogBot(discord.Client):
         super().__init__(**kwargs)
         self.prefix = prefix
         self.deny_commands = True
-        self.last_cmd = time.time()
-        self.start_date = date.datetime.utcnow().replace(microsecond=0)
         self.emoji = EmojiResolver()
+        self.last_cmd = time.time()
+        self.sched = cog.scheduler.Scheduler()
+        self.start_date = datetime.datetime.utcnow().replace(microsecond=0)
 
     @property
     def uptime(self):  # pragma: no cover
         """
         Return the uptime since bot was started.
         """
-        return str(date.datetime.utcnow().replace(microsecond=0) - self.start_date)
+        return str(datetime.datetime.utcnow().replace(microsecond=0) - self.start_date)
+
+    def get_member_by_substr(self, name):
+        """
+        Given a (substring of a) member name, find the first member that has a similar name.
+        Not case sensitive.
+
+        Returns: The discord.Member object or None if nothing found.
+        """
+        name = name.lower()
+        for member in self.get_all_members():
+            if name in member.display_name.lower():
+                return member
+
+        return None
+
+    def get_channel_by_name(self, name):
+        """
+        Given channel name, get the Channel object requested.
+        There shouldn't be any collisions.
+
+        Returns: The discord.Channel object or None if nothing found.
+        """
+        return discord.utils.get(self.get_all_channels(), name=name)
 
     # Events hooked by bot.
     async def on_member_join(self, member):
@@ -143,14 +166,22 @@ class CogBot(discord.Client):
         self.emoji.update(self.servers)
 
         if not cog.actions.SCANNERS:
-            asyncio.ensure_future(asyncio.gather(
-                presence_task(self),
-                cog.jobs.pool_starter(self.send_message),
-            ))
-
             # TODO: Parallelize startup with scheduler and jobs.
             for name in cog.util.get_config("scanners"):  # Populate on import
                 cog.actions.init_scanner(name)
+
+            cog.scheduler.BOT = self
+            self.sched.register('hudson_cattle', cog.actions.get_scanner('hudson_cattle'),
+                                ['Drop', 'Fort', 'User'])
+            self.sched.register('hudson_undermine', cog.actions.get_scanner('hudson_undermine'),
+                                ['Hold', 'UM', 'User'])
+
+            asyncio.ensure_future(asyncio.gather(
+                presence_task(self),
+                cog.jobs.pool_monitor_task(),
+                cog.scheduler.scheduler_task(self, self.sched)
+            ))
+            await asyncio.sleep(0.5)
 
             self.deny_commands = False
 
@@ -274,23 +305,17 @@ class CogBot(discord.Client):
         args = kwargs.get('args')
         msg = kwargs.get('msg')
 
-        # FIXME: Hack due to users editting sheet.
-        outdated = (time.time() - self.last_cmd) > 300.0
-        if args.cmd in cog.actions.SHEET_ACTS and outdated:
-            self.last_cmd = time.time()
+        if self.sched.disabled(args.cmd):
+            reply = 'Synchronizing sheet changes.\n\n'\
+                    'Your command will resume after update has finished.'
+            await self.send_message(msg.channel, reply)
 
-            asyncio.ensure_future(self.send_message(
-                msg.channel,
-                'Bot has been inactive 5+ mins. Command will execute after update.'
-                '\n\nUpdating db. Commands: **Disabled**'))
+            # TODO: Give scheduler a asyncio.Lock to block on.
+            while self.sched.disabled(args.cmd):
+                await asyncio.sleep(2)
 
-            cog.actions.update_db(self, msg)
-
-            if not await bot_ready(self, msg):
-                return
-
-            await self.send_message(msg.channel,
-                                    'Now executing: **{}**'.format(msg.content))
+            await self.send_message(msg.channel, '{} Resuming your command: **{}**'.format(
+                msg.author.mention, msg.content))
 
         cogdb.query.check_perms(msg, args)
         cls = getattr(cog.actions, args.cmd)
@@ -307,13 +332,14 @@ class CogBot(discord.Client):
         for server in self.servers:
             for channel in server.channels:
                 if channel.permissions_for(server.me).send_messages:
-                    asyncio.ensure_future(send(channel, '**BROADCAST** ' + content, **kwargs))
+                    asyncio.ensure_future(send(channel, '**BROADCAST**\n' + content, **kwargs))
 
 
 async def presence_task(bot, delay=180):
     """
     Manage the ultra important task of bot's played game.
     """
+    print('Presence task started')
     lines = [
         'Heating the oven',
         'Kneading the dough',

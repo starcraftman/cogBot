@@ -11,7 +11,6 @@ import sys
 from functools import partial
 
 import decorator
-import discord
 
 import cogdb
 import cogdb.query
@@ -21,17 +20,14 @@ import cog.tbl
 import cog.util
 
 
-HOME = "Gears' Hideout"
-FUC = "Federal United Command"
-SHEET_ACTS = ['Drop', 'Hold', 'Fort', 'UM', 'User']
 SCANNERS = {}
 
 
-async def bot_shutdown(bot):  # pragma: no cover
+async def bot_shutdown(bot, delay=30):  # pragma: no cover
     """
     Shutdown the bot. Not ideal, I should reconsider later.
     """
-    await asyncio.sleep(1)
+    await asyncio.sleep(delay)
     await bot.logout()
     sys.exit(0)
 
@@ -85,9 +81,12 @@ def check_sheet(scanner_name, stype):
                                           type=getattr(cogdb.schema.ESheetType, stype),
                                           start_row=get_scanner(scanner_name).user_row)
 
-            sync_func = partial(get_scanner(scanner_name).update_sheet_user,
-                                sheet.row, sheet.cry, sheet.name)
-            cog.jobs.QUE.put_nowait(cog.jobs.Job(sync_func, self.msg))
+            job = cog.jobs.Job(
+                partial(get_scanner(scanner_name).update_sheet_user,
+                        sheet.row, sheet.cry, sheet.name))
+            job.set_ident_from_msg(self.msg, 'Adding user to sheet')
+            job.add_fail_callback(cog.jobs.warn_user_callback(self.bot, self.msg, job))
+            await cog.jobs.background_start(job)
 
             notice = 'Automatically added {} to {} sheet. See !user command to change.'.format(
                 self.duser.pref_name, stype)
@@ -129,12 +128,6 @@ class Action(object):
         """ User's current undermining sheet. """
         return self.duser.undermine(self.session)
 
-    def get_channel(self, server, channel_name):
-        """ Given a server and channel_name, get the channel object requested. """
-        if not isinstance(server, discord.Server):
-            server = discord.utils.get(self.bot.servers, name=server)
-        return discord.utils.get(server.channels, name=channel_name)
-
     async def execute(self):
         """
         Take steps to accomplish requested action, including possibly
@@ -150,7 +143,10 @@ class Admin(Action):
     async def execute(self):
         args = self.args
         response = ''
-        admin = cogdb.query.get_admin(self.session, self.duser)
+        try:
+            admin = cogdb.query.get_admin(self.session, self.duser)
+        except cog.exc.NoMatch:
+            raise cog.exc.InvalidPerms("{} You are not an admin!".format(self.msg.author.mention))
 
         if args.subcmd == "add":
             for member in self.msg.mentions:
@@ -176,20 +172,15 @@ class Admin(Action):
 
         elif args.subcmd == 'halt':
             self.bot.deny_commands = True
-            asyncio.ensure_future(self.bot.send_message(self.msg.channel,
-                                                        'Shutdown in 40s. Commands: **Disabled**'))
-            await asyncio.sleep(40)
+            asyncio.ensure_future(self.bot.broadcast('Scheduled for shutdown in 30s. Farewell!'
+                                                     '\n\nCommands: **Disabled**'))
             asyncio.ensure_future(bot_shutdown(self.bot))
-            response = 'Goodbye!'
+            response = 'Shutdown scheduled.'
 
         elif args.subcmd == 'scan':
-            self.bot.deny_commands = True
             asyncio.ensure_future(self.bot.send_message(self.msg.channel,
-                                                        'Updating db. Commands: **Disabled**'))
-
-            await asyncio.sleep(2)
-
-            update_db(self.bot, self.msg)
+                                                        'All sheets scheduled for update.'))
+            self.bot.sched.schedule_all()
 
         elif args.subcmd == 'info':
             if self.msg.mentions:
@@ -257,7 +248,6 @@ class Drop(Action):
         """
         Drop forts at the fortification target.
         """
-        # self.check_sheet()
         self.log.info('DROP %s - Matched duser with id %s and sheet name %s.',
                       self.duser.display_name, self.duser.id[:6], self.cattle)
 
@@ -275,9 +265,13 @@ class Drop(Action):
             system.set_status(self.args.set)
         self.session.commit()
 
-        sync_func = partial(sync_drop, [drop.system.sheet_col, drop.user.row, drop.amount],
-                            [drop.system.sheet_col, drop.system.fort_status, drop.system.um_status])
-        cog.jobs.QUE.put_nowait(cog.jobs.Job(sync_func, self.msg))
+        job = cog.jobs.Job(
+            partial(sync_drop,
+                    [drop.system.sheet_col, drop.user.row, drop.amount],
+                    [drop.system.sheet_col, drop.system.fort_status, drop.system.um_status]))
+        job.set_ident_from_msg(self.msg, 'Adding drop to fort sheet')
+        job.add_fail_callback(cog.jobs.warn_user_callback(self.bot, self.msg, job))
+        await cog.jobs.background_start(job)
 
         self.log.info('DROP %s - Sucessfully dropped %d at %s.',
                       self.duser.display_name, self.args.amount, system.name)
@@ -333,9 +327,12 @@ class Fort(Action):
             system.set_status(self.args.set)
             self.session.commit()
 
-            sync_func = partial(get_scanner("hudson_cattle").update_system,
-                                system.sheet_col, system.fort_status, system.um_status)
-            cog.jobs.QUE.put_nowait(cog.jobs.Job(sync_func, self.msg))
+            job = cog.jobs.Job(
+                partial(get_scanner("hudson_cattle").update_system,
+                        system.sheet_col, system.fort_status, system.um_status))
+            job.set_ident_from_msg(self.msg, 'Updating fort system')
+            job.add_fail_callback(cog.jobs.warn_user_callback(self.bot, self.msg, job))
+            await cog.jobs.background_start(job)
             response = system.display()
 
         elif self.args.miss:
@@ -388,7 +385,7 @@ class Feedback(Action):
         response += '__Bug Report Follows__\n\n' + ' '.join(self.args.content)
 
         self.log.info('FEEDBACK %s - Left a bug report.', self.msg.author.name)
-        await self.bot.send_message(self.get_channel(HOME, 'feedback'), response)
+        await self.bot.send_message(self.bot.get_channel_by_name('feedback'), response)
 
 
 class Help(Action):
@@ -441,9 +438,14 @@ class Hold(Action):
 
         if self.args.set:
             system.set_status(self.args.set)
-            sync_func = partial(get_scanner("hudson_undermine").update_system,
-                                system.sheet_col, system.progress_us, system.progress_them, system.map_offset)
-            cog.jobs.QUE.put_nowait(cog.jobs.Job(sync_func, self.msg))
+
+            job = cog.jobs.Job(
+                partial(get_scanner("hudson_undermine").update_system,
+                        system.sheet_col, system.progress_us,
+                        system.progress_them, system.map_offset))
+            job.set_ident_from_msg(self.msg, 'Updating undermining system')
+            job.add_fail_callback(cog.jobs.warn_user_callback(self.bot, self.msg, job))
+            asyncio.ensure_future(cog.jobs.background_start(job))
 
         self.log.info('Hold %s - After update, hold: %s\nSystem: %s.',
                       self.duser.display_name, hold, system)
@@ -457,7 +459,6 @@ class Hold(Action):
     @check_mentions
     @check_sheet('hudson_undermine', 'undermine')
     async def execute(self):
-        # self.check_sheet()
         self.log.info('HOLD %s - Matched self.duser with id %s and sheet name %s.',
                       self.duser.display_name, self.duser.id[:6], self.undermine)
 
@@ -476,8 +477,12 @@ class Hold(Action):
             holds, response = self.set_hold()
 
         self.session.commit()
+
         holds = [[hold.system.sheet_col, hold.user.row, hold.held, hold.redeemed] for hold in holds]
-        cog.jobs.QUE.put_nowait(cog.jobs.Job(partial(sync_holds, holds), self.msg))
+        job = cog.jobs.Job(partial(sync_holds, holds), timeout=30)
+        job.set_ident_from_msg(self.msg, 'Updating undermining holds')
+        job.add_fail_callback(cog.jobs.warn_user_callback(self.bot, self.msg, job))
+        await cog.jobs.background_start(job)
 
         await self.bot.send_message(self.msg.channel, response)
 
@@ -515,8 +520,8 @@ class Time(Action):
             weekly_tick += datetime.timedelta(days=1)
 
         try:
-            tick = cogdb.side.next_bgs_tick(cogdb.SideSession(), now),
-        except cog.exc.NoMoreTargets as exc:
+            tick = cogdb.side.next_bgs_tick(cogdb.SideSession(), now)
+        except (cog.exc.NoMoreTargets, cog.exc.RemoteDBUnreachable) as exc:
             tick = exc.reply()
         lines = [
             'Game Time: **{}**'.format(now.strftime('%H:%M:%S')),
@@ -546,9 +551,14 @@ class UM(Action):
                 system.set_status(self.args.set)
             if self.args.set or self.args.offset:
                 self.session.commit()
-                sync_func = partial(get_scanner("hudson_undermine").update_system,
-                                    system.sheet_col, system.progress_us, system.progress_them, system.map_offset)
-                cog.jobs.QUE.put_nowait(cog.jobs.Job(sync_func, self.msg))
+
+                job = cog.jobs.Job(
+                    partial(get_scanner("hudson_undermine").update_system,
+                            system.sheet_col, system.progress_us,
+                            system.progress_them, system.map_offset))
+                job.set_ident_from_msg(self.msg, 'Updating undermining system status')
+                job.add_fail_callback(cog.jobs.warn_user_callback(self.bot, self.msg, job))
+                await cog.jobs.background_start(job)
 
             response = system.display()
 
@@ -588,14 +598,21 @@ class User(Action):
         if args.name or args.cry:
             if self.cattle:
                 sheet = self.cattle
-                sync_func = partial(get_scanner("hudson_cattle").update_sheet_user,
-                                    sheet.row, sheet.cry, sheet.name)
-                cog.jobs.QUE.put_nowait(cog.jobs.Job(sync_func, self.msg))
+                job = cog.jobs.Job(
+                    partial(get_scanner("hudson_cattle").update_sheet_user,
+                            sheet.row, sheet.cry, sheet.name))
+                job.set_ident_from_msg(self.msg, 'Updating cattle name/cry')
+                job.add_fail_callback(cog.jobs.warn_user_callback(self.bot, self.msg, job))
+                await cog.jobs.background_start(job)
+
             if self.undermine:
                 sheet = self.undermine
-                sync_func = partial(get_scanner("hudson_undermine").update_sheet_user,
-                                    sheet.row, sheet.cry, sheet.name)
-                cog.jobs.QUE.put_nowait(cog.jobs.Job(sync_func, self.msg))
+                job = cog.jobs.Job(
+                    partial(get_scanner("hudson_undermine").update_sheet_user,
+                            sheet.row, sheet.cry, sheet.name))
+                job.set_ident_from_msg(self.msg, 'Updating undermining name/cry')
+                job.add_fail_callback(cog.jobs.warn_user_callback(self.bot, self.msg, job))
+                await cog.jobs.background_start(job)
 
         lines = [
             '__{}__'.format(self.msg.author.display_name),
@@ -648,28 +665,6 @@ class User(Action):
         for sheet in self.duser.sheets(self.session):
             sheet.cry = new_cry
         self.duser.pref_cry = new_cry
-
-
-def update_db(bot, msg):
-    """ Simple hook to use from bot. """
-    bot.deny_commands = True
-    job = cog.jobs.Job(scan_all_sheets, msg, attempts=5, timeout=12, step=3)
-    job.register(partial(scan_all_sheets_cb, bot, msg))
-    cog.jobs.QUE.put_nowait(job)
-
-
-def scan_all_sheets():
-    """ Executes in another process. """
-    for scanner in SCANNERS.values():
-        scanner.scan()
-
-
-def scan_all_sheets_cb(bot, msg):
-    """ When scanning suceeds, enable commands. """
-    # Commands only accepted if no critical errors during update
-    bot.deny_commands = False
-    asyncio.ensure_future(
-        bot.send_message(msg.channel, 'Update finished. Commands: **Enabled**'))
 
 
 def sync_drop(drop_args, system_args):

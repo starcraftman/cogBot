@@ -118,6 +118,11 @@ class DUser(Base):
             new_faction = EFaction.hudson if self.faction == EFaction.winters else EFaction.winters
         self.faction = new_faction
 
+    @property
+    def mention(self):
+        """ Mention this user in a response. """
+        return "<@" + self.id + ">"
+
     def sheets(self, session):
         """ Return all sheets found. """
         return session.query(SheetRow).filter_by(name=self.pref_name).all()

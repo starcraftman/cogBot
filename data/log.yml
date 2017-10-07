@@ -1,3 +1,5 @@
+# Reference: https://docs.python.org/3/library/logging.html
+# Tutorial: https://docs.python.org/3/howto/logging.html#logging-basic-tutorial
 version: 1
 disable_existing_loggers: False
 

@@ -351,14 +351,12 @@ def next_bgs_tick(session, now):
             limit(1).first()
         if result:
             log.info("BGS_TICK - %s -> %s", str(now), result.tick)
-            bgs = "BGS Tick in **{}**    (Expected {})".format(result.tick - now, result.tick)
+            return "BGS Tick in **{}**    (Expected {})".format(result.tick - now, result.tick)
         else:
             log.warning("BGS_TICK - Remote out of estimates")
             raise cog.exc.NoMoreTargets("BGS Tick estimate unavailable. No more estimates, ask @Sidewinder40")
     except sqla_exe.OperationalError:
         raise cog.exc.RemoteDBUnreachable("Lost connection to Sidewinder's DB.")
-
-    return bgs
 
 
 def exploited_systems_by_age(session, control):

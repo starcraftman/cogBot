@@ -1,6 +1,5 @@
 """
-Simple check, this whole module fails on python < 3.5.x
-See cog/bot.py
+For main documentation consult cog/bot.py
 """
 from __future__ import absolute_import, print_function
 import sys

@@ -1,18 +1,15 @@
 """
-All database related code resides inside this module.
+All database related code resides under this module.
+Only one rule, no sql text.
 
 Useful Documentation
 --------------------
-Reference tutorial
-  http://docs.sqlalchemy.org/en/latest/orm/tutorial.html
+ORM  tutorial:
+    http://docs.sqlalchemy.org/en/latest/orm/tutorial.html
 Relationships:
-  http://docs.sqlalchemy.org/en/latest/orm/basic_relationships.html#relationship-patterns
-Linking Relationships:
-  http://docs.sqlalchemy.org/en/latest/orm/backref.html#relationships-backref
-Customing Collections Access:
-  http://docs.sqlalchemy.org/en/latest/orm/collections.html#custom-collections
-Constraints:
-  http://docs.sqlalchemy.org/en/latest/core/constraints.html#unique-constraint
+    http://docs.sqlalchemy.org/en/latest/orm/basic_relationships.html
+Relationship backrefs:
+    http://docs.sqlalchemy.org/en/latest/orm/backref.html#relationships-backref
 """
 from __future__ import absolute_import, print_function
 import logging
