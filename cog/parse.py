@@ -84,6 +84,10 @@ def subs_admin(subs, prefix):
 
     {prefix}admin add @GearsandCogs\n          Add GearsandCogs to the admin group.
     {prefix}admin remove @GearsandCogs\n          Remove GearsandCogs from the admin group.
+    {prefix}admin add BGS #hudson_bgs\n          Whitelist bgs command for hudson_bgs channel.
+    {prefix}admin remove BGS #hudson_bgs\n          Remove whitelist for bgs command in hudson_bgs.
+    {prefix}admin add Drop FRC Member\n          Whitelist bgs command for members with role "FRC Member".
+    {prefix}admin remove Drop FRC Member\n          Remove whitelist for bgs command of users with role "FRC Member".
     {prefix}admin cast A message here\n          Broadcast a message to all channels.
     {prefix}admin deny\n          Toggle command processing.
     {prefix}admin dump\n          Dump the database to console to inspect.
@@ -95,13 +99,17 @@ def subs_admin(subs, prefix):
     sub.set_defaults(cmd='Admin')
     admin_subs = sub.add_subparsers(title='subcommands',
                                     description='Admin subcommands', dest='subcmd')
-    admin_subs.add_parser('add', help='Add an admin.')
+    admin_sub = admin_subs.add_parser('add', help='Add an admin or permission.')
+    admin_sub.add_argument('rule_cmd', nargs='?', help='The the command to restrict.')
+    admin_sub.add_argument('role', nargs='*', help='The role name, if a role restriction.')
+    admin_sub = admin_subs.add_parser('remove', help='Remove an admin or permission.')
+    admin_sub.add_argument('rule_cmd', nargs='?', help='The the command to restrict.')
+    admin_sub.add_argument('role', nargs='*', help='The role name, if a role restriction.')
     admin_sub = admin_subs.add_parser('cast', help='Broadcast a message to all channels.')
     admin_sub.add_argument('content', nargs='+', help='The message to send, no hyphens.')
     admin_subs.add_parser('deny', help='Toggle command processing.')
     admin_subs.add_parser('dump', help='Dump the db to console.')
     admin_subs.add_parser('halt', help='Stop accepting commands and halt bot.')
-    admin_subs.add_parser('remove', help='Remove an admin.')
     admin_subs.add_parser('scan', help='Scan the sheets for updates.')
     admin_sub = admin_subs.add_parser('info', help='Get info about discord users.')
     admin_sub.add_argument('user', nargs='?', help='The user to get info on.')

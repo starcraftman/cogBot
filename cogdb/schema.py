@@ -59,13 +59,6 @@ class Admin(Base):
     id = sqla.Column(sqla.String(LEN_DID), primary_key=True)
     date = sqla.Column(sqla.DateTime, default=datetime.datetime.utcnow)  # All dates UTC
 
-    def add(self, session, member):
-        """
-        Add a new admin.
-        """
-        session.add(Admin(id=member.id))
-        session.commit()
-
     def remove(self, session, other):
         """
         Remove an existing admin.
@@ -82,10 +75,64 @@ class Admin(Base):
         return "Admin({})".format(', '.join(kwargs))
 
     def __str__(self):
-        return self.__repr__()
+        return repr(self)
 
     def __eq__(self, other):
         return self.id == other.id
+
+
+class ChannelPerm(Base):
+    """
+    A channel permission to restrict cmd to listed channels.
+    """
+    __tablename__ = 'perms_channel'
+
+    channel = sqla.Column(sqla.String(40))
+    cmd = sqla.Column(sqla.String(LEN_CMD))
+
+    __table_args__ = (
+        sqla.PrimaryKeyConstraint('channel', 'cmd'),
+    )
+
+    def __repr__(self):
+        keys = ['channel', 'cmd']
+        kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
+
+        return "ChannelPerm({})".format(', '.join(kwargs))
+
+    def __str__(self):
+        return repr(self)
+
+    def __eq__(self, other):
+        return isinstance(self, ChannelPerm) and isinstance(other, ChannelPerm) and (
+            self.role, self.cmd) == (other.role, other.cmd)
+
+
+class RolePerm(Base):
+    """
+    A role permission to restrict cmd to listed roles.
+    """
+    __tablename__ = 'perms_role'
+
+    role = sqla.Column(sqla.String(40))
+    cmd = sqla.Column(sqla.String(LEN_CMD))
+
+    __table_args__ = (
+        sqla.PrimaryKeyConstraint('role', 'cmd'),
+    )
+
+    def __repr__(self):
+        keys = ['role', 'cmd']
+        kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
+
+        return "RolePerm({})".format(', '.join(kwargs))
+
+    def __str__(self):
+        return repr(self)
+
+    def __eq__(self, other):
+        return isinstance(self, RolePerm) and isinstance(other, RolePerm) and (
+            self.role, self.cmd) == (other.role, other.cmd)
 
 
 class DUser(Base):
@@ -107,7 +154,7 @@ class DUser(Base):
         return "DUser({})".format(', '.join(kwargs))
 
     def __str__(self):
-        return self.__repr__()
+        return repr(self)
 
     def __eq__(self, other):
         return isinstance(other, DUser) and self.id == other.id

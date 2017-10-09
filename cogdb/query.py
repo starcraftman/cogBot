@@ -5,7 +5,8 @@ from __future__ import absolute_import, print_function
 import logging
 import sys
 
-import sqlalchemy.orm.exc as sqa_exc
+import sqlalchemy.exc as sqla_exc
+import sqlalchemy.orm.exc as sqla_oexc
 
 import cog.exc
 import cog.sheets
@@ -13,7 +14,7 @@ from cog.util import substr_match
 import cogdb
 from cogdb.schema import (DUser, System, PrepSystem, SystemUM, SheetRow, SheetCattle, SheetUM,
                           Drop, Hold, EFaction, ESheetType, kwargs_fort_system, kwargs_um_system,
-                          Admin)
+                          Admin, ChannelPerm, RolePerm)
 
 
 DEFER_MISSING = 750
@@ -65,7 +66,7 @@ def get_duser(session, discord_id):
     """
     try:
         return session.query(DUser).filter_by(id=discord_id).one()
-    except sqa_exc.NoResultFound:
+    except sqla_oexc.NoResultFound:
         raise cog.exc.NoMatch(discord_id, 'DUser')
 
 
@@ -223,7 +224,7 @@ def fort_find_system(session, system_name, search_all=False):
     """
     try:
         return session.query(System).filter_by(name=system_name).one()
-    except (sqa_exc.NoResultFound, sqa_exc.MultipleResultsFound):
+    except (sqla_oexc.NoResultFound, sqla_oexc.MultipleResultsFound):
         index = 0 if search_all else fort_find_current_index(session)
         systems = fort_get_systems(session)[index:] + fort_get_preps(session)
         return fuzzy_find(system_name, systems, 'name')
@@ -332,7 +333,7 @@ def fort_add_drop(session, *, user, system, amount):
 
     try:
         drop = session.query(Drop).filter_by(user_id=user.id, system_id=system.id).one()
-    except sqa_exc.NoResultFound:
+    except sqla_oexc.NoResultFound:
         drop = Drop(user_id=user.id, system_id=system.id, amount=0)
         session.add(drop)
 
@@ -766,7 +767,7 @@ def um_find_system(session, system_name):
     """
     try:
         return session.query(SystemUM).filter_by(name=system_name).one()
-    except (sqa_exc.NoResultFound, sqa_exc.MultipleResultsFound):
+    except (sqla_oexc.NoResultFound, sqla_oexc.MultipleResultsFound):
         systems = session.query(SystemUM).all()
         return fuzzy_find(system_name, systems, 'name')
 
@@ -833,7 +834,7 @@ def um_add_hold(session, **kwargs):
     try:
         hold = session.query(Hold).filter_by(user_id=user.id,
                                              system_id=system.id).one()
-    except sqa_exc.NoResultFound:
+    except sqla_oexc.NoResultFound:
         hold = Hold(user_id=user.id, system_id=system.id, held=0, redeemed=0)
         session.add(hold)
 
@@ -850,14 +851,91 @@ def get_admin(session, member):
     """
     try:
         return session.query(Admin).filter_by(id=member.id).one()
-    except sqa_exc.NoResultFound:
+    except sqla_oexc.NoResultFound:
         raise cog.exc.NoMatch(member.display_name, Admin)
+
+
+def add_admin(session, member):
+    """
+    Add a new admin.
+    """
+    try:
+        session.add(Admin(id=member.id))
+        session.commit()
+    except (sqla_exc.IntegrityError, sqla_oexc.FlushError):
+        raise cog.exc.InvalidCommandArgs("Member {} is already an admin.".format(member.display_name))
+
+
+def add_channel_perm(session, cmd, channel_name):
+    try:
+        session.add(ChannelPerm(cmd=cmd, channel=channel_name))
+        session.commit()
+    except (sqla_exc.IntegrityError, sqla_oexc.FlushError):
+        raise cog.exc.InvalidCommandArgs("Channel permission already exists.")
+
+
+def add_role_perm(session, cmd, role_name):
+    try:
+        session.add(RolePerm(cmd=cmd, role=role_name))
+        session.commit()
+    except (sqla_exc.IntegrityError, sqla_oexc.FlushError):
+        raise cog.exc.InvalidCommandArgs("Role permission already exists.")
+
+
+def remove_channel_perm(session, cmd, channel_name):
+    try:
+        session.delete(session.query(ChannelPerm).filter_by(cmd=cmd, channel=channel_name).one())
+        session.commit()
+    except sqla_oexc.NoResultFound:
+        raise cog.exc.InvalidCommandArgs("Channel permission does not exist.")
+
+
+def remove_role_perm(session, cmd, role_name):
+    try:
+        session.delete(session.query(RolePerm).filter_by(cmd=cmd, role=role_name).one())
+        session.commit()
+    except sqla_oexc.NoResultFound:
+        raise cog.exc.InvalidCommandArgs("Role permission does not exist.")
 
 
 def check_perms(msg, args):
     """
     Check if a user is authorized to issue this command.
+    Checks will be made against channel and user roles.
 
     Raises InvalidPerms if any permission issue.
     """
-    pass
+    # Admin commands unrestricted, except by being an Admin
+    if args.cmd == 'Admin':
+        return
+    session = cogdb.Session()
+    check_channel_perms(session, args.cmd, msg.channel.name)
+    check_role_perms(session, args.cmd, msg.author.roles)
+
+
+def check_channel_perms(session, cmd, channel_name):
+    """
+    A user is allowed to issue a command if:
+        a) no restrictions for the cmd
+        b) the channel is whitelisted in the restricted channels
+
+    Raises InvalidPerms if fails permission check.
+    """
+    channels = [perm.channel for perm in session.query(ChannelPerm).filter_by(cmd=cmd)]
+    if channels and channel_name not in channels:
+        raise cog.exc.InvalidPerms("The '{}' command is not permitted on this channel.".format(
+            cmd.lower()))
+
+
+def check_role_perms(session, cmd, member_roles):
+    """
+    A user is allowed to issue a command if:
+        a) no roles set for the cmd
+        b) he matches ANY of the set roles
+
+    Raises InvalidPerms if fails permission check.
+    """
+    perm_roles = set([perm.role for perm in session.query(RolePerm).filter_by(cmd=cmd)])
+    member_roles = set([role.name for role in member_roles])
+    if perm_roles and len(member_roles - perm_roles) == len(member_roles):
+        raise cog.exc.InvalidPerms("You do not have the roles for the command.")

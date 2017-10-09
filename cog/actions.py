@@ -136,10 +136,77 @@ class Action(object):
         raise NotImplementedError
 
 
+# TODO: This is a mess :( Change to bind functions on parse maybe? Perhaps add top levels? !perms?
 class Admin(Action):
     """
     Admin command console. For knowledgeable users only.
     """
+    def check_role(self, role):
+        """ Sanity check that role exists. """
+        if role not in [role.name for role in self.msg.channel.server.roles]:
+            raise cog.exc.InvalidCommandArgs("Role does not exist!")
+
+    def check_cmd(self):
+        """ Sanity check that cmd exists. """
+        cmd_set = sorted([cls.__name__ for cls in cog.actions.Action.__subclasses__()])
+        cmd_set.remove('Admin')
+        if not self.args.rule_cmd or self.args.rule_cmd not in cmd_set:
+            raise cog.exc.InvalidCommandArgs("Rules require a command in following set: \n\n" +
+                                             str(cmd_set))
+
+    def add(self):
+        """
+        Takes one of the following actions:
+            1) Add 1 or more admins
+            2) Add a single channel rule
+            3) Add a single role rule
+        """
+        if not self.args.rule_cmd and self.msg.mentions:
+            for member in self.msg.mentions:
+                cogdb.query.add_admin(self.session, member)
+            return "Admins added:\n\n" + '\n'.join([member.name for member in self.msg.mentions])
+
+        else:
+            self.check_cmd()
+
+            if self.msg.channel_mentions:
+                cogdb.query.add_channel_perm(self.session, self.args.rule_cmd,
+                                             self.msg.channel_mentions[0].name)
+                return "Channel permission added."
+
+            elif self.args.role:
+                role = ' '.join(self.args.role)
+                self.check_role(role)
+                cogdb.query.add_role_perm(self.session, self.args.rule_cmd,
+                                          ' '.join(self.args.role))
+                return "Role permission added."
+
+    def remove(self, admin):
+        """
+        Takes one of the following actions:
+            1) Remove 1 or more admins
+            2) Remove a single channel rule
+            3) Remove a single role rule
+        """
+        if not self.args.rule_cmd and self.msg.mentions:
+            for member in self.msg.mentions:
+                admin.remove(self.session, cogdb.query.get_admin(self.session, member))
+            return "Admins removed:\n\n" + '\n'.join([member.name for member in self.msg.mentions])
+
+        else:
+            self.check_cmd()
+
+            if self.msg.channel_mentions:
+                cogdb.query.remove_channel_perm(self.session, self.args.rule_cmd,
+                                                self.msg.channel_mentions[0].name)
+                return "Channel permission removed."
+
+            elif self.args.role:
+                role = ' '.join(self.args.role)
+                self.check_role(role)
+                cogdb.query.remove_role_perm(self.session, self.args.rule_cmd, role)
+                return "Role permission removed."
+
     async def execute(self):
         args = self.args
         response = ''
@@ -148,15 +215,12 @@ class Admin(Action):
         except cog.exc.NoMatch:
             raise cog.exc.InvalidPerms("{} You are not an admin!".format(self.msg.author.mention))
 
+        print(args)
         if args.subcmd == "add":
-            for member in self.msg.mentions:
-                admin.add(self.session, member)
-            response = "Admins added."
+            response = self.add()
 
         elif args.subcmd == "remove":
-            for member in self.msg.mentions:
-                admin.remove(self.session, cogdb.query.get_admin(self.session, member))
-            response = "Admins removed."
+            response = self.remove(admin)
 
         elif args.subcmd == 'cast':
             asyncio.ensure_future(self.bot.broadcast(' '.join(self.args.content)))
@@ -178,8 +242,7 @@ class Admin(Action):
             response = 'Shutdown scheduled.'
 
         elif args.subcmd == 'scan':
-            asyncio.ensure_future(self.bot.send_message(self.msg.channel,
-                                                        'All sheets scheduled for update.'))
+            response = 'All sheets scheduled for update.'
             self.bot.sched.schedule_all()
 
         elif args.subcmd == 'info':

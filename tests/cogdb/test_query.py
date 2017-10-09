@@ -9,7 +9,7 @@ import pytest
 import cog.exc
 import cogdb
 from cogdb.schema import (DUser, System, SheetRow, SheetCattle, SheetUM,
-                          Hold, UMExpand, EFaction, ESheetType)
+                          Hold, UMExpand, EFaction, ESheetType, Admin)
 import cogdb.query
 
 from tests.data import SYSTEMS, USERS
@@ -353,3 +353,9 @@ def test_admin_get(session, f_dusers, f_admins):
     member = test_actions.Member("NotThere", None, id="2000")
     with pytest.raises(cog.exc.NoMatch):
         cogdb.query.get_admin(session, member)
+
+
+def test_add_admin(session, f_dusers, f_admins):
+    cogdb.query.add_admin(session, f_dusers[-1])
+
+    assert session.query(Admin).all()[-1].id == f_dusers[-1].id

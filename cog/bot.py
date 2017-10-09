@@ -240,7 +240,7 @@ class CogBot(discord.Client):
                  channel.server, channel.name, author.name, content)
 
         try:
-            content = re.sub(r'<@\w+>', '', content).strip()  # Strip mentions from text
+            content = re.sub(r'<[#@]\w+>', '', content).strip()  # Strip mentions from text
             parser = cog.parse.make_parser(self.prefix)
             args = parser.parse_args(re.split(r'\s+', content))
             await self.dispatch_command(args=args, bot=self, msg=message)

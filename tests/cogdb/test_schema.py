@@ -43,13 +43,6 @@ def test_empty_tables_not_all(session, f_dusers, f_sheets, f_systems, f_drops, f
     assert session.query(DUser).all()
 
 
-def test_admin_add(session, f_dusers, f_admins):
-    first = f_admins[0]
-    first.add(session, f_dusers[-1])
-
-    assert session.query(Admin).all()[-1].id == f_dusers[-1].id
-
-
 def test_admin_remove(session, f_dusers, f_admins):
     first, second = f_admins
     with pytest.raises(cog.exc.InvalidPerms):
