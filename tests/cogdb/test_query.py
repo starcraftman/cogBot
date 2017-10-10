@@ -374,6 +374,7 @@ def test_add_channel_perm(session, f_cperms):
         finally:
             session.rollback()
 
+
 def test_add_role_perm(session, f_rperms):
     cogdb.query.add_role_perm(session, 'Status', 'Cookie Tyrant')
 
@@ -389,22 +390,22 @@ def test_add_role_perm(session, f_rperms):
 
 def test_remove_channel_perm(session, f_cperms):
     perm = f_cperms[0]
-    cogdb.query.remove_channel_perm(session, 'Drop', 'operations')
+    cogdb.query.remove_channel_perm(session, perm.cmd, perm.channel)
 
     assert not session.query(ChannelPerm).all()
 
     with pytest.raises(cog.exc.InvalidCommandArgs):
-        cogdb.query.remove_channel_perm(session, 'Drop', 'operations')
+        cogdb.query.remove_channel_perm(session, perm.cmd, perm.channel)
 
 
 def test_remove_role_perm(session, f_rperms):
     perm = f_rperms[0]
-    cogdb.query.remove_role_perm(session, 'Drop', 'FRC Member')
+    cogdb.query.remove_role_perm(session, perm.cmd, perm.role)
 
     assert not session.query(RolePerm).all()
 
     with pytest.raises(cog.exc.InvalidCommandArgs):
-        cogdb.query.remove_role_perm(session, 'Drop', 'FRC Member')
+        cogdb.query.remove_role_perm(session, perm.cmd, perm.role)
 
 
 def test_check_perms(session, f_cperms, f_rperms):

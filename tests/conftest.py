@@ -2,20 +2,22 @@
 Used for pytest fixtures and anything else test setup/teardown related.
 """
 from __future__ import absolute_import, print_function
-import asyncio
 import copy
 import datetime
 import os
+import sys
 
 import mock
 import pytest
 try:
-    import uvloop
-    POLICY = uvloop.EventLoopPolicy
-    print("Test loop policy: uvloop")
+    import zmq.asyncio
+    LOOP = zmq.asyncio.ZMQEventLoop
+    loop = LOOP()
+    loop.set_debug(True)
+    print("Test loop policy:", str(loop))
 except ImportError:
-    POLICY = asyncio.DefaultEventLoopPolicy
-    print("Test loop policy: default loop")
+    print("Missing zmq lib.")
+    sys.exit(1)
 
 import cogdb
 import cogdb.query
@@ -57,17 +59,12 @@ def event_loop():
         1) Mark with pytest.mark.asyncio
         2) event_loop.run_until_complete(asyncio.gather(futures))
     """
-    try:
-        old_policy = asyncio.get_event_loop_policy()
-        asyncio.set_event_loop_policy(POLICY())
-        loop = asyncio.get_event_loop()
-        loop.set_debug(True)
+    loop = LOOP()
+    loop.set_debug(True)
 
-        yield loop
+    yield loop
 
-        loop.close()
-    finally:
-        asyncio.set_event_loop_policy(old_policy)
+    loop.close()
 
 
 @pytest.fixture
