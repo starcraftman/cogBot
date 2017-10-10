@@ -9,7 +9,8 @@ import pytest
 import cog.exc
 import cogdb
 from cogdb.schema import (DUser, System, SheetRow, SheetCattle, SheetUM,
-                          Hold, UMExpand, EFaction, ESheetType, Admin)
+                          Hold, UMExpand, EFaction, ESheetType, Admin,
+                          ChannelPerm, RolePerm)
 import cogdb.query
 
 from tests.data import SYSTEMS, USERS
@@ -359,3 +360,87 @@ def test_add_admin(session, f_dusers, f_admins):
     cogdb.query.add_admin(session, f_dusers[-1])
 
     assert session.query(Admin).all()[-1].id == f_dusers[-1].id
+
+
+def test_add_channel_perm(session, f_cperms):
+    cogdb.query.add_channel_perm(session, 'Status', 'general')
+
+    obj = session.query(ChannelPerm).filter_by(cmd='Status', channel='general').one()
+    assert obj.cmd == 'Status'
+
+    with pytest.raises(cog.exc.InvalidCommandArgs):
+        try:
+            cogdb.query.add_channel_perm(session, 'Drop', 'operations')
+        finally:
+            session.rollback()
+
+def test_add_role_perm(session, f_rperms):
+    cogdb.query.add_role_perm(session, 'Status', 'Cookie Tyrant')
+
+    obj = session.query(RolePerm).filter_by(cmd='Status', role='Cookie Tyrant').one()
+    assert obj.cmd == 'Status'
+
+    with pytest.raises(cog.exc.InvalidCommandArgs):
+        try:
+            cogdb.query.add_role_perm(session, 'Drop', 'FRC Member')
+        finally:
+            session.rollback()
+
+
+def test_remove_channel_perm(session, f_cperms):
+    perm = f_cperms[0]
+    cogdb.query.remove_channel_perm(session, 'Drop', 'operations')
+
+    assert not session.query(ChannelPerm).all()
+
+    with pytest.raises(cog.exc.InvalidCommandArgs):
+        cogdb.query.remove_channel_perm(session, 'Drop', 'operations')
+
+
+def test_remove_role_perm(session, f_rperms):
+    perm = f_rperms[0]
+    cogdb.query.remove_role_perm(session, 'Drop', 'FRC Member')
+
+    assert not session.query(RolePerm).all()
+
+    with pytest.raises(cog.exc.InvalidCommandArgs):
+        cogdb.query.remove_role_perm(session, 'Drop', 'FRC Member')
+
+
+def test_check_perms(session, f_cperms, f_rperms):
+    ops_channel = test_actions.Channel("operations")
+    roles = [test_actions.Role('FRC Member'), test_actions.Role('Winters')]
+    author = test_actions.Member('Gears', roles)
+    msg = test_actions.Message('!drop', author, None, ops_channel, None)
+
+    cogdb.query.check_perms(msg, mock.Mock(cmd='Drop'))  # Silent pass
+
+    with pytest.raises(cog.exc.InvalidPerms):
+        msg.author.roles = [test_actions.Role('Winters')]
+        cogdb.query.check_perms(msg, mock.Mock(cmd='Drop'))
+
+    with pytest.raises(cog.exc.InvalidPerms):
+        msg.author.roles = roles
+        msg.channel.name = 'not_pperations'
+        cogdb.query.check_perms(msg, mock.Mock(cmd='Drop'))
+
+
+def test_check_channel_perms(session, f_cperms):
+    # Silently pass if no raise
+    cogdb.query.check_channel_perms(session, 'Drop', 'operations')
+    cogdb.query.check_channel_perms(session, 'Time', 'operations')
+
+    with pytest.raises(cog.exc.InvalidPerms):
+        cogdb.query.check_channel_perms(session, 'Drop', 'not_operations')
+
+
+def test_check_role_perms(session, f_rperms):
+    # Silently pass if no raise
+    Role = test_actions.Role
+    cogdb.query.check_role_perms(session, 'Drop',
+                                 [Role('FRC Member'), Role('FRC Vet')])
+    cogdb.query.check_role_perms(session, 'Time', [Role('Winters', None)])
+
+    with pytest.raises(cog.exc.InvalidPerms):
+        cogdb.query.check_role_perms(session, 'Drop',
+                                     [Role('FRC Leader'), Role('Cookies')])

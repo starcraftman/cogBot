@@ -149,7 +149,7 @@ class Admin(Action):
     def check_cmd(self):
         """ Sanity check that cmd exists. """
         cmd_set = sorted([cls.__name__ for cls in cog.actions.Action.__subclasses__()])
-        cmd_set.remove('Admin')
+        cmd_set.remove('Admin')  # Admin cannot be restricted even by admins
         if not self.args.rule_cmd or self.args.rule_cmd not in cmd_set:
             raise cog.exc.InvalidCommandArgs("Rules require a command in following set: \n\n" +
                                              str(cmd_set))

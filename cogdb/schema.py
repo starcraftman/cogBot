@@ -95,7 +95,7 @@ class ChannelPerm(Base):
     )
 
     def __repr__(self):
-        keys = ['channel', 'cmd']
+        keys = ['cmd', 'channel']
         kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
 
         return "ChannelPerm({})".format(', '.join(kwargs))
@@ -105,7 +105,7 @@ class ChannelPerm(Base):
 
     def __eq__(self, other):
         return isinstance(self, ChannelPerm) and isinstance(other, ChannelPerm) and (
-            self.role, self.cmd) == (other.role, other.cmd)
+            self.channel, self.cmd) == (other.channel, other.cmd)
 
 
 class RolePerm(Base):
@@ -122,7 +122,7 @@ class RolePerm(Base):
     )
 
     def __repr__(self):
-        keys = ['role', 'cmd']
+        keys = ['cmd', 'role']
         kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
 
         return "RolePerm({})".format(', '.join(kwargs))

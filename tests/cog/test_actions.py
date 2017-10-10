@@ -114,7 +114,7 @@ class Member(FakeObject):
 
 
 class Role(FakeObject):
-    def __init__(self, name, srv, *, id=None):
+    def __init__(self, name, srv=None, *, id=None):
         super().__init__(name, id)
         self.server = srv
 

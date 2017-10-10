@@ -22,7 +22,7 @@ import cogdb.query
 from cogdb.schema import (DUser, PrepSystem, System, SystemUM, Drop, Hold,
                           UMExpand, UMOppose, UMControl,
                           SheetRow, SheetCattle, SheetUM,
-                          EFaction, Admin)
+                          EFaction, Admin, ChannelPerm, RolePerm)
 from tests.data import CELLS_FORT, CELLS_FORT_FMT, CELLS_UM
 
 
@@ -285,6 +285,38 @@ def f_admins(session):
     yield admins
 
     for matched in session.query(Admin):
+        session.delete(matched)
+    session.commit()
+
+
+@pytest.fixture
+def f_cperms(session):
+    """ Channel perms fixture. """
+    perms = (
+        ChannelPerm(cmd="Drop", channel="operations"),
+    )
+    session.add_all(perms)
+    session.commit()
+
+    yield perms
+
+    for matched in session.query(ChannelPerm):
+        session.delete(matched)
+    session.commit()
+
+
+@pytest.fixture
+def f_rperms(session):
+    """ Role perms fixture. """
+    perms = (
+        RolePerm(cmd="Drop", role="FRC Member"),
+    )
+    session.add_all(perms)
+    session.commit()
+
+    yield perms
+
+    for matched in session.query(RolePerm):
         session.delete(matched)
     session.commit()
 

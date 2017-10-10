@@ -905,9 +905,6 @@ def check_perms(msg, args):
 
     Raises InvalidPerms if any permission issue.
     """
-    # Admin commands unrestricted, except by being an Admin
-    if args.cmd == 'Admin':
-        return
     session = cogdb.Session()
     check_channel_perms(session, args.cmd, msg.channel.name)
     check_role_perms(session, args.cmd, msg.author.roles)
