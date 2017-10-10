@@ -28,7 +28,6 @@ import logging.config
 import os
 import pprint
 import re
-import time
 
 import apiclient
 import discord
@@ -104,7 +103,7 @@ class CogBot(discord.Client):
         self.prefix = prefix
         self.deny_commands = True
         self.emoji = EmojiResolver()
-        self.last_cmd = time.time()
+        self.parser = cog.parse.make_parser(prefix)
         self.sched = cog.scheduler.Scheduler()
         self.start_date = datetime.datetime.utcnow().replace(microsecond=0)
 
@@ -241,8 +240,7 @@ class CogBot(discord.Client):
 
         try:
             content = re.sub(r'<[#@]\w+>', '', content).strip()  # Strip mentions from text
-            parser = cog.parse.make_parser(self.prefix)
-            args = parser.parse_args(re.split(r'\s+', content))
+            args = self.parser.parse_args(re.split(r'\s+', content))
             await self.dispatch_command(args=args, bot=self, msg=message)
 
         except cog.exc.ArgumentParseError as exc:
@@ -250,7 +248,7 @@ class CogBot(discord.Client):
             exc.write_log(log, content=content, author=author, channel=channel)
             if 'invalid choice' not in exc.message:
                 try:
-                    parser.parse_args(content.split(' ')[0:1] + ['--help'])
+                    self.parser.parse_args(content.split(' ')[0:1] + ['--help'])
                 except cog.exc.ArgumentHelpError as exc2:
                     exc.message = 'Invalid command use. Check the command help.'
                     exc.message += '\n{}\n{}'.format(len(exc.message) * '-', exc2.message)
@@ -276,28 +274,6 @@ class CogBot(discord.Client):
             line += cog.exc.log_format(content=content, author=author, channel=channel)
             log.exception(line)
 
-    async def send_ttl_message(self, destination, content, **kwargs):
-        """
-        Behaves excactly like Client.send_message except:
-            After sending message wait 'ttl' seconds then delete message.
-
-        Extra Kwargs:
-            ttl: The time message lives before deletion (default 30s)
-        """
-        try:
-            ttl = kwargs.pop('ttl')
-        except KeyError:
-            ttl = cog.util.get_config('ttl')
-
-        content += '\n\n__This message will be deleted in {} seconds__'.format(ttl)
-        message = await self.send_message(destination, content, **kwargs)
-
-        await asyncio.sleep(ttl)
-        try:
-            await self.delete_message(message)
-        except discord.NotFound:
-            pass
-
     async def dispatch_command(self, **kwargs):
         """
         Simply inspect class and dispatch command. Guaranteed to be valid.
@@ -321,18 +297,49 @@ class CogBot(discord.Client):
         cls = getattr(cog.actions, args.cmd)
         await cls(**kwargs).execute()
 
-    async def broadcast(self, content, ttl=False, **kwargs):
+    async def send_ttl_message(self, destination, content, **kwargs):
         """
-        Broadcast content to ALL channels this bot has send message permissions in.
+        Behaves excactly like Client.send_message except:
+            After sending message wait 'ttl' seconds then delete message.
+
+        Extra Kwargs:
+            ttl: The time message lives before deletion (default 30s)
         """
+        try:
+            ttl = kwargs.pop('ttl')
+        except KeyError:
+            ttl = cog.util.get_config('ttl')
+
+        content += '\n\n__This message will be deleted in {} seconds__'.format(ttl)
+        message = await self.send_message(destination, content, **kwargs)
+
+        await asyncio.sleep(ttl)
+        try:
+            await self.delete_message(message)
+        except discord.NotFound:
+            pass
+
+    async def broadcast(self, content, ttl=False, channels=None, **kwargs):
+        """
+        By default, broadcast a normal message to all channels bot can see.
+
+        args:
+            content: The message.
+            ttl: If true, send a message that deletes itself.
+            channels: A list of channel names (strings) to broadcast to.
+         """
         send = self.send_message
         if ttl:
             send = self.send_ttl_message
 
-        for server in self.servers:
-            for channel in server.channels:
-                if channel.permissions_for(server.me).send_messages:
-                    asyncio.ensure_future(send(channel, '**BROADCAST**\n' + content, **kwargs))
+        if channels:
+            channels = [self.get_channel_by_name(name) for name in channels]
+        else:
+            channels = list(self.get_all_channels())
+
+        for channel in channels:
+            if channel.permissions_for(channel.server.me).send_messages:
+                asyncio.ensure_future(send(channel, "**Broadcast**\n\n" + content, **kwargs))
 
 
 async def presence_task(bot, delay=180):
