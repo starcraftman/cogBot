@@ -301,6 +301,9 @@ class Drop(Base):
         return isinstance(other, Drop) and (self.user_id, self.system_id) == (
             other.user_id, other.system_id)
 
+    def __lt__(self, other):
+        return self.amount < other.amount
+
 
 class Hold(Base):
     """
@@ -334,6 +337,9 @@ class Hold(Base):
     def __eq__(self, other):
         return isinstance(other, Hold) and (self.user_id, self.system_id) == (
             other.user_id, other.system_id)
+
+    def __lt__(self, other):
+        return self.held + self.redeemed < other.held + other.redeemed
 
 
 class System(Base):
@@ -945,6 +951,7 @@ def main():  # pragma: no cover
     for sys in session.query(System):
         mprint(sys)
         mprint(pad, sys.merits)
+        mprint(sorted(sys.merits))
 
     print('Drops----------')
     for drop in session.query(Drop):

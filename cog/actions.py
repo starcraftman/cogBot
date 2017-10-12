@@ -305,6 +305,31 @@ class Drop(Action):
     """
     Handle the logic of dropping a fort at a target.
     """
+    def finished(self, system):
+        """
+        Additional reply when a system is finished (i.e. deferred or 100%).
+        """
+        try:
+            new_target = cogdb.query.fort_get_targets(self.session)[0]
+            response = '\n\n__Next Fort Target__:\n' + new_target.display()
+        except cog.exc.NoMoreTargets:
+            response = '\n\n Could not determine next fort target.'
+
+        merits = list(reversed(sorted(system.merits)))
+        tops = [merits.pop(0)]
+        while merits[0] == tops[-1]:
+            tops.append(merits.pop(0))
+
+        lines = [
+            '**{}** Have a :cookie: for completing {}.'.format(self.duser.display_name, system.name),
+            'Bonus for highest contribution:',
+        ]
+        for top in tops:
+            lines.append('    :cookie: for **{}** with {} supplies.'.format(top.user.name, top.amount))
+        response += '\n\n' + '\n'.join(lines)
+
+        return response
+
     @check_mentions
     @check_sheet('hudson_cattle', 'cattle')
     async def execute(self):
@@ -341,11 +366,7 @@ class Drop(Action):
 
         response = drop.system.display()
         if drop.system.is_fortified:
-            try:
-                new_target = cogdb.query.fort_get_targets(self.session)[0]
-                response += '\n\n__Next Fort Target__:\n' + new_target.display()
-            except cog.exc.NoMoreTargets:
-                response += '\n\n Could not determine next fort target.'
+            response += self.finished(system)
         await self.bot.send_message(self.msg.channel,
                                     self.bot.emoji.fix(response, self.msg.server))
 
