@@ -317,7 +317,7 @@ class Drop(Action):
 
         merits = list(reversed(sorted(system.merits)))
         tops = [merits.pop(0)]
-        while merits[0] == tops[-1]:
+        while merits[0].amount == tops[0].amount:
             tops.append(merits.pop(0))
 
         lines = [
