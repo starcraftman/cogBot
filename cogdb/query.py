@@ -406,7 +406,6 @@ class SheetScanner(object):
 
         systems = self.systems()
         users = self.users(*self.users_args)
-        session = cogdb.Session()
         session.add_all(systems + users)
         session.commit()
 
