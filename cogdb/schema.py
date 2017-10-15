@@ -9,11 +9,13 @@ import datetime
 import sqlalchemy as sqla
 import sqlalchemy.orm as sqla_orm
 import sqlalchemy.ext.declarative
+from sqlalchemy.ext.hybrid import hybrid_property, hybrid_method
 
 import cog.exc
 import cogdb
 
 
+# TODO: Implement hybrids where appropriate, http://docs.sqlalchemy.org/en/latest/orm/extensions/hybrid.html
 # TODO: System hierarchy mapped to single table. Fair bit of overlap here.
 # Example
 # SystemBase --> SystemFort -> SystemPrep
