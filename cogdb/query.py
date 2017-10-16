@@ -563,11 +563,11 @@ class FortScanner(SheetScanner):
                 for user in users:
                     amount = self.cells[sys_ind][user.row - 1]
 
-                    if amount == '':  # Some rows just placeholders if empty
+                    if amount.strip() == '':  # Some rows just placeholders if empty
                         continue
 
                     found.append(Drop(user_id=user.id, system_id=system.id,
-                                      amount=amount))
+                                      amount=cogdb.schema.parse_int(amount)))
                     log.info('DROPSCAN - Adding: %s', found[-1])
             except IndexError:
                 pass  # No more amounts in column
@@ -684,13 +684,12 @@ class UMScanner(SheetScanner):
             try:
                 for user in users:
                     held = self.cells[col_ind][user.row - 1]
-                    if held == '':
+                    if held.strip() == '':
                         continue
 
                     key = '{}_{}'.format(system.id, user.id)
                     hold = holds.get(key, Hold(user_id=user.id, system_id=system.id,
-                                               held=0, redeemed=0))
-                    hold.held += cogdb.schema.parse_int(held)
+                                               held=cogdb.schema.parse_int(held), redeemed=0))
                     holds[key] = hold
                     log.info('HOLDSCAN - Held merits: %s', hold)
 
@@ -715,13 +714,12 @@ class UMScanner(SheetScanner):
             try:
                 for user in users:
                     redeemed = self.cells[col_ind][user.row - 1]
-                    if redeemed == '':
+                    if redeemed.strip() == '':
                         continue
 
                     key = '{}_{}'.format(system.id, user.id)
                     hold = holds.get(key, Hold(user_id=user.id, system_id=system.id,
-                                               held=0, redeemed=0))
-                    hold.redeemed += cogdb.schema.parse_int(redeemed)
+                                               held=0, redeemed=cogdb.schema.parse_int(redeemed)))
                     holds[key] = hold
                     log.info('HOLDSCAN - Redeemed merits: %s', hold)
             except IndexError:
