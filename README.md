@@ -16,19 +16,37 @@ This bot requires python >= 3.5. I suggest using pyenv to provide python and iso
 - `pyenv install 3.5.3`
 - `pyenv local 3.5.3` (in project root)
 
-Now for project dependencies.
-To see actual list see setup.py, RUN_DEPS and TEST_DEPS variables.
-- `sudo apt-get install python3-dev libffi-dev libczmq-dev libczmq3`
+Now for project dependencies (you can use mysql instead of maria)
+- `sudo apt-get install python3-dev libffi-dev libczmq-dev libczmq3`mariadb-server mariadb-client
 - `python setup.py deps`
 
-NB: libczqm3 may not be available on some systems. Not to be confused with similarly named zmq kernel messaging.
+NB: libczmq3 may not be available on some systems. Not to be confused with similarly named zmq kernel messaging.
 
-To complete installation, you need to fill the data directory with configuration files.
-Details forth coming, they are secret so cannot be commited.
+Next is the database. At a bare minimum you require a running mysql/mariadb instance with at least 1 user.
+That user must have access to a database named **dev**. This is the default database.
+The database used is tied to the COG_TOKEN set in os.environ on startup. See below.
+
+To complete installation, you need to fill the data directory with configuration files from separate dev kit.
+Inside the main config you will have to edit the information about connecting to your local db (user/pass).
+There may be additional details in the dev kit, please read them.
+
+#### COG_TOKEN Explained
+
+The COG_TOKEN environment variable does two main things. Let us consider the example:
+
+`COG_TOKEN=live python -m cog.bot`
+
+1) Selects the local database to use. In this case, the mysql driver will login locally and select `live` database.
+1) Tells bot on startup what bot account to login to discord with. This is important. In the `config.yml` file
+there is a key called **discord**. Under this key, is a series of key/value pairs. In our example, the running
+bot would log in with the discord token under the 'live' key.
+
+If COG_TOKEN variable doesn't exist, default is 'dev'. I suggest you use that to start with.
+The main reason token also selects a different database is to allow side by side execution of the bot.
 
 ### Running Bot
 
-To run the main bot:
+To run the main bot do as follows. Take note of above, you'll be implying COG_TOKEN=dev by default.
 
 ```
 python -m cog.bot
@@ -36,10 +54,9 @@ python -m cog.bot
 
 Note that the scheduler depends on the web/app.py to be running and accepting
 requests from the hooked sheets. The bot can be run without it locally, you just
-won't get notified when sheet changes.
+won't get notified when sheet changes are made.
 
 See web/app.py for more details.
-
 
 ### Layout
 

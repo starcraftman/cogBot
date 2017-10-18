@@ -563,7 +563,9 @@ class FortScanner(SheetScanner):
                 for user in users:
                     amount = self.cells[sys_ind][user.row - 1]
 
-                    if amount.strip() == '':  # Some rows just placeholders if empty
+                    if isinstance(amount, type('')):
+                        amount = amount.strip()
+                    if amount == '':  # Some rows just placeholders if empty
                         continue
 
                     found.append(Drop(user_id=user.id, system_id=system.id,
@@ -684,7 +686,10 @@ class UMScanner(SheetScanner):
             try:
                 for user in users:
                     held = self.cells[col_ind][user.row - 1]
-                    if held.strip() == '':
+
+                    if isinstance(held, type('')):
+                        held = held.strip()
+                    if held == '':
                         continue
 
                     key = '{}_{}'.format(system.id, user.id)
@@ -714,7 +719,10 @@ class UMScanner(SheetScanner):
             try:
                 for user in users:
                     redeemed = self.cells[col_ind][user.row - 1]
-                    if redeemed.strip() == '':
+
+                    if isinstance(redeemed, type('')):
+                        redeemed = redeemed.strip()
+                    if redeemed == '':
                         continue
 
                     key = '{}_{}'.format(system.id, user.id)
