@@ -694,9 +694,11 @@ class UMScanner(SheetScanner):
 
                     key = '{}_{}'.format(system.id, user.id)
                     hold = holds.get(key, Hold(user_id=user.id, system_id=system.id,
-                                               held=cogdb.schema.parse_int(held), redeemed=0))
+                                               held=0, redeemed=0))
+                    hold.held += cogdb.schema.parse_int(held)
+
                     holds[key] = hold
-                    log.info('HOLDSCAN - Held merits: %s', hold)
+                    log.info('HOLDSCAN - Held merits: %s %s', key, hold)
 
             except IndexError:
                 pass  # No more in column
@@ -727,9 +729,11 @@ class UMScanner(SheetScanner):
 
                     key = '{}_{}'.format(system.id, user.id)
                     hold = holds.get(key, Hold(user_id=user.id, system_id=system.id,
-                                               held=0, redeemed=cogdb.schema.parse_int(redeemed)))
+                                               held=0, redeemed=0))
+                    hold.redeemed += cogdb.schema.parse_int(redeemed)
+
                     holds[key] = hold
-                    log.info('HOLDSCAN - Redeemed merits: %s', hold)
+                    log.info('HOLDSCAN - Redeemed merits: %s %s', key, hold)
             except IndexError:
                 pass  # No more in column
 

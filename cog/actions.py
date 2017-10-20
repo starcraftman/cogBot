@@ -315,17 +315,22 @@ class Drop(Action):
         except cog.exc.NoMoreTargets:
             response = '\n\n Could not determine next fort target.'
 
-        merits = list(reversed(sorted(system.merits)))
-        tops = [merits.pop(0)]
-        while merits[0].amount == tops[0].amount:
-            tops.append(merits.pop(0))
-
         lines = [
-            '**{}** Have a :cookie: for completing {}.'.format(self.duser.display_name, system.name),
-            'Bonus for highest contribution:',
+            '**{}** Have a :cookie: for completing {}'.format(self.duser.display_name, system.name),
         ]
-        for top in tops:
-            lines.append('    :cookie: for **{}** with {} supplies.'.format(top.user.name, top.amount))
+
+        try:
+            merits = list(reversed(sorted(system.merits)))
+            top = merits[0]
+            lines += ['Bonus for highest contribution:']
+            for merit in merits:
+                if merit.amount != top.amount:
+                    break
+                lines.append('    :cookie: for **{}** with {} supplies'.format(
+                    merit.user.name, merit.amount))
+        except IndexError:
+            lines += ["No found contributions. Heres a :cookie: for the unknown commanders."]
+
         response += '\n\n' + '\n'.join(lines)
 
         return response
