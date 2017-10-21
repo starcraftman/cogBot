@@ -69,34 +69,34 @@ def test_admin__eq__(session, f_dusers, f_admins):
 
 def test_channelperm__repr__(session, f_cperms):
     perm = f_cperms[0]
-    assert repr(perm) == "ChannelPerm(cmd='Drop', channel='operations')"
+    assert repr(perm) == "ChannelPerm(cmd='Drop', server='Gears Hideout', channel='operations')"
 
 
 def test_channelperm__str__(session, f_cperms):
     perm = f_cperms[0]
-    assert str(perm) == "ChannelPerm(cmd='Drop', channel='operations')"
+    assert str(perm) == "ChannelPerm(cmd='Drop', server='Gears Hideout', channel='operations')"
 
 
 def test_channelperm__eq__(session, f_cperms):
     perm = f_cperms[0]
-    assert perm == ChannelPerm(cmd=perm.cmd, channel=perm.channel)
-    assert perm != ChannelPerm(cmd=perm.cmd, channel='NoMatch')
+    assert perm == ChannelPerm(cmd=perm.cmd, server=perm.server, channel=perm.channel)
+    assert perm != ChannelPerm(cmd=perm.cmd, server=perm.server, channel='NoMatch')
 
 
 def test_roleperm__repr__(session, f_rperms):
     perm = f_rperms[0]
-    assert repr(perm) == "RolePerm(cmd='Drop', role='FRC Member')"
+    assert repr(perm) == "RolePerm(cmd='Drop', server='Gears Hideout', role='FRC Member')"
 
 
 def test_roleperm__str__(session, f_rperms):
     perm = f_rperms[0]
-    assert str(perm) == "RolePerm(cmd='Drop', role='FRC Member')"
+    assert str(perm) == "RolePerm(cmd='Drop', server='Gears Hideout', role='FRC Member')"
 
 
 def test_roleperm__eq__(session, f_rperms):
     perm = f_rperms[0]
-    assert perm == RolePerm(cmd=perm.cmd, role=perm.role)
-    assert perm != RolePerm(cmd=perm.cmd, role='NoMatch')
+    assert perm == RolePerm(cmd=perm.cmd, server=perm.server, role=perm.role)
+    assert perm != RolePerm(cmd=perm.cmd, server=perm.server, role='NoMatch')
 
 
 def test_duser__eq__(f_dusers, f_sheets):

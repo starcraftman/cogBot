@@ -290,7 +290,7 @@ def f_admins(session):
 def f_cperms(session):
     """ Channel perms fixture. """
     perms = (
-        ChannelPerm(cmd="Drop", channel="operations"),
+        ChannelPerm(cmd="Drop", server="Gears Hideout", channel="operations"),
     )
     session.add_all(perms)
     session.commit()
@@ -306,7 +306,7 @@ def f_cperms(session):
 def f_rperms(session):
     """ Role perms fixture. """
     perms = (
-        RolePerm(cmd="Drop", role="FRC Member"),
+        RolePerm(cmd="Drop", server="Gears Hideout", role="FRC Member"),
     )
     session.add_all(perms)
     session.commit()

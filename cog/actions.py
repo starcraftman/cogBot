@@ -171,6 +171,7 @@ class Admin(Action):
 
             if self.msg.channel_mentions:
                 cogdb.query.add_channel_perm(self.session, self.args.rule_cmd,
+                                             self.msg.channel.server.name,
                                              self.msg.channel_mentions[0].name)
                 return "Channel permission added."
 
@@ -178,6 +179,7 @@ class Admin(Action):
                 role = ' '.join(self.args.role)
                 self.check_role(role)
                 cogdb.query.add_role_perm(self.session, self.args.rule_cmd,
+                                          self.msg.channel.server.name,
                                           ' '.join(self.args.role))
                 return "Role permission added."
 
@@ -198,13 +200,15 @@ class Admin(Action):
 
             if self.msg.channel_mentions:
                 cogdb.query.remove_channel_perm(self.session, self.args.rule_cmd,
+                                                self.msg.channel.server.name,
                                                 self.msg.channel_mentions[0].name)
                 return "Channel permission removed."
 
             elif self.args.role:
                 role = ' '.join(self.args.role)
                 self.check_role(role)
-                cogdb.query.remove_role_perm(self.session, self.args.rule_cmd, role)
+                cogdb.query.remove_role_perm(self.session, self.args.rule_cmd,
+                                             self.msg.channel.server.name, role)
                 return "Role permission removed."
 
     async def execute(self):

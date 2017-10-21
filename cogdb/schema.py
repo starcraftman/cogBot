@@ -87,15 +87,12 @@ class ChannelPerm(Base):
     """
     __tablename__ = 'perms_channel'
 
-    channel = sqla.Column(sqla.String(40))
-    cmd = sqla.Column(sqla.String(LEN_CMD))
-
-    __table_args__ = (
-        sqla.PrimaryKeyConstraint('channel', 'cmd'),
-    )
+    cmd = sqla.Column(sqla.String(LEN_CMD), primary_key=True)
+    server = sqla.Column(sqla.String(30), primary_key=True)
+    channel = sqla.Column(sqla.String(40), primary_key=True)
 
     def __repr__(self):
-        keys = ['cmd', 'channel']
+        keys = ['cmd', 'server', 'channel']
         kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
 
         return "ChannelPerm({})".format(', '.join(kwargs))
@@ -105,7 +102,7 @@ class ChannelPerm(Base):
 
     def __eq__(self, other):
         return isinstance(self, ChannelPerm) and isinstance(other, ChannelPerm) and (
-            self.channel, self.cmd) == (other.channel, other.cmd)
+            str(self) == str(other))
 
 
 class RolePerm(Base):
@@ -114,15 +111,12 @@ class RolePerm(Base):
     """
     __tablename__ = 'perms_role'
 
-    role = sqla.Column(sqla.String(40))
-    cmd = sqla.Column(sqla.String(LEN_CMD))
-
-    __table_args__ = (
-        sqla.PrimaryKeyConstraint('role', 'cmd'),
-    )
+    cmd = sqla.Column(sqla.String(LEN_CMD), primary_key=True)
+    server = sqla.Column(sqla.String(30), primary_key=True)
+    role = sqla.Column(sqla.String(40), primary_key=True)
 
     def __repr__(self):
-        keys = ['cmd', 'role']
+        keys = ['cmd', 'server', 'role']
         kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
 
         return "RolePerm({})".format(', '.join(kwargs))
@@ -132,7 +126,7 @@ class RolePerm(Base):
 
     def __eq__(self, other):
         return isinstance(self, RolePerm) and isinstance(other, RolePerm) and (
-            self.role, self.cmd) == (other.role, other.cmd)
+            str(self) == str(other))
 
 
 class DUser(Base):
