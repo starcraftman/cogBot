@@ -15,6 +15,12 @@ import discord
 import cog.util
 
 
+# TODO: Convert to module with statics
+# TODO: Extract wing link from response.
+# TODO: Show all possible matches.
+# TODO: Make smaller functions/better use of exceptions
+
+
 class InaraApi():
     """
     hillbilly inara.cz who-is api !
