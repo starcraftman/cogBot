@@ -593,6 +593,8 @@ class Status(Action):
             ['Created By', 'GearsandCogs'],
             ['Uptime', self.bot.uptime],
             ['Version', '{}'.format(cog.__version__)],
+            ['Contributors:', ''],
+            ['    Shotwn', '!whois search'],
         ]
 
         await self.bot.send_message(self.msg.channel,
@@ -785,14 +787,9 @@ class WhoIs(Action):
         # search commander
         cmdr = await Inara.search_in_inara(cmdr_name, self.msg)
 
-        if not cmdr:
-            return # cmdr not found, api answered accordingly
-
-        # fetch commander page
-        fetched = await Inara.fetch_from_cmdr_page(cmdr, self.msg)
-
-        if not fetched:
-            return # error in fetch, api answered accordingly
+        if cmdr:
+            # fetch commander page
+            await Inara.fetch_from_cmdr_page(cmdr, self.msg)
 
 
 def sync_drop(drop_args, system_args):
