@@ -71,7 +71,7 @@ def make_parser(prefix):
     sub = subs.add_parser(prefix + 'time', description='Time in game and to ticks.')
     sub.set_defaults(cmd='Time')
 
-    for suffix in ['admin', 'bgs', 'drop', 'fort', 'hold', 'um', 'user']:
+    for suffix in ['admin', 'bgs', 'drop', 'fort', 'hold', 'um', 'user', 'whois']:
         func = getattr(sys.modules[__name__], 'subs_' + suffix)
         func(subs, prefix)
 
@@ -233,3 +233,14 @@ def subs_user(subs, prefix):
                      help='Set yourself to use the Winters sheets.')
     sub.add_argument('--hudson', action='store_true',
                      help='Set yourself to use the Hudson sheets.')
+
+
+def subs_whois(subs, prefix):
+    """ Subcommand parsing for whois """
+    desc = """Lookup information for a commander on Inara.cz
+
+    {prefix}whois GearsandCogs\n           Find out who this GearsandCogs fellow is ...
+    """.format(prefix=prefix)
+    sub = subs.add_parser(prefix + 'whois', description=desc, formatter_class=RawHelp)
+    sub.set_defaults(cmd='WhoIs')
+    sub.add_argument('cmdr', nargs='+', help='Commander name.')

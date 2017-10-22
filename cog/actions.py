@@ -18,6 +18,7 @@ import cogdb.side
 import cog.jobs
 import cog.tbl
 import cog.util
+from cog.inara import Inara
 
 
 SCANNERS = {}
@@ -28,7 +29,9 @@ async def bot_shutdown(bot, delay=30):  # pragma: no cover
     Shutdown the bot. Not ideal, I should reconsider later.
     """
     await asyncio.sleep(delay)
+    await Inara.session.close() # NOTE: might not be necessary
     await bot.logout()
+    await asyncio.sleep(3)
     sys.exit(0)
 
 
@@ -496,16 +499,17 @@ class Help(Action):
         ]
         lines = [
             ['Command', 'Effect'],
-            ['{prefix}admin', 'Admin commands.'],
-            ['{prefix}drop', 'Drop forts into the fort sheet.'],
-            ['{prefix}feedback', 'Give feedback or report a bug.'],
-            ['{prefix}fort', 'Get information about our fort systems.'],
-            ['{prefix}hold', 'Declare held merits or redeem them.'],
-            ['{prefix}status', 'Info about this bot.'],
-            ['{prefix}time', 'Show game time and time to ticks.'],
-            ['{prefix}um', 'Get information about undermining targets.'],
-            ['{prefix}user', 'Manage your user, set sheet name and tag.'],
-            ['{prefix}help', 'This help message.'],
+            ['{prefix}admin', 'Admin commands'],
+            ['{prefix}drop', 'Drop forts into the fort sheet'],
+            ['{prefix}feedback', 'Give feedback or report a bug'],
+            ['{prefix}fort', 'Get information about our fort systems'],
+            ['{prefix}hold', 'Declare held merits or redeem them'],
+            ['{prefix}status', 'Info about this bot'],
+            ['{prefix}time', 'Show game time and time to ticks'],
+            ['{prefix}um', 'Get information about undermining targets'],
+            ['{prefix}user', 'Manage your user, set sheet name and tag'],
+            ['{prefix}whois', 'Search for commander on inara.cz'],
+            ['{prefix}help', 'This help message'],
         ]
         lines = [[line[0].format(prefix=prefix), line[1]] for line in lines]
 
@@ -758,6 +762,37 @@ class User(Action):
         for sheet in self.duser.sheets(self.session):
             sheet.cry = new_cry
         self.duser.pref_cry = new_cry
+
+
+class WhoIs(Action):
+    """
+    Who-is request from inara.
+    """
+    async def execute(self):
+        if not Inara.bot:
+            Inara.bot = self.bot
+
+        """
+        # disabled, now search_in_inara() does it's own check
+
+        if not Inara.session:
+            logged_in = await Inara.login_to_inara()
+            if not logged_in:
+                return # login fail handling
+        """
+        cmdr_name = ' '.join(self.args.cmdr)
+
+        # search commander
+        cmdr = await Inara.search_in_inara(cmdr_name, self.msg)
+
+        if not cmdr:
+            return # cmdr not found, api answered accordingly
+
+        # fetch commander page
+        fetched = await Inara.fetch_from_cmdr_page(cmdr, self.msg)
+
+        if not fetched:
+            return # error in fetch, api answered accordingly
 
 
 def sync_drop(drop_args, system_args):
