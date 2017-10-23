@@ -13,12 +13,18 @@ import aiomock
 import discord
 
 import cog.util
-
-
 # TODO: Convert to module with statics
 # TODO: Extract wing link from response.
 # TODO: Show all possible matches.
 # TODO: Make smaller functions/better use of exceptions
+
+
+PP_COLORS = {
+    'Alliance': 0x008000,
+    'Empire': 0x3232FF,
+    'Federation': 0xB20000,
+    'default': 0xDEADBF,
+}
 
 
 class InaraApi():
@@ -29,8 +35,7 @@ class InaraApi():
         self.bot = bot
         self.waiting_messages = {} # -Searching in inara.cz messages. keys are req_id.
         self.req_counter = 0 # count how many searches done with search_in_inara
-
-        self.session = aiohttp.ClientSession()
+        self.http = aiohttp.ClientSession()
 
     async def login_to_inara(self):
         """
@@ -39,7 +44,7 @@ class InaraApi():
         payload = cog.util.get_config('inara')
 
         # DO LOGIN, Inara doesn't use HTTP auth. It is a standard post.
-        async with self.session.post('https://inara.cz/login', data=payload) as resp:
+        async with self.http.post('https://inara.cz/login', data=payload) as resp:
 
             # Fail with HTTP Resp Code.
             if resp.status != 200:
@@ -70,7 +75,7 @@ class InaraApi():
         self.waiting_messages[req_id] = await self.bot.send_message(msg.channel, "Searching in inara.cz") # when using one session for entire app, this behaviour will change
 
         # search for commander name
-        async with self.session.get('https://inara.cz/search?location=search&searchglobal=' + urllib.parse.quote_plus(cmdr_name)) as resp:
+        async with self.http.get('https://inara.cz/search?location=search&searchglobal=' + urllib.parse.quote_plus(cmdr_name)) as resp:
 
             # fail with HTTP error
             if resp.status != 200:
@@ -81,48 +86,48 @@ class InaraApi():
             # wait for response text
             response_text = await resp.text()
 
-            # logic to follow if response requires login
-            if "You must be logged in to view search results" in response_text:
+        # logic to follow if response requires login
+        if "You must be logged in to view search results" in response_text:
 
-                # try loggin in
-                try:
-                    await self.login_to_inara()
-                except ValueError as error:
-                    print(error.args) # TODO: integrade with internal debug. pprint ?
-                    return False # die if can't login
+            # try loggin in
+            try:
+                await self.login_to_inara()
+            except ValueError as error:
+                print(error.args) # TODO: integrade with internal debug. pprint ?
+                return False # die if can't login
 
-                # login successful, try again
-                await self.delete_waiting_message(req_id) # delete previous message (this logic will work rarely. it is okay.)
-                second_attempt = await self.search_in_inara(cmdr_name, msg) # call search again
-                return second_attempt # return second attempt.
+            # login successful, try again
+            await self.delete_waiting_message(req_id) # delete previous message (this logic will work rarely. it is okay.)
+            second_attempt = await self.search_in_inara(cmdr_name, msg) # call search again
+            return second_attempt # return second attempt.
 
-            # mother of re: where we get our information
-            # [1] is commander url in inara
-            # [2] is commander name
-            response_text_commander = re.search(r"Commanders found</h2><div class=\"mainblock\" style=\"-webkit-column-count: 3; -moz-column-count: 3; column-count: 3;\"><a href=\"([^\"]*)\" class=\"inverse\">([^<]*)", response_text)
+        # mother of re: where we get our information
+        # [1] is commander url in inara
+        # [2] is commander name
+        response_text_commander = re.search(r"Commanders found</h2><div class=\"mainblock\" style=\"-webkit-column-count: 3; -moz-column-count: 3; column-count: 3;\"><a href=\"([^\"]*)\" class=\"inverse\">([^<]*)", response_text)
 
-            if response_text_commander is None: # couldn't find commander
-                await self.bot.send_message(msg.channel, "Could not found commander " + str(cmdr_name))
-                await self.delete_waiting_message(req_id)
-                return False
+        if response_text_commander is None: # couldn't find commander
+            await self.bot.send_message(msg.channel, "Could not found commander " + str(cmdr_name))
+            await self.delete_waiting_message(req_id)
+            return False
 
-            # a rough dict to return
-            found_commander = {
-                "req_id": req_id,
-                "url": response_text_commander.group(1),
-                "name": response_text_commander.group(2),
-            }
+        # a rough dict to return
+        found_commander = {
+            "req_id": req_id,
+            "url": response_text_commander.group(1),
+            "name": response_text_commander.group(2),
+        }
 
-            if cmdr_name.lower() != found_commander["name"].lower():
-                await self.bot.send_message(msg.channel, "Could not found commander "+str(cmdr_name)+". Did you mean: " + found_commander["name"])
-                await self.delete_waiting_message(req_id)
-                return False
+        if cmdr_name.lower() != found_commander["name"].lower():
+            await self.bot.send_message(msg.channel, "Could not found commander "+str(cmdr_name)+". Did you mean: " + found_commander["name"])
+            await self.delete_waiting_message(req_id)
+            return False
 
-            return found_commander
+        return found_commander
 
     async def fetch_from_cmdr_page(self, found_commander, msg):
         """ fetch cmdr page, setup embed and send """
-        async with self.session.get("https://inara.cz"+found_commander["url"]) as resp:
+        async with self.http.get("https://inara.cz" + found_commander["url"]) as resp:
 
             # fail with HTTP error
             if resp.status != 200:
@@ -133,87 +138,82 @@ class InaraApi():
             # wait response text
             response_text = await resp.text()
 
-            # cmdr prototype | defaults
-            cmdr = {
-                'profile_picture': '/images/userportraitback.png',
-                'name': 'ERROR',
-                'role': 'unknown',
-                'allegiance': 'none',
-                'rank': 'unknown',
-                'power': 'none',
-                'credit_balance': 'unknown',
-                'wing': 'none',
-                'assets': 'unknown'
-            }
+        # cmdr prototype | defaults
+        cmdr = {
+            'profile_picture': '/images/userportraitback.png',
+            'name': 'ERROR',
+            'role': 'unknown',
+            'allegiance': 'none',
+            'rank': 'unknown',
+            'power': 'none',
+            'credit_balance': 'unknown',
+            'wing': 'none',
+            'assets': 'unknown'
+        }
 
-            # assignments here, could be done muuuuch more elegantly but for now works just fine.
-            # TODO: make with with a loop for gods sake.
+        # assignments here, could be done muuuuch more elegantly but for now works just fine.
+        # TODO: make with with a loop for gods sake.
 
-            cmdr_profile_picture = re.search(r'<td rowspan=\"4\" class=\"profileimage\"><img src=\"([^\"]+)\"', response_text)
-            if cmdr_profile_picture is not None:
-                cmdr["profile_picture"] = cmdr_profile_picture.group(1)
+        cmdr_profile_picture = re.search(r'<td rowspan=\"4\" class=\"profileimage\"><img src=\"([^\"]+)\"', response_text)
+        if cmdr_profile_picture is not None:
+            cmdr["profile_picture"] = cmdr_profile_picture.group(1)
 
-            cmdr_name = re.search(r'<td colspan="3" class="header"><span class="pflheadersmall">CMDR</span> ([^\<]+)</td>', response_text)
-            cmdr["name"] = cmdr_name.group(1)
+        cmdr_name = re.search(r'<td colspan="3" class="header"><span class="pflheadersmall">CMDR</span> ([^\<]+)</td>', response_text)
+        cmdr["name"] = cmdr_name.group(1)
 
-            cmdr_role = re.search(r'<td><span class="pflcellname">Role</span><br>([^\<]+)</td>', response_text)
-            if cmdr_role is not None and cmdr_role != "&nbsp;":
-                cmdr["role"] = cmdr_role.group(1)
+        cmdr_role = re.search(r'<td><span class="pflcellname">Role</span><br>([^\<]+)</td>', response_text)
+        if cmdr_role is not None and cmdr_role != "&nbsp;":
+            cmdr["role"] = cmdr_role.group(1)
 
-            cmdr_allegiance = re.search(r'Allegiance</span><br>([^\<]+)</td>', response_text)
-            if cmdr_allegiance is not None and cmdr_allegiance.group(1) != "&nbsp;":
-                cmdr["allegiance"] = cmdr_allegiance.group(1)
+        cmdr_allegiance = re.search(r'Allegiance</span><br>([^\<]+)</td>', response_text)
+        if cmdr_allegiance is not None and cmdr_allegiance.group(1) != "&nbsp;":
+            cmdr["allegiance"] = cmdr_allegiance.group(1)
 
-            cmdr_rank = re.search(r'Rank</span><br>([^\<]+)</td>', response_text)
-            if cmdr_rank is not None and cmdr_rank.group(1) != "&nbsp;":
-                cmdr["rank"] = cmdr_rank.group(1)
+        cmdr_rank = re.search(r'Rank</span><br>([^\<]+)</td>', response_text)
+        if cmdr_rank is not None and cmdr_rank.group(1) != "&nbsp;":
+            cmdr["rank"] = cmdr_rank.group(1)
 
-            cmdr_power = re.search(r'Power</span><br>([^\<]+)</td>', response_text)
-            if cmdr_power is not None and cmdr_power.group(1) != "&nbsp;":
-                cmdr["power"] = cmdr_power.group(1)
+        cmdr_power = re.search(r'Power</span><br>([^\<]+)</td>', response_text)
+        if cmdr_power is not None and cmdr_power.group(1) != "&nbsp;":
+            cmdr["power"] = cmdr_power.group(1)
 
-            cmdr_credit_balance = re.search(r'Credit Balance</span><br>([^\<]+)</td>', response_text)
-            if cmdr_credit_balance is not None and cmdr_credit_balance.group(1) != "&nbsp;":
-                cmdr["credit_balance"] = cmdr_credit_balance.group(1)
+        cmdr_credit_balance = re.search(r'Credit Balance</span><br>([^\<]+)</td>', response_text)
+        if cmdr_credit_balance is not None and cmdr_credit_balance.group(1) != "&nbsp;":
+            cmdr["credit_balance"] = cmdr_credit_balance.group(1)
 
-            cmdr_wing = re.search(r'Wing</span><br>([^\<]+)</td>', response_text)
-            if cmdr_wing is not None and cmdr_wing.group(1) != "&nbsp;":
-                cmdr["wing"] = cmdr_wing.group(1)
+        cmdr_wing = re.search(r'Wing</span><br>([^\<]+)</td>', response_text)
+        if cmdr_wing is not None and cmdr_wing.group(1) != "&nbsp;":
+            cmdr["wing"] = cmdr_wing.group(1)
 
-            cmdr_assets = re.search(r'Overall assets</span><br>([^\<]+)</td>', response_text)
-            if cmdr_assets is not None and cmdr_assets.group(1) != "&nbsp;":
-                cmdr["assets"] = cmdr_assets.group(1)
+        cmdr_assets = re.search(r'Overall assets</span><br>([^\<]+)</td>', response_text)
+        if cmdr_assets is not None and cmdr_assets.group(1) != "&nbsp;":
+            cmdr["assets"] = cmdr_assets.group(1)
 
-            colors_for_powers = {'Federation': 0xB20000, 'Empire': 0x3232FF, 'Alliance': 0x008000}
-            if cmdr["allegiance"] in colors_for_powers:
-                em = discord.Embed(colour=colors_for_powers[cmdr["allegiance"]])
-            else:
-                em = discord.Embed(colour=0xDEADBF)
+        # KOS HOOK WILL BE HERE !
+        # to crosscheck who-is with KOS list.
+        # and add a footer to embed if cmdr is in KOS
 
-            # KOS HOOK WILL BE HERE !
-            # to crosscheck who-is with KOS list.
-            # and add a footer to embed if cmdr is in KOS
+        if __name__ == "__main__":
+            import pprint
+            pprint.pprint(str(cmdr))
+            return
 
-            if __name__ == "__main__":
-                import pprint
-                pprint.pprint(str(cmdr))
-                return
+        # Build Embed
+        em = discord.Embed(colour=PP_COLORS.get(cmdr["allegiance"], PP_COLORS['default']))
+        em.set_author(name=cmdr["name"], icon_url="https://inara.cz"+cmdr["profile_picture"])
+        em.set_thumbnail(url="https://inara.cz"+cmdr["profile_picture"])
+        em.add_field(name='Wing', value=cmdr["wing"], inline=True)
+        em.add_field(name='Allegiance', value=cmdr["allegiance"], inline=True)
+        em.add_field(name='Role', value=cmdr["role"], inline=True)
+        em.add_field(name='Power', value=cmdr["power"], inline=True)
+        em.add_field(name='Rank', value=cmdr["rank"], inline=True)
+        em.add_field(name='Overall assets', value=cmdr["assets"], inline=True)
+        em.add_field(name='Credit Balance', value=cmdr["credit_balance"], inline=True)
+        em.url = "https://inara.cz"+found_commander["url"]
+        em.provider.name = "https//inara.cz & Marvin KOS DB"
 
-            # Build Embed
-            em.set_author(name=cmdr["name"], icon_url="https://inara.cz"+cmdr["profile_picture"])
-            em.set_thumbnail(url="https://inara.cz"+cmdr["profile_picture"])
-            em.add_field(name='Wing', value=cmdr["wing"], inline=True)
-            em.add_field(name='Allegiance', value=cmdr["allegiance"], inline=True)
-            em.add_field(name='Role', value=cmdr["role"], inline=True)
-            em.add_field(name='Power', value=cmdr["power"], inline=True)
-            em.add_field(name='Rank', value=cmdr["rank"], inline=True)
-            em.add_field(name='Overall assets', value=cmdr["assets"], inline=True)
-            em.add_field(name='Credit Balance', value=cmdr["credit_balance"], inline=True)
-            em.url = "https://inara.cz"+found_commander["url"]
-            em.provider.name = "https//inara.cz & Marvin KOS DB"
-
-            await self.bot.send_message(msg.channel, embed=em)
-            await self.delete_waiting_message(found_commander["req_id"])
+        await self.bot.send_message(msg.channel, embed=em)
+        await self.delete_waiting_message(found_commander["req_id"])
 
 
 Inara = InaraApi(False) # use as module, needs "bot" to be set. pylint: disable=C0103
@@ -233,7 +233,7 @@ def main():
     mock_bot.delete_message.async_return_value = None
     Inara.bot = mock_bot
     loop = asyncio.get_event_loop()
-    loop.run_until_complete(whois('gears'))
+    loop.run_until_complete(whois('gearsandcogs'))
 
 
 if __name__ == "__main__":
