@@ -29,13 +29,16 @@ PP_COLORS = {
 
 class InaraApi():
     """
-    hillbilly inara.cz who-is api !
+    hillbilly inara.cz who-is api !!!!!
     """
     def __init__(self, bot):
         self.bot = bot
-        self.waiting_messages = {} # -Searching in inara.cz messages. keys are req_id.
-        self.req_counter = 0 # count how many searches done with search_in_inara
+        self.waiting_messages = {}  # Searching in inara.cz messages. keys are req_id.
+        self.req_counter = 0  # count how many searches done with search_in_inara
         self.http = aiohttp.ClientSession()
+
+    def __del__(self):
+        self.http.close()
 
     async def login_to_inara(self):
         """
@@ -72,7 +75,7 @@ class InaraApi():
         self.req_counter += 1 # check init for details
 
         # send waiting message
-        self.waiting_messages[req_id] = await self.bot.send_message(msg.channel, "Searching in inara.cz") # when using one session for entire app, this behaviour will change
+        self.waiting_messages[req_id] = await self.bot.send_message(msg.channel, "Searching inara.cz ...") # when using one session for entire app, this behaviour will change
 
         # search for commander name
         async with self.http.get('https://inara.cz/search?location=search&searchglobal=' + urllib.parse.quote_plus(cmdr_name)) as resp:
@@ -81,7 +84,7 @@ class InaraApi():
             if resp.status != 200:
                 await self.delete_waiting_message(req_id)
                 await self.bot.send_message(msg.channel, "Internal Error")
-                raise ValueError("Inara Search: HTTP response code NOT 200. The code is: "+str(resp.status))
+                raise ValueError("Inara Search Failed. HTTP response code: {}".format(resp.status))
 
             # wait for response text
             response_text = await resp.text()
@@ -101,29 +104,29 @@ class InaraApi():
             second_attempt = await self.search_in_inara(cmdr_name, msg) # call search again
             return second_attempt # return second attempt.
 
-        # mother of re: where we get our information
+        # Extract the block of commanders
+        match = re.search(r'Commanders found</h2><div class="mainblock" style="-webkit-column-count: 3; -moz-column-count: 3; column-count: 3;">(.+?)</div>', response_text)
+        if not match:
+            await self.bot.send_message(msg.channel, "Could not find commander {}".format(cmdr_name))
+            await self.delete_waiting_message(req_id)
+            return False
+
+        # Extract all cmdrs found
         # [1] is commander url in inara
         # [2] is commander name
-        response_text_commander = re.search(r"Commanders found</h2><div class=\"mainblock\" style=\"-webkit-column-count: 3; -moz-column-count: 3; column-count: 3;\"><a href=\"([^\"]*)\" class=\"inverse\">([^<]*)", response_text)
-
-        if response_text_commander is None: # couldn't find commander
-            await self.bot.send_message(msg.channel, "Could not found commander " + str(cmdr_name))
+        cmdrs = re.findall(r'<a href="(\S+)" class="inverse">([^<]+)</a>', match.group(1))
+        if len(cmdrs) != 1 or cmdrs[0][1].lower() != cmdr_name.lower():
+            repy = 'No exact match for CMDR **{}**\nChoose from:{}'.format(
+                cmdr_name, '\n    ' + '\n    '.join([cmdr[1] for cmdr in cmdrs]))
+            await self.bot.send_message(msg.channel, repy)
             await self.delete_waiting_message(req_id)
             return False
 
-        # a rough dict to return
-        found_commander = {
+        return {
             "req_id": req_id,
-            "url": response_text_commander.group(1),
-            "name": response_text_commander.group(2),
+            "url": cmdrs[0][0],
+            "name": cmdrs[0][1],
         }
-
-        if cmdr_name.lower() != found_commander["name"].lower():
-            await self.bot.send_message(msg.channel, "Could not found commander "+str(cmdr_name)+". Did you mean: " + found_commander["name"])
-            await self.delete_waiting_message(req_id)
-            return False
-
-        return found_commander
 
     async def fetch_from_cmdr_page(self, found_commander, msg):
         """ fetch cmdr page, setup embed and send """
@@ -131,9 +134,9 @@ class InaraApi():
 
             # fail with HTTP error
             if resp.status != 200:
-                await self.bot.send_message(msg.channel, "I can't fetch page for "+str(found_commander["name"]))
+                await self.bot.send_message(msg.channel, "I can't fetch page for " + str(found_commander["name"]))
                 await self.delete_waiting_message(found_commander["req_id"])
-                raise ValueError("Inara CMDR page: HTTP response code NOT 200. The code is: "+str(resp.status))
+                raise ValueError("Inara CMDR page: HTTP response code NOT 200. The code is: " + str(resp.status))
 
             # wait response text
             response_text = await resp.text()
@@ -153,41 +156,44 @@ class InaraApi():
 
         # assignments here, could be done muuuuch more elegantly but for now works just fine.
         # TODO: make with with a loop for gods sake.
-
-        cmdr_profile_picture = re.search(r'<td rowspan=\"4\" class=\"profileimage\"><img src=\"([^\"]+)\"', response_text)
-        if cmdr_profile_picture is not None:
+        cmdr_profile_picture = re.search(r'<td rowspan="4" class="profileimage"><img src="([^\"]+)"', response_text)
+        if cmdr_profile_picture:
             cmdr["profile_picture"] = cmdr_profile_picture.group(1)
 
         cmdr_name = re.search(r'<td colspan="3" class="header"><span class="pflheadersmall">CMDR</span> ([^\<]+)</td>', response_text)
         cmdr["name"] = cmdr_name.group(1)
 
         cmdr_role = re.search(r'<td><span class="pflcellname">Role</span><br>([^\<]+)</td>', response_text)
-        if cmdr_role is not None and cmdr_role != "&nbsp;":
+        if cmdr_role and cmdr_role.group(1) != "&nbsp;":
             cmdr["role"] = cmdr_role.group(1)
 
         cmdr_allegiance = re.search(r'Allegiance</span><br>([^\<]+)</td>', response_text)
-        if cmdr_allegiance is not None and cmdr_allegiance.group(1) != "&nbsp;":
+        if cmdr_allegiance and cmdr_allegiance.group(1) != "&nbsp;":
             cmdr["allegiance"] = cmdr_allegiance.group(1)
 
         cmdr_rank = re.search(r'Rank</span><br>([^\<]+)</td>', response_text)
-        if cmdr_rank is not None and cmdr_rank.group(1) != "&nbsp;":
+        if cmdr_rank and cmdr_rank.group(1) != "&nbsp;":
             cmdr["rank"] = cmdr_rank.group(1)
 
         cmdr_power = re.search(r'Power</span><br>([^\<]+)</td>', response_text)
-        if cmdr_power is not None and cmdr_power.group(1) != "&nbsp;":
+        if cmdr_power and cmdr_power.group(1) != "&nbsp;":
             cmdr["power"] = cmdr_power.group(1)
 
         cmdr_credit_balance = re.search(r'Credit Balance</span><br>([^\<]+)</td>', response_text)
-        if cmdr_credit_balance is not None and cmdr_credit_balance.group(1) != "&nbsp;":
+        if cmdr_credit_balance and cmdr_credit_balance.group(1) != "&nbsp;":
             cmdr["credit_balance"] = cmdr_credit_balance.group(1)
 
         cmdr_wing = re.search(r'Wing</span><br>([^\<]+)</td>', response_text)
-        if cmdr_wing is not None and cmdr_wing.group(1) != "&nbsp;":
+        if cmdr_wing and cmdr_wing.group(1) != "&nbsp;":
             cmdr["wing"] = cmdr_wing.group(1)
 
         cmdr_assets = re.search(r'Overall assets</span><br>([^\<]+)</td>', response_text)
-        if cmdr_assets is not None and cmdr_assets.group(1) != "&nbsp;":
+        if cmdr_assets and cmdr_assets.group(1) != "&nbsp;":
             cmdr["assets"] = cmdr_assets.group(1)
+
+        match = re.search(r'<a href="(/wing/\d+/)"', response_text)
+        if match and match.group(1) != "&nbsp;":
+            cmdr['wing_url'] = match.group(1)
 
         # KOS HOOK WILL BE HERE !
         # to crosscheck who-is with KOS list.
@@ -200,17 +206,18 @@ class InaraApi():
 
         # Build Embed
         em = discord.Embed(colour=PP_COLORS.get(cmdr["allegiance"], PP_COLORS['default']))
-        em.set_author(name=cmdr["name"], icon_url="https://inara.cz"+cmdr["profile_picture"])
-        em.set_thumbnail(url="https://inara.cz"+cmdr["profile_picture"])
+        em.set_author(name=cmdr["name"], icon_url="https://inara.cz" + cmdr["profile_picture"])
+        em.set_thumbnail(url="https://inara.cz" + cmdr["profile_picture"])
+        em.url = "https://inara.cz" + found_commander["url"]
+        em.provider.name = "https//inara.cz"
         em.add_field(name='Wing', value=cmdr["wing"], inline=True)
         em.add_field(name='Allegiance', value=cmdr["allegiance"], inline=True)
         em.add_field(name='Role', value=cmdr["role"], inline=True)
         em.add_field(name='Power', value=cmdr["power"], inline=True)
         em.add_field(name='Rank', value=cmdr["rank"], inline=True)
-        em.add_field(name='Overall assets', value=cmdr["assets"], inline=True)
+        em.add_field(name='Overall Assets', value=cmdr["assets"], inline=True)
         em.add_field(name='Credit Balance', value=cmdr["credit_balance"], inline=True)
-        em.url = "https://inara.cz"+found_commander["url"]
-        em.provider.name = "https//inara.cz & Marvin KOS DB"
+        em.set_footer(text='Wing Link: https://inara.cz' + cmdr['wing_url'])
 
         await self.bot.send_message(msg.channel, embed=em)
         await self.delete_waiting_message(found_commander["req_id"])
@@ -233,7 +240,7 @@ def main():
     mock_bot.delete_message.async_return_value = None
     Inara.bot = mock_bot
     loop = asyncio.get_event_loop()
-    loop.run_until_complete(whois('gearsandcogs'))
+    loop.run_until_complete(whois('gears'))
 
 
 if __name__ == "__main__":

@@ -29,7 +29,6 @@ async def bot_shutdown(bot, delay=30):  # pragma: no cover
     Shutdown the bot. Not ideal, I should reconsider later.
     """
     await asyncio.sleep(delay)
-    await Inara.session.close() # NOTE: might not be necessary
     await bot.logout()
     await asyncio.sleep(3)
     sys.exit(0)
