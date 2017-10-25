@@ -5,8 +5,10 @@ Thanks to CMDR shotwn for conntribution.
 Contributed: 20/10/2017
 '''
 import asyncio
+import inspect
 import math
 import re
+import sys
 import urllib.parse
 
 import aiohttp
@@ -188,47 +190,9 @@ class InaraApi():
             'assets': 'unknown'
         }
 
-        # assignments here, could be done muuuuch more elegantly but for now works just fine.
-        # TODO: make with with a loop for gods sake.
-        cmdr_name = re.search(r'<td colspan="3" class="header"><span class="pflheadersmall">CMDR</span> ([^\<]+)</td>', response_text)
-        if cmdr_name:
-            cmdr["name"] = cmdr_name.group(1)
-
-        cmdr_profile_picture = re.search(r'<td rowspan="4" class="profileimage"><img src="([^\"]+)"', response_text)
-        if cmdr_profile_picture:
-            cmdr["profile_picture"] = INARA + cmdr_profile_picture.group(1)
-
-        cmdr_role = re.search(r'<td><span class="pflcellname">Role</span><br>([^\<]+)</td>', response_text)
-        if cmdr_role and cmdr_role.group(1) != "&nbsp;":
-            cmdr["role"] = cmdr_role.group(1)
-
-        cmdr_allegiance = re.search(r'Allegiance</span><br>([^\<]+)</td>', response_text)
-        if cmdr_allegiance and cmdr_allegiance.group(1) != "&nbsp;":
-            cmdr["allegiance"] = cmdr_allegiance.group(1)
-
-        cmdr_rank = re.search(r'Rank</span><br>([^\<]+)</td>', response_text)
-        if cmdr_rank and cmdr_rank.group(1) != "&nbsp;":
-            cmdr["rank"] = cmdr_rank.group(1)
-
-        cmdr_power = re.search(r'Power</span><br>([^\<]+)</td>', response_text)
-        if cmdr_power and cmdr_power.group(1) != "&nbsp;":
-            cmdr["power"] = cmdr_power.group(1)
-
-        cmdr_credit_balance = re.search(r'Credit Balance</span><br>([^\<]+)</td>', response_text)
-        if cmdr_credit_balance and cmdr_credit_balance.group(1) != "&nbsp;":
-            cmdr["credit_balance"] = cmdr_credit_balance.group(1)
-
-        cmdr_wing = re.search(r'Wing</span><br>([^\<]+)</td>', response_text)
-        if cmdr_wing and cmdr_wing.group(1) != "&nbsp;":
-            cmdr["wing"] = cmdr_wing.group(1)
-
-        cmdr_assets = re.search(r'Overall assets</span><br>([^\<]+)</td>', response_text)
-        if cmdr_assets and cmdr_assets.group(1) != "&nbsp;":
-            cmdr["assets"] = cmdr_assets.group(1)
-
-        # match = re.search(r'<a href="(/wing/\d+/)"', response_text)
-        # if match and match.group(1) != "&nbsp;":
-            # cmdr['wing_url'] = INARA + match.group(1)
+        for func_name, func in inspect.getmembers(sys.modules[__name__], inspect.isfunction):
+            if func_name.startswith('cmdr'):
+                func(response_text, cmdr)
 
         # KOS HOOK WILL BE HERE !
         # to crosscheck who-is with KOS list.
@@ -259,6 +223,76 @@ class InaraApi():
 
 
 Inara = InaraApi(False)  # use as module, needs "bot" to be set. pylint: disable=C0103
+
+
+def cmdr_allegiance(text, cmdr):
+    """ Parse allegiance of CMDR from Inara page. """
+    match = re.search(r'Allegiance</span><br>([^\<]+)</td>', text)
+    if match and match.group(1) != "&nbsp;":
+        cmdr["allegiance"] = match.group(1)
+
+
+def cmdr_assets(text, cmdr):
+    """ Parse assets of CMDR from Inara page. """
+    match = re.search(r'Overall assets</span><br>([^\<]+)</td>', text)
+    if match and match.group(1) != "&nbsp;":
+        cmdr["assets"] = match.group(1)
+
+
+def cmdr_balance(text, cmdr):
+    """ Parse balance of CMDR from Inara page. """
+    match = re.search(r'Credit Balance</span><br>([^\<]+)</td>', text)
+    if match and match.group(1) != "&nbsp;":
+        cmdr["credit_balance"] = match.group(1)
+
+
+def cmdr_name(text, cmdr):
+    """ Parse name of CMDR from Inara page. """
+    match = re.search(r'<span class="pflheadersmall">CMDR</span> ([^\<]+)</td>', text)
+    if match:
+        cmdr["name"] = match.group(1)
+
+
+def cmdr_power(text, cmdr):
+    """ Parse power of CMDR from Inara page. """
+    match = re.search(r'Power</span><br>([^\<]+)</td>', text)
+    if match and match.group(1) != "&nbsp;":
+        cmdr["power"] = match.group(1)
+
+
+def cmdr_profile_picture(text, cmdr):
+    """ Parse profile picture of CMDR from Inara page. """
+    match = re.search(r'<td rowspan="4" class="profileimage"><img src="([^\"]+)"', text)
+    if match:
+        cmdr["profile_picture"] = INARA + match.group(1)
+
+
+def cmdr_rank(text, cmdr):
+    """ Parse rank of CMDR from Inara page. """
+    match = re.search(r'Rank</span><br>([^\<]+)</td>', text)
+    if match and match.group(1) != "&nbsp;":
+        cmdr["rank"] = match.group(1)
+
+
+def cmdr_role(text, cmdr):
+    """ Parse role of CMDR from Inara page. """
+    match = re.search(r'<td><span class="pflcellname">Role</span><br>([^\<]+)</td>', text)
+    if match and match.group(1) != "&nbsp;":
+        cmdr["role"] = match.group(1)
+
+
+def cmdr_wing(text, cmdr):
+    """ Parse wing of CMDR from Inara page. """
+    match = re.search(r'Wing</span><br>([^\<]+)</td>', text)
+    if match and match.group(1) != "&nbsp;":
+        cmdr["wing"] = match.group(1)
+
+
+# def cmdr_wing_url(text, cmdr):
+    # """ Parse wing of CMDR from Inara page. """
+    # match = re.search(r'<a href="(/wing/\d+/)"', response_text)
+    # if match and match.group(1) != "&nbsp;":
+        # cmdr['wing_url'] = INARA + match.group(1)
 
 
 async def whois(cmdr_name):
