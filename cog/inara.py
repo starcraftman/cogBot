@@ -23,13 +23,17 @@ import cog.util
 INARA = 'https://inara.cz'
 INARA_LOGIN = '{}/login'.format(INARA)
 INARA_SEARCH = '{}/search?location=search&searchglobal='.format(INARA)
-print(INARA, INARA_LOGIN, INARA_SEARCH)
 PP_COLORS = {
     'Alliance': 0x008000,
     'Empire': 0x3232FF,
     'Federation': 0xB20000,
     'default': 0xDEADBF,
 }
+
+
+class AbortWhois(Exception):
+    """ Raised to cancel the interactive selection. """
+    pass
 
 
 class InaraApi():
@@ -123,10 +127,10 @@ class InaraApi():
         if len(cmdrs) == 1 and cmdrs[0][1].lower() == cmdr_name.lower():
             cmdr = cmdrs[0]
         else:
-            cmdr = await self.select_from_choices(cmdr_name, cmdrs, msg, req_id)
+            cmdr = await self.select_from_choices(cmdr_name, cmdrs, msg)
             if not cmdr:
                 await self.delete_waiting_message(req_id)
-                await self.bot.send_message(msg.channel, 'Improper response. Resubmit command.')
+                # await self.bot.send_message(msg.channel, 'Improper response. Resubmit command.')
                 return None
 
         return {
@@ -135,7 +139,7 @@ class InaraApi():
             "name": cmdr[1],
         }
 
-    async def select_from_choices(self, cmdr_name, cmdrs, msg, req_id):
+    async def select_from_choices(self, name, cmdrs, msg):
         """
         Present the loosely matched choices and wait for user selection.
 
@@ -145,24 +149,40 @@ class InaraApi():
                 1) Timesout waiting for user response.
                 2) Invalid response from user (i.e. text, invalid number).
         """
-        pad = str(math.ceil(len(cmdrs) / 10))
-        fmt = '{:' + pad + '}) {}'
+        fmt = '{:' + str(math.ceil(len(cmdrs) / 10)) + '}) {}'
         cmdr_list = [fmt.format(ind, cmdr[1]) for ind, cmdr in enumerate(cmdrs, 1)]
 
-        repy = 'No exact match for CMDR **{}**\nChoose from:{}'.format(
-            cmdr_name, '\n    ' + '\n    '.join(cmdr_list))
-        bot_choices = await self.bot.send_message(msg.channel, repy)
-        author_choice = await self.bot.wait_for_message(timeout=30, author=msg.author,
-                                                        channel=msg.channel)
+        reply = '\n'.join([
+            'No exact match for CMDR **{}**'.format(name),
+            'Possible matches:',
+            '    ' + '\n    '.join(cmdr_list),
+            '\nTo select choice 2 reply with: **cmdr 2**',
+            'To abort, reply: **stop**',
+            '\n__This message will delete itself on success or 30s timeout.__',
+        ])
+
+        responses = [await self.bot.send_message(msg.channel, reply)]
+        user_select = None
         try:
-            key = int(author_choice.content)
-            cmdrs_dict = dict(enumerate(cmdrs, 1))
-            return cmdrs_dict[key]
-        except (KeyError, ValueError):
-            return None
+            while True:
+                try:
+                    user_select = await self.bot.wait_for_message(timeout=30, author=msg.author,
+                                                                  channel=msg.channel)
+                    if user_select:
+                        responses += [user_select]
+
+                    cmdrs_dict = dict(enumerate(cmdrs, 1))
+                    key = int(check_reply(user_select))
+                    return cmdrs_dict[key]
+                except AbortWhois:
+                    return None
+                except (KeyError, ValueError) as exc:
+                    if user_select:
+                        responses += [await self.bot.send_message(msg.channel, str(exc))]
         finally:
-            asyncio.ensure_future(asyncio.gather(self.bot.delete_message(bot_choices),
-                                                 self.bot.delete_message(author_choice)))
+            asyncio.ensure_future(asyncio.gather(
+                *[self.bot.delete_message(response) for response in responses]))
+
 
     async def fetch_from_cmdr_page(self, found_commander, msg):
         """ fetch cmdr page, setup embed and send """
@@ -191,7 +211,7 @@ class InaraApi():
         }
 
         for func_name, func in inspect.getmembers(sys.modules[__name__], inspect.isfunction):
-            if func_name.startswith('cmdr'):
+            if func_name.startswith('parse_'):
                 func(response_text, cmdr)
 
         # KOS HOOK WILL BE HERE !
@@ -225,63 +245,85 @@ class InaraApi():
 Inara = InaraApi(False)  # use as module, needs "bot" to be set. pylint: disable=C0103
 
 
-def cmdr_allegiance(text, cmdr):
+def check_reply(msg, prefix='!'):
+    """
+    When user responds, validate his response.
+
+    Response should be form: cmdr x, where x in [1, n)
+
+    Raises:
+        AbortWhois - Timeout reached or user requested abort.
+        ValueError - Bad message.
+
+    Returns: Parsed index of cmdrs dict.
+    """
+    if not msg or re.match(r'\s*stop', msg.content):
+        raise AbortWhois('Timeout or user aborted command.')
+
+    match = re.search(r'\s*cmdr\s+(\d+)', msg.content)
+    if msg.content.startswith(prefix) or not match:
+        raise ValueError('Bad response.\n\n**cmdr x** or **stop**')
+
+    return match.group(1)
+
+
+def parse_allegiance(text, cmdr):
     """ Parse allegiance of CMDR from Inara page. """
     match = re.search(r'Allegiance</span><br>([^\<]+)</td>', text)
     if match and match.group(1) != "&nbsp;":
         cmdr["allegiance"] = match.group(1)
 
 
-def cmdr_assets(text, cmdr):
+def parse_assets(text, cmdr):
     """ Parse assets of CMDR from Inara page. """
     match = re.search(r'Overall assets</span><br>([^\<]+)</td>', text)
     if match and match.group(1) != "&nbsp;":
         cmdr["assets"] = match.group(1)
 
 
-def cmdr_balance(text, cmdr):
+def parse_balance(text, cmdr):
     """ Parse balance of CMDR from Inara page. """
     match = re.search(r'Credit Balance</span><br>([^\<]+)</td>', text)
     if match and match.group(1) != "&nbsp;":
         cmdr["credit_balance"] = match.group(1)
 
 
-def cmdr_name(text, cmdr):
+def parse_name(text, cmdr):
     """ Parse name of CMDR from Inara page. """
     match = re.search(r'<span class="pflheadersmall">CMDR</span> ([^\<]+)</td>', text)
     if match:
         cmdr["name"] = match.group(1)
 
 
-def cmdr_power(text, cmdr):
+def parse_power(text, cmdr):
     """ Parse power of CMDR from Inara page. """
     match = re.search(r'Power</span><br>([^\<]+)</td>', text)
     if match and match.group(1) != "&nbsp;":
         cmdr["power"] = match.group(1)
 
 
-def cmdr_profile_picture(text, cmdr):
+def parse_profile_picture(text, cmdr):
     """ Parse profile picture of CMDR from Inara page. """
     match = re.search(r'<td rowspan="4" class="profileimage"><img src="([^\"]+)"', text)
     if match:
         cmdr["profile_picture"] = INARA + match.group(1)
 
 
-def cmdr_rank(text, cmdr):
+def parse_rank(text, cmdr):
     """ Parse rank of CMDR from Inara page. """
     match = re.search(r'Rank</span><br>([^\<]+)</td>', text)
     if match and match.group(1) != "&nbsp;":
         cmdr["rank"] = match.group(1)
 
 
-def cmdr_role(text, cmdr):
+def parse_role(text, cmdr):
     """ Parse role of CMDR from Inara page. """
     match = re.search(r'<td><span class="pflcellname">Role</span><br>([^\<]+)</td>', text)
     if match and match.group(1) != "&nbsp;":
         cmdr["role"] = match.group(1)
 
 
-def cmdr_wing(text, cmdr):
+def parse_wing(text, cmdr):
     """ Parse wing of CMDR from Inara page. """
     match = re.search(r'Wing</span><br>([^\<]+)</td>', text)
     if match and match.group(1) != "&nbsp;":
