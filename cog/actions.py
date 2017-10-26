@@ -785,7 +785,6 @@ class WhoIs(Action):
 
         # search commander
         cmdr = await Inara.search_in_inara(cmdr_name, self.msg)
-
         if cmdr:
             # fetch commander page
             await Inara.fetch_from_cmdr_page(cmdr, self.msg)

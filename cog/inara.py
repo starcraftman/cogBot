@@ -5,10 +5,8 @@ Thanks to CMDR shotwn for conntribution.
 Contributed: 20/10/2017
 '''
 import asyncio
-import inspect
 import math
 import re
-import sys
 import urllib.parse
 
 import aiohttp
@@ -18,11 +16,12 @@ import discord
 import cog.exc
 import cog.util
 # TODO: Convert to module with statics
-# TODO: Make smaller functions/better use of exceptions
+# TODO: Better use of exceptions
 
 INARA = 'https://inara.cz'
 INARA_LOGIN = '{}/login'.format(INARA)
 INARA_SEARCH = '{}/search?location=search&searchglobal='.format(INARA)
+PARSERS = []
 PP_COLORS = {
     'Alliance': 0x008000,
     'Empire': 0x3232FF,
@@ -210,9 +209,9 @@ class InaraApi():
             'assets': 'unknown'
         }
 
-        for func_name, func in inspect.getmembers(sys.modules[__name__], inspect.isfunction):
-            if func_name.startswith('parse_'):
-                func(response_text, cmdr)
+        print(response_text)
+        for func in PARSERS:
+            func(response_text, cmdr)
 
         # KOS HOOK WILL BE HERE !
         # to crosscheck who-is with KOS list.
@@ -257,16 +256,23 @@ def check_reply(msg, prefix='!'):
 
     Returns: Parsed index of cmdrs dict.
     """
+    # If msg is None, the wait_for_message timed out.
     if not msg or re.match(r'\s*stop', msg.content):
         raise AbortWhois('Timeout or user aborted command.')
 
     match = re.search(r'\s*cmdr\s+(\d+)', msg.content)
     if msg.content.startswith(prefix) or not match:
-        raise ValueError('Bad response.\n\n**cmdr x** or **stop**')
+        raise ValueError('Bad response.\n\nPlease choose with **cmdr x** or **stop**')
 
     return match.group(1)
 
 
+def register_parser(func):
+    """ Simply register parser for later use. """
+    PARSERS.append(func)
+
+
+@register_parser
 def parse_allegiance(text, cmdr):
     """ Parse allegiance of CMDR from Inara page. """
     match = re.search(r'Allegiance</span><br>([^\<]+)</td>', text)
@@ -274,6 +280,7 @@ def parse_allegiance(text, cmdr):
         cmdr["allegiance"] = match.group(1)
 
 
+@register_parser
 def parse_assets(text, cmdr):
     """ Parse assets of CMDR from Inara page. """
     match = re.search(r'Overall assets</span><br>([^\<]+)</td>', text)
@@ -281,6 +288,7 @@ def parse_assets(text, cmdr):
         cmdr["assets"] = match.group(1)
 
 
+@register_parser
 def parse_balance(text, cmdr):
     """ Parse balance of CMDR from Inara page. """
     match = re.search(r'Credit Balance</span><br>([^\<]+)</td>', text)
@@ -288,6 +296,7 @@ def parse_balance(text, cmdr):
         cmdr["credit_balance"] = match.group(1)
 
 
+@register_parser
 def parse_name(text, cmdr):
     """ Parse name of CMDR from Inara page. """
     match = re.search(r'<span class="pflheadersmall">CMDR</span> ([^\<]+)</td>', text)
@@ -295,6 +304,7 @@ def parse_name(text, cmdr):
         cmdr["name"] = match.group(1)
 
 
+@register_parser
 def parse_power(text, cmdr):
     """ Parse power of CMDR from Inara page. """
     match = re.search(r'Power</span><br>([^\<]+)</td>', text)
@@ -302,6 +312,7 @@ def parse_power(text, cmdr):
         cmdr["power"] = match.group(1)
 
 
+@register_parser
 def parse_profile_picture(text, cmdr):
     """ Parse profile picture of CMDR from Inara page. """
     match = re.search(r'<td rowspan="4" class="profileimage"><img src="([^\"]+)"', text)
@@ -309,6 +320,7 @@ def parse_profile_picture(text, cmdr):
         cmdr["profile_picture"] = INARA + match.group(1)
 
 
+@register_parser
 def parse_rank(text, cmdr):
     """ Parse rank of CMDR from Inara page. """
     match = re.search(r'Rank</span><br>([^\<]+)</td>', text)
@@ -316,6 +328,7 @@ def parse_rank(text, cmdr):
         cmdr["rank"] = match.group(1)
 
 
+@register_parser
 def parse_role(text, cmdr):
     """ Parse role of CMDR from Inara page. """
     match = re.search(r'<td><span class="pflcellname">Role</span><br>([^\<]+)</td>', text)
@@ -323,6 +336,7 @@ def parse_role(text, cmdr):
         cmdr["role"] = match.group(1)
 
 
+@register_parser
 def parse_wing(text, cmdr):
     """ Parse wing of CMDR from Inara page. """
     match = re.search(r'Wing</span><br>([^\<]+)</td>', text)
