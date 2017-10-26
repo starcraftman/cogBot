@@ -52,8 +52,9 @@ def test_check_reply():
 
     with pytest.raises(ValueError):
         cog.inara.check_reply(Message('22', None, None, None, None))
-    
+
     assert cog.inara.check_reply(Message('cmdr 5', None, None, None, None)) == 5
+
 
 def test_parse_allegiance(inara_cmdr):
     data = {}

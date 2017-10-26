@@ -185,7 +185,6 @@ class InaraApi():
             asyncio.ensure_future(asyncio.gather(
                 *[self.bot.delete_message(response) for response in responses]))
 
-
     async def fetch_from_cmdr_page(self, found_commander, msg):
         """ fetch cmdr page, setup embed and send """
         async with self.http.get(found_commander["url"]) as resp:

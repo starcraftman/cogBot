@@ -525,9 +525,14 @@ async def test_cmd_status(event_loop, f_bot):
 
     await action_map(msg, f_bot).execute()
 
-    f_bot.send_message.assert_called_with(
-        msg.channel,
-        "```Created By | GearsandCogs\nUptime     | 5\nVersion    | {}```".format(cog.__version__))
+    expect = cog.tbl.wrap_markdown(cog.tbl.format_table([
+        ['Created By', 'GearsandCogs'],
+        ['Uptime', '5'],
+        ['Version', '{}'.format(cog.__version__)],
+        ['Contributors:', ''],
+        ['    Shotwn', 'Inara search'],
+    ]))
+    f_bot.send_message.assert_called_with(msg.channel, expect)
 
 
 @pytest.mark.asyncio

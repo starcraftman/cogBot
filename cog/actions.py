@@ -593,7 +593,7 @@ class Status(Action):
             ['Uptime', self.bot.uptime],
             ['Version', '{}'.format(cog.__version__)],
             ['Contributors:', ''],
-            ['    Shotwn', '!whois search'],
+            ['    Shotwn', 'Inara search'],
         ]
 
         await self.bot.send_message(self.msg.channel,
