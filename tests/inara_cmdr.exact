@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html style="background-color: #1b1b1d; overflow-y: scroll;">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+<title>INARA - Elite:Dangerous companion</title>
+<link rel="apple-touch-icon" sizes="57x57" href="/apple-touch-icon-57x57.png?v=M4jQ6yeOBQ">
+<link rel="apple-touch-icon" sizes="60x60" href="/apple-touch-icon-60x60.png?v=M4jQ6yeOBQ">
+<link rel="apple-touch-icon" sizes="72x72" href="/apple-touch-icon-72x72.png?v=M4jQ6yeOBQ">
+<link rel="apple-touch-icon" sizes="76x76" href="/apple-touch-icon-76x76.png?v=M4jQ6yeOBQ">
+<link rel="apple-touch-icon" sizes="114x114" href="/apple-touch-icon-114x114.png?v=M4jQ6yeOBQ">
+<link rel="apple-touch-icon" sizes="120x120" href="/apple-touch-icon-120x120.png?v=M4jQ6yeOBQ">
+<link rel="apple-touch-icon" sizes="144x144" href="/apple-touch-icon-144x144.png?v=M4jQ6yeOBQ">
+<link rel="apple-touch-icon" sizes="152x152" href="/apple-touch-icon-152x152.png?v=M4jQ6yeOBQ">
+<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon-180x180.png?v=M4jQ6yeOBQ">
+<link rel="icon" type="image/png" href="/favicon-16x16.png?v=M4jQ6yeOBx" sizes="16x16">
+<link rel="icon" type="image/png" href="/favicon-32x32.png?v=M4jQ6yeOBx" sizes="32x32">
+<link rel="icon" type="image/png" href="/favicon-96x96.png?v=M4jQ6yeOBx" sizes="96x96">
+<link rel="icon" type="image/png" href="/android-chrome-192x192.png?v=M4jQ6yeOBx" sizes="192x192">
+<link rel="icon" type="image/png" href="/favicon-194x194.png?v=M4jQ6yeOBx" sizes="194x194">
+<link rel="manifest" href="/manifest.json?v=M4jQ6yeOBx">
+<link rel="shortcut icon" href="/favicon.ico?v=M4jQ6yeOBx">
+<link rel="stylesheet" href="/styles.css?v=109" type="text/css">
+<meta name="msapplication-TileColor" content="#2b2c2d">
+<meta name="msapplication-TileImage" content="/mstile-144x144.png?v=M4jQ6yeOBQ">
+<meta name="theme-color" content="#ffffff">
+<meta name="format-detection" content="telephone=no">
+<meta name="viewport" content="width=device-width, height=device-height, initial-scale=1.0">
+
+<meta property="og:url" content="https://inara.cz">
+<meta property="og:type" content="website">
+<meta property="og:title" content="INARA - Elite:Dangerous companion">
+<meta property="og:description" content="The companion site for Elite:Dangerous. Market data, CMDR's logs, logbooks, wings, galleries, powerplay, engineers, crafting, galaxy info, news and more...">
+<meta property="og:image" content="https://inara.cz/images/weblogo2.png" />
+</head>
+<body>
+<div style="position: relative;"><div class="menucontainer" ><div class="mainmenu" id="topmenuheader"><a href="/"><img src="/images/logosmall2.png" style="float: left; margin-top: 3px; margin-left: 10px; " width="37" height="27" title="INARA - Elite:Dangerous companion"></a><div class="floatleft" style="padding-left: 10px; padding-top: 10px;"><img src="/images/galtime.png" width="13" height="10"> <span class="minor tooltip tooltipnoline" id="galclock" data-tooltiptext=".">17:58</span></div><div class="floatleft" style="padding-left: 10px; padding-top: 10px;"><a href="/cmdr-friends/85669/" class="nounderline"><img src="/images/friendsicon.png" width="13" height="10"> <span class="minor"><span class="tooltip tooltipnoline" data-tooltiptext="Friends/wing members online
+
+Friends online: none">0</span></span></a></div><div class="menuappend"><span class="small">CMDR</span> CogBot</div><div class="menu"><div class="menuitem"><a href="/news/" class="menu">News</a><div class="menunewscounterdummy"></div></div><div class="menuitem"><a href="/galaxy/" class="menu">Galaxy</a><div class="menunewscounterdummy"></div></div><div class="menuitem"><a href="/market/" class="menu">Market</a><div class="menunewscounterdummy"></div></div><div class="menuitemsel"><a href="/cmdr/85669/" class="menu">CMDR's log</a><div class="menunewscounterdummy"></div></div><div class="menuitem"><a href="/wings/" class="menu">Wing</a><div class="menunewscounterdummy"></div></div><div class="menuitem"><a href="/board/" class="menu">Discuss</a><div class="menunewscounterdummy"></div></div><div class="menuitem"><a href="/gallery/" class="menu">Gallery</a><div class="menunewscounterdummy"></div></div><div class="menuitem"><a href="/search/" class="menu">Search</a><div class="menunewscounterdummy"></div></div><div class="menuitem"><a href="/settings/" class="menu">Settings</a><div class="menunewscounterdummy"></div></div><div class="menuitem"><a href="/?formact=ENT_LOGOUT" class="menu">Logout</a></div></div></div><div class="menushortcuts"><div class="shortmenuitem"><a href="/galaxy-shipyard/" class="">Shipyard</a></div><div class="shortmenuitem"><a href="/galaxy-outfitting/" class="">Outfitting</a></div><div class="shortmenuitem"><a href="/galaxy-engineers/" class="">Engineers</a></div><div class="shortmenuitem"><a href="/galaxy-logbooks/" class="">Logbooks</a></div><div class="shortmenuitem"><span class="minor">|</span></div><div class="shortmenuitem"><a href="/cmdr-credits/" class="">My credits</a></div><div class="shortmenuitem"><a href="/cmdr-ranks/" class="">My ranks</a></div><div class="shortmenuitem"><a href="/cmdr-reputation/" class="">My reputation</a></div><div class="shortmenuitem"><a href="/cmdr-fleet/" class="">My fleet</a></div><div class="shortmenuitem"><a href="/" class=""></a></div><div class="shortmenuitem"><span class="minor">|</span></div><div class="shortmenuitem"><a href="/settings-shortcuts/" class="">Edit</a></div><div class="shortmenutitle"><span class="minor smaller">Shortcuts</span></div></div></div></div><div class="maincon"><div class="custombackground"><div class="containermain" style="background-image: url(/images/backs/generic.png);"><div class="mainalert" ><img src="/images/alerticon.png" class="floatleft" style="margin-right: 10px;">One or more of your preferred roles, preferred game style, owned game or timezone are not set, please set them in your <a href="/settings/">Settings</a>, it will take just few seconds. Thank you. :)</div><div class="pflcontainer"><div class="pfl"><div class="textright"><img src="/images/pfltitle2.png" class="pfltitle"></div><table class="pfl"><tr><td rowspan="4" class="profileimage"><img src="/data/users/64/64860x1235.jpg"></td><td colspan="3" class="header"><span class="pflheadersmall">CMDR</span> GearsandCogs</td></tr><tr><td><span class="pflcellname">Role</span><br>Scientist / Space cowboy</td><td><span class="pflcellname">Allegiance</span><br>Federation</td><td style="width: 150px;"><span class="pflcellname">Rank</span><br>Elite</td></tr><tr><td><span class="pflcellname">Registered ship ID</span><br>Asp Explorer </td><td><span class="pflcellname">Power</span><br>Zachary Hudson</td><td><span class="pflcellname">Credit Balance</span><br>762,386,209 Cr</td></tr><tr><td style="overflow: hidden; max-width: 210px;"><span class="pflcellname">Registered ship name</span><br>Space Taxi</td><td style="overflow: hidden; max-width: 210px;"><span class="pflcellname">Wing</span><br>Federal Republican Command</td><td><span class="pflcellname">Overall assets</span><br>769,047,359 Cr</td></tr></table></div></div><div class="flexcontainer"><div class="flexleft"><div class="sidemenu sidemenutopmargin"><div class="sidemenuitem selected "><a href="/cmdr/64860/" class="selected "><div class="itemcolormenu" ></div>Overview</a></div><div class="sidemenuitem "><a href="/cmdr-credits/64860/" class=""><div class="itemcolormenu" ></div>Credits and assets</a></div><div class="sidemenuitem "><a href="/cmdr-ranks/64860/" class=""><div class="itemcolormenu" ></div>Ranks and reputation</a></div><div class="sidemenuitem "><a href="/cmdr-logs/64860/" class=""><div class="itemcolormenu" ></div>Personal logs</a></div><div class="sidemenuitem "><a href="/cmdr-fleet/64860/" class=""><div class="itemcolormenu" ></div>Fleet</a></div><div class="sidemenuitem "><a href="/cmdr-cargo/64860/" class=""><div class="itemcolormenu" ></div>Cargo</a></div><div class="sidemenuitem "><a href="/cmdr-logbook/64860/" class=""><div class="itemcolormenu" ></div>Logbook / Diary</a></div><div class="sidemenuitem "><a href="/cmdr-gallery/64860/" class=""><div class="itemcolormenu" ></div>Gallery</a></div></div><p class="clear"></p><div class="flexspacingfixed"></div><div class="flex50first"><form action="" method="post" autocomplete="off"><input type="hidden" name="location" value="cmdr"><input type="hidden" name="formact" value="USER_FRIENDS_ADD"><input type="hidden" name="cmdrfriendaddid" value="64860"><input type="submit" value="Add friend" class="inlinebutton inlinebuttonlarger" style="width: 100%;"></form></div><div class="flex50first"><form action="/cmdr-inbox/85669/" method="post" autocomplete="off" class=""><input type="hidden" name="location" value="cmdr"><input type="hidden" name="location" value="cmdr-inbox-new"><input type="hidden" name="inboxrecipid" value="64860"><input type="submit" value="Send private message" class="inlinebutton inlinebuttonlarger" style="width: 100%;"></form></div></div><div class="flexcontent"><div class="flexmiddle"><h2 class="header" style="background-image: url(/images/headers/29.jpg);">Biography</h2><div class="mainblock mainblocksmall"><span class="minor">No character biography found...</span></div><div class="logchartcontainer"><div class="logchart"><h2 class="header" style="background-image: url(/images/headers/34.jpg);">Credits and assets</h2><div class="mainblock" style="height: 280px; padding: 10px 0px 3px 0px;"><div id="creditbalancechart"></div></div></div></div><div class="logchartprices"><div class="mainblock mainitem"><div class="authordate">02 May 2017</div>Credits: 762,386,209 Cr / Assets: 769,047,359 Cr</div></div><p class="clear"></p><h2 class="header" style="background-image: url(/images/headers/30.jpg);">Fleet</h2><div class="sortable"><div class="shipblockcontainer" id="shipord_211750" ><div class="mainblock shipblock" style="height: 200px;"><div class="shipicon uppercase " style="background: url(/images/shipsdummy/35.png);"></div><div class="shipinfo "><span class="minor smaller uppercase">Name:</span> <span class="major">Space Taxi</span><br><span class="minor smaller uppercase">ID:</span> <br><span class="minor smaller uppercase">Type:</span> Asp Explorer<br><span class="minor smaller uppercase">Role:</span> Space Taxi<br><br><br><br></div><div class="floatleft"><span class="inlinebuttonminor" style="margin-left: -3px;"><a href="/cmdr-fleet/64860/211750/">Details</a></span></div></div></div><div class="shipblockcontainer" id="shipord_211767" ><div class="mainblock shipblock" style="height: 200px;"><div class="shipicon uppercase " style="background: url(/images/shipsdummy/75.png);"></div><div class="shipinfo "><span class="minor smaller uppercase">Name:</span> <span class="major">Cookie Cutter</span><br><span class="minor smaller uppercase">ID:</span> <br><span class="minor smaller uppercase">Type:</span> Imperial Cutter<br><span class="minor smaller uppercase">Role:</span> Trader<br><br><br><br></div><div class="floatleft"><span class="inlinebuttonminor" style="margin-left: -3px;"><a href="/cmdr-fleet/64860/211767/">Details</a></span></div></div></div><div class="shipblockcontainer" id="shipord_211768" ><div class="mainblock shipblock" style="height: 200px;"><div class="shipicon uppercase " style="background: url(/images/shipsdummy/56.png);"></div><div class="shipinfo "><span class="minor smaller uppercase">Name:</span> <span class="major">Cookie Blaster</span><br><span class="minor smaller uppercase">ID:</span> <br><span class="minor smaller uppercase">Type:</span> Fer-de-Lance<br><span class="minor smaller uppercase">Role:</span> Figher<br><br><br><br></div><div class="floatleft"><span class="inlinebuttonminor" style="margin-left: -3px;"><a href="/cmdr-fleet/64860/211768/">Details</a></span></div></div></div></div><p class="clear"></p><h2 class="header" style="background-image: url(/images/headers/21.jpg);">Logbook</h2><div class="mainblock"><span class="minor">No logbooks found...</span></div><h2 class="header" style="background-image: url(/images/headers/29.jpg);">Achievements history</h2><div class="mainblock mainitem mainitemsmall ranktrade"><div class="iconempty"></div><div class="authordate">02 May 2017</div>Bought ship Fer-de-Lance</div><div class="mainblock mainitem mainitemsmall ranktrade"><div class="iconempty"></div><div class="authordate">02 May 2017</div>Bought ship Imperial Cutter</div><div class="mainblock mainitem mainitemsmall "><div class="iconempty"></div><div class="authordate">02 May 2017</div>Preferred allegiance Federation</div><div class="mainblock mainitem mainitemsmall "><div class="iconempty"></div><div class="authordate">02 May 2017</div>Reputation with Alliance (Friendly)</div><div class="mainblock mainitem mainitemsmall "><div class="iconempty"></div><div class="authordate">02 May 2017</div>Reputation with Empire (Friendly)</div><div class="mainblock mainitem mainitemsmall "><div class="iconempty"></div><div class="authordate">02 May 2017</div>Reputation with Federation (Friendly)</div><div class="mainblock mainitem mainitemsmall "><div class="iconempty"></div><div class="authordate">02 May 2017</div>Pledged power: Zachary Hudson</div><div class="mainblock mainitem mainitemsmall "><div class="iconempty"></div><div class="authordate">02 May 2017</div>Pledged power rating: Rating 5</div><div class="mainblock mainitem mainitemsmall "><div class="iconempty"></div><div class="authordate">02 May 2017</div>Joined wing: Federal Republican Command</div><div class="mainblock mainitem mainitemsmall ranktrade"><div class="iconempty"></div><div class="authordate">01 May 2017</div>Bought ship Asp Explorer</div><div class="mainblock mainitem mainitemsmall rankcombat"><div class="iconcombat"></div><div class="authordate">01 May 2017</div>Pilot's  Combat rank: Deadly</div><div class="mainblock mainitem mainitemsmall ranktrade"><div class="icontrade"></div><div class="authordate">01 May 2017</div>Pilot's  Trade rank: Tycoon</div><div class="mainblock mainitem mainitemsmall rankexploration"><div class="iconexploration"></div><div class="authordate">01 May 2017</div>Pilot's  Exploration rank: Elite</div><div class="mainblock mainitem mainitemsmall rankcombat"><div class="iconempty"></div><div class="authordate">01 May 2017</div>Pilot's  Imperial Navy rank: Duke</div><div class="mainblock mainitem mainitemsmall rankcombat"><div class="iconempty"></div><div class="authordate">01 May 2017</div>Pilot's  Federal Navy rank: Ensign</div></div><div class="flexrightwide"><div class="flex66"><h2 class="header headernoimage">Ranks</h2><div class="mainblock mainblocksmall transparent textcenter"><div class="rankiconlarge"><img src="/images/ranks/combat/7.png"><br><span class="minor small uppercase">Combat rank</span><br><span class="tooltip " data-tooltiptext="Progress: 0%&lt;br&gt;Achieved: 01 May 2017, 11:52pm">Deadly</span><br><br></div><div class="rankiconlarge"><img src="/images/ranks/trade/7.png"><br><span class="minor small uppercase">Trade rank</span><br><span class="tooltip " data-tooltiptext="Progress: 0%&lt;br&gt;Achieved: 01 May 2017, 11:52pm">Tycoon</span><br><br></div><div class="rankiconlarge"><img src="/images/ranks/exploration/8.png"><br><span class="minor small uppercase">Exploration rank</span><br><span class="tooltip " data-tooltiptext="Progress: 0%&lt;br&gt;Achieved: 01 May 2017, 11:52pm">Elite</span><br><br></div><div class="rankiconlarge"><img src="/images/ranks/cqc/0.png"><br><span class="minor small uppercase">CQC rank</span><br><span class="tooltip " data-tooltiptext="Progress: 0%&lt;br&gt;Achieved: ">Helpless</span><br><span class="uppercase small"><span class="minor">Rank: </span>1 &nbsp; <span class="minor">Prest: </span>0</span></div><div class="rankiconlarge"><img src="/images/ranks/navy/2.png"><br><span class="minor small uppercase">Imperial Navy rank</span><br><span class="tooltip " data-tooltiptext="Progress: 0%&lt;br&gt;Achieved: 01 May 2017, 11:52pm">Duke</span><br><br></div><div class="rankiconlarge"><img src="/images/ranks/navy/3.png"><br><span class="minor small uppercase">Federal Navy rank</span><br><span class="tooltip " data-tooltiptext="Progress: 0%&lt;br&gt;Achieved: 01 May 2017, 11:52pm">Ensign</span><br><br></div><div class="" style="width: 330px; display: inline-block; text-align: center; margin-top: 20px;"><a href="/wing/722/" class="nounderline"><img src="/data/wings/logo/722.png" class="winglogothumb"><br><span class="uppercase">Federal Republican Command</span><br><span class="minor smaller uppercase">Squadron leader</span></a><br><br></div></div><div class="mainblock mainblocksmall transparent textcenter"><div class="textcenter" style="display: inline-block;"><a href="/galaxy-rankings/" class="nounderline"><img src="/images/rankingicon.png" width="110" height="70"></a><br><span class="minor small uppercase">Inara rankings</span><br><div style="padding-top: 4px; padding-left: 15px;"><span class="major big">#4097 &nbsp;</span></div></div><div class="textcenter" style="display: inline-block;"><a href="/galaxy-rankings-cqc/" class="nounderline"><img src="/images/cqcicon.png" width="110" height="70"></a><br>Not ranked<br></div><p class="clear"></p></div></div><div class="flex33"><h2 class="header headernoimage">Reputation</h2><div class="powericonlarge"><img src="/images/ranks/factions/1.png"><br><span class="minor small uppercase">Alliance</span><br><span class="tooltip " data-tooltiptext="Achieved: 02 May 2017, 12:40am">Friendly</span></div><div class="powericonlarge"><img src="/images/ranks/factions/2.png"><br><span class="minor small uppercase">Empire</span><br><span class="tooltip " data-tooltiptext="Achieved: 02 May 2017, 12:40am">Friendly</span></div><div class="powericonlarge"><img src="/images/ranks/factions/3.png"><br><span class="major small uppercase">Federation</span><br><span class="tooltip " data-tooltiptext="Achieved: 02 May 2017, 12:40am&lt;br&gt;Preferred allegiance">Friendly</span></div><div class="powericonlarge"><img src="/images/ranks/factions/10.png"><br><span class="minor small uppercase">Pilots Federation</span><br><span class="tooltip " data-tooltiptext="Achieved: ">Neutral</span></div><div class="powericonlarge" style="background-image: url(/images/powers/icon_6.png);"><a href="/galaxy-powers/6/" class="nounderline"><img src="/images/powers/rating5.png"></a><br><span class="minor small uppercase">Zachary Hudson</span><br><span class="tooltip " data-tooltiptext="Achieved: 02 May 2017, 12:40am">Rating 5</span></div><h2 class="header headernoimage">Commander info</h2><div class="mainblock transparent"><div class="itemtitle" style="width: 100px;">Game version: </div><span class="standardcase">E:D Horizons (PC)</span><p class="clear"></p><div class="itemtitle" style="width: 100px;">Preferred style: </div><span class="standardcase">PvE only</span><p class="clear"></p><div class="itemtitle" style="width: 100px;">Preferred role: </div><span class="standardcase">Scientist / Space cowboy</span><p class="halfspace"></p><div class="itemtitle" style="width: 100px;">Timezone: </div><span class="standardcase">GMT -04:00 (US/Eastern)</span><p class="halfspace"></p></div></div></div></div></div><style type="text/css">.custombackground { background-image: url(/images/custombacks/back_0_0.png);  }</style></div><div class="footer"><div style="width: 90%; margin: 0 auto;">This website is not an official tool for the game <a href="http://www.elitedangerous.com" target="_blank">Elite: Dangerous</a> and is not affiliated with <a href="http://frontier.co.uk/" target="_blank">Frontier Developments</a>. All information provided is based on publicly available information and may not be entirely accurate.<p>Elite © 1984 David Braben & Ian Bell. Frontier © 1993 David Braben, Frontier: First Encounters © 1995 David Braben and Elite: Dangerous © 2012, 2013 Frontier Developments plc. All rights reserved. 'Elite', the Elite logo, the Elite: Dangerous logo, 'Frontier' and the Frontier logo are registered trademarks of Frontier Developments plc. All rights reserved. All other trademarks and copyright are acknowledged as the property of their respective owners.</p><p><a href="/policy-cookies/">Cookies policy</a></p><br></div></div></div></div><div id="formdialog-confirm"></div><div id="customdialog1"></div><div id="customdialog2"></div><div id="customdialog3"></div><div id="customdialog4"></div><div id="customdialog5"></div><script type="text/javascript">
+   var rootUrl = "/";
+</script>
+<script src="/js/jquery-1.12.3.min.js"></script>
+<script src="/js/jquery-ui.min.mod.js"></script>
+<script src="/js/misc.min.js?v=27"></script>
+<script language="javascript" type="text/javascript">$(document).ready(function(){ var data_assets = [  {x:1493675195,y:0}, {x:1493679135,y:769047359} ];var data_credits = [  {x:1493675195,y:0}, {x:1493679135,y:762386209} ];
+// credit balance chart
+
+if ($("#creditbalancechart").length) {
+   var graph = new Rickshaw.Graph( {
+   	element: document.querySelector("#creditbalancechart"),
+   	//width: 570,
+   	height: 280,
+   	renderer: 'area',
+   	stroke: true,
+      interpolation: 'linear',   // linear,cardinal,monotone,bundle
+      stack: false,
+   	series: [ {
+   		data: data_assets,
+         name: 'Assets',
+         color: 'rgba(120,110,100,1.0)',
+   		stroke: 'rgba(0,0,0,0.25)'
+   	}, {
+   		data: data_credits,
+         name: 'Credits',
+         color: 'rgba(250,160,60,0.85)',
+   		stroke: 'rgba(0,0,0,0.25)'
+   	} ]
+   } );
+
+   //var x_axis = new Rickshaw.Graph.Axis.Time( { graph: graph } );
+
+   var y_axis = new Rickshaw.Graph.Axis.Y( {
+           graph: graph,
+           orientation: 'right',
+           tickFormat: Rickshaw.Fixtures.Number.formatKMBT,
+           element: document.getElementById('y_axis'),
+
+   } );
+
+   graph.render();
+
+   $( window ).resize(function () {
+     graph.configure({
+       width: $("#creditbalancechart").width(),
+     });
+     graph.render();
+   });
+
+   var hoverDetail = new Rickshaw.Graph.HoverDetail( {
+   	graph: graph,
+   	formatter: function(series, x, y) {
+   		//var date = '<span class="date">' + new Date(x * 1000).toUTCString() + '</span>';
+   		//var swatch = '<span class="detail_swatch" style="background-color: ' + series.color + '"></span>';
+   		var content = series.name + ": " + (d3.format(",")(y)) + "Cr";
+   		return content;
+   	}
+   } );
+
+   if ($("#creditbalancechartlegend").length) {
+      var legend = new Rickshaw.Graph.Legend( {
+           element: document.querySelector('#creditbalancechartlegend'),
+           graph: graph
+      } );
+
+      var highlighter = new Rickshaw.Graph.Behavior.Series.Toggle({
+       graph: graph,
+       legend: legend
+      });
+   }
+
+};
+
+
+if ($("#creditsinput").length) {
+   $('#creditsinput').on("input", function() {
+      var credits = parseInt(0 + $(this).val().replace(/\D/g,''));
+      var assets = parseInt(0 + $('#oassinput').val().replace(/\D/g,''));
+      var oass = credits + assets;
+      oass = oass.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+      $('#assetsinput').val(oass);
+      //$('#calculatedout').html( '<b>' + oass + '</b>' );
+   });
+};
+
+
+
+if ($("#genship-inaraid").length) {
+   $('#genship-inaraid').on("click", function() {
+      var shipid = $('#genship-inaraid').data("genshipid");
+      $('#inaraship-id').val( '' + shipid + '' );
+   });
+};
+
+});
+
+</script>
+<script language="javascript" type="text/javascript">$(document).ready(function(){$('.artinsideimg').each(function(){if (this.complete) { $(this).css('max-width', $(this).get(0).naturalWidth + 'px'); $(this).css('width','100%'); }$(this).on('load', function() {$(this).css('max-width', $(this).get(0).naturalWidth + 'px'); $(this).css('width','100%');});if ($(this).get(0).naturalWidth > 0) { $(this).css('max-width', $(this).get(0).naturalWidth + 'px'); $(this).css('width','100%'); }else { $(this).css('max-width', '800px'); $(this).css('width','100%'); }});});</script>
+<script>
+
+  (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+  (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+  m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+  })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+
+  ga('create', 'UA-712604-7', 'auto');
+  ga('require', 'displayfeatures');
+  ga('send', 'pageview');
+
+</script>
+
+</body>
+</html>

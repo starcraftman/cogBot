@@ -46,7 +46,10 @@ class InaraApi():
         self.http = aiohttp.ClientSession()
 
     def __del__(self):
-        self.http.close()
+        try:
+            self.http.close()
+        except TypeError:
+            pass
 
     async def login_to_inara(self):
         """
@@ -171,7 +174,7 @@ class InaraApi():
                         responses += [user_select]
 
                     cmdrs_dict = dict(enumerate(cmdrs, 1))
-                    key = int(check_reply(user_select))
+                    key = check_reply(user_select)
                     return cmdrs_dict[key]
                 except AbortWhois:
                     return None
@@ -204,12 +207,11 @@ class InaraApi():
             'allegiance': 'none',
             'rank': 'unknown',
             'power': 'none',
-            'credit_balance': 'unknown',
+            'balance': 'unknown',
             'wing': 'none',
             'assets': 'unknown'
         }
 
-        print(response_text)
         for func in PARSERS:
             func(response_text, cmdr)
 
@@ -234,14 +236,11 @@ class InaraApi():
         em.add_field(name='Power', value=cmdr["power"], inline=True)
         em.add_field(name='Rank', value=cmdr["rank"], inline=True)
         em.add_field(name='Overall Assets', value=cmdr["assets"], inline=True)
-        em.add_field(name='Credit Balance', value=cmdr["credit_balance"], inline=True)
+        em.add_field(name='Credit Balance', value=cmdr["balance"], inline=True)
         # em.set_footer(text='Wing Link: ' + cmdr['wing_url'])
 
         await self.bot.send_message(msg.channel, embed=em)
         await self.delete_waiting_message(found_commander["req_id"])
-
-
-Inara = InaraApi(False)  # use as module, needs "bot" to be set. pylint: disable=C0103
 
 
 def check_reply(msg, prefix='!'):
@@ -264,12 +263,13 @@ def check_reply(msg, prefix='!'):
     if msg.content.startswith(prefix) or not match:
         raise ValueError('Bad response.\n\nPlease choose with **cmdr x** or **stop**')
 
-    return match.group(1)
+    return int(match.group(1))
 
 
-def register_parser(func):
-    """ Simply register parser for later use. """
+def register_parser(func):  # pragma: no cover
+    """ Simply register parsers for later use. """
     PARSERS.append(func)
+    return func
 
 
 @register_parser
@@ -293,7 +293,7 @@ def parse_balance(text, cmdr):
     """ Parse balance of CMDR from Inara page. """
     match = re.search(r'Credit Balance</span><br>([^\<]+)</td>', text)
     if match and match.group(1) != "&nbsp;":
-        cmdr["credit_balance"] = match.group(1)
+        cmdr["balance"] = match.group(1)
 
 
 @register_parser
@@ -344,11 +344,14 @@ def parse_wing(text, cmdr):
         cmdr["wing"] = match.group(1)
 
 
-# def cmdr_wing_url(text, cmdr):
-    # """ Parse wing of CMDR from Inara page. """
-    # match = re.search(r'<a href="(/wing/\d+/)"', response_text)
-    # if match and match.group(1) != "&nbsp;":
-        # cmdr['wing_url'] = INARA + match.group(1)
+def parse_wing_url(text, cmdr):
+    """ Parse wing of CMDR from Inara page. """
+    match = re.search(r'<a href="(/wing/\d+/)"', text)
+    if match and match.group(1) != "&nbsp;":
+        cmdr['wing_url'] = INARA + match.group(1)
+
+
+Inara = InaraApi(False)  # use as module, needs "bot" to be set. pylint: disable=C0103
 
 
 async def whois(cmdr_name):
