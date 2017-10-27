@@ -2,7 +2,7 @@
 Provide ability to search commanders on Inara.cz
 Lookup can be exact or loose, responds with all relevant CMDR info.
 
-Thanks to CMDR shotwn for conntribution.
+Thanks to CMDR shotwn for the contribution.
 Contributed: 20/10/2017
 '''
 import asyncio
@@ -18,8 +18,8 @@ import cog.exc
 import cog.util
 
 SITE = 'https://inara.cz'
-SITE_LOGIN = '{}/login'.format(SITE)
-SITE_SEARCH = '{}/search?location=search&searchglobal='.format(SITE)
+SITE_LOGIN = SITE + '/login'
+SITE_SEARCH = SITE + '/search?location=search&searchglobal='
 PARSERS = []
 PP_COLORS = {
     'Alliance': 0x008000,

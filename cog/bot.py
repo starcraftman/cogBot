@@ -166,7 +166,7 @@ class CogBot(discord.Client):
         self.emoji.update(self.servers)
 
         # This block is effectively a one time setup.
-        if cog.actions.SCANNERS:
+        if not cog.actions.SCANNERS:
             # Inara setup
             cog.inara.api.bot = self
             await cog.inara.api.login_to_inara()
@@ -184,7 +184,7 @@ class CogBot(discord.Client):
             asyncio.ensure_future(asyncio.gather(
                 presence_task(self),
                 cog.jobs.pool_monitor_task(),
-                cog.scheduler.scheduler_task(self, self.sched)
+                cog.scheduler.scheduler_task(self, self.sched),
             ))
             await asyncio.sleep(0.5)
 
