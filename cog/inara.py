@@ -1,5 +1,6 @@
 '''
-Provide ability to search commanders on inara.cz
+Provide ability to search commanders on Inara.cz
+Lookup can be exact or loose, responds with all relevant CMDR info.
 
 Thanks to CMDR shotwn for conntribution.
 Contributed: 20/10/2017
@@ -11,12 +12,10 @@ import re
 import urllib.parse
 
 import aiohttp
-import aiomock
 import discord
 
 import cog.exc
 import cog.util
-# TODO: Convert to module with statics
 
 INARA = 'https://inara.cz'
 INARA_LOGIN = '{}/login'.format(INARA)
@@ -32,13 +31,16 @@ PP_COLORS = {
 
 class InaraApi():
     """
-    hillbilly inara.cz who-is api !!!!!
+    Inara CMDR lookups done with aiohttp module.
+    Each request tracked separately, allows for back and forth with bot on loose match.
+
+    N.B. To prevent shutdown warnings ensure self.http.close() called atexit.
     """
     def __init__(self, bot):
         self.bot = bot
-        self.waiting_messages = {}  # Searching in inara.cz messages. keys are req_id.
-        self.req_counter = 0  # count how many searches done with search_in_inara
         self.http = aiohttp.ClientSession()
+        self.req_counter = 0  # count how many searches done with search_in_inara
+        self.waiting_messages = {}  # Searching in inara.cz messages. keys are req_id.
 
     async def login_to_inara(self):
         """
@@ -71,33 +73,27 @@ class InaraApi():
         Search for a commander on Inara.
 
         Raises:
+            CmdAborted - User let timeout occur or cancelled loose match.
             RemoteError - If response code invalid or remote unreachable.
         """
         req_id = self.req_counter
-        self.req_counter += 1
+        self.req_counter += 1 % 1000
 
         try:
-            # send waiting message
             self.waiting_messages[req_id] = await self.bot.send_message(msg.channel, "Searching inara.cz ...")  # when using one session for entire app, this behaviour will change
 
             # search for commander name
             async with self.http.get(INARA_SEARCH + urllib.parse.quote_plus(cmdr_name)) as resp:
-                # fail with HTTP error
                 if resp.status != 200:
                     raise cog.exc.RemoteError("Inara search failed. Response code bad: {}".format(resp.status))
 
-                # wait for response text
                 response_text = await resp.text()
 
-            # logic to follow if response requires login
+            # Possible login expires or wasn't called before start. Retry login.
             if "You must be logged in to view search results" in response_text:
-                # try loggin in
-                try:
-                    await self.login_to_inara()
-                    await self.delete_waiting_message(req_id)
-                    return await self.search_in_inara(cmdr_name, msg)  # call search again
-                except cog.exc.RemoteError:
-                    raise cog.exc.RemoteError("Failed connection to %s twice. There may be a problem!" % INARA)
+                await self.login_to_inara()
+                await self.delete_waiting_message(req_id)
+                return await self.search_in_inara(cmdr_name, msg)  # call search again
 
             # Extract the block of commanders
             match = re.search(r'Commanders found</h2><div class="mainblock" style="-webkit-column-count: 3; -moz-column-count: 3; column-count: 3;">(.+?)</div>', response_text)
@@ -105,9 +101,8 @@ class InaraApi():
                 await self.bot.send_message(msg.channel, "Could not find CMDR **{}**".format(cmdr_name))
                 return None
 
-            # Extract all cmdrs found
-            # group(1) is commander url in inara
-            # group(2) is commander name
+            # Extract all cmdrs found, come out as tuple of form:
+            #       [(URL, name), (URL, name) ...]
             cmdrs = re.findall(r'<a href="(\S+)" class="inverse">([^<]+)</a>', match.group(1))
             if len(cmdrs) == 1 and cmdrs[0][1].lower() == cmdr_name.lower():
                 cmdr = cmdrs[0]
@@ -167,17 +162,19 @@ class InaraApi():
                     *[self.bot.delete_message(response) for response in responses]))
 
     async def fetch_from_cmdr_page(self, found_commander, msg):
-        """ fetch cmdr page, setup embed and send """
+        """
+        Fetch cmdr page, parse information, setup embed and send response.
+
+        Raises:
+            RemoteError - Failed response from Inara.
+        """
         async with self.http.get(found_commander["url"]) as resp:
-            # fail with HTTP error
             if resp.status != 200:
-                # await self.bot.send_message(msg.channel, "I can't fetch page for " + str(found_commander["name"]))
                 raise cog.exc.RemoteError("Inara CMDR page: Bad response code: " + str(resp.status))
 
-            # wait response text
             response_text = await resp.text()
 
-        # cmdr prototype | defaults
+        # cmdr prototype, only name guaranteed. Others will display if not found.
         cmdr = {
             'name': 'ERROR',
             'profile_picture': '/images/userportraitback.png',
@@ -193,14 +190,8 @@ class InaraApi():
         for func in PARSERS:
             func(response_text, cmdr)
 
-        # KOS HOOK WILL BE HERE !
-        # to crosscheck who-is with KOS list.
-        # and add a footer to embed if cmdr is in KOS
-
-        if __name__ == "__main__":
-            import pprint
-            pprint.pprint(str(cmdr))
-            return
+        # TODO: KOS HOOK WILL BE HERE !
+        # crosscheck who-is with KOS list, then append information to embed
 
         # Build Embed
         em = discord.Embed(colour=PP_COLORS.get(cmdr["allegiance"], PP_COLORS['default']))
@@ -330,24 +321,3 @@ def parse_wing_url(text, cmdr):
 
 Inara = InaraApi(False)  # use as module, needs "bot" to be set. pylint: disable=C0103
 atexit.register(Inara.http.close)  # Ensure proper close, move to cog.bot later
-
-
-async def whois(cmdr_name):
-    msg = aiomock.Mock(channel='channel', content='!whois gearsandcogs')
-
-    cmdr = await Inara.search_in_inara(cmdr_name, msg)
-    if cmdr:
-        await Inara.fetch_from_cmdr_page(cmdr, msg)
-
-
-def main():
-    mock_bot = aiomock.AIOMock()
-    mock_bot.send_message.async_side_effect = lambda x, y: print(x, '//', y)
-    mock_bot.delete_message.async_return_value = None
-    Inara.bot = mock_bot
-    loop = asyncio.get_event_loop()
-    loop.run_until_complete(whois('gearsandcogs'))
-
-
-if __name__ == "__main__":
-    main()
