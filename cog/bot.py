@@ -23,8 +23,6 @@ from __future__ import absolute_import, print_function
 import asyncio
 import datetime
 import logging
-import logging.handlers
-import logging.config
 import os
 import pprint
 import re

@@ -96,6 +96,26 @@ Note: This will remove all pyc objects, tox cache and other useless files.
 python setup.py coverage
 ```
 
+#### Running Tests
+
+*Full Test Suite*
+```
+tox
+```
+
+**Only Tests Matching A String**
+If `py.test` not available on the command line, do `python -m pytest`.
+```
+py.test -k test_inara
+```
+
+**Run Parts Of Tox**
+Tox runs 3 tests on code base. Pytest for unit tests, pylint and flake8 for static linting.
+The last two can't fail, some errors I ignore especially some linting problems in 'tests/'
+```
+tox -e flake8
+```
+
 <!-- Links -->
 [WaffleShield]: https://badge.waffle.io/starcraftman/cogBot.svg?label=ready&title=Ready
 [WaffleDash]: http://waffle.io/starcraftman/cogBot

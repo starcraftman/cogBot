@@ -317,6 +317,8 @@ def parse_wing_url(text, cmdr):
         cmdr['wing_url'] = SITE + match.group(1)
 
 
+# TODO: Alternatively, just unroll the class to be static data and module functions?
+# TODO: Alternative 2, simply make an api object per request and login separately.
+#       Increases delay but removes all need for checking if we are logged in.
 api = InaraApi()  # use as module, needs "bot" to be set. pylint: disable=C0103
 atexit.register(api.http.close)  # Ensure proper close, move to cog.bot later
-# TODO: Alternatively, just unroll the class to be static data and module functions?
