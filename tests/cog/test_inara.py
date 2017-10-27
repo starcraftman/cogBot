@@ -44,10 +44,10 @@ def inara_cmdr():
 
 
 def test_check_reply():
-    with pytest.raises(cog.inara.AbortWhois):
+    with pytest.raises(cog.exc.CmdAborted):
         cog.inara.check_reply(None)
 
-    with pytest.raises(cog.inara.AbortWhois):
+    with pytest.raises(cog.exc.CmdAborted):
         cog.inara.check_reply(Message('stop', None, None, None, None))
 
     with pytest.raises(ValueError):

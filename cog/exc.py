@@ -95,6 +95,11 @@ class NoMatch(UserException):
         return "No matches for '{}' in {}s:".format(self.sequence, self.cls)
 
 
+class CmdAborted(UserException):
+    """ Raised to cancel a multistep command, usually result of user (in)action. """
+    pass
+
+
 class InternalException(CogException):
     """
     An internal exception that went uncaught.
@@ -130,9 +135,9 @@ class NoMoreTargets(InternalException):
     pass
 
 
-class RemoteDBUnreachable(InternalException):
+class RemoteError(InternalException):
     """
-    Can no longer communicate with a remote DB.
+    Can no longer communicate with a remote that is required.
     """
     pass
 

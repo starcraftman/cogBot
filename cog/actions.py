@@ -301,7 +301,7 @@ class BGS(Action):
                 response = self.age_system(system_name)
             elif self.args.subcmd == 'inf':
                 response = self.inf_system(system_name)
-        except (cog.exc.NoMoreTargets, cog.exc.RemoteDBUnreachable) as exc:
+        except (cog.exc.NoMoreTargets, cog.exc.RemoteError) as exc:
             response = exc.reply()
 
         await self.bot.send_message(self.msg.channel, response)
@@ -619,7 +619,7 @@ class Time(Action):
 
         try:
             tick = cogdb.side.next_bgs_tick(cogdb.SideSession(), now)
-        except (cog.exc.NoMoreTargets, cog.exc.RemoteDBUnreachable) as exc:
+        except (cog.exc.NoMoreTargets, cog.exc.RemoteError) as exc:
             tick = exc.reply()
         lines = [
             'Game Time: **{}**'.format(now.strftime('%H:%M:%S')),

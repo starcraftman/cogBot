@@ -5,6 +5,7 @@ Thanks to CMDR shotwn for conntribution.
 Contributed: 20/10/2017
 '''
 import asyncio
+import atexit
 import math
 import re
 import urllib.parse
@@ -16,7 +17,6 @@ import discord
 import cog.exc
 import cog.util
 # TODO: Convert to module with statics
-# TODO: Better use of exceptions
 
 INARA = 'https://inara.cz'
 INARA_LOGIN = '{}/login'.format(INARA)
@@ -30,11 +30,6 @@ PP_COLORS = {
 }
 
 
-class AbortWhois(Exception):
-    """ Raised to cancel the interactive selection. """
-    pass
-
-
 class InaraApi():
     """
     hillbilly inara.cz who-is api !!!!!
@@ -45,95 +40,82 @@ class InaraApi():
         self.req_counter = 0  # count how many searches done with search_in_inara
         self.http = aiohttp.ClientSession()
 
-    def __del__(self):
-        try:
-            self.http.close()
-        except TypeError:
-            pass
-
     async def login_to_inara(self):
         """
         Perform initial login to inara, required to see search results.
+
+        Raises:
+            RemoteError - Response was bad or login credentials invalid.
         """
         payload = cog.util.get_config('inara')
 
         # DO LOGIN, Inara doesn't use HTTP auth. It is a standard post.
         async with self.http.post(INARA_LOGIN, data=payload) as resp:
-
-            # Fail with HTTP Resp Code.
             if resp.status != 200:
-                raise ValueError("Login failed. Response code: {}".format(resp.status))
+                raise cog.exc.RemoteError("Inara login failed, response code bad: {}".format(resp.status))
 
-            # Fail if wrong login
             response_text = await resp.text()
             if "WRONG LOGIN/PASSWORD" in response_text:
-                raise ValueError("Bad Login or Password in inara login")
+                raise cog.exc.RemoteError("Bad Login or Password in Inara login")
 
             return True
 
     async def delete_waiting_message(self, req_id):
-        """ delete the message which informs user about start of search """
-
-        await self.bot.delete_message(self.waiting_messages[req_id])
-        del self.waiting_messages[req_id]
-        return True
+        """ Delete the message which informs user about start of search """
+        if req_id in self.waiting_messages:
+            await self.bot.delete_message(self.waiting_messages[req_id])
+            del self.waiting_messages[req_id]
 
     async def search_in_inara(self, cmdr_name, msg):
-        """ search commander name in inara.cz """
+        """
+        Search for a commander on Inara.
 
-        # set req_id
-        req_id = self.req_counter  # async disaster waiting here
-        self.req_counter += 1  # check init for details
+        Raises:
+            RemoteError - If response code invalid or remote unreachable.
+        """
+        req_id = self.req_counter
+        self.req_counter += 1
 
-        # send waiting message
-        self.waiting_messages[req_id] = await self.bot.send_message(msg.channel, "Searching inara.cz ...")  # when using one session for entire app, this behaviour will change
+        try:
+            # send waiting message
+            self.waiting_messages[req_id] = await self.bot.send_message(msg.channel, "Searching inara.cz ...")  # when using one session for entire app, this behaviour will change
 
-        # search for commander name
-        async with self.http.get(INARA_SEARCH + urllib.parse.quote_plus(cmdr_name)) as resp:
+            # search for commander name
+            async with self.http.get(INARA_SEARCH + urllib.parse.quote_plus(cmdr_name)) as resp:
+                # fail with HTTP error
+                if resp.status != 200:
+                    raise cog.exc.RemoteError("Inara search failed. Response code bad: {}".format(resp.status))
 
-            # fail with HTTP error
-            if resp.status != 200:
-                await self.delete_waiting_message(req_id)
-                await self.bot.send_message(msg.channel, "Internal Error")
-                raise ValueError("Inara Search Failed. HTTP response code: {}".format(resp.status))
+                # wait for response text
+                response_text = await resp.text()
 
-            # wait for response text
-            response_text = await resp.text()
+            # logic to follow if response requires login
+            if "You must be logged in to view search results" in response_text:
+                # try loggin in
+                try:
+                    await self.login_to_inara()
+                    await self.delete_waiting_message(req_id)
+                    return await self.search_in_inara(cmdr_name, msg)  # call search again
+                except cog.exc.RemoteError:
+                    raise cog.exc.RemoteError("Failed connection to %s twice. There may be a problem!" % INARA)
 
-        # logic to follow if response requires login
-        if "You must be logged in to view search results" in response_text:
-
-            # try loggin in
-            try:
-                await self.login_to_inara()
-            except ValueError as error:
-                print(error.args)  # TODO: integrade with internal debug. pprint ?
-                return False  # die if can't login
-
-            # login successful, try again
-            await self.delete_waiting_message(req_id)  # delete previous message (this logic will work rarely. it is okay.)
-            second_attempt = await self.search_in_inara(cmdr_name, msg)  # call search again
-            return second_attempt  # return second attempt.
-
-        # Extract the block of commanders
-        match = re.search(r'Commanders found</h2><div class="mainblock" style="-webkit-column-count: 3; -moz-column-count: 3; column-count: 3;">(.+?)</div>', response_text)
-        if not match:
-            await self.bot.send_message(msg.channel, "Could not find CMDR **{}**".format(cmdr_name))
-            await self.delete_waiting_message(req_id)
-            return False
-
-        # Extract all cmdrs found
-        # group(1) is commander url in inara
-        # group(2) is commander name
-        cmdrs = re.findall(r'<a href="(\S+)" class="inverse">([^<]+)</a>', match.group(1))
-        if len(cmdrs) == 1 and cmdrs[0][1].lower() == cmdr_name.lower():
-            cmdr = cmdrs[0]
-        else:
-            cmdr = await self.select_from_choices(cmdr_name, cmdrs, msg)
-            if not cmdr:
-                await self.delete_waiting_message(req_id)
-                # await self.bot.send_message(msg.channel, 'Improper response. Resubmit command.')
+            # Extract the block of commanders
+            match = re.search(r'Commanders found</h2><div class="mainblock" style="-webkit-column-count: 3; -moz-column-count: 3; column-count: 3;">(.+?)</div>', response_text)
+            if not match:
+                await self.bot.send_message(msg.channel, "Could not find CMDR **{}**".format(cmdr_name))
                 return None
+
+            # Extract all cmdrs found
+            # group(1) is commander url in inara
+            # group(2) is commander name
+            cmdrs = re.findall(r'<a href="(\S+)" class="inverse">([^<]+)</a>', match.group(1))
+            if len(cmdrs) == 1 and cmdrs[0][1].lower() == cmdr_name.lower():
+                cmdr = cmdrs[0]
+            else:
+                await self.delete_waiting_message(req_id)
+                cmdr = await self.select_from_choices(cmdr_name, cmdrs, msg)
+        finally:
+            await self.delete_waiting_message(req_id)
 
         return {
             "req_id": req_id,
@@ -150,10 +132,12 @@ class InaraApi():
             None if any of the following true:
                 1) Timesout waiting for user response.
                 2) Invalid response from user (i.e. text, invalid number).
+
+        Raises:
+            CmdAborted - Cmdr either requested abort or failed to respond.
         """
         fmt = '{:' + str(math.ceil(len(cmdrs) / 10)) + '}) {}'
         cmdr_list = [fmt.format(ind, cmdr[1]) for ind, cmdr in enumerate(cmdrs, 1)]
-
         reply = '\n'.join([
             'No exact match for CMDR **{}**'.format(name),
             'Possible matches:',
@@ -163,37 +147,32 @@ class InaraApi():
             '\n__This message will delete itself on success or 30s timeout.__',
         ])
 
-        responses = [await self.bot.send_message(msg.channel, reply)]
         user_select = None
-        try:
-            while True:
-                try:
-                    user_select = await self.bot.wait_for_message(timeout=30, author=msg.author,
-                                                                  channel=msg.channel)
-                    if user_select:
-                        responses += [user_select]
+        while True:
+            try:
+                responses = [await self.bot.send_message(msg.channel, reply)]
+                user_select = await self.bot.wait_for_message(timeout=30, author=msg.author,
+                                                              channel=msg.channel)
+                if user_select:
+                    responses += [user_select]
 
-                    cmdrs_dict = dict(enumerate(cmdrs, 1))
-                    key = check_reply(user_select)
-                    return cmdrs_dict[key]
-                except AbortWhois:
-                    return None
-                except (KeyError, ValueError) as exc:
-                    if user_select:
-                        responses += [await self.bot.send_message(msg.channel, str(exc))]
-        finally:
-            asyncio.ensure_future(asyncio.gather(
-                *[self.bot.delete_message(response) for response in responses]))
+                cmdrs_dict = dict(enumerate(cmdrs, 1))
+                key = check_reply(user_select)
+                return cmdrs_dict[key]
+            except (KeyError, ValueError) as exc:
+                if user_select:
+                    responses += [await self.bot.send_message(msg.channel, str(exc))]
+            finally:
+                asyncio.ensure_future(asyncio.gather(
+                    *[self.bot.delete_message(response) for response in responses]))
 
     async def fetch_from_cmdr_page(self, found_commander, msg):
         """ fetch cmdr page, setup embed and send """
         async with self.http.get(found_commander["url"]) as resp:
-
             # fail with HTTP error
             if resp.status != 200:
-                await self.bot.send_message(msg.channel, "I can't fetch page for " + str(found_commander["name"]))
-                await self.delete_waiting_message(found_commander["req_id"])
-                raise ValueError("Inara CMDR page: HTTP response code NOT 200. The code is: " + str(resp.status))
+                # await self.bot.send_message(msg.channel, "I can't fetch page for " + str(found_commander["name"]))
+                raise cog.exc.RemoteError("Inara CMDR page: Bad response code: " + str(resp.status))
 
             # wait response text
             response_text = await resp.text()
@@ -236,7 +215,6 @@ class InaraApi():
         em.add_field(name='Rank', value=cmdr["rank"], inline=True)
         em.add_field(name='Overall Assets', value=cmdr["assets"], inline=True)
         em.add_field(name='Credit Balance', value=cmdr["balance"], inline=True)
-        # em.set_footer(text='Wing Link: ' + cmdr['wing_url'])
 
         await self.bot.send_message(msg.channel, embed=em)
         await self.delete_waiting_message(found_commander["req_id"])
@@ -249,14 +227,14 @@ def check_reply(msg, prefix='!'):
     Response should be form: cmdr x, where x in [1, n)
 
     Raises:
-        AbortWhois - Timeout reached or user requested abort.
+        CmdAborted - Timeout reached or user requested abort.
         ValueError - Bad message.
 
     Returns: Parsed index of cmdrs dict.
     """
     # If msg is None, the wait_for_message timed out.
     if not msg or re.match(r'\s*stop', msg.content):
-        raise AbortWhois('Timeout or user aborted command.')
+        raise cog.exc.CmdAborted('Timeout or user aborted command.')
 
     match = re.search(r'\s*cmdr\s+(\d+)', msg.content)
     if msg.content.startswith(prefix) or not match:
@@ -351,6 +329,7 @@ def parse_wing_url(text, cmdr):
 
 
 Inara = InaraApi(False)  # use as module, needs "bot" to be set. pylint: disable=C0103
+atexit.register(Inara.http.close)  # Ensure proper close, move to cog.bot later
 
 
 async def whois(cmdr_name):

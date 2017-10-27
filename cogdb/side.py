@@ -343,7 +343,7 @@ def next_bgs_tick(session, now):
         - If not, return message it isn't available.
 
     Raises:
-        RemoteDBUnreachable - Cannot communicate with remote.
+        RemoteError - Cannot communicate with remote.
     """
     log = logging.getLogger("cogdb.side")
     try:
@@ -356,7 +356,7 @@ def next_bgs_tick(session, now):
             log.warning("BGS_TICK - Remote out of estimates")
             raise cog.exc.NoMoreTargets("BGS Tick estimate unavailable. No more estimates, ask @Sidewinder40")
     except sqla_exe.OperationalError:
-        raise cog.exc.RemoteDBUnreachable("Lost connection to Sidewinder's DB.")
+        raise cog.exc.RemoteError("Lost connection to Sidewinder's DB.")
 
 
 def exploited_systems_by_age(session, control):
@@ -366,7 +366,7 @@ def exploited_systems_by_age(session, control):
 
     Raises:
         NoMoreTargets - Ran out of ticks.
-        RemoteDBUnreachable - Cannot communicate with remote.
+        RemoteError - Cannot communicate with remote.
     """
     log = logging.getLogger("cogdb.side")
     try:
@@ -375,7 +375,7 @@ def exploited_systems_by_age(session, control):
 
         log.info("BGS - Received from query: %s", str(result))
     except sqla_exe.OperationalError:
-        raise cog.exc.RemoteDBUnreachable("Lost connection to Sidewinder's DB.")
+        raise cog.exc.RemoteError("Lost connection to Sidewinder's DB.")
 
     return result
 

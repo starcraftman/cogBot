@@ -47,6 +47,7 @@ finally:
 
 import cog.actions
 import cog.exc
+import cog.inara
 import cog.jobs
 import cog.parse
 import cog.scheduler
@@ -164,6 +165,7 @@ class CogBot(discord.Client):
 
         self.emoji.update(self.servers)
 
+        await cog.inara.Inara.login_to_inara()
         if not cog.actions.SCANNERS:
             # TODO: Parallelize startup with scheduler and jobs.
             for name in cog.util.get_config("scanners"):  # Populate on import
