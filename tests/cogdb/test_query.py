@@ -14,7 +14,7 @@ from cogdb.schema import (DUser, System, SheetRow, SheetCattle, SheetUM,
 import cogdb.query
 
 from tests.data import SYSTEMS, USERS
-import tests.cog.test_actions as test_actions
+from tests.conftest import Channel, Member, Message, Role, Server
 
 
 def test_fuzzy_find():
@@ -348,10 +348,10 @@ def test_um_add_hold(session, f_dusers, f_sheets, f_systemsum, db_cleanup):
 
 
 def test_admin_get(session, f_dusers, f_admins):
-    member = test_actions.Member(f_dusers[0].display_name, None, id=f_dusers[0].id)
+    member = Member(f_dusers[0].display_name, None, id=f_dusers[0].id)
     assert f_admins[0] == cogdb.query.get_admin(session, member)
 
-    member = test_actions.Member("NotThere", None, id="2000")
+    member = Member("NotThere", None, id="2000")
     with pytest.raises(cog.exc.NoMatch):
         cogdb.query.get_admin(session, member)
 
@@ -409,18 +409,18 @@ def test_remove_role_perm(session, f_rperms):
 
 
 def test_check_perms(session, f_cperms, f_rperms):
-    ops_channel = test_actions.Channel("operations")
-    server = test_actions.Server('Gears Hideout')
+    ops_channel = Channel("operations")
+    server = Server('Gears Hideout')
     server.channels = [ops_channel]
     ops_channel.server = server
-    roles = [test_actions.Role('FRC Member'), test_actions.Role('Winters')]
-    author = test_actions.Member('Gears', roles)
-    msg = test_actions.Message('!drop', author, server, ops_channel, None)
+    roles = [Role('FRC Member'), Role('Winters')]
+    author = Member('Gears', roles)
+    msg = Message('!drop', author, server, ops_channel, None)
 
     cogdb.query.check_perms(msg, mock.Mock(cmd='Drop'))  # Silent pass
 
     with pytest.raises(cog.exc.InvalidPerms):
-        msg.author.roles = [test_actions.Role('Winters')]
+        msg.author.roles = [Role('Winters')]
         cogdb.query.check_perms(msg, mock.Mock(cmd='Drop'))
 
     with pytest.raises(cog.exc.InvalidPerms):
@@ -440,7 +440,6 @@ def test_check_channel_perms(session, f_cperms):
 
 def test_check_role_perms(session, f_rperms):
     # Silently pass if no raise
-    Role = test_actions.Role
     cogdb.query.check_role_perms(session, 'Drop', 'Gears Hideout',
                                  [Role('FRC Member'), Role('FRC Vet')])
     cogdb.query.check_role_perms(session, 'Time', 'Does Not Matter',

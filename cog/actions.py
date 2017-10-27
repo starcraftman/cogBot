@@ -15,10 +15,10 @@ import decorator
 import cogdb
 import cogdb.query
 import cogdb.side
+import cog.inara
 import cog.jobs
 import cog.tbl
 import cog.util
-from cog.inara import Inara
 
 
 SCANNERS = {}
@@ -767,27 +767,14 @@ class User(Action):
 
 class WhoIs(Action):
     """
-    Who-is request from inara.
+    Who is request to Inara for CMDR info.
     """
     async def execute(self):
-        if not Inara.bot:
-            Inara.bot = self.bot
-
-        """
-        # disabled, now search_in_inara() does it's own check
-
-        if not Inara.session:
-            logged_in = await Inara.login_to_inara()
-            if not logged_in:
-                return # login fail handling
-        """
         cmdr_name = ' '.join(self.args.cmdr)
 
-        # search commander
-        cmdr = await Inara.search_in_inara(cmdr_name, self.msg)
+        cmdr = await cog.inara.api.search_in_inara(cmdr_name, self.msg)
         if cmdr:
-            # fetch commander page
-            await Inara.fetch_from_cmdr_page(cmdr, self.msg)
+            await cog.inara.api.fetch_from_cmdr_page(cmdr, self.msg)
 
 
 def sync_drop(drop_args, system_args):

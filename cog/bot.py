@@ -165,8 +165,12 @@ class CogBot(discord.Client):
 
         self.emoji.update(self.servers)
 
-        await cog.inara.Inara.login_to_inara()
-        if not cog.actions.SCANNERS:
+        # This block is effectively a one time setup.
+        if cog.actions.SCANNERS:
+            # Inara setup
+            cog.inara.api.bot = self
+            await cog.inara.api.login_to_inara()
+
             # TODO: Parallelize startup with scheduler and jobs.
             for name in cog.util.get_config("scanners"):  # Populate on import
                 cog.actions.init_scanner(name)

@@ -7,8 +7,6 @@ Important Note Regarding DB:
     After executing an action ALWAYS make a new Session(). The old one will still be stale.
 """
 from __future__ import absolute_import, print_function
-import datetime
-
 import aiomock
 import pytest
 
@@ -19,6 +17,8 @@ import cogdb
 from cogdb.side import SystemAge
 from cogdb.schema import (DUser, SheetCattle, SheetUM,
                           System, SystemUM, Drop, Hold)
+
+from tests.conftest import fake_msg_gears, fake_msg_newuser
 
 
 # Important, these get auto run to patch things
@@ -52,147 +52,6 @@ def patch_scanners():
     yield
 
     cog.actions.SCANNERS = old_scanners
-
-
-# Fake objects look like discord
-class FakeObject(object):
-    """
-    A fake class to impersonate Data Classes from discord.py
-    """
-    oid = 0
-
-    @classmethod
-    def next_id(cls):
-        cls.oid += 1
-        return '{}-{}'.format(cls.__name__, cls.oid)
-
-    def __init__(self, name, id=None):
-        if not id:
-            id = self.__class__.next_id()
-        self.id = id
-        self.name = name
-
-    def __repr__(self):
-        return "{}: {} {}".format(self.__class__.__name__, self.id, self.name)
-
-
-class Server(FakeObject):
-    def __init__(self, name, id=None):
-        super().__init__(name, id)
-        self.channels = []
-
-    def add(self, channel):
-        self.channels.append(channel)
-
-    def __repr__(self):
-        channels = "\n  Channels: " + ", ".join([cha.name for cha in self.channels])
-        return super().__repr__() + channels
-
-
-class Channel(FakeObject):
-    def __init__(self, name, *, srv=None, id=None):
-        super().__init__(name, id)
-        self.server = srv
-
-    def __repr__(self):
-        return super().__repr__() + ", Server: {}".format(self.server.name)
-
-
-class Member(FakeObject):
-    def __init__(self, name, roles, *, id=None):
-        super().__init__(name, id)
-        self.display_name = self.name
-        self.roles = roles
-
-    @property
-    def mention(self):
-        return self.display_name
-
-    def __repr__(self):
-        roles = "Roles:  " + ", ".join([rol.name for rol in self.roles])
-        return super().__repr__() + ", Display: {} ".format(self.display_name) + roles
-
-
-class Role(FakeObject):
-    def __init__(self, name, srv=None, *, id=None):
-        super().__init__(name, id)
-        self.server = srv
-
-    def __repr__(self):
-        return super().__repr__() + "\n  {}".format(self.server)
-
-
-class Message(FakeObject):
-    def __init__(self, content, author, srv, channel, mentions, *, id=None):
-        super().__init__(None, id)
-        self.author = author
-        self.channel = channel
-        self.content = content
-        self.mentions = mentions
-        self.server = srv
-
-    @property
-    def timestamp(self):
-        return datetime.datetime.utcnow()
-
-    def __repr__(self):
-        return super().__repr__() + "\n  Content: {}\n  Author: {}\n  Channel: {}\n  Server: {}".format(
-            self.content, self.author, self.channel, self.server)
-
-
-def fake_servers():
-    """ Generate fake discord servers for testing. """
-    srv = Server("Gears' Hideout")
-    channels = [
-        Channel("feedback", srv=srv),
-        Channel("live_hudson", srv=srv),
-        Channel("private_dev", srv=srv)
-    ]
-    for cha in channels:
-        srv.add(cha)
-
-    return [srv]
-
-
-def fake_msg_gears(content):
-    """ Generate fake message with GearsandCogs as author. """
-    srv = fake_servers()[0]
-    roles = [Role('Cookie Lord', srv), Role('Hudson', srv)]
-    aut = Member("GearsandCogs", roles, id="1000")
-    return Message(content, aut, srv, srv.channels[1], None)
-
-
-def fake_msg_newuser(content):
-    """ Generate fake message with GearsandCogs as author. """
-    srv = fake_servers()[0]
-    roles = [Role('Hudson', srv)]
-    aut = Member("newuser", roles, id="1003")
-    return Message(content, aut, srv, srv.channels[1], None)
-
-
-@pytest.fixture
-def f_bot():
-    """
-    Return a mocked bot.
-
-    Bot must have methods:
-        bot.send_message
-        bot.send_ttl_message
-        bot.delete_message
-        bot.emoji.fix - EmojiResolver tested elsewhere
-
-    Bot must have attributes:
-        bot.uptime
-        bot.prefix
-    """
-    fake_bot = aiomock.AIOMock(uptime=5, prefix="!")
-    fake_bot.send_message.async_return_value = None
-    fake_bot.send_ttl_message.async_return_value = None
-    fake_bot.delete_message.async_return_value = None
-    fake_bot.emoji.fix = lambda x, y: x
-    fake_bot.servers = fake_servers()
-
-    yield fake_bot
 
 
 def action_map(fake_message, fake_bot):

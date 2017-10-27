@@ -17,9 +17,9 @@ import discord
 import cog.exc
 import cog.util
 
-INARA = 'https://inara.cz'
-INARA_LOGIN = '{}/login'.format(INARA)
-INARA_SEARCH = '{}/search?location=search&searchglobal='.format(INARA)
+SITE = 'https://inara.cz'
+SITE_LOGIN = '{}/login'.format(SITE)
+SITE_SEARCH = '{}/search?location=search&searchglobal='.format(SITE)
 PARSERS = []
 PP_COLORS = {
     'Alliance': 0x008000,
@@ -36,7 +36,7 @@ class InaraApi():
 
     N.B. To prevent shutdown warnings ensure self.http.close() called atexit.
     """
-    def __init__(self, bot):
+    def __init__(self, bot=None):
         self.bot = bot
         self.http = aiohttp.ClientSession()
         self.req_counter = 0  # count how many searches done with search_in_inara
@@ -52,17 +52,15 @@ class InaraApi():
         payload = cog.util.get_config('inara')
 
         # DO LOGIN, Inara doesn't use HTTP auth. It is a standard post.
-        async with self.http.post(INARA_LOGIN, data=payload) as resp:
+        async with self.http.post(SITE_LOGIN, data=payload) as resp:
             if resp.status != 200:
                 raise cog.exc.RemoteError("Inara login failed, response code bad: {}".format(resp.status))
 
             response_text = await resp.text()
-            if "WRONG LOGIN/PASSWORD" in response_text:
+            if "Wrong login/password!" in response_text:
                 raise cog.exc.RemoteError("Bad Login or Password in Inara login")
 
-            return True
-
-    async def delete_waiting_message(self, req_id):
+    async def delete_waiting_message(self, req_id):  # pragma: no cover
         """ Delete the message which informs user about start of search """
         if req_id in self.waiting_messages:
             await self.bot.delete_message(self.waiting_messages[req_id])
@@ -83,7 +81,7 @@ class InaraApi():
             self.waiting_messages[req_id] = await self.bot.send_message(msg.channel, "Searching inara.cz ...")  # when using one session for entire app, this behaviour will change
 
             # search for commander name
-            async with self.http.get(INARA_SEARCH + urllib.parse.quote_plus(cmdr_name)) as resp:
+            async with self.http.get(SITE_SEARCH + urllib.parse.quote_plus(cmdr_name)) as resp:
                 if resp.status != 200:
                     raise cog.exc.RemoteError("Inara search failed. Response code bad: {}".format(resp.status))
 
@@ -114,7 +112,7 @@ class InaraApi():
 
         return {
             "req_id": req_id,
-            "url": INARA + cmdr[0],
+            "url": SITE + cmdr[0],
             "name": cmdr[1],
         }
 
@@ -198,7 +196,7 @@ class InaraApi():
         em.set_author(name=cmdr["name"], icon_url=cmdr["profile_picture"])
         em.set_thumbnail(url=cmdr["profile_picture"])
         em.url = found_commander["url"]
-        em.provider.name = INARA
+        em.provider.name = SITE
         em.add_field(name='Wing', value=cmdr["wing"], inline=True)
         em.add_field(name='Allegiance', value=cmdr["allegiance"], inline=True)
         em.add_field(name='Role', value=cmdr["role"], inline=True)
@@ -227,7 +225,7 @@ def check_reply(msg, prefix='!'):
     if not msg or re.match(r'\s*stop', msg.content):
         raise cog.exc.CmdAborted('Timeout or user aborted command.')
 
-    match = re.search(r'\s*cmdr\s+(\d+)', msg.content)
+    match = re.search(r'\s*cmdr\s+(\d+)', msg.content.lower())
     if msg.content.startswith(prefix) or not match:
         raise ValueError('Bad response.\n\nPlease choose with **cmdr x** or **stop**')
 
@@ -285,7 +283,7 @@ def parse_profile_picture(text, cmdr):
     """ Parse profile picture of CMDR from Inara page. """
     match = re.search(r'<td rowspan="4" class="profileimage"><img src="([^\"]+)"', text)
     if match:
-        cmdr["profile_picture"] = INARA + match.group(1)
+        cmdr["profile_picture"] = SITE + match.group(1)
 
 
 @register_parser
@@ -316,8 +314,9 @@ def parse_wing_url(text, cmdr):
     """ Parse wing of CMDR from Inara page. """
     match = re.search(r'<a href="(/wing/\d+/)"', text)
     if match and match.group(1) != "&nbsp;":
-        cmdr['wing_url'] = INARA + match.group(1)
+        cmdr['wing_url'] = SITE + match.group(1)
 
 
-Inara = InaraApi(False)  # use as module, needs "bot" to be set. pylint: disable=C0103
-atexit.register(Inara.http.close)  # Ensure proper close, move to cog.bot later
+api = InaraApi()  # use as module, needs "bot" to be set. pylint: disable=C0103
+atexit.register(api.http.close)  # Ensure proper close, move to cog.bot later
+# TODO: Alternatively, just unroll the class to be static data and module functions?
