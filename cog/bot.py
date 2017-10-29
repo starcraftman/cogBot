@@ -165,9 +165,7 @@ class CogBot(discord.Client):
 
         # This block is effectively a one time setup.
         if not cog.actions.SCANNERS:
-            # Inara setup
             cog.inara.api.bot = self
-            await cog.inara.api.login_to_inara()
 
             # TODO: Parallelize startup with scheduler and jobs.
             for name in cog.util.get_config("scanners"):  # Populate on import
