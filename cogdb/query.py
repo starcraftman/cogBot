@@ -894,7 +894,7 @@ def add_role_perm(session, cmd, server_name, role_name):
 def remove_channel_perm(session, cmd, server_name, channel_name):
     try:
         session.delete(session.query(ChannelPerm).
-                filter_by(cmd=cmd, server=server_name, channel=channel_name).one())
+                       filter_by(cmd=cmd, server=server_name, channel=channel_name).one())
         session.commit()
     except sqla_oexc.NoResultFound:
         raise cog.exc.InvalidCommandArgs("Channel permission does not exist.")
@@ -903,7 +903,7 @@ def remove_channel_perm(session, cmd, server_name, channel_name):
 def remove_role_perm(session, cmd, server_name, role_name):
     try:
         session.delete(session.query(RolePerm).
-                filter_by(cmd=cmd, server=server_name, role=role_name).one())
+                       filter_by(cmd=cmd, server=server_name, role=role_name).one())
         session.commit()
     except sqla_oexc.NoResultFound:
         raise cog.exc.InvalidCommandArgs("Role permission does not exist.")
@@ -930,7 +930,7 @@ def check_channel_perms(session, cmd, server_name, channel_name):
     Raises InvalidPerms if fails permission check.
     """
     channels = [perm.channel for perm in session.query(ChannelPerm).
-            filter_by(cmd=cmd, server=server_name)]
+                filter_by(cmd=cmd, server=server_name)]
     if channels and channel_name not in channels:
         raise cog.exc.InvalidPerms("The '{}' command is not permitted on this channel.".format(
             cmd.lower()))
@@ -945,7 +945,7 @@ def check_role_perms(session, cmd, server_name, member_roles):
     Raises InvalidPerms if fails permission check.
     """
     perm_roles = set([perm.role for perm in session.query(RolePerm).
-            filter_by(cmd=cmd, server=server_name)])
+                      filter_by(cmd=cmd, server=server_name)])
     member_roles = set([role.name for role in member_roles])
     if perm_roles and len(member_roles - perm_roles) == len(member_roles):
         raise cog.exc.InvalidPerms("You do not have the roles for the command.")
