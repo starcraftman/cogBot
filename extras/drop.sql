@@ -1,4 +1,6 @@
 drop table if exists admins;
+drop table if exists perms_role;
+drop table if exists perms_channel;
 drop table if exists um_merits;
 drop table if exists merits;
 drop table if exists um_systems;

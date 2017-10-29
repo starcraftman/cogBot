@@ -340,7 +340,8 @@ class CogBot(discord.Client):
             channels = list(self.get_all_channels())
 
         for channel in channels:
-            if channel.permissions_for(channel.server.me).send_messages:
+            if channel.permissions_for(channel.server.me).send_messages and \
+               channel.type == discord.ChannelType.text:
                 asyncio.ensure_future(send(channel, "**Broadcast**\n\n" + content, **kwargs))
 
 

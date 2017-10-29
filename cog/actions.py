@@ -221,7 +221,6 @@ class Admin(Action):
         except cog.exc.NoMatch:
             raise cog.exc.InvalidPerms("{} You are not an admin!".format(self.msg.author.mention))
 
-        print(args)
         if args.subcmd == "add":
             response = self.add()
 
