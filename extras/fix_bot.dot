@@ -4,13 +4,16 @@
 digraph {
     label="How to make bot work again!"
 
-    bot_responds[label="Is the bot responding to `!status`?", shape="box", style=rounded];
-    sheet_scan[label="Schedule sheet scan with `!admin scan`", shape="box", style=rounded];
-    check_vps[label="Login to vps and check bot alive", shape="box", style=rounded];
-    is_bot_alive[label="Is the bot alive?", shape="box", style=rounded];
-    bot_dead[label="Check journald, record reason systemd failed restart", shape="box", style=rounded];
-    bot_lives[label="Stop bot, wait until bot leaves member list", shape="box", style=rounded];
-    bot_restart[label="Start bot again, check working with !status", shape="box", style=rounded];
+    node[shape="box", style=rounded]
+        bot_responds; sheet_scan; check_vps; is_bot_alive; bot_dead; bot_lives; bot_restart;
+
+    bot_responds[label="Is the bot responding to `!status`?"];
+    sheet_scan[label="Schedule sheet scan with `!admin scan`"];
+    check_vps[label="Login to vps and check bot alive"];
+    is_bot_alive[label="Is the bot alive?"];
+    bot_dead[label="Check journald, record reason systemd failed restart"];
+    bot_lives[label="Stop bot, wait until bot leaves member list"];
+    bot_restart[label="Start bot again, check working with !status"];
 
     bot_responds -> sheet_scan[label="yes"];
     sheet_scan -> bot_responds
