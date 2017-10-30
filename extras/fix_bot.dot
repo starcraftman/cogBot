@@ -1,0 +1,23 @@
+// This generates a simple flow chart to debug crash
+// Use following command to make:
+//     dot -Tpng -o fix_bot.png fix_bot.dot 
+digraph {
+    label="How to make bot work again!"
+
+    bot_responds[label="Is the bot responding to `!status`?", shape="box", style=rounded];
+    sheet_scan[label="Schedule sheet scan with `!admin scan`", shape="box", style=rounded];
+    check_vps[label="Login to vps and check bot alive", shape="box", style=rounded];
+    is_bot_alive[label="Is the bot alive?", shape="box", style=rounded];
+    bot_dead[label="Check journald, record reason systemd failed restart", shape="box", style=rounded];
+    bot_lives[label="Stop bot, wait until bot leaves member list", shape="box", style=rounded];
+    bot_restart[label="Start bot again, check working with !status", shape="box", style=rounded];
+
+    bot_responds -> sheet_scan[label="yes"];
+    sheet_scan -> bot_responds
+    bot_responds -> check_vps[label="no"];
+    check_vps -> is_bot_alive
+    is_bot_alive -> bot_dead[label="no"]
+    bot_dead -> bot_restart
+    is_bot_alive -> bot_lives[label="yes"]
+    bot_lives -> bot_restart
+}
