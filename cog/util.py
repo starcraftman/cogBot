@@ -16,6 +16,17 @@ except ImportError:
 import cog.exc
 
 
+class ModFormatter(logging.Formatter):
+    """
+    Add a relmod key to record dict.
+    This key tracks a module relative this project' root.
+    """
+    def format(self, record):
+        relmod = record.__dict__['pathname'].replace(ROOT_DIR + os.path.sep, '')
+        record.__dict__['relmod'] = relmod[:-3]
+        return super().format(record)
+
+
 def substr_match(seq, line, *, skip_spaces=True, ignore_case=True):
     """
     True iff the substr is present in string. Ignore spaces and optionally case.

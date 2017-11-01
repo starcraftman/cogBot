@@ -117,7 +117,8 @@ async def test_cmd_bgs_age(side_session, event_loop, f_bot, f_systems):
 
     await action_map(msg, f_bot).execute()
 
-    line = [word.strip() for word in str(f_bot.send_message.call_args).split('\\n')[2].split('|')]
+    line = [word.strip().replace("```')", '') for word in
+            str(f_bot.send_message.call_args).split('\\n')[2].split('|')]
     assert line == [row.control, row.system, str(row.age)]
 
 

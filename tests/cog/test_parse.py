@@ -2,7 +2,7 @@
 Test any shared logic
 """
 from __future__ import absolute_import, print_function
-import mock
+
 import pytest
 
 import cog.exc
@@ -18,14 +18,6 @@ def test_throw_argument_parser():
         parser.error('blank')
     with pytest.raises(cog.exc.ArgumentParseError):
         parser.exit()
-
-
-def test_modformatter_record():
-    record = mock.Mock()
-    record.__dict__['pathname'] = cog.util.rel_to_abs('cog', 'parse.py')
-    with pytest.raises(TypeError):
-        cog.parse.ModFormatter().format(record)
-    assert record.__dict__['relmod'] == 'cog/parse'
 
 
 def test_make_parser_throws():

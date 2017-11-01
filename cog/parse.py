@@ -1,18 +1,17 @@
 """
-Common functions.
+Everything related to parsing arguements from the received text.
+
+By setting defaults passed on the parser (cmd, subcmd) can differeciate
+what action to be invoked.
 """
 from __future__ import absolute_import, print_function
-import logging
-import os
-import sys
 
 import argparse
 from argparse import RawDescriptionHelpFormatter as RawHelp
 
 import cog.exc
-import cog.sheets
-import cog.tbl
-from cog.util import ROOT_DIR
+
+PARSERS = []
 
 
 class ThrowArggumentParser(argparse.ArgumentParser):
@@ -34,17 +33,6 @@ class ThrowArggumentParser(argparse.ArgumentParser):
         raise cog.exc.ArgumentParseError(message)
 
 
-class ModFormatter(logging.Formatter):
-    """
-    Add a relmod key to record dict.
-    This key tracks a module relative this project' root.
-    """
-    def format(self, record):
-        relmod = record.__dict__['pathname'].replace(ROOT_DIR + os.path.sep, '')
-        record.__dict__['relmod'] = relmod[:-3]
-        return super().format(record)
-
-
 def make_parser(prefix):
     """
     Returns the bot parser.
@@ -54,30 +42,18 @@ def make_parser(prefix):
     subs = parser.add_subparsers(title='subcommands',
                                  description='The subcommands of cog')
 
-    sub = subs.add_parser(prefix + 'help', description='Show overall help message.')
-    sub.set_defaults(cmd='Help')
-
-    desc = """Give feedback or report a bug. Example:
-
-    {prefix}bug Explain what went wrong ...\n          File a bug report or give feedback.
-    """.format(prefix=prefix)
-    sub = subs.add_parser(prefix + 'feedback', description=desc, formatter_class=RawHelp)
-    sub.set_defaults(cmd='Feedback')
-    sub.add_argument('content', nargs='+', help='The bug description or feedback.')
-
-    sub = subs.add_parser(prefix + 'status', description='Info about this bot.')
-    sub.set_defaults(cmd='Status')
-
-    sub = subs.add_parser(prefix + 'time', description='Time in game and to ticks.')
-    sub.set_defaults(cmd='Time')
-
-    for suffix in ['admin', 'bgs', 'drop', 'fort', 'hold', 'um', 'user', 'whois']:
-        func = getattr(sys.modules[__name__], 'subs_' + suffix)
+    for func in PARSERS:
         func(subs, prefix)
 
     return parser
 
 
+def register_parser(func):
+    PARSERS.append(func)
+    return func
+
+
+@register_parser
 def subs_admin(subs, prefix):
     """ Subcommand parsing for admin """
     desc = """Admin only commands. Examples:
@@ -115,6 +91,7 @@ def subs_admin(subs, prefix):
     admin_sub.add_argument('user', nargs='?', help='The user to get info on.')
 
 
+@register_parser
 def subs_bgs(subs, prefix):
     """ Subcommand parsing for bgs """
     desc = """BGS related commands. Examples:
@@ -132,6 +109,7 @@ def subs_bgs(subs, prefix):
     bgs_sub.add_argument('system', nargs='+', help='The system to lookup.')
 
 
+@register_parser
 def subs_drop(subs, prefix):
     """ Subcommand parsing for drop """
     desc = """Update the cattle sheet when you drop at a system.
@@ -152,6 +130,19 @@ def subs_drop(subs, prefix):
                      help='Set the fort:um status of the system. Example-> --set 3400:200')
 
 
+@register_parser
+def subs_feedback(subs, prefix):
+    """ Subcommand parsing for feedback """
+    desc = """Give feedback or report a bug. Example:
+
+    {prefix}bug Explain what went wrong ...\n          File a bug report or give feedback.
+    """.format(prefix=prefix)
+    sub = subs.add_parser(prefix + 'feedback', description=desc, formatter_class=RawHelp)
+    sub.set_defaults(cmd='Feedback')
+    sub.add_argument('content', nargs='+', help='The bug description or feedback.')
+
+
+@register_parser
 def subs_fort(subs, prefix):
     """ Subcommand parsing for fort """
     desc = """Show fortification status and targets. Examples:
@@ -178,6 +169,14 @@ def subs_fort(subs, prefix):
                      help='Show the next NUM fort targets after current')
 
 
+@register_parser
+def subs_help(subs, prefix):
+    """ Subcommand parsing for help """
+    sub = subs.add_parser(prefix + 'help', description='Show overall help message.')
+    sub.set_defaults(cmd='Help')
+
+
+@register_parser
 def subs_hold(subs, prefix):
     """ Subcommand parsing for hold """
     desc = """Update a user's held or redeemed merits. Examples:
@@ -197,6 +196,21 @@ def subs_hold(subs, prefix):
     sub.add_argument('--set', help='Update the galmap progress us:them. Example: --set 3500:200')
 
 
+@register_parser
+def subs_status(subs, prefix):
+    """ Subcommand parsing for status """
+    sub = subs.add_parser(prefix + 'status', description='Info about this bot.')
+    sub.set_defaults(cmd='Status')
+
+
+@register_parser
+def subs_time(subs, prefix):
+    """ Subcommand parsing for time """
+    sub = subs.add_parser(prefix + 'time', description='Time in game and to ticks.')
+    sub.set_defaults(cmd='Time')
+
+
+@register_parser
 def subs_um(subs, prefix):
     """ Subcommand parsing for um """
     desc = """Get undermining targets and update their galmap status. Examples:
@@ -215,6 +229,7 @@ def subs_um(subs, prefix):
     sub.add_argument('--offset', type=int, help='Set the system galmap offset.')
 
 
+@register_parser
 def subs_user(subs, prefix):
     """ Subcommand parsing for user """
     desc = """Manipulate your user settings. Examples:
@@ -235,11 +250,13 @@ def subs_user(subs, prefix):
                      help='Set yourself to use the Hudson sheets.')
 
 
+@register_parser
 def subs_whois(subs, prefix):
     """ Subcommand parsing for whois """
     desc = """Lookup information for a commander on Inara.cz
 
     {prefix}whois GearsandCogs\n           Find out who this GearsandCogs fellow is ...
+    {prefix}whois gears\n           Search for all CMDRs with 'gears' in their name
     """.format(prefix=prefix)
     sub = subs.add_parser(prefix + 'whois', description=desc, formatter_class=RawHelp)
     sub.set_defaults(cmd='WhoIs')

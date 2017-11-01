@@ -5,7 +5,7 @@ disable_existing_loggers: False
 
 formatters:
   custom:
-    (): 'cog.parse.ModFormatter'
+    (): 'cog.util.ModFormatter'
     format: "%(asctime)s [%(levelname)-8s] %(relmod)s | %(message)s"
 
 fhandler_template: &default_handler
