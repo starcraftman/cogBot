@@ -7,6 +7,7 @@ from __future__ import absolute_import, print_function
 import asyncio
 import datetime
 import logging
+import re
 import sys
 from functools import partial
 
@@ -306,6 +307,32 @@ class BGS(Action):
         await self.bot.send_message(self.msg.channel, response)
 
 
+class Dist(Action):
+    """
+    Handle logic related to finding the distance between a start system and any following systems.
+    """
+    async def execute(self):
+        system_names = ' '.join(self.args.systems)
+        system_names = re.sub(r',\s*', ',', system_names)
+        system_names = system_names.split(',')
+        if len(system_names) < 2:
+            raise cog.exc.InvalidCommandArgs("At least **2** systems required.")
+
+        systems = await cog.util.get_coords(system_names)
+        if not systems:
+            raise cog.exc.InvalidCommandArgs("One or more invalid system names.")
+
+        start = [sys for sys in systems if sys['name'].lower() == system_names[0].lower()][0]
+        rest = [sys for sys in systems if sys['name'].lower() != system_names[0].lower()]
+        cog.util.compute_dists(start, rest)
+
+        response = 'Distances From: **{}**\n\n'.format(start['name'])
+        lines = [[sys['name'], '{:.2f}ly'.format(sys['dist'])] for sys in rest]
+        response += cog.tbl.wrap_markdown(cog.tbl.format_table(lines))
+
+        await self.bot.send_message(self.msg.channel, response)
+
+
 class Drop(Action):
     """
     Handle the logic of dropping a fort at a target.
@@ -498,6 +525,7 @@ class Help(Action):
         lines = [
             ['Command', 'Effect'],
             ['{prefix}admin', 'Admin commands'],
+            ['{prefix}dist', 'Determine the distance from the first system to all others'],
             ['{prefix}drop', 'Drop forts into the fort sheet'],
             ['{prefix}feedback', 'Give feedback or report a bug'],
             ['{prefix}fort', 'Get information about our fort systems'],

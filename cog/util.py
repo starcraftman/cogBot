@@ -5,8 +5,16 @@ from __future__ import absolute_import, print_function
 import logging
 import logging.handlers
 import logging.config
+import math
 import os
+import urllib.parse as urlparse
+from urllib.parse import urlencode
 
+try:
+    import simplejson as json
+except ImportError:
+    import json
+import aiohttp
 import yaml
 try:
     from yaml import CLoader as Loader
@@ -14,6 +22,8 @@ except ImportError:
     from yaml import Loader
 
 import cog.exc
+
+EDSM = 'https://www.edsm.net/api-v1/systems'
 
 
 class ModFormatter(logging.Formatter):
@@ -160,6 +170,46 @@ def dict_to_columns(data):
             lines[row].append(item)
 
     return [header] + lines
+
+
+async def get_coords(system_names):
+    """
+    Query EDSM for the coordinates to all systems requested.
+
+    Returns:
+        List of all systems requested. Empty list if invalid request.
+        Entries of form: {'name': 'Sol', 'coords': {'x': 0, 'y', 0, 'z': 0}}
+    """
+    params = {'showCoordinates': 1, 'systemName[]': system_names}
+    url_parts = list(urlparse.urlparse(EDSM))
+    url_parts[4] = urlencode(params, doseq=True)
+    url = urlparse.urlunparse(url_parts)
+
+    with aiohttp.ClientSession() as http:
+        async with http.get(url) as resp:
+            return json.loads(await resp.text())
+
+
+def compute_dists(start, others):
+    """
+    Compute distance/magnitude from start to others.
+    Result is added to each entries dict under other['dist'] = result.
+
+    Entries are of form: {'name': 'Sol', 'coords': {'x': 0, 'y', 0, 'z': 0}}
+
+    Returns:
+        others, with data embedded.
+    """
+    pt1 = start['coords']
+    for other in others:
+        pt2 = other['coords']
+        dist = pt2['x'] * pt2['x'] - pt1['x'] * pt1['x']
+        dist += pt2['y'] * pt2['y'] - pt1['y'] * pt1['y']
+        dist += pt2['z'] * pt2['z'] - pt1['z'] * pt1['z']
+        dist = math.sqrt(dist)
+        other['dist'] = dist
+
+    return others
 
 
 ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))

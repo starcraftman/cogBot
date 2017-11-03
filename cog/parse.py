@@ -110,6 +110,20 @@ def subs_bgs(subs, prefix):
 
 
 @register_parser
+def subs_dist(subs, prefix):
+    """ Subcommand parsing for dist """
+    desc = """Determine the distance from the first system to all others.
+    The system names must match __excactly__.
+    Examples:
+
+    {prefix}dist Sol, Frey, Rana, Adeo\n           Display the distance from Sol to: Frey, Rana and Sol
+    """.format(prefix=prefix)
+    sub = subs.add_parser(prefix + 'dist', description=desc, formatter_class=RawHelp)
+    sub.set_defaults(cmd='Dist')
+    sub.add_argument('systems', nargs='+', help='The systems in question.')
+
+
+@register_parser
 def subs_drop(subs, prefix):
     """ Subcommand parsing for drop """
     desc = """Update the cattle sheet when you drop at a system.
