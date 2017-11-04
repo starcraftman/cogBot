@@ -113,10 +113,10 @@ def subs_bgs(subs, prefix):
 def subs_dist(subs, prefix):
     """ Subcommand parsing for dist """
     desc = """Determine the distance from the first system to all others.
-    The system names must match __excactly__.
+    The system names must match __excactly__. Match is not case sensitive.
     Examples:
 
-    {prefix}dist Sol, Frey, Rana, Adeo\n           Display the distance from Sol to: Frey, Rana and Sol
+    {prefix}dist sol, frey, Rana\n           Display the distance from Sol to Frey and Rana.
     """.format(prefix=prefix)
     sub = subs.add_parser(prefix + 'dist', description=desc, formatter_class=RawHelp)
     sub.set_defaults(cmd='Dist')

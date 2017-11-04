@@ -560,3 +560,27 @@ Burr       | 2200 | 5800```"""
     assert duser.pref_cry == new_cry
     for sheet in duser.sheets(session):
         assert sheet.cry == new_cry
+
+
+@pytest.mark.asyncio
+async def test_cmd_dist(session, event_loop, f_bot, f_testbed):
+    msg = fake_msg_gears("!dist sol, frey, adeo")
+
+    await action_map(msg, f_bot).execute()
+
+    expect = """Distances From: **Sol**
+
+```Adeo | 91.59ly
+Frey | 108.97ly```"""
+    f_bot.send_message.assert_called_with(msg.channel, expect)
+
+
+@pytest.mark.asyncio
+async def test_cmd_dist_invalid_args(session, event_loop, f_bot, f_testbed):
+    msg = fake_msg_gears("!dist sol")
+    with pytest.raises(cog.exc.InvalidCommandArgs):
+        await action_map(msg, f_bot).execute()
+
+    msg = fake_msg_gears("!dist solllll, freyyy")
+    with pytest.raises(cog.exc.InvalidCommandArgs):
+        await action_map(msg, f_bot).execute()

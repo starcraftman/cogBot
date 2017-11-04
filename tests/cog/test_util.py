@@ -66,3 +66,81 @@ def test_substr_match():
     assert not cog.util.substr_match('longneedle', 'alex')
 
     assert cog.util.substr_ind('16 cyg', '16 c y  gni') == [0, 9]
+
+
+@pytest.mark.asyncio
+async def test_get_coords():
+    expect = [
+        {
+            'name': 'Adeo',
+            'coords': {'x': -81.625, 'y': 31.40625, 'z': 27.1875},
+        },
+        {
+            'name': 'Frey',
+            'coords': {'x': -74.625, 'y': -21.625, 'z': 76.40625},
+        },
+        {
+            'name': 'Sol',
+            'coords': {'x': 0, 'y': 0, 'z': 0},
+        },
+    ]
+
+    names = [sys['name'] for sys in expect]
+    assert await cog.util.get_coords(names) == expect
+
+
+@pytest.mark.asyncio
+async def test_get_coords_fail():
+    expect = [
+        {
+            'name': 'Adddddeo',
+            'coords': {'x': -81.625, 'y': 31.40625, 'z': 27.1875},
+        },
+        {
+            'name': 'Fre',
+            'coords': {'x': -74.625, 'y': -21.625, 'z': 76.40625},
+        },
+        {
+            'name': 'Solllll',
+            'coords': {'x': 0, 'y': 0, 'z': 0},
+        },
+    ]
+
+    names = [sys['name'] for sys in expect]
+    assert await cog.util.get_coords(names) == []
+
+
+@pytest.mark.asyncio
+async def test_get_coords_partial_fail():
+    expect = [
+        {
+            'name': 'Frey',
+            'coords': {'x': -74.625, 'y': -21.625, 'z': 76.40625},
+        },
+    ]
+
+    assert await cog.util.get_coords(['Adddddeo', 'Frey', 'Solllll']) == expect
+
+
+def test_compute_dists():
+    start = {'name': 'Sol', 'coords': {'x': 0, 'y': 0, 'z': 0}}
+    expect = [
+        {
+            'name': 'Adeo',
+            'coords': {'x': -81.625, 'y': 31.40625, 'z': 27.1875},
+            'dist': 91.58686215998722
+        },
+        {
+            'name': 'Frey',
+            'coords': {'x': -74.625, 'y': -21.625, 'z': 76.40625},
+            'dist': 108.96993295887862
+        }
+    ]
+
+    import copy
+    systems = copy.deepcopy(expect)
+    del systems[0]['dist']
+    del systems[1]['dist']
+    cog.util.compute_dists(start, systems)
+
+    assert systems == expect
