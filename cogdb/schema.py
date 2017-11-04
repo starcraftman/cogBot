@@ -511,17 +511,16 @@ class System(Base):
 
     def display_details(self):
         """ Return a highly detailed system display. """
+        miss = ' ({} left)'.format(self.missing) if self.missing else ''
         lines = [
-            '**{}**\n'.format(self.name),
-            'Completion: {}%'.format(self.completion),
-            'Missing: {}'.format(self.missing),
-            'CMDR Merits: {}/{}'.format(self.cmdr_merits, self.trigger),
-            'Fort Status: {}/{}'.format(self.fort_status, self.trigger),
-            'UM Status: {} ({:.2f}%)'.format(self.um_status, self.undermine * 100),
-            'Notes:{}'.format(' ' + self.notes if self.notes else ''),
+            ['Completion', '{}%{}'.format(self.completion, miss)],
+            ['CMDR Merits', '{}/{}'.format(self.cmdr_merits, self.trigger)],
+            ['Fort Status', '{}/{}'.format(self.fort_status, self.trigger)],
+            ['UM Status', '{} ({:.2f}%)'.format(self.um_status, self.undermine * 100)],
+            ['Notes', self.notes],
         ]
 
-        return '\n'.join(lines)
+        return '**{}**\n'.format(self.name) + cog.tbl.wrap_markdown(cog.tbl.format_table(lines))
 
 
 class PrepSystem(System):

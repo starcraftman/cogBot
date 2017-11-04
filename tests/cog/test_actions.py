@@ -227,14 +227,11 @@ async def test_cmd_fort_details(event_loop, f_bot, f_systems):
     await action_map(msg, f_bot).execute()
 
     expect = """**Frey**
-
-Completion: 100.0%
-Missing: 0
-CMDR Merits: 0/4910
-Fort Status: 4910/4910
-UM Status: 0 (0.00%)
-Notes:
-
+```Completion  | 100.0%
+CMDR Merits | 0/4910
+Fort Status | 4910/4910
+UM Status   | 0 (0.00%)
+Notes       |```
 ```CMDR Name | Merits
 --------- | ------```"""
     f_bot.send_message.assert_called_with(msg.channel, expect)

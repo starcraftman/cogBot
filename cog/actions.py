@@ -449,7 +449,7 @@ class Fort(Action):
 
         merits = [['CMDR Name', 'Merits']]
         merits += [[merit.user.name, merit.amount] for merit in reversed(sorted(system.merits))]
-        merit_table = '\n\n' + cog.tbl.wrap_markdown(cog.tbl.format_table(merits, header=True))
+        merit_table = '\n' + cog.tbl.wrap_markdown(cog.tbl.format_table(merits, header=True))
         return system.display_details() + merit_table
 
     async def execute(self):

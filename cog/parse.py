@@ -162,6 +162,7 @@ def subs_fort(subs, prefix):
     desc = """Show fortification status and targets. Examples:
 
     {prefix}fort\n           Show current fort objectives.
+    {prefix}fort -d Sol\n           Show a detailed view of Sol, including all CMDR merits.
     {prefix}fort --miss 1000\n          Show all systems missing <= 1000 supplies.
     {prefix}fort --next 5\n           Show the next 5 fortification targets (excluding Othime and skipped).
     {prefix}fort --summary\n           Show a breakdown by states of our systems.

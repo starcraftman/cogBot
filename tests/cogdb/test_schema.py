@@ -231,6 +231,24 @@ def test_system_display(f_systems):
     assert system.display(miss=False) == '**Frey** 4000/4910 :Fortifying:'
 
 
+def test_system_display_details(f_systems):
+    system = f_systems[0]
+    assert system.display_details() == """**Frey**
+```Completion  | 100.0%
+CMDR Merits | 0/4910
+Fort Status | 4910/4910
+UM Status   | 0 (0.00%)
+Notes       |```"""
+
+    system.fort_status = 4000
+    assert system.display_details() == """**Frey**
+```Completion  | 81.5% (910 left)
+CMDR Merits | 0/4910
+Fort Status | 4000/4910
+UM Status   | 0 (0.00%)
+Notes       |```"""
+
+
 def test_system_set_status(f_systems):
     system = f_systems[0]
     assert system.fort_status == 4910
