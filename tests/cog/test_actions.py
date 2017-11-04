@@ -310,9 +310,10 @@ async def test_cmd_hold_simple(event_loop, f_bot, f_testbed):
 
     await action_map(msg, f_bot).execute()
 
-    expect = """Control: **Empty**, Security: Medium, Hudson Control: Rana
-        Completion: 20%, Missing: 8000
-"""
+    expect = """```Control        | [M] Empty
+20%            | Merits Missing 8000
+Our Progress 0 | Enemy Progress 0%
+Nearest Hudson | Rana```"""
     f_bot.send_message.assert_called_with(msg.channel, expect)
     session = cogdb.Session()
     duser = session.query(DUser).filter_by(id=msg.author.id).one()
@@ -332,9 +333,10 @@ async def test_cmd_hold_newuser(event_loop, f_bot, f_testbed):
 
     expect = 'Automatically added newuser to undermine sheet. See !user command to change.'
     f_bot.send_message.assert_any_call(msg.channel, expect)
-    expect2 = """Control: **Empty**, Security: Medium, Hudson Control: Rana
-        Completion: 10%, Missing: 9000
-"""
+    expect2 = """```Control        | [M] Empty
+10%            | Merits Missing 9000
+Our Progress 0 | Enemy Progress 0%
+Nearest Hudson | Rana```"""
     f_bot.send_message.assert_any_call(msg.channel, expect2)
 
     session = cogdb.Session()
@@ -410,20 +412,23 @@ async def test_cmd_um(event_loop, f_bot, f_testbed):
 
     await action_map(msg, f_bot).execute()
 
-    expect = """__Current UM Targets__
-
-Control: **Pequen**, Security: Anarchy, Hudson Control: Atropos
-        Completion: 84%, Missing: 2000
-
-Expanding: **Burr**, Security: Low, Hudson Control: Dongkum
-        Behind by 3500%, Missing: 202668
-
-Opposing expansion: **AF Leopris**, Security: Low, Hudson Control: Atropos
-        Behind by 169%, Missing: 12138
-
-Control: **Empty**, Security: Medium, Hudson Control: Rana
-        Completion: 0%, Missing: 10000
-"""
+    expect = """__Current UM Targets__\n
+```Control            | [A] Pequen
+84%                | Merits Missing 2000
+Our Progress 10500 | Enemy Progress 50%
+Nearest Hudson     | Atropos```
+```Expanding           | [L] Burr
+Behind by 3500%     | Merits Missing 202668
+Our Progress 161630 | Enemy Progress 3500%
+Nearest Hudson      | Dongkum```
+```Opposing expansion | [L] AF Leopris
+Behind by 169%     | Merits Missing 12138
+Our Progress 47739 | Enemy Progress 169%
+Nearest Hudson     | Atropos```
+```Control        | [M] Empty
+0%             | Merits Missing 10000
+Our Progress 0 | Enemy Progress 0%
+Nearest Hudson | Rana```"""
 
     f_bot.send_message.assert_called_with(msg.channel, expect)
 
@@ -434,9 +439,11 @@ async def test_cmd_um_search(event_loop, f_bot, f_testbed):
 
     await action_map(msg, f_bot).execute()
 
-    expect = """Expanding: **Burr**, Security: Low, Hudson Control: Dongkum
-        Behind by 3500%, Missing: 202668
-"""
+    expect = """```Expanding           | [L] Burr
+Behind by 3500%     | Merits Missing 202668
+Our Progress 161630 | Enemy Progress 3500%
+Nearest Hudson      | Dongkum```"""
+
     f_bot.send_message.assert_called_with(msg.channel, expect)
 
 
@@ -455,9 +462,12 @@ async def test_cmd_um_set_works(session, event_loop, f_bot, f_testbed):
 
     await action_map(msg, f_bot).execute()
 
-    expect = """Control: **Pequen**, Security: Anarchy, Hudson Control: Atropos
-        Completion: 96%, Missing: 500
-"""
+    expect = """```Control            | [A] Pequen
+96%                | Merits Missing 500
+Our Progress 12000 | Enemy Progress 40%
+Nearest Hudson     | Atropos```"""
+
+    # print(str(f_bot.send_message.call_args).replace("\\n", "\n"))
     f_bot.send_message.assert_called_with(msg.channel, expect)
     after = cogdb.Session().query(SystemUM).filter_by(name='Pequen').one()
     assert after.progress_us == before.progress_us + 1500

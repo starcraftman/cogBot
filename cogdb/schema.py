@@ -11,6 +11,7 @@ import sqlalchemy.orm as sqla_orm
 import sqlalchemy.ext.declarative
 
 import cog.exc
+import cog.tbl
 import cogdb
 
 
@@ -572,20 +573,20 @@ class SystemUM(Base):
         """
         return "id={!r}, cmdr_merits={!r}, {!r}".format(self.id, self.cmdr_merits, self)
 
-    def display(self):
-        """
-        Format a simple summary for users.
-        """
-        lines = [
-            '{}: **{}**, Security: {}, Hudson Control: {}'.format(
-                self.descriptor, self.name, self.security, self.close_control),
-            '        {}, Missing: {}'.format(self.completion, self.missing),
-        ]
-
-        return '\n'.join(lines) + '\n'
-
     def __eq__(self, other):
         return isinstance(other, SystemUM) and self.name == other.name
+
+    @property
+    def completion(self):
+        """ The completion percentage formatted as a string """
+        try:
+            comp_cent = (self.goal - self.missing) / self.goal * 100
+        except ZeroDivisionError:
+            comp_cent = 0
+
+        completion = '{:.0f}%'.format(comp_cent)
+
+        return completion
 
     @property
     def cmdr_merits(self):
@@ -612,6 +613,21 @@ class SystemUM(Base):
         """
         return self.missing <= 0
 
+    def display(self):
+        """
+        Format a simple summary for users.
+        """
+        lines = [
+            [self.descriptor, '[{}] {}'.format(self.security[0].upper(), self.name)],
+            [self.completion, 'Merits {} {}'.format('Missing' if self.missing > 0 else 'Leading',
+                                                    str(abs(self.missing)))],
+            ['Our Progress ' + str(self.progress_us),
+             'Enemy Progress {:.0f}%'.format(self.progress_them * 100)],
+            ['Nearest Hudson', self.close_control],
+        ]
+
+        return cog.tbl.wrap_markdown(cog.tbl.format_table(lines))
+
     def set_status(self, new_status):
         """
         Update the fort_status and um_status of this System based on new_status.
@@ -630,18 +646,6 @@ class SystemUM(Base):
         if new_us < 0:
             raise cog.exc.InvalidCommandArgs('New "progress us" must be a number merits in range: [0, \u221E]')
         self.progress_us = new_us
-
-    @property
-    def completion(self):
-        """ The completion percentage formatted as a string """
-        try:
-            comp_cent = (self.goal - self.missing) / self.goal * 100
-        except ZeroDivisionError:
-            comp_cent = 0
-
-        completion = 'Completion: {:.0f}%'.format(comp_cent)
-
-        return completion
 
 
 class UMControl(SystemUM):

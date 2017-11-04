@@ -459,6 +459,17 @@ class Fort(Action):
         elif self.args.miss:
             response = self.find_missing(self.args.miss)
 
+        elif self.args.details:
+            system_names = [name.strip() for name in ' '.join(self.args.system).split(',')[0:6]]
+            systems = [cogdb.query.fort_find_system(self.session, system_name, search_all=True) for system_name in system_names]
+            system_attrs = [[system.name, system.completion, system.missing, system.cmdr_merits,
+                             system.fort_status, system.um_status, system.notes] for system in systems]
+            side = ['Name', '%', 'Missing', 'Cmdr Merits', 'Fort Status', 'UM Status', 'Notes']
+
+            response = '__Detailed Systems__\n\n' + cog.tbl.wrap_markdown(cog.tbl.format_table(zip(side, *system_attrs[:3])))
+            if len(system_names) > 3:
+                response += '\n' + cog.tbl.wrap_markdown(cog.tbl.format_table(zip(side, *system_attrs[3:])))
+
         elif self.args.system:
             lines = ['__Search Results__']
             system_names = ' '.join(self.args.system).split(',')

@@ -380,9 +380,10 @@ def test_systemum__str__(f_dusers, f_sheets, f_systemsum, f_holds):
 def test_systemum_display(f_dusers, f_sheets, f_systemsum, f_holds):
     system = f_systemsum[0]
 
-    assert system.display() == \
-        "Control: **Cemplangpa**, Security: Medium, Hudson Control: Sol\n"\
-        "        Completion: 101%, Missing: -122\n"
+    assert system.display() == """```Control            | [M] Cemplangpa
+101%               | Merits Leading 122
+Our Progress 15000 | Enemy Progress 100%
+Nearest Hudson     | Sol```"""
 
 
 def test_systemum__eq__(f_dusers, f_sheets, f_systemsum, f_holds):
@@ -435,9 +436,9 @@ def test_systemum_set_status(f_systemsum):
 def test_systemum_completion(f_dusers, f_sheets, f_systemsum, f_holds):
     system = f_systemsum[0]
 
-    assert system.completion == 'Completion: 101%'
+    assert system.completion == '101%'
     system.goal = 0
-    assert system.completion == 'Completion: 0%'
+    assert system.completion == '0%'
 
 
 def test_umexpand_completion(f_dusers, f_sheets, f_systemsum, f_holds):

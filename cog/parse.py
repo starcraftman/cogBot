@@ -181,6 +181,8 @@ def subs_fort(subs, prefix):
     # sub.add_argument('-l', '--long', action='store_true', help='Show systems in table format')
     sub.add_argument('-n', '--next', type=int,
                      help='Show the next NUM fort targets after current')
+    sub.add_argument('-d', '--details', action='store_true',
+                     help='Show details on selected systems (will truncate to 4).')
 
 
 @register_parser
