@@ -509,6 +509,20 @@ class System(Base):
 
         return msg
 
+    def display_details(self):
+        """ Return a highly detailed system display. """
+        lines = [
+            '**{}**\n'.format(self.name),
+            'Completion: {}%'.format(self.completion),
+            'Missing: {}'.format(self.missing),
+            'CMDR Merits: {}/{}'.format(self.cmdr_merits, self.trigger),
+            'Fort Status: {}/{}'.format(self.fort_status, self.trigger),
+            'UM Status: {} ({:.2f}%)'.format(self.um_status, self.undermine * 100),
+            'Notes:{}'.format(' ' + self.notes if self.notes else ''),
+        ]
+
+        return '\n'.join(lines)
+
 
 class PrepSystem(System):
     """

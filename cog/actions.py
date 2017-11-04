@@ -435,6 +435,23 @@ class Fort(Action):
 
         return cog.tbl.wrap_markdown(cog.tbl.format_table(lines, sep='|', header=True))
 
+    def system_details(self):
+        """
+        Provide a detailed system overview.
+        """
+        system_names = ' '.join(self.args.system)
+        system_names = re.sub(r',\s*', ',', system_names)
+        system_names = system_names.split(',')
+        if len(system_names) != 1 or system_names[0] == '':
+            raise cog.exc.InvalidCommandArgs('Exactly one system required.')
+
+        system = cogdb.query.fort_find_system(self.session, system_names[0], search_all=True)
+
+        merits = [['CMDR Name', 'Merits']]
+        merits += [[merit.user.name, merit.amount] for merit in reversed(sorted(system.merits))]
+        merit_table = '\n\n' + cog.tbl.wrap_markdown(cog.tbl.format_table(merits, header=True))
+        return system.display_details() + merit_table
+
     async def execute(self):
         if self.args.summary:
             response = self.system_summary()
@@ -460,15 +477,7 @@ class Fort(Action):
             response = self.find_missing(self.args.miss)
 
         elif self.args.details:
-            system_names = [name.strip() for name in ' '.join(self.args.system).split(',')[0:6]]
-            systems = [cogdb.query.fort_find_system(self.session, system_name, search_all=True) for system_name in system_names]
-            system_attrs = [[system.name, system.completion, system.missing, system.cmdr_merits,
-                             system.fort_status, system.um_status, system.notes] for system in systems]
-            side = ['Name', '%', 'Missing', 'Cmdr Merits', 'Fort Status', 'UM Status', 'Notes']
-
-            response = '__Detailed Systems__\n\n' + cog.tbl.wrap_markdown(cog.tbl.format_table(zip(side, *system_attrs[:3])))
-            if len(system_names) > 3:
-                response += '\n' + cog.tbl.wrap_markdown(cog.tbl.format_table(zip(side, *system_attrs[3:])))
+            response = self.system_details()
 
         elif self.args.system:
             lines = ['__Search Results__']

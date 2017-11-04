@@ -221,6 +221,34 @@ async def test_cmd_fort_set(event_loop, f_bot, f_systems):
 
 
 @pytest.mark.asyncio
+async def test_cmd_fort_details(event_loop, f_bot, f_systems):
+    msg = fake_msg_gears("!fort -d frey")
+
+    await action_map(msg, f_bot).execute()
+
+    expect = """**Frey**
+
+Completion: 100.0%
+Missing: 0
+CMDR Merits: 0/4910
+Fort Status: 4910/4910
+UM Status: 0 (0.00%)
+Notes:
+
+```CMDR Name | Merits
+--------- | ------```"""
+    f_bot.send_message.assert_called_with(msg.channel, expect)
+
+
+@pytest.mark.asyncio
+async def test_cmd_fort_details_invalid(event_loop, f_bot, f_systems):
+    msg = fake_msg_gears("!fort -d")
+
+    with pytest.raises(cog.exc.InvalidCommandArgs):
+        await action_map(msg, f_bot).execute()
+
+
+@pytest.mark.asyncio
 async def test_cmd_fort_set_invalid(event_loop, f_bot, f_systems):
     msg = fake_msg_gears("!fort --set 7000:222 nuru, othime")
 
