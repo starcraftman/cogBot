@@ -2,6 +2,7 @@
 Test util the grab all module.
 """
 from __future__ import absolute_import, print_function
+import copy
 import os
 
 import mock
@@ -137,10 +138,26 @@ def test_compute_dists():
         }
     ]
 
-    import copy
     systems = copy.deepcopy(expect)
     del systems[0]['dist']
     del systems[1]['dist']
+    cog.util.compute_dists(start, systems)
+
+    assert systems == expect
+
+
+def test_compute_dists_not_sol():
+    start = {'name': 'HIP 95256', 'coords': {'x': 65.75, 'y': -70.78125, 'z': 113.9375}}
+    expect = [
+        {
+            'name': 'Grovichun',
+            'coords': {'x': 72.90625, 'y': -112.375, 'z': 59.46875},
+            'dist': 68.9064342401165,
+        }
+    ]
+
+    systems = copy.deepcopy(expect)
+    del systems[0]['dist']
     cog.util.compute_dists(start, systems)
 
     assert systems == expect

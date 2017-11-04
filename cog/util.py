@@ -203,11 +203,11 @@ def compute_dists(start, others):
     pt1 = start['coords']
     for other in others:
         pt2 = other['coords']
-        dist = pt2['x'] * pt2['x'] - pt1['x'] * pt1['x']
-        dist += pt2['y'] * pt2['y'] - pt1['y'] * pt1['y']
-        dist += pt2['z'] * pt2['z'] - pt1['z'] * pt1['z']
-        dist = math.sqrt(dist)
-        other['dist'] = dist
+        dist = 0
+        for let in ['x', 'y', 'z']:
+            temp = pt2[let] - pt1[let]
+            dist += temp * temp
+        other['dist'] = math.sqrt(dist)
 
     return others
 
