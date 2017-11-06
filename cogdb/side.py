@@ -450,16 +450,80 @@ def influence_in_system(session, system):
     List will be empty if the system name does not match an existing.
 
     Returns a list of lists with the following:
-        faction name, influence, is_player_faction, influence timestamp
+        faction name, influence, is_player_faction, government_type, influence timestamp
     """
     subq = session.query(System.id).filter(System.name == system).subquery()
-    infs = session.query(Faction.name, Influence.influence,
+    infs = session.query(Faction.name, Influence.influence, Government.text,
                          Faction.is_player_faction, Influence.updated_at).\
-        filter(Influence.system_id == subq).filter(Faction.id == Influence.faction_id).\
+        filter(Influence.system_id == subq).\
+        filter(Faction.id == Influence.faction_id).\
+        filter(Faction.government_id == Government.id).\
         order_by(Influence.influence.desc()).all()
 
-    return [[inf[0], float('{:.2f}'.format(inf[1])), bool(inf[2]),
-             time.strftime(TIME_FMT, time.gmtime(inf[3]))] for inf in infs]
+    return [[inf[0], float('{:.2f}'.format(inf[1])), inf[2], 'Y' if inf[3] else 'N',
+             time.strftime(TIME_FMT, time.gmtime(inf[4]))] for inf in infs]
+
+
+def stations_in_system(session, system_id):
+    """
+    Query to find all stations in a system. Map them into a dictionary
+    where keys are faction id that owns station. Values is a list of all stations.
+
+    Returns: A dict of form: d[faction_id] = [stations]
+
+    Raises:
+        RemoteError - Cannot reach the remote host.
+    """
+    try:
+        stations = session.query(Station.name, Faction.id, StationType.text).\
+            filter(Station.system_id == system_id).\
+            join(Faction).join(StationType).all()
+        stations_dict = {}
+        for tup in stations:
+            try:
+                station = tup[0] + station_suffix(tup[2])
+                stations_dict[tup[1]] += [station]
+            except KeyError:
+                stations_dict[tup[1]] = [station]
+
+        return stations_dict
+    except sqla_exe.OperationalError:
+        raise cog.exc.RemoteError("Lost connection to Sidewinder's DB.")
+
+
+def influence_history_in_system(session, system_id, fact_ids, time_window=None):
+    """
+    Query for historical InfluenceHistory of factions with fact_ids in a system_id.
+
+    Optionally specify a start_time, query will return all InfluenceHistory after that time.
+    By default return 5 days worth of InfluenceHistory.
+
+    Returns: A dict of form d[faction_id] = [InfluenceHistory, InfluenceHistory ...]
+
+    Raises:
+        RemoteError - Cannot reach the remote host.
+    """
+    try:
+        if not time_window:
+            time_window = time.time() - (60 * 60 * 24 * 5)
+
+        inf_history = session.query(Faction.id, InfluenceHistory).\
+            filter(Faction.id == InfluenceHistory.faction_id).\
+            filter(InfluenceHistory.system_id == system_id).\
+            filter(InfluenceHistory.faction_id.in_(fact_ids)).\
+            filter(InfluenceHistory.updated_at >= time_window).\
+            order_by(Faction.id, InfluenceHistory.updated_at.desc()).all()
+
+        inf_dict = {}
+        for tup in inf_history:
+            try:
+                inf_dict[tup[0]] += [tup[1]]
+            except KeyError:
+                inf_dict[tup[0]] = [tup[1]]
+
+        return inf_dict
+    except sqla_exe.OperationalError:
+        raise cog.exc.RemoteError("Lost connection to Sidewinder's DB.")
 
 
 def station_suffix(station_type):
@@ -499,8 +563,8 @@ def system_overview(session, system):
 
         current = sqla_orm.aliased(FactionState)
         pending = sqla_orm.aliased(FactionState)
-        infs = session.query(Faction.id, Faction.name, Faction.is_player_faction,
-                             current.text, pending.text, Government.text, Influence).\
+        factions = session.query(Faction.id, Faction.name, Faction.is_player_faction,
+                                 current.text, pending.text, Government.text, Influence).\
             filter(Influence.system_id == system.id).\
             filter(Faction.id == Influence.faction_id).\
             filter(Faction.government_id == Government.id).\
@@ -508,41 +572,17 @@ def system_overview(session, system):
             filter(Influence.pending_state_id == pending.id).\
             order_by(Influence.influence.desc()).all()
 
-        stations = session.query(Station.name, Faction.id, StationType.text).\
-            filter(Station.system_id == system.id).\
-            join(Faction).join(StationType).all()
-        stations_dict = {}
-        for tup in stations:
-            try:
-                station = tup[0] + station_suffix(tup[2])
-                stations_dict[tup[1]].append(station)
-            except KeyError:
-                stations_dict[tup[1]] = [station]
+        stations_by_id = stations_in_system(session, system.id)
+        inf_history = influence_history_in_system(session, system.id, [inf[0] for inf in factions])
 
-        start_stamp = time.time() - (60 * 60 * 24 * 5)
-        inf_ids = [inf[0] for inf in infs]
-        inf_history = session.query(Faction.id, InfluenceHistory).\
-            filter(Faction.id == InfluenceHistory.faction_id).\
-            filter(InfluenceHistory.system_id == system.id).\
-            filter(InfluenceHistory.faction_id.in_(inf_ids)).\
-            filter(InfluenceHistory.updated_at >= start_stamp).\
-            order_by(Faction.id, InfluenceHistory.updated_at.desc()).all()
-
-        inf_dict = {}
-        for tup in inf_history:
+        factions_hist = []
+        for faction in factions:
             try:
-                inf_dict[tup[0]] += [tup[1]]
-            except KeyError:
-                inf_dict[tup[0]] = [tup[1]]
-
-        factions = []
-        for faction in infs:
-            try:
-                stations = stations_dict[faction[0]]
+                stations = stations_by_id[faction[0]]
             except KeyError:
                 stations = None
             try:
-                hist = inf_dict[faction[0]][:5]
+                hist = inf_history[faction[0]][:5]
             except KeyError:
                 hist = []
 
@@ -550,7 +590,7 @@ def system_overview(session, system):
             if faction[0] == system.controlling_faction_id:
                 prefix = '-> ' + prefix
 
-            factions.append({
+            factions_hist.append({
                 'name': prefix + faction[1],
                 'player': faction[2],
                 'state': faction[3],
@@ -558,10 +598,9 @@ def system_overview(session, system):
                 'inf_history': [faction[-1]] + hist,
                 'stations': stations,
             })
+
+        return (system, factions_hist)
     except sqla_exe.OperationalError:
         raise cog.exc.RemoteError("Lost connection to Sidewinder's DB.")
     except sqla_orm.exc.NoResultFound:
-        system = None
-        factions = None
-
-    return (system, factions)
+        return (None, None)

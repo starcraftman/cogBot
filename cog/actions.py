@@ -285,8 +285,7 @@ class BGS(Action):
 
         if infs:
             header = "**{}**\n{} (UTC)\n\n".format(system, infs[0][-1])
-            lines = [['Faction Name', 'Inf', 'Player?']]
-            lines += [inf[:-1] for inf in infs]
+            lines = [['Faction Name', 'Inf', 'Gov', 'PMF?']] + [inf[:-1] for inf in infs]
             return header + cog.tbl.wrap_markdown(cog.tbl.format_table(lines, header=True))
 
         return "Received an empty list, check the system name."

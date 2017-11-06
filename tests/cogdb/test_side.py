@@ -47,3 +47,40 @@ def test_exploited_systems_by_age(side_session):
 
 def test_influence_in_system(side_session):
     assert "Mother Gaia" in [ent[0] for ent in cogdb.side.influence_in_system(side_session, 'Sol')]
+
+
+def test_station_suffix():
+    assert cogdb.side.station_suffix('default not found') == ' (No Dock)'
+    assert cogdb.side.station_suffix('Planetary Outpost') == ' (P)'
+    assert cogdb.side.station_suffix('Orbis Starport') == ' (L)'
+    assert cogdb.side.station_suffix('Asteroid Base') == ' (AB)'
+    assert cogdb.side.station_suffix('Military Outpost') == ' (M)'
+
+
+def test_stations_in_system(side_session):
+    station_dict = cogdb.side.stations_in_system(side_session, 15222)
+    stations = []
+    for station in station_dict.values():
+        stations.extend(station)
+
+    assert set(['Virtanen Gateway (L)', 'Grover Point (P)']) == set(stations)
+
+
+def test_influence_history_in_system(side_session):
+    fact_ids = [75621, 38140, 38134, 33854, 8190, 38139]
+    inf_history = cogdb.side.influence_history_in_system(side_session, 15222, fact_ids)
+
+    for key in inf_history:
+        assert key in fact_ids
+        for inf in inf_history[key]:
+            assert inf.faction_id == key
+            assert isinstance(inf, cogdb.side.InfluenceHistory)
+
+
+def test_system_overview(side_session):
+    system, factions = cogdb.side.system_overview(side_session, 'Palaemon')
+
+    assert system.name == 'Palaemon'
+    frg = factions[0]
+    assert frg['name'] == '-> Conf | Federal Republican Guard'
+    assert frg['player'] == 1

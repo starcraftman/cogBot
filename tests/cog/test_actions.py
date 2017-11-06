@@ -123,12 +123,25 @@ async def test_cmd_bgs_age(side_session, event_loop, f_bot, f_systems):
 
 
 @pytest.mark.asyncio
-async def test_cmd_bgs_inf(side_session, event_loop, f_bot, f_systems):
+async def test_cmd_bgs_inf(side_session, event_loop, f_bot):
     msg = fake_msg_gears("!bgs inf Sol")
 
     await action_map(msg, f_bot).execute()
 
     assert "Mother Gaia" in str(f_bot.send_message.call_args).replace("\\n", "\n")
+
+
+@pytest.mark.asyncio
+async def test_cmd_bgs_sys(side_session, event_loop, f_bot):
+    msg = fake_msg_gears("!bgs sys Sol")
+
+    await action_map(msg, f_bot).execute()
+    reply = str(f_bot.send_message.call_args).replace("\\n", "\n")
+
+    assert '**Sol**: ' in reply
+    assert r'```autohotkey' in reply
+    assert '-> Demo | Mother Gaia:' in reply
+    assert 'Owns: Abraham Lincoln (L)' in reply
 
 
 @pytest.mark.asyncio
