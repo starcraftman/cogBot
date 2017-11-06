@@ -273,13 +273,10 @@ class BGS(Action):
         system = cogdb.query.fort_find_system(self.session, system, search_all=True)
         self.log.info('BGS - Looking for age around: %s', system.name)
 
-        lines = [['Control', 'System', 'Age']]
         systems = cogdb.side.exploited_systems_by_age(cogdb.SideSession(), system.name)
-        if isinstance(systems, type([])):
-            lines += [[system.control, system.system, system.age] for system in systems]
-            return cog.tbl.wrap_markdown(cog.tbl.format_table(lines, header=True))
-
-        return systems
+        lines = [['Control', 'System', 'Age']]
+        lines += [[system.control, system.system, system.age] for system in systems]
+        return cog.tbl.wrap_markdown(cog.tbl.format_table(lines, header=True))
 
     def inf_system(self, system):
         """ Handle influence subcmd. """
@@ -294,13 +291,38 @@ class BGS(Action):
 
         return "Received an empty list, check the system name."
 
+    def sys_overview(self, system):
+        """ Handle overview subcmd. """
+        self.log.info('BGS - Looking for overview like: %s', system)
+        system, factions = cogdb.side.system_overview(cogdb.SideSession(), system)
+
+        if system:
+            lines = []
+            for faction in factions:
+                lines += [
+                    '{}{}: {} -> {}'.format(faction['name'], ' (PMF)' if faction['player'] else '',
+                                            faction['state'], faction['pending']),
+                ]
+                if faction['stations']:
+                    lines += ['    Owns: ' + ', '.join(faction['stations'])]
+                lines += [
+                    '    ' + ' | '.join(['{:^5}'.format(inf.short_date) for inf in faction['inf_history']]),
+                    '    ' + ' | '.join(['{:^5.1f}'.format(inf.influence) for inf in faction['inf_history']]),
+                ]
+
+            header = "**{}**: {:,}\n\n".format(system.name, system.population)
+            return header + '```autohotkey\n' + '\n'.join(lines) + '```\n'
+
+        return "Received an empty list, check the system name."
+
     async def execute(self):
         try:
+            funcs = ['age_system', 'inf_system', 'sys_overview']
+            func_name = [func for func in funcs if func.startswith(self.args.subcmd)][0]
+            func = getattr(self, func_name)
+
             system_name = ' '.join(self.args.system)
-            if self.args.subcmd == 'age':
-                response = self.age_system(system_name)
-            elif self.args.subcmd == 'inf':
-                response = self.inf_system(system_name)
+            response = await self.bot.loop.run_in_executor(None, func, system_name)
         except (cog.exc.NoMoreTargets, cog.exc.RemoteError) as exc:
             response = exc.reply()
 
@@ -665,7 +687,8 @@ class Time(Action):
             weekly_tick += datetime.timedelta(days=1)
 
         try:
-            tick = cogdb.side.next_bgs_tick(cogdb.SideSession(), now)
+            tick = await self.bot.loop.run_in_executor(
+                None, cogdb.side.next_bgs_tick, cogdb.SideSession(), now)
         except (cog.exc.NoMoreTargets, cog.exc.RemoteError) as exc:
             tick = exc.reply()
         lines = [

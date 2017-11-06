@@ -98,6 +98,7 @@ def subs_bgs(subs, prefix):
 
     {prefix}bgs age 16 cygni\n          Show exploiteds in 16 Cygni bubble by age.
     {prefix}bgs inf Sol\n          Show the factions and their influence in Sol.
+    {prefix}bgs sys Frey\n          Show a system overview and all factions.
     """.format(prefix=prefix)
     sub = subs.add_parser(prefix + 'bgs', description=desc, formatter_class=RawHelp)
     sub.set_defaults(cmd='BGS')
@@ -106,6 +107,8 @@ def subs_bgs(subs, prefix):
     bgs_sub = bgs_subs.add_parser('age', help='Get the age of exploiteds around a control.')
     bgs_sub.add_argument('system', nargs='+', help='The system to lookup.')
     bgs_sub = bgs_subs.add_parser('inf', help='Get the influence of factions inside a system.')
+    bgs_sub.add_argument('system', nargs='+', help='The system to lookup.')
+    bgs_sub = bgs_subs.add_parser('sys', help='Get a complete system overview.')
     bgs_sub.add_argument('system', nargs='+', help='The system to lookup.')
 
 

@@ -468,6 +468,7 @@ def f_bot():
         bot.send_ttl_message
         bot.delete_message
         bot.emoji.fix - EmojiResolver tested elsewhere
+        bot.loop.run_in_executor, None, func, *args
 
     Bot must have attributes:
         bot.uptime
@@ -479,5 +480,9 @@ def f_bot():
     fake_bot.delete_message.async_return_value = None
     fake_bot.emoji.fix = lambda x, y: x
     fake_bot.servers = fake_servers()
+
+    def fake_exec(_, func, *args):
+        return func(*args)
+    fake_bot.loop.run_in_executor.async_side_effect = fake_exec
 
     yield fake_bot

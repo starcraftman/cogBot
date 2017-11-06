@@ -3,10 +3,12 @@ Sidewinder's remote database.
 """
 from __future__ import absolute_import, print_function
 import logging
+import datetime
 import time
 
 import sqlalchemy as sqla
 import sqlalchemy.exc as sqla_exe
+import sqlalchemy.orm as sqla_orm
 import sqlalchemy.ext.declarative
 
 import cog.exc
@@ -79,6 +81,30 @@ class Faction(SideBase):
         return isinstance(self, Faction) and isinstance(other, Faction) and self.id == other.id
 
 
+class FactionHistory(SideBase):
+    """ Historical information about a faction. """
+    __tablename__ = "factions_history"
+
+    id = sqla.Column(sqla.Integer, primary_key=True)
+    name = sqla.Column(sqla.String(LEN_FACTION))
+    state_id = sqla.Column(sqla.Integer)
+    updated_at = sqla.Column(sqla.Integer, primary_key=True)
+    government_id = sqla.Column(sqla.Integer)
+    allegiance_id = sqla.Column(sqla.Integer)
+    home_system = sqla.Column(sqla.Integer)
+    is_player_faction = sqla.Column(sqla.Integer)
+
+    def __repr__(self):
+        keys = ['id', 'name', 'state_id', 'government_id', 'allegiance_id', 'home_system',
+                'is_player_faction', 'updated_at']
+        kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
+
+        return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
+
+    def __eq__(self, other):
+        return isinstance(self, Faction) and isinstance(other, Faction) and self.id == other.id
+
+
 class FactionState(SideBase):
     """ The state a faction is in. """
     __tablename__ = "faction_state"
@@ -120,10 +146,9 @@ class Government(SideBase):
 class Influence(SideBase):
     """ Represents influence of a faction in a system. """
     __tablename__ = "influence"
-    __table_args__ = (sqla.PrimaryKeyConstraint("system_id", "faction_id"),)
 
-    system_id = sqla.Column(sqla.Integer)
-    faction_id = sqla.Column(sqla.Integer)
+    system_id = sqla.Column(sqla.Integer, primary_key=True)
+    faction_id = sqla.Column(sqla.Integer, primary_key=True)
     state_id = sqla.Column(sqla.Integer)
     influence = sqla.Column(sqla.Numeric(7, 4, None, False))
     is_controlling_faction = sqla.Column(sqla.Integer)
@@ -140,6 +165,46 @@ class Influence(SideBase):
     def __eq__(self, other):
         return (isinstance(self, Influence) and isinstance(other, Influence) and
                 self.system_id == other.system_id and self.faction_id == other.faction_id)
+
+    @property
+    def date(self):
+        return datetime.datetime.fromtimestamp(self.updated_at)
+
+    @property
+    def short_date(self):
+        return '{}/{}'.format(self.date.day, self.date.month)
+
+
+class InfluenceHistory(SideBase):
+    """ Represents influence of a faction in a system. """
+    __tablename__ = "influence_history"
+
+    system_id = sqla.Column(sqla.Integer, primary_key=True)
+    faction_id = sqla.Column(sqla.Integer, sqla.ForeignKey('factions.id'), primary_key=True)
+    state_id = sqla.Column(sqla.Integer)
+    influence = sqla.Column(sqla.Numeric(7, 4, None, False))
+    is_controlling_faction = sqla.Column(sqla.Integer)
+    updated_at = sqla.Column(sqla.Integer, primary_key=True)
+    pending_state_id = sqla.Column(sqla.Integer)
+
+    def __repr__(self):
+        keys = ['system_id', 'faction_id', 'state_id', 'pending_state_id', 'influence', 'is_controlling_faction',
+                'updated_at']
+        kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
+
+        return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
+
+    def __eq__(self, other):
+        return (isinstance(self, Influence) and isinstance(other, Influence) and
+                self.system_id == other.system_id and self.faction_id == other.faction_id)
+
+    @property
+    def date(self):
+        return datetime.datetime.fromtimestamp(self.updated_at)
+
+    @property
+    def short_date(self):
+        return '{}/{}'.format(self.date.day, self.date.month)
 
 
 class Power(SideBase):
@@ -240,13 +305,13 @@ class Station(SideBase):
 
     id = sqla.Column(sqla.Integer, primary_key=True)
     name = sqla.Column(sqla.String(LEN_STATION))
-    system_id = sqla.Column(sqla.Integer)
+    system_id = sqla.Column(sqla.Integer, sqla.ForeignKey('systems.id'))
     updated_at = sqla.Column(sqla.Integer)
     distance_to_star = sqla.Column(sqla.Integer)
-    station_type_id = sqla.Column(sqla.Integer)
+    station_type_id = sqla.Column(sqla.Integer, sqla.ForeignKey('station_type.id'))
     settlement_size_id = sqla.Column(sqla.Integer)
     settlement_security_id = sqla.Column(sqla.Integer)
-    controlling_faction_id = sqla.Column(sqla.Integer)
+    controlling_faction_id = sqla.Column(sqla.Integer, sqla.ForeignKey('factions.id'))
 
     def __repr__(self):
         keys = ['id', 'name', 'distance_to_star', 'system_id', 'station_type_id',
@@ -317,10 +382,9 @@ class System(SideBase):
 class SystemAge(SideBase):
     """ Represents the age of eddn data received for control/system pair. """
     __tablename__ = "v_age"
-    __table_args__ = (sqla.PrimaryKeyConstraint("control", "system"),)
 
-    control = sqla.Column(sqla.String(LEN_SYSTEM))
-    system = sqla.Column(sqla.String(LEN_SYSTEM))
+    control = sqla.Column(sqla.String(LEN_SYSTEM), primary_key=True)
+    system = sqla.Column(sqla.String(LEN_SYSTEM), primary_key=True)
     age = sqla.Column(sqla.Integer)
 
     def __repr__(self):
@@ -344,6 +408,7 @@ def next_bgs_tick(session, now):
 
     Raises:
         RemoteError - Cannot communicate with remote.
+        NoMoreTargets - Ran out of ticks.
     """
     log = logging.getLogger("cogdb.side")
     try:
@@ -365,7 +430,6 @@ def exploited_systems_by_age(session, control):
     that have outdated information.
 
     Raises:
-        NoMoreTargets - Ran out of ticks.
         RemoteError - Cannot communicate with remote.
     """
     log = logging.getLogger("cogdb.side")
@@ -396,3 +460,108 @@ def influence_in_system(session, system):
 
     return [[inf[0], float('{:.2f}'.format(inf[1])), bool(inf[2]),
              time.strftime(TIME_FMT, time.gmtime(inf[3]))] for inf in infs]
+
+
+def station_suffix(station_type):
+    """ Simple switch, map specific types on to single letter. """
+    suffix = ' (No Dock)'
+    if 'Planetary' in station_type and station_type != 'Planetary Settlement':
+        suffix = ' (P)'
+    elif 'Starport' in station_type:
+        suffix = ' (L)'
+    elif 'Asteroid' in station_type:
+        suffix = ' (AB)'
+    elif 'Outpost' in station_type:
+        suffix = ' (M)'
+
+    return suffix
+
+
+def system_overview(session, system):
+    """
+    Provide a total BGS view of a system.
+
+    Returns: If bad input, returns None, None.
+        System: The remote System object.
+        factions_info: A list of dicts for every faction with keys:
+            'name', their name
+            'player', True if PMF
+            'state', current state
+            'pending', next state
+            'inf_history', list of influence over last 5 days
+            'stations', list of stations owned, may be None
+
+    Raises:
+        RemoteError - Cannot reach the remote host.
+    """
+    try:
+        system = session.query(System).filter(System.name == system).one()
+
+        current = sqla_orm.aliased(FactionState)
+        pending = sqla_orm.aliased(FactionState)
+        infs = session.query(Faction.id, Faction.name, Faction.is_player_faction,
+                             current.text, pending.text, Government.text, Influence).\
+            filter(Influence.system_id == system.id).\
+            filter(Faction.id == Influence.faction_id).\
+            filter(Faction.government_id == Government.id).\
+            filter(Influence.state_id == current.id).\
+            filter(Influence.pending_state_id == pending.id).\
+            order_by(Influence.influence.desc()).all()
+
+        stations = session.query(Station.name, Faction.id, StationType.text).\
+            filter(Station.system_id == system.id).\
+            join(Faction).join(StationType).all()
+        stations_dict = {}
+        for tup in stations:
+            try:
+                station = tup[0] + station_suffix(tup[2])
+                stations_dict[tup[1]].append(station)
+            except KeyError:
+                stations_dict[tup[1]] = [station]
+
+        start_stamp = time.time() - (60 * 60 * 24 * 5)
+        inf_ids = [inf[0] for inf in infs]
+        inf_history = session.query(Faction.id, InfluenceHistory).\
+            filter(Faction.id == InfluenceHistory.faction_id).\
+            filter(InfluenceHistory.system_id == system.id).\
+            filter(InfluenceHistory.faction_id.in_(inf_ids)).\
+            filter(InfluenceHistory.updated_at >= start_stamp).\
+            order_by(Faction.id, InfluenceHistory.updated_at.desc()).all()
+
+        inf_dict = {}
+        for tup in inf_history:
+            try:
+                inf_dict[tup[0]] += [tup[1]]
+            except KeyError:
+                inf_dict[tup[0]] = [tup[1]]
+
+        factions = []
+        for faction in infs:
+            try:
+                stations = stations_dict[faction[0]]
+            except KeyError:
+                stations = None
+            try:
+                hist = inf_dict[faction[0]][:5]
+            except KeyError:
+                hist = []
+
+            prefix = faction[-2][:4] + ' | '
+            if faction[0] == system.controlling_faction_id:
+                prefix = '-> ' + prefix
+
+            factions.append({
+                'name': prefix + faction[1],
+                'player': faction[2],
+                'state': faction[3],
+                'pending': faction[4],
+                'inf_history': [faction[-1]] + hist,
+                'stations': stations,
+            })
+    except sqla_exe.OperationalError:
+        raise cog.exc.RemoteError("Lost connection to Sidewinder's DB.")
+    except sqla_orm.exc.NoResultFound:
+        system = None
+        factions = None
+
+    return (system, factions)
