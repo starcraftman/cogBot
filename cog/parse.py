@@ -123,7 +123,7 @@ def subs_dist(subs, prefix):
     """.format(prefix=prefix)
     sub = subs.add_parser(prefix + 'dist', description=desc, formatter_class=RawHelp)
     sub.set_defaults(cmd='Dist')
-    sub.add_argument('systems', nargs='+', help='The systems in question.')
+    sub.add_argument('system', nargs='+', help='The systems in question.')
 
 
 @register_parser

@@ -212,7 +212,7 @@ def fort_find_current_index(session):
     raise cog.exc.NoMoreTargets('\n'.join(lines))
 
 
-def fort_find_system(session, system_name, search_all=False):
+def fort_find_system(session, system_name, search_all=True):
     """
     Return the System with System.name that matches.
     If search_all True, search all systems.
@@ -272,6 +272,10 @@ def fort_get_targets(session):
     - Second System if prsent is Othime, only when not fortified.
     - All Systems after are prep targets.
     """
+    targets = fort_order_get(session)
+    if targets:
+        return targets[:1]
+
     current = fort_find_current_index(session)
     systems = fort_get_systems(session, not_othime=True)
     targets = [systems[current]]
@@ -289,11 +293,13 @@ def fort_get_next_targets(session, count=1):
     """
     Return next 'count' fort targets.
     """
-    current = fort_find_current_index(session)
-    targets = []
-    systems = fort_get_systems(session, not_othime=True)
+    systems = fort_order_get(session)
+    start = 1
+    if not systems:
+        systems = fort_get_systems(session, not_othime=True)
+        start = fort_find_current_index(session) + 1
 
-    start = current + 1
+    targets = []
     for system in systems[start:]:
         if system.is_fortified or system.skip or system.missing < DEFER_MISSING:
             continue
@@ -347,29 +353,43 @@ def fort_add_drop(session, *, user, system, amount):
     return drop
 
 
-def fort_order_get(session):
+def fort_order_get(_):
     """
     Get the order of systems to fort.
+
+    If any systems have been completed, remove them from the list.
+
+    Returns: [] if no systems set, else a list of System objects.
     """
     systems = []
-    for system_name, *_ in session.query(FortOrder.system_name).order_by(FortOrder.order):
-        systems += [session.query(System).filter_by(name=system_name).one()]
+    dsession = cogdb.Session()  # Isolate deletions, feels a bit off though
+    for fort_order in dsession.query(FortOrder).order_by(FortOrder.order):
+        system = dsession.query(System).filter_by(name=fort_order.system_name).one()
+        if system.is_fortified or system.missing < DEFER_MISSING:
+            dsession.delete(fort_order)
+        else:
+            systems += [system]
+
+    dsession.commit()
     return systems
 
 
 def fort_order_set(session, system_names):
     """
     Simply set the systems in the order desired.
+
+    Ensure systems are actually valid before.
     """
     try:
         for ind, system_name in enumerate(system_names):
-            session.query(System).filter_by(name=system_name).one()
+            if not isinstance(system_name, System):
+                system_name = fort_find_system(session, system_name).name
             session.add(FortOrder(order=ind, system_name=system_name))
         session.commit()
     except (sqla_exc.IntegrityError, sqla_oexc.FlushError):
         session.rollback()
         raise cog.exc.InvalidCommandArgs("Duplicate system specified, check your command!")
-    except sqla_oexc.NoResultFound:
+    except cog.exc.NoMatch:
         session.rollback()
         raise cog.exc.InvalidCommandArgs("System '{}' not found in fort systems.".format(system_name))
 
@@ -378,11 +398,10 @@ def fort_order_drop(session, systems):
     """
     Drop the given system_names from the override table.
     """
-    if isinstance(systems[0], System):
-        systems = [system.name for system in systems]
-
     for system_name in systems:
         try:
+            if isinstance(system_name, System):
+                system_name = system_name.name
             session.delete(session.query(FortOrder).filter_by(system_name=system_name).one())
         except sqla_oexc.NoResultFound:
             pass

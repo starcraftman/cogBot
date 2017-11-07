@@ -270,7 +270,7 @@ class BGS(Action):
     """
     def age_system(self, system):
         """ Handle age subcmd. """
-        system = cogdb.query.fort_find_system(self.session, system, search_all=True)
+        system = cogdb.query.fort_find_system(self.session, system)
         self.log.info('BGS - Looking for age around: %s', system.name)
 
         systems = cogdb.side.exploited_systems_by_age(cogdb.SideSession(), system.name)
@@ -333,9 +333,7 @@ class Dist(Action):
     Handle logic related to finding the distance between a start system and any following systems.
     """
     async def execute(self):
-        system_names = ' '.join(self.args.systems)
-        system_names = re.sub(r',\s*', ',', system_names)
-        system_names = system_names.split(',')
+        system_names = process_system_args(self.args.system)
         if len(system_names) < 2:
             raise cog.exc.InvalidCommandArgs("At least **2** systems required.")
 
@@ -343,13 +341,21 @@ class Dist(Action):
         if not systems:
             raise cog.exc.InvalidCommandArgs("One or more invalid system names.")
 
-        start = [sys for sys in systems if sys['name'].lower() == system_names[0].lower()][0]
+        try:
+            start = [sys for sys in systems if sys['name'].lower() == system_names[0].lower()][0]
+        except IndexError:
+            raise cog.exc.InvalidCommandArgs("Start system was invalid. Check the first system.")
         rest = [sys for sys in systems if sys['name'].lower() != system_names[0].lower()]
+        if not rest:
+            raise cog.exc.InvalidCommandArgs("No destination systems were valid. Check names.")
         cog.util.compute_dists(start, rest)
 
         response = 'Distances From: **{}**\n\n'.format(start['name'])
         lines = [[sys['name'], '{:.2f}ly'.format(sys['dist'])] for sys in rest]
         response += cog.tbl.wrap_markdown(cog.tbl.format_table(lines))
+
+        if len(rest) != len(system_names) - 1:
+            response += '\nSome systems could not be found. Try again or edit the command.'
 
         await self.bot.send_message(self.msg.channel, response)
 
@@ -397,8 +403,7 @@ class Drop(Action):
         self.log.info('DROP %s - Matched duser with id %s and sheet name %s.',
                       self.duser.display_name, self.duser.id[:6], self.cattle)
 
-        system = cogdb.query.fort_find_system(self.session, ' '.join(self.args.system),
-                                              search_all=True)
+        system = cogdb.query.fort_find_system(self.session, ' '.join(self.args.system))
         self.log.info('DROP %s - Matched system %s from: \n%s.',
                       self.duser.display_name, system.name, system)
 
@@ -460,13 +465,11 @@ class Fort(Action):
         """
         Provide a detailed system overview.
         """
-        system_names = ' '.join(self.args.system)
-        system_names = re.sub(r',\s*', ',', system_names)
-        system_names = system_names.split(',')
+        system_names = process_system_args(self.args.system)
         if len(system_names) != 1 or system_names[0] == '':
             raise cog.exc.InvalidCommandArgs('Exactly one system required.')
 
-        system = cogdb.query.fort_find_system(self.session, system_names[0], search_all=True)
+        system = cogdb.query.fort_find_system(self.session, system_names[0])
 
         merits = [['CMDR Name', 'Merits']]
         merits += [[merit.user.name, merit.amount] for merit in reversed(sorted(system.merits))]
@@ -474,6 +477,7 @@ class Fort(Action):
         return system.display_details() + merit_table
 
     async def execute(self):
+        manual = ' (Manual Order)' if cogdb.query.fort_order_get(self.session) else ''
         if self.args.summary:
             response = self.system_summary()
 
@@ -482,7 +486,7 @@ class Fort(Action):
             if ',' in system_name:
                 raise cog.exc.InvalidCommandArgs('One system at a time with --set flag')
 
-            system = cogdb.query.fort_find_system(self.session, system_name, search_all=True)
+            system = cogdb.query.fort_find_system(self.session, system_name)
             system.set_status(self.args.set)
             self.session.commit()
 
@@ -500,22 +504,33 @@ class Fort(Action):
         elif self.args.details:
             response = self.system_details()
 
+        elif self.args.order:
+            cogdb.query.fort_order_drop(self.session,
+                                        cogdb.query.fort_order_get(self.session))
+            if self.args.system:
+                system_names = process_system_args(self.args.system)
+                cogdb.query.fort_order_set(self.session, system_names)
+                response = """Fort order has been manually set.
+When all systems completed order will return to default.
+To unset override, simply set an empty list of systems.
+"""
+            else:
+                response = "Manual fort order unset. Resuming normal order."
+
         elif self.args.system:
             lines = ['__Search Results__']
-            system_names = ' '.join(self.args.system).split(',')
-            for name in system_names:
-                lines.append(cogdb.query.fort_find_system(self.session,
-                                                          name.strip(), search_all=True).display())
+            for name in process_system_args(self.args.system):
+                lines.append(cogdb.query.fort_find_system(self.session, name).display())
             response = '\n'.join(lines)
 
         elif self.args.next:
-            lines = ['__Next Targets__']
+            lines = ['__Next Targets{}__'.format(manual)]
             lines += [system.display() for system in
                       cogdb.query.fort_get_next_targets(self.session, count=self.args.next)]
             response = '\n'.join(lines)
 
         else:
-            lines = ['__Active Targets__']
+            lines = ['__Active Targets{}__'.format(manual)]
             lines += [system.display() for system in cogdb.query.fort_get_targets(self.session)]
 
             lines += ['\n__Next Targets__']
@@ -844,6 +859,20 @@ class WhoIs(Action):
         cmdr = await cog.inara.api.search_in_inara(cmdr_name, self.msg)
         if cmdr:
             await cog.inara.api.fetch_from_cmdr_page(cmdr, self.msg)
+
+
+def process_system_args(args):
+    """
+    Process the system args by:
+        Joining text on spaces.
+        Removing trailing/leading spaces around commas.
+        Split on commas and return list of systems.
+
+    Intended to be used when systems collected with nargs=*/+
+    """
+    system_names = ' '.join(args)
+    system_names = re.sub(r'\s*,\s*', ',', system_names)
+    return system_names.split(',')
 
 
 def sync_drop(drop_args, system_args):

@@ -624,11 +624,27 @@ Frey | 108.97ly```"""
 
 
 @pytest.mark.asyncio
+async def test_cmd_dist_partial(session, event_loop, f_bot, f_testbed):
+    msg = fake_msg_gears("!dist sol, adeo")
+
+    await action_map(msg, f_bot).execute()
+
+    expect = """Distances From: **Sol**
+
+```Adeo | 91.59ly```"""
+    f_bot.send_message.assert_called_with(msg.channel, expect)
+
+
+@pytest.mark.asyncio
 async def test_cmd_dist_invalid_args(session, event_loop, f_bot, f_testbed):
     msg = fake_msg_gears("!dist sol")
     with pytest.raises(cog.exc.InvalidCommandArgs):
         await action_map(msg, f_bot).execute()
 
-    msg = fake_msg_gears("!dist solllll, freyyy")
+    msg = fake_msg_gears("!dist solllll, frey")
+    with pytest.raises(cog.exc.InvalidCommandArgs):
+        await action_map(msg, f_bot).execute()
+
+    msg = fake_msg_gears("!dist sol, freyyyyy")
     with pytest.raises(cog.exc.InvalidCommandArgs):
         await action_map(msg, f_bot).execute()
