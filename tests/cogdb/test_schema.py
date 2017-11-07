@@ -13,7 +13,7 @@ from cogdb.schema import (DUser, System, Drop, Hold,
                           SheetRow, SheetCattle, SheetUM,
                           SystemUM, UMControl, UMExpand, UMOppose,
                           EFaction, ESheetType, kwargs_um_system, kwargs_fort_system,
-                          Admin, ChannelPerm, RolePerm)
+                          Admin, ChannelPerm, RolePerm, FortOrder)
 
 from tests.data import SYSTEMS_DATA, SYSTEMSUM_DATA, SYSTEMUM_EXPAND
 
@@ -97,6 +97,22 @@ def test_roleperm__eq__(session, f_rperms):
     perm = f_rperms[0]
     assert perm == RolePerm(cmd=perm.cmd, server=perm.server, role=perm.role)
     assert perm != RolePerm(cmd=perm.cmd, server=perm.server, role='NoMatch')
+
+
+def test_fortorder__repr__(session, f_fortorders):
+    order_sol = f_fortorders[0]
+    assert repr(order_sol) == "FortOrder(order=1, system_name='Sol')"
+
+
+def test_fortorder__str__(session, f_fortorders):
+    order_sol = f_fortorders[0]
+    assert str(order_sol) == "FortOrder(order=1, system_name='Sol')"
+
+
+def test_fortorder__eq__(session, f_fortorders):
+    order_sol = f_fortorders[0]
+    assert order_sol == FortOrder(order=1, system_name='Sol')
+    assert order_sol != FortOrder(order=1, system_name='Aornum')
 
 
 def test_duser__eq__(f_dusers, f_sheets):

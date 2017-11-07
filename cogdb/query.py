@@ -14,7 +14,7 @@ from cog.util import substr_match
 import cogdb
 from cogdb.schema import (DUser, System, PrepSystem, SystemUM, SheetRow, SheetCattle, SheetUM,
                           Drop, Hold, EFaction, ESheetType, kwargs_fort_system, kwargs_um_system,
-                          Admin, ChannelPerm, RolePerm)
+                          Admin, ChannelPerm, RolePerm, FortOrder)
 
 
 DEFER_MISSING = 750
@@ -345,6 +345,49 @@ def fort_add_drop(session, *, user, system, amount):
     log.info('ADD_DROP - After: Drop %s, System %s', drop, system)
 
     return drop
+
+
+def fort_order_get(session):
+    """
+    Get the order of systems to fort.
+    """
+    systems = []
+    for system_name, *_ in session.query(FortOrder.system_name).order_by(FortOrder.order):
+        systems += [session.query(System).filter_by(name=system_name).one()]
+    return systems
+
+
+def fort_order_set(session, system_names):
+    """
+    Simply set the systems in the order desired.
+    """
+    try:
+        for ind, system_name in enumerate(system_names):
+            session.query(System).filter_by(name=system_name).one()
+            session.add(FortOrder(order=ind, system_name=system_name))
+        session.commit()
+    except (sqla_exc.IntegrityError, sqla_oexc.FlushError):
+        session.rollback()
+        raise cog.exc.InvalidCommandArgs("Duplicate system specified, check your command!")
+    except sqla_oexc.NoResultFound:
+        session.rollback()
+        raise cog.exc.InvalidCommandArgs("System '{}' not found in fort systems.".format(system_name))
+
+
+def fort_order_drop(session, systems):
+    """
+    Drop the given system_names from the override table.
+    """
+    if isinstance(systems[0], System):
+        systems = [system.name for system in systems]
+
+    for system_name in systems:
+        try:
+            session.delete(session.query(FortOrder).filter_by(system_name=system_name).one())
+        except sqla_oexc.NoResultFound:
+            pass
+
+    session.commit()
 
 
 class SheetScanner(object):

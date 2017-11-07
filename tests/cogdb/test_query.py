@@ -10,7 +10,7 @@ import cog.exc
 import cogdb
 from cogdb.schema import (DUser, System, SheetRow, SheetCattle, SheetUM,
                           Hold, UMExpand, EFaction, ESheetType, Admin,
-                          ChannelPerm, RolePerm)
+                          ChannelPerm, RolePerm, FortOrder)
 import cogdb.query
 
 from tests.data import SYSTEMS, USERS
@@ -206,6 +206,36 @@ def test_fort_add_drop(session, f_dusers, f_sheets, f_systems, db_cleanup):
     assert drop.amount == 400
     assert system.fort_status == old_fort + 400
     assert session.query(cogdb.schema.Drop).filter_by(user_id=user.id, system_id=system.id).one()
+
+
+def test_fort_order_get(session, f_systems, f_fortorders):
+    names = []
+    for system in cogdb.query.fort_order_get(session):
+        assert isinstance(system, System)
+        names += [system.name]
+    assert names == [order.system_name for order in f_fortorders]
+
+
+def test_fort_order_set(session, f_systems, f_fortorders):
+    cogdb.query.fort_order_drop(session, cogdb.query.fort_order_get(session))
+    assert cogdb.query.fort_order_get(session) == []
+
+    with pytest.raises(cog.exc.InvalidCommandArgs):
+        cogdb.query.fort_order_set(session, ['Cubeo'])
+
+    with pytest.raises(cog.exc.InvalidCommandArgs):
+        cogdb.query.fort_order_set(session, ['Sol', 'Sol', 'Sol'])
+
+    expect = ['Sol', 'LPM 229']
+    cogdb.query.fort_order_set(session, expect)
+    assert [sys.name for sys in cogdb.query.fort_order_get(session)] == expect
+
+
+def test_fort_order_drop(session, f_systems, f_fortorders):
+    systems = cogdb.query.fort_order_get(session)
+    cogdb.query.fort_order_drop(session, systems[:2])
+
+    assert cogdb.Session().query(FortOrder).all() == [f_fortorders[2]]
 
 
 def test_fortscanner_find_system_column(mock_fortsheet):

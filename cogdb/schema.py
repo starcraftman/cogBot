@@ -130,6 +130,29 @@ class RolePerm(Base):
             str(self) == str(other))
 
 
+class FortOrder(Base):
+    """
+    Simply store a list of Control systems in the order they should be forted.
+    """
+    __tablename__ = 'fort_order'
+
+    order = sqla.Column(sqla.Integer, unique=True)
+    system_name = sqla.Column(sqla.String(LEN_NAME), primary_key=True)
+
+    def __repr__(self):
+        keys = ['order', 'system_name']
+        kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
+
+        return "FortOrder({})".format(', '.join(kwargs))
+
+    def __str__(self):
+        return repr(self)
+
+    def __eq__(self, other):
+        return isinstance(self, FortOrder) and isinstance(other, FortOrder) and (
+            str(self) == str(other))
+
+
 class DUser(Base):
     """
     Table to store discord users and their permanent preferences.

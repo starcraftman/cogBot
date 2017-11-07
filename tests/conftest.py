@@ -25,7 +25,7 @@ import cogdb.query
 from cogdb.schema import (DUser, PrepSystem, System, SystemUM, Drop, Hold,
                           UMExpand, UMOppose, UMControl,
                           SheetRow, SheetCattle, SheetUM,
-                          EFaction, Admin, ChannelPerm, RolePerm)
+                          EFaction, Admin, ChannelPerm, RolePerm, FortOrder)
 from tests.data import CELLS_FORT, CELLS_FORT_FMT, CELLS_UM
 
 
@@ -315,6 +315,24 @@ def f_rperms(session):
     yield perms
 
     for matched in session.query(RolePerm):
+        session.delete(matched)
+    session.commit()
+
+
+@pytest.fixture
+def f_fortorders(session):
+    """ Fort order fixture. """
+    systems = (
+        FortOrder(order=1, system_name='Sol'),
+        FortOrder(order=2, system_name='LPM 229'),
+        FortOrder(order=3, system_name='Othime'),
+    )
+    session.add_all(systems)
+    session.commit()
+
+    yield systems
+
+    for matched in session.query(FortOrder):
         session.delete(matched)
     session.commit()
 

@@ -168,6 +168,7 @@ def subs_fort(subs, prefix):
     {prefix}fort -d Sol\n           Show a detailed view of Sol, including all CMDR merits.
     {prefix}fort --miss 1000\n          Show all systems missing <= 1000 supplies.
     {prefix}fort --next 5\n           Show the next 5 fortification targets (excluding Othime and skipped).
+    {prefix}fort --order Sol, Adeo, Frey\n           Set the fort order to: Sol -> Adeo -> Frey, then fallback to default.
     {prefix}fort --summary\n           Show a breakdown by states of our systems.
     {prefix}fort alpha\n           Show the fortification status of Alpha Fornacis.
     {prefix}fort alpha, sol, ran\n           Show the fortification status of Alpha Fornacis, Sol and Rana.
@@ -178,6 +179,8 @@ def subs_fort(subs, prefix):
     sub.add_argument('system', nargs='*', help='Select this system.')
     sub.add_argument('--set',
                      help='Set the fort:um status of system. Example-> --set 3400:200')
+    sub.add_argument('--order', action='store_true',
+                     help='Set the fort order. Comma separate list of systems.')
     sub.add_argument('--summary', action='store_true',
                      help='Provide an overview of the fort systems.')
     sub.add_argument('--miss', type=int,
