@@ -169,6 +169,7 @@ def subs_fort(subs, prefix):
     {prefix}fort --miss 1000\n          Show all systems missing <= 1000 supplies.
     {prefix}fort --next 5\n           Show the next 5 fortification targets (excluding Othime and skipped).
     {prefix}fort --order Sol, Adeo, Frey\n           Set the fort order to: Sol -> Adeo -> Frey, then fallback to default.
+    {prefix}fort --order\n           Return the fort order to default sheet order.
     {prefix}fort --summary\n           Show a breakdown by states of our systems.
     {prefix}fort alpha\n           Show the fortification status of Alpha Fornacis.
     {prefix}fort alpha, sol, ran\n           Show the fortification status of Alpha Fornacis, Sol and Rana.
