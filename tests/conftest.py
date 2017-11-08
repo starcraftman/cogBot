@@ -381,6 +381,9 @@ class FakeObject(object):
     def __repr__(self):
         return "{}: {} {}".format(self.__class__.__name__, self.id, self.name)
 
+    def __str__(self):
+        return "{}: {}".format(self.__class__.__name__, self.name)
+
 
 class Server(FakeObject):
     def __init__(self, name, id=None):
@@ -390,9 +393,9 @@ class Server(FakeObject):
     def add(self, channel):
         self.channels.append(channel)
 
-    def __repr__(self):
-        channels = "\n  Channels: " + ", ".join([cha.name for cha in self.channels])
-        return super().__repr__() + channels
+    # def __repr__(self):
+        # channels = "\n  Channels: " + ", ".join([cha.name for cha in self.channels])
+        # return super().__repr__() + channels
 
 
 class Channel(FakeObject):
@@ -400,13 +403,14 @@ class Channel(FakeObject):
         super().__init__(name, id)
         self.server = srv
 
-    def __repr__(self):
-        return super().__repr__() + ", Server: {}".format(self.server.name)
+    # def __repr__(self):
+        # return super().__repr__() + ", Server: {}".format(self.server.name)
 
 
 class Member(FakeObject):
     def __init__(self, name, roles, *, id=None):
         super().__init__(name, id)
+        self.discriminator = '12345'
         self.display_name = self.name
         self.roles = roles
 
@@ -414,9 +418,9 @@ class Member(FakeObject):
     def mention(self):
         return self.display_name
 
-    def __repr__(self):
-        roles = "Roles:  " + ", ".join([rol.name for rol in self.roles])
-        return super().__repr__() + ", Display: {} ".format(self.display_name) + roles
+    # def __repr__(self):
+        # roles = "Roles:  " + ", ".join([rol.name for rol in self.roles])
+        # return super().__repr__() + ", Display: {} ".format(self.display_name) + roles
 
 
 class Role(FakeObject):
@@ -424,8 +428,8 @@ class Role(FakeObject):
         super().__init__(name, id)
         self.server = srv
 
-    def __repr__(self):
-        return super().__repr__() + "\n  {}".format(self.server)
+    # def __repr__(self):
+        # return super().__repr__() + "\n  {}".format(self.server)
 
 
 class Message(FakeObject):
@@ -441,9 +445,9 @@ class Message(FakeObject):
     def timestamp(self):
         return datetime.datetime.utcnow()
 
-    def __repr__(self):
-        return super().__repr__() + "\n  Content: {}\n  Author: {}\n  Channel: {}\n  Server: {}".format(
-            self.content, self.author, self.channel, self.server)
+    # def __repr__(self):
+        # return super().__repr__() + "\n  Content: {}\n  Author: {}\n  Channel: {}\n  Server: {}".format(
+            # self.content, self.author, self.channel, self.server)
 
 
 def fake_servers():

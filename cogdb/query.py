@@ -923,7 +923,7 @@ def get_admin(session, member):
     try:
         return session.query(Admin).filter_by(id=member.id).one()
     except sqla_oexc.NoResultFound:
-        raise cog.exc.NoMatch(member.display_name, Admin)
+        raise cog.exc.NoMatch(member.display_name, 'Admin')
 
 
 def add_admin(session, member):

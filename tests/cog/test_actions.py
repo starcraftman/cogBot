@@ -16,7 +16,7 @@ import cog.parse
 import cogdb
 from cogdb.side import SystemAge
 from cogdb.schema import (DUser, SheetCattle, SheetUM,
-                          System, SystemUM, Drop, Hold)
+                          System, SystemUM, Drop, Hold, FortOrder)
 
 from tests.conftest import fake_msg_gears, fake_msg_newuser
 
@@ -264,6 +264,78 @@ async def test_cmd_fort_set_invalid(event_loop, f_bot, f_systems):
 
     with pytest.raises(cog.exc.InvalidCommandArgs):
         await action_map(msg, f_bot).execute()
+
+
+@pytest.mark.asyncio
+async def test_cmd_fort_order(session, event_loop, f_bot, f_systems):
+    try:
+        msg = fake_msg_gears("!fort --order sol, nuru, frey")
+        await action_map(msg, f_bot).execute()
+
+        systems = [sys.system_name for sys in session.query(FortOrder).order_by(FortOrder.order)]
+        assert systems == ['Sol', 'Nurundere', 'Frey']
+
+        msg2 = fake_msg_gears("!fort")
+        await action_map(msg2, f_bot).execute()
+
+        expect = """__Active Targets (Manual Order)__
+**Sol** 2500/5211 :Fortifying:, 2250 :Undermining: Leave For Grinders
+
+__Next Targets__
+**Nurundere** 5422/8425 :Fortifying:
+
+__Almost Done__
+**Dongkum** 7000/7239 :Fortifying: (239 left)"""
+        f_bot.send_message.assert_called_with(msg2.channel, expect)
+    finally:
+        dsession = cogdb.Session()
+        for order in dsession.query(FortOrder):
+            dsession.delete(order)
+        dsession.commit()
+
+
+@pytest.mark.asyncio
+async def test_cmd_fort_order_next(session, event_loop, f_bot, f_systems):
+    try:
+        msg = fake_msg_gears("!fort --order sol, nuru, frey")
+        await action_map(msg, f_bot).execute()
+
+        systems = [sys.system_name for sys in session.query(FortOrder).order_by(FortOrder.order)]
+        assert systems == ['Sol', 'Nurundere', 'Frey']
+
+        msg2 = fake_msg_gears("!fort --next 2")
+        await action_map(msg2, f_bot).execute()
+
+        expect = """__Next Targets (Manual Order)__
+**Nurundere** 5422/8425 :Fortifying:"""
+        f_bot.send_message.assert_called_with(msg2.channel, expect)
+    finally:
+        dsession = cogdb.Session()
+        for order in dsession.query(FortOrder):
+            dsession.delete(order)
+        dsession.commit()
+
+
+@pytest.mark.asyncio
+async def test_cmd_fort_unset(session, event_loop, f_bot, f_systems):
+    try:
+        msg = fake_msg_gears("!fort --order sol, nuru, frey")
+        await action_map(msg, f_bot).execute()
+
+        systems = [sys.system_name for sys in session.query(FortOrder).order_by(FortOrder.order)]
+        assert systems == ['Sol', 'Nurundere', 'Frey']
+
+        msg2 = fake_msg_gears("!fort --order")
+        await action_map(msg2, f_bot).execute()
+
+        session = cogdb.Session()
+        systems = [sys.system_name for sys in session.query(FortOrder).order_by(FortOrder.order)]
+        assert systems == []
+    finally:
+        dsession = cogdb.Session()
+        for order in dsession.query(FortOrder):
+            dsession.delete(order)
+        dsession.commit()
 
 
 @pytest.mark.asyncio

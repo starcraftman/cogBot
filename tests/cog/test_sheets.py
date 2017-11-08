@@ -18,7 +18,7 @@ def fort_sheet():
     """
     Yield fixture returns fort sheet.
     """
-    sheet = cog.util.get_config('tests', 'cattle')
+    sheet = cog.util.get_config('tests', 'hudson_cattle')
     paths = cog.util.get_config('paths')
     f_sheet = cog.sheets.GSheet(sheet, paths['json'], paths['token'])
 
@@ -32,7 +32,7 @@ def fort_sheet_reset():
 
     N.B. Test in cells cleaned in cell_ranges.
     """
-    sheet = cog.util.get_config('tests', 'cattle')
+    sheet = cog.util.get_config('tests', 'hudson_cattle')
     paths = cog.util.get_config('paths')
     f_sheet = cog.sheets.GSheet(sheet, paths['json'], paths['token'])
 

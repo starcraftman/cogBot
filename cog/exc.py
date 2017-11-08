@@ -66,17 +66,23 @@ class InvalidPerms(UserException):
 
 class MoreThanOneMatch(UserException):
     """ Too many matches were found for sequence.  """
-    def __init__(self, sequence, matches, obj_attr):
-        super().__init__(None)
+    def __init__(self, sequence, matches, obj_attr=None):
+        super().__init__()
         self.sequence = sequence
         self.matches = matches
-        self.obj_attr = obj_attr
+        self.obj_attr = obj_attr if obj_attr else ''
 
     def reply(self):
+        obj = self.matches[0]
+        if not obj or isinstance(obj, type('')):
+            cls = 'string'
+        else:
+            cls = self.matches[0].__class__.__name__
+
         header = "Resubmit query with more specific criteria."
         header += "\nToo many matches for '{}' in {}s:".format(
-            self.sequence, self.matches[0].__class__.__name__)
-        matched_strings = [emphasize_match(self.sequence, getattr(obj, self.obj_attr))
+            self.sequence, cls)
+        matched_strings = [emphasize_match(self.sequence, getattr(obj, self.obj_attr, obj))
                            for obj in self.matches]
         matched = "\n    - " + "\n    - ".join(matched_strings)
         return header + matched
@@ -86,17 +92,17 @@ class NoMatch(UserException):
     """
     No match was found for sequence.
     """
-    def __init__(self, sequence, cls=None):
-        super().__init__(None)
+    def __init__(self, sequence, obj_type):
+        super().__init__()
         self.sequence = sequence
-        self.cls = cls if cls else 'String'
+        self.obj_type = obj_type
 
     def reply(self):
-        return "No matches for '{}' in {}s:".format(self.sequence, self.cls)
+        return "No matches for '{}' in {}s.".format(self.sequence, self.obj_type)
 
 
 class CmdAborted(UserException):
-    """ Raised to cancel a multistep command, usually result of user (in)action. """
+    """ Raised to cancel a multistep command. """
     pass
 
 
@@ -186,9 +192,8 @@ def emphasize_match(seq, line, fmt='__{}__'):
 def log_format(*, content, author, channel):
     """ Log useful information from discord.py """
     msg = "{aut} sent {cmd} from {cha}/{srv}"
-    msg += "Discord ID: " + author.id
-    msg += "Username: {}#{}".format(author.name, author.discriminator)
-    msg += "Joined: " + str(author.joined_at)
+    msg += "\n    Discord ID: " + author.id
+    msg += "\n    Username: {}#{}".format(author.name, author.discriminator)
     for role in author.roles[1:]:
         msg += "\n    {} on {}".format(role.name, role.server.name)
 
