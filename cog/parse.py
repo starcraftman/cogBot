@@ -261,17 +261,11 @@ def subs_user(subs, prefix):
     {prefix}user\n           Show your sheet name, crys and merits per sheet.
     {prefix}user --name Not Gears\n           Set your name to 'Not Gears'.
     {prefix}user --cry The bots are invading!\n           Set your battle cry to "The bots are invading!".
-    {prefix}user --hudson\n           Switch to Hudson's sheets.
-    {prefix}user --winters\n           Switch to Winters' sheets.
     """.format(prefix=prefix)
     sub = subs.add_parser(prefix + 'user', description=desc, formatter_class=RawHelp)
     sub.set_defaults(cmd='User')
     sub.add_argument('--cry', nargs='+', help='Set your tag/cry in the sheets.')
     sub.add_argument('--name', nargs='+', help='Set your name in the sheets.')
-    sub.add_argument('--winters', action='store_true',
-                     help='Set yourself to use the Winters sheets.')
-    sub.add_argument('--hudson', action='store_true',
-                     help='Set yourself to use the Hudson sheets.')
 
 
 @register_parser

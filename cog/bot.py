@@ -210,7 +210,7 @@ class CogBot(discord.Client):
         Only process commands that were different from before.
         """
         if before.content != after.content and after.content.startswith(self.prefix):
-            asyncio.ensure_future(self.on_message(after))
+            await self.on_message(after)
 
     async def on_message(self, message):
         """
@@ -255,12 +255,18 @@ class CogBot(discord.Client):
                     exc.message = 'Invalid command use. Check the command help.'
                     exc.message += '\n{}\n{}'.format(len(exc.message) * '-', exc2.message)
             await self.send_ttl_message(channel, exc.reply())
-            asyncio.ensure_future(self.delete_message(message))
+            try:
+                await self.delete_message(message)
+            except discord.DiscordException:
+                pass
 
         except cog.exc.UserException as exc:
             exc.write_log(log, content=content, author=author, channel=channel)
             await self.send_ttl_message(channel, exc.reply())
-            asyncio.ensure_future(self.delete_message(message))
+            try:
+                await self.delete_message(message)
+            except discord.DiscordException:
+                pass
 
         except cog.exc.InternalException as exc:
             exc.write_log(log, content=content, author=author, channel=channel)
@@ -298,6 +304,30 @@ class CogBot(discord.Client):
         cogdb.query.check_perms(msg, args)
         cls = getattr(cog.actions, args.cmd)
         await cls(**kwargs).execute()
+
+    async def send_message(self, destination, content=None, *, tts=False, embed=None):
+        """
+        Behaves excactly like Client.send_message except:
+
+            Allow several retries before failing silently.
+            Exceptions raised usually temporary HTTP issues.
+        """
+        log = logging.getLogger('cog.bot')
+        if len(content) > 1975:
+            log.warning('Critical problem, content len close to 2000 limit. Truncating.\
+                        \n    Len is {}, starts with: {}'.format(len(content), content[:50]))
+            content = content[:1975]
+
+        attempts = 4
+        while attempts:
+            try:
+                await super().send_message(destination, content, tts=tts, embed=embed)
+                attempts = None
+            except discord.DiscordException:
+                await asyncio.sleep(1.5)
+                attempts -= 1
+                if not attempts:
+                    log.exception('Failed to send message to user.')
 
     async def send_ttl_message(self, destination, content, **kwargs):
         """
@@ -339,10 +369,13 @@ class CogBot(discord.Client):
         else:
             channels = list(self.get_all_channels())
 
+        messages = []
         for channel in channels:
             if channel.permissions_for(channel.server.me).send_messages and \
                channel.type == discord.ChannelType.text:
-                asyncio.ensure_future(send(channel, "**Broadcast**\n\n" + content, **kwargs))
+                messages += [send(channel, "**Broadcast**\n\n" + content, **kwargs)]
+
+        await asyncio.gather(*messages)
 
 
 async def presence_task(bot, delay=180):

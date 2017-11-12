@@ -63,7 +63,7 @@ async def check_mentions(coro, *args, **kwargs):
                       self.msg.author, self.msg.mentions[0])
         self.msg.author = self.msg.mentions[0]
         self.msg.mentions = []
-        asyncio.ensure_future(self.bot.on_message(self.msg))
+        await self.bot.on_message(self.msg)
 
     else:
         await coro(*args, **kwargs)
@@ -229,7 +229,7 @@ class Admin(Action):
             response = self.remove(admin)
 
         elif args.subcmd == 'cast':
-            asyncio.ensure_future(self.bot.broadcast(' '.join(self.args.content)))
+            await self.bot.broadcast(' '.join(self.args.content))
             response = 'Broadcast scheduled.'
 
         elif args.subcmd == 'deny':
@@ -242,9 +242,10 @@ class Admin(Action):
 
         elif args.subcmd == 'halt':
             self.bot.deny_commands = True
-            asyncio.ensure_future(self.bot.broadcast('Scheduled for shutdown in 30s. Farewell!'
-                                                     '\n\nCommands: **Disabled**'))
-            asyncio.ensure_future(bot_shutdown(self.bot))
+            asyncio.ensure_future(
+                    asyncio.gather(self.bot.broadcast('Scheduled for shutdown in 30s. Farewell!'
+                                                      '\n\nCommands: **Disabled**'),
+                                   bot_shutdown(self.bot)))
             response = 'Shutdown scheduled.'
 
         elif args.subcmd == 'scan':
@@ -597,14 +598,14 @@ class Help(Action):
 
         response = '\n'.join(over) + cog.tbl.wrap_markdown(cog.tbl.format_table(lines, header=True))
         await self.bot.send_ttl_message(self.msg.channel, response)
-        asyncio.ensure_future(self.bot.delete_message(self.msg))
+        await self.bot.delete_message(self.msg)
 
 
 class Hold(Action):
     """
     Update a user's held merits.
     """
-    def set_hold(self):
+    async def set_hold(self):
         """ Set the hold on a system. """
         if not self.args.system:
             raise cog.exc.InvalidCommandArgs("You forgot to specify a system to update.")
@@ -624,7 +625,7 @@ class Hold(Action):
                         system.progress_them, system.map_offset))
             job.set_ident_from_msg(self.msg, 'Updating undermining system')
             job.add_fail_callback(cog.jobs.warn_user_callback(self.bot, self.msg, job))
-            asyncio.ensure_future(cog.jobs.background_start(job))
+            await cog.jobs.background_start(job)
 
         self.log.info('Hold %s - After update, hold: %s\nSystem: %s.',
                       self.duser.display_name, hold, system)
@@ -653,7 +654,7 @@ class Hold(Action):
                                                                 self.undermine.merit_summary())
 
         else:  # Default case, update the hold for a system
-            holds, response = self.set_hold()
+            holds, response = await self.set_hold()
 
         self.session.commit()
 
@@ -763,18 +764,6 @@ class User(Action):
 
         if args.cry:
             self.update_cry()
-
-        if args.hudson:
-            self.log.info('USER %s - Duser.faction -> hudson.', self.msg.author.display_name)
-            asyncio.ensure_future(
-                self.bot.send_message(self.msg.channel, "Not available at this time."))
-            return
-
-        if args.winters:
-            self.log.info('USER %s - Duser.faction -> winters.', self.msg.author.display_name)
-            asyncio.ensure_future(
-                self.bot.send_message(self.msg.channel, "Not available at this time."))
-            return
 
         self.session.commit()
         if args.name or args.cry:
