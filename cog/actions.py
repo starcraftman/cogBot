@@ -843,6 +843,9 @@ class WhoIs(Action):
     Who is request to Inara for CMDR info.
     """
     async def execute(self):
+        await self.bot.send_message(self.msg.channel, "Command disabled for now, sorry.")
+        return
+
         cmdr_name = ' '.join(self.args.cmdr)
 
         cmdr = await cog.inara.api.search_in_inara(cmdr_name, self.msg)

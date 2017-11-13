@@ -307,27 +307,28 @@ class CogBot(discord.Client):
 
     async def send_message(self, destination, content=None, *, tts=False, embed=None):
         """
-        Behaves excactly like Client.send_message except:
+        Behaves excactly like Client.send_message except it:
 
-            Allow several retries before failing silently.
-            Exceptions raised usually temporary HTTP issues.
+            Allow several retries before failing, raises on last exception.
+            If content is too long, truncate it
         """
         log = logging.getLogger('cog.bot')
-        if len(content) > 1975:
+        if content and len(content) > 1975:
             log.warning('Critical problem, content len close to 2000 limit. Truncating.\
                         \n    Len is {}, starts with: {}'.format(len(content), content[:50]))
-            content = content[:1975]
+            content = content[:1975] + '\n**MSG Truncated**'
 
         attempts = 4
         while attempts:
             try:
-                await super().send_message(destination, content, tts=tts, embed=embed)
-                attempts = None
-            except discord.DiscordException:
+                return await super().send_message(destination, content, tts=tts, embed=embed)
+            except discord.HTTPException:
+                # Catching these due to infrequent issues with discord remote.
                 await asyncio.sleep(1.5)
                 attempts -= 1
                 if not attempts:
-                    log.exception('Failed to send message to user.')
+                    log.exception('SND_MSG Failed to send message to user.')
+                    raise
 
     async def send_ttl_message(self, destination, content, **kwargs):
         """
