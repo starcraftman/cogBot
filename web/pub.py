@@ -4,46 +4,28 @@
 Simple zmq publisher of fake data for testing.
 """
 from __future__ import absolute_import, print_function
-import sys
-import time
+import asyncio
 
-import zmq
+import aiozmq
+
+import web.azmq
 
 
-def sub(ident):
-    print("Sub connecting on: 127.0.0.1:9000")
+async def pub():
+    """ Create publisher and begin sending. """
+    publisher = await aiozmq.rpc.connect_pubsub(connect=web.azmq.ADDR)
+    for step in range(20):
+        await publisher.publish('POSTs').remote_func(step, 1, 2)
+        await asyncio.sleep(2)
 
-    try:
-        context = zmq.Context()
-        socket = context.socket(zmq.SUB)
-        socket.connect("tcp://127.0.0.1:9000")
-        socket.setsockopt_string(zmq.SUBSCRIBE, 'sheet')
-
-        while True:
-            print(ident, socket.recv_string())
-    finally:
-        socket.close()
+    print("Finished publishing messages.")
+    publisher.close()
+    await publisher.wait_closed()
 
 
 def main():
-    """ Just for testing server. """
-    print("Pub bind on: 127.0.0.1:9000")
-
-    try:
-        context = zmq.Context()
-        socket = context.socket(zmq.PUB)
-        socket.connect("tcp://127.0.0.1:9000")
-
-        while True:
-            print('pub')
-            socket.send_json({'Hello': 'world'})
-            time.sleep(3)
-    finally:
-        socket.close()
+    asyncio.get_event_loop().run_until_complete(pub())
 
 
 if __name__ == "__main__":
-    if len(sys.argv) == 1:
-        main()
-    else:
-        sub(sys.argv[1])
+    main()

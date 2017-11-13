@@ -7,12 +7,14 @@ Implements a very simple scheduler for updating the sheets when they change.
 """
 from __future__ import absolute_import, print_function
 import asyncio
+import atexit
 import datetime
 import functools
 import logging
+import time
 
-import zmq
-import zmq.asyncio
+import aiozmq
+import aiozmq.rpc
 
 import cog.jobs
 import cog.util
@@ -20,7 +22,7 @@ import cog.util
 POST_ADDR = "tcp://127.0.0.1:9000"
 
 
-class Scheduler(object):
+class Scheduler(aiozmq.rpc.AttrHandler):
     """
     Schedule updates for the db and manage permitted commands.
 
@@ -29,11 +31,13 @@ class Scheduler(object):
     Both the job itself and future that delays start can be cancelled at any stage.
     """
     def __init__(self, delay=20):
+        self.sub = None
+        self.count = -1
         self.delay = delay  # Seconds of timeout before running actual update
         self.wraps = {}
 
     def __repr__(self):
-        keys = ['delay', 'wraps']
+        keys = ['count', 'delay', 'sub', 'wraps']
         kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
 
         return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
@@ -74,6 +78,30 @@ class Scheduler(object):
         """ Schedule all wrappers for update. """
         for name in self.wraps:
             self.schedule(name)
+
+    @aiozmq.rpc.method
+    def remote_func(self, scanner, timestamp):
+        """ Remote function to be executed. """
+        self.count = (self.count + 1) % 1000
+        logging.getLogger('cog.scheduler').info(
+            'POST %d received: %s %s', self.count, scanner, timestamp)
+        self.schedule(scanner)
+        print('SCHEDULED: ', scanner, timestamp)
+
+    def close(self):
+        """ Properly close pubsub connection on termination. """
+        if self.sub and self.count != -1:
+            self.sub.close()
+            time.sleep(0.5)
+
+    async def connect_sub(self):
+        """ Connect the zmq subscriber. """
+        channel = 'POSTs'
+        self.sub = await aiozmq.rpc.serve_pubsub(self, subscribe=channel,
+                                                 bind=POST_ADDR, log_exceptions=True)
+        atexit.register(self.close)
+        print("Scheduler Subscribed to: {} with tag '{}'".format(POST_ADDR, channel))
+        print(aiozmq.rpc.logger)
 
 
 class WrapScanner(object):
@@ -132,51 +160,6 @@ class WrapScanner(object):
         expected = datetime.datetime.utcnow() + datetime.timedelta(seconds=delay)
         logging.getLogger('cog.scheduler').info(
             'Update for %s scheduled for %s', self.name, expected)
-
-
-async def get_posts(sub, updater):
-    """
-    Continuously receive posts and schedule updates.
-
-    Raises: ZMQError - If anything goes wrong.
-    """
-    log = logging.getLogger('cog.scheduler')
-    count = 0
-
-    while True:
-        data = await sub.recv_json()
-
-        if not data:
-            raise zmq.ZMQError("Sub problem or timeout.")
-
-        log.info('POST %d received: %s', count, str(data))
-        updater.schedule(data["scanner"])
-
-        count = (count + 1) % 1000
-
-
-async def scheduler_task(client, updater):
-    """
-    Background task executes while bot alive. On sheet update, receive notification via zmq socket
-    then do an admin scan for the altered sheet.
-
-    Args:
-        client: The bot itself.
-        updater: The UpdateScheduler.
-    """
-    await client.wait_until_ready()
-    print('Scheduler task started')
-    sub = zmq.asyncio.Context.instance().socket(zmq.SUB)
-
-    while True:
-        try:
-            sub.connect(POST_ADDR)
-            sub.subscribe(b'')
-            await get_posts(sub, updater)
-        except zmq.ZMQError:
-            logging.getLogger('cog.scheduler').exception("ZMQ Socket error. Reconnecting ...")
-            sub.discconect(POST_ADDR)
-            await asyncio.sleep(5)
 
 
 async def delay_call(delay, coro, *args, **kwargs):

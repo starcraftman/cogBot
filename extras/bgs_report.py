@@ -35,21 +35,21 @@ def write_report():
     print("Report being generated, please wait patiently.")
     session = cogdb.SideSession()
     controls = session.query(System).\
-            filter(sqla.and_(System.power_state_id == 16,
-                             System.power_id == 9)).\
-            all()
+        filter(sqla.and_(System.power_state_id == 16,
+                         System.power_id == 9)).\
+        all()
 
     fout = open('/tmp/report.txt', 'w')
     for con in controls:
         fout.write('Control: ' + con.name + '\n')
         factions = session.query(System, Influence, Faction, Government).\
-                filter(sqla.and_(System.dist_to(con) <= 15,
-                                 System.power_state_id != 48)).\
-                filter(Influence.system_id == System.id).\
-                filter(Faction.id == Influence.faction_id).\
-                filter(Faction.government_id == Government.id).\
-                order_by(System.name).\
-                all()
+            filter(sqla.and_(System.dist_to(con) <= 15,
+                             System.power_state_id != 48)).\
+            filter(Influence.system_id == System.id).\
+            filter(Faction.id == Influence.faction_id).\
+            filter(Faction.government_id == Government.id).\
+            order_by(System.name).\
+            all()
 
         con_stats = count_facts(factions)
         fout.writelines(['{:15} {}\n'.format(key[:15], con_stats[key]) for key in con_stats])
@@ -72,14 +72,13 @@ def feudal_finder():
         dist += 5
         print("Searching all systems <= {} from {}.".format(dist, s_name))
         matches = session.query(System, Influence, Faction, Government).\
-                filter(sqla.and_(System.dist_to(centre) <= dist,
-                                 Influence.system_id == System.id,
-                                 Faction.id == Influence.faction_id,
-                                 Faction.government_id == Government.id,
-                                 Government.id.in_(['128', '144'])
-                                )).\
-                order_by(System.dist_to(centre)).\
-                all()
+            filter(sqla.and_(System.dist_to(centre) <= dist,
+                             Influence.system_id == System.id,
+                             Faction.id == Influence.faction_id,
+                             Faction.government_id == Government.id,
+                             Government.id.in_(['128', '144']))).\
+            order_by(System.dist_to(centre)).\
+            all()
 
         if matches:
             header = "\n{:16} {:4} {:5} {:5} {}".format(

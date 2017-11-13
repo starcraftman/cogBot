@@ -1,8 +1,11 @@
 """
 Run a simple server to accept POSTs.
 
+Async replacement for Flask called Sanic
+    https://sanic.readthedocs.io/en/latest/
+
 POST with curl:
-    curl -H "Content-Type: application/json" -d '{"hello":"world"}' http://localhost:8000
+    curl -H "Content-Type: application/json" -d '{"scanner": "hudson_cattle", "timestamp": 1}' http://localhost:8000/post
 
 Run Gunicorn:
     PYTHONPATH=/project/root gunicorn -b 127.0.0.1:8000 web.app:main
@@ -11,20 +14,31 @@ Tutorial:
     https://www.digitalocean.com/community/tutorials/how-to-deploy-python-wsgi-apps-using-gunicorn-http-server-behind-nginx
 """
 from __future__ import absolute_import, print_function
+import atexit
+import functools
 import logging
 import logging.handlers
 import json
 import os
 import tempfile
-import zmq
-from flask import Flask, request
+import time
 
+import aiozmq
+import aiozmq.rpc
+import sanic
+import sanic.response
 
-app = Flask(__name__)
-RECV = []
+app = sanic.Sanic()
+ADDR = 'tcp://127.0.0.1:9000'
 LOG_FILE = os.path.join(tempfile.gettempdir(), 'posts')
-PUB = zmq.Context().socket(zmq.PUB)
-PUB.bind("tcp://127.0.0.1:9000")
+PUB = None
+RECV = []
+
+
+def pub_close(pub):
+    """ Simple atexit hook. """
+    pub.close()
+    time.sleep(0.5)
 
 
 def init_log():
@@ -45,10 +59,15 @@ def init_log():
 
 
 @app.route('/post', methods=['GET', 'POST'])
-def post():
+async def post(request):
     """ Handle post requests. """
+    global PUB
+    if not PUB:
+        PUB = await aiozmq.rpc.connect_pubsub(connect=ADDR)
+        atexit.register(functools.partial(pub_close, PUB))
+
     if request.method == 'POST':
-        data = request.get_json()
+        data = request.json
         log = logging.getLogger('posts')
         log.info('%s %s', str(request), data)
 
@@ -58,23 +77,18 @@ def post():
 
         try:
             log.info('Publishing for scanner %s', data['scanner'])
-            PUB.send_json(data)
+            await PUB.publish('POSTs').remote_func(data['scanner'], data['timestamp'])
         except KeyError:
-            pass
+            log.error('JSON request malformed ...' + str(data))
 
-        return '200'
+        return sanic.response.text('200')
     else:
         msg = '<h2>JSON Data Received</h2><pre>'
         for data in RECV:
             msg += '\n' + json.dumps(data, indent=4, sort_keys=True)
-        return msg + '</pre>'
-
-
-def main():
-    """ Debug entry point, use gunicorn in prod. """
-    app.run(host='0.0.0.0')
+        return sanic.response.html(msg + '</pre>')
 
 
 init_log()
 if __name__ == "__main__":
-    main()
+    app.run(host='0.0.0.0', port=8000)

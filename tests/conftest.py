@@ -11,13 +11,13 @@ import aiomock
 import mock
 import pytest
 try:
-    import zmq.asyncio
-    LOOP = zmq.asyncio.ZMQEventLoop
+    import uvloop
+    LOOP = uvloop.new_event_loop
     loop = LOOP()
     loop.set_debug(True)
     print("Test loop policy:", str(loop))
 except ImportError:
-    print("Missing zmq lib.")
+    print("Missing: uvloop")
     sys.exit(1)
 
 import cogdb

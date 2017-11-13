@@ -16,6 +16,10 @@ fhandler_template: &default_handler
     encoding: utf8
 
 handlers:
+  aiozmq:
+    <<: *default_handler
+    level: DEBUG
+    filename: /tmp/cog/aiozmq.log
   asyncio:
     <<: *default_handler
     level: DEBUG
@@ -28,6 +32,11 @@ handlers:
     <<: *default_handler
     level: DEBUG
     filename: /tmp/cog/db.log
+  debug_stream:
+    class: logging.StreamHandler
+    level: DEBUG
+    formatter: custom
+    stream: ext://sys.stdout
   err_stream:
     class: logging.StreamHandler
     level: ERROR
@@ -35,6 +44,9 @@ handlers:
     stream: ext://sys.stdout
 
 loggers:
+  aiozmq:
+    level: DEBUG
+    handlers: [aiozmq, err_stream]
   asyncio:
     level: DEBUG
     handlers: [asyncio]

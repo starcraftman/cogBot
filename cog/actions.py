@@ -117,7 +117,7 @@ class Action(object):
         """ DUser associated with message author. """
         if not self.__duser:
             self.__duser = cogdb.query.ensure_duser(self.session, self.msg.author)
-            self.log.info('DUSER - ' + str(self.__duser))
+            self.log.info('DUSER - %s', str(self.__duser))
 
         return self.__duser
 

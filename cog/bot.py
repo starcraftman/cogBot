@@ -26,20 +26,18 @@ import logging
 import os
 import pprint
 import re
+import tempfile
 
+import aiofiles
 import apiclient
 import discord
 import websockets.exceptions
 try:
-    # TODO: Cannot use uvloop + pyzmq. Investigate later uvloop + aiozmq
-    #       Not a high priority problem, loop rarely bottleneck.
-    import zmq.asyncio
-    zmq.asyncio.install()
+    import uvloop
+    asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
     asyncio.get_event_loop().set_debug(True)
 except ImportError:
-    print("Missing Core Lib: pyzmq\n    Run: python ./setup.py deps")
-    import sys
-    sys.exit(1)
+    print("Falling back to default python loop.")
 finally:
     print("Default event loop:", asyncio.get_event_loop())
 
@@ -140,12 +138,12 @@ class CogBot(discord.Client):
     async def on_member_join(self, member):
         """ Called when member joins server (login). """
         log = logging.getLogger('cog.bot')
-        log.info('Member has joined: ' + member.display_name)
+        log.info('Member has joined: %s', member.display_name)
 
     async def on_member_leave(self, member):
         """ Called when member leaves server (logout). """
         log = logging.getLogger('cog.bot')
-        log.info('Member has left: ' + member.display_name)
+        log.info('Member has left: %s', member.display_name)
 
     async def on_server_emojis_update(self, *_):
         """ Called when emojis change, just update all emojis. """
@@ -177,7 +175,8 @@ class CogBot(discord.Client):
             asyncio.ensure_future(asyncio.gather(
                 presence_task(self),
                 cog.jobs.pool_monitor_task(),
-                cog.scheduler.scheduler_task(self, self.sched),
+                self.sched.connect_sub(),
+                simple_heartbeat(),
             ))
             await asyncio.sleep(0.5)
 
@@ -321,7 +320,7 @@ class CogBot(discord.Client):
         log = logging.getLogger('cog.bot')
         if content and len(content) > cog.util.MSG_LIMIT:
             log.warning('Critical problem, content len close to 2000 limit. Truncating.\
-                        \n    Len is {}, starts with: {}'.format(len(content), content[:50]))
+                        \n    Len is %d, starts with: %s', len(content), content[:50])
             content = content[:cog.util.MSG_LIMIT] + '\n**MSG Truncated**'
 
         attempts = 4
@@ -413,6 +412,16 @@ async def presence_task(bot, delay=180):
             pass
 
         ind = (ind + 1) % len(lines)
+        await asyncio.sleep(delay)
+
+
+async def simple_heartbeat(delay=30):
+    hfile = os.path.join(tempfile.gettempdir(), 'hbeat' + os.environ.get('COG_TOKEN', 'dev'))
+    print(hfile)
+    while True:
+        async with aiofiles.open(hfile, 'w') as fout:
+            await fout.write('{} {}\n'.format(delay,
+                                              datetime.datetime.utcnow().replace(microsecond=0)))
         await asyncio.sleep(delay)
 
 
