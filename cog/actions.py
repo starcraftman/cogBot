@@ -243,9 +243,9 @@ class Admin(Action):
         elif args.subcmd == 'halt':
             self.bot.deny_commands = True
             asyncio.ensure_future(
-                    asyncio.gather(self.bot.broadcast('Scheduled for shutdown in 30s. Farewell!'
-                                                      '\n\nCommands: **Disabled**'),
-                                   bot_shutdown(self.bot)))
+                asyncio.gather(self.bot.broadcast('Scheduled for shutdown in 30s. Farewell!'
+                                                  '\n\nCommands: **Disabled**'),
+                               bot_shutdown(self.bot)))
             response = 'Shutdown scheduled.'
 
         elif args.subcmd == 'scan':
@@ -843,9 +843,6 @@ class WhoIs(Action):
     Who is request to Inara for CMDR info.
     """
     async def execute(self):
-        await self.bot.send_message(self.msg.channel, "Command disabled for now, sorry.")
-        return
-
         cmdr_name = ' '.join(self.args.cmdr)
 
         cmdr = await cog.inara.api.search_in_inara(cmdr_name, self.msg)

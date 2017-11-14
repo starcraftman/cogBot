@@ -38,7 +38,12 @@ async def test_login_inara_bad_url():
 @pytest.mark.asyncio
 async def test_login_inara_bad_credentials():
     # I expect this to never be valid
-    bad_creds = {'formact': 'ENT_LOGIN', 'location': 'intro', 'loginid': 'invalid_user', 'loginpass': 'invalid_pass!'}
+    bad_creds = {
+        'formact': 'ENT_MANLOGIN',
+        'location': 'intro',
+        'loginid': 'invalid_user',
+        'loginpass': 'invalid_pass!'
+    }
     try:
         with mock.patch('cog.util.get_config') as mock_config:
             mock_config.return_value = bad_creds
