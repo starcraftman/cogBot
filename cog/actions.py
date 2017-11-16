@@ -582,6 +582,7 @@ class Help(Action):
         lines = [
             ['Command', 'Effect'],
             ['{prefix}admin', 'Admin commands'],
+            ['{prefix}bgs', 'Display information related to BGS work'],
             ['{prefix}dist', 'Determine the distance from the first system to all others'],
             ['{prefix}drop', 'Drop forts into the fort sheet'],
             ['{prefix}feedback', 'Give feedback or report a bug'],

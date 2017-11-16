@@ -49,6 +49,7 @@ def make_parser(prefix):
 
 
 def register_parser(func):
+    """ Simple registration function, use as decorator. """
     PARSERS.append(func)
     return func
 
@@ -58,18 +59,30 @@ def subs_admin(subs, prefix):
     """ Subcommand parsing for admin """
     desc = """Admin only commands. Examples:
 
-    {prefix}admin add @GearsandCogs\n          Add GearsandCogs to the admin group.
-    {prefix}admin remove @GearsandCogs\n          Remove GearsandCogs from the admin group.
-    {prefix}admin add BGS #hudson_bgs\n          Whitelist bgs command for hudson_bgs channel.
-    {prefix}admin remove BGS #hudson_bgs\n          Remove whitelist for bgs command in hudson_bgs.
-    {prefix}admin add Drop FRC Member\n          Whitelist bgs command for members with role "FRC Member".
-    {prefix}admin remove Drop FRC Member\n          Remove whitelist for bgs command of users with role "FRC Member".
-    {prefix}admin cast A message here\n          Broadcast a message to all channels.
-    {prefix}admin deny\n          Toggle command processing.
-    {prefix}admin dump\n          Dump the database to console to inspect.
-    {prefix}admin halt\n          Shutdown this bot after short delay.
-    {prefix}admin scan\n          Pull and parse the latest sheet information.
-    {prefix}admin info @User\n          Information about the mentioned User, DMed to admin.
+{prefix}admin add @GearsandCogs
+        Add GearsandCogs to the admin group.
+{prefix}admin remove @GearsandCogs
+        Remove GearsandCogs from the admin group.
+{prefix}admin add BGS #hudson_bgs
+        Whitelist bgs command for hudson_bgs channel.
+{prefix}admin remove BGS #hudson_bgs
+        Remove whitelist for bgs command in hudson_bgs.
+{prefix}admin add Drop FRC Member
+        Whitelist bgs command for members with role "FRC Member".
+{prefix}admin remove Drop FRC Member
+        Remove whitelist for bgs command of users with role "FRC Member".
+{prefix}admin cast A message here
+        Broadcast a message to all channels.
+{prefix}admin deny
+        Toggle command processing.
+{prefix}admin dump
+        Dump the database to console to inspect.
+{prefix}admin halt
+        Shutdown this bot after short delay.
+{prefix}admin scan
+        Pull and parse the latest sheet information.
+{prefix}admin info @User
+        Information about the mentioned User, DMed to admin.
     """.format(prefix=prefix)
     sub = subs.add_parser(prefix + 'admin', description=desc, formatter_class=RawHelp)
     sub.set_defaults(cmd='Admin')
@@ -96,9 +109,12 @@ def subs_bgs(subs, prefix):
     """ Subcommand parsing for bgs """
     desc = """BGS related commands. Examples:
 
-    {prefix}bgs age 16 cygni\n          Show exploiteds in 16 Cygni bubble by age.
-    {prefix}bgs inf Sol\n          Show the factions and their influence in Sol.
-    {prefix}bgs sys Frey\n          Show a system overview and all factions.
+{prefix}bgs age 16 cygni
+        Show exploiteds in 16 Cygni bubble by age.
+{prefix}bgs inf Sol
+        Show the factions and their influence in Sol.
+{prefix}bgs sys Frey
+        Show a system overview and all factions.
     """.format(prefix=prefix)
     sub = subs.add_parser(prefix + 'bgs', description=desc, formatter_class=RawHelp)
     sub.set_defaults(cmd='BGS')
@@ -119,7 +135,8 @@ def subs_dist(subs, prefix):
     The system names must match __excactly__. Match is not case sensitive.
     Examples:
 
-    {prefix}dist sol, frey, Rana\n           Display the distance from Sol to Frey and Rana.
+{prefix}dist sol, frey, Rana
+        Display the distance from Sol to Frey and Rana.
     """.format(prefix=prefix)
     sub = subs.add_parser(prefix + 'dist', description=desc, formatter_class=RawHelp)
     sub.set_defaults(cmd='Dist')
@@ -133,17 +150,23 @@ def subs_drop(subs, prefix):
     Amount dropped must be in range [-800, 800]
     Examples:
 
-    {prefix}drop 600 Rana\n           Drop 600 supplies for yourself at Rana.
-    {prefix}drop -50 Rana\n           Made a mistake? Subract 50 forts from your drops at Rana.
-    {prefix}drop 600 Rana @rjwhite\n           Drop 600 supplies for rjwhite Rana.
-    {prefix}drop 600 lala\n           Drop 600 supplies for yourself at Lalande 39866, search used when name is not exact.
-    {prefix}drop 600 Rana --set 4560:2000\n           Drop 600 supplies at Rana for yourself, set fort status to 4500 and UM status to 2000.
+{prefix}drop 600 Rana
+        Drop 600 supplies for yourself at Rana.
+{prefix}drop -50 Rana
+        Made a mistake? Subract 50 forts from your drops at Rana.
+{prefix}drop 600 Rana @rjwhite
+        Drop 600 supplies for rjwhite Rana.
+{prefix}drop 600 lala
+        Drop 600 supplies for yourself at Lalande 39866, search used when name is not exact.
+{prefix}drop 600 Rana --set 4560:2000
+{prefix}drop 600 Rana -s 4560:2000
+        Drop 600 supplies at Rana for yourself, set fort status to 4500 and UM status to 2000.
     """.format(prefix=prefix)
     sub = subs.add_parser(prefix + 'drop', description=desc, formatter_class=RawHelp)
     sub.set_defaults(cmd='Drop')
     sub.add_argument('amount', type=int, help='The amount to drop.')
     sub.add_argument('system', nargs='+', help='The system to drop at.')
-    sub.add_argument('--set',
+    sub.add_argument('-s', '--set',
                      help='Set the fort:um status of the system. Example-> --set 3400:200')
 
 
@@ -152,7 +175,8 @@ def subs_feedback(subs, prefix):
     """ Subcommand parsing for feedback """
     desc = """Give feedback or report a bug. Example:
 
-    {prefix}bug Explain what went wrong ...\n          File a bug report or give feedback.
+{prefix}bug Explain what went wrong ...
+        File a bug report or give feedback.
     """.format(prefix=prefix)
     sub = subs.add_parser(prefix + 'feedback', description=desc, formatter_class=RawHelp)
     sub.set_defaults(cmd='Feedback')
@@ -164,21 +188,34 @@ def subs_fort(subs, prefix):
     """ Subcommand parsing for fort """
     desc = """Show fortification status and targets. Examples:
 
-    {prefix}fort\n           Show current fort objectives.
-    {prefix}fort -d Sol\n           Show a detailed view of Sol, including all CMDR merits.
-    {prefix}fort --miss 1000\n          Show all systems missing <= 1000 supplies.
-    {prefix}fort --next 5\n           Show the next 5 fortification targets (excluding Othime and skipped).
-    {prefix}fort --order Sol, Adeo, Frey\n           Set the fort order to: Sol -> Adeo -> Frey, then fallback to default.
-    {prefix}fort --order\n           Return the fort order to default sheet order.
-    {prefix}fort --summary\n           Show a breakdown by states of our systems.
-    {prefix}fort alpha\n           Show the fortification status of Alpha Fornacis.
-    {prefix}fort alpha, sol, ran\n           Show the fortification status of Alpha Fornacis, Sol and Rana.
-    {prefix}fort Othime --set 7500:2000\n           Set othime to 7500 fort status and 2000 um status.
+{prefix}fort
+        Show current fort objectives.
+{prefix}fort --details Sol
+{prefix}fort -d Sol
+        Show a detailed view of Sol, including all CMDR merits.
+{prefix}fort --miss 1000
+        Show all systems missing <= 1000 supplies.
+{prefix}fort --next 5
+{prefix}fort -n 5
+        Show the next 5 fortification targets (excluding Othime and skipped).
+{prefix}fort --order Sol, Adeo, Frey
+        Set the fort order to: Sol -> Adeo -> Frey, then fallback to default.
+{prefix}fort --order
+        Return the fort order to default sheet order.
+{prefix}fort --summary
+        Show a breakdown by states of our systems.
+{prefix}fort alpha
+        Show the fortification status of Alpha Fornacis.
+{prefix}fort alpha, sol, ran
+        Show the fortification status of Alpha Fornacis, Sol and Rana.
+{prefix}fort Othime --set 7500:2000
+{prefix}fort Othime -s 7500:2000
+        Set othime to 7500 fort status and 2000 um status.
     """.format(prefix=prefix)
     sub = subs.add_parser(prefix + 'fort', description=desc, formatter_class=RawHelp)
     sub.set_defaults(cmd='Fort')
     sub.add_argument('system', nargs='*', help='Select this system.')
-    sub.add_argument('--set',
+    sub.add_argument('-s', '--set',
                      help='Set the fort:um status of system. Example-> --set 3400:200')
     sub.add_argument('--order', action='store_true',
                      help='Set the fort order. Comma separate list of systems.')
@@ -205,19 +242,29 @@ def subs_hold(subs, prefix):
     """ Subcommand parsing for hold """
     desc = """Update a user's held or redeemed merits. Examples:
 
-    {prefix}hold 1200 burr\n           Set your held merits at Burr to 1200.
-    {prefix}hold 900 af leopris @Memau\n           Set held merits at System AF Leopris to 900 held for Memau.
-    {prefix}hold --died\n           Reset your held merits to 0 due to dying.
-    {prefix}hold --redeem\n           Move all held merits to redeemed column.
-    {prefix}hold 720 burr --set 60000:130\n           Update held merits to 720 at Burr expansion and set progress to 60000 merits and 130% opposition.
+{prefix}hold 1200 burr
+        Set your held merits at Burr to 1200.
+{prefix}hold 900 af leopris @Memau
+        Set held merits at System AF Leopris to 900 held for Memau.
+{prefix}hold --died
+{prefix}hold -d
+        Reset your held merits to 0 due to dying.
+{prefix}hold --redeem
+{prefix}hold -r
+        Move all held merits to redeemed column.
+{prefix}hold 720 burr --set 60000:130
+{prefix}hold 720 burr -s 60000:130
+        Update held merits to 720 at Burr expansion and set progress to 60000 merits for us
+and 130% opposition.
     """.format(prefix=prefix)
     sub = subs.add_parser(prefix + 'hold', description=desc, formatter_class=RawHelp)
     sub.set_defaults(cmd='Hold')
     sub.add_argument('amount', nargs='?', type=int, help='The amount of merits held.')
     sub.add_argument('system', nargs='*', help='The system merits are held in.')
-    sub.add_argument('--redeem', action='store_true', help='Redeem all held merits.')
-    sub.add_argument('--died', action='store_true', help='Zero out held merits.')
-    sub.add_argument('--set', help='Update the galmap progress us:them. Example: --set 3500:200')
+    sub.add_argument('-r', '--redeem', action='store_true', help='Redeem all held merits.')
+    sub.add_argument('-d', '--died', action='store_true', help='Zero out held merits.')
+    sub.add_argument('-s', '--set',
+                     help='Update the galmap progress us:them. Example: --set 3500:200')
 
 
 @register_parser
@@ -239,18 +286,25 @@ def subs_um(subs, prefix):
     """ Subcommand parsing for um """
     desc = """Get undermining targets and update their galmap status. Examples:
 
-    {prefix}um\n           Show current active undermining targets.
-    {prefix}um burr\n           Show the current status and information on Burr.
-    {prefix}um afl\n           Show the current status and information on AF Leopris, matched search.
-    {prefix}um burr --set 60000:130\n           Set the galmap status of Burr to 60000 and opposition to 130%.
-    {prefix}um burr --offset 4000\n           Set the offset difference of cmdr merits and galmap.
+{prefix}um
+        Show current active undermining targets.
+{prefix}um burr
+        Show the current status and information on Burr.
+{prefix}um afl
+        Show the current status and information on AF Leopris, matched search.
+{prefix}um burr --set 60000:130
+{prefix}um burr -s 60000:130
+        Set the galmap status of Burr to 60000 and opposition to 130%.
+{prefix}um burr --offset 4000
+{prefix}um burr -o 4000
+        Set the offset difference of cmdr merits and galmap.
     """.format(prefix=prefix)
     sub = subs.add_parser(prefix + 'um', description=desc, formatter_class=RawHelp)
     sub.set_defaults(cmd='UM')
     sub.add_argument('system', nargs='*', help='The system to update or show.')
-    sub.add_argument('--set',
+    sub.add_argument('-s', '--set',
                      help='Set the status of the system, us:them. Example-> --set 3500:200')
-    sub.add_argument('--offset', type=int, help='Set the system galmap offset.')
+    sub.add_argument('-o', '--offset', type=int, help='Set the system galmap offset.')
 
 
 @register_parser
@@ -258,9 +312,12 @@ def subs_user(subs, prefix):
     """ Subcommand parsing for user """
     desc = """Manipulate your user settings. Examples:
 
-    {prefix}user\n           Show your sheet name, crys and merits per sheet.
-    {prefix}user --name Not Gears\n           Set your name to 'Not Gears'.
-    {prefix}user --cry The bots are invading!\n           Set your battle cry to "The bots are invading!".
+{prefix}user
+        Show your sheet name, crys and merits per sheet.
+{prefix}user --name Not Gears
+        Set your name to 'Not Gears'.
+{prefix}user --cry The bots are invading!
+        Set your battle cry to "The bots are invading!".
     """.format(prefix=prefix)
     sub = subs.add_parser(prefix + 'user', description=desc, formatter_class=RawHelp)
     sub.set_defaults(cmd='User')
@@ -273,8 +330,10 @@ def subs_whois(subs, prefix):
     """ Subcommand parsing for whois """
     desc = """Lookup information for a commander on Inara.cz
 
-    {prefix}whois GearsandCogs\n           Find out who this GearsandCogs fellow is ...
-    {prefix}whois gears\n           Search for all CMDRs with 'gears' in their name
+{prefix}whois GearsandCogs
+        Find out who this GearsandCogs fellow is ...
+{prefix}whois gears
+        Search for all CMDRs with 'gears' in their name
     """.format(prefix=prefix)
     sub = subs.add_parser(prefix + 'whois', description=desc, formatter_class=RawHelp)
     sub.set_defaults(cmd='WhoIs')

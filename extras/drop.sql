@@ -1,3 +1,4 @@
+drop table if exists fort_order;
 drop table if exists admins;
 drop table if exists perms_role;
 drop table if exists perms_channel;
