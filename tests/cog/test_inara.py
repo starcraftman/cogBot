@@ -2,6 +2,8 @@
 Tests for cog.inara
 """
 from __future__ import absolute_import, print_function
+import os
+
 import aiomock
 import mock
 import pytest
@@ -14,6 +16,8 @@ from tests.conftest import Message, fake_msg_gears
 SEARCH_EXACT = cog.util.rel_to_abs('tests', 'inara_search.exact')
 SEARCH_MANY = cog.util.rel_to_abs('tests', 'inara_search.more_than_one')
 CMDR_INFO = cog.util.rel_to_abs('tests', 'inara_cmdr.exact')
+REASON_INARA = 'Inara dev is a n00b.'
+INARA_TEST = pytest.mark.skipif(not os.environ.get('INARA_TESTS'), reason=REASON_INARA)
 
 
 @pytest.fixture
@@ -22,6 +26,7 @@ def inara_cmdr():
         yield fin.read()
 
 
+@INARA_TEST
 @pytest.mark.asyncio
 async def test_login_inara_bad_url():
     try:
@@ -35,6 +40,7 @@ async def test_login_inara_bad_url():
         api.http.close()
 
 
+@INARA_TEST
 @pytest.mark.asyncio
 async def test_login_inara_bad_credentials():
     # I expect this to never be valid
@@ -54,6 +60,7 @@ async def test_login_inara_bad_credentials():
         api.http.close()
 
 
+@INARA_TEST
 @pytest.mark.asyncio
 async def test_search_bad_response(f_bot):
     fake_http = aiomock.AIOMock()
@@ -67,6 +74,7 @@ async def test_search_bad_response(f_bot):
         await api.search_in_inara('gearsandcogs', fake_msg_gears('!whois gearsandcogs'))
 
 
+@INARA_TEST
 @pytest.mark.asyncio
 async def test_search_response_no_login(f_bot):
     try:
@@ -78,6 +86,7 @@ async def test_search_response_no_login(f_bot):
         api.http.close()
 
 
+@INARA_TEST
 @pytest.mark.asyncio
 async def test_search_response_logged_in(f_bot):
     try:
@@ -90,6 +99,7 @@ async def test_search_response_logged_in(f_bot):
         api.http.close()
 
 
+@INARA_TEST
 @pytest.mark.asyncio
 async def test_select_from_multiple_exact(f_bot):
     try:
@@ -103,6 +113,7 @@ async def test_select_from_multiple_exact(f_bot):
         api.http.close()
 
 
+@INARA_TEST
 @pytest.mark.asyncio
 async def test_select_from_multiple_stop(f_bot):
     try:
@@ -116,6 +127,7 @@ async def test_select_from_multiple_stop(f_bot):
         api.http.close()
 
 
+@INARA_TEST
 @pytest.mark.asyncio
 async def test_fetch_from_cmdr_page(f_bot):
     try:
