@@ -4,12 +4,15 @@ Sidewinder's remote database.
 from __future__ import absolute_import, print_function
 import logging
 import datetime
+import math
 import time
 
 import sqlalchemy as sqla
 import sqlalchemy.exc as sqla_exe
 import sqlalchemy.orm as sqla_orm
 import sqlalchemy.ext.declarative
+from sqlalchemy import func as sqlfunc
+from sqlalchemy.ext.hybrid import hybrid_method
 
 import cog.exc
 
@@ -378,6 +381,27 @@ class System(SideBase):
     def __eq__(self, other):
         return isinstance(self, System) and isinstance(other, System) and self.id == other.id
 
+    @hybrid_method
+    def dist_to(self, other):
+        """
+        Compute the distance from this system to other.
+        """
+        dist = 0
+        for let in ['x', 'y', 'z']:
+            temp = getattr(other, let) - getattr(self, let)
+            dist += temp * temp
+
+        return math.sqrt(dist)
+
+    @dist_to.expression
+    def dist_to(self, other):
+        """
+        Compute the distance from this system to other.
+        """
+        return sqlfunc.sqrt((other.x - self.x) * (other.x - self.x) +
+                            (other.y - self.y) * (other.y - self.y) +
+                            (other.z - self.z) * (other.z - self.z))
+
 
 class SystemAge(SideBase):
     """ Represents the age of eddn data received for control/system pair. """
@@ -604,3 +628,48 @@ def system_overview(session, system):
         raise cog.exc.RemoteError("Lost connection to Sidewinder's DB.")
     except sqla_orm.exc.NoResultFound:
         return (None, None)
+
+
+def dash_overview(session, control_system):
+    """
+    Provide a simple dashboard overview of a control and its exploiteds.
+
+    Returns: List of (System, Faction, Government) for exploiteds + control system.
+    """
+    try:
+        control = session.query(System).filter_by(name=control_system).one()
+        factions = session.query(System, Faction, Government, Influence).\
+                filter(System.dist_to(control) <= 15).\
+                filter(Faction.id == System.controlling_faction_id).\
+                filter(Faction.government_id == Government.id).\
+                filter(Influence.faction_id == Faction.id, Influence.system_id == System.id).\
+                order_by(Government.text, System.name).all()
+        return (control, factions)
+    except sqla_exe.OperationalError:
+        raise cog.exc.RemoteError("Lost connection to Sidewinder's DB.")
+
+
+def main():
+    import cogdb
+    s = cogdb.SideSession()
+    # o = s.query(System).filter_by(name='Othime').one()
+    __import__('pprint').pprint(dash_overview(s, 'Othime'))
+    # systems = [system for system in s.query(System).filter(System.dist_to(o) <= 15, System.power_state_id != 16) if system.name != o.name]
+    # systems = s.query(System).filter(System.dist_to(o) <= 15, System.power_state_id != 16).all()
+    # print(len(systems))
+    # print(o, [system.name for system in systems])
+    # fact_ids = [system.controlling_faction_id for system in systems]
+
+    # sys_names = [system.name for system in systems]
+    # res = s.query(System.name, Faction, Government).\
+            # filter(System.name.in_(sys_names)).\
+            # filter(Faction.id == System.controlling_faction_id).\
+            # filter(Faction.government_id == Government.id).all()
+    # __import__('pprint').pprint((res))
+    
+    # __import__('pprint').pprint(systems)
+    # print(o, systems[0], o.dist_to(systems[0]))
+
+
+if __name__ == "__main__":
+    main()

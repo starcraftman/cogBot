@@ -291,8 +291,19 @@ class BGS(Action):
 
         return "Received an empty list, check the system name."
 
+    def dash_overview(self, system):
+        """ Handle dash subcmd. """
+        control_name = cogdb.query.fort_find_system(self.session, system).name
+            
+        control, systems = cogdb.side.dash_overview(cogdb.SideSession(), control_name)
+        lines = [['Name', 'Gov', 'Control Faction', 'Inf']]
+        for system, faction, gov, inf in systems:
+            lines += [[system.name, gov.text[:4], faction.name, '{:.2f}'.format(inf.influence)]]
+
+        return "**{}**\n\n".format(control.name) + cog.tbl.wrap_markdown(cog.tbl.format_table(lines, sep=' | ', center=False, header=True))
+
     def sys_overview(self, system):
-        """ Handle overview subcmd. """
+        """ Handle sys subcmd. """
         self.log.info('BGS - Looking for overview like: %s', system)
         system, factions = cogdb.side.system_overview(cogdb.SideSession(), system)
 
@@ -317,7 +328,7 @@ class BGS(Action):
 
     async def execute(self):
         try:
-            funcs = ['age_system', 'inf_system', 'sys_overview']
+            funcs = ['age_system', 'dash_overview', 'inf_system', 'sys_overview']
             func_name = [func for func in funcs if func.startswith(self.args.subcmd)][0]
             func = getattr(self, func_name)
 
