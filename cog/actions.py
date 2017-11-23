@@ -294,13 +294,28 @@ class BGS(Action):
     def dash_overview(self, system):
         """ Handle dash subcmd. """
         control_name = cogdb.query.fort_find_system(self.session, system).name
-            
+
         control, systems = cogdb.side.dash_overview(cogdb.SideSession(), control_name)
         lines = [['Name', 'Gov', 'Control Faction', 'Inf']]
-        for system, faction, gov, inf in systems:
-            lines += [[system.name, gov.text[:4], faction.name, '{:.2f}'.format(inf.influence)]]
+        strong = 0
+        weak = 0
+        anarchy = 0
 
-        return "**{}**\n\n".format(control.name) + cog.tbl.wrap_markdown(cog.tbl.format_table(lines, sep=' | ', center=False, header=True))
+        for bgs_system, faction, gov, inf in systems:
+            lines += [[bgs_system.name, gov.text[:4], faction.name, '{:.2f}'.format(inf.influence)]]
+            if gov.text == 'Anarchy':
+                anarchy += 1
+            elif gov.text == 'Dictatorship':
+                weak += 1
+            elif gov.text == 'Feudal' or gov.text == 'Patronage':
+                strong += 1
+
+        table = cog.tbl.wrap_markdown(cog.tbl.format_table(lines, sep=' | ', center=False,
+                                                           header=True))
+        header = "**{}**\n__Strong__: {}/{tot} __Weak__: {}/{tot} __Anarchy__: {}\n\n".format(
+            control.name, strong, weak, anarchy, tot=len(systems) - anarchy)
+
+        return header + table
 
     def sys_overview(self, system):
         """ Handle sys subcmd. """
