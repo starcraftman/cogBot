@@ -5,10 +5,15 @@ Lookup can be exact or loose, responds with all relevant CMDR info.
 Thanks to CMDR shotwn for the contribution.
 Contributed: 20/10/2017
 Search using Inara, API version: 25/11/2017
+
 BUG:  Inara API returns wrong mimetype, author stated that there will be a fix soon.
       Until fix aiohttp will warn about wrong mimetype text/html
+
+TODO: Carry api key to config.yml
+
 TODO: Disable fetch_from_cmdr_page. Use API result instead.
       Pending until API expands the functionality
+
 TODO: Edit tests.
 
 '''
