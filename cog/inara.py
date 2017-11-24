@@ -4,12 +4,20 @@ Lookup can be exact or loose, responds with all relevant CMDR info.
 
 Thanks to CMDR shotwn for the contribution.
 Contributed: 20/10/2017
+Search using Inara, API version: 25/11/2017
+BUG:  Inara API returns wrong mimetype, author stated that there will be a fix soon.
+      Until fix aiohttp will warn about wrong mimetype text/html
+TODO: Disable fetch_from_cmdr_page. Use API result instead.
+      Pending until API expands the functionality
+TODO: Edit tests.
+
 '''
 import asyncio
 import atexit
 import math
 import re
-import urllib.parse
+import json
+import datetime
 
 import aiohttp
 import discord
@@ -18,8 +26,24 @@ import cog.exc
 import cog.util
 
 SITE = 'https://inara.cz'
-SITE_LOGIN = SITE + '/login'
-SITE_SEARCH = SITE + '/search?location=search&searchglobal='
+API_ENDPOINT = SITE + '/inapi/v1/'
+
+# test over example response
+# SITE = 'http://themainreceivers.com'
+# API_ENDPOINT = SITE + '/inara_api_test.php'
+
+API_KEY = '9iclq6l86w4k84wo88gggwscw4048sg4kw0wcws'
+API_ON_DEVELOPMENT = True
+API_APP_NAME = 'CogBot'
+API_APP_VERSION = '0.0.1'
+API_HEADERS = {'content-type': 'application/json'}
+API_RESPONSE_CODES = {
+    "ok" : 200,
+    "multiple results" : 202,
+    "no result" : 204,
+    "error" : 400
+}
+
 PARSERS = []
 PP_COLORS = {
     'Alliance': 0x008000,
@@ -27,6 +51,42 @@ PP_COLORS = {
     'Federation': 0xB20000,
     'default': 0xDEADBF,
 }
+
+class InaraApiInput():
+    """
+    Inara API input prototype for easily generating requested JSON by Inara.
+
+    """
+    def __init__(self):
+        self.header = {
+            "appName" : API_APP_NAME,
+            "appVersion" : API_APP_VERSION,
+            "APIkey" : API_KEY,
+            "isDeveloped" : True
+        }
+        self.events = []
+
+    async def add_event(self, event_name, event_data):
+        """ Add an event to send """
+        new_event = {
+            "eventName" : event_name,
+            "eventData" : event_data,
+            "eventTimestamp" : datetime.datetime.now().isoformat(timespec='seconds') + "Z"
+        }
+        self.events.append(new_event)
+
+    async def serialize(self):
+        """ Return JSON string to send to API """
+        send = {
+            "header": self.header,
+            "events": self.events
+        }
+
+        try:
+            # do not use aiohttp to dump json for handling exception a bit better.
+            return json.dumps(send)
+        except TypeError:
+            raise cog.exc.InternalException('Inara API input JSON serialization failed.', lvl='exception')
 
 
 class InaraApi():
@@ -42,31 +102,13 @@ class InaraApi():
         self.req_counter = 0  # count how many searches done with search_in_inara
         self.waiting_messages = {}  # Searching in inara.cz messages. keys are req_id.
 
-    async def login_to_inara(self):
-        """
-        Perform initial login to inara, required to see search results.
-
-        Raises:
-            RemoteError - Response was bad or login credentials invalid.
-        """
-        payload = cog.util.get_config('inara')
-
-        # DO LOGIN, Inara doesn't use HTTP auth. It is a standard post.
-        async with self.http.post(SITE_LOGIN, data=payload) as resp:
-            if resp.status != 200:
-                raise cog.exc.RemoteError("Inara login failed, response code bad: {}".format(resp.status))
-
-            response_text = await resp.text()
-            if "Wrong login/password!" in response_text:
-                raise cog.exc.RemoteError("Bad Login or Password in Inara login")
-
     async def delete_waiting_message(self, req_id):  # pragma: no cover
         """ Delete the message which informs user about start of search """
         if req_id in self.waiting_messages:
             await self.bot.delete_message(self.waiting_messages[req_id])
             del self.waiting_messages[req_id]
 
-    async def search_in_inara(self, cmdr_name, msg):
+    async def search_in_inara(self, cmdr_name, msg, ignore_multiple_match = False):
         """
         Search for a commander on Inara.
 
@@ -74,47 +116,91 @@ class InaraApi():
             CmdAborted - User let timeout occur or cancelled loose match.
             RemoteError - If response code invalid or remote unreachable.
         """
+        # request id
         req_id = self.req_counter
+        # add one, loops between 0 - 1000
         self.req_counter += 1 % 1000
 
         try:
-            self.waiting_messages[req_id] = await self.bot.send_message(msg.channel, "Searching inara.cz ...")  # when using one session for entire app, this behaviour will change
+            # inform user about initiating the search.
+            self.waiting_messages[req_id] = await self.bot.send_message(msg.channel, "Searching inara.cz ...")
 
-            # search for commander name
-            async with self.http.get(SITE_SEARCH + urllib.parse.quote_plus(cmdr_name)) as resp:
+            # prepare api input
+            api_input = InaraApiInput()
+            await api_input.add_event("getCommanderProfile", {"searchName" : cmdr_name})
+
+            # serialize api input
+            api_json = await api_input.serialize()
+
+            # search for commander
+            async with self.http.post(API_ENDPOINT, data=api_json, headers=API_HEADERS) as resp:
                 if resp.status != 200:
-                    raise cog.exc.RemoteError("Inara search failed. Response code bad: {}".format(resp.status))
+                    raise cog.exc.RemoteError("Inara search failed. HTTP Response code bad: {}".format(resp.status))
 
-                response_text = await resp.text()
+                response_json = await resp.json(loads=wrap_json_loads)
 
-            # Possible login expires or wasn't called before start. Retry login.
-            if "You must be logged in to view search results" in response_text:
-                await self.login_to_inara()
-                await self.delete_waiting_message(req_id)
-                return await self.search_in_inara(cmdr_name, msg)  # call search again
+            # after here many things are unorthodox due api structure.
+            # check if api accepted our request.
+            api_response_code = response_json["header"]["eventStatus"]
 
-            # Extract the block of commanders
-            match = re.search(r'Commanders found</h2><div class="mainblock" style="-webkit-column-count: 3; -moz-column-count: 3; column-count: 3;">(.+?)</div>', response_text)
-            if not match:
+            # handle rejection.
+            if api_response_code == API_RESPONSE_CODES["error"] or api_response_code not in API_RESPONSE_CODES.values():
+                raise cog.exc.RemoteError("Inara search failed. API Response code bad: {}".format(api_response_code))
+
+            # only one event have been send, only one event should return.
+            event = response_json["events"][0]
+
+            # check if there is no match
+            if event["eventStatus"] == API_RESPONSE_CODES["no result"]:
                 await self.bot.send_message(msg.channel, "Could not find CMDR **{}**".format(cmdr_name))
                 return None
 
-            # Extract all cmdrs found, come out as tuple of form:
-            #       [(URL, name), (URL, name) ...]
-            cmdrs = re.findall(r'<a href="(\S+)" class="inverse">([^<]+)</a>', match.group(1))
-            if len(cmdrs) == 1 and cmdrs[0][1].lower() == cmdr_name.lower():
-                cmdr = cmdrs[0]
-            else:
-                await self.delete_waiting_message(req_id)
-                cmdr = await self.select_from_choices(cmdr_name, cmdrs, msg)
-        finally:
+            event_data = event["eventData"]
+
+            # fetch commander name, use userName if there is no commanderName set
+            commander_name = event_data.get("commanderName", event_data["userName"])
+
+            # create cmdrs list with otherNamesFound
+            cmdrs = event_data.get("otherNamesFound", [])
+
+            # check if it is an exact match
+            if commander_name.lower() == cmdr_name.lower():
+
+                # exact match, consider other matches if it is not state otherwise.
+                if not cmdrs or ignore_multiple_match:
+                    return {
+                        "req_id": req_id,
+                        "url": event_data["inaraURL"],
+                        "name": commander_name,
+                    }
+
+            # not an exact match, will prompt user a list for selection.
+
+            # insert the one found from inara to the top
+            cmdrs.insert(0, commander_name)
+
+            # list will come up, delete waiting message
             await self.delete_waiting_message(req_id)
 
-        return {
-            "req_id": req_id,
-            "url": SITE + cmdr[0],
-            "name": cmdr[1],
-        }
+            # show up the list
+            cmdr = await self.select_from_choices(cmdr_name, cmdrs, msg)
+
+            # if already returned one is selected, continue with that.
+            if cmdr == commander_name:
+                return {
+                    "req_id": req_id,
+                    "url": event_data["inaraURL"],
+                    "name": commander_name,
+                }
+
+            # selected from otherNamesFound, run it again for selected commander.
+            # it will search using returned names, so ignore multiple match this time.
+            return await self.search_in_inara(cmdr, msg, ignore_multiple_match=True)
+        finally:
+            # delete waiting message on exception.
+            await self.delete_waiting_message(req_id)
+
+        return None
 
     async def select_from_choices(self, name, cmdrs, msg):
         """
@@ -130,7 +216,8 @@ class InaraApi():
             CmdAborted - Cmdr either requested abort or failed to respond.
         """
         fmt = '{:' + str(math.ceil(len(cmdrs) / 10)) + '}) {}'
-        cmdr_list = [fmt.format(ind, cmdr[1]) for ind, cmdr in enumerate(cmdrs, 1)]
+        cmdr_list = [fmt.format(ind, cmdr) for ind, cmdr in enumerate(cmdrs, 1)]
+
         reply = '\n'.join([
             'No exact match for CMDR **{}**'.format(name),
             'Possible matches:',
@@ -236,6 +323,13 @@ def register_parser(func):  # pragma: no cover
     """ Simply register parsers for later use. """
     PARSERS.append(func)
     return func
+
+def wrap_json_loads(string):
+    """ Make aiohttp use this function for custom exceptions. """
+    try:
+        return json.loads(string)
+    except TypeError:
+        raise cog.exc.InternalException('Inara API responded with bad JSON.', lvl='info')
 
 
 @register_parser
