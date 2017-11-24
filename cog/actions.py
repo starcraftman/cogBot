@@ -844,14 +844,14 @@ class WhoIs(Action):
     Who is request to Inara for CMDR info.
     """
     async def execute(self):
-        reply = "Disabled for now because inara.cz dev is a n00b."
-        reply += "\n\nSorry about that. :frowning:"
-        await asyncio.ensure_future(self.bot.send_message(self.msg.channel, reply))
-        # cmdr_name = ' '.join(self.args.cmdr)
+        # reply = "Disabled for now because inara.cz dev is a n00b."
+        # reply += "\n\nSorry about that. :frowning:"
+        # await asyncio.ensure_future(self.bot.send_message(self.msg.channel, reply))
+        cmdr_name = ' '.join(self.args.cmdr)
 
-        # cmdr = await cog.inara.api.search_in_inara(cmdr_name, self.msg)
-        # if cmdr:
-            # await cog.inara.api.fetch_from_cmdr_page(cmdr, self.msg)
+        cmdr = await cog.inara.api.search_in_inara(cmdr_name, self.msg)
+        if cmdr:
+            await cog.inara.api.fetch_from_cmdr_page(cmdr, self.msg)
 
 
 def process_system_args(args):
