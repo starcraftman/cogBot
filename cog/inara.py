@@ -6,15 +6,9 @@ Thanks to CMDR shotwn for the contribution.
 Contributed: 20/10/2017
 Search using Inara, API version: 25/11/2017
 
-BUG:  Inara API returns wrong mimetype, author stated that there will be a fix soon.
-      Until fix aiohttp will warn about wrong mimetype text/html
-
-TODO: Carry api key to config.yml
-
-TODO: Disable fetch_from_cmdr_page. Use API result instead.
-      Pending until API expands the functionality
-
 TODO: Edit tests.
+
+TODO: Consider removing fetch_from_cmdr_page.
 
 '''
 import asyncio
@@ -37,10 +31,13 @@ API_ENDPOINT = SITE + '/inapi/v1/'
 # SITE = 'http://themainreceivers.com'
 # API_ENDPOINT = SITE + '/inara_api_test.php'
 
-API_KEY = '9iclq6l86w4k84wo88gggwscw4048sg4kw0wcws'
+# TODO: Consider KeyError
+CONFIG = cog.util.get_config('inara')
+
+API_KEY = CONFIG["api_key"]
 API_ON_DEVELOPMENT = True
 API_APP_NAME = 'CogBot'
-API_APP_VERSION = '0.0.1'
+API_APP_VERSION = '0.1.0'
 API_HEADERS = {'content-type': 'application/json'}
 API_RESPONSE_CODES = {
     "ok" : 200,
@@ -135,9 +132,6 @@ class InaraApi():
 
         Returns: Dictionary.
         """
-        # TODO: DELETE ME
-        if "your master" in cmdr_name:
-            cmdr_name = "GearsandCogs"
 
         # request id
         req_id = self.req_counter
