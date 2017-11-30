@@ -311,7 +311,7 @@ class InaraApi():
                     cmdr["rank"] = 'Unknown Rank'
 
         # power
-        cmdr["power"] = eventData.get("preferredPowerName")
+        cmdr["power"] = eventData.get("preferredPowerName", cmdr["power"])
 
         # balance is not given from api
 
