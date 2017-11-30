@@ -275,7 +275,7 @@ class InaraApi():
         # balance and assets are not given from api.
         cmdr = {
             'name': 'ERROR',
-            'profile_picture': '/images/userportraitback.png',
+            'profile_picture': 'https://inara.cz/images/userportraitback.png',
             'role': 'unknown',
             'allegiance': 'none',
             'rank': 'unknown',
