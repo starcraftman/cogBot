@@ -849,9 +849,9 @@ class WhoIs(Action):
         # await asyncio.ensure_future(self.bot.send_message(self.msg.channel, reply))
         cmdr_name = ' '.join(self.args.cmdr)
 
-        cmdr = await cog.inara.api.search_in_inara(cmdr_name, self.msg)
+        cmdr = await cog.inara.api.search_with_api(cmdr_name, self.msg)
         if cmdr:
-            await cog.inara.api.fetch_from_cmdr_page(cmdr, self.msg)
+            await cog.inara.api.reply_with_api_result(cmdr["req_id"], cmdr["event_data"], self.msg)
 
 
 def process_system_args(args):

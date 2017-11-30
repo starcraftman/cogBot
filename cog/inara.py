@@ -56,6 +56,17 @@ PP_COLORS = {
     'Federation': 0xB20000,
     'default': 0xDEADBF,
 }
+COMBAT_RANKS = [
+    'Harmless',
+    'Mostly Harmless',
+    'Novice',
+    'Competent',
+    'Expert',
+    'Master',
+    'Dangerous',
+    'Deadly',
+    'Elite'
+]
 
 class InaraApiInput():
     """
@@ -113,14 +124,21 @@ class InaraApi():
             await self.bot.delete_message(self.waiting_messages[req_id])
             del self.waiting_messages[req_id]
 
-    async def search_in_inara(self, cmdr_name, msg, ignore_multiple_match = False):
+    async def search_with_api(self, cmdr_name, msg, ignore_multiple_match = False):
         """
         Search for a commander on Inara.
 
         Raises:
             CmdAborted - User let timeout occur or cancelled loose match.
             RemoteError - If response code invalid or remote unreachable.
+            InternalException - JSON serialization failed.
+
+        Returns: Dictionary.
         """
+        # TODO: DELETE ME
+        if "your master" in cmdr_name:
+            cmdr_name = "GearsandCogs"
+
         # request id
         req_id = self.req_counter
         # add one, loops between 0 - 1000
@@ -171,15 +189,16 @@ class InaraApi():
             # check if it is an exact match
             if commander_name.lower() == cmdr_name.lower():
 
-                # exact match, consider other matches if it is not state otherwise.
+                # exact match, consider other matches if it is not stated otherwise.
                 if not cmdrs or ignore_multiple_match:
                     return {
                         "req_id": req_id,
-                        "url": event_data["inaraURL"],
+                        "inara_cmdr_url": event_data["inaraURL"],
                         "name": commander_name,
+                        "event_data" : event_data
                     }
 
-            # not an exact match, will prompt user a list for selection.
+            # not an exact match or multiple matches passing, will prompt user a list for selection.
 
             # insert the one found from inara to the top
             cmdrs.insert(0, commander_name)
@@ -194,13 +213,14 @@ class InaraApi():
             if cmdr == commander_name:
                 return {
                     "req_id": req_id,
-                    "url": event_data["inaraURL"],
+                    "imara_cmdr_url": event_data["inaraURL"],
                     "name": commander_name,
+                    "event_data" : event_data
                 }
 
             # selected from otherNamesFound, run it again for selected commander.
             # it will search using returned names, so ignore multiple match this time.
-            return await self.search_in_inara(cmdr, msg, ignore_multiple_match=True)
+            return await self.search_with_api(cmdr, msg, ignore_multiple_match=True)
         finally:
             # delete waiting message on exception.
             await self.delete_waiting_message(req_id)
@@ -251,6 +271,82 @@ class InaraApi():
                 asyncio.ensure_future(asyncio.gather(
                     *[self.bot.delete_message(response) for response in responses]))
 
+    async def reply_with_api_result(self, req_id, eventData, msg):
+        """
+        Reply using eventData from Inara API getCommanderProfile.
+
+        """
+        # cmdr prototype, only name guaranteed. Others will display if not found.
+        # keeping original prototype from regex method.
+        # balance and assets are not given from api.
+        cmdr = {
+            'name': 'ERROR',
+            'profile_picture': '/images/userportraitback.png',
+            'role': 'unknown',
+            'allegiance': 'none',
+            'rank': 'unknown',
+            'power': 'none',
+            #'balance': 'unknown',
+            'wing': 'none',
+            #'assets': 'unknown'
+        }
+
+        # get userName first since commanderName is not always there.
+        cmdr["name"] = eventData.get("userName", cmdr["name"])
+
+        # now replace it with commanderName if key exists.
+        cmdr["name"] = eventData.get("commanderName", cmdr["name"])
+
+        # profile picture
+        cmdr["profile_picture"] = eventData.get("avatarImageURL", cmdr["profile_picture"])
+
+        # role
+        cmdr["role"] = eventData.get("preferredGameRole", cmdr["role"])
+
+        # allegiance
+        cmdr["allegiance"] = eventData.get("preferredAllegianceName", cmdr["allegiance"])
+
+        # rank, ranks are a List of Dictionaries. try to get combat rank
+        if "commanderRanksPilot" in eventData:
+            match = next((rank for rank in eventData["commanderRanksPilot"] if rank["rankName"] == "combat"), None)
+
+            if match:
+                try:
+                    cmdr["rank"] = COMBAT_RANKS[match["rankValue"]]
+                except KeyError:
+                    cmdr["rank"] = 'Unknown Rank'
+
+        # power
+        cmdr["power"] = eventData.get("preferredPowerName")
+
+        # balance is not given from api
+
+        # wing
+        if "commanderWing" in eventData:
+            cmdr["wing"] = eventData["commanderWing"].get("wingName", cmdr["wing"])
+
+        # assets is not given from api
+
+        # TODO: KOS HOOK WILL BE HERE !
+        # crosscheck who-is with KOS list, then append information to embed
+
+        # Build Embed
+        em = discord.Embed(colour=PP_COLORS.get(cmdr["allegiance"], PP_COLORS['default']))
+        em.set_author(name=cmdr["name"], icon_url=cmdr["profile_picture"])
+        em.set_thumbnail(url=cmdr["profile_picture"])
+        em.url = eventData["inaraURL"]
+        em.provider.name = SITE
+        em.add_field(name='Wing', value=cmdr["wing"], inline=True)
+        em.add_field(name='Allegiance', value=cmdr["allegiance"], inline=True)
+        em.add_field(name='Role', value=cmdr["role"], inline=True)
+        em.add_field(name='Power', value=cmdr["power"], inline=True)
+        em.add_field(name='Combat Rank', value=cmdr["rank"], inline=True)
+        #em.add_field(name='Overall Assets', value=cmdr["assets"], inline=True)
+        #em.add_field(name='Credit Balance', value=cmdr["balance"], inline=True)
+
+        await self.bot.send_message(msg.channel, embed=em)
+        await self.delete_waiting_message(req_id)
+
     async def fetch_from_cmdr_page(self, found_commander, msg):
         """
         Fetch cmdr page, parse information, setup embed and send response.
@@ -258,7 +354,7 @@ class InaraApi():
         Raises:
             RemoteError - Failed response from Inara.
         """
-        async with self.http.get(found_commander["url"]) as resp:
+        async with self.http.get(found_commander["inara_cmdr_url"]) as resp:
             if resp.status != 200:
                 raise cog.exc.RemoteError("Inara CMDR page: Bad response code: " + str(resp.status))
 
@@ -334,7 +430,7 @@ def wrap_json_loads(string):
     try:
         return json.loads(string)
     except TypeError:
-        raise cog.exc.InternalException('Inara API responded with bad JSON.', lvl='info')
+        raise cog.exc.RemoteError('Inara API responded with bad JSON.')
 
 
 @register_parser
