@@ -332,9 +332,12 @@ def subs_whois(subs, prefix):
 
 {prefix}whois GearsandCogs
         Find out who this GearsandCogs fellow is ...
+{prefix}whois GearsandCogs --wing
+        Find this fellow and his wing.
 {prefix}whois gears
         Search for all CMDRs with 'gears' in their name
     """.format(prefix=prefix)
     sub = subs.add_parser(prefix + 'whois', description=desc, formatter_class=RawHelp)
     sub.set_defaults(cmd='WhoIs')
     sub.add_argument('cmdr', nargs='+', help='Commander name.')
+    sub.add_argument("--wing", action='store_true', help="Return with more details about commander wing.")
