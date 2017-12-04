@@ -75,14 +75,17 @@ async def test_get_coords():
         {
             'name': 'Adeo',
             'coords': {'x': -81.625, 'y': 31.40625, 'z': 27.1875},
+            'coordsLocked': True,
         },
         {
             'name': 'Frey',
             'coords': {'x': -74.625, 'y': -21.625, 'z': 76.40625},
+            'coordsLocked': True,
         },
         {
             'name': 'Sol',
             'coords': {'x': 0, 'y': 0, 'z': 0},
+            'coordsLocked': True,
         },
     ]
 
@@ -117,6 +120,7 @@ async def test_get_coords_partial_fail():
         {
             'name': 'Frey',
             'coords': {'x': -74.625, 'y': -21.625, 'z': 76.40625},
+            'coordsLocked': True,
         },
     ]
 

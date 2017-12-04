@@ -5,53 +5,53 @@ Lookup can be exact or loose, responds with all relevant CMDR info.
 Thanks to CMDR shotwn for the contribution.
 Contributed: 20/10/2017
 Inara API version: 01/12/2017 - v1
-
-TODO: Edit tests.
-
 '''
+# TODO: Update tests.
 import asyncio
 import atexit
+import datetime
+import logging
 import math
 import re
-import json
-import datetime
+try:
+    import simplejson as json
+except ImportError:
+    import json
 
 import aiohttp
 import discord
 
+import cog
 import cog.exc
 import cog.util
-
-SITE = 'https://inara.cz'
-API_ENDPOINT = SITE + '/inapi/v1/'
-
-# test over example response
-# SITE = 'http://themainreceivers.com'
-# API_ENDPOINT = SITE + '/inara_api_test.php'
 
 # Disable line too long, pylint: disable=C0301
 
 try:
-    CONFIG = cog.util.get_config('inara')
-
-    API_KEY = CONFIG["api_key"]
+    API_KEY = cog.util.get_config('inara', 'api_key')
 except KeyError:
-    # raise cog.exc.MissingConfigFile("!whois inara search disabled. No inara field or api_key in config.yml", lvl='info')
-    # logging.info("!whois inara search disabled. No inara field or api_key in config.yml")
+    logging.getLogger('cog.inara').\
+        warning("!whois inara search disabled. No inara field or api_key in config.yml")
     print("!whois inara search disabled. No inara field or api_key in config.yml")
+    API_KEY = None
 
-API_ON_DEVELOPMENT = True
-API_APP_NAME = 'CogBot'
-API_APP_VERSION = '0.1.0'
-API_HEADERS = {'content-type': 'application/json'}
+SITE = 'https://inara.cz'
+API_ENDPOINT = SITE + '/inapi/v1/'
 API_RESPONSE_CODES = {
-    'ok' : 200,
-    'multiple results' : 202,
-    'no result' : 204,
-    'error' : 400
+    'ok': 200,
+    'multiple results': 202,
+    'no result': 204,
+    'error': 400
+}
+API_HEADERS = {'content-type': 'application/json'}
+# Prototype for all json header sections
+HEADER_PROTO = {
+    "appName": 'CogBot',
+    "appVersion": cog.__version__,
+    "APIkey": API_KEY,
+    "isDeveloped": True
 }
 
-PARSERS = []
 PP_COLORS = {
     'Alliance': 0x008000,
     'Empire': 0x3232FF,
@@ -69,31 +69,26 @@ COMBAT_RANKS = [
     'Deadly',
     'Elite'
 ]
+EMPTY_IMG = "https://upload.wikimedia.org/wikipedia/commons/5/59/Empty.png"
+
 
 class InaraApiInput():
     """
     Inara API input prototype for easily generating requested JSON by Inara.
-
     """
     def __init__(self):
-        self.header = {
-            "appName" : API_APP_NAME,
-            "appVersion" : API_APP_VERSION,
-            "APIkey" : API_KEY,
-            "isDeveloped" : True
-        }
         self.events = []
 
-    async def add_event(self, event_name, event_data):
+    def add_event(self, event_name, event_data):
         """ Add an event to send """
         new_event = {
-            "eventName" : event_name,
-            "eventData" : event_data,
-            "eventTimestamp" : datetime.datetime.now().isoformat(timespec='seconds') + "Z"
+            "eventName": event_name,
+            "eventData": event_data,
+            "eventTimestamp": datetime.datetime.now().isoformat(timespec='seconds') + "Z"
         }
         self.events.append(new_event)
 
-    async def serialize(self):
+    def serialize(self):
         """
         Return JSON string to send to API
 
@@ -103,15 +98,15 @@ class InaraApiInput():
             String: API request serialized as JSON.
         """
         send = {
-            "header": self.header,
+            "header": HEADER_PROTO,
             "events": self.events
         }
-
         try:
             # do not use aiohttp to dump json for handling exception a bit better.
             return json.dumps(send)
         except TypeError:
-            raise cog.exc.InternalException('Inara API input JSON serialization failed.', lvl='exception')
+            raise cog.exc.InternalException('Inara API input JSON serialization failed.',
+                                            lvl='exception')
 
 
 class InaraApi():
@@ -148,49 +143,45 @@ class InaraApi():
 
         """
         # keep search disabled if there is no API_KEY
-        try:
-            API_KEY
-        except NameError:
-            await self.bot.send_message(msg.channel, "!whois is currently disabled. Inara API key is not set.")
+        if not API_KEY:
+            await self.bot.send_message(msg.channel,
+                                        "!whois is currently disabled. Inara API key is not set.")
             return None
 
         # request id
         req_id = self.req_counter
-        # add one, loops between 0 - 1000
         self.req_counter += 1 % 1000
 
         try:
             # inform user about initiating the search.
-            self.waiting_messages[req_id] = await self.bot.send_message(msg.channel, "Searching inara.cz ...")
+            self.waiting_messages[req_id] = await self.bot.send_message(msg.channel,
+                                                                        "Searching inara.cz ...")
 
-            # prepare api input
             api_input = InaraApiInput()
-            await api_input.add_event("getCommanderProfile", {"searchName" : cmdr_name})
-
-            # serialize api input
-            api_json = await api_input.serialize()
+            api_input.add_event("getCommanderProfile", {"searchName": cmdr_name})
 
             # search for commander
-            async with self.http.post(API_ENDPOINT, data=api_json, headers=API_HEADERS) as resp:
+            async with self.http.post(API_ENDPOINT, data=api_input.serialize(),
+                                      headers=API_HEADERS) as resp:
                 if resp.status != 200:
-                    raise cog.exc.RemoteError("Inara search failed. HTTP Response code bad: {}".format(resp.status))
+                    raise cog.exc.RemoteError("Inara search failed. HTTP Response code bad: " +
+                                              str(resp.status))
 
                 response_json = await resp.json(loads=wrap_json_loads)
 
             # after here many things are unorthodox due api structure.
             # check if api accepted our request.
-            api_response_code = response_json["header"]["eventStatus"]
+            r_code = response_json["header"]["eventStatus"]
 
             # handle rejection.
-            if api_response_code == API_RESPONSE_CODES["error"] or api_response_code not in API_RESPONSE_CODES.values():
-                raise cog.exc.RemoteError("Inara search failed. API Response code bad: {}".format(api_response_code))
+            if r_code == API_RESPONSE_CODES["error"] or r_code not in API_RESPONSE_CODES.values():
+                raise cog.exc.RemoteError("Inara search failed. API Response code bad: " +
+                                          str(r_code))
 
-            # only one event have been send, only one event should return.
             event = response_json["events"][0]
-
-            # check if there is no match
             if event["eventStatus"] == API_RESPONSE_CODES["no result"]:
-                await self.bot.send_message(msg.channel, "Could not find CMDR **{}**".format(cmdr_name))
+                await self.bot.send_message(msg.channel,
+                                            "Could not find CMDR **{}**".format(cmdr_name))
                 return None
 
             event_data = event["eventData"]
@@ -198,39 +189,32 @@ class InaraApi():
             # fetch commander name, use userName if there is no commanderName set
             commander_name = event_data.get("commanderName", event_data["userName"])
 
-            # create cmdrs list with otherNamesFound
+            # other possible cmdr matches
             cmdrs = event_data.get("otherNamesFound", [])
 
-            # check if it is an exact match
-            if commander_name.lower() == cmdr_name.lower():
+            # return if exact match and no alternatives or selected
+            if commander_name.lower() == cmdr_name.lower() and (
+                    not cmdrs or ignore_multiple_match):
 
-                # exact match, consider other matches if it is not stated otherwise.
-                if not cmdrs or ignore_multiple_match:
-                    return {
-                        "req_id": req_id,
-                        "inara_cmdr_url": event_data["inaraURL"],
-                        "name": commander_name,
-                        "event_data" : event_data
-                    }
+                return {
+                    "req_id": req_id,
+                    "inara_cmdr_url": event_data["inaraURL"],
+                    "name": commander_name,
+                    "event_data": event_data
+                }
 
             # not an exact match or multiple matches passing, will prompt user a list for selection.
-
-            # insert the one found from inara to the top
-            cmdrs.insert(0, commander_name)
-
             # list will come up, delete waiting message
             await self.delete_waiting_message(req_id)
-
-            # show up the list
+            cmdrs.insert(0, commander_name)
             cmdr = await self.select_from_choices(cmdr_name, cmdrs, msg)
 
-            # if already returned one is selected, continue with that.
             if cmdr == commander_name:
                 return {
                     "req_id": req_id,
                     "imara_cmdr_url": event_data["inaraURL"],
                     "name": commander_name,
-                    "event_data" : event_data
+                    "event_data": event_data
                 }
 
             # selected from otherNamesFound, run it again for selected commander.
@@ -286,6 +270,33 @@ class InaraApi():
                 asyncio.ensure_future(asyncio.gather(
                     *[self.bot.delete_message(response) for response in responses]))
 
+    async def wing_details(self, event_data, cmdr):
+        """
+        Fill in wing details when requested.
+
+        Returns:
+            A Discord Embed for CMDR's wing details.
+        """
+        # wing details
+        cmdr["wing_cmdr_rank"] = event_data["commanderWing"].get("wingMemberRank",
+                                                                 cmdr["wing_cmdr_rank"])
+        cmdr["wing_members_count"] = event_data["commanderWing"].get("wingMembersCount",
+                                                                     cmdr["wing_members_count"])
+
+        # wing details embed
+        wing_embed = discord.Embed()
+        wing_embed.set_thumbnail(url=EMPTY_IMG)  # just a blank to keep embed full size
+        wing_embed.set_author(name=cmdr["name"] + "'s Wing")
+        wing_embed.url = event_data["commanderWing"]["inaraURL"]
+        wing_embed.provider.name = SITE
+
+        wing_embed.add_field(name="Wing Name", value=cmdr["wing"], inline=True)
+        wing_embed.add_field(name=cmdr["name"] + "'s Rank", value=cmdr["wing_cmdr_rank"],
+                             inline=True)
+        wing_embed.add_field(name="Head Count", value=cmdr["wing_members_count"], inline=True)
+
+        return wing_embed
+
     async def reply_with_api_result(self, req_id, event_data, msg, with_wing_details):
         """
         Reply using event_data from Inara API getCommanderProfile.
@@ -301,93 +312,63 @@ class InaraApi():
             'allegiance': 'none',
             'rank': 'unknown',
             'power': 'none',
-            #'balance': 'unknown',
             'wing': 'none',
             'wing_cmdr_rank': 'unknown',
-            'wing_members_count' : 'unknown'
-            #'assets': 'unknown'
+            'wing_members_count': 'unknown',
         }
 
-        # get userName first since commanderName is not always there.
-        cmdr["name"] = event_data.get("userName", cmdr["name"])
-
-        # now replace it with commanderName if key exists.
-        cmdr["name"] = event_data.get("commanderName", cmdr["name"])
-
-        # profile picture
-        cmdr["profile_picture"] = event_data.get("avatarImageURL", cmdr["profile_picture"])
-
-        # role
-        cmdr["role"] = event_data.get("preferredGameRole", cmdr["role"])
-
-        # allegiance
-        cmdr["allegiance"] = event_data.get("preferredAllegianceName", cmdr["allegiance"])
+        map_event = [
+            ["name", "userName"],
+            ["name", "commanderName"],  # commanderName not always set, fallback to userName
+            ["profile_picture", "avatarImageURL"],
+            ["role", "preferredGameRole"],
+            ["allegiance", "preferredAllegianceName"],
+            ["power", "preferredPowerName"],
+        ]
+        for slot, data_name in map_event:
+            cmdr[slot] = event_data.get(data_name, cmdr[slot])
 
         # rank, ranks are a List of Dictionaries. try to get combat rank
         if "commanderRanksPilot" in event_data:
-            match = next((rank for rank in event_data["commanderRanksPilot"] if rank["rankName"] == "combat"), None)
-
+            match = next((rank for rank in event_data["commanderRanksPilot"]
+                          if rank["rankName"] == "combat"), None)
             if match:
                 try:
                     cmdr["rank"] = COMBAT_RANKS[match["rankValue"]]
                 except KeyError:
                     cmdr["rank"] = 'Unknown Rank'
 
-        # power
-        cmdr["power"] = event_data.get("preferredPowerName", cmdr["power"])
+        embeds = []
 
-        # balance is not given from api
-
-        # assets is not given from api
-
-        # wing
-        wing_embed = None
-        if "commanderWing" in event_data:
+        try:
             cmdr["wing"] = event_data["commanderWing"].get("wingName", cmdr["wing"])
-            
             if with_wing_details:
-                # wing details
-                cmdr["wing_cmdr_rank"] = event_data["commanderWing"].get("wingMemberRank", cmdr["wing_cmdr_rank"])
-                cmdr["wing_members_count"] = event_data["commanderWing"].get("wingMembersCount", cmdr["wing_members_count"])
+                embeds.append(self.wing_details(event_data, cmdr))
+        except KeyError:
+            pass
 
-                # wing details embed
-                wing_embed = discord.Embed()
+        # Build Embed
+        cmdr_embed = discord.Embed(colour=PP_COLORS.get(cmdr["allegiance"], PP_COLORS['default']))
+        cmdr_embed.set_author(name=cmdr["name"], icon_url=cmdr["profile_picture"])
+        cmdr_embed.set_thumbnail(url=cmdr["profile_picture"])
+        cmdr_embed.url = event_data["inaraURL"]
+        cmdr_embed.provider.name = SITE
 
-                # just a blank to keep embed full size.
-                wing_embed.set_thumbnail(url="https://upload.wikimedia.org/wikipedia/commons/5/59/Empty.png")
-                wing_embed.set_author(name=cmdr["name"]+"'s Wing")
-
-                wing_embed.provider.name = SITE
-
-                wing_embed.url = event_data["commanderWing"]["inaraURL"]
-                wing_embed.add_field(name="Wing Name", value=cmdr["wing"], inline=True)
-                wing_embed.add_field(name=cmdr["name"]+"'s Rank", value=cmdr["wing_cmdr_rank"], inline=True)
-                wing_embed.add_field(name="Head Count", value=cmdr["wing_members_count"], inline=True)
-
+        cmdr_embed.add_field(name='Wing', value=cmdr["wing"], inline=True)
+        cmdr_embed.add_field(name='Allegiance', value=cmdr["allegiance"], inline=True)
+        cmdr_embed.add_field(name='Role', value=cmdr["role"], inline=True)
+        cmdr_embed.add_field(name='Power', value=cmdr["power"], inline=True)
+        cmdr_embed.add_field(name='Combat Rank', value=cmdr["rank"], inline=True)
+        embeds.insert(0, cmdr_embed)
 
         # TODO: KOS HOOK WILL BE HERE !
         # crosscheck who-is with KOS list, then append information to embed
 
-        # Build Embed
-        embed = discord.Embed(colour=PP_COLORS.get(cmdr["allegiance"], PP_COLORS['default']))
-        embed.set_author(name=cmdr["name"], icon_url=cmdr["profile_picture"])
-        embed.set_thumbnail(url=cmdr["profile_picture"])
-        embed.url = event_data["inaraURL"]
-        embed.provider.name = SITE
-        embed.add_field(name='Wing', value=cmdr["wing"], inline=True)
-        embed.add_field(name='Allegiance', value=cmdr["allegiance"], inline=True)
-        embed.add_field(name='Role', value=cmdr["role"], inline=True)
-        embed.add_field(name='Power', value=cmdr["power"], inline=True)
-        embed.add_field(name='Combat Rank', value=cmdr["rank"], inline=True)
-        #embed.add_field(name='Overall Assets', value=cmdr["assets"], inline=True)
-        #embed.add_field(name='Credit Balance', value=cmdr["balance"], inline=True)
-
-        await self.bot.send_message(msg.channel, embed=embed)
-
-        if wing_embed:
-            await self.bot.send_message(msg.channel, embed=wing_embed)
+        for embed in embeds:
+            await self.bot.send_message(msg.channel, embed=embed)
 
         await self.delete_waiting_message(req_id)
+
 
 def check_reply(msg, prefix='!'):
     """
@@ -411,6 +392,7 @@ def check_reply(msg, prefix='!'):
 
     return int(match.group(1))
 
+
 def wrap_json_loads(string):
     """ Loads JSON. Make aiohttp use this function for custom exceptions. """
     try:
@@ -418,8 +400,6 @@ def wrap_json_loads(string):
     except TypeError:
         raise cog.exc.RemoteError('Inara API responded with bad JSON.')
 
-
-# TODO: Alternatively, just unroll the class to be static data and module functions?
 
 api = InaraApi()  # use as module, needs "bot" to be set. pylint: disable=C0103
 atexit.register(api.http.close)  # Ensure proper close, move to cog.bot later
