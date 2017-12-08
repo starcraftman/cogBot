@@ -6,9 +6,7 @@ Thanks to CMDR shotwn for the contribution.
 Contributed: 20/10/2017
 Inara API version: 01/12/2017 - v1
 '''
-# TODO: Update tests.
 import asyncio
-import atexit
 import datetime
 import logging
 import math
@@ -113,12 +111,9 @@ class InaraApi():
     """
     Inara CMDR lookups done with aiohttp module.
     Each request tracked separately, allows for back and forth with bot on loose match.
-
-    N.B. To prevent shutdown warnings ensure self.http.close() called atexit.
     """
     def __init__(self, bot=None):
         self.bot = bot
-        self.http = aiohttp.ClientSession()
         self.req_counter = 0  # count how many searches done with search_in_inara
         self.waiting_messages = {}  # 'Searching in inara.cz' messages. keys are req_id.
 
@@ -140,7 +135,6 @@ class InaraApi():
         Returns:
             Dictionary in full success.
             None if disabled or not found.
-
         """
         # keep search disabled if there is no API_KEY
         if not API_KEY:
@@ -161,13 +155,14 @@ class InaraApi():
             api_input.add_event("getCommanderProfile", {"searchName": cmdr_name})
 
             # search for commander
-            async with self.http.post(API_ENDPOINT, data=api_input.serialize(),
-                                      headers=API_HEADERS) as resp:
-                if resp.status != 200:
-                    raise cog.exc.RemoteError("Inara search failed. HTTP Response code bad: " +
-                                              str(resp.status))
+            async with aiohttp.ClientSession() as http:
+                async with http.post(API_ENDPOINT, data=api_input.serialize(),
+                                     headers=API_HEADERS) as resp:
+                    if resp.status != 200:
+                        raise cog.exc.RemoteError("Inara search failed. HTTP Response code bad: " +
+                                                  str(resp.status))
 
-                response_json = await resp.json(loads=wrap_json_loads)
+                    response_json = await resp.json(loads=wrap_json_loads)
 
             # after here many things are unorthodox due api structure.
             # check if api accepted our request.
@@ -402,4 +397,3 @@ def wrap_json_loads(string):
 
 
 api = InaraApi()  # use as module, needs "bot" to be set. pylint: disable=C0103
-atexit.register(api.http.close)  # Ensure proper close, move to cog.bot later
