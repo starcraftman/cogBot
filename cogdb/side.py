@@ -644,7 +644,19 @@ def dash_overview(session, control_system):
             filter(Faction.government_id == Government.id).\
             filter(Influence.faction_id == Faction.id, Influence.system_id == System.id).\
             order_by(Government.text, System.name).all()
-        return (control, factions)
+
+        net_change = {}
+        systems = [[faction[0], faction[1], faction[3]] for faction in factions]
+        # FIXME: Make 1 batch request instead of N requests.
+        for system, faction, inf in systems:
+            try:
+                vals = influence_history_in_system(session, system.id, [faction.id])[faction.id]
+                net_inf = inf.influence - vals[-1].influence
+            except KeyError:
+                net_inf = inf.influence
+            net_change[system.name] = '{}{:.2f}'.format('+' if net_inf > 0 else '', net_inf)
+
+        return (control, factions, net_change)
     except sqla_exe.OperationalError:
         raise cog.exc.RemoteError("Lost connection to Sidewinder's DB.")
 

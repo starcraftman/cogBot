@@ -305,6 +305,15 @@ class CogBot(discord.Client):
         cls = getattr(cog.actions, args.cmd)
         await cls(**kwargs).execute()
 
+    async def send_long_message(self, destination, content=None, *, tts=False, embed=None):
+        """
+        Behaves excactly like Client.send_message except it:
+
+            Splits messages > 2k limit into smaller messages and transmits.
+        """
+        for part in cog.util.complete_blocks(cog.util.msg_splitter(content)):
+            await self.send_message(destination, part, tts=tts, embed=embed)
+
     async def send_message(self, destination, content=None, *, tts=False, embed=None):
         """
         Behaves excactly like Client.send_message except it:
@@ -313,10 +322,10 @@ class CogBot(discord.Client):
             If content is too long, truncate it
         """
         log = logging.getLogger('cog.bot')
-        if content and len(content) > 1975:
+        if content and len(content) > cog.util.MSG_LIMIT:
             log.warning('Critical problem, content len close to 2000 limit. Truncating.\
                         \n    Len is {}, starts with: {}'.format(len(content), content[:50]))
-            content = content[:1975] + '\n**MSG Truncated**'
+            content = content[:cog.util.MSG_LIMIT] + '\n**MSG Truncated**'
 
         attempts = 4
         while attempts:

@@ -24,6 +24,7 @@ except ImportError:
 import cog.exc
 
 EDSM = 'https://www.edsm.net/api-v1/systems'
+MSG_LIMIT = 1985  # Number chars before message truncation
 
 
 class ModFormatter(logging.Formatter):
@@ -210,6 +211,61 @@ def compute_dists(start, others):
         other['dist'] = math.sqrt(dist)
 
     return others
+
+
+def complete_blocks(parts):
+    """
+    Take a list of message parts, complete code blocks as needed to
+    preserve intended formatting.
+
+    Returns:
+        List of messages that have been modified.
+    """
+    new_parts = []
+    incomplete = False
+    block = "```"
+
+    for part in parts:
+        num_blocks = part.count(block) % 2
+        if incomplete and not num_blocks:
+            part = block + part + block
+
+        elif incomplete and num_blocks:
+            part = block + part
+            incomplete = not incomplete
+
+        elif num_blocks:
+            part = part + block
+            incomplete = not incomplete
+
+        new_parts += [part]
+
+    return new_parts
+
+
+def msg_splitter(msg):
+    """
+    Take a msg of arbitrary length and split it into parts that respect discord 2k char limit.
+
+    Returns:
+        List of messages to send in order.
+    """
+    parts = []
+    part_line = ''
+
+    for line in msg.split("\n"):
+        line = line + "\n"
+
+        if len(part_line) + len(line) > MSG_LIMIT:
+            parts += [part_line.rstrip("\n")]
+            part_line = line
+        else:
+            part_line += line
+
+    if part_line:
+        parts += [part_line.rstrip("\n")]
+
+    return parts
 
 
 ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))

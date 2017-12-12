@@ -165,3 +165,32 @@ def test_compute_dists_not_sol():
     cog.util.compute_dists(start, systems)
 
     assert systems == expect
+
+
+def test_complete_block():
+    test1 = ["```Test```"]
+    assert cog.util.complete_blocks(test1) == test1
+
+    test1 = ["```Test"]
+    assert cog.util.complete_blocks(test1) == [test1[0] + "```"]
+
+    test1 = ["```Test", "Test```"]
+    assert cog.util.complete_blocks(test1) == [test1[0] + "```", "```" + test1[1]]
+
+    test1 = ["```Test", "Test", "Test```"]
+    assert cog.util.complete_blocks(test1) == ["```Test```", "```Test```", "```Test```"]
+
+
+def test_msg_splitter():
+    try:
+        old_limit = cog.util.MSG_LIMIT
+        cog.util.MSG_LIMIT = 50
+
+        line = "A short message to"  # 19 char line, 20 with \n
+        test1 = line + "\n" + line + "\n"
+        assert cog.util.msg_splitter(test1) == [test1[:-1]]
+
+        test2 = test1 + "stop here\n" + test1
+        assert cog.util.msg_splitter(test2) == [test1 + "stop here", test1[:-1]]
+    finally:
+        cog.util.MSG_LIMIT = old_limit

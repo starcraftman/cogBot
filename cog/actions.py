@@ -295,14 +295,15 @@ class BGS(Action):
         """ Handle dash subcmd. """
         control_name = cogdb.query.fort_find_system(self.session, system).name
 
-        control, systems = cogdb.side.dash_overview(cogdb.SideSession(), control_name)
-        lines = [['Name', 'Gov', 'Control Faction', 'Inf']]
+        control, systems, net_inf = cogdb.side.dash_overview(cogdb.SideSession(), control_name)
+        lines = [['Name', 'Gov', 'Control Faction', 'Inf', 'Net (5D)']]
         strong = 0
         weak = 0
         anarchy = 0
 
         for bgs_system, faction, gov, inf in systems:
-            lines += [[bgs_system.name, gov.text[:4], faction.name, '{:.2f}'.format(inf.influence)]]
+            lines += [[bgs_system.name[:16], gov.text[:4], faction.name[:16],
+                       '{:.2f}'.format(inf.influence), net_inf[bgs_system.name]]]
             if gov.text == 'Anarchy':
                 anarchy += 1
             elif gov.text == 'Dictatorship':
@@ -312,8 +313,15 @@ class BGS(Action):
 
         table = cog.tbl.wrap_markdown(cog.tbl.format_table(lines, sep=' | ', center=False,
                                                            header=True))
-        header = "**{}**\n__Strong__: {}/{tot} __Weak__: {}/{tot} __Anarchy__: {}\n\n".format(
-            control.name, strong, weak, anarchy, tot=len(systems) - anarchy)
+
+        header = "**{}**".format(control.name)
+        tot = len(systems) - anarchy
+        hlines = [
+            ["Strong", "{}/{}".format(strong, tot)],
+            ["Weak", "{}/{}".format(weak, tot)],
+            ["Anarchy", "{}/{}".format(anarchy, len(systems))],
+        ]
+        header += cog.tbl.wrap_markdown(cog.tbl.format_table(hlines))
 
         return header + table
 
@@ -352,7 +360,7 @@ class BGS(Action):
         except (cog.exc.NoMoreTargets, cog.exc.RemoteError) as exc:
             response = exc.reply()
 
-        await self.bot.send_message(self.msg.channel, response)
+        await self.bot.send_long_message(self.msg.channel, response)
 
 
 class Dist(Action):
