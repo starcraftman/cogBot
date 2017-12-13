@@ -150,7 +150,7 @@ class Influence(SideBase):
     """ Represents influence of a faction in a system. """
     __tablename__ = "influence"
 
-    system_id = sqla.Column(sqla.Integer, primary_key=True)
+    system_id = sqla.Column(sqla.Integer, sqla.ForeignKey('systems.id'), primary_key=True)
     faction_id = sqla.Column(sqla.Integer, primary_key=True)
     state_id = sqla.Column(sqla.Integer)
     influence = sqla.Column(sqla.Numeric(7, 4, None, False))
@@ -230,7 +230,14 @@ class Power(SideBase):
 
 
 class PowerState(SideBase):
-    """ Represents the power state of a system (i.e. control, exploited). """
+    """
+    Represents the power state of a system (i.e. control, exploited).
+
+    |  0 | None      |
+    | 16 | Control   |
+    | 32 | Exploited |
+    | 48 | Contested
+    """
     __tablename__ = "power_state"
 
     id = sqla.Column(sqla.Integer, primary_key=True)
@@ -630,6 +637,24 @@ def system_overview(session, system):
         return (None, None)
 
 
+def factions_count_in_systems(session, system_ids):
+    """
+    Count the number of factions in all systems that are in the system_ids list.
+    """
+    systems = [x[1] for x in session.query(Influence.faction_id, System.name).\
+            filter(Influence.system_id.in_(system_ids)).\
+            join(System).order_by(Influence.system_id)]
+
+    systems_fact_count = {}
+    for system in systems:
+        try:
+            systems_fact_count[system] += 1
+        except KeyError:
+            systems_fact_count[system] = 1
+
+    return systems_fact_count
+
+
 def dash_overview(session, control_system):
     """
     Provide a simple dashboard overview of a control and its exploiteds.
@@ -645,18 +670,19 @@ def dash_overview(session, control_system):
             filter(Influence.faction_id == Faction.id, Influence.system_id == System.id).\
             order_by(Government.text, System.name).all()
 
-        net_change = {}
-        systems = [[faction[0], faction[1], faction[3]] for faction in factions]
+        facts_in_system = factions_count_in_systems(session, [faction[0].id for faction in factions])
+
         # FIXME: Make 1 batch request instead of N requests.
-        for system, faction, inf in systems:
+        net_change = {}
+        for system, faction, inf in [[faction[0], faction[1], faction[3]] for faction in factions]:
             try:
                 vals = influence_history_in_system(session, system.id, [faction.id])[faction.id]
                 net_inf = inf.influence - vals[-1].influence
             except KeyError:
                 net_inf = inf.influence
-            net_change[system.name] = '{}{:.2f}'.format('+' if net_inf > 0 else '', net_inf)
+            net_change[system.name] = '{}{:.1f}'.format('+' if net_inf > 0 else '', net_inf)
 
-        return (control, factions, net_change)
+        return (control, factions, net_change, facts_in_system)
     except sqla_exe.OperationalError:
         raise cog.exc.RemoteError("Lost connection to Sidewinder's DB.")
 
@@ -666,6 +692,7 @@ def main():
     s = cogdb.SideSession()
     # o = s.query(System).filter_by(name='Othime').one()
     __import__('pprint').pprint(dash_overview(s, 'Othime'))
+
     # systems = [system for system in s.query(System).filter(System.dist_to(o) <= 15, System.power_state_id != 16) if system.name != o.name]
     # systems = s.query(System).filter(System.dist_to(o) <= 15, System.power_state_id != 16).all()
     # print(len(systems))

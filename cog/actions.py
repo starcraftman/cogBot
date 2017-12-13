@@ -7,6 +7,7 @@ from __future__ import absolute_import, print_function
 import asyncio
 import datetime
 import logging
+import math
 import re
 import sys
 from functools import partial
@@ -295,15 +296,20 @@ class BGS(Action):
         """ Handle dash subcmd. """
         control_name = cogdb.query.fort_find_system(self.session, system).name
 
-        control, systems, net_inf = cogdb.side.dash_overview(cogdb.SideSession(), control_name)
-        lines = [['Name', 'Gov', 'Control Faction', 'Inf', 'Net (5D)']]
+        control, systems, net_inf, facts_count = cogdb.side.dash_overview(cogdb.SideSession(), control_name)
+        lines = [['System', 'Control Faction', 'Gov', 'Inf', 'Net', 'Cnt', 'Pop']]
         strong = 0
         weak = 0
         anarchy = 0
 
         for bgs_system, faction, gov, inf in systems:
-            lines += [[bgs_system.name[:16], gov.text[:4], faction.name[:16],
-                       '{:.2f}'.format(inf.influence), net_inf[bgs_system.name]]]
+            lines += [[bgs_system.name[:12], faction.name[:20], gov.text[:3],
+                       '{:.1f}'.format(inf.influence), net_inf[bgs_system.name],
+                        facts_count[bgs_system.name],
+                       '{:.1f}'.format(math.log(bgs_system.population, 10)),
+                    ]]
+            if bgs_system.power_state_id == 16:
+                continue
             if gov.text == 'Anarchy':
                 anarchy += 1
             elif gov.text == 'Dictatorship':
@@ -323,7 +329,14 @@ class BGS(Action):
         ]
         header += cog.tbl.wrap_markdown(cog.tbl.format_table(hlines))
 
-        return header + table
+        explain = """
+**Net**: Net change in influence over last 5 days. There may not be 5 days of data.
+         If Net == Inf, they just took control.
+**Cnt**: The number of factions present in a system.
+**Pop**: log10(population), i.e. log10(10000) = 4.0
+        """
+
+        return header + table + explain
 
     def sys_overview(self, system):
         """ Handle sys subcmd. """
