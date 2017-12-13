@@ -646,12 +646,12 @@ def factions_count_in_systems(session, system_ids):
     """
     Count the number of factions in all systems that are in the system_ids list.
     """
-    systems = [x[1] for x in session.query(Influence.faction_id, System.name).\
+    systems = session.query(Influence.faction_id, System.name).\
             filter(Influence.system_id.in_(system_ids)).\
-            join(System).order_by(Influence.system_id)]
+            join(System).order_by(Influence.system_id).all()
 
     systems_fact_count = {}
-    for system in systems:
+    for _, system in systems:
         try:
             systems_fact_count[system] += 1
         except KeyError:
