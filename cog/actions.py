@@ -298,7 +298,7 @@ class BGS(Action):
         control, systems, net_inf, facts_count = cogdb.side.dash_overview(cogdb.SideSession(),
                                                                           control_name)
 
-        lines = [['System', 'Control Faction', 'Gov', 'Inf', 'Net', 'Cnt', 'Pop']]
+        lines = [['System', 'Control Faction', 'Gov', 'Inf', 'Net', 'N', 'Pop']]
         cnt = {
             "anarchy": 0,
             "strong": 0,
@@ -308,8 +308,7 @@ class BGS(Action):
         for system, faction, gov, inf in systems:
             lines += [[system.name[:12], faction.name[:20], gov.text[:3],
                        '{:.1f}'.format(inf.influence), net_inf[system.name],
-                       facts_count[system.name],
-                       '{:.1f}'.format(math.log(system.population, 10)),
+                       facts_count[system.name], system.log_pop
                       ]]
             if system.power_state_id == 16:
                 continue
@@ -334,7 +333,7 @@ class BGS(Action):
         explain = """
 **Net**: Net change in influence over last 5 days. There may not be 5 days of data.
          If Net == Inf, they just took control.
-**Cnt**: The number of factions present in a system.
+**N**: The number of factions present in a system.
 **Pop**: log10(population), i.e. log10(10000) = 4.0
          This is the exponent that would carry 10 to the population of the system.
          Example: Pop = 4.0 then actual population is: 10 ^ 4.0 = 10000

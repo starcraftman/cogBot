@@ -388,6 +388,11 @@ class System(SideBase):
     def __eq__(self, other):
         return isinstance(self, System) and isinstance(other, System) and self.id == other.id
 
+    @property
+    def log_pop(self):
+        """ The log base 10 of the population. For terse representation. """
+        return '{:.1f}'.format(math.log(self.population, 10))
+
     @hybrid_method
     def dist_to(self, other):
         """
