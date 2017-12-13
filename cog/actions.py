@@ -292,40 +292,42 @@ class BGS(Action):
 
         return "Received an empty list, check the system name."
 
-    def dash_overview(self, system):
+    def dash_overview(self, control):
         """ Handle dash subcmd. """
-        control_name = cogdb.query.fort_find_system(self.session, system).name
+        control_name = cogdb.query.fort_find_system(self.session, control).name
+        control, systems, net_inf, facts_count = cogdb.side.dash_overview(cogdb.SideSession(),
+                                                                          control_name)
 
-        control, systems, net_inf, facts_count = cogdb.side.dash_overview(cogdb.SideSession(), control_name)
         lines = [['System', 'Control Faction', 'Gov', 'Inf', 'Net', 'Cnt', 'Pop']]
-        strong = 0
-        weak = 0
-        anarchy = 0
+        cnt = {
+            "anarchy": 0,
+            "strong": 0,
+            "weak": 0,
+        }
 
-        for bgs_system, faction, gov, inf in systems:
-            lines += [[bgs_system.name[:12], faction.name[:20], gov.text[:3],
-                       '{:.1f}'.format(inf.influence), net_inf[bgs_system.name],
-                        facts_count[bgs_system.name],
-                       '{:.1f}'.format(math.log(bgs_system.population, 10)),
-                    ]]
-            if bgs_system.power_state_id == 16:
+        for system, faction, gov, inf in systems:
+            lines += [[system.name[:12], faction.name[:20], gov.text[:3],
+                       '{:.1f}'.format(inf.influence), net_inf[system.name],
+                       facts_count[system.name],
+                       '{:.1f}'.format(math.log(system.population, 10)),
+                      ]]
+            if system.power_state_id == 16:
                 continue
             if gov.text == 'Anarchy':
-                anarchy += 1
+                cnt["anarchy"] += 1
             elif gov.text == 'Dictatorship':
-                weak += 1
+                cnt["weak"] += 1
             elif gov.text == 'Feudal' or gov.text == 'Patronage':
-                strong += 1
+                cnt["strong"] += 1
 
         table = cog.tbl.wrap_markdown(cog.tbl.format_table(lines, sep=' | ', center=False,
                                                            header=True))
 
         header = "**{}**".format(control.name)
-        tot = len(systems) - anarchy
         hlines = [
-            ["Strong", "{}/{}".format(strong, tot)],
-            ["Weak", "{}/{}".format(weak, tot)],
-            ["Anarchy", "{}/{}".format(anarchy, len(systems))],
+            ["Strong", "{}/{}".format(cnt["strong"], len(systems) - cnt["anarchy"])],
+            ["Weak", "{}/{}".format(cnt["weak"], len(systems) - cnt["anarchy"])],
+            ["Anarchy", "{}/{}".format(cnt["anarchy"], len(systems))],
         ]
         header += cog.tbl.wrap_markdown(cog.tbl.format_table(hlines))
 
@@ -334,6 +336,8 @@ class BGS(Action):
          If Net == Inf, they just took control.
 **Cnt**: The number of factions present in a system.
 **Pop**: log10(population), i.e. log10(10000) = 4.0
+         This is the exponent that would carry 10 to the population of the system.
+         Example: Pop = 4.0 then actual population is: 10 ^ 4.0 = 10000
         """
 
         return header + table + explain
