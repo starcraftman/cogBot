@@ -660,6 +660,33 @@ def factions_count_in_systems(session, system_ids):
     return systems_fact_count
 
 
+def history_for_system_faction_pairs(session, data_pairs):
+    """
+    Find the influence history for all pairs of systems and factions provided in data pairs.
+    That is data_pairs is: [[system_id, faction_id], [system_id, faction_id], ...]
+
+    Returns:
+        Oldest historical influence data for each system_id/faction_id pair. Of form:
+    """
+    look_for = [sqla.and_(InfluenceHistory.system_id == pair[0],
+                          InfluenceHistory.faction_id == pair[1])
+                for pair in data_pairs]
+
+    time_window = time.time() - (60 * 60 * 24 * 5)
+    inf_history = session.query(InfluenceHistory).\
+        filter(sqla.or_(*look_for)).\
+        filter(InfluenceHistory.updated_at >= time_window).\
+        order_by(InfluenceHistory.system_id, InfluenceHistory.faction_id,
+                 InfluenceHistory.updated_at.desc()).all()
+
+    pair_hist = {}
+    for hist in inf_history:
+        key = "{}{}".format(hist.system_id, hist.faction_id)
+        pair_hist[key] = hist.influence
+
+    return pair_hist
+
+
 def dash_overview(session, control_system):
     """
     Provide a simple dashboard overview of a control and its exploiteds.
@@ -675,14 +702,16 @@ def dash_overview(session, control_system):
             filter(Influence.faction_id == Faction.id, Influence.system_id == System.id).\
             order_by(Government.text, System.name).all()
 
-        facts_in_system = factions_count_in_systems(session, [faction[0].id for faction in factions])
+        facts_in_system = factions_count_in_systems(session,
+                                                    [faction[0].id for faction in factions])
 
-        # FIXME: Make 1 batch request instead of N requests.
+        data_pairs = [[faction[0].id, faction[1].id] for faction in factions]
+        hist_for_pairs = history_for_system_faction_pairs(session, data_pairs)
+
         net_change = {}
         for system, faction, inf in [[faction[0], faction[1], faction[3]] for faction in factions]:
             try:
-                vals = influence_history_in_system(session, system.id, [faction.id])[faction.id]
-                net_inf = inf.influence - vals[-1].influence
+                net_inf = inf.influence - hist_for_pairs["{}{}".format(system.id, faction.id)]
             except KeyError:
                 net_inf = inf.influence
             net_change[system.name] = '{}{:.1f}'.format('+' if net_inf > 0 else '', net_inf)
@@ -693,26 +722,7 @@ def dash_overview(session, control_system):
 
 
 def main():
-    import cogdb
-    s = cogdb.SideSession()
-    # o = s.query(System).filter_by(name='Othime').one()
-    __import__('pprint').pprint(dash_overview(s, 'Othime'))
-
-    # systems = [system for system in s.query(System).filter(System.dist_to(o) <= 15, System.power_state_id != 16) if system.name != o.name]
-    # systems = s.query(System).filter(System.dist_to(o) <= 15, System.power_state_id != 16).all()
-    # print(len(systems))
-    # print(o, [system.name for system in systems])
-    # fact_ids = [system.controlling_faction_id for system in systems]
-
-    # sys_names = [system.name for system in systems]
-    # res = s.query(System.name, Faction, Government).\
-            # filter(System.name.in_(sys_names)).\
-            # filter(Faction.id == System.controlling_faction_id).\
-            # filter(Faction.government_id == Government.id).all()
-    # __import__('pprint').pprint((res))
-
-    # __import__('pprint').pprint(systems)
-    # print(o, systems[0], o.dist_to(systems[0]))
+    pass
 
 
 if __name__ == "__main__":
