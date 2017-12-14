@@ -37,7 +37,7 @@ async def test_inara_api_key_unset(f_bot):
         cog.inara.API_KEY = None
 
         api = cog.inara.InaraApi()
-        api.bot = f_bot
+        cog.util.BOT = f_bot
         await api.search_with_api('gearsandcogs',
                                   fake_msg_gears('!whois gearsandcogs'))
         assert "!whois is currently disabled." in str(f_bot.send_message.call_args)
@@ -49,7 +49,7 @@ async def test_inara_api_key_unset(f_bot):
 async def test_search_with_api(f_bot):
     api = cog.inara.InaraApi()
     f_bot.wait_for_message.async_return_value = fake_msg_gears('stop')
-    api.bot = f_bot
+    cog.util.BOT = f_bot
     f_msg = fake_msg_gears('!whois gearsandcogs')
     cmdr = await api.search_with_api('gearsandcogs', f_msg)
 
@@ -61,7 +61,7 @@ async def test_search_with_api(f_bot):
 async def test_reply_with_api_result(f_bot):
     api = cog.inara.InaraApi()
     f_bot.wait_for_message.async_return_value = fake_msg_gears('stop')
-    api.bot = f_bot
+    cog.util.BOT = f_bot
     f_msg = fake_msg_gears('!whois gearsandcogs')
     cmdr = await api.search_with_api('gearsandcogs', f_msg)
     await api.reply_with_api_result(cmdr["req_id"], cmdr["event_data"], f_msg, False)
@@ -74,7 +74,7 @@ async def test_reply_with_api_result(f_bot):
 async def test_select_from_multiple_exact(f_bot):
     api = cog.inara.InaraApi()
     f_bot.wait_for_message.async_return_value = fake_msg_gears('cmdr 2')
-    api.bot = f_bot
+    cog.util.BOT = f_bot
     cmdr = await api.search_with_api('gears', fake_msg_gears('!whois gears'))
     assert cmdr["name"] == "GearsandCogs"
     with pytest.raises(KeyError):
@@ -85,7 +85,7 @@ async def test_select_from_multiple_exact(f_bot):
 async def test_select_from_multiple_stop(f_bot):
     api = cog.inara.InaraApi()
     f_bot.wait_for_message.async_return_value = fake_msg_gears('stop')
-    api.bot = f_bot
+    cog.util.BOT = f_bot
     with pytest.raises(cog.exc.CmdAborted):
         await api.search_with_api('gears', fake_msg_gears('!whois gears'))
 

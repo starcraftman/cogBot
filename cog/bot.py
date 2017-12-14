@@ -165,13 +165,10 @@ class CogBot(discord.Client):
 
         # This block is effectively a one time setup.
         if not cog.actions.SCANNERS:
-            cog.inara.api.bot = self
-
             # TODO: Parallelize startup with scheduler and jobs.
             for name in cog.util.get_config("scanners"):  # Populate on import
                 cog.actions.init_scanner(name)
 
-            cog.scheduler.BOT = self
             self.sched.register('hudson_cattle', cog.actions.get_scanner('hudson_cattle'),
                                 ['Drop', 'Fort', 'User'])
             self.sched.register('hudson_undermine', cog.actions.get_scanner('hudson_undermine'),
@@ -423,13 +420,14 @@ def main():  # pragma: no cover
     """ Entry here! """
     try:
         cog.util.init_logging()
-        bot = CogBot("!")
+        cog.util.BOT = CogBot("!")
+
         # BLOCKING: N.o. e.s.c.a.p.e.
-        bot.run(cog.util.get_config('discord', os.environ.get('COG_TOKEN', 'dev')))
+        cog.util.BOT.run(cog.util.get_config('discord', os.environ.get('COG_TOKEN', 'dev')))
     finally:
         try:
-            bot.logout()
-        except UnboundLocalError:
+            cog.util.BOT.logout()
+        except AttributeError:
             pass
 
 

@@ -112,15 +112,14 @@ class InaraApi():
     Inara CMDR lookups done with aiohttp module.
     Each request tracked separately, allows for back and forth with bot on loose match.
     """
-    def __init__(self, bot=None):
-        self.bot = bot
+    def __init__(self):
         self.req_counter = 0  # count how many searches done with search_in_inara
         self.waiting_messages = {}  # 'Searching in inara.cz' messages. keys are req_id.
 
     async def delete_waiting_message(self, req_id):  # pragma: no cover
         """ Delete the message which informs user about start of search """
         if req_id in self.waiting_messages:
-            await self.bot.delete_message(self.waiting_messages[req_id])
+            await cog.util.BOT.delete_message(self.waiting_messages[req_id])
             del self.waiting_messages[req_id]
 
     async def search_with_api(self, cmdr_name, msg, ignore_multiple_match=False):
@@ -138,8 +137,8 @@ class InaraApi():
         """
         # keep search disabled if there is no API_KEY
         if not API_KEY:
-            await self.bot.send_message(msg.channel,
-                                        "!whois is currently disabled. Inara API key is not set.")
+            await cog.util.BOT.send_message(msg.channel,
+                                            "!whois is currently disabled. Inara API key is not set.")
             return None
 
         # request id
@@ -148,8 +147,8 @@ class InaraApi():
 
         try:
             # inform user about initiating the search.
-            self.waiting_messages[req_id] = await self.bot.send_message(msg.channel,
-                                                                        "Searching inara.cz ...")
+            self.waiting_messages[req_id] = await cog.util.BOT.send_message(msg.channel,
+                                                                            "Searching inara.cz ...")
 
             api_input = InaraApiInput()
             api_input.add_event("getCommanderProfile", {"searchName": cmdr_name})
@@ -175,8 +174,8 @@ class InaraApi():
 
             event = response_json["events"][0]
             if event["eventStatus"] == API_RESPONSE_CODES["no result"]:
-                await self.bot.send_message(msg.channel,
-                                            "Could not find CMDR **{}**".format(cmdr_name))
+                await cog.util.BOT.send_message(msg.channel,
+                                                "Could not find CMDR **{}**".format(cmdr_name))
                 return None
 
             event_data = event["eventData"]
@@ -249,9 +248,9 @@ class InaraApi():
         user_select = None
         while True:
             try:
-                responses = [await self.bot.send_message(msg.channel, reply)]
-                user_select = await self.bot.wait_for_message(timeout=30, author=msg.author,
-                                                              channel=msg.channel)
+                responses = [await cog.util.BOT.send_message(msg.channel, reply)]
+                user_select = await cog.util.BOT.wait_for_message(timeout=30, author=msg.author,
+                                                                  channel=msg.channel)
                 if user_select:
                     responses += [user_select]
 
@@ -260,10 +259,10 @@ class InaraApi():
                 return cmdrs_dict[key]
             except (KeyError, ValueError) as exc:
                 if user_select:
-                    responses += [await self.bot.send_message(msg.channel, str(exc))]
+                    responses += [await cog.util.BOT.send_message(msg.channel, str(exc))]
             finally:
                 asyncio.ensure_future(asyncio.gather(
-                    *[self.bot.delete_message(response) for response in responses]))
+                    *[cog.util.BOT.delete_message(response) for response in responses]))
 
     async def wing_details(self, event_data, cmdr):
         """
@@ -360,7 +359,7 @@ class InaraApi():
         # crosscheck who-is with KOS list, then append information to embed
 
         for embed in embeds:
-            await self.bot.send_message(msg.channel, embed=embed)
+            await cog.util.BOT.send_message(msg.channel, embed=embed)
 
         await self.delete_waiting_message(req_id)
 

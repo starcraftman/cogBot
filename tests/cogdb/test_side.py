@@ -8,6 +8,7 @@ import pytest
 from sqlalchemy.sql import text as sql_text
 
 import cog.exc
+import cog.util
 import cogdb.side
 from cogdb.side import BGSTick, SystemAge, System
 
@@ -22,7 +23,8 @@ def test_systemage__repr__(side_session):
     assert repr(system) == "SystemAge(control='16 Cygni', system='16 Cygni', age=1)"
 
 
-def test_next_bgs_tick(side_session):
+def test_next_bgs_tick(side_session, f_bot):
+    cog.util.BOT = f_bot
     query = sql_text("SELECT tick FROM bgs_tick ORDER BY tick desc LIMIT 1")
     last_tick = side_session.execute(query).fetchone()[0]
 

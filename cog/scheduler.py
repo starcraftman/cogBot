@@ -15,8 +15,8 @@ import zmq
 import zmq.asyncio
 
 import cog.jobs
+import cog.util
 
-BOT = None  # TODO: Bit ugly
 POST_ADDR = "tcp://127.0.0.1:9000"
 
 
@@ -194,5 +194,6 @@ def scan_done_cb(wrap, _):
 def scan_fail_cb():
     """ If a scheduled update fails, notify hideout. """
     msg = "A scheduled sheet update failed. {} may have to look at me."
-    asyncio.ensure_future(BOT.send_message(BOT.get_channel_by_name('private_dev'),
-                                           msg.format(BOT.get_member_by_substr("gearsandcogs"))))
+    asyncio.ensure_future(cog.util.BOT.send_message(
+        cog.util.BOT.get_channel_by_name('private_dev'),
+        msg.format(cog.util.BOT.get_member_by_substr("gearsandcogs"))))

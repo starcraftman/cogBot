@@ -497,10 +497,13 @@ def f_bot():
         bot.uptime
         bot.prefix
     """
+    member = aiomock.Mock()
+    member.mention = "@Sidewinder40"
     fake_bot = aiomock.AIOMock(uptime=5, prefix="!")
     fake_bot.send_message.async_return_value = None
     fake_bot.send_ttl_message.async_return_value = None
     fake_bot.send_long_message.async_return_value = None
+    fake_bot.get_member_by_substr.return_value = member
     fake_bot.delete_message.async_return_value = None
     fake_bot.emoji.fix = lambda x, y: x
     fake_bot.servers = fake_servers()

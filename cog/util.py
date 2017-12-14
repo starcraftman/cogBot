@@ -23,6 +23,7 @@ except ImportError:
 
 import cog.exc
 
+BOT = None
 EDSM = 'https://www.edsm.net/api-v1/systems'
 MSG_LIMIT = 1985  # Number chars before message truncation
 

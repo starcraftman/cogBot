@@ -15,6 +15,7 @@ from sqlalchemy import func as sqlfunc
 from sqlalchemy.ext.hybrid import hybrid_method
 
 import cog.exc
+import cog.util
 
 LEN_FACTION = 64
 LEN_STATION = 50
@@ -455,7 +456,8 @@ def next_bgs_tick(session, now):
             return "BGS Tick in **{}**    (Expected {})".format(result.tick - now, result.tick)
         else:
             log.warning("BGS_TICK - Remote out of estimates")
-            raise cog.exc.NoMoreTargets("BGS Tick estimate unavailable. No more estimates, ask @Sidewinder40")
+            side = cog.util.BOT.get_member_by_substr("sidewinder40")
+            raise cog.exc.NoMoreTargets("BGS Tick estimate unavailable. No more estimates, " + side.mention)
     except sqla_exe.OperationalError:
         raise cog.exc.RemoteError("Lost connection to Sidewinder's DB.")
 
