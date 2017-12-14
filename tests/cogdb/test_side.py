@@ -9,7 +9,7 @@ from sqlalchemy.sql import text as sql_text
 
 import cog.exc
 import cogdb.side
-from cogdb.side import BGSTick, SystemAge
+from cogdb.side import BGSTick, SystemAge, System
 
 
 def test_bgstick__repr__(side_session):
@@ -84,3 +84,27 @@ def test_system_overview(side_session):
     frg = factions[0]
     assert frg['name'] == '-> Conf | Federal Republican Guard'
     assert frg['player'] == 1
+
+
+def test_count_factions_in_system(side_session):
+    sys_id = side_session.query(System.id).filter(System.name == "Sol").one()
+    assert cogdb.side.count_factions_in_systems(side_session, sys_id) == {"Sol": 6}
+
+
+def test_inf_history_for_pairs(side_session):
+    # Pairs in Sol, essentially static, last is engineer ignore
+    pairs = [(17072, 588), (17072, 589), (17072, 591), (17072, 592), (17072, 593)]
+    result = cogdb.side.inf_history_for_pairs(side_session, pairs)
+
+    for sys_id, fact_id in pairs:
+        assert "{}_{}".format(sys_id, fact_id) in result
+
+
+def test_dash_overview(side_session):
+    control, factions, net_change, fact_count = cogdb.side.dash_overview(side_session, 'Sol')
+
+    assert control.name == "Sol"
+    assert fact_count["Sol"] == 6
+    assert "Sol" in net_change
+    sol_control = [x[1] for x in factions if x[0].name == "Sol"][0]
+    assert sol_control.id in [588, 589, 591, 592, 593]

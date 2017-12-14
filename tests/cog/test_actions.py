@@ -118,8 +118,17 @@ async def test_cmd_bgs_age(side_session, event_loop, f_bot, f_systems):
     await action_map(msg, f_bot).execute()
 
     line = [word.strip().replace("```')", '') for word in
-            str(f_bot.send_message.call_args).split('\\n')[2].split('|')]
+            str(f_bot.send_long_message.call_args).split('\\n')[2].split('|')]
     assert line == [row.control, row.system, str(row.age)]
+
+
+@pytest.mark.asyncio
+async def test_cmd_bgs_dash(side_session, event_loop, f_systems, f_bot):
+    msg = fake_msg_gears("!bgs dash Othime")
+
+    await action_map(msg, f_bot).execute()
+
+    assert "VESPER-M4    | " in str(f_bot.send_long_message.call_args).replace("\\n", "\n")
 
 
 @pytest.mark.asyncio
@@ -128,7 +137,7 @@ async def test_cmd_bgs_inf(side_session, event_loop, f_bot):
 
     await action_map(msg, f_bot).execute()
 
-    assert "Mother Gaia" in str(f_bot.send_message.call_args).replace("\\n", "\n")
+    assert "Mother Gaia" in str(f_bot.send_long_message.call_args).replace("\\n", "\n")
 
 
 @pytest.mark.asyncio
@@ -136,7 +145,7 @@ async def test_cmd_bgs_sys(side_session, event_loop, f_bot):
     msg = fake_msg_gears("!bgs sys Sol")
 
     await action_map(msg, f_bot).execute()
-    reply = str(f_bot.send_message.call_args).replace("\\n", "\n")
+    reply = str(f_bot.send_long_message.call_args).replace("\\n", "\n")
 
     assert '**Sol**: ' in reply
     assert r'```autohotkey' in reply

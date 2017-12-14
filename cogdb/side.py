@@ -543,19 +543,19 @@ def influence_history_in_system(session, system_id, fact_ids, time_window=None):
         if not time_window:
             time_window = time.time() - (60 * 60 * 24 * 5)
 
-        inf_history = session.query(Faction.id, InfluenceHistory).\
-            filter(Faction.id == InfluenceHistory.faction_id).\
+        inf_history = session.query(InfluenceHistory).\
             filter(InfluenceHistory.system_id == system_id).\
             filter(InfluenceHistory.faction_id.in_(fact_ids)).\
             filter(InfluenceHistory.updated_at >= time_window).\
-            order_by(Faction.id, InfluenceHistory.updated_at.desc()).all()
+            order_by(InfluenceHistory.faction_id,
+                     InfluenceHistory.updated_at.desc()).all()
 
         inf_dict = {}
-        for tup in inf_history:
+        for hist in inf_history:
             try:
-                inf_dict[tup[0]] += [tup[1]]
+                inf_dict[hist.faction_id] += [hist]
             except KeyError:
-                inf_dict[tup[0]] = [tup[1]]
+                inf_dict[hist.faction_id] = [hist]
 
         return inf_dict
     except sqla_exe.OperationalError:
@@ -642,13 +642,13 @@ def system_overview(session, system):
         return (None, None)
 
 
-def factions_count_in_systems(session, system_ids):
+def count_factions_in_systems(session, system_ids):
     """
     Count the number of factions in all systems that are in the system_ids list.
     """
     systems = session.query(Influence.faction_id, System.name).\
-            filter(Influence.system_id.in_(system_ids)).\
-            join(System).order_by(Influence.system_id).all()
+        filter(Influence.system_id.in_(system_ids)).\
+        join(System).order_by(Influence.system_id).all()
 
     systems_fact_count = {}
     for _, system in systems:
@@ -660,7 +660,7 @@ def factions_count_in_systems(session, system_ids):
     return systems_fact_count
 
 
-def history_for_system_faction_pairs(session, data_pairs):
+def inf_history_for_pairs(session, data_pairs):
     """
     Find the influence history for all pairs of systems and factions provided in data pairs.
     That is data_pairs is: [[system_id, faction_id], [system_id, faction_id], ...]
@@ -681,7 +681,7 @@ def history_for_system_faction_pairs(session, data_pairs):
 
     pair_hist = {}
     for hist in inf_history:
-        key = "{}{}".format(hist.system_id, hist.faction_id)
+        key = "{}_{}".format(hist.system_id, hist.faction_id)
         pair_hist[key] = hist.influence
 
     return pair_hist
@@ -702,19 +702,19 @@ def dash_overview(session, control_system):
             filter(Influence.faction_id == Faction.id, Influence.system_id == System.id).\
             order_by(Government.text, System.name).all()
 
-        facts_in_system = factions_count_in_systems(session,
+        facts_in_system = count_factions_in_systems(session,
                                                     [faction[0].id for faction in factions])
 
         data_pairs = [[faction[0].id, faction[1].id] for faction in factions]
-        hist_for_pairs = history_for_system_faction_pairs(session, data_pairs)
+        hist_for_pairs = inf_history_for_pairs(session, data_pairs)
 
         net_change = {}
         for system, faction, inf in [[faction[0], faction[1], faction[3]] for faction in factions]:
             try:
-                net_inf = inf.influence - hist_for_pairs["{}{}".format(system.id, faction.id)]
+                net_inf = inf.influence - hist_for_pairs["{}_{}".format(system.id, faction.id)]
             except KeyError:
                 net_inf = inf.influence
-            net_change[system.name] = '{}{:.1f}'.format('+' if net_inf > 0 else '', net_inf)
+            net_change[system.name] = '{}{:.1f}'.format('+' if net_inf >= 0 else '', net_inf)
 
         return (control, factions, net_change, facts_in_system)
     except sqla_exe.OperationalError:

@@ -112,7 +112,7 @@ def subs_bgs(subs, prefix):
 {prefix}bgs age 16 cygni
         Show exploiteds in 16 Cygni bubble by age.
 {prefix}bgs dash othime
-        Show exploiteds around othime and who controls them.
+        Show the bgs state of a bubble's exploited systems.
 {prefix}bgs inf Sol
         Show the factions and their influence in Sol.
 {prefix}bgs sys Frey

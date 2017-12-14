@@ -487,6 +487,7 @@ def f_bot():
 
     Bot must have methods:
         bot.send_message
+        bot.send_long_message
         bot.send_ttl_message
         bot.delete_message
         bot.emoji.fix - EmojiResolver tested elsewhere
@@ -499,6 +500,7 @@ def f_bot():
     fake_bot = aiomock.AIOMock(uptime=5, prefix="!")
     fake_bot.send_message.async_return_value = None
     fake_bot.send_ttl_message.async_return_value = None
+    fake_bot.send_long_message.async_return_value = None
     fake_bot.delete_message.async_return_value = None
     fake_bot.emoji.fix = lambda x, y: x
     fake_bot.servers = fake_servers()
