@@ -306,13 +306,11 @@ class BGS(Action):
 
         for system, faction, gov, inf in systems:
             lines += [[
-                system.name[:12], faction.name[:20], gov.text[:3],
+                system.name[-12:], faction.name[:20], gov.text[:3],
                 '{:.1f}'.format(inf.influence), net_inf[system.name],
                 facts_count[system.name], system.log_pop
             ]]
 
-            if system.power_state_id == 16:
-                continue
             if gov.text == 'Anarchy':
                 cnt["anarchy"] += 1
             elif gov.text == 'Dictatorship':
