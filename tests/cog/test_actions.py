@@ -128,7 +128,7 @@ async def test_cmd_bgs_dash(side_session, event_loop, f_systems, f_bot):
 
     await action_map(msg, f_bot).execute()
 
-    assert "VESPER-M4    | " in str(f_bot.send_long_message.call_args).replace("\\n", "\n")
+    assert "Euboa       | " in str(f_bot.send_long_message.call_args).replace("\\n", "\n")
 
 
 @pytest.mark.asyncio

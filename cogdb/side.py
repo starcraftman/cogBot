@@ -698,11 +698,11 @@ def dash_overview(session, control_system):
     try:
         control = session.query(System).filter_by(name=control_system).one()
         factions = session.query(System, Faction, Government, Influence).\
-            filter(System.dist_to(control) <= 15).\
+            filter(sqla.and_(System.dist_to(control) <= 15, System.power_state_id != 48)).\
             filter(Faction.id == System.controlling_faction_id).\
             filter(Faction.government_id == Government.id).\
             filter(Influence.faction_id == Faction.id, Influence.system_id == System.id).\
-            order_by(Government.text, System.name).all()
+            order_by(System.name).all()
 
         facts_in_system = count_factions_in_systems(session,
                                                     [faction[0].id for faction in factions])
