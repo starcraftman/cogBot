@@ -9,6 +9,9 @@ from cogdb.side import System, Faction, Influence, Government
 
 
 def count_facts(factions):
+    """
+    Count all the factions within a bubble's systems.
+    """
     cnts = {}
 
     for sys, *_, gov in factions:
@@ -26,6 +29,9 @@ def count_facts(factions):
 
 
 def write_report():
+    """
+    Generate a report covering breakdown of faction governments in Hudson bubbles.
+    """
     print("Report being generated, please wait patiently.")
     session = cogdb.SideSession()
     controls = session.query(System).\
@@ -53,8 +59,44 @@ def write_report():
     print("Report written to /tmp/report.txt")
 
 
+def feudal_finder():
+    """
+    Find favorable feudals or patronages around a system.
+    """
+    session = cogdb.SideSession()
+    s_name = input('System to look around: ')
+    centre = session.query(System).filter(System.name == s_name).one()
+
+    dist = 5
+    while True:
+        dist += 5
+        print("Searching all systems <= {} from {}.".format(dist, s_name))
+        matches = session.query(System, Influence, Faction, Government).\
+                filter(sqla.and_(System.dist_to(centre) <= dist,
+                                 Influence.system_id == System.id,
+                                 Faction.id == Influence.faction_id,
+                                 Faction.government_id == Government.id,
+                                 Government.id.in_(['128', '144'])
+                                )).\
+                order_by(System.dist_to(centre)).\
+                all()
+
+        if matches:
+            header = "\n{:16} {:4} {:5} {:5} {}".format(
+                'System Name', 'Govt', 'Dist', 'Inf', 'Faction Name')
+            print(header + '\n' + '-' * len(header))
+
+            for sys, inf, faction, gov in matches:
+                print("{:16} {} {:5.2f} {:5.2f} {}".format(sys.name[:16], gov.text[:4],
+                                                           sys.dist_to(centre),
+                                                           inf.influence, faction.name))
+
+            break
+
+
 def main():
-    write_report()
+    # write_report()
+    feudal_finder()
 
 
 if __name__ == "__main__":
