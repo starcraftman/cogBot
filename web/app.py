@@ -14,6 +14,7 @@ Tutorial:
     https://www.digitalocean.com/community/tutorials/how-to-deploy-python-wsgi-apps-using-gunicorn-http-server-behind-nginx
 """
 from __future__ import absolute_import, print_function
+import asyncio
 import atexit
 import functools
 import logging
@@ -27,6 +28,11 @@ import aiozmq
 import aiozmq.rpc
 import sanic
 import sanic.response
+try:
+    import uvloop
+    asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
+except ImportError:
+    print("Falling back to default python loop.")
 
 app = sanic.Sanic()
 ADDR = 'tcp://127.0.0.1:9000'
