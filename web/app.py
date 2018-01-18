@@ -52,7 +52,7 @@ def init_log():
     logger = logging.getLogger('posts')
     logger.setLevel(logging.DEBUG)
 
-    max_size = 1024 * 1024 * 1024
+    max_size = 1024 * 1024
     handler = logging.handlers.RotatingFileHandler(LOG_FILE, mode='a', maxBytes=max_size,
                                                    backupCount=1)
     handler.setLevel(logging.DEBUG)
