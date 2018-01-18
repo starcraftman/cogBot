@@ -5,7 +5,7 @@ Async replacement for Flask called Sanic
     https://sanic.readthedocs.io/en/latest/
 
 POST with curl:
-    curl -H "Content-Type: application/json" -d '{"scanner": "hudson_cattle", "timestamp": 1}' http://localhost:8000/post
+    curl -H "Content-Type: application/json" -d '{"scanner": "hudson_cattle", "time": 1}' http://localhost:8000/post
 
 Run Gunicorn:
     PYTHONPATH=/project/root gunicorn -b 127.0.0.1:8000 web.app:main
@@ -83,7 +83,7 @@ async def post(request):
 
         try:
             log.info('Publishing for scanner %s', data['scanner'])
-            await PUB.publish('POSTs').remote_func(data['scanner'], data['timestamp'])
+            await PUB.publish('POSTs').remote_func(data['scanner'], data['time'])
         except KeyError:
             log.error('JSON request malformed ...' + str(data))
 
