@@ -323,8 +323,8 @@ class BGS(Action):
 
         header = "**{}**".format(control.name)
         hlines = [
-            ["Strong", "{}/{}".format(cnt["strong"], len(systems) - cnt["anarchy"])],
-            ["Weak", "{}/{}".format(cnt["weak"], len(systems) - cnt["anarchy"])],
+            ["Strong", "{}/{}".format(cnt["strong"], len(systems))],
+            ["Weak", "{}/{}".format(cnt["weak"], len(systems))],
             ["Anarchy", "{}/{}".format(cnt["anarchy"], len(systems))],
         ]
         header += cog.tbl.wrap_markdown(cog.tbl.format_table(hlines))
