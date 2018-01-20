@@ -4,7 +4,7 @@ For main documentation consult cog/bot.py
 from __future__ import absolute_import, print_function
 import sys
 
-__version__ = '0.1.0'
+__version__ = '0.2.0'
 
 try:
     assert sys.version_info[0:2] >= (3, 5)
