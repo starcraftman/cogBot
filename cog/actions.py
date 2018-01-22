@@ -775,6 +775,11 @@ class UM(Action):
         if (self.args.set or self.args.offset) and not self.args.system:
             raise cog.exc.InvalidCommandArgs("You forgot to specify a system to update.")
 
+        elif self.args.list:
+            response = "__Users With Held Merits__\n\n"
+            response += cog.tbl.wrap_markdown(cog.tbl.format_table(
+                cogdb.query.um_all_held_merits(self.session), header=True))
+
         elif self.args.system:
             system = cogdb.query.um_find_system(self.session, ' '.join(self.args.system))
 

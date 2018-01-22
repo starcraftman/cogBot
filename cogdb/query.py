@@ -915,6 +915,40 @@ def um_add_hold(session, **kwargs):
     return hold
 
 
+def um_all_held_merits(session):
+    """
+    Return a list of lists that show all users with merits still held.
+
+    List of the form:
+    [
+        [CMDR, system_name_1, system_name_2, ...],
+        [cmdrname, merits_system_1, merits_system_2, ...],
+        [cmdrname, merits_system_1, merits_system_2, ...],
+    ]
+    """
+    c_dict = {}
+    for merit in session.query(Hold).filter(Hold.held > 0).order_by(Hold.system_id).all():
+        try:
+            c_dict[merit.user.name][merit.system.name] = merit
+        except KeyError:
+            c_dict[merit.user.name] = {merit.system.name: merit}
+
+    systems = session.query(SystemUM).order_by(SystemUM.id).all()
+    system_names = [sys.name for sys in systems]
+    rows = []
+    for cmdr in c_dict:
+        row = [cmdr]
+        for system_name in system_names:
+            try:
+                row += [c_dict[cmdr][system_name].held]
+            except KeyError:
+                row += [0]
+
+        rows += [row]
+
+    return [['CMDR'] + system_names] + rows
+
+
 def get_admin(session, member):
     """
     If the member is an admin, return the Admin.

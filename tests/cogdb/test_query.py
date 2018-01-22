@@ -377,6 +377,15 @@ def test_um_add_hold(session, f_dusers, f_sheets, f_systemsum, db_cleanup):
     assert hold.held == 2000
 
 
+def test_um_all_held_merits(session, f_dusers, f_sheets, f_systemsum, f_holds):
+    expect = [
+        ['CMDR', 'Cemplangpa', 'Pequen', 'Burr', 'AF Leopris', 'Empty'],
+        ['rjwhite', 450, 2400, 0, 0, 0],
+        ['GearsandCogs', 0, 400, 2200, 0, 0]
+    ]
+    assert cogdb.query.um_all_held_merits(session) == expect
+
+
 def test_admin_get(session, f_dusers, f_admins):
     member = Member(f_dusers[0].display_name, None, id=f_dusers[0].id)
     assert f_admins[0] == cogdb.query.get_admin(session, member)

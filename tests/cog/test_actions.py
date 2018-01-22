@@ -75,7 +75,7 @@ def action_map(fake_message, fake_bot):
 
 
 # @pytest.mark.asyncio
-# async def test_template(event_loop, f_bot):
+# async def test_template(f_bot):
     # msg = fake_msg_gears("!cmd")
 
     # await action_map(msg, f_bot).execute()
@@ -85,7 +85,7 @@ def action_map(fake_message, fake_bot):
 
 # General Parse Fails
 @pytest.mark.asyncio
-async def test_cmd_fail(event_loop, f_bot):
+async def test_cmd_fail(f_bot):
     msg = fake_msg_gears("!cmd")
 
     with pytest.raises(cog.exc.ArgumentParseError):
@@ -93,7 +93,7 @@ async def test_cmd_fail(event_loop, f_bot):
 
 
 @pytest.mark.asyncio
-async def test_cmd_req_help(event_loop, f_bot):
+async def test_cmd_req_help(f_bot):
     msg = fake_msg_gears("!fort -h")
 
     with pytest.raises(cog.exc.ArgumentHelpError):
@@ -101,7 +101,7 @@ async def test_cmd_req_help(event_loop, f_bot):
 
 
 @pytest.mark.asyncio
-async def test_cmd_invalid_flag(event_loop, f_bot):
+async def test_cmd_invalid_flag(f_bot):
     msg = fake_msg_gears("!fort --not_there")
 
     with pytest.raises(cog.exc.ArgumentParseError):
@@ -109,7 +109,7 @@ async def test_cmd_invalid_flag(event_loop, f_bot):
 
 
 @pytest.mark.asyncio
-async def test_cmd_bgs_age(side_session, event_loop, f_bot, f_systems):
+async def test_cmd_bgs_age(side_session, f_bot, f_systems):
     systems = [system.name for system in f_systems]
     row = side_session.query(SystemAge).filter(
         SystemAge.control.in_(systems)).order_by(SystemAge.system).first()
@@ -123,7 +123,7 @@ async def test_cmd_bgs_age(side_session, event_loop, f_bot, f_systems):
 
 
 @pytest.mark.asyncio
-async def test_cmd_bgs_dash(side_session, event_loop, f_systems, f_bot):
+async def test_cmd_bgs_dash(side_session, f_systems, f_bot):
     msg = fake_msg_gears("!bgs dash Othime")
 
     await action_map(msg, f_bot).execute()
@@ -132,7 +132,7 @@ async def test_cmd_bgs_dash(side_session, event_loop, f_systems, f_bot):
 
 
 @pytest.mark.asyncio
-async def test_cmd_bgs_inf(side_session, event_loop, f_bot):
+async def test_cmd_bgs_inf(side_session, f_bot):
     msg = fake_msg_gears("!bgs inf Sol")
 
     await action_map(msg, f_bot).execute()
@@ -141,7 +141,7 @@ async def test_cmd_bgs_inf(side_session, event_loop, f_bot):
 
 
 @pytest.mark.asyncio
-async def test_cmd_bgs_sys(side_session, event_loop, f_bot):
+async def test_cmd_bgs_sys(side_session, f_bot):
     msg = fake_msg_gears("!bgs sys Sol")
 
     await action_map(msg, f_bot).execute()
@@ -154,7 +154,7 @@ async def test_cmd_bgs_sys(side_session, event_loop, f_bot):
 
 
 @pytest.mark.asyncio
-async def test_cmd_feedback(event_loop, f_bot):
+async def test_cmd_feedback(f_bot):
     msg = fake_msg_gears("!feedback Sample bug report.")
 
     await action_map(msg, f_bot).execute()
@@ -163,7 +163,7 @@ async def test_cmd_feedback(event_loop, f_bot):
 
 
 @pytest.mark.asyncio
-async def test_cmd_fort(event_loop, f_bot, f_systems):
+async def test_cmd_fort(f_bot, f_systems):
     msg = fake_msg_gears("!fort")
 
     await action_map(msg, f_bot).execute()
@@ -183,7 +183,7 @@ __Almost Done__
 
 
 @pytest.mark.asyncio
-async def test_cmd_fort_summary(event_loop, f_bot, f_systems):
+async def test_cmd_fort_summary(f_bot, f_systems):
     msg = fake_msg_gears("!fort --summary")
 
     await action_map(msg, f_bot).execute()
@@ -195,7 +195,7 @@ async def test_cmd_fort_summary(event_loop, f_bot, f_systems):
 
 
 @pytest.mark.asyncio
-async def test_cmd_fort_next(event_loop, f_bot, f_systems):
+async def test_cmd_fort_next(f_bot, f_systems):
     msg = fake_msg_gears("!fort --next 2")
 
     await action_map(msg, f_bot).execute()
@@ -207,7 +207,7 @@ async def test_cmd_fort_next(event_loop, f_bot, f_systems):
 
 
 @pytest.mark.asyncio
-async def test_cmd_fort_miss(event_loop, f_bot, f_systems):
+async def test_cmd_fort_miss(f_bot, f_systems):
     msg = fake_msg_gears("!fort --miss 1000")
 
     await action_map(msg, f_bot).execute()
@@ -218,7 +218,7 @@ async def test_cmd_fort_miss(event_loop, f_bot, f_systems):
 
 
 @pytest.mark.asyncio
-async def test_cmd_fort_search(event_loop, f_bot, f_systems):
+async def test_cmd_fort_search(f_bot, f_systems):
     msg = fake_msg_gears("!fort nuru, othime")
 
     await action_map(msg, f_bot).execute()
@@ -230,7 +230,7 @@ async def test_cmd_fort_search(event_loop, f_bot, f_systems):
 
 
 @pytest.mark.asyncio
-async def test_cmd_fort_set(event_loop, f_bot, f_systems):
+async def test_cmd_fort_set(f_bot, f_systems):
     msg = fake_msg_gears("!fort --set 7000:222 nuru")
 
     await action_map(msg, f_bot).execute()
@@ -243,7 +243,7 @@ async def test_cmd_fort_set(event_loop, f_bot, f_systems):
 
 
 @pytest.mark.asyncio
-async def test_cmd_fort_details(event_loop, f_bot, f_systems):
+async def test_cmd_fort_details(f_bot, f_systems):
     msg = fake_msg_gears("!fort -d frey")
 
     await action_map(msg, f_bot).execute()
@@ -260,7 +260,7 @@ Notes       |```
 
 
 @pytest.mark.asyncio
-async def test_cmd_fort_details_invalid(event_loop, f_bot, f_systems):
+async def test_cmd_fort_details_invalid(f_bot, f_systems):
     msg = fake_msg_gears("!fort -d")
 
     with pytest.raises(cog.exc.InvalidCommandArgs):
@@ -268,7 +268,7 @@ async def test_cmd_fort_details_invalid(event_loop, f_bot, f_systems):
 
 
 @pytest.mark.asyncio
-async def test_cmd_fort_set_invalid(event_loop, f_bot, f_systems):
+async def test_cmd_fort_set_invalid(f_bot, f_systems):
     msg = fake_msg_gears("!fort --set 7000:222 nuru, othime")
 
     with pytest.raises(cog.exc.InvalidCommandArgs):
@@ -276,7 +276,7 @@ async def test_cmd_fort_set_invalid(event_loop, f_bot, f_systems):
 
 
 @pytest.mark.asyncio
-async def test_cmd_fort_order(session, event_loop, f_bot, f_systems):
+async def test_cmd_fort_order(session, f_bot, f_systems):
     try:
         msg = fake_msg_gears("!fort --order sol, nuru, frey")
         await action_map(msg, f_bot).execute()
@@ -304,7 +304,7 @@ __Almost Done__
 
 
 @pytest.mark.asyncio
-async def test_cmd_fort_order_next(session, event_loop, f_bot, f_systems):
+async def test_cmd_fort_order_next(session, f_bot, f_systems):
     try:
         msg = fake_msg_gears("!fort --order sol, nuru, frey")
         await action_map(msg, f_bot).execute()
@@ -326,7 +326,7 @@ async def test_cmd_fort_order_next(session, event_loop, f_bot, f_systems):
 
 
 @pytest.mark.asyncio
-async def test_cmd_fort_unset(session, event_loop, f_bot, f_systems):
+async def test_cmd_fort_unset(session, f_bot, f_systems):
     try:
         msg = fake_msg_gears("!fort --order sol, nuru, frey")
         await action_map(msg, f_bot).execute()
@@ -348,7 +348,7 @@ async def test_cmd_fort_unset(session, event_loop, f_bot, f_systems):
 
 
 @pytest.mark.asyncio
-async def test_cmd_help(event_loop, f_bot):
+async def test_cmd_help(f_bot):
     msg = fake_msg_gears("!help")
 
     await action_map(msg, f_bot).execute()
@@ -357,7 +357,7 @@ async def test_cmd_help(event_loop, f_bot):
 
 
 @pytest.mark.asyncio
-async def test_cmd_drop_simple(event_loop, f_bot, f_testbed):
+async def test_cmd_drop_simple(f_bot, f_testbed):
     msg = fake_msg_gears("!drop 578 nuru")
 
     await action_map(msg, f_bot).execute()
@@ -373,7 +373,7 @@ async def test_cmd_drop_simple(event_loop, f_bot, f_testbed):
 
 
 @pytest.mark.asyncio
-async def test_cmd_drop_negative(event_loop, f_bot, f_testbed):
+async def test_cmd_drop_negative(f_bot, f_testbed):
     msg = fake_msg_gears("!drop -100 nuru")
 
     await action_map(msg, f_bot).execute()
@@ -389,7 +389,7 @@ async def test_cmd_drop_negative(event_loop, f_bot, f_testbed):
 
 
 @pytest.mark.asyncio
-async def test_cmd_drop_newuser(event_loop, f_bot, f_testbed):
+async def test_cmd_drop_newuser(f_bot, f_testbed):
     msg = fake_msg_newuser("!drop 500 nuru")
 
     await action_map(msg, f_bot).execute()
@@ -408,7 +408,7 @@ async def test_cmd_drop_newuser(event_loop, f_bot, f_testbed):
 
 
 @pytest.mark.asyncio
-async def test_cmd_drop_set(event_loop, f_bot, f_testbed):
+async def test_cmd_drop_set(f_bot, f_testbed):
     msg = fake_msg_gears("!drop 578 nuru --set 6500")
 
     await action_map(msg, f_bot).execute()
@@ -424,7 +424,7 @@ async def test_cmd_drop_set(event_loop, f_bot, f_testbed):
 
 
 @pytest.mark.asyncio
-async def test_cmd_hold_simple(event_loop, f_bot, f_testbed):
+async def test_cmd_hold_simple(f_bot, f_testbed):
     msg = fake_msg_gears("!hold 2000 empt")
 
     await action_map(msg, f_bot).execute()
@@ -445,7 +445,7 @@ Nearest Hudson | Rana```"""
 
 
 @pytest.mark.asyncio
-async def test_cmd_hold_newuser(event_loop, f_bot, f_testbed):
+async def test_cmd_hold_newuser(f_bot, f_testbed):
     msg = fake_msg_newuser("!hold 1000 empty")
 
     await action_map(msg, f_bot).execute()
@@ -468,7 +468,7 @@ Nearest Hudson | Rana```"""
 
 
 @pytest.mark.asyncio
-async def test_cmd_hold_redeem(event_loop, f_bot, f_testbed):
+async def test_cmd_hold_redeem(f_bot, f_testbed):
     msg = fake_msg_gears("!hold --redeem")
 
     await action_map(msg, f_bot).execute()
@@ -485,7 +485,7 @@ async def test_cmd_hold_redeem(event_loop, f_bot, f_testbed):
 
 
 @pytest.mark.asyncio
-async def test_cmd_hold_died(event_loop, f_bot, f_testbed):
+async def test_cmd_hold_died(f_bot, f_testbed):
     msg = fake_msg_gears("!hold --died")
 
     await action_map(msg, f_bot).execute()
@@ -501,7 +501,7 @@ async def test_cmd_hold_died(event_loop, f_bot, f_testbed):
 
 
 @pytest.mark.asyncio
-async def test_cmd_status(event_loop, f_bot):
+async def test_cmd_status(f_bot):
     msg = fake_msg_gears("!status")
 
     await action_map(msg, f_bot).execute()
@@ -517,7 +517,7 @@ async def test_cmd_status(event_loop, f_bot):
 
 
 @pytest.mark.asyncio
-async def test_cmd_time(event_loop, f_bot):
+async def test_cmd_time(f_bot):
     msg = fake_msg_gears("!time")
 
     await action_map(msg, f_bot).execute()
@@ -526,7 +526,7 @@ async def test_cmd_time(event_loop, f_bot):
 
 
 @pytest.mark.asyncio
-async def test_cmd_um(event_loop, f_bot, f_testbed):
+async def test_cmd_um(f_bot, f_testbed):
     msg = fake_msg_gears("!um")
 
     await action_map(msg, f_bot).execute()
@@ -553,7 +553,7 @@ Nearest Hudson | Rana```"""
 
 
 @pytest.mark.asyncio
-async def test_cmd_um_search(event_loop, f_bot, f_testbed):
+async def test_cmd_um_search(f_bot, f_testbed):
     msg = fake_msg_gears("!um burr")
 
     await action_map(msg, f_bot).execute()
@@ -567,7 +567,7 @@ Nearest Hudson      | Dongkum```"""
 
 
 @pytest.mark.asyncio
-async def test_cmd_um_set_fail(event_loop, f_bot, f_testbed):
+async def test_cmd_um_set_fail(f_bot, f_testbed):
     msg = fake_msg_gears("!um --set 5500")
 
     with pytest.raises(cog.exc.InvalidCommandArgs):
@@ -575,7 +575,7 @@ async def test_cmd_um_set_fail(event_loop, f_bot, f_testbed):
 
 
 @pytest.mark.asyncio
-async def test_cmd_um_set_works(session, event_loop, f_bot, f_testbed):
+async def test_cmd_um_set_works(session, f_bot, f_testbed):
     before = session.query(SystemUM).filter_by(name='Pequen').one()
     msg = fake_msg_gears("!um --set {}:40 {} --offset 600".format(before.progress_us + 1500, before.name))
 
@@ -595,7 +595,21 @@ Nearest Hudson     | Atropos```"""
 
 
 @pytest.mark.asyncio
-async def test_cmd_user(event_loop, f_bot, f_testbed):
+async def test_cmd_um_list_held(f_bot, f_testbed):
+    msg = fake_msg_gears("!um --list")
+
+    await action_map(msg, f_bot).execute()
+    expect = """__Users With Held Merits__
+
+```    CMDR     | Cemplangpa | Pequen | Burr | AF Leopris | Empty
+------------ | ---------- | ------ | ---- | ---------- | -----
+rjwhite      | 450        | 2400   | 0    | 0          | 0
+GearsandCogs | 0          | 400    | 2200 | 0          | 0```"""
+    f_bot.send_message.assert_called_with(msg.channel, expect)
+
+
+@pytest.mark.asyncio
+async def test_cmd_user(f_bot, f_testbed):
     msg = fake_msg_gears("!user")
 
     await action_map(msg, f_bot).execute()
@@ -623,7 +637,7 @@ Burr       | 2200 | 5800```"""
 
 
 @pytest.mark.asyncio
-async def test_cmd_user_set_name(session, event_loop, f_bot, f_testbed):
+async def test_cmd_user_set_name(session, f_bot, f_testbed):
     new_name = "NotGears"
     msg = fake_msg_gears("!user --name " + new_name)
 
@@ -657,7 +671,7 @@ Burr       | 2200 | 5800```"""
 
 
 @pytest.mark.asyncio
-async def test_cmd_user_set_cry(session, event_loop, f_bot, f_testbed):
+async def test_cmd_user_set_cry(session, f_bot, f_testbed):
     new_cry = "A new cry"
     msg = fake_msg_gears("!user --cry " + new_cry)
 
@@ -692,7 +706,7 @@ Burr       | 2200 | 5800```"""
 
 
 @pytest.mark.asyncio
-async def test_cmd_dist(session, event_loop, f_bot, f_testbed):
+async def test_cmd_dist(session, f_bot, f_testbed):
     msg = fake_msg_gears("!dist sol, frey, adeo")
 
     await action_map(msg, f_bot).execute()
@@ -705,7 +719,7 @@ Frey | 108.97ly```"""
 
 
 @pytest.mark.asyncio
-async def test_cmd_dist_partial(session, event_loop, f_bot, f_testbed):
+async def test_cmd_dist_partial(session, f_bot, f_testbed):
     msg = fake_msg_gears("!dist sol, adeo")
 
     await action_map(msg, f_bot).execute()
@@ -717,7 +731,7 @@ async def test_cmd_dist_partial(session, event_loop, f_bot, f_testbed):
 
 
 @pytest.mark.asyncio
-async def test_cmd_dist_invalid_args(session, event_loop, f_bot, f_testbed):
+async def test_cmd_dist_invalid_args(session, f_bot, f_testbed):
     msg = fake_msg_gears("!dist sol")
     with pytest.raises(cog.exc.InvalidCommandArgs):
         await action_map(msg, f_bot).execute()
