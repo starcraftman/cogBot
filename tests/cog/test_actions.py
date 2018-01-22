@@ -7,6 +7,8 @@ Important Note Regarding DB:
     After executing an action ALWAYS make a new Session(). The old one will still be stale.
 """
 from __future__ import absolute_import, print_function
+import re
+
 import aiomock
 import pytest
 
@@ -599,13 +601,18 @@ async def test_cmd_um_list_held(f_bot, f_testbed):
     msg = fake_msg_gears("!um --list")
 
     await action_map(msg, f_bot).execute()
-    expect = """__Users With Held Merits__
+
+    expect = """**Held Merits**
 
 ```    CMDR     | Cemplangpa | Pequen | Burr | AF Leopris | Empty
 ------------ | ---------- | ------ | ---- | ---------- | -----
 rjwhite      | 450        | 2400   | 0    | 0          | 0
 GearsandCogs | 0          | 400    | 2200 | 0          | 0```"""
-    f_bot.send_message.assert_called_with(msg.channel, expect)
+    actual = str(f_bot.send_message.call_args).replace("\\n", "\n")[:-2]
+    actual = re.sub(r'.*live_hudson, \'', '', actual)
+    actual = actual.split("\n")
+    actual = "\n".join(actual[:2] + actual[3:])
+    assert actual == expect
 
 
 @pytest.mark.asyncio

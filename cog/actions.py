@@ -776,7 +776,13 @@ class UM(Action):
             raise cog.exc.InvalidCommandArgs("You forgot to specify a system to update.")
 
         elif self.args.list:
-            response = "__Users With Held Merits__\n\n"
+            now = datetime.datetime.utcnow().replace(microsecond=0)
+            today = now.replace(hour=0, minute=0, second=0)  # pylint: disable=unexpected-keyword-arg
+            weekly_tick = today + datetime.timedelta(hours=7)
+            while weekly_tick < now or weekly_tick.strftime('%A') != 'Thursday':
+                weekly_tick += datetime.timedelta(days=1)
+
+            response = "**Held Merits**\n\n{}\n".format('DEADLINE **{}**'.format(weekly_tick - now))
             response += cog.tbl.wrap_markdown(cog.tbl.format_table(
                 cogdb.query.um_all_held_merits(self.session), header=True))
 
