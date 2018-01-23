@@ -269,6 +269,17 @@ class CogBot(discord.Client):
             await self.send_message(channel, exc.reply())
 
         except discord.DiscordException as exc:
+            if exc.args[0].startswith("BAD REQUEST (status code: 400"):
+                resp = "Response would be > 2000 chars, I cannot transmit it to Discord."
+                resp += "\n\nIf this useage is valid see Gears."
+                await self.send_ttl_message(channel, resp)
+                try:
+                    await self.delete_message(message)
+                except discord.DiscordException:
+                    pass
+            else:
+                gears = self.get_member_by_substr("gearsand").mention
+                await self.send_message(channel, "A critical discord error! {}.".format(gears))
             line = "Discord.py Library raised an exception"
             line += cog.exc.log_format(content=content, author=author, channel=channel)
             log.exception(line)
