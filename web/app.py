@@ -1,5 +1,5 @@
 """
-Run a simple server to accept POSTs.
+Run a simple server to accept POSTs. Pass POSTs received into the bot over zmq pub/sub.
 
 Async replacement for Flask called Sanic
     https://sanic.readthedocs.io/en/latest/

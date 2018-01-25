@@ -1,7 +1,7 @@
 """
 Implements a very simple scheduler for updating the sheets when they change.
 
-  - Async task to block on zmq publisher.
+  - Uses rpc logic that wakes up scheduler on loop. Subscribes to POSTs.
   - Updater logic to schedule and cancel updates. Uses cog.jobs for execution.
   - Scheduler registers scanners and commands to block during update.
 """

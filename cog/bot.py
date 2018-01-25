@@ -13,8 +13,8 @@ asyncio (builtin package):
 discord.py: The main discord library, hooks events.
     https://discordpy.readthedocs.io/en/latest/api.html
 
-pyzmq: Python bindings for zmq. (import is named zmq)
-    http://pyzmq.readthedocs.io/en/latest/
+aiozmq: Async python bindings for zmq. (depends on pyzmq)
+    https://aiozmq.readthedocs.io/en/v0.8.0/
 
 ZeroMQ: Listed mainly as a reference for core concepts.
     http://zguide.zeromq.org/py:all
