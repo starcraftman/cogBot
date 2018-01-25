@@ -19,27 +19,25 @@ Examples of things that won't pickle:
   - sqlalchemy objects: the raw data is accesible but the session is invalid and relationships
                         will no longer work.
 """
+# TODO: Cleanup module, not quite happy with it.
+# TODO: Add lots of unit tests.
 from __future__ import absolute_import, print_function
 import asyncio
 import concurrent.futures
-import functools
 import logging
 import time
 
 import pebble
 import pebble.concurrent
 
+import cog.exc
+
 
 LIVE_JOBS = []
 MAX_WORKERS = 15
-POOL = pebble.ProcessPool(max_workers=MAX_WORKERS, max_tasks=1)
+POOL = pebble.ProcessPool(max_workers=MAX_WORKERS)
 RUN = True
 TIME_FMT = "%d/%m %H:%M:%S"
-
-
-class FailedJob(Exception):
-    """ Raised internally, cannot restart this job. """
-    pass
 
 
 class Job(object):
@@ -99,7 +97,7 @@ class Job(object):
         """
         # TODO: Do I need some timeout backoff here? Good question.
         if self.attempts < 1:
-            raise FailedJob('The job with func: {} failed.'.format(self.ident))
+            raise cog.exc.FailedJob('Failed job: ' + self.ident)
 
         self.attempts -= 1
         self.start_time = time.time()
@@ -128,8 +126,8 @@ class Job(object):
             for callback in self.done_cbs:
                 callback(self.future.result(0.01))
         except Exception:
-            for callback in self.fail_cbs:
-                callback()
+            for tup in self.fail_cbs:
+                warn_user(tup[0], tup[1], self)
 
     def add_done_callback(self, callback):
         """
@@ -140,14 +138,14 @@ class Job(object):
         """
         self.done_cbs.append(callback)
 
-    def add_fail_callback(self, callback):
+    def add_fail_callback(self, tup):
         """
         Will only be called if the job raises an exception. Since it didn't finish, no result.
         Hint: Use functools.partial
 
         Callback form: callback()
         """
-        self.fail_cbs.append(callback)
+        self.fail_cbs.append(tup)
 
 
 async def pool_monitor_task(delay=2):
@@ -161,6 +159,7 @@ async def pool_monitor_task(delay=2):
     """
     print("Pool monitor task running with delay:", delay)
     log = logging.getLogger('cog.jobs')
+    global POOL
 
     while RUN:
         if LIVE_JOBS:
@@ -169,6 +168,14 @@ async def pool_monitor_task(delay=2):
             num_jobs = len(LIVE_JOBS)
             if num_jobs >= MAX_WORKERS:
                 log.warning("Max workers reached. Currently %d/%d", num_jobs, MAX_WORKERS)
+
+        try:
+            POOL.schedule(do_nothing)
+        except RuntimeError:  # Pool is in error, restart it
+            POOL.close()
+            POOL.stop()
+            POOL.join()
+            POOL = pebble.ProcessPool(max_workers=MAX_WORKERS)
 
         for job in LIVE_JOBS:
             try:
@@ -186,7 +193,7 @@ async def pool_monitor_task(delay=2):
                     log.exception(msg + "\n" + str(exc))
                 try:
                     job.check_timeout()
-                except FailedJob:
+                except cog.exc.FailedJob:
                     LIVE_JOBS.remove(job)
                     job.finish()
 
@@ -196,20 +203,32 @@ async def pool_monitor_task(delay=2):
 async def background_start(job):
     """
     Start a job and add it to the list of live jobs.
+    If the pool isn't working, back off until monitor task restores it.
 
-    N.B. Careful here, due to async either this or monitor working. Never both.
+    N.B. Due to async either this or monitor working. Never both.
+
+    Raises:
+        RuntimeError - The pool failed critically and could not be restarted.
     """
-    logging.getLogger('cog.jobs').info('Starting job: %s', str(job))
+    log = logging.getLogger('cog.jobs')
+    retries = 3
+    while retries:
+        try:
+            log .info('Attempts left %d, starting job %s', retries, str(job))
+            job.start()
+            break
+        except RuntimeError:
+            await asyncio.sleep(5)
+            retries -= 1
+            if not retries:
+                raise cog.exc.FailedJob('Failed job: ' + job.ident)
+
     LIVE_JOBS.append(job)
-    job.start()
 
 
-def warn_user_callback(bot, msg, job):
+def warn_user(bot, msg, job):
     """
     Standard user warning if a background job fails after returning to user.
-
-    Returns:
-        A partially complete function, takes no args.
     """
     response = """WARNING {}, execution/synchronization failed for part/all of your command:
         {}
@@ -218,4 +237,11 @@ Please manually check any relevant sheet is up to date. I'm sorry :frowning:
 
 If this appears repeatedly on all commands alert @GearsandCogs
 """.format(msg.author.mention, msg.content, job.ident)
-    return functools.partial(asyncio.ensure_future, bot.send_message(msg.channel, response))
+    return asyncio.ensure_future(bot.send_message(msg.channel, response))
+
+
+def do_nothing():
+    """
+    Schedule this to test pool liveness.
+    """
+    pass

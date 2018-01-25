@@ -13,13 +13,15 @@ import pytest
 try:
     import uvloop
     LOOP = uvloop.new_event_loop
-    loop = LOOP()
-    loop.set_debug(True)
-    print("Test loop policy:", str(loop))
+    L_SHOW = LOOP()
+    L_SHOW.set_debug(True)
+    print("Test loop policy:", str(L_SHOW))
+    del L_SHOW
 except ImportError:
     print("Missing: uvloop")
     sys.exit(1)
 
+import cog.util
 import cogdb
 import cogdb.query
 from cogdb.schema import (DUser, PrepSystem, System, SystemUM, Drop, Hold,
@@ -492,6 +494,7 @@ def f_bot():
         bot.delete_message
         bot.emoji.fix - EmojiResolver tested elsewhere
         bot.loop.run_in_executor, None, func, *args
+        bot.get_member_by_substr
 
     Bot must have attributes:
         bot.uptime
@@ -512,4 +515,8 @@ def f_bot():
         return func(*args)
     fake_bot.loop.run_in_executor.async_side_effect = fake_exec
 
+    cog.util.BOT = fake_bot
+
     yield fake_bot
+
+    cog.util.BOT = None

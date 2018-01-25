@@ -12,6 +12,8 @@ import sys
 import tempfile
 from setuptools import setup, find_packages, Command
 
+import cog
+
 ROOT = os.path.abspath(os.path.dirname(__file__))
 if os.path.dirname(__file__) == '':
     ROOT = os.getcwd()
@@ -270,7 +272,7 @@ TEST_DEPS = ['coverage', 'flake8', 'aiomock', 'mock', 'pylint', 'pytest', 'pytes
              'pytest-cov', 'sphinx', 'tox']
 setup(
     name='cogbot',
-    version='0.1.0',
+    version=cog.__version__,
     description=SHORT_DESC,
     long_description=SHORT_DESC,
     url='https://github.com/starcraftman/cogBot',
@@ -283,11 +285,14 @@ setup(
 
     # See https://pypi.python.org/pypi?%3Aaction=list_classifiers
     classifiers=[
-        'Development Status :: 2 - Pre-Alpha',
+        'Development Status :: 3 - Alpha',
         'Environment :: Console',
+        'Framework :: AsyncIO',
+        'Framework :: Pytest',
         'Intended Audience :: Developers',
         'Intended Audience :: End Users/Desktop',
         'License :: OSI Approved :: BSD License',
+        'Natural Language :: English',
         'Operating System :: POSIX :: Linux',
         # Specify the Python versions you support here. In particular, ensure
         # that you indicate whether you support Python 2, Python 3 or both.

@@ -88,7 +88,7 @@ def check_sheet(scanner_name, stype):
                 partial(get_scanner(scanner_name).update_sheet_user,
                         sheet.row, sheet.cry, sheet.name))
             job.set_ident_from_msg(self.msg, 'Adding user to sheet')
-            job.add_fail_callback(cog.jobs.warn_user_callback(self.bot, self.msg, job))
+            job.add_fail_callback([self.bot, self.msg])
             await cog.jobs.background_start(job)
 
             notice = 'Automatically added {} to {} sheet. See !user command to change.'.format(
@@ -471,7 +471,7 @@ class Drop(Action):
                     [drop.system.sheet_col, drop.user.row, drop.amount],
                     [drop.system.sheet_col, drop.system.fort_status, drop.system.um_status]))
         job.set_ident_from_msg(self.msg, 'Adding drop to fort sheet')
-        job.add_fail_callback(cog.jobs.warn_user_callback(self.bot, self.msg, job))
+        job.add_fail_callback([self.bot, self.msg])
         await cog.jobs.background_start(job)
 
         self.log.info('DROP %s - Sucessfully dropped %d at %s.',
@@ -544,7 +544,7 @@ class Fort(Action):
                 partial(get_scanner("hudson_cattle").update_system,
                         system.sheet_col, system.fort_status, system.um_status))
             job.set_ident_from_msg(self.msg, 'Updating fort system')
-            job.add_fail_callback(cog.jobs.warn_user_callback(self.bot, self.msg, job))
+            job.add_fail_callback([self.bot, self.msg])
             await cog.jobs.background_start(job)
             response = system.display()
 
@@ -674,7 +674,7 @@ class Hold(Action):
                         system.sheet_col, system.progress_us,
                         system.progress_them, system.map_offset))
             job.set_ident_from_msg(self.msg, 'Updating undermining system')
-            job.add_fail_callback(cog.jobs.warn_user_callback(self.bot, self.msg, job))
+            job.add_fail_callback([self.bot, self.msg])
             await cog.jobs.background_start(job)
 
         self.log.info('Hold %s - After update, hold: %s\nSystem: %s.',
@@ -711,7 +711,7 @@ class Hold(Action):
         holds = [[hold.system.sheet_col, hold.user.row, hold.held, hold.redeemed] for hold in holds]
         job = cog.jobs.Job(partial(sync_holds, holds), timeout=30)
         job.set_ident_from_msg(self.msg, 'Updating undermining holds')
-        job.add_fail_callback(cog.jobs.warn_user_callback(self.bot, self.msg, job))
+        job.add_fail_callback([self.bot, self.msg])
         await cog.jobs.background_start(job)
 
         await self.bot.send_message(self.msg.channel, response)
@@ -801,7 +801,7 @@ class UM(Action):
                             system.sheet_col, system.progress_us,
                             system.progress_them, system.map_offset))
                 job.set_ident_from_msg(self.msg, 'Updating undermining system status')
-                job.add_fail_callback(cog.jobs.warn_user_callback(self.bot, self.msg, job))
+                job.add_fail_callback([self.bot, self.msg])
                 await cog.jobs.background_start(job)
 
             response = system.display()
@@ -834,7 +834,7 @@ class User(Action):
                     partial(get_scanner("hudson_cattle").update_sheet_user,
                             sheet.row, sheet.cry, sheet.name))
                 job.set_ident_from_msg(self.msg, 'Updating cattle name/cry')
-                job.add_fail_callback(cog.jobs.warn_user_callback(self.bot, self.msg, job))
+                job.add_fail_callback([self.bot, self.msg])
                 await cog.jobs.background_start(job)
 
             if self.undermine:
@@ -843,7 +843,7 @@ class User(Action):
                     partial(get_scanner("hudson_undermine").update_sheet_user,
                             sheet.row, sheet.cry, sheet.name))
                 job.set_ident_from_msg(self.msg, 'Updating undermining name/cry')
-                job.add_fail_callback(cog.jobs.warn_user_callback(self.bot, self.msg, job))
+                job.add_fail_callback([self.bot, self.msg])
                 await cog.jobs.background_start(job)
 
         lines = [

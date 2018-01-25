@@ -122,6 +122,11 @@ class ColOverflow(InternalException):
         super().__init__('Serious problem, uncaught overflow.', 'exception')
 
 
+class FailedJob(InternalException):
+    """ Raised internally, cannot restart this job. """
+    pass
+
+
 class MissingConfigFile(InternalException):
     """ Thrown if a config isn't set properly.  """
     pass
