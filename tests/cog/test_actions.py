@@ -134,6 +134,17 @@ async def test_cmd_bgs_dash(side_session, f_systems, f_bot):
 
 
 @pytest.mark.asyncio
+async def test_cmd_bgs_find(f_bot):
+    msg = fake_msg_gears("!bgs find nurundere")
+
+    await action_map(msg, f_bot).execute()
+
+    actual = str(f_bot.send_long_message.call_args).replace("\\n", "\n")[:-2]
+    actual = re.sub(r'.*live_hudson, "', '', actual)
+    assert actual.split('\n')[2].index("Monarchy of Orisala") != -1
+
+
+@pytest.mark.asyncio
 async def test_cmd_bgs_inf(side_session, f_bot):
     msg = fake_msg_gears("!bgs inf Sol")
 

@@ -59,7 +59,7 @@ def write_report():
     print("Report written to /tmp/report.txt")
 
 
-def feudal_finder():
+def feudal_finder(gap=15):
     """
     Find favorable feudals or patronages around a system.
     """
@@ -67,9 +67,9 @@ def feudal_finder():
     s_name = input('System to look around: ')
     centre = session.query(System).filter(System.name == s_name).one()
 
-    dist = 5
+    dist = 0
     while True:
-        dist += 5
+        dist += gap
         print("Searching all systems <= {} from {}.".format(dist, s_name))
         matches = session.query(System, Influence, Faction, Government).\
             filter(sqla.and_(System.dist_to(centre) <= dist,

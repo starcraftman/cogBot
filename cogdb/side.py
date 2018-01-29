@@ -723,6 +723,46 @@ def dash_overview(session, control_system):
         raise cog.exc.RemoteError("Lost connection to Sidewinder's DB.")
 
 
+def find_favorable(session, centre_name, inc=15):
+    """
+    Find favorable feudals or patronages around a centre_name system.
+
+    Keep expanding search radius by inc ly on every try.
+
+    Returns:
+        List of lists (first line header) of form:
+            [['System Name', 'Govt', 'Dist', 'Inf', 'Faction Name'], ...]
+    """
+    try:
+        centre = session.query(System).filter(System.name == centre_name).one()
+    except sqla_orm.exc.NoResultFound:
+        raise cog.exc.InvalidCommandArgs("System name was not found, must be exact.")
+
+    dist = 0
+    while True:
+        dist += inc
+        matches = session.query(System, Influence, Faction, Government).\
+            filter(sqla.and_(System.dist_to(centre) <= dist,
+                             Influence.system_id == System.id,
+                             Faction.id == Influence.faction_id,
+                             Faction.government_id == Government.id,
+                             Government.id.in_(['128', '144']))).\
+            order_by(System.dist_to(centre)).\
+            all()
+        # Patronage/Feudal gov are 128/144
+
+        if matches:
+            lines = [[
+                sys.name[:16],
+                gov.text[:4],
+                "{:5.2f}".format(sys.dist_to(centre)),
+                "{:5.2f}".format(inf.influence),
+                faction.name
+            ] for sys, inf, faction, gov in matches]
+
+            return [['System Name', 'Govt', 'Dist', 'Inf', 'Faction Name']] + lines
+
+
 def main():
     pass
 

@@ -110,3 +110,8 @@ def test_dash_overview(side_session):
     assert "Sol" in net_change
     sol_control = [x[1] for x in factions if x[0].name == "Sol"][0]
     assert sol_control.id in [588, 589, 591, 592, 593]
+
+
+def test_find_favorable(side_session):
+    matches = cogdb.side.find_favorable(side_session, 'Nurundere')
+    assert matches[1][-1] == "Monarchy of Orisala"
