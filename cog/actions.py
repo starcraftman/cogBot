@@ -341,7 +341,7 @@ class BGS(Action):
         return header + table + explain
 
     def find_favorable(self, system):
-        matches = cogdb.side.find_favorable(cogdb.SideSession(), system)
+        matches = cogdb.side.find_favorable(cogdb.SideSession(), system, self.args.max)
         return cog.tbl.wrap_markdown(cog.tbl.format_table(matches, header=True))
 
     def sys_overview(self, system):

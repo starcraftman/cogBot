@@ -115,6 +115,8 @@ def subs_bgs(subs, prefix):
         Show the bgs state of a bubble's exploited systems.
 {prefix}bgs find Frey
         Show all Feudal/Patronage factions near Frey, expanding in 15ly increments.
+{prefix}bgs find Frey --max 50
+        Show all Feudal/Patronage factions near Frey within 50ly.
 {prefix}bgs inf Sol
         Show the factions and their influence in Sol.
 {prefix}bgs sys Frey
@@ -130,6 +132,7 @@ def subs_bgs(subs, prefix):
     bgs_sub.add_argument('system', nargs='+', help='The system to lookup.')
     bgs_sub = bgs_subs.add_parser('find', help='Show favorable factions around a system.')
     bgs_sub.add_argument('system', nargs='+', help='The system to lookup.')
+    bgs_sub.add_argument('-m', '--max', type=int, help='The radius to look within.')
     bgs_sub = bgs_subs.add_parser('inf', help='Get the influence of factions inside a system.')
     bgs_sub.add_argument('system', nargs='+', help='The system to lookup.')
     bgs_sub = bgs_subs.add_parser('sys', help='Get a complete system overview.')

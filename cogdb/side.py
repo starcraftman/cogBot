@@ -17,6 +17,8 @@ from sqlalchemy.ext.hybrid import hybrid_method
 import cog.exc
 import cog.util
 
+
+HUD_GOVS = ['128', '144']  # Patronage/Feudal gov are 128/144
 LEN_FACTION = 64
 LEN_STATION = 50
 LEN_SYSTEM = 30
@@ -723,11 +725,31 @@ def dash_overview(session, control_system):
         raise cog.exc.RemoteError("Lost connection to Sidewinder's DB.")
 
 
-def find_favorable(session, centre_name, inc=15):
+def find_factions_with_gov(session, system, dist, gov_ids):
+    """
+    Return all factions that are dist or less away from system and have government type
+    in gov_ids.
+
+    Returns:
+        List of matches with:
+            [[System, Influence, Faction, Government], ...]
+    """
+    return session.query(System, Influence, Faction, Government).\
+        filter(sqla.and_(System.dist_to(system) <= dist,
+                         Influence.system_id == System.id,
+                         Faction.id == Influence.faction_id,
+                         Faction.government_id == Government.id,
+                         Government.id.in_(gov_ids))).\
+        order_by(System.dist_to(system)).\
+        all()
+
+
+def find_favorable(session, centre_name, max_dist=None, inc=15):
     """
     Find favorable feudals or patronages around a centre_name system.
 
     Keep expanding search radius by inc ly on every try.
+    If max_dist provided, search that area only.
 
     Returns:
         List of lists (first line header) of form:
@@ -738,29 +760,23 @@ def find_favorable(session, centre_name, inc=15):
     except sqla_orm.exc.NoResultFound:
         raise cog.exc.InvalidCommandArgs("System name was not found, must be exact.")
 
-    dist = 0
+    dist = max_dist if max_dist else inc
     while True:
+        matches = find_factions_with_gov(session, centre, dist, HUD_GOVS)
+
+        if matches or max_dist:
+            break
         dist += inc
-        matches = session.query(System, Influence, Faction, Government).\
-            filter(sqla.and_(System.dist_to(centre) <= dist,
-                             Influence.system_id == System.id,
-                             Faction.id == Influence.faction_id,
-                             Faction.government_id == Government.id,
-                             Government.id.in_(['128', '144']))).\
-            order_by(System.dist_to(centre)).\
-            all()
-        # Patronage/Feudal gov are 128/144
 
-        if matches:
-            lines = [[
-                sys.name[:16],
-                gov.text[:4],
-                "{:5.2f}".format(sys.dist_to(centre)),
-                "{:5.2f}".format(inf.influence),
-                faction.name
-            ] for sys, inf, faction, gov in matches]
+    lines = [[
+        sys.name[:16],
+        gov.text[:4],
+        "{:5.2f}".format(sys.dist_to(centre)),
+        "{:5.2f}".format(inf.influence),
+        faction.name
+    ] for sys, inf, faction, gov in matches]
 
-            return [['System Name', 'Govt', 'Dist', 'Inf', 'Faction Name']] + lines
+    return [['System Name', 'Govt', 'Dist', 'Inf', 'Faction Name']] + lines
 
 
 def main():
