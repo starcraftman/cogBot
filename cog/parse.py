@@ -113,6 +113,8 @@ def subs_bgs(subs, prefix):
         Show exploiteds in 16 Cygni bubble by age.
 {prefix}bgs dash othime
         Show the bgs state of a bubble's exploited systems.
+{prefix}bgs exp Rana
+        Show all factions in Rana, select one, then show all expansion candidates.
 {prefix}bgs find Frey
         Show all Feudal/Patronage factions near Frey, expanding in 15ly increments.
 {prefix}bgs find Frey --max 50
@@ -129,6 +131,8 @@ def subs_bgs(subs, prefix):
     bgs_sub = bgs_subs.add_parser('age', help='Get the age of exploiteds around a control.')
     bgs_sub.add_argument('system', nargs='+', help='The system to lookup.')
     bgs_sub = bgs_subs.add_parser('dash', help='Dashboard overview of exploiteds around a control.')
+    bgs_sub.add_argument('system', nargs='+', help='The system to lookup.')
+    bgs_sub = bgs_subs.add_parser('exp', help='Find expansion candidates from system.')
     bgs_sub.add_argument('system', nargs='+', help='The system to lookup.')
     bgs_sub = bgs_subs.add_parser('find', help='Show favorable factions around a system.')
     bgs_sub.add_argument('system', nargs='+', help='The system to lookup.')

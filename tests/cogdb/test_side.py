@@ -10,7 +10,7 @@ from sqlalchemy.sql import text as sql_text
 import cog.exc
 import cog.util
 import cogdb.side
-from cogdb.side import BGSTick, SystemAge, System
+from cogdb.side import BGSTick, SystemAge, System, Faction
 
 
 def test_bgstick__repr__(side_session):
@@ -124,3 +124,18 @@ def test_find_favorable(side_session):
 
     matches = cogdb.side.find_favorable(side_session, 'Rana', 50)
     assert len(matches) > 50
+
+
+def test_expansion_candidates(side_session):
+    system = side_session.query(System).filter(System.name == 'Nurundere').one()
+    faction = side_session.query(Faction).filter(Faction.name == 'Monarchy of Orisala').one()
+    matches = cogdb.side.expansion_candidates(side_session, system, faction)
+    assert len(matches) != 1
+
+
+def test_get_factions_in_system(side_session):
+    factions = cogdb.side.get_factions_in_system(side_session, 'Rana')
+    assert "Rana State Network" in [fact.name for fact in factions]
+
+    factions = cogdb.side.get_factions_in_system(side_session, 'Nurunddddddd')
+    assert not factions

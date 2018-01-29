@@ -279,18 +279,6 @@ class BGS(Action):
         lines += [[system.control, system.system, system.age] for system in systems]
         return cog.tbl.wrap_markdown(cog.tbl.format_table(lines, header=True))
 
-    def inf_system(self, system):
-        """ Handle influence subcmd. """
-        self.log.info('BGS - Looking for influence like: %s', system)
-        infs = cogdb.side.influence_in_system(cogdb.SideSession(), system)
-
-        if infs:
-            header = "**{}**\n{} (UTC)\n\n".format(system, infs[0][-1])
-            lines = [['Faction Name', 'Inf', 'Gov', 'PMF?']] + [inf[:-1] for inf in infs]
-            return header + cog.tbl.wrap_markdown(cog.tbl.format_table(lines, header=True))
-
-        return "Received an empty list, check the system name."
-
     def dash_overview(self, control):
         """ Handle dash subcmd. """
         control_name = cogdb.query.fort_find_system(self.session, control).name
@@ -340,9 +328,49 @@ class BGS(Action):
 
         return header + table + explain
 
+    async def expand(self, system):
+        """ Handle exp subcmd. """
+        session = cogdb.SideSession()
+        centre = cogdb.side.get_system(session, system)
+        if not centre:
+            raise cog.exc.InvalidCommandArgs("System name invalid. Check spelling.")
+
+        factions = cogdb.side.get_factions_in_system(session, centre.name)
+        prompt = "Please select a faction to expand from:\n\n"
+        for ind, name in  enumerate([fact.name for fact in factions]):
+            prompt += "\n({}) {}".format(ind, name)
+        sent = await self.bot.send_message(self.msg.channel, prompt)
+        select = await self.bot.wait_for_message(timeout=30, author=self.msg.author,
+                                                 channel=self.msg.channel)
+
+        try:
+            ind = int(select.content)
+            if ind not in range(len(factions)):
+                raise ValueError
+            self.bot.delete_message(sent)
+
+            cands = cogdb.side.expansion_candidates(session, centre, factions[ind])
+            resp = "__Possible Expansions__\n"
+            return resp + cog.tbl.wrap_markdown(cog.tbl.format_table(cands, header=True))
+        except ValueError:
+            raise cog.exc.InvalidCommandArgs("Selection was invalid, try command again.")
+
     def find_favorable(self, system):
+        """ Handle find subcmd. """
         matches = cogdb.side.find_favorable(cogdb.SideSession(), system, self.args.max)
         return cog.tbl.wrap_markdown(cog.tbl.format_table(matches, header=True))
+
+    def inf_system(self, system):
+        """ Handle influence subcmd. """
+        self.log.info('BGS - Looking for influence like: %s', system)
+        infs = cogdb.side.influence_in_system(cogdb.SideSession(), system)
+
+        if infs:
+            header = "**{}**\n{} (UTC)\n\n".format(system, infs[0][-1])
+            lines = [['Faction Name', 'Inf', 'Gov', 'PMF?']] + [inf[:-1] for inf in infs]
+            return header + cog.tbl.wrap_markdown(cog.tbl.format_table(lines, header=True))
+
+        return "Received an empty list, check the system name."
 
     def sys_overview(self, system):
         """ Handle sys subcmd. """
@@ -370,12 +398,16 @@ class BGS(Action):
 
     async def execute(self):
         try:
-            funcs = ['age_system', 'dash_overview', 'find_favorable', 'inf_system', 'sys_overview']
+            funcs = ['age_system', 'dash_overview', 'expand',
+                     'find_favorable', 'inf_system', 'sys_overview']
             func_name = [func for func in funcs if func.startswith(self.args.subcmd)][0]
             func = getattr(self, func_name)
 
             system_name = ' '.join(self.args.system)
-            response = await self.bot.loop.run_in_executor(None, func, system_name)
+            if func_name == 'expand':
+                response = await self.expand(system_name)
+            else:
+                response = await self.bot.loop.run_in_executor(None, func, system_name)
         except (cog.exc.NoMoreTargets, cog.exc.RemoteError) as exc:
             response = exc.reply()
 

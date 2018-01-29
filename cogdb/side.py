@@ -779,6 +779,70 @@ def find_favorable(session, centre_name, max_dist=None, inc=15):
     return [['System Name', 'Govt', 'Dist', 'Inf', 'Faction Name']] + lines
 
 
+def expansion_candidates(session, centre, faction):
+    """
+    Given a system and a faction determine all possible candidates to expand.
+
+    A system is a candidate if it is < 20ly away and has < 7 factions.
+
+    Returns:
+        [[system_name, dictance, faction_count], ...]
+    """
+    matches = session.query(System.name, System.dist_to(centre), Influence.state_id, Faction.id).\
+        filter(sqla.and_(System.dist_to(centre) <= 20,
+                         System.name != centre.name,
+                         Influence.system_id == System.id,
+                         Faction.id == Influence.faction_id)).\
+        order_by(System.dist_to(centre)).\
+        all()
+
+    sys_order = []
+    systems = {}
+    for tup in matches:
+        try:
+            if tup[0] not in sys_order:
+                sys_order += [tup[0]]
+            systems[tup[0]] += [tup[-1]]
+        except KeyError:
+            systems[tup[0]] = [tup[-1]]
+            systems[tup[0] + 'dist'] = "{:5.2f}".format(tup[1])
+
+    result = []
+    for sys in sys_order:
+        if len(systems[sys]) < 7 and faction.id not in systems[sys]:
+            result += [[sys, systems[sys + 'dist'], len(systems[sys])]]
+
+    return [["System", "Dist", "Faction Count"]] + result
+
+
+def get_system(session, system_name):
+    """
+    Get the System that has system_name.
+
+    Returns:
+        Matching System or None if not found.
+    """
+    try:
+        return session.query(System).filter(System.name == system_name).one()
+    except sqla_orm.exc.NoResultFound:
+        return None
+
+
+def get_factions_in_system(session, system_name):
+    """
+    Get all Factions in the system with name system_name.
+
+    Returns:
+        List of Factions, empty if improper system_name.
+    """
+    return session.query(Faction).\
+        filter(sqla.and_(System.name == system_name,
+                         Influence.system_id == System.id,
+                         Faction.id == Influence.faction_id)).\
+        order_by(Faction.name).\
+        all()
+
+
 def main():
     pass
 

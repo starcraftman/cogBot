@@ -134,6 +134,15 @@ async def test_cmd_bgs_dash(side_session, f_systems, f_bot):
 
 
 @pytest.mark.asyncio
+async def test_cmd_bgs_exp(f_bot):
+    msg = fake_msg_gears("!bgs exp rana")
+
+    await action_map(msg, f_bot).execute()
+
+    print(str(f_bot.send_long_message.call_args).replace("\\n", "\n"))
+
+
+@pytest.mark.asyncio
 async def test_cmd_bgs_find(f_bot):
     msg = fake_msg_gears("!bgs find nurundere")
 
