@@ -35,7 +35,7 @@ import cog.exc
 
 LIVE_JOBS = []
 MAX_WORKERS = 15
-POOL = pebble.ProcessPool(max_workers=MAX_WORKERS)
+POOL = pebble.ProcessPool(max_workers=MAX_WORKERS, max_tasks=1)
 RUN = True
 TIME_FMT = "%d/%m %H:%M:%S"
 
@@ -175,7 +175,7 @@ async def pool_monitor_task(delay=2):
             POOL.close()
             POOL.stop()
             POOL.join()
-            POOL = pebble.ProcessPool(max_workers=MAX_WORKERS)
+            POOL = pebble.ProcessPool(max_workers=MAX_WORKERS, max_tasks=1)
 
         for job in LIVE_JOBS:
             try:
