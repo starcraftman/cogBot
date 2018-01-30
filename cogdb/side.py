@@ -744,7 +744,7 @@ def find_factions_with_gov(session, system, dist, gov_ids):
         all()
 
 
-def find_favorable(session, centre_name, max_dist=None, inc=15):
+def find_favorable(session, centre_name, max_dist=None, inc=20):
     """
     Find favorable feudals or patronages around a centre_name system.
 
@@ -853,14 +853,15 @@ def expand_to_candidates(session, system_name):
     centre = get_system(session, system_name)
     blacklist = [fact.id for fact in get_factions_in_system(session, system_name)]
     matches = session.query(System.name, System.dist_to(centre),
-                            Influence.influence, FactionState.text, Faction.name).\
+                            Influence.influence, Government.text, FactionState.text, Faction.name).\
         filter(sqla.and_(System.dist_to(centre) <= 20,
                          System.name != centre.name,
                          Influence.system_id == System.id,
                          Influence.is_controlling_faction,
                          Faction.id == Influence.faction_id,
                          Faction.id.notin_(blacklist),
-                         Influence.state_id == FactionState.id)).\
+                         Influence.state_id == FactionState.id,
+                         Government.id == Faction.government_id)).\
         order_by(System.dist_to(centre)).\
         all()
 
@@ -868,11 +869,12 @@ def expand_to_candidates(session, system_name):
         sys_name[:16],
         "{:5.2f}".format(dist),
         "{:5.2f}".format(inf),
+        gov[:4],
         state,
         fact_name
-    ] for sys_name, dist, inf, state, fact_name in matches]
+    ] for sys_name, dist, inf, gov, state, fact_name in matches]
 
-    return [["System", "Dist", "Inf", "State", "Faction"]] + lines
+    return [["System", "Dist", "Inf", "Gov", "State", "Faction"]] + lines
 
 
 def main():
