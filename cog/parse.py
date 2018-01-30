@@ -115,6 +115,8 @@ def subs_bgs(subs, prefix):
         Show the bgs state of a bubble's exploited systems.
 {prefix}bgs exp Rana
         Show all factions in Rana, select one, then show all expansion candidates.
+{prefix}bgs expto Rana
+        Show all factions that could possibly expand to Rana.
 {prefix}bgs find Frey
         Show all Feudal/Patronage factions near Frey, expanding in 15ly increments.
 {prefix}bgs find Frey --max 50
@@ -133,6 +135,8 @@ def subs_bgs(subs, prefix):
     bgs_sub = bgs_subs.add_parser('dash', help='Dashboard overview of exploiteds around a control.')
     bgs_sub.add_argument('system', nargs='+', help='The system to lookup.')
     bgs_sub = bgs_subs.add_parser('exp', help='Find expansion candidates from system.')
+    bgs_sub.add_argument('system', nargs='+', help='The system to lookup.')
+    bgs_sub = bgs_subs.add_parser('expto', help='Find all possible expansion candidates to system.')
     bgs_sub.add_argument('system', nargs='+', help='The system to lookup.')
     bgs_sub = bgs_subs.add_parser('find', help='Show favorable factions around a system.')
     bgs_sub.add_argument('system', nargs='+', help='The system to lookup.')

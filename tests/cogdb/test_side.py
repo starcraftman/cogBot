@@ -136,6 +136,19 @@ def test_expansion_candidates(side_session):
 def test_get_factions_in_system(side_session):
     factions = cogdb.side.get_factions_in_system(side_session, 'Rana')
     assert "Rana State Network" in [fact.name for fact in factions]
+    for fact in factions:
+        assert isinstance(fact, cogdb.side.Faction)
 
     factions = cogdb.side.get_factions_in_system(side_session, 'Nurunddddddd')
     assert not factions
+
+
+def test_get_system(side_session):
+    system = cogdb.side.get_system(side_session, 'Sol')
+    assert system.name == 'Sol'
+    assert isinstance(system, cogdb.side.System)
+
+
+def test_expand_to_candidates(side_session):
+    matches = cogdb.side.expand_to_candidates(side_session, 'Rana')
+    assert len(matches) > 1

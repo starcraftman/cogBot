@@ -269,7 +269,7 @@ class BGS(Action):
     """
     Provide bgs related commands.
     """
-    def age_system(self, system):
+    def age(self, system):
         """ Handle age subcmd. """
         system = cogdb.query.fort_find_system(self.session, system)
         self.log.info('BGS - Looking for age around: %s', system.name)
@@ -279,7 +279,7 @@ class BGS(Action):
         lines += [[system.control, system.system, system.age] for system in systems]
         return cog.tbl.wrap_markdown(cog.tbl.format_table(lines, header=True))
 
-    def dash_overview(self, control):
+    def dash(self, control):
         """ Handle dash subcmd. """
         control_name = cogdb.query.fort_find_system(self.session, control).name
         control, systems, net_inf, facts_count = cogdb.side.dash_overview(cogdb.SideSession(),
@@ -336,8 +336,8 @@ class BGS(Action):
             raise cog.exc.InvalidCommandArgs("System name invalid. Check spelling.")
 
         factions = cogdb.side.get_factions_in_system(session, centre.name)
-        prompt = "Please select a faction to expand from:\n\n"
-        for ind, name in  enumerate([fact.name for fact in factions]):
+        prompt = "Please select a faction to expand with:\n"
+        for ind, name in enumerate([fact.name for fact in factions]):
             prompt += "\n({}) {}".format(ind, name)
         sent = await self.bot.send_message(self.msg.channel, prompt)
         select = await self.bot.wait_for_message(timeout=30, author=self.msg.author,
@@ -350,17 +350,24 @@ class BGS(Action):
             self.bot.delete_message(sent)
 
             cands = cogdb.side.expansion_candidates(session, centre, factions[ind])
-            resp = "__Possible Expansions__\n"
+            resp = "**Would Expand To**\n\n{}, {}\n\n".format(centre.name, factions[ind].name)
             return resp + cog.tbl.wrap_markdown(cog.tbl.format_table(cands, header=True))
         except ValueError:
             raise cog.exc.InvalidCommandArgs("Selection was invalid, try command again.")
 
-    def find_favorable(self, system):
+    def expto(self, system):
+        """ Handle expto subcmd. """
+        matches = cogdb.side.expand_to_candidates(cogdb.SideSession(), system)
+        header = "**Nearby Expansion Candidates**\n\n"
+        return header + cog.tbl.wrap_markdown(cog.tbl.format_table(matches, header=True))
+
+    def find(self, system):
         """ Handle find subcmd. """
         matches = cogdb.side.find_favorable(cogdb.SideSession(), system, self.args.max)
-        return cog.tbl.wrap_markdown(cog.tbl.format_table(matches, header=True))
+        header = "**Favorable Factions**\n\n"
+        return header + cog.tbl.wrap_markdown(cog.tbl.format_table(matches, header=True))
 
-    def inf_system(self, system):
+    def inf(self, system):
         """ Handle influence subcmd. """
         self.log.info('BGS - Looking for influence like: %s', system)
         infs = cogdb.side.influence_in_system(cogdb.SideSession(), system)
@@ -372,7 +379,7 @@ class BGS(Action):
 
         return "Received an empty list, check the system name."
 
-    def sys_overview(self, system):
+    def sys(self, system):
         """ Handle sys subcmd. """
         self.log.info('BGS - Looking for overview like: %s', system)
         system, factions = cogdb.side.system_overview(cogdb.SideSession(), system)
@@ -398,8 +405,7 @@ class BGS(Action):
 
     async def execute(self):
         try:
-            funcs = ['age_system', 'dash_overview', 'expand',
-                     'find_favorable', 'inf_system', 'sys_overview']
+            funcs = ['age', 'dash', 'expand', 'expto', 'find', 'inf', 'sys']
             func_name = [func for func in funcs if func.startswith(self.args.subcmd)][0]
             func = getattr(self, func_name)
 

@@ -137,9 +137,29 @@ async def test_cmd_bgs_dash(side_session, f_systems, f_bot):
 async def test_cmd_bgs_exp(f_bot):
     msg = fake_msg_gears("!bgs exp rana")
 
+    f_bot.wait_for_message.async_return_value = fake_msg_gears('0')
     await action_map(msg, f_bot).execute()
 
-    print(str(f_bot.send_long_message.call_args).replace("\\n", "\n"))
+    actual = str(f_bot.send_long_message.call_args).replace("\\n", "\n")[:-2]
+    actual = re.sub(r'.*live_hudson, ["\']', '', actual)
+    actual = actual.split('\n')
+    for line in actual[6:]:
+        parts = re.split(r'\s+\|\s+', line)
+        assert float(parts[1]) <= 20
+
+
+@pytest.mark.asyncio
+async def test_cmd_bgs_expto(f_bot):
+    msg = fake_msg_gears("!bgs expto rana")
+
+    await action_map(msg, f_bot).execute()
+
+    actual = str(f_bot.send_long_message.call_args).replace("\\n", "\n")[:-2]
+    actual = re.sub(r'.*live_hudson, ["\']', '', actual)
+    actual = actual.split('\n')
+    for line in actual[4:]:
+        parts = re.split(r'\s+\|\s+', line)
+        assert float(parts[1]) <= 20
 
 
 @pytest.mark.asyncio
@@ -149,8 +169,8 @@ async def test_cmd_bgs_find(f_bot):
     await action_map(msg, f_bot).execute()
 
     actual = str(f_bot.send_long_message.call_args).replace("\\n", "\n")[:-2]
-    actual = re.sub(r'.*live_hudson, "', '', actual)
-    assert actual.split('\n')[2].index("Monarchy of Orisala") != -1
+    actual = re.sub(r'.*live_hudson, ["\']', '', actual)
+    assert actual.split('\n')[4].index("Monarchy of Orisala") != -1
 
 
 @pytest.mark.asyncio
@@ -629,7 +649,7 @@ async def test_cmd_um_list_held(f_bot, f_testbed):
 rjwhite      | 450        | 2400   | 0    | 0          | 0
 GearsandCogs | 0          | 400    | 2200 | 0          | 0```"""
     actual = str(f_bot.send_message.call_args).replace("\\n", "\n")[:-2]
-    actual = re.sub(r'.*live_hudson, \'', '', actual)
+    actual = re.sub(r'.*live_hudson, ["\']', '', actual)
     actual = actual.split("\n")
     actual = "\n".join(actual[:2] + actual[3:])
     assert actual == expect

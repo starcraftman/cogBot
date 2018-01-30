@@ -825,7 +825,7 @@ def get_system(session, system_name):
     try:
         return session.query(System).filter(System.name == system_name).one()
     except sqla_orm.exc.NoResultFound:
-        return None
+        raise cog.exc.InvalidCommandArgs("Bad system name specified.")
 
 
 def get_factions_in_system(session, system_name):
@@ -841,6 +841,38 @@ def get_factions_in_system(session, system_name):
                          Faction.id == Influence.faction_id)).\
         order_by(Faction.name).\
         all()
+
+
+def expand_to_candidates(session, system_name):
+    """
+    Considering system_name, determine all controlling nearby factions that could expand to it.
+
+    Returns:
+        [[system_name, distance, influence, state, faction_name], ...]
+    """
+    centre = get_system(session, system_name)
+    blacklist = [fact.id for fact in get_factions_in_system(session, system_name)]
+    matches = session.query(System.name, System.dist_to(centre),
+                            Influence.influence, FactionState.text, Faction.name).\
+        filter(sqla.and_(System.dist_to(centre) <= 20,
+                         System.name != centre.name,
+                         Influence.system_id == System.id,
+                         Influence.is_controlling_faction,
+                         Faction.id == Influence.faction_id,
+                         Faction.id.notin_(blacklist),
+                         Influence.state_id == FactionState.id)).\
+        order_by(System.dist_to(centre)).\
+        all()
+
+    lines = [[
+        sys_name[:16],
+        "{:5.2f}".format(dist),
+        "{:5.2f}".format(inf),
+        state,
+        fact_name
+    ] for sys_name, dist, inf, state, fact_name in matches]
+
+    return [["System", "Dist", "Inf", "State", "Faction"]] + lines
 
 
 def main():
