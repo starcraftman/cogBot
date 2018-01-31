@@ -379,29 +379,34 @@ class BGS(Action):
 
         return "Received an empty list, check the system name."
 
-    def sys(self, system):
+    def sys(self, system_name):
         """ Handle sys subcmd. """
-        self.log.info('BGS - Looking for overview like: %s', system)
-        system, factions = cogdb.side.system_overview(cogdb.SideSession(), system)
+        self.log.info('BGS - Looking for overview like: %s', system_name)
+        system, factions = cogdb.side.system_overview(cogdb.SideSession(), system_name)
 
-        if system:
-            lines = []
-            for faction in factions:
-                lines += [
-                    '{}{}: {} -> {}'.format(faction['name'], ' (PMF)' if faction['player'] else '',
-                                            faction['state'], faction['pending']),
-                ]
-                if faction['stations']:
-                    lines += ['    Owns: ' + ', '.join(faction['stations'])]
-                lines += [
-                    '    ' + ' | '.join(['{:^5}'.format(inf.short_date) for inf in faction['inf_history']]),
-                    '    ' + ' | '.join(['{:^5.1f}'.format(inf.influence) for inf in faction['inf_history']]),
-                ]
+        if not system:
+            raise cog.exc.InvalidCommandArgs("System **{}** not found. Spelling?".format(system_name))
+        if not factions:
+            msg = """We aren't tracking influence in: **{}**
 
-            header = "**{}**: {:,}\n\n".format(system.name, system.population)
-            return header + '```autohotkey\n' + '\n'.join(lines) + '```\n'
+If we should contact Gears or Sidewinder""".format(system_name)
+            raise cog.exc.InvalidCommandArgs(msg)
 
-        return "Received an empty list, check the system name."
+        lines = []
+        for faction in factions:
+            lines += [
+                '{}{}: {} -> {}'.format(faction['name'], ' (PMF)' if faction['player'] else '',
+                                        faction['state'], faction['pending']),
+            ]
+            if faction['stations']:
+                lines += ['    Owns: ' + ', '.join(faction['stations'])]
+            lines += [
+                '    ' + ' | '.join(['{:^5}'.format(inf.short_date) for inf in faction['inf_history']]),
+                '    ' + ' | '.join(['{:^5.1f}'.format(inf.influence) for inf in faction['inf_history']]),
+            ]
+
+        header = "**{}**: {:,}\n\n".format(system.name, system.population)
+        return header + '```autohotkey\n' + '\n'.join(lines) + '```\n'
 
     async def execute(self):
         try:

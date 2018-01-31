@@ -5,16 +5,8 @@ from __future__ import absolute_import, print_function
 import logging
 import logging.handlers
 import logging.config
-import math
 import os
-import urllib.parse as urlparse
-from urllib.parse import urlencode
 
-try:
-    import simplejson as json
-except ImportError:
-    import json
-import aiohttp
 import yaml
 try:
     from yaml import CLoader as Loader
@@ -24,7 +16,6 @@ except ImportError:
 import cog.exc
 
 BOT = None
-EDSM = 'https://www.edsm.net/api-v1/systems'
 MSG_LIMIT = 1950  # Number chars before message truncation
 
 
