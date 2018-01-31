@@ -8,7 +8,6 @@ import asyncio
 import datetime
 import logging
 import re
-import time
 from functools import partial
 
 import decorator
@@ -25,16 +24,17 @@ import cog.util
 SCANNERS = {}
 
 
-async def bot_shutdown(bot, delay=30):  # pragma: no cover
+async def bot_shutdown(bot, delay=60):  # pragma: no cover
     """
-    Shutdown the bot. Not ideal, I should reconsider later.
+    Shutdown the bot. Gives background jobs grace window to finish  unless empty.
     """
-    start = time.time()
-    while cog.jobs.LIVE_JOBS:
-        print(time.time() - start)
-        if (time.time() - start) > 60:
-            break
-        await asyncio.sleep(3)
+    try:
+        cog.jobs.POOL.close()
+        await bot.loop.run_in_executor(None, cog.jobs.POOL.join, delay)
+    except TimeoutError:
+        logging.getLogger('cog.actions').error("Pool failed to close in time. Terminating.")
+        cog.jobs.POOL.stop()
+
     await bot.logout()
 
 
