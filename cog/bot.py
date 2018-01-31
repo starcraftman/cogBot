@@ -163,7 +163,6 @@ class CogBot(discord.Client):
 
         # This block is effectively a one time setup.
         if not cog.actions.SCANNERS:
-            # TODO: Parallelize startup with scheduler and jobs.
             for name in cog.util.get_config("scanners"):  # Populate on import
                 cog.actions.init_scanner(name)
 
@@ -171,6 +170,7 @@ class CogBot(discord.Client):
                                 ['Drop', 'Fort', 'User'])
             self.sched.register('hudson_undermine', cog.actions.get_scanner('hudson_undermine'),
                                 ['Hold', 'UM', 'User'])
+            self.sched.schedule_all()
 
             asyncio.ensure_future(asyncio.gather(
                 presence_task(self),

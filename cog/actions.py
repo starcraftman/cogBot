@@ -988,7 +988,6 @@ def init_scanner(name):
     sheet = cog.util.get_config("scanners", name)
     cls = getattr(cogdb.query, sheet.pop("cls"))
     scanner = cls(sheet)
-    scanner.scan()
     SCANNERS[name] = scanner
 
 

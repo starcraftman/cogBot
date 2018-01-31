@@ -433,6 +433,7 @@ class SheetScanner(object):
         self.cells = None
         self.user_col = None
         self.user_row = None
+        self.system_col = None
 
     @property
     def gsheet(self):
@@ -460,23 +461,9 @@ class SheetScanner(object):
         """
         Main function, scan the sheet into the database.
         """
-        self.cells = self.gsheet.whole_sheet()
+        raise NotImplementedError
 
-        session = cogdb.Session()
-        self.drop_entries(session)
-        session.commit()
-
-        systems = self.systems()
-        users = self.users(*self.users_args)
-        session.add_all(systems + users)
-        session.commit()
-
-        session.add_all(self.merits(systems, users))
-        session.commit()
-
-        return True
-
-    def users(self, cls, faction):
+    def users(self, cls, faction, first_id=1):
         """
         Scan the users in the sheet and return SUser objects.
 
@@ -490,6 +477,7 @@ class SheetScanner(object):
         cry_column = user_column - 1
 
         found = []
+        cnt = first_id
         for user in self.cells[user_column][row:]:
             row += 1
             log.debug('SCANNER - row %d -> user %s', row, user)
@@ -502,7 +490,8 @@ class SheetScanner(object):
             except IndexError:
                 cry = ''
 
-            sheet_user = cls(name=user, faction=faction, row=row, cry=cry)
+            sheet_user = cls(id=cnt, name=user, faction=faction, row=row, cry=cry)
+            cnt += 1
             if sheet_user in found:
                 rows = [other.row for other in found if other == sheet_user] + [row]
                 sheet_type = 'Fort' if 'Fort' in self.__class__.__name__ else 'Undermining'
@@ -545,9 +534,27 @@ class FortScanner(SheetScanner):
     def __init__(self, gsheet):
         super().__init__(gsheet, (SheetCattle, EFaction.hudson),
                          [Drop, System, SheetCattle])
+
+    def scan(self):
+        """
+        Main function, scan the sheet into the database.
+        """
         self.cells = self.gsheet.whole_sheet()
+        # Anchor points can fluctuate so just scan for them
         self.system_col = self.find_system_column()
         self.user_col, self.user_row = self.find_user_row()
+
+        systems = self.fort_systems() + self.prep_systems()
+        users = self.users(*self.users_args, first_id=1)
+        merits = self.merits(systems, users)
+
+        session = cogdb.Session()
+        self.drop_entries(session)
+        session.commit()
+        session.add_all(systems + users + merits)
+        session.commit()
+
+        return True
 
     def systems(self):
         return self.fort_systems() + self.prep_systems()
@@ -566,7 +573,9 @@ class FortScanner(SheetScanner):
             for col in self.cells[first_system:]:
                 log.debug('FSYSSCAN - Cells: %s', str(col[0:10]))
                 kwargs = kwargs_fort_system(col, order, str(cell_column))
+                kwargs['id'] = order
                 log.debug('FSYSSCAN - Kwargs: %s', str(kwargs))
+
                 found.append(System(**kwargs))
                 log.info('FSYSSCAN - System Added: %s', found[-1])
                 order = order + 1
@@ -593,6 +602,7 @@ class FortScanner(SheetScanner):
             for col in self.cells[first_prep:first_system]:
                 log.debug('PSYSSCAN - Cells: %s', str(col[0:10]))
                 kwargs = kwargs_fort_system(col, order, str(cell_column))
+                kwargs['id'] = 1000 + order
                 log.debug('PSYSSCAN - Kwargs: %s', str(kwargs))
                 order = order + 1
                 cell_column.next()
@@ -619,6 +629,7 @@ class FortScanner(SheetScanner):
         log = logging.getLogger('cogdb.query')
         found = []
 
+        cnt = 1
         for system in systems:
             sys_ind = cog.sheets.column_to_index(system.sheet_col)
             try:
@@ -630,8 +641,9 @@ class FortScanner(SheetScanner):
                     if amount == '':  # Some rows just placeholders if empty
                         continue
 
-                    found.append(Drop(user_id=user.id, system_id=system.id,
+                    found.append(Drop(id=cnt, user_id=user.id, system_id=system.id,
                                       amount=cogdb.schema.parse_int(amount)))
+                    cnt += 1
                     log.info('DROPSCAN - Adding: %s', found[-1])
             except IndexError:
                 pass  # No more amounts in column
@@ -708,6 +720,24 @@ class UMScanner(SheetScanner):
         self.user_col = 'B'
         self.user_row = 14
 
+    def scan(self):
+        """
+        Main function, scan the sheet into the database.
+        """
+        self.cells = self.gsheet.whole_sheet()
+
+        systems = self.systems()
+        users = self.users(*self.users_args, first_id=1001)
+        merits = self.merits(systems, users)
+
+        session = cogdb.Session()
+        self.drop_entries(session)
+        session.commit()
+        session.add_all(systems + users + merits)
+        session.commit()
+
+        return True
+
     def systems(self):
         """
         Scan all the systems in the sheet.
@@ -718,11 +748,15 @@ class UMScanner(SheetScanner):
 
         found = []
         try:
+            cnt = 1
             while True:
                 col = cog.sheets.column_to_index(str(cell_column))
                 log.debug('UMSYSSCAN - Cells: %s', str(col))
                 kwargs = kwargs_um_system(self.cells[col:col + 2], str(cell_column))
+                kwargs['id'] = cnt
+                cnt += 1
                 log.debug('UMSYSSCAN - Kwargs: %s', str(kwargs))
+
                 cls = kwargs.pop('cls')
                 found.append(cls(**kwargs))
                 log.info('UMSYSSCAN - System Added: %s', found[-1])
@@ -742,10 +776,12 @@ class UMScanner(SheetScanner):
             holds: The partially finished Holds.
         """
         log = logging.getLogger('cogdb.query')
+
         for system in systems:
             col_ind = cog.sheets.column_to_index(system.sheet_col)
 
             try:
+                cnt = len(holds) + 1
                 for user in users:
                     held = self.cells[col_ind][user.row - 1]
 
@@ -755,8 +791,10 @@ class UMScanner(SheetScanner):
                         continue
 
                     key = '{}_{}'.format(system.id, user.id)
-                    hold = holds.get(key, Hold(user_id=user.id, system_id=system.id,
+                    hold = holds.get(key, Hold(id=cnt, user_id=user.id, system_id=system.id,
                                                held=0, redeemed=0))
+                    if hold.id == cnt:
+                        cnt += 1
                     hold.held += cogdb.schema.parse_int(held)
 
                     holds[key] = hold
@@ -781,6 +819,7 @@ class UMScanner(SheetScanner):
             col_ind = cog.sheets.column_to_index(system.sheet_col) + 1
 
             try:
+                cnt = len(holds) + 1
                 for user in users:
                     redeemed = self.cells[col_ind][user.row - 1]
 
@@ -790,8 +829,10 @@ class UMScanner(SheetScanner):
                         continue
 
                     key = '{}_{}'.format(system.id, user.id)
-                    hold = holds.get(key, Hold(user_id=user.id, system_id=system.id,
+                    hold = holds.get(key, Hold(id=cnt, user_id=user.id, system_id=system.id,
                                                held=0, redeemed=0))
+                    if hold.id == cnt:
+                        cnt += 1
                     hold.redeemed += cogdb.schema.parse_int(redeemed)
 
                     holds[key] = hold
@@ -812,7 +853,7 @@ class UMScanner(SheetScanner):
         holds = {}
         self.held_merits(systems, users, holds)
         self.redeemed_merits(systems, users, holds)
-        return holds.values()
+        return list(holds.values())
 
     # Calls to modify the sheet All asynchronous, register them as futures and move on.
     def update_hold(self, system_col, user_row, held, redeemed):
