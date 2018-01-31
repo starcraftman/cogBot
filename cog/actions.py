@@ -429,25 +429,12 @@ class Dist(Action):
         if len(system_names) < 2:
             raise cog.exc.InvalidCommandArgs("At least **2** systems required.")
 
-        systems = await cog.util.get_coords(system_names)
-        if not systems:
-            raise cog.exc.InvalidCommandArgs("One or more invalid system names.")
+        dists = await self.bot.loop.run_in_executor(None, cogdb.side.compute_dists,
+                                                    cogdb.SideSession(), system_names)
 
-        try:
-            start = [sys for sys in systems if sys['name'].lower() == system_names[0].lower()][0]
-        except IndexError:
-            raise cog.exc.InvalidCommandArgs("Start system was invalid. Check the first system.")
-        rest = [sys for sys in systems if sys['name'].lower() != system_names[0].lower()]
-        if not rest:
-            raise cog.exc.InvalidCommandArgs("No destination systems were valid. Check names.")
-        cog.util.compute_dists(start, rest)
-
-        response = 'Distances From: **{}**\n\n'.format(start['name'])
-        lines = [[sys['name'], '{:.2f}ly'.format(sys['dist'])] for sys in rest]
+        response = 'Distances From: **{}**\n\n'.format(system_names[0].capitalize())
+        lines = [[key, '{:.2f}ly'.format(dists[key])] for key in sorted(dists)]
         response += cog.tbl.wrap_markdown(cog.tbl.format_table(lines))
-
-        if len(rest) != len(system_names) - 1:
-            response += '\nSome systems could not be found. Try again or edit the command.'
 
         await self.bot.send_message(self.msg.channel, response)
 

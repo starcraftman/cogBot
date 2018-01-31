@@ -152,3 +152,18 @@ def test_get_system(side_session):
 def test_expand_to_candidates(side_session):
     matches = cogdb.side.expand_to_candidates(side_session, 'Rana')
     assert len(matches) > 1
+
+
+def test_compute_dists(side_session):
+    expect = {
+        'Othime': 83.67581252406517,
+        'Rana': 46.100296145334035,
+        'Sol': 28.938141191600405,
+    }
+    actual = cogdb.side.compute_dists(side_session, ['Nanomam', 'Sol', 'Rana', 'Othime'])
+    assert actual == expect
+
+
+def test_compute_dists_incomplete(side_session):
+    with pytest.raises(cog.exc.InvalidCommandArgs):
+        cogdb.side.compute_dists(side_session, ['Nanomam', 'Sol', 'Rana', 'Othimezzz'])

@@ -877,6 +877,31 @@ def expand_to_candidates(session, system_name):
     return [["System", "Dist", "Inf", "Gov", "State", "Faction"]] + lines
 
 
+def compute_dists(session, system_names):
+    """
+    Given a list of systems, compute the distance from the first to all others.
+
+    Returns:
+        Dict of {system: distance, ...}
+
+    Raises:
+        InvalidCommandArgs - One or more system could not be matched.
+    """
+    systems = session.query(System).filter(System.name.in_(system_names)).all()
+
+    if len(systems) != len(system_names):
+        system_names = [name.lower() for name in system_names]
+        for system in systems:
+            system_names.remove(system.name.lower())
+
+        msg = "Some systems were not found:\n" + "\n    " + "\n    ".join(system_names)
+        raise cog.exc.InvalidCommandArgs(msg)
+
+    centre = [sys for sys in systems if sys.name.lower() == system_names[0].lower()][0]
+    rest = [sys for sys in systems if sys.name.lower() != system_names[0].lower()]
+    return {system.name: centre.dist_to(system) for system in rest}
+
+
 def main():
     pass
 

@@ -174,46 +174,6 @@ def dict_to_columns(data):
     return [header] + lines
 
 
-async def get_coords(system_names):
-    """
-    Query EDSM for the coordinates to all systems requested.
-
-    Returns:
-        List of all systems requested. Empty list if invalid request.
-        Entries of form: {'name': 'Sol', 'coords': {'x': 0, 'y', 0, 'z': 0}}
-    """
-    params = {'showCoordinates': 1, 'systemName[]': system_names}
-    url_parts = list(urlparse.urlparse(EDSM))
-    url_parts[4] = urlencode(params, doseq=True)
-    url = urlparse.urlunparse(url_parts)
-
-    with aiohttp.ClientSession() as http:
-        async with http.get(url) as resp:
-            return json.loads(await resp.text())
-
-
-def compute_dists(start, others):
-    """
-    Compute distance/magnitude from start to others.
-    Result is added to each entries dict under other['dist'] = result.
-
-    Entries are of form: {'name': 'Sol', 'coords': {'x': 0, 'y', 0, 'z': 0}}
-
-    Returns:
-        others, with data embedded.
-    """
-    pt1 = start['coords']
-    for other in others:
-        pt2 = other['coords']
-        dist = 0
-        for let in ['x', 'y', 'z']:
-            temp = pt2[let] - pt1[let]
-            dist += temp * temp
-        other['dist'] = math.sqrt(dist)
-
-    return others
-
-
 def complete_blocks(parts):
     """
     Take a list of message parts, complete code blocks as needed to
