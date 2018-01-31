@@ -442,6 +442,7 @@ def main():  # pragma: no cover
     cog.util.BOT = CogBot("!")
 
     token = cog.util.get_config('discord', os.environ.get('COG_TOKEN', 'dev'))
+    print("Waiting on connection to Discord ...")
     cog.util.BOT.run(token)  # BLOCKING: N.o. e.s.c.a.p.e.
 
 
