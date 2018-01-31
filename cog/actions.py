@@ -8,7 +8,7 @@ import asyncio
 import datetime
 import logging
 import re
-import sys
+import time
 from functools import partial
 
 import decorator
@@ -29,10 +29,13 @@ async def bot_shutdown(bot, delay=30):  # pragma: no cover
     """
     Shutdown the bot. Not ideal, I should reconsider later.
     """
-    await asyncio.sleep(delay)
+    start = time.time()
+    while cog.jobs.LIVE_JOBS:
+        print(time.time() - start)
+        if (time.time() - start) > 60:
+            break
+        await asyncio.sleep(3)
     await bot.logout()
-    await asyncio.sleep(3)
-    sys.exit(0)
 
 
 def user_info(user):  # pragma: no cover
@@ -242,11 +245,8 @@ class Admin(Action):
 
         elif args.subcmd == 'halt':
             self.bot.deny_commands = True
-            asyncio.ensure_future(
-                asyncio.gather(self.bot.broadcast('Scheduled for shutdown in 30s. Farewell!'
-                                                  '\n\nCommands: **Disabled**'),
-                               bot_shutdown(self.bot)))
-            response = 'Shutdown scheduled.'
+            asyncio.ensure_future(bot_shutdown(self.bot))
+            response = 'Shutdown scheduled. Will wait for jobs to finish or max 60s.'
 
         elif args.subcmd == 'scan':
             response = 'All sheets scheduled for update.'

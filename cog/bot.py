@@ -438,17 +438,11 @@ async def simple_heartbeat(delay=30):
 
 def main():  # pragma: no cover
     """ Entry here! """
-    try:
-        cog.util.init_logging()
-        cog.util.BOT = CogBot("!")
+    cog.util.init_logging()
+    cog.util.BOT = CogBot("!")
 
-        # BLOCKING: N.o. e.s.c.a.p.e.
-        cog.util.BOT.run(cog.util.get_config('discord', os.environ.get('COG_TOKEN', 'dev')))
-    finally:
-        try:
-            cog.util.BOT.logout()
-        except AttributeError:
-            pass
+    token = cog.util.get_config('discord', os.environ.get('COG_TOKEN', 'dev'))
+    cog.util.BOT.run(token)  # BLOCKING: N.o. e.s.c.a.p.e.
 
 
 if __name__ == "__main__":  # pragma: no cover
