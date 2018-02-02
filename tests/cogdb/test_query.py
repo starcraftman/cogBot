@@ -260,9 +260,9 @@ def test_fortscanner_find_user_row(mock_fortsheet):
     scanner.cells = cells
     assert scanner.find_user_row() == ('B', 11)
 
-    mock_fortsheet.whole_sheet.return_value = cells[:1] + cells[2:]
+    scanner.cells = cells[:1] + cells[2:]
     with pytest.raises(cog.exc.SheetParsingError):
-        cogdb.query.FortScanner(gsheet=mock_fortsheet).scan()
+        scanner.find_user_row()
 
 
 def test_fortscanner_merits(mock_fortsheet):

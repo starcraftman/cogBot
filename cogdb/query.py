@@ -534,15 +534,16 @@ class FortScanner(SheetScanner):
     def __init__(self, gsheet):
         super().__init__(gsheet, (SheetCattle, EFaction.hudson),
                          [Drop, System, SheetCattle])
+        self.system_col = self.find_system_column()
+        self.user_col = 'B'
+        self.user_row = 14
 
     def scan(self):
         """
         Main function, scan the sheet into the database.
         """
         self.cells = self.gsheet.whole_sheet()
-        # Anchor points can fluctuate so just scan for them
         self.system_col = self.find_system_column()
-        self.user_col, self.user_row = self.find_user_row()
 
         systems = self.fort_systems() + self.prep_systems()
         users = self.users(*self.users_args, first_id=1)
@@ -649,27 +650,6 @@ class FortScanner(SheetScanner):
                 pass  # No more amounts in column
 
         return found
-
-    def find_user_row(self):
-        """
-        Returns: First row and column that has users in it.
-
-        Raises: SheetParsingError when fails to locate expected anchor in cells.
-        """
-        cell_anchor = 'CMDR Name'
-        col_count = cog.sheets.Column('A')
-
-        for column in self.cells:
-            col_count.next()
-            if cell_anchor not in column:
-                continue
-
-            col_count.prev()  # Gone past by one
-            for row_count, row in enumerate(column):
-                if row == cell_anchor:
-                    return (str(col_count), row_count + 2)
-
-        raise cog.exc.SheetParsingError
 
     def find_system_column(self):
         """
