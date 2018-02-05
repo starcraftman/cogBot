@@ -221,6 +221,59 @@ class Admin(Action):
 
         return response
 
+    # No tests due to data being connected to discord and variable.
+    async def active(self):  # pragma: no cover
+        """
+        Analyze the activity of users going back months for the mentioned channels.
+
+        No storage, just requests info on demand.
+        """
+        all_members = []
+        for member in self.msg.server.members:
+            for channel in self.msg.channel_mentions:
+                if channel.permissions_for(member).read_messages and member.name not in all_members:
+                    all_members += [member.name]
+
+        after = datetime.datetime.utcnow() - datetime.timedelta(days=30 * self.args.months)
+        report = {}
+        for channel in self.msg.channel_mentions:
+            report[channel.name] = {}
+            try:
+                async for msg in self.bot.logs_from(channel, after=after, limit=100000):
+                    try:
+                        report[channel.name][msg.author.name]
+                    except KeyError:
+                        report[channel.name][msg.author.name] = msg.timestamp
+            except discord.errors.Forbidden:
+                raise cog.exc.InvalidCommandArgs("Bot has no permissions for channel: " + channel.name)
+
+        flat = {}
+        for chan in report:
+            for cmdr in report[chan]:
+                try:
+                    flat[cmdr]
+                except KeyError:
+                    flat[cmdr] = {}
+                flat[cmdr][chan] = report[chan][cmdr]
+
+                try:
+                    if flat[cmdr]['last'] < flat[cmdr][chan]:
+                        flat[cmdr]['last'] = flat[cmdr][chan]
+                except KeyError:
+                    flat[cmdr]['last'] = flat[cmdr][chan]
+
+                all_members.remove(cmdr)
+
+        response = "__Activity Report__\n\n"
+        response += "The following CMDRs made no messages since: {}\n\n".format(str(after))
+        response += cog.tbl.wrap_markdown("\n".join([cmdr for cmdr in sorted(all_members)]))
+        response += "These CMDRs have made messages within the window."
+        rows = [["CMDR", "Most Recent Msg"]]
+        rows += [[cmdr, str(flat[cmdr]['last'])] for cmdr in sorted(flat)]
+        response += cog.tbl.wrap_markdown(cog.tbl.format_table(rows, header=True))
+
+        return response
+
     async def cast(self):
         """ Broacast a message accross a server. """
         await self.bot.broadcast(' '.join(self.args.content))
@@ -271,7 +324,7 @@ class Admin(Action):
                 response = await func(admin)
             else:
                 response = await func()
-            await self.bot.send_message(self.msg.channel, response)
+            await self.bot.send_long_message(self.msg.channel, response)
         except AttributeError:
             raise cog.exc.InvalidCommandArgs("Bad subcommand of BGS, see help.")
 
