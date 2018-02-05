@@ -157,8 +157,8 @@ class SheetParsingError(InternalException):
     """
     During sheet parsing, could not determine cell anchors properly.
     """
-    def __init__(self):
-        super().__init__('Serious problem, this message should not print.')
+    def __init__(self, msg="Critical sheet parsing error."):
+        super().__init__(msg)
 
 
 class NameCollisionError(SheetParsingError):

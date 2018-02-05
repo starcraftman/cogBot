@@ -534,9 +534,9 @@ class FortScanner(SheetScanner):
     def __init__(self, gsheet):
         super().__init__(gsheet, (SheetCattle, EFaction.hudson),
                          [Drop, System, SheetCattle])
-        self.system_col = self.find_system_column()
+        self.system_col = None
         self.user_col = 'B'
-        self.user_row = 14
+        self.user_row = 11
 
     def scan(self):
         """
@@ -656,25 +656,26 @@ class FortScanner(SheetScanner):
         Find the first column that has a system cell in it.
         Determined based on cell's background color.
 
-        Raises: SheetParsingError when fails to locate expected anchor in cells.
+        Raises:
+            SheetParsingError when fails to locate expected anchor in cells.
         """
-        column = cog.sheets.Column()
-        # System's always use this background color.
-        system_colors = {'red': 0.42745098, 'blue': 0.92156863, 'green': 0.61960787}
+        if not self.cells:
+            raise cog.exc.SheetParsingError("No cells set to parse.")
 
-        fmt_cells = self.gsheet.get_with_formatting('!A10:J10')
-        for val in fmt_cells['sheets'][0]['data'][0]['rowData'][0]['values']:
-            if val['effectiveFormat']['backgroundColor'] == system_colors:
-                return str(column)
+        col_count = cog.sheets.Column()
+        for column in self.cells:
+            if 'Frey' in column:
+                return str(col_count)
 
-            column.next()
+            col_count.next()
 
-        raise cog.exc.SheetParsingError
+        raise cog.exc.SheetParsingError("Unable to determine system column.")
 
     def update_drop(self, system_col, user_row, amount):
         """
         Update a drop to the sheet.
         """
+        print(system_col)
         cell_range = '!{col}{row}:{col}{row}'.format(col=system_col, row=user_row)
         self.gsheet.update(cell_range, [[amount]])
 

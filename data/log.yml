@@ -30,7 +30,7 @@ handlers:
     filename: /tmp/cog/main.log
   cogdb:
     <<: *default_handler
-    level: DEBUG
+    level: INFO
     filename: /tmp/cog/db.log
   debug_stream:
     class: logging.StreamHandler

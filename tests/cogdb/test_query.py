@@ -240,29 +240,12 @@ def test_fort_order_drop(session, f_systems, f_fortorders):
 
 def test_fortscanner_find_system_column(mock_fortsheet):
     scanner = cogdb.query.FortScanner(mock_fortsheet)
+    scanner.cells = mock_fortsheet.whole_sheet()
     scanner.find_system_column() == 'F'
 
-    mock_fortsheet.get_with_formatting.return_value['sheets'][0]['data'][0]['rowData'][0]['values'] = []
     with pytest.raises(cog.exc.SheetParsingError):
-        cogdb.query.FortScanner(gsheet=mock_fortsheet).find_system_column()
-
-
-def test_fortscanner_find_user_row(mock_fortsheet):
-    cells = [
-        ['', 'First column!'],
-        ['', 'High', 342033, 243333, 13200, 'UPDATE>>>',
-         'UPDATE>>>', 189, 'TRUE', 'CMDR Name', 'Some user'],
-        ['', 'Third column, too faar.'],
-        ['', 'Fourth column ...'],
-        ['', 'Cinco'],
-    ]
-    scanner = cogdb.query.FortScanner(mock_fortsheet)
-    scanner.cells = cells
-    assert scanner.find_user_row() == ('B', 11)
-
-    scanner.cells = cells[:1] + cells[2:]
-    with pytest.raises(cog.exc.SheetParsingError):
-        scanner.find_user_row()
+        scanner.cells = [[''], ['CMDR Name']]
+        scanner.find_system_column()
 
 
 def test_fortscanner_merits(mock_fortsheet):
@@ -286,7 +269,6 @@ def test_fortscanner_systems(mock_fortsheet):
 def test_fortscanner_users(mock_fortsheet):
     scanner = cogdb.query.FortScanner(mock_fortsheet)
     scanner.cells = scanner.gsheet.whole_sheet()
-    scanner.user_col, scanner.user_row = scanner.find_user_row()
     result = [suser.name for suser in scanner.users(SheetCattle, EFaction.hudson)]
     assert result == USERS
 
