@@ -678,7 +678,6 @@ class FortScanner(SheetScanner):
         """
         Update a drop to the sheet.
         """
-        print(system_col)
         cell_range = '!{col}{row}:{col}{row}'.format(col=system_col, row=user_row)
         self.gsheet.update(cell_range, [[amount]])
 
