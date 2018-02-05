@@ -184,7 +184,7 @@ class CogBot(discord.Client):
 
         print('GBot Ready!')
 
-    def ignore_message(self, message):
+    async def ignore_message(self, message):
         """
         Determine whether the message should be ignored.
 
@@ -197,6 +197,10 @@ class CogBot(discord.Client):
 
         # Accept only admin commands if denying
         if self.deny_commands and not message.content.startswith('{}admin'.format(self.prefix)):
+            return True
+
+        if isinstance(message.channel, discord.PrivateChannel):
+            await self.send_message(message.channel, "Bot will not respond to private commands.")
             return True
 
         return False
@@ -229,7 +233,7 @@ class CogBot(discord.Client):
         channel = message.channel
 
         # TODO: Better filtering, use a loop and filter funcs.
-        if self.ignore_message(message):
+        if await self.ignore_message(message):
             return
 
         log = logging.getLogger('cog.bot')
