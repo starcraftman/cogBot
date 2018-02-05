@@ -11,6 +11,7 @@ import re
 from functools import partial
 
 import decorator
+import discord
 
 import cogdb
 import cogdb.query
@@ -142,7 +143,6 @@ class Action(object):
         raise NotImplementedError
 
 
-# TODO: This is a mess :( Change to bind functions on parse maybe? Perhaps add top levels? !perms?
 class Admin(Action):
     """
     Admin command console. For knowledgeable users only.
@@ -160,7 +160,7 @@ class Admin(Action):
             raise cog.exc.InvalidCommandArgs("Rules require a command in following set: \n\n" +
                                              str(cmd_set))
 
-    def add(self):
+    async def add(self):
         """
         Takes one of the following actions:
             1) Add 1 or more admins
@@ -170,7 +170,7 @@ class Admin(Action):
         if not self.args.rule_cmd and self.msg.mentions:
             for member in self.msg.mentions:
                 cogdb.query.add_admin(self.session, member)
-            return "Admins added:\n\n" + '\n'.join([member.name for member in self.msg.mentions])
+            response = "Admins added:\n\n" + '\n'.join([member.name for member in self.msg.mentions])
 
         else:
             self.check_cmd()
@@ -179,7 +179,7 @@ class Admin(Action):
                 cogdb.query.add_channel_perm(self.session, self.args.rule_cmd,
                                              self.msg.channel.server.name,
                                              self.msg.channel_mentions[0].name)
-                return "Channel permission added."
+                response = "Channel permission added."
 
             elif self.args.role:
                 role = ' '.join(self.args.role)
@@ -187,9 +187,11 @@ class Admin(Action):
                 cogdb.query.add_role_perm(self.session, self.args.rule_cmd,
                                           self.msg.channel.server.name,
                                           ' '.join(self.args.role))
-                return "Role permission added."
+                response = "Role permission added."
 
-    def remove(self, admin):
+        return response
+
+    async def remove(self, admin):
         """
         Takes one of the following actions:
             1) Remove 1 or more admins
@@ -199,7 +201,7 @@ class Admin(Action):
         if not self.args.rule_cmd and self.msg.mentions:
             for member in self.msg.mentions:
                 admin.remove(self.session, cogdb.query.get_admin(self.session, member))
-            return "Admins removed:\n\n" + '\n'.join([member.name for member in self.msg.mentions])
+            response = "Admins removed:\n\n" + '\n'.join([member.name for member in self.msg.mentions])
 
         else:
             self.check_cmd()
@@ -208,82 +210,93 @@ class Admin(Action):
                 cogdb.query.remove_channel_perm(self.session, self.args.rule_cmd,
                                                 self.msg.channel.server.name,
                                                 self.msg.channel_mentions[0].name)
-                return "Channel permission removed."
+                response = "Channel permission removed."
 
             elif self.args.role:
                 role = ' '.join(self.args.role)
                 self.check_role(role)
                 cogdb.query.remove_role_perm(self.session, self.args.rule_cmd,
                                              self.msg.channel.server.name, role)
-                return "Role permission removed."
+                response = "Role permission removed."
+
+        return response
+
+    async def cast(self):
+        """ Broacast a message accross a server. """
+        await self.bot.broadcast(' '.join(self.args.content))
+        return 'Broadcast completed.'
+
+    async def deny(self):
+        """ Toggle bot's acceptance of commands. """
+        self.bot.deny_commands = not self.bot.deny_commands
+        return 'Commands: **{}abled**'.format('Dis' if self.bot.deny_commands else 'En')
+
+    async def dump(self):
+        """ Dump the entire database to a file on server. """
+        cogdb.query.dump_db()
+        return 'Db has been dumped to server file.'
+
+    async def halt(self):
+        """ Schedule the bot for safe shutdown. """
+        self.bot.deny_commands = True
+        asyncio.ensure_future(bot_shutdown(self.bot))
+        return 'Shutdown scheduled. Will wait for jobs to finish or max 60s.'
+
+    async def info(self):
+        """ Information on user, deprecated? """
+        if self.msg.mentions:
+            response = ''
+            for user in self.msg.mentions:
+                response += user_info(user) + '\n'
+        else:
+            response = user_info(self.msg.author)
+        self.msg.channel = self.msg.author  # Not for public
+
+        return response
+
+    async def scan(self):
+        """ Schedule all sheets for update. """
+        self.bot.sched.schedule_all()
+        return 'All sheets scheduled for update.'
 
     async def execute(self):
-        args = self.args
-        response = ''
         try:
             admin = cogdb.query.get_admin(self.session, self.duser)
         except cog.exc.NoMatch:
             raise cog.exc.InvalidPerms("{} You are not an admin!".format(self.msg.author.mention))
 
-        if args.subcmd == "add":
-            response = self.add()
-
-        elif args.subcmd == "remove":
-            response = self.remove(admin)
-
-        elif args.subcmd == 'cast':
-            await self.bot.broadcast(' '.join(self.args.content))
-            response = 'Broadcast scheduled.'
-
-        elif args.subcmd == 'deny':
-            self.bot.deny_commands = not self.bot.deny_commands
-            response = 'Commands: **{}abled**'.format('Dis' if self.bot.deny_commands else 'En')
-
-        elif args.subcmd == 'dump':
-            cogdb.query.dump_db()
-            response = 'Db has been dumped to server console.'
-
-        elif args.subcmd == 'halt':
-            self.bot.deny_commands = True
-            asyncio.ensure_future(bot_shutdown(self.bot))
-            response = 'Shutdown scheduled. Will wait for jobs to finish or max 60s.'
-
-        elif args.subcmd == 'scan':
-            response = 'All sheets scheduled for update.'
-            self.bot.sched.schedule_all()
-
-        elif args.subcmd == 'info':
-            if self.msg.mentions:
-                response = ''
-                for user in self.msg.mentions:
-                    response += user_info(user) + '\n'
+        try:
+            func = getattr(self, self.args.subcmd)
+            if self.args.subcmd == "remove":
+                response = await func(admin)
             else:
-                response = user_info(self.msg.author)
-            self.msg.channel = self.msg.author  # Not for public
-
-        if response:
+                response = await func()
             await self.bot.send_message(self.msg.channel, response)
+        except AttributeError:
+            raise cog.exc.InvalidCommandArgs("Bad subcommand of BGS, see help.")
 
 
 class BGS(Action):
     """
     Provide bgs related commands.
     """
-    def age(self, system):
+    async def age(self, system_name):
         """ Handle age subcmd. """
-        system = cogdb.query.fort_find_system(self.session, system)
+        system = cogdb.query.fort_find_system(self.session, system_name)
         self.log.info('BGS - Looking for age around: %s', system.name)
 
         systems = cogdb.side.exploited_systems_by_age(cogdb.SideSession(), system.name)
+        systems = await self.bot.loop.run_in_executor(None, cogdb.side.exploited_systems_by_age,
+                                                      cogdb.SideSession(), system.name)
         lines = [['Control', 'System', 'Age']]
         lines += [[system.control, system.system, system.age] for system in systems]
         return cog.tbl.wrap_markdown(cog.tbl.format_table(lines, header=True))
 
-    def dash(self, control):
+    async def dash(self, control_name):
         """ Handle dash subcmd. """
-        control_name = cogdb.query.fort_find_system(self.session, control).name
-        control, systems, net_inf, facts_count = cogdb.side.dash_overview(cogdb.SideSession(),
-                                                                          control_name)
+        control = cogdb.query.fort_find_system(self.session, control_name)
+        control, systems, net_inf, facts_count = await self.bot.loop.run_in_executor(
+            None, cogdb.side.dash_overview, cogdb.SideSession(), control.name)
 
         lines = [['System', 'Control Faction', 'Gov', 'Inf', 'Net', 'N', 'Pop']]
         cnt = {
@@ -328,14 +341,16 @@ class BGS(Action):
 
         return header + table + explain
 
-    async def expand(self, system):
+    async def exp(self, system_name):
         """ Handle exp subcmd. """
-        session = cogdb.SideSession()
-        centre = cogdb.side.get_system(session, system)
+        side_session = cogdb.SideSession()
+        centre = await self.bot.loop.run_in_executor(None, cogdb.side.get_system,
+                                                     side_session, system_name)
         if not centre:
             raise cog.exc.InvalidCommandArgs("System name invalid. Check spelling.")
 
-        factions = cogdb.side.get_factions_in_system(session, centre.name)
+        factions = await self.bot.loop.run_in_executor(None, cogdb.side.get_factions_in_system,
+                                                       side_session, centre.name)
         prompt = "Please select a faction to expand with:\n"
         for ind, name in enumerate([fact.name for fact in factions]):
             prompt += "\n({}) {}".format(ind, name)
@@ -347,42 +362,53 @@ class BGS(Action):
             ind = int(select.content)
             if ind not in range(len(factions)):
                 raise ValueError
-            self.bot.delete_message(sent)
 
-            cands = cogdb.side.expansion_candidates(session, centre, factions[ind])
+            cands = await self.bot.loop.run_in_executor(None, cogdb.side.expansion_candidates,
+                                                        side_session, centre, factions[ind])
             resp = "**Would Expand To**\n\n{}, {}\n\n".format(centre.name, factions[ind].name)
             return resp + cog.tbl.wrap_markdown(cog.tbl.format_table(cands, header=True))
         except ValueError:
             raise cog.exc.InvalidCommandArgs("Selection was invalid, try command again.")
+        finally:
+            try:
+                await self.bot.delete_message(sent)
+                await self.bot.delete_message(select)
+            except discord.errors.DiscordException:
+                pass
 
-    def expto(self, system):
+    async def expto(self, system_name):
         """ Handle expto subcmd. """
-        matches = cogdb.side.expand_to_candidates(cogdb.SideSession(), system)
+        matches = await self.bot.loop.run_in_executor(None, cogdb.side.expand_to_candidates,
+                                                      cogdb.SideSession(), system_name)
         header = "**Nearby Expansion Candidates**\n\n"
         return header + cog.tbl.wrap_markdown(cog.tbl.format_table(matches, header=True))
 
-    def find(self, system):
+    async def find(self, system_name):
         """ Handle find subcmd. """
-        matches = cogdb.side.find_favorable(cogdb.SideSession(), system, self.args.max)
+        matches = await self.bot.loop.run_in_executor(None, cogdb.side.find_favorable,
+                                                      cogdb.SideSession(), system_name,
+                                                      self.args.max)
         header = "**Favorable Factions**\n\n"
         return header + cog.tbl.wrap_markdown(cog.tbl.format_table(matches, header=True))
 
-    def inf(self, system):
+    async def inf(self, system_name):
         """ Handle influence subcmd. """
-        self.log.info('BGS - Looking for influence like: %s', system)
-        infs = cogdb.side.influence_in_system(cogdb.SideSession(), system)
+        self.log.info('BGS - Looking for influence like: %s', system_name)
+        infs = await self.bot.loop.run_in_executor(None, cogdb.side.influence_in_system,
+                                                   cogdb.SideSession(), system_name)
 
-        if infs:
-            header = "**{}**\n{} (UTC)\n\n".format(system, infs[0][-1])
-            lines = [['Faction Name', 'Inf', 'Gov', 'PMF?']] + [inf[:-1] for inf in infs]
-            return header + cog.tbl.wrap_markdown(cog.tbl.format_table(lines, header=True))
+        if not infs:
+            raise cog.exc.InvalidCommandArgs("Invalid system name or system is not tracked in db.")
 
-        return "Received an empty list, check the system name."
+        header = "**{}**\n{} (UTC)\n\n".format(system_name, infs[0][-1])
+        lines = [['Faction Name', 'Inf', 'Gov', 'PMF?']] + [inf[:-1] for inf in infs]
+        return header + cog.tbl.wrap_markdown(cog.tbl.format_table(lines, header=True))
 
-    def sys(self, system_name):
+    async def sys(self, system_name):
         """ Handle sys subcmd. """
         self.log.info('BGS - Looking for overview like: %s', system_name)
-        system, factions = cogdb.side.system_overview(cogdb.SideSession(), system_name)
+        system, factions = await self.bot.loop.run_in_executor(None, cogdb.side.system_overview,
+                                                               cogdb.SideSession(), system_name)
 
         if not system:
             raise cog.exc.InvalidCommandArgs("System **{}** not found. Spelling?".format(system_name))
@@ -410,19 +436,13 @@ If we should contact Gears or Sidewinder""".format(system_name)
 
     async def execute(self):
         try:
-            funcs = ['age', 'dash', 'expand', 'expto', 'find', 'inf', 'sys']
-            func_name = [func for func in funcs if func.startswith(self.args.subcmd)][0]
-            func = getattr(self, func_name)
-
-            system_name = ' '.join(self.args.system)
-            if func_name == 'expand':
-                response = await self.expand(system_name)
-            else:
-                response = await self.bot.loop.run_in_executor(None, func, system_name)
+            func = getattr(self, self.args.subcmd)
+            response = await func(' '.join(self.args.system))
+            await self.bot.send_long_message(self.msg.channel, response)
+        except AttributeError:
+            raise cog.exc.InvalidCommandArgs("Bad subcommand of BGS, see help.")
         except (cog.exc.NoMoreTargets, cog.exc.RemoteError) as exc:
             response = exc.reply()
-
-        await self.bot.send_long_message(self.msg.channel, response)
 
 
 class Dist(Action):

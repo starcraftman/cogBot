@@ -3,7 +3,9 @@ Module should handle logic related to querying/manipulating tables from a high l
 """
 from __future__ import absolute_import, print_function
 import logging
+import os
 import sys
+import tempfile
 
 import sqlalchemy.exc as sqla_exc
 import sqlalchemy.orm.exc as sqla_oexc
@@ -46,15 +48,16 @@ def fuzzy_find(needle, stack, obj_attr='zzzz', ignore_case=True):
 
 def dump_db():  # pragma: no cover
     """
-    Purely debug function, prints locally database.
+    Purely debug function, shunts db contents into file for examination.
     """
     session = cogdb.Session()
-    print('Printing filled databases')
-    classes = [DUser, SheetRow, System, SystemUM, Drop, Hold]
-    for cls in classes:
-        print('---- ' + str(cls) + ' ----')
-        for obj in session.query(cls):
-            print(obj)
+    fname = os.path.join(tempfile.gettempdir(), 'dbdump_' + os.environ.get('COG_TOKEN', 'dev'))
+    print("Dumping db contents to:", fname)
+    with open(fname, 'w') as fout:
+        for cls in [DUser, SheetRow, System, SystemUM, Drop, Hold,
+                    FortOrder, Admin, RolePerm, ChannelPerm]:
+            fout.write('---- ' + str(cls) + ' ----\n')
+            fout.writelines([str(obj) + "\n" for obj in session.query(cls)])
 
 
 def get_duser(session, discord_id):
