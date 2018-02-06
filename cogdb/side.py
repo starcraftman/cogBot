@@ -447,6 +447,19 @@ class System(SideBase):
         """" Aproximates the default undermining trigger. """
         return round(5000 + (2750000 / math.pow(self.dist_to(system), 1.5)))
 
+    def calc_income(self, system):
+        """ Calculate potential base income. """
+        return math.log(self.dist_to(system), 10) + 1.5
+
+    def calc_net_income(self, system):
+        """
+        Calculate potential net income.
+
+        Formula: Income - upkeep - 62 -overlapping/contested systems
+        """
+        return self.calc_income(system) - self.calc_upkeep(system) - 62
+        #TODO: Incomplete
+
 
 class SystemAge(SideBase):
     """ Represents the age of eddn data received for control/system pair. """
