@@ -311,7 +311,10 @@ def subs_trigger(subs, prefix):
     desc = """Predict the expected triggers for the requested systems.
 
 {prefix}trigger Rana, Arnemil
-        Calculate triggers for requested systems.
+        Calculate triggers for requested systems from Hudson HQ.
+{prefix}trigger Rana, Arnemil --power winters
+{prefix}trigger Rana, Arnemil -p winters
+        Calculate triggers for requested systems from Winters HQ.
     """.format(prefix=prefix)
     sub = subs.add_parser(prefix + 'trigger', description=desc, formatter_class=RawHelp)
     sub.set_defaults(cmd='Trigger')

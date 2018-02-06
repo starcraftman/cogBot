@@ -745,6 +745,7 @@ class Help(Action):
             ['{prefix}hold', 'Declare held merits or redeem them'],
             ['{prefix}status', 'Info about this bot'],
             ['{prefix}time', 'Show game time and time to ticks'],
+            ['{prefix}trigger', 'Calculate fort and um triggers for systems'],
             ['{prefix}um', 'Get information about undermining targets'],
             ['{prefix}user', 'Manage your user, set sheet name and tag'],
             ['{prefix}whois', 'Search for commander on inara.cz'],
