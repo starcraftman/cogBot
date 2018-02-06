@@ -240,7 +240,7 @@ class InaraApi():
             'No exact match for CMDR **{}**'.format(name),
             'Possible matches:',
             '    ' + '\n    '.join(cmdr_list),
-            '\nTo select choice 2 reply with: **cmdr 2**',
+            '\nTo select choice 2 reply with: **2**',
             'To abort, reply: **stop**',
             '\n__This message will delete itself on success or 30s timeout.__',
         ])
@@ -358,10 +358,9 @@ class InaraApi():
         # TODO: KOS HOOK WILL BE HERE !
         # crosscheck who-is with KOS list, then append information to embed
 
-        for embed in embeds:
-            await cog.util.BOT.send_message(msg.channel, embed=embed)
-
-        await self.delete_waiting_message(req_id)
+        futs = [cog.util.BOT.send_message(msg.channel, embed=embed) for embed in embeds]
+        futs += [self.delete_waiting_message(req_id)]
+        await asyncio.gather(*futs)
 
 
 def check_reply(msg, prefix='!'):
@@ -377,12 +376,12 @@ def check_reply(msg, prefix='!'):
     Returns: Parsed index of cmdrs dict.
     """
     # If msg is None, the wait_for_message timed out.
-    if not msg or re.match(r'\s*stop', msg.content):
+    if not msg or re.match(r'\s*stop\s*', msg.content.lower()) or msg.content.startswith(prefix):
         raise cog.exc.CmdAborted('Timeout or user aborted command.')
 
-    match = re.search(r'\s*cmdr\s+(\d+)', msg.content.lower())
-    if msg.content.startswith(prefix) or not match:
-        raise ValueError('Bad response.\n\nPlease choose with **cmdr x** or **stop**')
+    match = re.search(r'\s*(\d+)\s*', msg.content.lower())
+    if not match:
+        raise ValueError('Bad response.\n\nPlease choose a **number** or **stop**')
 
     return int(match.group(1))
 

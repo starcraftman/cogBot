@@ -95,9 +95,11 @@ def test_check_reply():
         cog.inara.check_reply(None)
 
     with pytest.raises(cog.exc.CmdAborted):
+        cog.inara.check_reply(Message('!status', None, None, None, None))
+
+    with pytest.raises(cog.exc.CmdAborted):
         cog.inara.check_reply(Message('stop', None, None, None, None))
 
-    with pytest.raises(ValueError):
-        cog.inara.check_reply(Message('22', None, None, None, None))
+    assert cog.inara.check_reply(Message('2', None, None, None, None)) == 2
 
     assert cog.inara.check_reply(Message('cmdr 5', None, None, None, None)) == 5

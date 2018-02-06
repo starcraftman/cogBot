@@ -566,11 +566,10 @@ class Drop(Action):
 
         drop = cogdb.query.fort_add_drop(self.session, system=system,
                                          user=self.cattle, amount=self.args.amount)
-        self.log.info('DROP %s - After drop, Drop: %s\nSystem: %s.',
-                      self.duser.display_name, drop, system)
-
         if self.args.set:
             system.set_status(self.args.set)
+        self.log.info('DROP %s - After drop, Drop: %s\nSystem: %s.',
+                      self.duser.display_name, drop, system)
         self.session.commit()
 
         job = cog.jobs.Job(
@@ -584,8 +583,8 @@ class Drop(Action):
         self.log.info('DROP %s - Sucessfully dropped %d at %s.',
                       self.duser.display_name, self.args.amount, system.name)
 
-        response = drop.system.display()
-        if drop.system.is_fortified:
+        response = system.display()
+        if system.is_fortified:
             response += self.finished(system)
         await self.bot.send_message(self.msg.channel,
                                     self.bot.emoji.fix(response, self.msg.server))

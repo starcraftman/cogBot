@@ -1,4 +1,4 @@
-## Simple Python Discord Bot
+## Federal Discord Bot
 
 [![Stories in Ready][WaffleShield]][WaffleDash]
 
@@ -6,6 +6,11 @@
 
 This bot is designed to facilitate Powerplay for the federal forces.
 The bot runs and monitors a discord channel and responds to commands.
+
+Invite bot to server and grant following permissions to it in a channel:
+- Read/Send messages
+- Manage messages (will cleanup bad inocations)
+- Embed Links (embeds are used for `!whois` command)
 
 ### Install
 

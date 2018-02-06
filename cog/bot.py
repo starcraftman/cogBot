@@ -197,6 +197,7 @@ class CogBot(discord.Client):
 
         # Accept only admin commands if denying
         if self.deny_commands and not message.content.startswith('{}admin'.format(self.prefix)):
+            await self.send_message(message.channel, "__Admin Mode__\n\nOnly `!admin` commands accepted.")
             return True
 
         if isinstance(message.channel, discord.PrivateChannel):
