@@ -306,6 +306,20 @@ def subs_time(subs, prefix):
 
 
 @register_parser
+def subs_trigger(subs, prefix):
+    """ Subcommand parsing for trigger """
+    desc = """Predict the expected triggers for the requested systems.
+
+{prefix}trigger Rana, Arnemil
+        Calculate triggers for requested systems.
+    """.format(prefix=prefix)
+    sub = subs.add_parser(prefix + 'trigger', description=desc, formatter_class=RawHelp)
+    sub.set_defaults(cmd='Trigger')
+    sub.add_argument('system', nargs='+', help='The system(s) to calculate triggers for.')
+    sub.add_argument('-p', '--power', nargs='+', default=["hudson"], help='The power to calculate from.')
+
+
+@register_parser
 def subs_um(subs, prefix):
     """ Subcommand parsing for um """
     desc = """Get undermining targets and update their galmap status. Examples:

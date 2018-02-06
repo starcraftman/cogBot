@@ -568,6 +568,40 @@ async def test_cmd_time(f_bot):
 
 
 @pytest.mark.asyncio
+async def test_cmd_trigger(f_bot):
+    msg = fake_msg_gears("!trigger rana")
+
+    await action_map(msg, f_bot).execute()
+
+    expect = """__Predicted Triggers__
+Selected HQ: Nanomam
+
+```System       | Rana
+Distance     | 46.1
+Upkeep       | 22.1
+Fort Trigger | 5620
+UM Trigger   | 13786```"""
+    f_bot.send_message.assert_called_with(msg.channel, expect)
+
+
+@pytest.mark.asyncio
+async def test_cmd_trigger_as_power(f_bot):
+    msg = fake_msg_gears("!trigger rana -p grom")
+
+    await action_map(msg, f_bot).execute()
+
+    expect = """__Predicted Triggers__
+Selected HQ: Clayakarma
+
+```System       | Rana
+Distance     | 86.3
+Upkeep       | 27.4
+Fort Trigger | 7545
+UM Trigger   | 8432```"""
+    f_bot.send_message.assert_called_with(msg.channel, expect)
+
+
+@pytest.mark.asyncio
 async def test_cmd_um(f_bot, f_testbed):
     msg = fake_msg_gears("!um")
 
@@ -628,7 +662,6 @@ async def test_cmd_um_set_works(session, f_bot, f_testbed):
 Our Progress 12000 | Enemy Progress 40%
 Nearest Hudson     | Atropos```"""
 
-    # print(str(f_bot.send_message.call_args).replace("\\n", "\n"))
     f_bot.send_message.assert_called_with(msg.channel, expect)
     after = cogdb.Session().query(SystemUM).filter_by(name='Pequen').one()
     assert after.progress_us == before.progress_us + 1500

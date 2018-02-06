@@ -24,6 +24,22 @@ LEN_STATION = 50
 LEN_SYSTEM = 30
 TIME_FMT = "%d/%m/%y %H:%M:%S"
 SideBase = sqlalchemy.ext.declarative.declarative_base()
+#  http://elite-dangerous.wikia.com/wiki/Category:Power
+HQS = {
+    "aisling duval": "Cubeo",
+    "archon delaine": "Harma",
+    "a. lavigny-duval": "Kamadhenu",
+    "ald": "Kamadhenu",
+    "denton patreus": "Eotienses",
+    "edmund mahon": "Gateway",
+    "felicia winters": "Rhea",
+    "lyr": "Lembava",
+    "li yong-rui": "Lembava",
+    "pranav antal": "Polevnic",
+    "yuri grom": "Clayakarma",
+    "zachary hudson": "Nanomam",
+    "zemina torval": "Synteini",
+}
 
 
 class Allegiance(SideBase):
@@ -416,6 +432,20 @@ class System(SideBase):
         return sqlfunc.sqrt((other.x - self.x) * (other.x - self.x) +
                             (other.y - self.y) * (other.y - self.y) +
                             (other.z - self.z) * (other.z - self.z))
+
+    def calc_upkeep(self, system):
+        """ Approximates the default upkeep. """
+        dist = self.dist_to(system)
+        return round(20 + 0.001 * (dist * dist), 1)
+
+    def calc_fort_trigger(self, system):
+        """ Approximates the default fort trigger. """
+        dist = self.dist_to(system)
+        return round(5000 - 5 * dist + 0.4 * (dist * dist))
+
+    def calc_um_trigger(self, system):
+        """" Aproximates the default undermining trigger. """
+        return round(5000 + (2750000 / math.pow(self.dist_to(system), 1.5)))
 
 
 class SystemAge(SideBase):
@@ -900,6 +930,25 @@ def compute_dists(session, system_names):
     centre = [sys for sys in systems if sys.name.lower() == system_names[0]][0]
     rest = [sys for sys in systems if sys.name.lower() != system_names[0]]
     return {system.name: centre.dist_to(system) for system in rest}
+
+
+def get_power_hq(substr):
+    """
+    Loose match substr against keys in powers full names.
+
+    Returns:
+        Powers HQ system name.
+
+    Raises:
+        InvalidCommandArgs - Unable to identify power from substring.
+    """
+    matches = [key for key in HQS if substr in key]
+    if len(matches) != 1:
+        msg = "Power must be substring of the following:"
+        msg += "\n  " + "\n  ".join(sorted(HQS.keys()))
+        raise cog.exc.InvalidCommandArgs(msg)
+
+    return HQS[matches[0]]
 
 
 def main():

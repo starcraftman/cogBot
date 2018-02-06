@@ -167,3 +167,38 @@ def test_compute_dists(side_session):
 def test_compute_dists_incomplete(side_session):
     with pytest.raises(cog.exc.InvalidCommandArgs):
         cogdb.side.compute_dists(side_session, ['Nanomam', 'Sol', 'Rana', 'Othimezzz'])
+
+
+def test_get_power_hq():
+    assert cogdb.side.get_power_hq("hudson") == "Nanomam"
+    assert cogdb.side.get_power_hq("lyr") == "Lembava"
+
+    with pytest.raises(cog.exc.InvalidCommandArgs):
+        cogdb.side.get_power_hq("not valid")
+
+    with pytest.raises(cog.exc.InvalidCommandArgs):
+        cogdb.side.get_power_hq("duval")
+
+
+def test_system_calc_upkeep(side_session):
+    pow_hq, target = side_session.query(System).\
+        filter(System.name.in_(["Nanomam", "Rana"])).\
+        order_by(System.name).\
+        all()
+    assert target.calc_upkeep(pow_hq) == 22.1
+
+
+def test_system_calc_fort_trigger(side_session):
+    pow_hq, target = side_session.query(System).\
+        filter(System.name.in_(["Nanomam", "Rana"])).\
+        order_by(System.name).\
+        all()
+    assert target.calc_fort_trigger(pow_hq) == 5620
+
+
+def test_system_calc_um_trigger(side_session):
+    pow_hq, target = side_session.query(System).\
+        filter(System.name.in_(["Nanomam", "Rana"])).\
+        order_by(System.name).\
+        all()
+    assert target.calc_um_trigger(pow_hq) == 13786

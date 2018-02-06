@@ -872,6 +872,31 @@ class Time(Action):
         await self.bot.send_message(self.msg.channel, '\n'.join(lines))
 
 
+class Trigger(Action):
+    """
+    Calculate the estimated triggers relative Hudson.
+    """
+    async def execute(self):
+        side_session = cogdb.SideSession()
+        self.args.power = " ".join(self.args.power)
+        pow_hq = cogdb.side.get_system(side_session, cogdb.side.get_power_hq(self.args.power))
+        lines = ["__Predicted Triggers__", "Selected HQ: {}\n".format(pow_hq.name)]
+
+        for system in process_system_args(self.args.system):
+            system = cogdb.side.get_system(side_session, system)
+            lines += [
+                cog.tbl.wrap_markdown(cog.tbl.format_table([
+                    ["System", system.name],
+                    ["Distance", round(system.dist_to(pow_hq), 1)],
+                    ["Upkeep", system.calc_upkeep(pow_hq)],
+                    ["Fort Trigger", system.calc_fort_trigger(pow_hq)],
+                    ["UM Trigger", system.calc_um_trigger(pow_hq)],
+                ]))
+            ]
+
+        await self.bot.send_message(self.msg.channel, '\n'.join(lines))
+
+
 class UM(Action):
     """
     Command to show um systems and update status.
