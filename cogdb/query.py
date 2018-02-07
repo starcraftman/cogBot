@@ -20,6 +20,30 @@ from cogdb.schema import (DUser, System, PrepSystem, SystemUM, SheetRow, SheetCa
 
 
 DEFER_MISSING = 750
+HUDSON_CONTROLS = [
+    '16 Cygni', '37 Xi Bootis', '39 Serpentis', 'Abi', 'Adeo', 'Alpha Fornacis',
+    'Anlave', 'Aornum', 'Atropos', 'BD+42 3917', 'Bhritzameno', 'Burr', 'Dongkum',
+    'Epsilon Scorpii', 'Frey', 'G 250-34', 'GD 219', 'Gilgamesh', 'Gliese 868',
+    'Groombridge 1618', 'HR 2776', 'Kaushpoos', 'Lalande 39866', 'LHS 1197', 'LHS 142',
+    'LHS 1541', 'LHS 3447', 'LHS 3577', 'LHS 3749', 'LHS 3885', 'LHS 6427', 'LP 291-34',
+    'LP 580-33', 'LPM 229', 'LTT 15449', 'LTT 15574', 'Lung', 'Lushertha', 'Mariyacoch',
+    'Mulachi', 'Muncheim', 'Nanomam', 'NLTT 46621', 'Nurundere', 'Othime', 'Parutis',
+    'Phanes', 'Phra Mool', 'Rana', 'Ross 33', 'Shoujeman', 'Sol', 'Tun', 'Vega', 'Venetic',
+    'Wat Yu', 'Wolf 25', 'Wolf 867', 'Wolf 906', 'WW Piscis Austrini'
+]
+WINTERS_CONTROLS = [
+    '169 G. Canis Majoris', '18 Puppis', '41 Lambda Hydrae', '54 G. Antlia',
+    'Amuzgo', 'Ao Kang', 'BD-21 3153', 'Binjamingi', 'Breksta', 'Bulkuylkana',
+    'Bunda', 'C Hydrae', 'Carnoeck', 'Chandra', 'Charunder', 'Crowfor', 'Dierfar',
+    'Eir', 'Elli', 'Ennead', 'Erivit', 'Fan Yin', 'Fousang', 'HIP 24655', 'HIP 38747',
+    'HIP 44811', 'HIP 47328', 'HIP 50489', 'Kali', 'Kaline', 'Kanati', 'Kaura', 'Kherthaje',
+    'Kwattrages', 'LFT 601', 'LFT 926', 'LHS 1887', 'LHS 2150', 'LHS 235', 'LP 417-213',
+    'LP 792-33', 'LP 906-9', 'LTT 4337', 'Lumbla', 'Mangwe', 'Mechucos', 'Mendindui',
+    'Mexicatese', 'Minmar', 'Miroman', 'Momoirent', 'Morixa', 'Namte', 'Neche',
+    'NLTT 19808', 'OU Geminorum', 'Perktomen', 'Ragapajo', 'Reieni', 'Rhea', 'Ross 89',
+    'Sanos', 'Sawali', 'Shenggan', 'Simyr', 'Skeggiko O', 'V902 Centauri', 'Velnians',
+    'Xiriwal', 'Yam', 'Zeta Trianguli Australis', 'Pepper', 'Hyades Sector IC-K b9-4'
+]
 
 
 def fuzzy_find(needle, stack, obj_attr='zzzz', ignore_case=True):
@@ -1069,3 +1093,14 @@ def check_role_perms(session, cmd, server_name, member_roles):
     member_roles = set([role.name for role in member_roles])
     if perm_roles and len(member_roles - perm_roles) == len(member_roles):
         raise cog.exc.InvalidPerms("You do not have the roles for the command.")
+
+
+def complete_control_name(partial, include_winters=False):
+    """
+    Provide name completion of Federal controls without db query.
+    """
+    systems = HUDSON_CONTROLS[:]
+    if include_winters:
+        systems += WINTERS_CONTROLS
+
+    return fuzzy_find(partial, systems)

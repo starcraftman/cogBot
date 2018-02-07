@@ -470,3 +470,15 @@ def test_check_role_perms(session, f_rperms):
     with pytest.raises(cog.exc.InvalidPerms):
         cogdb.query.check_role_perms(session, 'Drop', 'Gears Hideout',
                                      [Role('FRC Robot'), Role('Cookies')])
+
+
+def test_complete_control_name():
+    assert cogdb.query.complete_control_name("lush") == "Lushertha"
+
+    assert cogdb.query.complete_control_name("pupp", True) == "18 Puppis"
+
+    with pytest.raises(cog.exc.NoMatch):
+        assert cogdb.query.complete_control_name("not_there")
+
+    with pytest.raises(cog.exc.MoreThanOneMatch):
+        assert cogdb.query.complete_control_name("lhs")

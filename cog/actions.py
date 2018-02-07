@@ -335,21 +335,21 @@ class BGS(Action):
     """
     async def age(self, system_name):
         """ Handle age subcmd. """
-        system = cogdb.query.fort_find_system(self.session, system_name)
-        self.log.info('BGS - Looking for age around: %s', system.name)
+        control_name = cogdb.query.complete_control_name(system_name, True)
+        self.log.info('BGS - Looking for age around: %s', control_name)
 
-        systems = cogdb.side.exploited_systems_by_age(cogdb.SideSession(), system.name)
+        systems = cogdb.side.exploited_systems_by_age(cogdb.SideSession(), control_name)
         systems = await self.bot.loop.run_in_executor(None, cogdb.side.exploited_systems_by_age,
-                                                      cogdb.SideSession(), system.name)
+                                                      cogdb.SideSession(), control_name)
         lines = [['Control', 'System', 'Age']]
         lines += [[system.control, system.system, system.age] for system in systems]
         return cog.tbl.wrap_markdown(cog.tbl.format_table(lines, header=True))
 
     async def dash(self, control_name):
         """ Handle dash subcmd. """
-        control = cogdb.query.fort_find_system(self.session, control_name)
+        control_name = cogdb.query.complete_control_name(control_name, True)
         control, systems, net_inf, facts_count = await self.bot.loop.run_in_executor(
-            None, cogdb.side.dash_overview, cogdb.SideSession(), control.name)
+            None, cogdb.side.dash_overview, cogdb.SideSession(), control_name)
 
         lines = [['System', 'Control Faction', 'Gov', 'Inf', 'Net', 'N', 'Pop']]
         cnt = {
