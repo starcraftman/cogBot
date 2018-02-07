@@ -202,3 +202,21 @@ def test_system_calc_um_trigger(side_session):
         order_by(System.name).\
         all()
     assert target.calc_um_trigger(pow_hq) == 13786
+
+
+def test_bgs_funcs_hudson():
+    strong, weak = cogdb.side.bgs_funcs('Rana')
+
+    assert strong("Feudal")
+    assert strong("Patronage")
+    assert weak("Dictatorship")
+
+
+def test_bgs_funcs_winters():
+    strong, weak = cogdb.side.bgs_funcs('Rhea')
+
+    assert strong("Corporate")
+    assert weak("Communism")
+    assert weak("Cooperative")
+    assert weak("Feudal")
+    assert weak("Patronage")

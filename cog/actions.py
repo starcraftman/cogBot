@@ -358,6 +358,7 @@ class BGS(Action):
             "weak": 0,
         }
 
+        strong, weak = cogdb.side.bgs_funcs(control_name)
         for system, faction, gov, inf in systems:
             lines += [[
                 system.name[-12:], faction.name[:20], gov.text[:3],
@@ -367,9 +368,9 @@ class BGS(Action):
 
             if gov.text == 'Anarchy':
                 cnt["anarchy"] += 1
-            elif gov.text == 'Dictatorship':
+            elif weak(gov.text):
                 cnt["weak"] += 1
-            elif gov.text == 'Feudal' or gov.text == 'Patronage':
+            elif strong(gov.text):
                 cnt["strong"] += 1
 
         table = cog.tbl.wrap_markdown(cog.tbl.format_table(lines, sep=' | ', center=False,

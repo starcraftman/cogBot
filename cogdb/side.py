@@ -16,6 +16,7 @@ from sqlalchemy.ext.hybrid import hybrid_method
 
 import cog.exc
 import cog.util
+import cogdb.query
 
 
 HUD_GOVS = ['128', '144']  # Patronage/Feudal gov are 128/144
@@ -40,6 +41,8 @@ HQS = {
     "zachary hudson": "Nanomam",
     "zemina torval": "Synteini",
 }
+HUDSON_BGS = [['Feudal', 'Patronage'], ["Dictatorship"]]
+WINTERS_BGS = [["Corporate"], ["Communism", "Cooperative", "Feudal", "Patronage"]]
 
 
 class Allegiance(SideBase):
@@ -255,7 +258,7 @@ class PowerState(SideBase):
     |  0 | None      |
     | 16 | Control   |
     | 32 | Exploited |
-    | 48 | Contested
+    | 48 | Contested |
     """
     __tablename__ = "power_state"
 
@@ -949,6 +952,28 @@ def get_power_hq(substr):
         raise cog.exc.InvalidCommandArgs(msg)
 
     return HQS[matches[0]]
+
+
+def bgs_funcs(system):
+    """
+    Generate strong and weak functions to check gov_type text.
+
+    Returns:
+        strong(gov_type), weak(gov_type)
+    """
+    bgs = HUDSON_BGS
+    if system in cogdb.query.WINTERS_CONTROLS:
+        bgs = WINTERS_BGS
+
+    def strong(gov_type):
+        """ Strong vs these governments. """
+        return gov_type in bgs[0]
+
+    def weak(gov_type):
+        """ Weak vs these governments. """
+        return gov_type in bgs[1]
+
+    return strong, weak
 
 
 def main():
