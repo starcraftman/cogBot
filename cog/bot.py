@@ -211,6 +211,7 @@ class CogBot(discord.Client):
         Only process commands that were different from before.
         """
         if before.content != after.content and after.content.startswith(self.prefix):
+            before.edited_timestamp = after.edited_timestamp
             await self.on_message(after)
 
     async def on_message(self, message):
@@ -242,6 +243,7 @@ class CogBot(discord.Client):
                  channel.server, channel.name, author.name, content)
 
         try:
+            edit_time = message.edited_timestamp
             content = re.sub(r'<[#@]\S+>', '', content).strip()  # Strip mentions from text
             args = self.parser.parse_args(re.split(r'\s+', content))
             await self.dispatch_command(args=args, bot=self, msg=message)
@@ -255,17 +257,21 @@ class CogBot(discord.Client):
                 except cog.exc.ArgumentHelpError as exc2:
                     exc.message = 'Invalid command use. Check the command help.'
                     exc.message += '\n{}\n{}'.format(len(exc.message) * '-', exc2.message)
+
             await self.send_ttl_message(channel, exc.reply())
             try:
-                await self.delete_message(message)
+                if edit_time == message.edited_timestamp:
+                    await self.delete_message(message)
             except discord.DiscordException:
                 pass
 
         except cog.exc.UserException as exc:
             exc.write_log(log, content=content, author=author, channel=channel)
+
             await self.send_ttl_message(channel, exc.reply())
             try:
-                await self.delete_message(message)
+                if edit_time == message.edited_timestamp:
+                    await self.delete_message(message)
             except discord.DiscordException:
                 pass
 
@@ -277,9 +283,11 @@ class CogBot(discord.Client):
             if exc.args[0].startswith("BAD REQUEST (status code: 400"):
                 resp = "Response would be > 2000 chars, I cannot transmit it to Discord."
                 resp += "\n\nIf this useage is valid see Gears."
+
                 await self.send_ttl_message(channel, resp)
                 try:
-                    await self.delete_message(message)
+                    if edit_time == message.edited_timestamp:
+                        await self.delete_message(message)
                 except discord.DiscordException:
                     pass
             else:
