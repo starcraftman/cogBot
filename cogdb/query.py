@@ -22,7 +22,7 @@ from cogdb.schema import (DUser, System, PrepSystem, SystemUM, SheetRow, SheetCa
 DEFER_MISSING = 750
 HUDSON_CONTROLS = [
     '16 Cygni', '37 Xi Bootis', '39 Serpentis', 'Abi', 'Adeo', 'Alpha Fornacis',
-    'Anlave', 'Aornum', 'Atropos', 'BD+42 3917', 'Bhritzameno', 'Burr', 'Dongkum',
+    'Anlave', 'Aornum', 'Arnemil', 'Atropos', 'BD+42 3917', 'Bhritzameno', 'Burr', 'Dongkum',
     'Epsilon Scorpii', 'Frey', 'G 250-34', 'GD 219', 'Gilgamesh', 'Gliese 868',
     'Groombridge 1618', 'HR 2776', 'Kaushpoos', 'Lalande 39866', 'LHS 1197', 'LHS 142',
     'LHS 1541', 'LHS 3447', 'LHS 3577', 'LHS 3749', 'LHS 3885', 'LHS 6427', 'LP 291-34',
