@@ -337,7 +337,7 @@ class InaraApi():
         try:
             cmdr["wing"] = event_data["commanderWing"].get("wingName", cmdr["wing"])
             if with_wing_details:
-                embeds.append(self.wing_details(event_data, cmdr))
+                embeds += [await self.wing_details(event_data, cmdr)]
         except KeyError:
             pass
 
@@ -353,7 +353,7 @@ class InaraApi():
         cmdr_embed.add_field(name='Role', value=cmdr["role"], inline=True)
         cmdr_embed.add_field(name='Power', value=cmdr["power"], inline=True)
         cmdr_embed.add_field(name='Combat Rank', value=cmdr["rank"], inline=True)
-        embeds.insert(0, cmdr_embed)
+        embeds = [cmdr_embed] + embeds
 
         # TODO: KOS HOOK WILL BE HERE !
         # crosscheck who-is with KOS list, then append information to embed
