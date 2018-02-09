@@ -19,7 +19,6 @@ import cog.util
 import cogdb.query
 
 
-HUD_GOVS = ['128', '144']  # Patronage/Feudal gov are 128/144
 LEN_FACTION = 64
 LEN_STATION = 50
 LEN_SYSTEM = 30
@@ -87,13 +86,13 @@ class Faction(SideBase):
     __tablename__ = "factions"
 
     id = sqla.Column(sqla.Integer, primary_key=True)
-    name = sqla.Column(sqla.String(LEN_FACTION))
-    state_id = sqla.Column(sqla.Integer)
     updated_at = sqla.Column(sqla.Integer)
-    government_id = sqla.Column(sqla.Integer)
-    allegiance_id = sqla.Column(sqla.Integer)
+    name = sqla.Column(sqla.String(LEN_FACTION))
     home_system = sqla.Column(sqla.Integer)
     is_player_faction = sqla.Column(sqla.Integer)
+    state_id = sqla.Column(sqla.Integer, sqla.ForeignKey('faction_state.id'))
+    government_id = sqla.Column(sqla.Integer, sqla.ForeignKey('gov_type.id'))
+    allegiance_id = sqla.Column(sqla.Integer, sqla.ForeignKey('allegiance.id'))
 
     def __repr__(self):
         keys = ['id', 'name', 'state_id', 'government_id', 'allegiance_id', 'home_system',
@@ -111,13 +110,13 @@ class FactionHistory(SideBase):
     __tablename__ = "factions_history"
 
     id = sqla.Column(sqla.Integer, primary_key=True)
-    name = sqla.Column(sqla.String(LEN_FACTION))
-    state_id = sqla.Column(sqla.Integer)
     updated_at = sqla.Column(sqla.Integer, primary_key=True)
-    government_id = sqla.Column(sqla.Integer)
-    allegiance_id = sqla.Column(sqla.Integer)
+    name = sqla.Column(sqla.String(LEN_FACTION))
     home_system = sqla.Column(sqla.Integer)
     is_player_faction = sqla.Column(sqla.Integer)
+    state_id = sqla.Column(sqla.Integer, sqla.ForeignKey('faction_state.id'))
+    government_id = sqla.Column(sqla.Integer, sqla.ForeignKey('gov_type.id'))
+    allegiance_id = sqla.Column(sqla.Integer, sqla.ForeignKey('allegiance.id'))
 
     def __repr__(self):
         keys = ['id', 'name', 'state_id', 'government_id', 'allegiance_id', 'home_system',
@@ -173,12 +172,12 @@ class Influence(SideBase):
     __tablename__ = "influence"
 
     system_id = sqla.Column(sqla.Integer, sqla.ForeignKey('systems.id'), primary_key=True)
-    faction_id = sqla.Column(sqla.Integer, primary_key=True)
-    state_id = sqla.Column(sqla.Integer)
+    faction_id = sqla.Column(sqla.Integer, sqla.ForeignKey('factions.id'), primary_key=True)
     influence = sqla.Column(sqla.Numeric(7, 4, None, False))
     is_controlling_faction = sqla.Column(sqla.Integer)
     updated_at = sqla.Column(sqla.Integer)
-    pending_state_id = sqla.Column(sqla.Integer)
+    state_id = sqla.Column(sqla.Integer, sqla.ForeignKey('faction_state.id'))
+    pending_state_id = sqla.Column(sqla.Integer, sqla.ForeignKey('faction_state.id'))
 
     def __repr__(self):
         keys = ['system_id', 'faction_id', 'state_id', 'pending_state_id', 'influence', 'is_controlling_faction',
@@ -206,11 +205,11 @@ class InfluenceHistory(SideBase):
 
     system_id = sqla.Column(sqla.Integer, primary_key=True)
     faction_id = sqla.Column(sqla.Integer, sqla.ForeignKey('factions.id'), primary_key=True)
-    state_id = sqla.Column(sqla.Integer)
     influence = sqla.Column(sqla.Numeric(7, 4, None, False))
     is_controlling_faction = sqla.Column(sqla.Integer)
     updated_at = sqla.Column(sqla.Integer, primary_key=True)
-    pending_state_id = sqla.Column(sqla.Integer)
+    state_id = sqla.Column(sqla.Integer, sqla.ForeignKey('faction_state.id'))
+    pending_state_id = sqla.Column(sqla.Integer, sqla.ForeignKey('faction_state.id'))
 
     def __repr__(self):
         keys = ['system_id', 'faction_id', 'state_id', 'pending_state_id', 'influence', 'is_controlling_faction',
@@ -337,12 +336,12 @@ class Station(SideBase):
 
     id = sqla.Column(sqla.Integer, primary_key=True)
     name = sqla.Column(sqla.String(LEN_STATION))
-    system_id = sqla.Column(sqla.Integer, sqla.ForeignKey('systems.id'))
     updated_at = sqla.Column(sqla.Integer)
     distance_to_star = sqla.Column(sqla.Integer)
+    system_id = sqla.Column(sqla.Integer, sqla.ForeignKey('systems.id'))
     station_type_id = sqla.Column(sqla.Integer, sqla.ForeignKey('station_type.id'))
-    settlement_size_id = sqla.Column(sqla.Integer)
-    settlement_security_id = sqla.Column(sqla.Integer)
+    settlement_size_id = sqla.Column(sqla.Integer, sqla.ForeignKey('settlement_size.id'),)
+    settlement_security_id = sqla.Column(sqla.Integer, sqla.ForeignKey('settlement_security.id'),)
     controlling_faction_id = sqla.Column(sqla.Integer, sqla.ForeignKey('factions.id'))
 
     def __repr__(self):
@@ -387,12 +386,12 @@ class System(SideBase):
     hudson_upkeep = sqla.Column(sqla.Integer)
     needs_permit = sqla.Column(sqla.Integer)
     update_factions = sqla.Column(sqla.Integer)
-    power_id = sqla.Column(sqla.Integer)
     edsm_id = sqla.Column(sqla.Integer)
-    security_id = sqla.Column(sqla.Integer)
-    power_state_id = sqla.Column(sqla.Integer)
-    controlling_faction_id = sqla.Column(sqla.Integer)
-    control_system_id = sqla.Column(sqla.Integer)
+    power_id = sqla.Column(sqla.Integer, sqla.ForeignKey('powers.id'),)
+    security_id = sqla.Column(sqla.Integer, sqla.ForeignKey('security.id'),)
+    power_state_id = sqla.Column(sqla.Integer, sqla.ForeignKey('power_state.id'))
+    controlling_faction_id = sqla.Column(sqla.Integer, sqla.ForeignKey('factions.id'),)
+    control_system_id = sqla.Column(sqla.Integer, sqla.ForeignKey('systems.id'),)
     x = sqla.Column(sqla.Numeric(10, 5, None, False))
     y = sqla.Column(sqla.Numeric(10, 5, None, False))
     z = sqla.Column(sqla.Numeric(10, 5, None, False))
@@ -758,25 +757,6 @@ def dash_overview(session, control_system):
         raise cog.exc.RemoteError("Lost connection to Sidewinder's DB.")
 
 
-def find_factions_with_gov(session, system, dist, gov_ids):
-    """
-    Return all factions that are dist or less away from system and have government type
-    in gov_ids.
-
-    Returns:
-        List of matches with:
-            [[System, Influence, Faction, Government], ...]
-    """
-    return session.query(System, Influence, Faction, Government).\
-        filter(sqla.and_(System.dist_to(system) <= dist,
-                         Influence.system_id == System.id,
-                         Faction.id == Influence.faction_id,
-                         Faction.government_id == Government.id,
-                         Government.id.in_(gov_ids))).\
-        order_by(System.dist_to(system)).\
-        all()
-
-
 def find_favorable(session, centre_name, max_dist=None, inc=20):
     """
     Find favorable feudals or patronages around a centre_name system.
@@ -794,20 +774,40 @@ def find_favorable(session, centre_name, max_dist=None, inc=20):
         raise cog.exc.InvalidCommandArgs("System name was not found, must be exact.")
 
     dist = max_dist if max_dist else inc
-    while True:
-        matches = find_factions_with_gov(session, centre, dist, HUD_GOVS)
+    keep_looking = True
+    while keep_looking:
+        matches = session.query(System.name, System.dist_to(centre),
+                                Influence.influence, Faction.name, Government.text).\
+            filter(System.dist_to(centre) <= dist).\
+            outerjoin(Influence, Faction, Government).\
+            order_by(System.dist_to(centre)).\
+            all()
 
-        if matches or max_dist:
-            break
+        for *_, gov in matches:
+            if gov in HUDSON_BGS[0] or max_dist:
+                keep_looking = False
+                break
+
         dist += inc
 
-    lines = [[
-        sys.name[:16],
-        gov.text[:4],
-        "{:5.2f}".format(sys.dist_to(centre)),
-        "{:5.2f}".format(inf.influence),
-        faction.name
-    ] for sys, inf, faction, gov in matches]
+    lines = []
+    for sys_name, sys_dist, inf, faction, gov in matches:
+        if not gov:
+            lines += [[
+                sys_name[:16],
+                '-',
+                "{:5.2f}".format(sys_dist),
+                '-',
+                'No Info',
+            ]]
+        elif gov in HUDSON_BGS[0]:
+            lines += [[
+                sys_name[:16],
+                gov[:4],
+                "{:5.2f}".format(sys_dist),
+                "{:5.2f}".format(inf),
+                faction,
+            ]]
 
     return [['System Name', 'Govt', 'Dist', 'Inf', 'Faction Name']] + lines
 
@@ -821,31 +821,32 @@ def expansion_candidates(session, centre, faction):
     Returns:
         [[system_name, dictance, faction_count], ...]
     """
-    matches = session.query(System.name, System.dist_to(centre), Influence.state_id, Faction.id).\
+    matches = session.query(System.name, System.dist_to(centre), Faction.id).\
         filter(sqla.and_(System.dist_to(centre) <= 20,
-                         System.name != centre.name,
-                         Influence.system_id == System.id,
-                         Faction.id == Influence.faction_id)).\
+                         System.name != centre.name)).\
+        outerjoin(Influence, Faction).\
         order_by(System.dist_to(centre)).\
         all()
 
     sys_order = []
     systems = {}
-    for tup in matches:
+    for sys_name, sys_dist, fact_id in matches:
         try:
-            if tup[0] not in sys_order:
-                sys_order += [tup[0]]
-            systems[tup[0]] += [tup[-1]]
+            if sys_name not in sys_order:
+                sys_order += [sys_name]
+            systems[sys_name] += [fact_id]
         except KeyError:
-            systems[tup[0]] = [tup[-1]]
-            systems[tup[0] + 'dist'] = "{:5.2f}".format(tup[1])
+            systems[sys_name] = [fact_id]
+            systems[sys_name + 'dist'] = "{:5.2f}".format(sys_dist)
 
-    result = []
+    result = [["System", "Dist", "Faction Count"]]
     for sys in sys_order:
-        if len(systems[sys]) < 7 and faction.id not in systems[sys]:
+        if systems[sys] == [None]:
+            result += [[sys, systems[sys + 'dist'], 'No Info']]
+        elif len(systems[sys]) < 7 and faction.id not in systems[sys]:
             result += [[sys, systems[sys + 'dist'], len(systems[sys])]]
 
-    return [["System", "Dist", "Faction Count"]] + result
+    return result
 
 
 def get_system(session, system_name):
@@ -885,29 +886,36 @@ def expand_to_candidates(session, system_name):
     """
     centre = get_system(session, system_name)
     blacklist = [fact.id for fact in get_factions_in_system(session, system_name)]
-    matches = session.query(System.name, System.dist_to(centre),
-                            Influence.influence, Government.text, FactionState.text, Faction.name).\
+    matches = session.query(System.name, System.dist_to(centre), Influence,
+                            Faction, FactionState.text, Government.text).\
         filter(sqla.and_(System.dist_to(centre) <= 20,
-                         System.name != centre.name,
-                         Influence.system_id == System.id,
-                         Influence.is_controlling_faction,
-                         Faction.id == Influence.faction_id,
-                         Faction.id.notin_(blacklist),
-                         Influence.state_id == FactionState.id,
-                         Government.id == Faction.government_id)).\
+                         System.name != centre.name)).\
+        outerjoin(Influence, Faction, FactionState, Government).\
         order_by(System.dist_to(centre)).\
         all()
 
-    lines = [[
-        sys_name[:16],
-        "{:5.2f}".format(dist),
-        "{:5.2f}".format(inf),
-        gov[:4],
-        state,
-        fact_name
-    ] for sys_name, dist, inf, gov, state, fact_name in matches]
+    lines = [["System", "Dist", "Inf", "Gov", "State", "Faction"]]
+    for sys_name, sys_dist, inf, fact, fact_state, gov in matches:
+        if not inf:
+            lines += [[
+                sys_name[:16],
+                "{:5.2f}".format(sys_dist),
+                "-",
+                "-",
+                "-",
+                "No Info",
+            ]]
+        elif inf.is_controlling_faction and fact.id not in blacklist:
+            lines += [[
+                sys_name[:16],
+                "{:5.2f}".format(sys_dist),
+                "{:5.2f}".format(inf.influence),
+                gov[:4],
+                fact_state,
+                fact.name
+            ]]
 
-    return [["System", "Dist", "Inf", "Gov", "State", "Faction"]] + lines
+    return lines
 
 
 def compute_dists(session, system_names):

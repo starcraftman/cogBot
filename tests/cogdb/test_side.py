@@ -112,12 +112,6 @@ def test_dash_overview(side_session):
     assert sol_control.id in [588, 589, 591, 592, 593]
 
 
-def test_find_factions_with_gov(side_session):
-    centre = side_session.query(cogdb.side.System).filter(cogdb.side.System.name == 'nurundere').one()
-    matches = cogdb.side.find_factions_with_gov(side_session, centre, 15, cogdb.side.HUD_GOVS)
-    assert matches[0][2].name == "Monarchy of Orisala"
-
-
 def test_find_favorable(side_session):
     matches = cogdb.side.find_favorable(side_session, 'Nurundere')
     assert matches[1][-1] == "Monarchy of Orisala"

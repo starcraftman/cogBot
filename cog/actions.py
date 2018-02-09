@@ -880,7 +880,7 @@ class Trigger(Action):
     """
     async def execute(self):
         side_session = cogdb.SideSession()
-        self.args.power = " ".join(self.args.power)
+        self.args.power = " ".join(self.args.power).lower()
         pow_hq = cogdb.side.get_system(side_session, cogdb.side.get_power_hq(self.args.power))
         lines = ["__Predicted Triggers__", "Selected HQ: {}\n".format(pow_hq.name)]
 
