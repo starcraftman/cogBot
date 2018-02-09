@@ -21,6 +21,11 @@ Examples of things that won't pickle:
 """
 # TODO: Cleanup module, not quite happy with it.
 # TODO: Add lots of unit tests.
+# TODO: Rework synchronization process for sheets to push information:
+#         Change to spawning one process per sheet hooked.
+#         Each process has queue to dump in requests.
+#         Every 60 seconds flatten and flush queue to sheet. Then start a job with current queue.
+#         Scheduled reads might still be an issue. Apply same idea in reverse?
 from __future__ import absolute_import, print_function
 import asyncio
 import concurrent.futures
@@ -34,7 +39,7 @@ import cog.exc
 
 
 LIVE_JOBS = []
-MAX_WORKERS = 15
+MAX_WORKERS = 20
 POOL = pebble.ProcessPool(max_workers=MAX_WORKERS, max_tasks=1)
 RUN = True
 TIME_FMT = "%d/%m %H:%M:%S"
