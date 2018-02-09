@@ -506,8 +506,10 @@ def exploited_systems_by_age(session, control):
     """
     log = logging.getLogger("cogdb.side")
     try:
-        result = session.query(SystemAge).filter(SystemAge.control == control).\
-            order_by(SystemAge.system).all()
+        result = session.query(SystemAge).\
+            filter(SystemAge.control == control).\
+            order_by(SystemAge.system).\
+            all()
 
         log.info("BGS - Received from query: %s", str(result))
     except sqla_exe.OperationalError:
@@ -525,15 +527,15 @@ def influence_in_system(session, system):
         faction name, influence, is_player_faction, government_type, influence timestamp
     """
     subq = session.query(System.id).filter(System.name == system).subquery()
-    infs = session.query(Faction.name, Influence.influence, Government.text,
-                         Faction.is_player_faction, Influence.updated_at).\
+    infs = session.query(Influence.influence, Influence.updated_at,
+                         Faction.name, Faction.is_player_faction, Government.text).\
         filter(Influence.system_id == subq).\
-        filter(Faction.id == Influence.faction_id).\
-        filter(Faction.government_id == Government.id).\
-        order_by(Influence.influence.desc()).all()
+        join(Faction, Government).\
+        order_by(Influence.influence.desc()).\
+        all()
 
-    return [[inf[0], float('{:.2f}'.format(inf[1])), inf[2], 'Y' if inf[3] else 'N',
-             time.strftime(TIME_FMT, time.gmtime(inf[4]))] for inf in infs]
+    return [[inf[2], float('{:.2f}'.format(inf[0])), inf[4], 'Y' if inf[3] else 'N',
+             time.strftime(TIME_FMT, time.gmtime(inf[1]))] for inf in infs]
 
 
 def stations_in_system(session, system_id):
@@ -549,7 +551,8 @@ def stations_in_system(session, system_id):
     try:
         stations = session.query(Station.name, Faction.id, StationType.text).\
             filter(Station.system_id == system_id).\
-            join(Faction).join(StationType).all()
+            join(Faction, StationType).\
+            all()
         stations_dict = {}
         for tup in stations:
             try:
@@ -580,11 +583,12 @@ def influence_history_in_system(session, system_id, fact_ids, time_window=None):
             time_window = time.time() - (60 * 60 * 24 * 5)
 
         inf_history = session.query(InfluenceHistory).\
-            filter(InfluenceHistory.system_id == system_id).\
-            filter(InfluenceHistory.faction_id.in_(fact_ids)).\
-            filter(InfluenceHistory.updated_at >= time_window).\
+            filter(InfluenceHistory.system_id == system_id,
+                   InfluenceHistory.faction_id.in_(fact_ids),
+                   InfluenceHistory.updated_at >= time_window).\
             order_by(InfluenceHistory.faction_id,
-                     InfluenceHistory.updated_at.desc()).all()
+                     InfluenceHistory.updated_at.desc()).\
+            all()
 
         inf_dict = {}
         for hist in inf_history:
@@ -637,12 +641,13 @@ def system_overview(session, system):
         pending = sqla_orm.aliased(FactionState)
         factions = session.query(Faction.id, Faction.name, Faction.is_player_faction,
                                  current.text, pending.text, Government.text, Influence).\
-            filter(Influence.system_id == system.id).\
-            filter(Faction.id == Influence.faction_id).\
-            filter(Faction.government_id == Government.id).\
-            filter(Influence.state_id == current.id).\
-            filter(Influence.pending_state_id == pending.id).\
-            order_by(Influence.influence.desc()).all()
+            filter(Influence.system_id == system.id,
+                   Faction.id == Influence.faction_id,
+                   Faction.government_id == Government.id,
+                   Influence.state_id == current.id,
+                   Influence.pending_state_id == pending.id).\
+            order_by(Influence.influence.desc()).\
+            all()
 
         stations_by_id = stations_in_system(session, system.id)
         inf_history = influence_history_in_system(session, system.id, [inf[0] for inf in factions])
@@ -684,7 +689,8 @@ def count_factions_in_systems(session, system_ids):
     """
     systems = session.query(Influence.faction_id, System.name).\
         filter(Influence.system_id.in_(system_ids)).\
-        join(System).order_by(Influence.system_id).all()
+        join(System).order_by(Influence.system_id).\
+        all()
 
     systems_fact_count = {}
     for _, system in systems:
@@ -713,7 +719,8 @@ def inf_history_for_pairs(session, data_pairs):
         filter(sqla.or_(*look_for)).\
         filter(InfluenceHistory.updated_at >= time_window).\
         order_by(InfluenceHistory.system_id, InfluenceHistory.faction_id,
-                 InfluenceHistory.updated_at.desc()).all()
+                 InfluenceHistory.updated_at.desc()).\
+        all()
 
     pair_hist = {}
     for hist in inf_history:
@@ -732,15 +739,16 @@ def dash_overview(session, control_system):
     try:
         control = session.query(System).filter_by(name=control_system).one()
         factions = session.query(System, Faction, Government, Influence).\
-            filter(sqla.and_(System.dist_to(control) <= 15, System.power_state_id != 48)).\
-            filter(Faction.id == System.controlling_faction_id).\
-            filter(Faction.government_id == Government.id).\
-            filter(Influence.faction_id == Faction.id, Influence.system_id == System.id).\
-            order_by(System.name).all()
+            filter(System.dist_to(control) <= 15,
+                   System.power_state_id != 48,
+                   Influence.faction_id == Faction.id,
+                   Influence.system_id == System.id).\
+            join(Faction, Government).\
+            order_by(System.name).\
+            all()
 
         facts_in_system = count_factions_in_systems(session,
                                                     [faction[0].id for faction in factions])
-
         data_pairs = [[faction[0].id, faction[1].id] for faction in factions]
         hist_for_pairs = inf_history_for_pairs(session, data_pairs)
 
@@ -822,8 +830,8 @@ def expansion_candidates(session, centre, faction):
         [[system_name, dictance, faction_count], ...]
     """
     matches = session.query(System.name, System.dist_to(centre), Faction.id).\
-        filter(sqla.and_(System.dist_to(centre) <= 20,
-                         System.name != centre.name)).\
+        filter(System.dist_to(centre) <= 20,
+               System.name != centre.name).\
         outerjoin(Influence, Faction).\
         order_by(System.dist_to(centre)).\
         all()
@@ -870,9 +878,9 @@ def get_factions_in_system(session, system_name):
         List of Factions, empty if improper system_name.
     """
     return session.query(Faction).\
-        filter(sqla.and_(System.name == system_name,
-                         Influence.system_id == System.id,
-                         Faction.id == Influence.faction_id)).\
+        filter(System.name == system_name,
+               Influence.system_id == System.id,
+               Faction.id == Influence.faction_id).\
         order_by(Faction.name).\
         all()
 
@@ -888,8 +896,8 @@ def expand_to_candidates(session, system_name):
     blacklist = [fact.id for fact in get_factions_in_system(session, system_name)]
     matches = session.query(System.name, System.dist_to(centre), Influence,
                             Faction, FactionState.text, Government.text).\
-        filter(sqla.and_(System.dist_to(centre) <= 20,
-                         System.name != centre.name)).\
+        filter(System.dist_to(centre) <= 20,
+               System.name != centre.name).\
         outerjoin(Influence, Faction, FactionState, Government).\
         order_by(System.dist_to(centre)).\
         all()
@@ -929,7 +937,9 @@ def compute_dists(session, system_names):
         InvalidCommandArgs - One or more system could not be matched.
     """
     system_names = [name.lower() for name in system_names]
-    systems = session.query(System).filter(System.name.in_(system_names)).all()
+    systems = session.query(System).\
+        filter(System.name.in_(system_names)).\
+        all()
 
     if len(systems) != len(system_names):
         for system in systems:
