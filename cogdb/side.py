@@ -4,6 +4,7 @@ Sidewinder's remote database.
 from __future__ import absolute_import, print_function
 import logging
 import datetime
+import functools
 import math
 import time
 
@@ -433,32 +434,23 @@ class System(SideBase):
                             (other.y - self.y) * (other.y - self.y) +
                             (other.z - self.z) * (other.z - self.z))
 
-    def calc_upkeep(self, system):
+    def calc_upkeep(self, hq_system):
         """ Approximates the default upkeep. """
-        dist = self.dist_to(system)
+        dist = self.dist_to(hq_system)
         return round(20 + 0.001 * (dist * dist), 1)
 
-    def calc_fort_trigger(self, system):
+    def calc_fort_trigger(self, hq_system):
         """ Approximates the default fort trigger. """
-        dist = self.dist_to(system)
+        dist = self.dist_to(hq_system)
         return round(5000 - 5 * dist + 0.4 * (dist * dist))
 
-    def calc_um_trigger(self, system):
+    def calc_um_trigger(self, hq_system):
         """" Aproximates the default undermining trigger. """
-        return round(5000 + (2750000 / math.pow(self.dist_to(system), 1.5)))
+        return round(5000 + (2750000 / math.pow(self.dist_to(hq_system), 1.5)))
 
-    def calc_income(self, system):
-        """ Calculate potential base income. """
-        return math.log(self.dist_to(system), 10) + 1.5
-
-    def calc_net_income(self, system):
-        """
-        Calculate potential net income.
-
-        Formula: Income - upkeep - 62 -overlapping/contested systems
-        """
-        return self.calc_income(system) - self.calc_upkeep(system) - 62
-        #TODO: Incomplete
+    def calc_income(self):
+        """ Calculate potential base income of this system. """
+        return math.log(self.population, 10) + 1.5
 
 
 class SystemAge(SideBase):
@@ -964,8 +956,43 @@ def get_power_hq(substr):
     return HQS[matches[0]]
 
 
+def calc_bubble_income(session, hq, control):
+    """
+    Calculate potential net income.
+
+    Formula: Income - upkeep - overhead - overlapping/contested systems
+    """
+    systems = session.query(System, Power.text, PowerState.text).\
+        filter(System.dist_to(control) <= 15).\
+        filter(System.power_id == Power.id).\
+        filter(System.power_state_id == PowerState.id).\
+        all()
+    db_tot = 0
+    c_tot = 0
+    lines = [["System", "DB Income", "Calc Income"]]
+    for system, power, p_state in systems:
+        lines += [[system.name, system.income, system.calc_income()]]
+        db_tot += system.income
+        c_tot += system.calc_income()
+    import cog.tbl
+    print(cog.tbl.format_table(lines, header=True))
+    print("Totals", db_tot, c_tot)
+    print("Upkeep", control.calc_upkeep(hq), "Overhead", 62.1)
+    base = c_tot - control.calc_upkeep(hq) - 62.1
+    print("Calculated Net: ", base)
+    return base
+
+
 def main():
-    pass
+    import cogdb
+    print("Frey income 163, net is 67")
+    s = cogdb.SideSession()
+    control, hq_system = s.query(System).\
+        filter(System.name.in_(['Nanomam', 'Frey'])).\
+        order_by(System.name).\
+        all()
+    # print(hq_system, control)
+    calc_bubble_income(s, hq_system, control)
 
 
 if __name__ == "__main__":
