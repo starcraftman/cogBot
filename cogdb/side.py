@@ -450,7 +450,7 @@ class System(SideBase):
 
     def calc_income(self):
         """ Calculate potential base income of this system. """
-        return math.log(self.population, 10) + 1.5
+        return math.floor(math.log(self.population, 10) + 1.5)
 
 
 class SystemAge(SideBase):
@@ -956,6 +956,27 @@ def get_power_hq(substr):
     return HQS[matches[0]]
 
 
+def calc_overhead(session, power_name, override=0):
+    """
+    Calculate overhead for any given power.
+
+    Args:
+        power_name: The name of a power, like Zachary Hudson
+        override: Calculate with this number of controls, ignore actual control count
+    """
+    if override:
+        num_controls = override
+    else:
+        subq = session.query(Power.id).filter(Power.text == power_name).subquery()
+        num_controls = session.query(System.name).\
+            filter(System.power_id == subq,
+                   System.power_state_id == 16).\
+            count()
+
+    return  min(pow(11.5 * num_controls/42, 3),
+                5.4 * 11.5 * num_controls) / num_controls
+
+
 def calc_bubble_income(session, hq, control):
     """
     Calculate potential net income.
@@ -967,16 +988,16 @@ def calc_bubble_income(session, hq, control):
         filter(System.power_id == Power.id).\
         filter(System.power_state_id == PowerState.id).\
         all()
-    db_tot = 0
+    # db_tot = 0
+    # lines = [["System", "DB Income", "Calc Income"]]
+        # lines += [[system.name, system.income, system.calc_income()]]
+        # db_tot += system.income
     c_tot = 0
-    lines = [["System", "DB Income", "Calc Income"]]
     for system, power, p_state in systems:
-        lines += [[system.name, system.income, system.calc_income()]]
-        db_tot += system.income
         c_tot += system.calc_income()
-    import cog.tbl
-    print(cog.tbl.format_table(lines, header=True))
-    print("Totals", db_tot, c_tot)
+    # import cog.tbl
+    # print(cog.tbl.format_table(lines, header=True))
+    # print("Totals", db_tot, c_tot)
     print("Upkeep", control.calc_upkeep(hq), "Overhead", 62.1)
     base = c_tot - control.calc_upkeep(hq) - 62.1
     print("Calculated Net: ", base)
@@ -991,7 +1012,7 @@ def main():
         filter(System.name.in_(['Nanomam', 'Frey'])).\
         order_by(System.name).\
         all()
-    # print(hq_system, control)
+    print(hq_system, control)
     calc_bubble_income(s, hq_system, control)
 
 
