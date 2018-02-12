@@ -381,7 +381,7 @@ class System(SideBase):
 
     id = sqla.Column(sqla.Integer, primary_key=True)
     name = sqla.Column(sqla.String(LEN_SYSTEM))
-    population = sqla.Column(sqla.Integer)
+    population = sqla.Column(sqla.BigInteger)
     income = sqla.Column(sqla.Integer)
     hudson_upkeep = sqla.Column(sqla.Integer)
     needs_permit = sqla.Column(sqla.Integer)
