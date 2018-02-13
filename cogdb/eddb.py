@@ -7,6 +7,7 @@ This module is for internal use.
 """
 from __future__ import absolute_import, print_function
 import json
+import math
 
 import sqlalchemy as sqla
 import sqlalchemy.orm as sqla_orm
@@ -14,13 +15,14 @@ import sqlalchemy.ext.declarative
 from sqlalchemy.ext.hybrid import hybrid_property, hybrid_method
 
 # import cog.exc
+import cog.tbl
 import cog.util
 import cogdb
 
 PRELOAD = True
 LEN_COM = 30
 LEN_FACTION = 64
-LEN_STATION = 50
+LEN_STATION = 76
 LEN_SYSTEM = 30
 TIME_FMT = "%d/%m/%y %H:%M:%S"
 Base = sqlalchemy.ext.declarative.declarative_base()
@@ -202,7 +204,7 @@ class ModuleGroup(Base):
 
     id = sqla.Column(sqla.Integer, primary_key=True)
     category = sqla.Column(sqla.String(20))
-    name = sqla.Column(sqla.String(31))  # Name of module group, like "Beam Lazer"
+    name = sqla.Column(sqla.String(31))  # Name of module group, like "Beam Laser"
     category_id = sqla.Column(sqla.Integer)
 
     def __repr__(self):
@@ -318,8 +320,7 @@ class StationFeatures(Base):
     """ The features at a station. """
     __tablename__ = "station_features"
 
-    station_id = sqla.Column(sqla.Integer, sqla.ForeignKey('stations.id'),
-                             primary_key=True,)
+    id = sqla.Column(sqla.Integer, primary_key=True)  # Station.id
     has_blackmarket = sqla.Column(sqla.Boolean)
     has_market = sqla.Column(sqla.Boolean)
     has_refuel = sqla.Column(sqla.Boolean)
@@ -331,7 +332,7 @@ class StationFeatures(Base):
     has_commodities = sqla.Column(sqla.Boolean)
 
     def __repr__(self):
-        keys = ['station_id', 'has_blackmarket', 'has_market', 'has_refuel',
+        keys = ['id', 'has_blackmarket', 'has_market', 'has_refuel',
                 'has_repair', 'has_rearm', 'has_outfitting', 'has_shipyard',
                 'has_docking', 'has_commodities']
         kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
@@ -340,7 +341,7 @@ class StationFeatures(Base):
 
     def __eq__(self, other):
         return (isinstance(self, StationFeatures) and isinstance(other, StationFeatures) and
-               self.station_id == other.station_id)
+               self.id == other.id)
 
 
 class StationType(Base):
@@ -364,13 +365,13 @@ class Station(Base):
     """ Repesents a system in the universe. """
     __tablename__ = "stations"
 
-    id = sqla.Column(sqla.Integer, primary_key=True)
+    id = sqla.Column(sqla.Integer, sqla.ForeignKey('station_features.id'), primary_key=True)
     updated_at = sqla.Column(sqla.Integer, default=0)
-    name = sqla.Column(sqla.String(LEN_SYSTEM))
+    name = sqla.Column(sqla.String(LEN_STATION))
     distance_to_star = sqla.Column(sqla.Integer)
-    max_landing_pad_size = sqla.Column(sqla.String(1))
+    max_landing_pad_size = sqla.Column(sqla.String(4))
     type_id = sqla.Column(sqla.Integer, sqla.ForeignKey('station_types.id'))
-    system_id = sqla.Column(sqla.Integer, sqla.ForeignKey('systems.id'))
+    system_id = sqla.Column(sqla.Integer)
     controlling_minor_faction_id = sqla.Column(sqla.Integer, sqla.ForeignKey('factions.id'))
 
     def __repr__(self):
@@ -394,8 +395,8 @@ class System(Base):
     population = sqla.Column(sqla.BigInteger)
     needs_permit = sqla.Column(sqla.Integer)
     edsm_id = sqla.Column(sqla.Integer)
-    power_id = sqla.Column(sqla.Integer, sqla.ForeignKey('powers.id'),)
-    security_id = sqla.Column(sqla.Integer, sqla.ForeignKey('security.id'),)
+    power_id = sqla.Column(sqla.Integer, sqla.ForeignKey('powers.id'))
+    security_id = sqla.Column(sqla.Integer, sqla.ForeignKey('security.id'))
     power_state_id = sqla.Column(sqla.Integer, sqla.ForeignKey('power_state.id'))
     controlling_minor_faction_id = sqla.Column(sqla.Integer, sqla.ForeignKey('factions.id'), nullable=True)
     control_system_id = sqla.Column(sqla.Integer, sqla.ForeignKey('systems.id'), nullable=True)
@@ -411,6 +412,27 @@ class System(Base):
     @controlling_faction_id.expression
     def controlling_faction_id(self):
         return self.controlling_minor_faction_id
+
+    @hybrid_method
+    def dist_to(self, other):
+        """
+        Compute the distance from this system to other.
+        """
+        dist = 0
+        for let in ['x', 'y', 'z']:
+            temp = getattr(other, let) - getattr(self, let)
+            dist += temp * temp
+
+        return math.sqrt(dist)
+
+    @dist_to.expression
+    def dist_to(self, other):
+        """
+        Compute the distance from this system to other.
+        """
+        return sqla.func.sqrt((other.x - self.x) * (other.x - self.x) +
+                              (other.y - self.y) * (other.y - self.y) +
+                              (other.z - self.z) * (other.z - self.z))
 
     def __repr__(self):
         keys = ['id', 'name', 'population',
@@ -437,107 +459,6 @@ Station.features = sqla_orm.relationship(
     'StationFeatures', uselist=False, back_populates='station', lazy='select')
 StationFeatures.station = sqla_orm.relationship(
     'Station', uselist=False, back_populates='features', lazy='select')
-
-
-def recreate_tables():
-    """
-    Recreate all tables in the database, mainly for schema changes and testing.
-    """
-    Base.metadata.drop_all(cogdb.eddb_engine)
-    Base.metadata.create_all(cogdb.eddb_engine)
-
-
-def parse_allegiance(session):
-    objs = []
-
-    def parse_actual(data):
-        if data["allegiance_id"] and data["allegiance_id"] not in objs and not PRELOAD:
-            if data["allegiance"] is None:
-                data["allegiance"] = "None"
-            session.add(Allegiance(id=data["allegiance_id"], text=data["allegiance"]))
-            session.commit()
-            objs.append(data["allegiance_id"])
-        del data["allegiance"]
-
-    return parse_actual
-
-
-def parse_commodity_categories(session):
-    objs = []
-
-    def parse_actual(data):
-        cat = data["category"]
-        if cat['id'] and cat["id"] not in objs and not PRELOAD:
-            objs.append(cat["id"])
-            session.add(CommodityCat(**cat))
-        del data['category']
-
-        return data['category_id']
-
-    return parse_actual
-
-
-def parse_faction_state(session):
-    objs = []
-
-    def parse_actual(data):
-        if data["state_id"] and data["state_id"] not in objs and not PRELOAD:
-            if data["state"] is None:
-                data["state"] = "None"
-            session.add(FactionState(id=data["state_id"], text=data["state"]))
-            session.commit()
-            objs.append(data["state_id"])
-        del data["state"]
-
-    return parse_actual
-
-
-def parse_government(session):
-    objs = []
-
-    def parse_actual(data):
-        if data["government_id"] and data["government_id"] not in objs and not PRELOAD:
-            if data["government"] is None:
-                data["government"] = "None"
-            session.add(Government(id=data["government_id"], text=data["government"]))
-            session.commit()
-            objs.append(data["government_id"])
-        del data["government"]
-
-    return parse_actual
-
-
-def parse_module_groups(session):
-    objs = []
-
-    def parse_actual(data):
-        grp = data['group']
-        if grp['id'] and grp["id"] not in objs and not PRELOAD:
-            objs.append(grp["id"])
-            session.add(ModuleGroup(**grp))
-        gid = grp['id']
-        del data['group']
-
-        return gid
-
-    return parse_actual
-
-
-def parse_security(session):
-    objs = []
-
-    def parse_actual(data):
-        did = data["security_id"]
-        if did and did not in objs and not PRELOAD:
-            # if data["security"] is None:
-                # data["allegiance"] = "None"
-            session.add(Security(id=did, text=data["security"]))
-            session.commit()
-            objs.append(did)
-            del data["security"]
-        del data["allegiance"]
-
-    return parse_actual
 
 
 def preload_allegiance(session):
@@ -761,6 +682,12 @@ def preload_station_types(session):
 
 
 def preload_tables(session):
+    """
+    Preload all minor linked tables.
+    """
+    if not PRELOAD:
+        return
+
     preload_allegiance(session)
     preload_commodity_categories(session)
     preload_faction_state(session)
@@ -775,81 +702,100 @@ def preload_tables(session):
     session.commit()
 
 
-def load_commodities(session, fname):
-    with open(fname) as fin:
-        all_data = json.load(fin)
+def parse_allegiance(session):
+    objs = []
 
-    parse_cat = parse_commodity_categories(session)
-    for data in all_data:
-        cid = parse_cat(data)
-        commodity = Commodity(**data)
-        session.add(commodity)
-        print(commodity)
+    def parse_actual(data):
+        if data["allegiance_id"] and data["allegiance_id"] not in objs and not PRELOAD:
+            if data["allegiance"] is None:
+                data["allegiance"] = "None"
+            session.add(Allegiance(id=data["allegiance_id"], text=data["allegiance"]))
+            session.commit()
+            objs.append(data["allegiance_id"])
+        del data["allegiance"]
 
-
-def load_modules(session, fname):
-    with open(fname) as fin:
-        all_data = json.load(fin)
-
-    group_parser = parse_module_groups(session)
-    for data in all_data:
-        gid = group_parser(data)
-        module = Module(id=data["id"], group_id=gid, name=data["name"],
-                        size=data.get('class'), rating=data['rating'],
-                        mass=data.get('mass'), price=data['price'],
-                        ship=data['ship'], weapon_mode=data["weapon_mode"])
-        session.add(module)
-        print(module)
+    return parse_actual
 
 
-def load_factions(session, fname):
-    with open(fname) as fin:
-        all_data = json.load(fin)
+def parse_commodity_categories(session):
+    objs = []
 
-    parsers = [parse_allegiance(session), parse_government(session), parse_faction_state(session)]
-    print("Parsing factions, takes a while ...")
-    for data in all_data:
-        for parse in parsers:
-            parse(data)
+    def parse_actual(data):
+        cat = data["category"]
+        if cat['id'] and cat["id"] not in objs and not PRELOAD:
+            objs.append(cat["id"])
+            session.add(CommodityCat(**cat))
+        del data['category']
 
-        data['home_system'] = data.pop('home_system_id')
+        return data['category_id']
 
-        faction = Faction(**data)
-        session.add(faction)
-        # print(faction)  # A lot of spam
-    session.commit()
+    return parse_actual
 
 
-def load_systems(session, fname):
-    with open(fname) as fin:
-        all_data = json.load(fin)
+def parse_faction_state(session):
+    objs = []
 
-    print("Parsing systems, takes a while ...")
-    for data in all_data[0:20]:
-        # Until I start parsing, delete. Some can be inferred and won't store.
-        __import__('pprint').pprint(data)
+    def parse_actual(data):
+        if data["state_id"] and data["state_id"] not in objs and not PRELOAD:
+            if data["state"] is None:
+                data["state"] = "None"
+            session.add(FactionState(id=data["state_id"], text=data["state"]))
+            session.commit()
+            objs.append(data["state_id"])
+        del data["state"]
 
-        for key in ["allegiance", "allegiance_id",
-                    "controlling_minor_faction", "controlling_minor_faction_id",
-                    "government", "government_id", "is_populated",
-                    "minor_faction_presences",  # Inluence numbers
-                    "power_state",
-                    "primary_economy", "primary_economy_id",
-                    "reserve_type", "reserve_type_id",
-                    "security", "simbad_ref",
-                    "state", "state_id"]:
-            del data[key]
+    return parse_actual
 
-        data = parse_power(data)
-        __import__('pprint').pprint(data)
 
-        system = System(**data)
-        session.add(system)
-        # print(system)  # A lot of spam
+def parse_government(session):
+    objs = []
+
+    def parse_actual(data):
+        if data["government_id"] and data["government_id"] not in objs and not PRELOAD:
+            if data["government"] is None:
+                data["government"] = "None"
+            session.add(Government(id=data["government_id"], text=data["government"]))
+            session.commit()
+            objs.append(data["government_id"])
+        del data["government"]
+
+    return parse_actual
+
+
+def parse_module_groups(session):
+    objs = []
+
+    def parse_actual(data):
+        grp = data['group']
+        if grp['id'] and grp["id"] not in objs and not PRELOAD:
+            objs.append(grp["id"])
+            session.add(ModuleGroup(**grp))
+        gid = grp['id']
+        del data['group']
+
+        return gid
+
+    return parse_actual
+
+
+def parse_security(session):
+    objs = []
+
+    def parse_actual(data):
+        did = data["security_id"]
+        if did and did not in objs and not PRELOAD:
+            # if data["security"] is None:
+                # data["allegiance"] = "None"
+            session.add(Security(id=did, text=data["security"]))
+            session.commit()
+            objs.append(did)
+            del data["security"]
+        del data["allegiance"]
+
+    return parse_actual
 
 
 def parse_power(data):
-    print(data)
     data["power_id"] = POWER_IDS[data["power"]]
     del data["power"]
 
@@ -858,7 +804,7 @@ def parse_power(data):
 
 def parse_station_features(session):
     def parse_actual(data):
-        session.add(StationFeatures(station_id=data["id"],
+        session.add(StationFeatures(id=data["id"],
                                     has_blackmarket=data['has_blackmarket'],
                                     has_commodities=data['has_commodities'],
                                     has_docking=data['has_docking'],
@@ -885,10 +831,81 @@ def parse_station_type(session):
     return parse_actual
 
 
+def load_commodities(session, fname):
+    with open(fname) as fin:
+        all_data = json.load(fin)
+
+    parse_cat = parse_commodity_categories(session)
+    for data in all_data:
+        parse_cat(data)
+        commodity = Commodity(**data)
+        session.add(commodity)
+        # print(commodity)
+
+
+def load_modules(session, fname):
+    with open(fname) as fin:
+        all_data = json.load(fin)
+
+    group_parser = parse_module_groups(session)
+    for data in all_data:
+        gid = group_parser(data)
+        module = Module(id=data["id"], group_id=gid, name=data["name"],
+                        size=data.get('class'), rating=data['rating'],
+                        mass=data.get('mass'), price=data['price'],
+                        ship=data['ship'], weapon_mode=data["weapon_mode"])
+        session.add(module)
+        # print(module)
+
+
+def load_factions(session, fname):
+    with open(fname) as fin:
+        all_data = json.load(fin)
+
+    parsers = [parse_allegiance(session), parse_government(session), parse_faction_state(session)]
+    print("Parsing factions, takes a while ...")
+    for data in all_data:
+        for parse in parsers:
+            parse(data)
+
+        data['home_system'] = data.pop('home_system_id')
+
+        faction = Faction(**data)
+        session.add(faction)
+        # print(faction)  # A lot of spam
+    session.commit()
+
+
+def load_systems(session, fname):
+    with open(fname) as fin:
+        all_data = json.load(fin)
+
+    print("Parsing systems, takes a while ...")
+    for data in all_data:
+        # Until I start parsing, delete. Some can be inferred and won't store.
+        for key in ["allegiance", "allegiance_id",
+                    "controlling_minor_faction",
+                    "government", "government_id", "is_populated",
+                    "minor_faction_presences",  # Inluence numbers
+                    "power_state",
+                    "primary_economy", "primary_economy_id",
+                    "reserve_type", "reserve_type_id",
+                    "security", "simbad_ref",
+                    "state", "state_id"]:
+            del data[key]
+
+        data = parse_power(data)
+
+        system = System(**data)
+        session.add(system)
+        # print(system)  # A lot of spam
+
+
 def load_stations(session, fname):
     with open(fname) as fin:
         all_data = json.load(fin)
 
+    count = 0
     print("Parsing stations, takes a while ...")
     parse_type = parse_station_type(session)
     parse_features = parse_station_features(session)
@@ -900,13 +917,16 @@ def load_stations(session, fname):
                           distance_to_star=data['distance_to_star'],
                           max_landing_pad_size=data['max_landing_pad_size'],
                           controlling_minor_faction_id=data['controlling_minor_faction_id'],
-                          updated_at=data['updated_at'])
+                          system_id=data['system_id'], updated_at=data['updated_at'])
 
         session.add(station)
 
-        print(station)
-        print(4*' ', station.features)
-        # print(4*' ', station.type)
+        if count:
+            print(data)
+            print(station)
+            print(4*' ', station.features)
+            print(4*' ', station.type)
+            count -= 1
 
 
 def dump_db(session, *classes):
@@ -915,21 +935,54 @@ def dump_db(session, *classes):
             print(repr(gov) + ',')
 
 
+def recreate_tables():
+    """
+    Recreate all tables in the database, mainly for schema changes and testing.
+    """
+    Base.metadata.drop_all(cogdb.eddb_engine)
+    Base.metadata.create_all(cogdb.eddb_engine)
+
+
+def get_shipyard_stations(session, centre_name, sys_dist=15, arrival=1000):
+    centre = session.query(System).filter(System.name == centre_name).subquery()
+    centre = sqla_orm.aliased(System, centre)
+
+    stations = session.query(Station.name, Station.distance_to_star,
+                         System.name, System.dist_to(centre)).\
+        filter(System.dist_to(centre) < sys_dist,
+               Station.system_id == System.id,
+               Station.distance_to_star < arrival,
+               Station.max_landing_pad_size == 'L',
+               StationFeatures.has_shipyard).\
+        join(StationFeatures).\
+        order_by(System.dist_to(centre), Station.distance_to_star).\
+        all()
+
+    # Slight order inversion for table
+    return [[c, round(d, 2), a, b] for a, b, c, d in stations]
+
 def main():  # pragma: no cover
     """ Main entry. """
-    print("EDDB testing")
-    recreate_tables()
-    session = cogdb.EDDBSession()
-    preload_tables(session)
     # dump_db(session)
+    print("EDDB testing")
+    session = cogdb.EDDBSession()
+    # recreate_tables()
+    # preload_tables(session)
 
-    load_commodities(session, cog.util.rel_to_abs("data", "eddb", "commodities.jsonl"))
-    load_modules(session, cog.util.rel_to_abs("data", "eddb", "modules.jsonl"))
-    # load_factions(session, cog.util.rel_to_abs("data", "eddb", "factions.jsonl.short"))
-    load_systems(session, cog.util.rel_to_abs("data", "eddb", "systems_populated.jsonl"))
+    # load_commodities(session, cog.util.rel_to_abs("data", "eddb", "commodities.jsonl"))
+    # load_modules(session, cog.util.rel_to_abs("data", "eddb", "modules.jsonl"))
+    # load_factions(session, cog.util.rel_to_abs("data", "eddb", "factions.jsonl"))
+    # load_systems(session, cog.util.rel_to_abs("data", "eddb", "systems_populated.jsonl"))
     # load_stations(session, cog.util.rel_to_abs("data", "eddb", "stations.jsonl"))
-    session.commit()
-    print(session.query(System.name).count())
+    # session.commit()
+
+    print(session.query(Faction).count())
+    print(session.query(System).count())
+    print(session.query(Station).count())
+
+    stations = get_shipyard_stations(session, input("Please enter a system name ... "))
+    if stations:
+        print(cog.tbl.format_table(stations))
 
 
 if __name__ == "__main__":  # pragma: no cover

@@ -14,6 +14,7 @@ import decorator
 import discord
 
 import cogdb
+import cogdb.eddb
 import cogdb.query
 import cogdb.side
 import cog.inara
@@ -823,6 +824,26 @@ class Hold(Action):
         await cog.jobs.background_start(job)
 
         await self.bot.send_message(self.msg.channel, response)
+
+
+class Repair(Action):
+    """
+    Find a nearby station with a shipyard.
+    """
+    async def execute(self):
+        if self.args.distance > 30:
+            raise cog.exc.InvalidCommandArgs("Searching beyond **30**ly would produce too long a list.")
+
+        stations = cogdb.eddb.get_shipyard_stations(cogdb.EDDBSession(), ' '.join(self.args.system),
+                                                    self.args.distance, self.args.arrival)
+
+        if stations:
+            stations = [["System", "Distance", "Station", "Arrival"]] + stations
+            response = cog.tbl.wrap_markdown(cog.tbl.format_table(stations, header=True))
+        else:
+            response = "No results. Please check system name."
+
+        await self.bot.send_long_message(self.msg.channel, response)
 
 
 class Status(Action):

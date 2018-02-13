@@ -292,6 +292,27 @@ and 130% opposition.
 
 
 @register_parser
+def subs_repair(subs, prefix):
+    """ Subcommand parsing for repair """
+    desc = """Find a station with both L pad and shipyard near you.
+
+{prefix}repair arnemil
+        Show suitable stations <= 15ly from Arnemil with arrival <= 1000ls
+{prefix}repair arnemil --arrival 4000
+{prefix}repair arnemil -a 4000
+        Show suitable stations <= 15ly from Arnemil with arrival <= 4000ls
+{prefix}repair arnemil --distance 30
+{prefix}repair arnemil -d 30
+        Show suitable stations <= 30ly from Arnemil with arrival <= 1000ls
+    """.format(prefix=prefix)
+    sub = subs.add_parser(prefix + 'repair', description=desc, formatter_class=RawHelp)
+    sub.set_defaults(cmd='Repair')
+    sub.add_argument('system', nargs="+", help='The reference system.')
+    sub.add_argument('-a', '--arrival', type=int, default=1000, help='Station must be within arrival ls.')
+    sub.add_argument('-d', '--distance', type=int, default=15, help='Max system distance')
+
+
+@register_parser
 def subs_status(subs, prefix):
     """ Subcommand parsing for status """
     sub = subs.add_parser(prefix + 'status', description='Info about this bot.')
