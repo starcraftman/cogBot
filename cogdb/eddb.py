@@ -946,6 +946,7 @@ def recreate_tables():
 def get_shipyard_stations(session, centre_name, sys_dist=15, arrival=1000):
     centre = session.query(System).filter(System.name == centre_name).subquery()
     centre = sqla_orm.aliased(System, centre)
+    subq = session.query(StationType.text).filter(StationType.text.like("%Planet%")).subquery()
 
     stations = session.query(Station.name, Station.distance_to_star,
                          System.name, System.dist_to(centre)).\
@@ -953,8 +954,9 @@ def get_shipyard_stations(session, centre_name, sys_dist=15, arrival=1000):
                Station.system_id == System.id,
                Station.distance_to_star < arrival,
                Station.max_landing_pad_size == 'L',
+               StationType.text.notin_(subq),
                StationFeatures.has_shipyard).\
-        join(StationFeatures).\
+        join(StationType, StationFeatures).\
         order_by(System.dist_to(centre), Station.distance_to_star).\
         all()
 

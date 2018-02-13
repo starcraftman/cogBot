@@ -839,9 +839,10 @@ class Repair(Action):
 
         if stations:
             stations = [["System", "Distance", "Station", "Arrival"]] + stations
-            response = cog.tbl.wrap_markdown(cog.tbl.format_table(stations, header=True))
+            response = "Nearby orbitals __with shipyards__\n\n"
+            response += cog.tbl.wrap_markdown(cog.tbl.format_table(stations, header=True))
         else:
-            response = "No results. Please check system name."
+            response = "No results. Please check system name. Otherwise not near populations."
 
         await self.bot.send_long_message(self.msg.channel, response)
 
