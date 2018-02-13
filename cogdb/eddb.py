@@ -25,7 +25,6 @@ LEN_FACTION = 64
 LEN_STATION = 76
 LEN_SYSTEM = 30
 TIME_FMT = "%d/%m/%y %H:%M:%S"
-Base = sqlalchemy.ext.declarative.declarative_base()
 POWER_IDS = {
     None: None,
     "Aisling Duval": 1,
@@ -40,6 +39,7 @@ POWER_IDS = {
     "Zemina Torval": 10,
     "Yuri Grom": 11,
 }
+Base = sqlalchemy.ext.declarative.declarative_base()
 
 
 class Allegiance(Base):
@@ -321,20 +321,20 @@ class StationFeatures(Base):
     __tablename__ = "station_features"
 
     id = sqla.Column(sqla.Integer, primary_key=True)  # Station.id
-    has_blackmarket = sqla.Column(sqla.Boolean)
-    has_market = sqla.Column(sqla.Boolean)
-    has_refuel = sqla.Column(sqla.Boolean)
-    has_repair = sqla.Column(sqla.Boolean)
-    has_rearm = sqla.Column(sqla.Boolean)
-    has_outfitting = sqla.Column(sqla.Boolean)
-    has_shipyard = sqla.Column(sqla.Boolean)
-    has_docking = sqla.Column(sqla.Boolean)
-    has_commodities = sqla.Column(sqla.Boolean)
+    blackmarket = sqla.Column(sqla.Boolean)
+    market = sqla.Column(sqla.Boolean)
+    refuel = sqla.Column(sqla.Boolean)
+    repair = sqla.Column(sqla.Boolean)
+    rearm = sqla.Column(sqla.Boolean)
+    outfitting = sqla.Column(sqla.Boolean)
+    shipyard = sqla.Column(sqla.Boolean)
+    docking = sqla.Column(sqla.Boolean)
+    commodities = sqla.Column(sqla.Boolean)
 
     def __repr__(self):
-        keys = ['id', 'has_blackmarket', 'has_market', 'has_refuel',
-                'has_repair', 'has_rearm', 'has_outfitting', 'has_shipyard',
-                'has_docking', 'has_commodities']
+        keys = ['id', 'blackmarket', 'market', 'refuel',
+                'repair', 'rearm', 'outfitting', 'shipyard',
+                'docking', 'commodities']
         kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
 
         return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
@@ -805,15 +805,15 @@ def parse_power(data):
 def parse_station_features(session):
     def parse_actual(data):
         session.add(StationFeatures(id=data["id"],
-                                    has_blackmarket=data['has_blackmarket'],
-                                    has_commodities=data['has_commodities'],
-                                    has_docking=data['has_docking'],
-                                    has_market=data['has_market'],
-                                    has_outfitting=data['has_outfitting'],
-                                    has_refuel=data['has_refuel'],
-                                    has_repair=data['has_repair'],
-                                    has_rearm=data['has_rearm'],
-                                    has_shipyard=data['has_shipyard']))
+                                    blackmarket=data['has_blackmarket'],
+                                    commodities=data['has_commodities'],
+                                    docking=data['has_docking'],
+                                    market=data['has_market'],
+                                    outfitting=data['has_outfitting'],
+                                    refuel=data['has_refuel'],
+                                    repair=data['has_repair'],
+                                    rearm=data['has_rearm'],
+                                    shipyard=data['has_shipyard']))
 
     return parse_actual
 
@@ -946,22 +946,23 @@ def recreate_tables():
 def get_shipyard_stations(session, centre_name, sys_dist=15, arrival=1000):
     centre = session.query(System).filter(System.name == centre_name).subquery()
     centre = sqla_orm.aliased(System, centre)
-    subq = session.query(StationType.text).filter(StationType.text.like("%Planet%")).subquery()
+    exclude = session.query(StationType.text).filter(StationType.text.like("%Planet%")).subquery()
 
     stations = session.query(Station.name, Station.distance_to_star,
-                         System.name, System.dist_to(centre)).\
+                             System.name, System.dist_to(centre)).\
         filter(System.dist_to(centre) < sys_dist,
                Station.system_id == System.id,
                Station.distance_to_star < arrival,
                Station.max_landing_pad_size == 'L',
-               StationType.text.notin_(subq),
-               StationFeatures.has_shipyard).\
+               StationType.text.notin_(exclude),
+               StationFeatures.shipyard).\
         join(StationType, StationFeatures).\
         order_by(System.dist_to(centre), Station.distance_to_star).\
         all()
 
     # Slight order inversion for table
     return [[c, round(d, 2), a, b] for a, b, c, d in stations]
+
 
 def main():  # pragma: no cover
     """ Main entry. """
