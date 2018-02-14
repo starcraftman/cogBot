@@ -404,7 +404,6 @@ class System(Base):
     y = sqla.Column(sqla.Numeric(10, 5, None, False))
     z = sqla.Column(sqla.Numeric(10, 5, None, False))
 
-
     @hybrid_property
     def controlling_faction_id(self):
         return self.controlling_minor_faction_id
@@ -837,8 +836,8 @@ def load_commodities(session, fname):
 
     parse_cat = parse_commodity_categories(session)
     for data in all_data:
-        parse_cat(data)
-        commodity = Commodity(**data)
+        commodity = Commodity(id=data["id"], category_id=parse_cat(data), name=data["name"],
+                              average_price=data["average_price"], is_rare=data["is_rare"] )
         session.add(commodity)
         # print(commodity)
 
@@ -969,15 +968,15 @@ def main():  # pragma: no cover
     # dump_db(session)
     print("EDDB testing")
     session = cogdb.EDDBSession()
-    # recreate_tables()
-    # preload_tables(session)
+    recreate_tables()
+    preload_tables(session)
 
-    # load_commodities(session, cog.util.rel_to_abs("data", "eddb", "commodities.jsonl"))
-    # load_modules(session, cog.util.rel_to_abs("data", "eddb", "modules.jsonl"))
-    # load_factions(session, cog.util.rel_to_abs("data", "eddb", "factions.jsonl"))
-    # load_systems(session, cog.util.rel_to_abs("data", "eddb", "systems_populated.jsonl"))
-    # load_stations(session, cog.util.rel_to_abs("data", "eddb", "stations.jsonl"))
-    # session.commit()
+    # load_commodities(session, cog.util.rel_to_abs("data", "eddb", "commodities.json"))
+    # load_modules(session, cog.util.rel_to_abs("data", "eddb", "modules.json"))
+    load_factions(session, cog.util.rel_to_abs("data", "eddb", "factions.json"))
+    load_systems(session, cog.util.rel_to_abs("data", "eddb", "systems_populated.json"))
+    load_stations(session, cog.util.rel_to_abs("data", "eddb", "stations.json"))
+    session.commit()
 
     print(session.query(Faction).count())
     print(session.query(System).count())

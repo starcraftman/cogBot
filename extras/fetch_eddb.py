@@ -70,7 +70,8 @@ def main():
     except OSError:
         pass
 
-    jobs = [fetch(url, os.path.join(folder, os.path.basename(url))) for url in EDDB_URLS]
+    sort = True if len(sys.argv) == 3 else False
+    jobs = [fetch(url, os.path.join(folder, os.path.basename(url)), sort) for url in EDDB_URLS]
     asyncio.get_event_loop().run_until_complete(asyncio.gather(*jobs))
 
     print("All files updated in", folder)
