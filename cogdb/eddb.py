@@ -688,10 +688,10 @@ def preload_tables(session):
         return
 
     preload_allegiance(session)
-    preload_commodity_categories(session)
+    # preload_commodity_categories(session)
     preload_faction_state(session)
     preload_gov_type(session)
-    preload_module_groups(session)
+    # preload_module_groups(session)
     preload_powers(session)
     preload_power_states(session)
     preload_security(session)
@@ -721,7 +721,7 @@ def parse_commodity_categories(session):
 
     def parse_actual(data):
         cat = data["category"]
-        if cat['id'] and cat["id"] not in objs and not PRELOAD:
+        if cat['id'] and cat["id"] not in objs:
             objs.append(cat["id"])
             session.add(CommodityCat(**cat))
         del data['category']
@@ -766,7 +766,7 @@ def parse_module_groups(session):
 
     def parse_actual(data):
         grp = data['group']
-        if grp['id'] and grp["id"] not in objs and not PRELOAD:
+        if grp['id'] and grp["id"] not in objs:
             objs.append(grp["id"])
             session.add(ModuleGroup(**grp))
         gid = grp['id']
@@ -872,7 +872,6 @@ def load_factions(session, fname):
         faction = Faction(**data)
         session.add(faction)
         # print(faction)  # A lot of spam
-    session.commit()
 
 
 def load_systems(session, fname):
@@ -943,6 +942,15 @@ def recreate_tables():
 
 
 def get_shipyard_stations(session, centre_name, sys_dist=15, arrival=1000):
+    """
+    Given a reference centre system, find nearby orbitals within:
+        < sys_dist ly from original system
+        < arrival ls from the entry start
+
+    Returns:
+        List of matches:
+            [system_name, system_dist, station_name, station_arrival_distance]
+    """
     centre = session.query(System).filter(System.name == centre_name).subquery()
     centre = sqla_orm.aliased(System, centre)
     exclude = session.query(StationType.text).filter(StationType.text.like("%Planet%")).subquery()
@@ -959,7 +967,7 @@ def get_shipyard_stations(session, centre_name, sys_dist=15, arrival=1000):
         order_by(System.dist_to(centre), Station.distance_to_star).\
         all()
 
-    # Slight order inversion for table
+    # Slight cleanup for presentation in table
     return [[c, round(d, 2), a, b] for a, b, c, d in stations]
 
 
@@ -971,9 +979,10 @@ def main():  # pragma: no cover
     recreate_tables()
     preload_tables(session)
 
-    # load_commodities(session, cog.util.rel_to_abs("data", "eddb", "commodities.json"))
-    # load_modules(session, cog.util.rel_to_abs("data", "eddb", "modules.json"))
+    load_commodities(session, cog.util.rel_to_abs("data", "eddb", "commodities.json"))
+    load_modules(session, cog.util.rel_to_abs("data", "eddb", "modules.json"))
     load_factions(session, cog.util.rel_to_abs("data", "eddb", "factions.json"))
+    session.commit()
     load_systems(session, cog.util.rel_to_abs("data", "eddb", "systems_populated.json"))
     load_stations(session, cog.util.rel_to_abs("data", "eddb", "stations.json"))
     session.commit()
