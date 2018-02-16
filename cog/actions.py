@@ -839,7 +839,7 @@ class Repair(Action):
                                                     self.args.distance, self.args.arrival)
 
         if stations:
-            stations = [["System", "Distance", "Station", "Arrival"]] + stations
+            stations = [["System", "Distance", "Station", "Arrival"]] + stations[:25]
             response = "Nearby orbitals __with shipyards__\n\n"
             response += cog.tbl.wrap_markdown(cog.tbl.format_table(stations, header=True))
         else:

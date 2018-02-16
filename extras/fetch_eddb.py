@@ -2,18 +2,17 @@
 # -*- coding: utf-8 -*-
 """
 Fetch the latest EDDB dump automatically.
+
+This is used to pre-seed EDDB database. See cogdb.eddb
 """
 from __future__ import absolute_import, print_function
 import asyncio
 import os
+import subprocess
 import sys
 
 import aiofiles
 import aiohttp
-try:
-    import simplejson as json
-except ImportError:
-    import json
 
 
 import cog.util
@@ -26,6 +25,11 @@ EDDB_URLS = [
     "https://eddb.io/archive/v5/stations.json",
     "https://eddb.io/archive/v5/systems_populated.json",
 ]
+
+
+def pretty_json(fname):
+    with open(fname + 'l', 'w') as fout:
+        subprocess.run(['jq', '.', '-S', fname], stdout=fout)
 
 
 # Directed Header: Accept-Encoding: gzip, deflate, sdch
@@ -45,23 +49,25 @@ async def fetch(url, fname, sort=True):
     print("Downloaded to", fname)
 
     if sort:
-        async with aiofiles.open(fname, 'r') as fin:
-            data = await fin.read()
-        data = json.dumps(json.loads(data), indent=4, sort_keys=True)
-        async with aiofiles.open(fname + 'l', "w") as fout:
-            await fout.write(data)
-        print("Creating sorted file", fname + 'l')
+        print("Using jq to pretty print:", fname)
+        await asyncio.get_event_loop().run_in_executor(None, pretty_json, fname)
+        print("Created pretty file", fname + 'l')
 
 
 def main():
+    sort = False
     try:
         folder = os.path.abspath(sys.argv[1])
     except IndexError:
         folder = cog.util.rel_to_abs(os.path.sep.join(['data', 'eddb']))
 
-    resp = input("Proceeding will overwrite {} with the latest dumps from eddb.\
+    confirm = input("Proceeding will overwrite {} with the latest dumps from eddb.\
 \nProceed? (y/n) ".format(folder))
-    if not resp.lower().startswith('y'):
+    confirm = confirm.strip().lower()
+
+    if confirm == "sort":
+        sort = True
+    elif not confirm.startswith('y'):
         print("Aborting fetch.")
         return
 
@@ -70,10 +76,8 @@ def main():
     except OSError:
         pass
 
-    sort = True if len(sys.argv) == 3 else False
     jobs = [fetch(url, os.path.join(folder, os.path.basename(url)), sort) for url in EDDB_URLS]
     asyncio.get_event_loop().run_until_complete(asyncio.gather(*jobs))
-
     print("All files updated in", folder)
 
 

@@ -543,6 +543,27 @@ async def test_cmd_hold_died(f_bot, f_testbed):
 
 
 @pytest.mark.asyncio
+async def test_cmd_repair(f_bot):
+    msg = fake_msg_gears("!repair rana")
+
+    await action_map(msg, f_bot).execute()
+
+    expect = """Nearby orbitals __with shipyards__\n
+``` System  | Distance |      Station       | Arrival
+-------- | -------- | ------------------ | -------
+Rana     | 0.0      | Ali Hub            | 672
+LHS 200  | 9.92     | Tsunenaga Port     | 650
+LTT 2151 | 11.16    | Meucci Port        | 72
+LTT 2151 | 11.16    | Mattingly City     | 132
+LTT 2151 | 11.16    | Noriega Station    | 210
+LTT 2151 | 11.16    | Read Terminal      | 377
+Kokary   | 13.81    | Gidzenko Terminal  | 52
+Kokary   | 13.81    | Faraday Enterprise | 95
+Asgarage | 14.05    | Kidman Port        | 77```"""
+    f_bot.send_long_message.assert_called_with(msg.channel, expect)
+
+
+@pytest.mark.asyncio
 async def test_cmd_status(f_bot):
     msg = fake_msg_gears("!status")
 

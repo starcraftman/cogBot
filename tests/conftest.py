@@ -85,6 +85,11 @@ def side_session():
 
 
 @pytest.fixture
+def eddb_session():
+    return cogdb.EDDBSession()
+
+
+@pytest.fixture
 def db_cleanup(session):
     """
     Clean the whole database. Guarantee it is empty.

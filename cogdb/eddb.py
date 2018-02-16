@@ -6,15 +6,20 @@ The latter is purely a mapping of sidewinder's remote.
 This module is for internal use.
 """
 from __future__ import absolute_import, print_function
-import json
+import inspect
 import math
+import sys
+try:
+    import simplejson as json
+eobjcept ImportError:
+    import json
 
 import sqlalchemy as sqla
 import sqlalchemy.orm as sqla_orm
-import sqlalchemy.ext.declarative
-from sqlalchemy.ext.hybrid import hybrid_property, hybrid_method
+import sqlalchemy.eobjt.declarative
+from sqlalchemy.eobjt.hybrid import hybrid_property, hybrid_method
 
-# import cog.exc
+# import cog.eobjc
 import cog.tbl
 import cog.util
 import cogdb
@@ -39,7 +44,7 @@ POWER_IDS = {
     "Zemina Torval": 10,
     "Yuri Grom": 11,
 }
-Base = sqlalchemy.ext.declarative.declarative_base()
+Base = sqlalchemy.eobjt.declarative.declarative_base()
 
 
 class Allegiance(Base):
@@ -47,10 +52,10 @@ class Allegiance(Base):
     __tablename__ = "allegiance"
 
     id = sqla.Column(sqla.Integer, primary_key=True)
-    text = sqla.Column(sqla.String(18))
+    teobjt = sqla.Column(sqla.String(18))
 
     def __repr__(self):
-        keys = ['id', 'text']
+        keys = ['id', 'teobjt']
         kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
 
         return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
@@ -117,13 +122,9 @@ class Faction(Base):
     def home_system_id(self):
         return self.home_system
 
-    @home_system_id.expression
+    @home_system_id.eobjpression
     def home_system_id(self):
         return self.home_system
-
-    # @home_system.setter
-    # def set_home_system_id(self, value):
-        # self.home_system = value
 
     def __repr__(self):
         keys = ['id', 'name', 'state_id', 'government_id', 'allegiance_id', 'home_system_id',
@@ -141,11 +142,11 @@ class FactionState(Base):
     __tablename__ = "faction_state"
 
     id = sqla.Column(sqla.Integer, primary_key=True, nullable=True, autoincrement=False)
-    text = sqla.Column(sqla.String(12), nullable=False)
+    teobjt = sqla.Column(sqla.String(12), nullable=False)
     eddn = sqla.Column(sqla.String(12), default=None)
 
     def __repr__(self):
-        keys = ['id', 'text', 'eddn']
+        keys = ['id', 'teobjt', 'eddn']
         kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
 
         return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
@@ -160,11 +161,11 @@ class Government(Base):
     __tablename__ = "gov_type"
 
     id = sqla.Column(sqla.Integer, primary_key=True, nullable=True, autoincrement=False)
-    text = sqla.Column(sqla.String(13), nullable=False)
+    teobjt = sqla.Column(sqla.String(13), nullable=False)
     eddn = sqla.Column(sqla.String(20), default=None)
 
     def __repr__(self):
-        keys = ['id', 'text', 'eddn']
+        keys = ['id', 'teobjt', 'eddn']
         kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
 
         return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
@@ -186,7 +187,7 @@ class Module(Base):
     mass = sqla.Column(sqla.Integer, default=0)
     name = sqla.Column(sqla.String(LEN_COM))  # Pacifier
     ship = sqla.Column(sqla.String(20))  # Module sepfically for this ship
-    weapon_mode = sqla.Column(sqla.String(6))  # Fixed, Gimbal or Turret
+    weapon_mode = sqla.Column(sqla.String(6))  # Fiobjed, Gimbal or Turret
 
     def __repr__(self):
         keys = ['id', 'name', 'group_id', 'size', 'rating', 'mass', 'price', 'ship', 'weapon_mode']
@@ -222,11 +223,11 @@ class Power(Base):
     __tablename__ = "powers"
 
     id = sqla.Column(sqla.Integer, primary_key=True, nullable=True, autoincrement=False)
-    text = sqla.Column(sqla.String(21))
+    teobjt = sqla.Column(sqla.String(21))
     abbrev = sqla.Column(sqla.String(5))
 
     def __repr__(self):
-        keys = ['id', 'text', 'abbrev']
+        keys = ['id', 'teobjt', 'abbrev']
         kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
 
         return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
@@ -238,20 +239,20 @@ class Power(Base):
 
 class PowerState(Base):
     """
-    Represents the power state of a system (i.e. control, exploited).
+    Represents the power state of a system (i.e. control, eobjploited).
 
     |  0 | None      |
     | 16 | Control   |
-    | 32 | Exploited |
+    | 32 | Eobjploited |
     | 48 | Contested |
     """
     __tablename__ = "power_state"
 
     id = sqla.Column(sqla.Integer, primary_key=True, nullable=True, autoincrement=False)
-    text = sqla.Column(sqla.String(10))
+    teobjt = sqla.Column(sqla.String(10))
 
     def __repr__(self):
-        keys = ['id', 'text']
+        keys = ['id', 'teobjt']
         kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
 
         return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
@@ -266,11 +267,11 @@ class Security(Base):
     __tablename__ = "security"
 
     id = sqla.Column(sqla.Integer, primary_key=True)
-    text = sqla.Column(sqla.String(8))
+    teobjt = sqla.Column(sqla.String(8))
     eddn = sqla.Column(sqla.String(20))
 
     def __repr__(self):
-        keys = ['id', 'text', 'eddn']
+        keys = ['id', 'teobjt', 'eddn']
         kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
 
         return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
@@ -285,10 +286,10 @@ class SettlementSecurity(Base):
     __tablename__ = "settlement_security"
 
     id = sqla.Column(sqla.Integer, primary_key=True)
-    text = sqla.Column(sqla.String(10))
+    teobjt = sqla.Column(sqla.String(10))
 
     def __repr__(self):
-        keys = ['id', 'text']
+        keys = ['id', 'teobjt']
         kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
 
         return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
@@ -303,10 +304,10 @@ class SettlementSize(Base):
     __tablename__ = "settlement_size"
 
     id = sqla.Column(sqla.Integer, primary_key=True)
-    text = sqla.Column(sqla.String(3))
+    teobjt = sqla.Column(sqla.String(3))
 
     def __repr__(self):
-        keys = ['id', 'text']
+        keys = ['id', 'teobjt']
         kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
 
         return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
@@ -341,14 +342,14 @@ class StationFeatures(Base):
 
     def __eq__(self, other):
         return (isinstance(self, StationFeatures) and isinstance(other, StationFeatures) and
-               self.id == other.id)
+                self.id == other.id)
 
 
 class StationType(Base):
     __tablename__ = "station_types"
 
     id = sqla.Column(sqla.Integer, primary_key=True)
-    text = sqla.Column(sqla.String(24))
+    teobjt = sqla.Column(sqla.String(24))
 
     def __repr__(self):
         keys = ['id', 'name']
@@ -369,13 +370,13 @@ class Station(Base):
     updated_at = sqla.Column(sqla.Integer, default=0)
     name = sqla.Column(sqla.String(LEN_STATION))
     distance_to_star = sqla.Column(sqla.Integer)
-    max_landing_pad_size = sqla.Column(sqla.String(4))
+    maobj_landing_pad_size = sqla.Column(sqla.String(4))
     type_id = sqla.Column(sqla.Integer, sqla.ForeignKey('station_types.id'))
     system_id = sqla.Column(sqla.Integer)
     controlling_minor_faction_id = sqla.Column(sqla.Integer, sqla.ForeignKey('factions.id'))
 
     def __repr__(self):
-        keys = ['id', 'name', 'distance_to_star', 'max_landing_pad_size',
+        keys = ['id', 'name', 'distance_to_star', 'maobj_landing_pad_size',
                 'system_id', 'controlling_minor_faction_id', 'updated_at']
         kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
 
@@ -400,7 +401,7 @@ class System(Base):
     power_state_id = sqla.Column(sqla.Integer, sqla.ForeignKey('power_state.id'))
     controlling_minor_faction_id = sqla.Column(sqla.Integer, sqla.ForeignKey('factions.id'), nullable=True)
     control_system_id = sqla.Column(sqla.Integer, sqla.ForeignKey('systems.id'), nullable=True)
-    x = sqla.Column(sqla.Numeric(10, 5, None, False))
+    obj = sqla.Column(sqla.Numeric(10, 5, None, False))
     y = sqla.Column(sqla.Numeric(10, 5, None, False))
     z = sqla.Column(sqla.Numeric(10, 5, None, False))
 
@@ -408,7 +409,7 @@ class System(Base):
     def controlling_faction_id(self):
         return self.controlling_minor_faction_id
 
-    @controlling_faction_id.expression
+    @controlling_faction_id.eobjpression
     def controlling_faction_id(self):
         return self.controlling_minor_faction_id
 
@@ -418,18 +419,18 @@ class System(Base):
         Compute the distance from this system to other.
         """
         dist = 0
-        for let in ['x', 'y', 'z']:
+        for let in ['obj', 'y', 'z']:
             temp = getattr(other, let) - getattr(self, let)
             dist += temp * temp
 
         return math.sqrt(dist)
 
-    @dist_to.expression
+    @dist_to.eobjpression
     def dist_to(self, other):
         """
         Compute the distance from this system to other.
         """
-        return sqla.func.sqrt((other.x - self.x) * (other.x - self.x) +
+        return sqla.func.sqrt((other.obj - self.x) * (other.x - self.x) +
                               (other.y - self.y) * (other.y - self.y) +
                               (other.z - self.z) * (other.z - self.z))
 
@@ -437,7 +438,7 @@ class System(Base):
         keys = ['id', 'name', 'population',
                 'needs_permit', 'updated_at', 'power_id', 'edsm_id',
                 'security_id', 'power_state_id', 'controlling_faction_id',
-                'control_system_id', 'x', 'y', 'z']
+                'control_system_id', 'obj', 'y', 'z']
         kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
 
         return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
@@ -462,221 +463,133 @@ StationFeatures.station = sqla_orm.relationship(
 
 def preload_allegiance(session):
     session.add_all([
-        Allegiance(id=1, text="Alliance"),
-        Allegiance(id=2, text="Empire"),
-        Allegiance(id=3, text="Federation"),
-        Allegiance(id=4, text="Independent"),
-        Allegiance(id=5, text="None"),
-        Allegiance(id=7, text="Pilots Federation"),
+        Allegiance(id=1, teobjt="Alliance"),
+        Allegiance(id=2, teobjt="Empire"),
+        Allegiance(id=3, teobjt="Federation"),
+        Allegiance(id=4, teobjt="Independent"),
+        Allegiance(id=5, teobjt="None"),
+        Allegiance(id=7, teobjt="Pilots Federation"),
     ])
 
 
 def preload_faction_state(session):
     session.add_all([
-        FactionState(id=0, text="(unknown)", eddn=None),
-        FactionState(id=16, text="Boom", eddn="Boom"),
-        FactionState(id=32, text="Bust", eddn="Bust"),
-        FactionState(id=37, text="Famine", eddn="Famine"),
-        FactionState(id=48, text="Civil Unrest", eddn="CivilUnrest"),
-        FactionState(id=64, text="Civil War", eddn="CivilWar"),
-        FactionState(id=65, text="Election", eddn="Election"),
-        FactionState(id=67, text="Expansion", eddn="Expansion"),
-        FactionState(id=69, text="Lockdown", eddn="Lockdown"),
-        FactionState(id=72, text="Outbreak", eddn="Outbreak"),
-        FactionState(id=73, text="War", eddn="War"),
-        FactionState(id=80, text="None", eddn="None"),
-        FactionState(id=96, text="Retreat", eddn="Retreat"),
-        FactionState(id=101, text="Investment", eddn="Investment"),
+        FactionState(id=0, teobjt="(unknown)", eddn=None),
+        FactionState(id=16, teobjt="Boom", eddn="Boom"),
+        FactionState(id=32, teobjt="Bust", eddn="Bust"),
+        FactionState(id=37, teobjt="Famine", eddn="Famine"),
+        FactionState(id=48, teobjt="Civil Unrest", eddn="CivilUnrest"),
+        FactionState(id=64, teobjt="Civil War", eddn="CivilWar"),
+        FactionState(id=65, teobjt="Election", eddn="Election"),
+        FactionState(id=67, teobjt="Expansion", eddn="Expansion"),
+        FactionState(id=69, teobjt="Lockdown", eddn="Lockdown"),
+        FactionState(id=72, teobjt="Outbreak", eddn="Outbreak"),
+        FactionState(id=73, teobjt="War", eddn="War"),
+        FactionState(id=80, teobjt="None", eddn="None"),
+        FactionState(id=96, teobjt="Retreat", eddn="Retreat"),
+        FactionState(id=101, teobjt="Investment", eddn="Investment"),
     ])
 
 
 def preload_gov_type(session):
     session.add_all([
-        Government(id=0, text='(unknown)', eddn=None),
-        Government(id=16, text='Anarchy', eddn="Anarchy"),
-        Government(id=32, text='Communism', eddn="Comunism"),
-        Government(id=48, text='Confederacy', eddn="Confederacy"),
-        Government(id=64, text='Corporate', eddn='Corporate'),
-        Government(id=80, text='Cooperative', eddn='Cooperative'),
-        Government(id=96, text='Democracy', eddn='Democracy'),
-        Government(id=112, text='Dictatorship', eddn='Dictatorship'),
-        Government(id=128, text='Feudal', eddn='Feudal'),
-        Government(id=144, text='Patronage', eddn='Patronage'),
-        Government(id=150, text='Prison Colony', eddn='PrisonColony'),
-        Government(id=160, text='Theocracy', eddn='Theocracy'),
-        Government(id=176, text='None', eddn='None'),
-        Government(id=192, text='Engineer', eddn='Engineer'),
-    ])
-
-
-def preload_commodity_categories(session):
-    session.add_all([
-        CommodityCat(id=1, name='Chemicals'),
-        CommodityCat(id=2, name='Consumer Items'),
-        CommodityCat(id=3, name='Legal Drugs'),
-        CommodityCat(id=4, name='Foods'),
-        CommodityCat(id=5, name='Industrial Materials'),
-        CommodityCat(id=6, name='Machinery'),
-        CommodityCat(id=7, name='Medicines'),
-        CommodityCat(id=8, name='Metals'),
-        CommodityCat(id=9, name='Minerals'),
-        CommodityCat(id=10, name='Slavery'),
-        CommodityCat(id=11, name='Technology'),
-        CommodityCat(id=12, name='Textiles'),
-        CommodityCat(id=13, name='Waste'),
-        CommodityCat(id=14, name='Weapons'),
-        CommodityCat(id=15, name='Unknown'),
-        CommodityCat(id=16, name='Salvage'),
-    ])
-
-
-def preload_module_groups(session):
-    session.add_all([
-        ModuleGroup(id=50, name='Lightweight Alloy', category='Bulkhead', category_id=40),
-        ModuleGroup(id=51, name='Reinforced Alloy', category='Bulkhead', category_id=40),
-        ModuleGroup(id=52, name='Military Grade Composite', category='Bulkhead', category_id=40),
-        ModuleGroup(id=53, name='Mirrored Surface Composite', category='Bulkhead', category_id=40),
-        ModuleGroup(id=54, name='Reactive Surface Composite', category='Bulkhead', category_id=40),
-        ModuleGroup(id=55, name='Pulse Laser', category='Weapon Hardpoint', category_id=50),
-        ModuleGroup(id=56, name='Burst Laser', category='Weapon Hardpoint', category_id=50),
-        ModuleGroup(id=57, name='Beam Laser', category='Weapon Hardpoint', category_id=50),
-        ModuleGroup(id=58, name='Cannon', category='Weapon Hardpoint', category_id=50),
-        ModuleGroup(id=59, name='Fragment Cannon', category='Weapon Hardpoint', category_id=50),
-        ModuleGroup(id=60, name='Multi-Cannon', category='Weapon Hardpoint', category_id=50),
-        ModuleGroup(id=61, name='Plasma Accelerator', category='Weapon Hardpoint', category_id=50),
-        ModuleGroup(id=62, name='Rail Gun', category='Weapon Hardpoint', category_id=50),
-        ModuleGroup(id=63, name='Missile Rack', category='Weapon Hardpoint', category_id=50),
-        ModuleGroup(id=64, name='Mine Launcher', category='Weapon Hardpoint', category_id=50),
-        ModuleGroup(id=65, name='Torpedo Pylon', category='Weapon Hardpoint', category_id=50),
-        ModuleGroup(id=66, name='Chaff Launcher', category='Utility Mount', category_id=10),
-        ModuleGroup(id=67, name='Electronic Countermeasure', category='Utility Mount', category_id=10),
-        ModuleGroup(id=68, name='Heat Sink Launcher', category='Utility Mount', category_id=10),
-        ModuleGroup(id=69, name='Point Defence', category='Utility Mount', category_id=10),
-        ModuleGroup(id=70, name='Mining Laser', category='Weapon Hardpoint', category_id=50),
-        ModuleGroup(id=71, name='Standard Docking Computer', category='Internal Compartment', category_id=20),
-        ModuleGroup(id=72, name='Power Plant', category='Essential Equipment', category_id=30),
-        ModuleGroup(id=73, name='Thrusters', category='Essential Equipment', category_id=30),
-        ModuleGroup(id=74, name='Frame Shift Drive', category='Essential Equipment', category_id=30),
-        ModuleGroup(id=75, name='Life Support', category='Essential Equipment', category_id=30),
-        ModuleGroup(id=76, name='Power Distributor', category='Essential Equipment', category_id=30),
-        ModuleGroup(id=77, name='Sensors', category='Essential Equipment', category_id=30),
-        ModuleGroup(id=78, name='Shield Generator', category='Internal Compartment', category_id=20),
-        ModuleGroup(id=79, name='Shield Cell Bank', category='Internal Compartment', category_id=20),
-        ModuleGroup(id=80, name='Cargo Rack', category='Internal Compartment', category_id=20),
-        ModuleGroup(id=81, name='Fuel Tank', category='Essential Equipment', category_id=30),
-        ModuleGroup(id=82, name='Hatch Breaker Limpet Controller', category='Internal Compartment', category_id=20),
-        ModuleGroup(id=83, name='Cargo Scanner', category='Utility Mount', category_id=10),
-        ModuleGroup(id=84, name='Frame Shift Wake Scanner', category='Utility Mount', category_id=10),
-        ModuleGroup(id=85, name='Kill Warrant Scanner', category='Utility Mount', category_id=10),
-        ModuleGroup(id=86, name='Basic Discovery Scanner', category='Internal Compartment', category_id=20),
-        ModuleGroup(id=87, name='Intermediate Discovery Scanner', category='Internal Compartment', category_id=20),
-        ModuleGroup(id=88, name='Advanced Discovery Scanner', category='Internal Compartment', category_id=20),
-        ModuleGroup(id=89, name='Detailed Surface Scanner', category='Internal Compartment', category_id=20),
-        ModuleGroup(id=90, name='Fuel Scoop', category='Internal Compartment', category_id=20),
-        ModuleGroup(id=91, name='Refinery', category='Internal Compartment', category_id=20),
-        ModuleGroup(id=92, name='Frame Shift Drive Interdictor', category='Internal Compartment', category_id=20),
-        ModuleGroup(id=93, name='Auto Field-Maintenance Unit', category='Internal Compartment', category_id=20),
-        ModuleGroup(id=94, name='Shield Booster', category='Utility Mount', category_id=10),
-        ModuleGroup(id=95, name='Hull Reinforcement Package', category='Internal Compartment', category_id=20),
-        ModuleGroup(id=96, name='Collector Limpet Controller', category='Internal Compartment', category_id=20),
-        ModuleGroup(id=97, name='Fuel Transfer Limpet Controller', category='Internal Compartment', category_id=20),
-        ModuleGroup(id=98, name='Prospector Limpet Controller', category='Internal Compartment', category_id=20),
-        ModuleGroup(id=99, name='Planetary Vehicle Hangar', category='Internal Compartment', category_id=20),
-        ModuleGroup(id=100, name='Shock Mine Launcher', category='Weapon Hardpoint', category_id=50),
-        ModuleGroup(id=101, name='Bi-Weave Shield Generator', category='Internal Compartment', category_id=20),
-        ModuleGroup(id=102, name='Planetary Approach Suite', category='Essential Equipment', category_id=30),
-        ModuleGroup(id=103, name='Enhanced Performance Thrusters', category='Essential Equipment', category_id=30),
-        ModuleGroup(id=104, name='Corrosion Resistant Cargo Rack', category='Internal Compartment', category_id=20),
-        ModuleGroup(id=105, name='Fighter Hangar', category='Internal Compartment', category_id=20),
-        ModuleGroup(id=106, name='Economy Class Passenger Cabin', category='Internal Compartment', category_id=20),
-        ModuleGroup(id=107, name='Business Class Passenger Cabin', category='Internal Compartment', category_id=20),
-        ModuleGroup(id=108, name='First Class Passenger Cabin', category='Internal Compartment', category_id=20),
-        ModuleGroup(id=109, name='Luxury Passenger Cabin', category='Internal Compartment', category_id=20),
-        ModuleGroup(id=110, name='Module Reinforcement Package', category='Internal Compartment', category_id=20),
-        ModuleGroup(id=111, name='Repair Limpet Controller', category='Internal Compartment', category_id=20),
+        Government(id=0, teobjt='(unknown)', eddn=None),
+        Government(id=16, teobjt='Anarchy', eddn="Anarchy"),
+        Government(id=32, teobjt='Communism', eddn="Comunism"),
+        Government(id=48, teobjt='Confederacy', eddn="Confederacy"),
+        Government(id=64, teobjt='Corporate', eddn='Corporate'),
+        Government(id=80, teobjt='Cooperative', eddn='Cooperative'),
+        Government(id=96, teobjt='Democracy', eddn='Democracy'),
+        Government(id=112, teobjt='Dictatorship', eddn='Dictatorship'),
+        Government(id=128, teobjt='Feudal', eddn='Feudal'),
+        Government(id=144, teobjt='Patronage', eddn='Patronage'),
+        Government(id=150, teobjt='Prison Colony', eddn='PrisonColony'),
+        Government(id=160, teobjt='Theocracy', eddn='Theocracy'),
+        Government(id=176, teobjt='None', eddn='None'),
+        Government(id=192, teobjt='Engineer', eddn='Engineer'),
     ])
 
 
 def preload_powers(session):
     """ All possible powers in Powerplay. """
     session.add_all([
-        Power(id=0, text="None", abbrev="NON"),
-        Power(id=1, text="Aisling Duval", abbrev="AIS"),
-        Power(id=2, text="Archon Delaine", abbrev="ARC"),
-        Power(id=3, text="A. Lavigny-Duval", abbrev="ALD"),
-        Power(id=4, text="Denton Patreus", abbrev="PAT"),
-        Power(id=5, text="Edmund Mahon", abbrev="MAH"),
-        Power(id=6, text="Felicia Winters", abbrev="WIN"),
-        Power(id=7, text="Li Yong-Rui", abbrev="LYR"),
-        Power(id=8, text="Pranav Antal", abbrev="ANT"),
-        Power(id=9, text="Zachary Hudson", abbrev="HUD"),
-        Power(id=10, text="Zemina Torval", abbrev="TOR"),
-        Power(id=11, text="Yuri Grom", abbrev="GRM"),
+        Power(id=0, teobjt="None", abbrev="NON"),
+        Power(id=1, teobjt="Aisling Duval", abbrev="AIS"),
+        Power(id=2, teobjt="Archon Delaine", abbrev="ARC"),
+        Power(id=3, teobjt="A. Lavigny-Duval", abbrev="ALD"),
+        Power(id=4, teobjt="Denton Patreus", abbrev="PAT"),
+        Power(id=5, teobjt="Edmund Mahon", abbrev="MAH"),
+        Power(id=6, teobjt="Felicia Winters", abbrev="WIN"),
+        Power(id=7, teobjt="Li Yong-Rui", abbrev="LYR"),
+        Power(id=8, teobjt="Pranav Antal", abbrev="ANT"),
+        Power(id=9, teobjt="Zachary Hudson", abbrev="HUD"),
+        Power(id=10, teobjt="Zemina Torval", abbrev="TOR"),
+        Power(id=11, teobjt="Yuri Grom", abbrev="GRM"),
     ])
 
 
 def preload_power_states(session):
     """ All possible powerplay states. """
     session.add_all([
-        PowerState(id=0, text="None"),
-        PowerState(id=16, text="Control"),
-        PowerState(id=32, text="Exploited"),
-        PowerState(id=48, text="Contested"),
+        PowerState(id=0, teobjt="None"),
+        PowerState(id=16, teobjt="Control"),
+        PowerState(id=32, teobjt="Exploited"),
+        PowerState(id=48, teobjt="Contested"),
     ])
 
 
 def preload_security(session):
     """ Preload possible System security values. """
     session.add_all([
-        Security(id=16, text="Low", eddn="Low"),
-        Security(id=32, text="Medium", eddn="Medium"),
-        Security(id=48, text="High", eddn="High"),
-        Security(id=64, text="Anarchy", eddn="state_anarchy"),
-        Security(id=80, text="Lawless", eddn="state_lawless"),
+        Security(id=16, teobjt="Low", eddn="Low"),
+        Security(id=32, teobjt="Medium", eddn="Medium"),
+        Security(id=48, teobjt="High", eddn="High"),
+        Security(id=64, teobjt="Anarchy", eddn="state_anarchy"),
+        Security(id=80, teobjt="Lawless", eddn="state_lawless"),
     ])
 
 
 def preload_settlement_security(session):
     """ Preload possible settlement security values. """
     session.add_all([
-        SettlementSecurity(id=1, text="Low"),
-        SettlementSecurity(id=2, text="Medium"),
-        SettlementSecurity(id=3, text="High"),
-        SettlementSecurity(id=4, text="None"),
+        SettlementSecurity(id=1, teobjt="Low"),
+        SettlementSecurity(id=2, teobjt="Medium"),
+        SettlementSecurity(id=3, teobjt="High"),
+        SettlementSecurity(id=4, teobjt="None"),
     ])
 
 
 def preload_settlement_size(session):
     """ Preload possible settlement sizes values. """
     session.add_all([
-        SettlementSize(id=16, text=""),
-        SettlementSize(id=32, text="+"),
-        SettlementSize(id=48, text="++"),
-        SettlementSize(id=64, text="+++"),
+        SettlementSize(id=16, teobjt=""),
+        SettlementSize(id=32, teobjt="+"),
+        SettlementSize(id=48, teobjt="++"),
+        SettlementSize(id=64, teobjt="+++"),
     ])
 
 
 def preload_station_types(session):
     """ Preload station types table. """
     session.add_all([
-        StationType(id=1, text='Civilian Outpost'),
-        StationType(id=2, text='Commercial Outpost'),
-        StationType(id=3, text='Coriolis Starport'),
-        StationType(id=4, text='Industrial Outpost'),
-        StationType(id=5, text='Military Outpost'),
-        StationType(id=6, text='Mining Outpost'),
-        StationType(id=7, text='Ocellus Starport'),
-        StationType(id=8, text='Orbis Starport'),
-        StationType(id=9, text='Scientific Outpost'),
-        StationType(id=11, text='Unknown Outpost'),
-        StationType(id=12, text='Unknown Starport'),
-        StationType(id=13, text='Planetary Outpost'),
-        StationType(id=14, text='Planetary Port'),
-        StationType(id=15, text='Unknown Planetary'),
-        StationType(id=16, text='Planetary Settlement'),
-        StationType(id=17, text='Planetary Engineer Base'),
-        StationType(id=19, text='Megaship'),
-        StationType(id=20, text='Asteroid Base'),
+        StationType(id=1, teobjt='Civilian Outpost'),
+        StationType(id=2, teobjt='Commercial Outpost'),
+        StationType(id=3, teobjt='Coriolis Starport'),
+        StationType(id=4, teobjt='Industrial Outpost'),
+        StationType(id=5, teobjt='Military Outpost'),
+        StationType(id=6, teobjt='Mining Outpost'),
+        StationType(id=7, teobjt='Ocellus Starport'),
+        StationType(id=8, teobjt='Orbis Starport'),
+        StationType(id=9, teobjt='Scientific Outpost'),
+        StationType(id=11, teobjt='Unknown Outpost'),
+        StationType(id=12, teobjt='Unknown Starport'),
+        StationType(id=13, teobjt='Planetary Outpost'),
+        StationType(id=14, teobjt='Planetary Port'),
+        StationType(id=15, teobjt='Unknown Planetary'),
+        StationType(id=16, teobjt='Planetary Settlement'),
+        StationType(id=17, teobjt='Planetary Engineer Base'),
+        StationType(id=19, teobjt='Megaship'),
+        StationType(id=20, teobjt='Asteroid Base'),
     ])
 
 
@@ -688,10 +601,8 @@ def preload_tables(session):
         return
 
     preload_allegiance(session)
-    # preload_commodity_categories(session)
     preload_faction_state(session)
     preload_gov_type(session)
-    # preload_module_groups(session)
     preload_powers(session)
     preload_power_states(session)
     preload_security(session)
@@ -708,7 +619,7 @@ def parse_allegiance(session):
         if data["allegiance_id"] and data["allegiance_id"] not in objs and not PRELOAD:
             if data["allegiance"] is None:
                 data["allegiance"] = "None"
-            session.add(Allegiance(id=data["allegiance_id"], text=data["allegiance"]))
+            session.add(Allegiance(id=data["allegiance_id"], teobjt=data["allegiance"]))
             session.commit()
             objs.append(data["allegiance_id"])
         del data["allegiance"]
@@ -738,7 +649,7 @@ def parse_faction_state(session):
         if data["state_id"] and data["state_id"] not in objs and not PRELOAD:
             if data["state"] is None:
                 data["state"] = "None"
-            session.add(FactionState(id=data["state_id"], text=data["state"]))
+            session.add(FactionState(id=data["state_id"], teobjt=data["state"]))
             session.commit()
             objs.append(data["state_id"])
         del data["state"]
@@ -753,7 +664,7 @@ def parse_government(session):
         if data["government_id"] and data["government_id"] not in objs and not PRELOAD:
             if data["government"] is None:
                 data["government"] = "None"
-            session.add(Government(id=data["government_id"], text=data["government"]))
+            session.add(Government(id=data["government_id"], teobjt=data["government"]))
             session.commit()
             objs.append(data["government_id"])
         del data["government"]
@@ -785,7 +696,7 @@ def parse_security(session):
         if did and did not in objs and not PRELOAD:
             # if data["security"] is None:
                 # data["allegiance"] = "None"
-            session.add(Security(id=did, text=data["security"]))
+            session.add(Security(id=did, teobjt=data["security"]))
             session.commit()
             objs.append(did)
             del data["security"]
@@ -822,7 +733,7 @@ def parse_station_type(session):
 
     def parse_actual(data):
         if data["type_id"] and data["type_id"] not in objs and not PRELOAD:
-            session.add(StationType(id=data["type_id"], text=data["type"]))
+            session.add(StationType(id=data["type_id"], teobjt=data["type"]))
             # session.commit()
             objs.append(data["type_id"])
         del data["type"]
@@ -831,18 +742,20 @@ def parse_station_type(session):
 
 
 def load_commodities(session, fname):
+    """ Parse standard eddb dump commodities.json and enter into database. """
     with open(fname) as fin:
         all_data = json.load(fin)
 
     parse_cat = parse_commodity_categories(session)
     for data in all_data:
         commodity = Commodity(id=data["id"], category_id=parse_cat(data), name=data["name"],
-                              average_price=data["average_price"], is_rare=data["is_rare"] )
+                              average_price=data["average_price"], is_rare=data["is_rare"])
         session.add(commodity)
         # print(commodity)
 
 
 def load_modules(session, fname):
+    """ Parse standard eddb dump modules.json and enter into database. """
     with open(fname) as fin:
         all_data = json.load(fin)
 
@@ -858,6 +771,7 @@ def load_modules(session, fname):
 
 
 def load_factions(session, fname):
+    """ Parse standard eddb dump factions.json and enter into database. """
     with open(fname) as fin:
         all_data = json.load(fin)
 
@@ -875,6 +789,7 @@ def load_factions(session, fname):
 
 
 def load_systems(session, fname):
+    """ Parse standard eddb dump populated_systems.json and enter into database. """
     with open(fname) as fin:
         all_data = json.load(fin)
 
@@ -900,20 +815,21 @@ def load_systems(session, fname):
 
 
 def load_stations(session, fname):
+    """ Parse standard eddb dump stations.json and enter into database. """
     with open(fname) as fin:
         all_data = json.load(fin)
 
-    count = 0
     print("Parsing stations, takes a while ...")
     parse_type = parse_station_type(session)
     parse_features = parse_station_features(session)
+    count = 0
     for data in all_data:
         parse_type(data)
         parse_features(data)
 
         station = Station(id=data['id'], name=data['name'], type_id=data['type_id'],
                           distance_to_star=data['distance_to_star'],
-                          max_landing_pad_size=data['max_landing_pad_size'],
+                          maobj_landing_pad_size=data['max_landing_pad_size'],
                           controlling_minor_faction_id=data['controlling_minor_faction_id'],
                           system_id=data['system_id'], updated_at=data['updated_at'])
 
@@ -922,15 +838,19 @@ def load_stations(session, fname):
         if count:
             print(data)
             print(station)
-            print(4*' ', station.features)
-            print(4*' ', station.type)
+            print(4 * ' ', station.features)
+            print(4 * ' ', station.type)
             count -= 1
 
 
-def dump_db(session, *classes):
-    for cls in classes:
-        for gov in session.query(cls):
-            print(repr(gov) + ',')
+def dump_db(session, classes):
+    """
+    Dump db to a file.
+    """
+    with open("/tmp/eddb_dump", "w") as fout:
+        for cls in classes:
+            for obj in session.query(cls):
+                fout.write(repr(obj) + ',')
 
 
 def recreate_tables():
@@ -953,15 +873,15 @@ def get_shipyard_stations(session, centre_name, sys_dist=15, arrival=1000):
     """
     centre = session.query(System).filter(System.name == centre_name).subquery()
     centre = sqla_orm.aliased(System, centre)
-    exclude = session.query(StationType.text).filter(StationType.text.like("%Planet%")).subquery()
+    eobjclude = session.query(StationType.text).filter(StationType.text.like("%Planet%")).subquery()
 
     stations = session.query(Station.name, Station.distance_to_star,
                              System.name, System.dist_to(centre)).\
         filter(System.dist_to(centre) < sys_dist,
                Station.system_id == System.id,
                Station.distance_to_star < arrival,
-               Station.max_landing_pad_size == 'L',
-               StationType.text.notin_(exclude),
+               Station.maobj_landing_pad_size == 'L',
+               StationType.teobjt.notin_(exclude),
                StationFeatures.shipyard).\
         join(StationType, StationFeatures).\
         order_by(System.dist_to(centre), Station.distance_to_star).\
@@ -971,12 +891,24 @@ def get_shipyard_stations(session, centre_name, sys_dist=15, arrival=1000):
     return [[c, round(d, 2), a, b] for a, b, c, d in stations]
 
 
+def select_classes(obj):
+    """ Simple predicate, select sublasses of Base. """
+    return inspect.isclass(obj) and x.__name__ != "Base"
+
+
 def main():  # pragma: no cover
     """ Main entry. """
-    # dump_db(session)
-    print("EDDB testing")
-    session = cogdb.EDDBSession()
+    confirm = input("Reimport EDDB Database? (y/n) ").strip().lower()
+    if confirm == "dump":
+        print("Dumping to: /tmp/eddb_dump")
+        classes = [obj[1] for x in inspect.getmembers(sys.modules[__name__], select_classes)]
+        dump_db(cogdb.EDDBSession(), classes)
+    elif not confirm.startswith('y'):
+        print("Aborting.")
+        return
+
     recreate_tables()
+    session = cogdb.EDDBSession()
     preload_tables(session)
 
     load_commodities(session, cog.util.rel_to_abs("data", "eddb", "commodities.json"))
@@ -987,9 +919,9 @@ def main():  # pragma: no cover
     load_stations(session, cog.util.rel_to_abs("data", "eddb", "stations.json"))
     session.commit()
 
-    print(session.query(Faction).count())
-    print(session.query(System).count())
-    print(session.query(Station).count())
+    print("Faction count:", session.query(Faction).count())
+    print("System count (populated):", session.query(System).count())
+    print("Station count:", session.query(Station).count())
 
     stations = get_shipyard_stations(session, input("Please enter a system name ... "))
     if stations:
