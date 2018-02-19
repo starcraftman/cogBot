@@ -829,7 +829,7 @@ def load_stations(session, fname):
 
         station = Station(id=data['id'], name=data['name'], type_id=data['type_id'],
                           distance_to_star=data['distance_to_star'],
-                          maobj_landing_pad_size=data['max_landing_pad_size'],
+                          max_landing_pad_size=data['max_landing_pad_size'],
                           controlling_minor_faction_id=data['controlling_minor_faction_id'],
                           system_id=data['system_id'], updated_at=data['updated_at'])
 
