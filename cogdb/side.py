@@ -738,12 +738,13 @@ def dash_overview(session, control_system):
     """
     try:
         control = session.query(System).filter_by(name=control_system).one()
-        factions = session.query(System, Faction, Government, Influence).\
+        factions = session.query(System, Faction, Government, Influence, SystemAge.age).\
             filter(System.dist_to(control) <= 15,
                    System.power_state_id != 48,
                    Influence.faction_id == Faction.id,
                    Influence.system_id == System.id).\
             join(Faction, Government).\
+            outerjoin(SystemAge, SystemAge.system == System.name).\
             order_by(System.name).\
             all()
 
@@ -996,7 +997,6 @@ def bgs_funcs(system):
 
 def main():
     pass
-
 
 if __name__ == "__main__":
     main()

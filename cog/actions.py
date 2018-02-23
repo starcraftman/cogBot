@@ -352,7 +352,7 @@ class BGS(Action):
         control, systems, net_inf, facts_count = await self.bot.loop.run_in_executor(
             None, cogdb.side.dash_overview, cogdb.SideSession(), control_name)
 
-        lines = [['System', 'Control Faction', 'Gov', 'Inf', 'Net', 'N', 'Pop']]
+        lines = [['Age', 'System', 'Control Faction', 'Gov', 'Inf', 'Net', 'N', 'Pop']]
         cnt = {
             "anarchy": 0,
             "strong": 0,
@@ -360,9 +360,9 @@ class BGS(Action):
         }
 
         strong, weak = cogdb.side.bgs_funcs(control_name)
-        for system, faction, gov, inf in systems:
+        for system, faction, gov, inf, age in systems:
             lines += [[
-                system.name[-12:], faction.name[:20], gov.text[:3],
+                age if age else 0, system.name[-12:], faction.name[:20], gov.text[:3],
                 '{:.1f}'.format(inf.influence), net_inf[system.name],
                 facts_count[system.name], system.log_pop
             ]]
