@@ -164,8 +164,10 @@ def test_compute_dists_incomplete(side_session):
 
 
 def test_get_power_hq():
-    assert cogdb.side.get_power_hq("hudson") == "Nanomam"
-    assert cogdb.side.get_power_hq("lyr") == "Lembava"
+    assert cogdb.side.get_power_hq("hudson") == ["Zachary Hudson", "Nanomam"]
+
+    with pytest.raises(cog.exc.InvalidCommandArgs):
+        cogdb.side.get_power_hq("lyr")
 
     with pytest.raises(cog.exc.InvalidCommandArgs):
         cogdb.side.get_power_hq("not valid")

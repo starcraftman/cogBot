@@ -5,6 +5,7 @@ from __future__ import absolute_import, print_function
 import logging
 import datetime
 import math
+import string
 import time
 
 import sqlalchemy as sqla
@@ -28,12 +29,10 @@ SideBase = sqlalchemy.ext.declarative.declarative_base()
 HQS = {
     "aisling duval": "Cubeo",
     "archon delaine": "Harma",
-    "a. lavigny-duval": "Kamadhenu",
-    "ald": "Kamadhenu",
+    "arissa lavigny-duval": "Kamadhenu",
     "denton patreus": "Eotienses",
     "edmund mahon": "Gateway",
     "felicia winters": "Rhea",
-    "lyr": "Lembava",
     "li yong-rui": "Lembava",
     "pranav antal": "Polevnic",
     "yuri grom": "Clayakarma",
@@ -959,7 +958,7 @@ def get_power_hq(substr):
     Loose match substr against keys in powers full names.
 
     Returns:
-        Powers HQ system name.
+        [Full name of power, their HQ system name]
 
     Raises:
         InvalidCommandArgs - Unable to identify power from substring.
@@ -970,7 +969,7 @@ def get_power_hq(substr):
         msg += "\n  " + "\n  ".join(sorted(HQS.keys()))
         raise cog.exc.InvalidCommandArgs(msg)
 
-    return HQS[matches[0]]
+    return [string.capwords(matches[0]), HQS[matches[0]]]
 
 
 def bgs_funcs(system):

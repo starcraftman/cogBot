@@ -585,7 +585,8 @@ async def test_cmd_trigger(f_bot):
     await action_map(msg, f_bot).execute()
 
     expect = """__Predicted Triggers__
-Selected HQ: Nanomam
+Power: Zachary Hudson
+Power HQ: Nanomam
 
 ```System       | Rana
 Distance     | 46.1
@@ -602,7 +603,8 @@ async def test_cmd_trigger_as_power(f_bot):
     await action_map(msg, f_bot).execute()
 
     expect = """__Predicted Triggers__
-Selected HQ: Clayakarma
+Power: Yuri Grom
+Power HQ: Clayakarma
 
 ```System       | Rana
 Distance     | 86.3
