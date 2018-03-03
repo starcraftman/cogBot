@@ -100,6 +100,7 @@ class CogBot(discord.Client):
         self.prefix = prefix
         self.deny_commands = True
         self.emoji = EmojiResolver()
+        # TODO: Instead of global parser, generate based on channel rules.
         self.parser = cog.parse.make_parser(prefix)
         self.sched = cog.scheduler.Scheduler()
         self.start_date = datetime.datetime.utcnow().replace(microsecond=0)

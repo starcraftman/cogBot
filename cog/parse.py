@@ -81,6 +81,8 @@ def subs_admin(subs, prefix):
         Dump the database to console to inspect.
 {prefix}admin halt
         Shutdown this bot after short delay.
+{prefix}admin pin
+        Designate a channel to pin objectives information in.
 {prefix}admin scan
         Pull and parse the latest sheet information.
 {prefix}admin info @User
@@ -289,6 +291,13 @@ and 130% opposition.
     sub.add_argument('-d', '--died', action='store_true', help='Zero out held merits.')
     sub.add_argument('-s', '--set',
                      help='Update the galmap progress us:them. Example: --set 3500:200')
+
+
+@register_parser
+def subs_pin(subs, prefix):
+    """ Subcommand parsing for pin """
+    sub = subs.add_parser(prefix + 'pin', description='Make an objectives pin and keep updating.')
+    sub.set_defaults(cmd='Pin')
 
 
 @register_parser

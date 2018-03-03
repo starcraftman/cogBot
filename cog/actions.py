@@ -850,6 +850,26 @@ class Hold(Action):
         await self.bot.send_message(self.msg.channel, response)
 
 
+class Pin(Action):
+    """
+    Create an objetives pin.
+    """
+    async def execute(self):
+        msg = await self.bot.send_message(self.msg.channel, "Hello message")
+        await self.bot.pin_message(msg)
+
+        await asyncio.sleep(5)
+
+        await self.bot.unpin_message(msg)
+        await self.bot.delete_message(msg)
+
+        to_delete = []
+        async for message in self.bot.logs_from(msg.channel, 10):
+            if not message.content or message.content == "!pin":
+                to_delete += [message]
+        await self.bot.delete_messages(to_delete)
+
+
 class Repair(Action):
     """
     Find a nearby station with a shipyard.

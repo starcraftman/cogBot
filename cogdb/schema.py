@@ -735,6 +735,32 @@ class UMOppose(UMExpand):
         return 'Opposing ' + suffix
 
 
+class PinMessage(Base):
+    """
+    Store the channel and message id for a pin.
+    """
+    __tablename__ = 'object_pins'
+
+    id = sqla.Column(sqla.Integer, primary_key=True)
+    server = sqla.Column(sqla.String(30), primary_key=True)
+    channel = sqla.Column(sqla.String(40), primary_key=True)
+    msg_id = sqla.Column(sqla.Integer)
+
+    def __repr__(self):
+        keys = ['id', 'server', 'channel', 'msg_id']
+        kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
+
+        return "PinMessage({})".format(', '.join(kwargs))
+
+    def __str__(self):
+        return repr(self)
+
+    def __eq__(self, other):
+        return isinstance(self, PinMessage) and isinstance(other, PinMessage) and (
+            str(self) == str(other))
+
+
+
 def kwargs_um_system(cells, sheet_col):
     """
     Return keyword args parsed from cell frame.
