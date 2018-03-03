@@ -855,19 +855,26 @@ class Pin(Action):
     Create an objetives pin.
     """
     async def execute(self):
-        msg = await self.bot.send_message(self.msg.channel, "Hello message")
-        await self.bot.pin_message(msg)
+        systems = cogdb.query.fort_get_targets(self.session)
+        systems = [systems[1], systems[0]]
+        systems += cogdb.query.fort_get_next_targets(self.session, count=5)
+        for defer in cogdb.query.fort_get_deferred_targets(self.session):
+            if defer.name != "Othime":
+                systems += [defer]
 
-        await asyncio.sleep(5)
+        lines = [":Fortifying: {} {:>4}/{}{}".format(
+            sys.name, sys.current_status, sys.trigger,
+            " " + sys.notes if sys.notes else "") for sys in systems]
+        lines += [":Fortifying: The things in the list after that"]
 
-        await self.bot.unpin_message(msg)
-        await self.bot.delete_message(msg)
+        await self.bot.send_message(self.msg.channel, '\n'.join(lines))
 
-        to_delete = []
-        async for message in self.bot.logs_from(msg.channel, 10):
-            if not message.content or message.content == "!pin":
-                to_delete += [message]
-        await self.bot.delete_messages(to_delete)
+        # TODO: Cleanup pin area.
+        # to_delete = [msg]
+        # async for message in self.bot.logs_from(msg.channel, 10):
+            # if not message.content or message.content == "!pin":
+                # to_delete += [message]
+        # await self.bot.delete_messages(to_delete)
 
 
 class Repair(Action):
