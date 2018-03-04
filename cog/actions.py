@@ -856,7 +856,7 @@ class Pin(Action):
     """
     async def execute(self):
         systems = cogdb.query.fort_get_targets(self.session)
-        systems = [systems[1], systems[0]]
+        systems.reverse()
         systems += cogdb.query.fort_get_next_targets(self.session, count=5)
         for defer in cogdb.query.fort_get_deferred_targets(self.session):
             if defer.name != "Othime":
