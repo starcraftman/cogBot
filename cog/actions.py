@@ -746,6 +746,7 @@ class Help(Action):
             ['{prefix}fort', 'Get information about our fort systems'],
             ['{prefix}hold', 'Declare held merits or redeem them'],
             ['{prefix}repair', 'Show the nearest orbitals with shipyards'],
+            ['{prefix}route', 'Plot the shortest route between these systems'],
             ['{prefix}status', 'Info about this bot'],
             ['{prefix}time', 'Show game time and time to ticks'],
             ['{prefix}trigger', 'Calculate fort and um triggers for systems'],

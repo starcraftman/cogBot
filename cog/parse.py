@@ -315,7 +315,14 @@ def subs_repair(subs, prefix):
 @register_parser
 def subs_route(subs, prefix):
     """ Subcommand parsing for route """
-    sub = subs.add_parser(prefix + 'route', description='Order systems by shortest travel.')
+    desc = """Plot the shortest route between the listed systems.
+
+{prefix}route rana, sol, nanomam, frey
+        Show the route that minimizes jumps to visit all systems.
+{prefix}route rana, sol, frey --start nanomam
+        Show the route that minimizes jumps to visit all systems, start at nanomam
+    """.format(prefix=prefix)
+    sub = subs.add_parser(prefix + 'route', description=desc, formatter_class=RawHelp)
     sub.set_defaults(cmd='Route')
     sub.add_argument('system', nargs="+", help='The systems to plot.')
     sub.add_argument('--start', nargs="+", help='System to start at.')
