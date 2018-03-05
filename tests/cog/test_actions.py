@@ -555,23 +555,7 @@ async def test_cmd_repair(f_bot):
 
 @pytest.mark.asyncio
 async def test_cmd_route(f_bot):
-    msg = fake_msg_gears("!route rana, sol, frey, arnemil")
-
-    await action_map(msg, f_bot).execute()
-
-    expect = """__Route Plotted__
-Total Distance: **207**ly
-
-Arnemil
-Rana
-Sol
-Frey"""
-    f_bot.send_message.assert_called_with(msg.channel, expect)
-
-
-@pytest.mark.asyncio
-async def test_cmd_route_start(f_bot):
-    msg = fake_msg_gears("!route rana, sol, frey, arnemil --start nanomam")
+    msg = fake_msg_gears("!route nanomam, rana, sol, frey, arnemil")
 
     await action_map(msg, f_bot).execute()
 
@@ -582,6 +566,23 @@ Nanomam
 Sol
 Rana
 Arnemil
+Frey"""
+    f_bot.send_message.assert_called_with(msg.channel, expect)
+
+
+@pytest.mark.asyncio
+async def test_cmd_route_start(f_bot):
+    msg = fake_msg_gears("!route nanomam, rana, sol, frey, arnemil --optimum")
+
+    await action_map(msg, f_bot).execute()
+
+    expect = """__Route Plotted__
+Total Distance: **246**ly
+
+Arnemil
+Nanomam
+Sol
+Rana
 Frey"""
     f_bot.send_message.assert_called_with(msg.channel, expect)
 

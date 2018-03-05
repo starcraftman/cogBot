@@ -856,18 +856,20 @@ class Route(Action):
     async def execute(self):
         session = cogdb.EDDBSession()
         self.args.system = [arg.lower() for arg in self.args.system]
-        system_names = list(set(process_system_args(self.args.system)))
+        system_names = process_system_args(self.args.system)
 
         if len(system_names) < 2:
             raise cog.exc.InvalidCommandArgs("Need at least __two unique__ systems to plot a course.")
 
-        if self.args.start:
-            start = process_system_args(self.args.start)[0]
-            result = await self.bot.loop.run_in_executor(
-                None, cogdb.eddb.find_route, session, start, system_names)
-        else:
+        if len(system_names) != len(set(system_names)):
+            raise cog.exc.InvalidCommandArgs("Don't duplicate system names.")
+
+        if self.args.optimum:
             result = await self.bot.loop.run_in_executor(
                 None, cogdb.eddb.find_best_route, session, system_names)
+        else:
+            result = await self.bot.loop.run_in_executor(
+                None, cogdb.eddb.find_route, session, system_names[0], system_names[1:])
 
         lines = ["__Route Plotted__", "Total Distance: **{}**ly".format(round(result[0])), ""]
         lines += [sys.name for sys in result[1]]
@@ -1113,7 +1115,7 @@ def process_system_args(args):
 
     Intended to be used when systems collected with nargs=*/+
     """
-    system_names = ' '.join(args)
+    system_names = ' '.join(args).lower()
     system_names = re.sub(r'\s*,\s*', ',', system_names)
     return system_names.split(',')
 

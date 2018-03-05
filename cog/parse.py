@@ -318,14 +318,15 @@ def subs_route(subs, prefix):
     desc = """Plot the shortest route between the listed systems.
 
 {prefix}route rana, sol, nanomam, frey
-        Show the route that minimizes jumps to visit all systems.
-{prefix}route rana, sol, frey --start nanomam
-        Show the route that minimizes jumps to visit all systems, start at nanomam
+        Show the route that minimizes jumps to visit all systems, starting at Rana
+{prefix}route rana, sol, nanomam, frey --optimum
+{prefix}route rana, sol, nanomam, frey -o
+        Show the route that minimizes jumps to visit all systems, start is not fixed
     """.format(prefix=prefix)
     sub = subs.add_parser(prefix + 'route', description=desc, formatter_class=RawHelp)
     sub.set_defaults(cmd='Route')
     sub.add_argument('system', nargs="+", help='The systems to plot.')
-    sub.add_argument('--start', nargs="+", help='System to start at.')
+    sub.add_argument('-o', '--optimum', action="store_true", help="Determine the optimum solution.")
 
 
 @register_parser
