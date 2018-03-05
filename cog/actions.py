@@ -862,9 +862,8 @@ class Pin(Action):
             if defer.name != "Othime":
                 systems += [defer]
 
-        lines = [":Fortifying: {} {:>4}/{}{}".format(
-            sys.name, sys.current_status, sys.trigger,
-            " " + sys.notes if sys.notes else "") for sys in systems]
+        lines = [":Fortifying: {} {}".format(
+            sys.name, "**{}**".format(sys.notes) if sys.notes else "") for sys in systems]
         lines += [":Fortifying: The things in the list after that"]
 
         await self.bot.send_message(self.msg.channel, '\n'.join(lines))
