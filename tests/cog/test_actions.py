@@ -554,6 +554,55 @@ async def test_cmd_repair(f_bot):
 
 
 @pytest.mark.asyncio
+async def test_cmd_route(f_bot):
+    msg = fake_msg_gears("!route rana, sol, frey, arnemil")
+
+    await action_map(msg, f_bot).execute()
+
+    expect = """__Route Plotted__
+Total Distance: **207**ly
+
+Arnemil
+Rana
+Sol
+Frey"""
+    f_bot.send_message.assert_called_with(msg.channel, expect)
+
+
+@pytest.mark.asyncio
+async def test_cmd_route_start(f_bot):
+    msg = fake_msg_gears("!route rana, sol, frey, arnemil --start nanomam")
+
+    await action_map(msg, f_bot).execute()
+
+    expect = """__Route Plotted__
+Total Distance: **277**ly
+
+Nanomam
+Sol
+Rana
+Arnemil
+Frey"""
+    f_bot.send_message.assert_called_with(msg.channel, expect)
+
+
+@pytest.mark.asyncio
+async def test_cmd_route_too_few(f_bot):
+    msg = fake_msg_gears("!route rana")
+
+    with pytest.raises(cog.exc.InvalidCommandArgs):
+        await action_map(msg, f_bot).execute()
+
+
+@pytest.mark.asyncio
+async def test_cmd_route_bad_system(f_bot):
+    msg = fake_msg_gears("!route ranaaaaa")
+
+    with pytest.raises(cog.exc.InvalidCommandArgs):
+        await action_map(msg, f_bot).execute()
+
+
+@pytest.mark.asyncio
 async def test_cmd_status(f_bot):
     msg = fake_msg_gears("!status")
 

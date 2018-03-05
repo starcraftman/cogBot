@@ -19,7 +19,7 @@ import sqlalchemy.orm as sqla_orm
 import sqlalchemy.ext.declarative
 from sqlalchemy.ext.hybrid import hybrid_property, hybrid_method
 
-# import cog.exc
+import cog.exc
 import cog.tbl
 import cog.util
 import cogdb
@@ -861,6 +861,31 @@ def recreate_tables():
     Base.metadata.create_all(cogdb.eddb_engine)
 
 
+def get_systems(session, system_names):
+    """
+    Given a list of names, find all exact matching systems.
+
+    Returns:
+        [System, System, ...]
+
+    Raises:
+        InvalidCommandArgs - One or more systems didn't match.
+    """
+    systems = session.query(System).\
+        filter(System.name.in_(system_names)).\
+        all()
+
+    if len(systems) != len(system_names):
+        for system in systems:
+            system_names = [s_name for s_name in system_names
+                            if s_name.lower() != system.name.lower()]
+        msg = "Could not find the following system(s):"
+        msg += "\n\n" + "\n".join(system_names)
+        raise cog.exc.InvalidCommandArgs(msg)
+
+    return systems
+
+
 def get_shipyard_stations(session, centre_name, sys_dist=15, arrival=1000):
     """
     Given a reference centre system, find nearby orbitals within:
@@ -896,8 +921,72 @@ def select_classes(obj):
     return inspect.isclass(obj) and obj.__name__ != "Base"
 
 
-def main():  # pragma: no cover
-    """ Main entry. """
+def nearest_system(centre, systems):
+    """
+    Given a centre system, choose next nearest in systems.
+
+    Returns:
+        [dist_to_centre, System]
+    """
+    best = [centre.dist_to(systems[0]), systems[0]]
+    for system in systems[1:]:
+        dist = centre.dist_to(system)
+        if dist < best[0]:
+            best = [dist, system]
+
+    return best
+
+
+def find_route(session, start, systems):
+    """
+    Given a starting system, construct the best route by always selecting the next nearest system.
+
+    Returns:
+        [total_distance, [Systems]]
+    """
+    if not isinstance(start, System):
+        start = get_systems(session, [start])[0]
+    if not isinstance(systems[0], System):
+        systems = get_systems(session, systems)
+
+    course = [start]
+    total_dist = 0
+
+    while systems:
+        choice = nearest_system(start, systems)
+        course += [choice[1]]
+        total_dist += choice[0]
+        systems.remove(choice[1])
+        start = choice[1]
+
+    return [total_dist, course]
+
+
+def find_best_route(session, systems):
+    """
+    Find the best route through systems provided by name or System.
+    Apply the N nearest algorithm across all possible starting candidates.
+    Then select the one with least total distance.
+
+    Returns:
+        [total_distance, [System, System, ...]]
+    """
+    if not isinstance(systems[0], System):
+        systems = get_systems(session, systems)
+
+    best = []
+    for start in systems:
+        systems_copy = systems[:]
+        systems_copy.remove(start)
+        result = find_route(session, start, systems_copy)
+        if not best or result[0] < best[0]:
+            best = result
+
+    return best
+
+
+def import_eddb():
+    """ Allows the seeding of db from eddb dumps. """
     confirm = input("Reimport EDDB Database? (y/n) ").strip().lower()
     if confirm == "dump":
         print("Dumping to: /tmp/eddb_dump")
@@ -923,9 +1012,14 @@ def main():  # pragma: no cover
     print("System count (populated):", session.query(System).count())
     print("Station count:", session.query(Station).count())
 
-    stations = get_shipyard_stations(session, input("Please enter a system name ... "))
-    if stations:
-        print(cog.tbl.format_table(stations))
+
+def main():  # pragma: no cover
+    """ Main entry. """
+    import_eddb()
+    # session = cogdb.EDDBSession()
+    # stations = get_shipyard_stations(session, input("Please enter a system name ... "))
+    # if stations:
+        # print(cog.tbl.format_table(stations))
 
 
 if __name__ == "__main__":  # pragma: no cover

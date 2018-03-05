@@ -313,6 +313,15 @@ def subs_repair(subs, prefix):
 
 
 @register_parser
+def subs_route(subs, prefix):
+    """ Subcommand parsing for route """
+    sub = subs.add_parser(prefix + 'route', description='Order systems by shortest travel.')
+    sub.set_defaults(cmd='Route')
+    sub.add_argument('system', nargs="+", help='The systems to plot.')
+    sub.add_argument('--start', nargs="+", help='System to start at.')
+
+
+@register_parser
 def subs_status(subs, prefix):
     """ Subcommand parsing for status """
     sub = subs.add_parser(prefix + 'status', description='Info about this bot.')

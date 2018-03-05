@@ -848,6 +848,32 @@ class Repair(Action):
         await self.bot.send_long_message(self.msg.channel, response)
 
 
+class Route(Action):
+    """
+    Find a nearby station with a shipyard.
+    """
+    async def execute(self):
+        session = cogdb.EDDBSession()
+        self.args.system = [arg.lower() for arg in self.args.system]
+        system_names = list(set(process_system_args(self.args.system)))
+
+        if len(system_names) < 2:
+            raise cog.exc.InvalidCommandArgs("Need at least __two unique__ systems to plot a course.")
+
+        if self.args.start:
+            start = process_system_args(self.args.start)[0]
+            result = await self.bot.loop.run_in_executor(
+                None, cogdb.eddb.find_route, session, start, system_names)
+        else:
+            result = await self.bot.loop.run_in_executor(
+                None, cogdb.eddb.find_best_route, session, system_names)
+
+        lines = ["__Route Plotted__", "Total Distance: **{}**ly".format(round(result[0])), ""]
+        lines += [sys.name for sys in result[1]]
+
+        await self.bot.send_message(self.msg.channel, "\n".join(lines))
+
+
 class Status(Action):
     """
     Display the status of this bot.
