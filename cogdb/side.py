@@ -592,7 +592,8 @@ def influence_history_in_system(session, system_id, fact_ids, time_window=None):
         inf_dict = {}
         for hist in inf_history:
             try:
-                inf_dict[hist.faction_id] += [hist]
+                if inf_dict[hist.faction_id][-1].short_date != hist.short_date:
+                    inf_dict[hist.faction_id] += [hist]
             except KeyError:
                 inf_dict[hist.faction_id] = [hist]
 
@@ -665,6 +666,12 @@ def system_overview(session, system):
             prefix = faction[-2][:4] + ' | '
             if faction[0] == system.controlling_faction_id:
                 prefix = '-> ' + prefix
+
+            try:
+                if faction[-1].short_date == hist[0].short_date:
+                    hist = hist[1:]
+            except IndexError:
+                pass
 
             factions_hist.append({
                 'name': prefix + faction[1],
