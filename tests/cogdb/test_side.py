@@ -137,10 +137,11 @@ def test_get_factions_in_system(side_session):
     assert not factions
 
 
-def test_get_system(side_session):
-    system = cogdb.side.get_system(side_session, 'Sol')
-    assert system.name == 'Sol'
-    assert isinstance(system, cogdb.side.System)
+def test_get_systems(side_session):
+    systems = cogdb.side.get_systems(side_session, ['Sol', 'Rana'])
+    systems = [x.name for x in systems]
+    assert 'Sol' in systems
+    assert 'Rana' in systems
 
 
 def test_expand_to_candidates(side_session):

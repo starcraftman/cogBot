@@ -864,17 +864,29 @@ def expansion_candidates(session, centre, faction):
     return result
 
 
-def get_system(session, system_name):
+def get_systems(session, system_names):
     """
-    Get the System that has system_name.
+    Given a list of names, find all exact matching systems.
 
     Returns:
-        Matching System or None if not found.
+        [System, System, ...]
+
+    Raises:
+        InvalidCommandArgs - One or more systems didn't match.
     """
-    try:
-        return session.query(System).filter(System.name == system_name).one()
-    except sqla_orm.exc.NoResultFound:
-        raise cog.exc.InvalidCommandArgs("Bad system name specified.")
+    systems = session.query(System).\
+        filter(System.name.in_(system_names)).\
+        all()
+
+    if len(systems) != len(system_names):
+        for system in systems:
+            system_names = [s_name for s_name in system_names
+                            if s_name.lower() != system.name.lower()]
+        msg = "Could not find the following system(s):"
+        msg += "\n\n" + "\n".join(system_names)
+        raise cog.exc.InvalidCommandArgs(msg)
+
+    return systems
 
 
 def get_factions_in_system(session, system_name):
@@ -899,7 +911,7 @@ def expand_to_candidates(session, system_name):
     Returns:
         [[system_name, distance, influence, state, faction_name], ...]
     """
-    centre = get_system(session, system_name)
+    centre = get_systems(session, [system_name])[0]
     blacklist = [fact.id for fact in get_factions_in_system(session, system_name)]
     matches = session.query(System.name, System.dist_to(centre), Influence,
                             Faction, FactionState.text, Government.text).\

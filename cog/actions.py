@@ -399,10 +399,9 @@ class BGS(Action):
     async def exp(self, system_name):
         """ Handle exp subcmd. """
         side_session = cogdb.SideSession()
-        centre = await self.bot.loop.run_in_executor(None, cogdb.side.get_system,
-                                                     side_session, system_name)
-        if not centre:
-            raise cog.exc.InvalidCommandArgs("System name invalid. Check spelling.")
+        centre = await self.bot.loop.run_in_executor(None, cogdb.side.get_systems,
+                                                     side_session, [system_name])
+        centre = centre[0]
 
         factions = await self.bot.loop.run_in_executor(None, cogdb.side.get_factions_in_system,
                                                        side_session, centre.name)
@@ -934,15 +933,17 @@ class Trigger(Action):
         side_session = cogdb.SideSession()
         self.args.power = " ".join(self.args.power).lower()
         power = cogdb.side.get_power_hq(self.args.power)
-        pow_hq = cogdb.side.get_system(side_session, power[1])
+        pow_hq = cogdb.side.get_systems(side_session, [power[1]])[0]
         lines = [
             "__Predicted Triggers__",
             "Power: {}".format(power[0]),
             "Power HQ: {}\n".format(power[1])
         ]
 
-        for system in process_system_args(self.args.system):
-            system = cogdb.side.get_system(side_session, system)
+        systems = await self.bot.loop.run_in_executor(
+            None, cogdb.side.get_systems, side_session,
+            process_system_args(self.args.system))
+        for system in systems:
             lines += [
                 cog.tbl.wrap_markdown(cog.tbl.format_table([
                     ["System", system.name],
