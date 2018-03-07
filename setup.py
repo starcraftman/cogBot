@@ -18,17 +18,17 @@ ROOT = os.path.abspath(os.path.dirname(__file__))
 if os.path.dirname(__file__) == '':
     ROOT = os.getcwd()
 
-try:
-    input = raw_input
-except NameError:
-    pass
-
 
 def make_get_input():
     """
     Simple wrapper to get input from user.
     When --yes in sys.argv, skip input and assume yes to any request.
     """
+    try:
+        in_func = raw_input
+    except NameError:
+        in_func = input
+
     default = False
     if '--yes' in sys.argv:
         sys.argv.remove('--yes')
@@ -41,7 +41,7 @@ def make_get_input():
         if default:
             return 'yes'
 
-        return input(msg)
+        return in_func(msg)
     inner_get_input.default = default
 
     return inner_get_input
@@ -345,12 +345,11 @@ setup(
     # To provide executable scripts, use entry points in preference to the
     # "scripts" keyword. Entry points provide cross-platform support and allow
     # pip to create the appropriate form of executable for the target platform.
-    entry_points={
-        'console_scripts': [
-            'cogbot = cog.bot:main',
-            'cogloc = cog.local:main',
-        ],
-    },
+    # entry_points={
+        # 'console_scripts': [
+            # 'cogbot = cog.bot:main',
+        # ],
+    # },
 
     cmdclass={
         'clean': Clean,
