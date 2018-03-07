@@ -1096,15 +1096,10 @@ class WhoIs(Action):
 
     """
     async def execute(self):
-        # reply = "Disabled for now because inara.cz dev is a n00b."
-        # reply += "\n\nSorry about that. :frowning:"
-        # await asyncio.ensure_future(self.bot.send_message(self.msg.channel, reply))
-        cmdr_name = ' '.join(self.args.cmdr)
-        wing_details = self.args.wing
-
-        cmdr = await cog.inara.api.search_with_api(cmdr_name, self.msg)
+        cmdr = await cog.inara.api.search_with_api(' '.join(self.args.cmdr), self.msg)
         if cmdr:
-            await cog.inara.api.reply_with_api_result(cmdr["req_id"], cmdr["event_data"], self.msg, wing_details)
+            await cog.inara.api.reply_with_api_result(cmdr["req_id"], cmdr["event_data"], self.msg,
+                                                      self.args.wing)
 
 
 def process_system_args(args):

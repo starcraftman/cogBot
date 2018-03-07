@@ -152,7 +152,7 @@ class Government(Base):
     __tablename__ = "gov_type"
 
     id = sqla.Column(sqla.Integer, primary_key=True)
-    text = sqla.Column(sqla.String(LEN["gov"]))
+    text = sqla.Column(sqla.String(LEN["government"]))
     eddn = sqla.Column(sqla.String(LEN["eddn"]))
 
     def __repr__(self):
@@ -468,6 +468,22 @@ class SystemAge(Base):
                 self.control == other.control and self.system == other.system)
 
 
+def wrap_exceptions(func):
+    """
+    Wrap all top level queries that get used externally.
+    Translate SQLAlchemy exceptions to internal ones.
+    """
+    def inner(*args, **kwargs):
+        """ Simple inner function wrapper. """
+        try:
+            return func(*args, **kwargs)
+        except sqla_exe.OperationalError:
+            raise cog.exc.RemoteError("Lost connection to Sidewinder's DB.")
+
+    return inner
+
+
+@wrap_exceptions
 def next_bgs_tick(session, now):
     """
     Fetch the next expected bgs tick.
@@ -481,20 +497,18 @@ def next_bgs_tick(session, now):
         NoMoreTargets - Ran out of ticks.
     """
     log = logging.getLogger("cogdb.side")
-    try:
-        result = session.query(BGSTick).filter(BGSTick.tick > now).order_by(BGSTick.tick).\
-            limit(1).first()
-        if result:
-            log.info("BGS_TICK - %s -> %s", str(now), result.tick)
-            return "BGS Tick in **{}**    (Expected {})".format(result.tick - now, result.tick)
-        else:
-            log.warning("BGS_TICK - Remote out of estimates")
-            side = cog.util.BOT.get_member_by_substr("sidewinder40")
-            raise cog.exc.NoMoreTargets("BGS Tick estimate unavailable. No more estimates, " + side.mention)
-    except sqla_exe.OperationalError:
-        raise cog.exc.RemoteError("Lost connection to Sidewinder's DB.")
+    result = session.query(BGSTick).filter(BGSTick.tick > now).order_by(BGSTick.tick).\
+        limit(1).first()
+    if result:
+        log.info("BGS_TICK - %s -> %s", str(now), result.tick)
+        return "BGS Tick in **{}**    (Expected {})".format(result.tick - now, result.tick)
+    else:
+        log.warning("BGS_TICK - Remote out of estimates")
+        side = cog.util.BOT.get_member_by_substr("sidewinder40")
+        raise cog.exc.NoMoreTargets("BGS Tick estimate unavailable. No more estimates, " + side.mention)
 
 
+@wrap_exceptions
 def exploited_systems_by_age(session, control):
     """
     Return a list off all (possible empty) systems around the control
@@ -504,19 +518,17 @@ def exploited_systems_by_age(session, control):
         RemoteError - Cannot communicate with remote.
     """
     log = logging.getLogger("cogdb.side")
-    try:
-        result = session.query(SystemAge).\
-            filter(SystemAge.control == control).\
-            order_by(SystemAge.system).\
-            all()
+    result = session.query(SystemAge).\
+        filter(SystemAge.control == control).\
+        order_by(SystemAge.system).\
+        all()
 
-        log.info("BGS - Received from query: %s", str(result))
-    except sqla_exe.OperationalError:
-        raise cog.exc.RemoteError("Lost connection to Sidewinder's DB.")
+    log.info("BGS - Received from query: %s", str(result))
 
     return result
 
 
+@wrap_exceptions
 def influence_in_system(session, system):
     """
     Query side's db for influence about factions in a given system.
@@ -537,6 +549,7 @@ def influence_in_system(session, system):
              time.strftime(TIME_FMT, time.gmtime(inf[1]))] for inf in infs]
 
 
+@wrap_exceptions
 def stations_in_system(session, system_id):
     """
     Query to find all stations in a system. Map them into a dictionary
@@ -547,24 +560,22 @@ def stations_in_system(session, system_id):
     Raises:
         RemoteError - Cannot reach the remote host.
     """
-    try:
-        stations = session.query(Station.name, Faction.id, StationType.text).\
-            filter(Station.system_id == system_id).\
-            join(Faction, StationType).\
-            all()
-        stations_dict = {}
-        for tup in stations:
-            try:
-                station = tup[0] + station_suffix(tup[2])
-                stations_dict[tup[1]] += [station]
-            except KeyError:
-                stations_dict[tup[1]] = [station]
+    stations = session.query(Station.name, Faction.id, StationType.text).\
+        filter(Station.system_id == system_id).\
+        join(Faction, StationType).\
+        all()
+    stations_dict = {}
+    for tup in stations:
+        try:
+            station = tup[0] + station_suffix(tup[2])
+            stations_dict[tup[1]] += [station]
+        except KeyError:
+            stations_dict[tup[1]] = [station]
 
-        return stations_dict
-    except sqla_exe.OperationalError:
-        raise cog.exc.RemoteError("Lost connection to Sidewinder's DB.")
+    return stations_dict
 
 
+@wrap_exceptions
 def influence_history_in_system(session, system_id, fact_ids, time_window=None):
     """
     Query for historical InfluenceHistory of factions with fact_ids in a system_id.
@@ -577,29 +588,26 @@ def influence_history_in_system(session, system_id, fact_ids, time_window=None):
     Raises:
         RemoteError - Cannot reach the remote host.
     """
-    try:
-        if not time_window:
-            time_window = time.time() - (60 * 60 * 24 * 5)
+    if not time_window:
+        time_window = time.time() - (60 * 60 * 24 * 5)
 
-        inf_history = session.query(InfluenceHistory).\
-            filter(InfluenceHistory.system_id == system_id,
-                   InfluenceHistory.faction_id.in_(fact_ids),
-                   InfluenceHistory.updated_at >= time_window).\
-            order_by(InfluenceHistory.faction_id,
-                     InfluenceHistory.updated_at.desc()).\
-            all()
+    inf_history = session.query(InfluenceHistory).\
+        filter(InfluenceHistory.system_id == system_id,
+               InfluenceHistory.faction_id.in_(fact_ids),
+               InfluenceHistory.updated_at >= time_window).\
+        order_by(InfluenceHistory.faction_id,
+                 InfluenceHistory.updated_at.desc()).\
+        all()
 
-        inf_dict = {}
-        for hist in inf_history:
-            try:
-                if inf_dict[hist.faction_id][-1].short_date != hist.short_date:
-                    inf_dict[hist.faction_id] += [hist]
-            except KeyError:
-                inf_dict[hist.faction_id] = [hist]
+    inf_dict = {}
+    for hist in inf_history:
+        try:
+            if inf_dict[hist.faction_id][-1].short_date != hist.short_date:
+                inf_dict[hist.faction_id] += [hist]
+        except KeyError:
+            inf_dict[hist.faction_id] = [hist]
 
-        return inf_dict
-    except sqla_exe.OperationalError:
-        raise cog.exc.RemoteError("Lost connection to Sidewinder's DB.")
+    return inf_dict
 
 
 def station_suffix(station_type):
@@ -617,6 +625,7 @@ def station_suffix(station_type):
     return suffix
 
 
+@wrap_exceptions
 def system_overview(session, system):
     """
     Provide a total BGS view of a system.
@@ -683,8 +692,6 @@ def system_overview(session, system):
             })
 
         return (system, factions_hist)
-    except sqla_exe.OperationalError:
-        raise cog.exc.RemoteError("Lost connection to Sidewinder's DB.")
     except sqla_orm.exc.NoResultFound:
         return (None, None)
 
@@ -736,42 +743,41 @@ def inf_history_for_pairs(session, data_pairs):
     return pair_hist
 
 
+@wrap_exceptions
 def dash_overview(session, control_system):
     """
     Provide a simple dashboard overview of a control and its exploiteds.
 
     Returns: List of (System, Faction, Government) for exploiteds + control system.
     """
-    try:
-        control = session.query(System).filter_by(name=control_system).one()
-        factions = session.query(System, Faction, Government, Influence, SystemAge.age).\
-            filter(System.dist_to(control) <= 15,
-                   System.power_state_id != 48,
-                   Influence.faction_id == Faction.id,
-                   Influence.system_id == System.id).\
-            join(Faction, Government).\
-            outerjoin(SystemAge, SystemAge.system == System.name).\
-            order_by(System.name).\
-            all()
+    control = session.query(System).filter_by(name=control_system).one()
+    factions = session.query(System, Faction, Government, Influence, SystemAge.age).\
+        filter(System.dist_to(control) <= 15,
+               System.power_state_id != 48,
+               Influence.faction_id == Faction.id,
+               Influence.system_id == System.id).\
+        join(Faction, Government).\
+        outerjoin(SystemAge, SystemAge.system == System.name).\
+        order_by(System.name).\
+        all()
 
-        facts_in_system = count_factions_in_systems(session,
-                                                    [faction[0].id for faction in factions])
-        data_pairs = [[faction[0].id, faction[1].id] for faction in factions]
-        hist_for_pairs = inf_history_for_pairs(session, data_pairs)
+    facts_in_system = count_factions_in_systems(session,
+                                                [faction[0].id for faction in factions])
+    data_pairs = [[faction[0].id, faction[1].id] for faction in factions]
+    hist_for_pairs = inf_history_for_pairs(session, data_pairs)
 
-        net_change = {}
-        for system, faction, inf in [[faction[0], faction[1], faction[3]] for faction in factions]:
-            try:
-                net_inf = inf.influence - hist_for_pairs["{}_{}".format(system.id, faction.id)]
-            except KeyError:
-                net_inf = inf.influence
-            net_change[system.name] = '{}{:.1f}'.format('+' if net_inf >= 0 else '', net_inf)
+    net_change = {}
+    for system, faction, inf in [[faction[0], faction[1], faction[3]] for faction in factions]:
+        try:
+            net_inf = inf.influence - hist_for_pairs["{}_{}".format(system.id, faction.id)]
+        except KeyError:
+            net_inf = inf.influence
+        net_change[system.name] = '{}{:.1f}'.format('+' if net_inf >= 0 else '', net_inf)
 
-        return (control, factions, net_change, facts_in_system)
-    except sqla_exe.OperationalError:
-        raise cog.exc.RemoteError("Lost connection to Sidewinder's DB.")
+    return (control, factions, net_change, facts_in_system)
 
 
+@wrap_exceptions
 def find_favorable(session, centre_name, max_dist=None, inc=20):
     """
     Find favorable feudals or patronages around a centre_name system.
@@ -827,6 +833,7 @@ def find_favorable(session, centre_name, max_dist=None, inc=20):
     return [['System Name', 'Govt', 'Dist', 'Inf', 'Faction Name']] + lines
 
 
+@wrap_exceptions
 def expansion_candidates(session, centre, faction):
     """
     Given a system and a faction determine all possible candidates to expand.
@@ -864,6 +871,7 @@ def expansion_candidates(session, centre, faction):
     return result
 
 
+@wrap_exceptions
 def get_systems(session, system_names):
     """
     Given a list of names, find all exact matching systems.
@@ -904,6 +912,7 @@ def get_factions_in_system(session, system_name):
         all()
 
 
+@wrap_exceptions
 def expand_to_candidates(session, system_name):
     """
     Considering system_name, determine all controlling nearby factions that could expand to it.
@@ -945,6 +954,7 @@ def expand_to_candidates(session, system_name):
     return lines
 
 
+@wrap_exceptions
 def compute_dists(session, system_names):
     """
     Given a list of systems, compute the distance from the first to all others.

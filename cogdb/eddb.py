@@ -28,11 +28,11 @@ PRELOAD = True
 LEN = {  # Lengths for strings stored in the db
     "allegiance": 18,
     "commodity": 30,
-    "com_cat": 20,
+    "commodity_category": 20,
     "eddn": 20,
     "faction": 64,
     "faction_state": 12,
-    "gov": 13,
+    "government": 13,
     "module": 30,
     "module_category": 20,  # Name of group of similar groups like limpets, weapons
     "module_group": 31,  # Name of module group, i.e. "Beam Laser"
@@ -112,7 +112,7 @@ class CommodityCat(Base):
     __tablename__ = "commodity_categories"
 
     id = sqla.Column(sqla.Integer, primary_key=True)
-    name = sqla.Column(sqla.String(LEN["com_cat"]))
+    name = sqla.Column(sqla.String(LEN["commodity_category"]))
 
     def __repr__(self):
         keys = ['id', 'name']
@@ -181,7 +181,7 @@ class Government(Base):
     __tablename__ = "gov_type"
 
     id = sqla.Column(sqla.Integer, primary_key=True, nullable=True, autoincrement=False)
-    text = sqla.Column(sqla.String(LEN["gov"]), nullable=False)
+    text = sqla.Column(sqla.String(LEN["government"]), nullable=False)
     eddn = sqla.Column(sqla.String(LEN["eddn"]), default=None)
 
     def __repr__(self):
@@ -863,24 +863,6 @@ def load_stations(session, fname):
             count -= 1
 
 
-def dump_db(session, classes):
-    """
-    Dump db to a file.
-    """
-    with open("/tmp/eddb_dump", "w") as fout:
-        for cls in classes:
-            for obj in session.query(cls):
-                fout.write(repr(obj) + ',')
-
-
-def recreate_tables():
-    """
-    Recreate all tables in the database, mainly for schema changes and testing.
-    """
-    Base.metadata.drop_all(cogdb.eddb_engine)
-    Base.metadata.create_all(cogdb.eddb_engine)
-
-
 def get_systems(session, system_names):
     """
     Given a list of names, find all exact matching systems.
@@ -934,11 +916,6 @@ def get_shipyard_stations(session, centre_name, sys_dist=15, arrival=1000):
 
     # Slight cleanup for presentation in table
     return [[c, round(d, 2), a, b] for a, b, c, d in stations]
-
-
-def select_classes(obj):
-    """ Simple predicate, select sublasses of Base. """
-    return inspect.isclass(obj) and obj.__name__ != "Base"
 
 
 def nearest_system(centre, systems):
@@ -1003,6 +980,29 @@ def find_best_route(session, systems):
             best = result
 
     return best
+
+
+def dump_db(session, classes):
+    """
+    Dump db to a file.
+    """
+    with open("/tmp/eddb_dump", "w") as fout:
+        for cls in classes:
+            for obj in session.query(cls):
+                fout.write(repr(obj) + ',')
+
+
+def select_classes(obj):
+    """ Simple predicate, select sublasses of Base. """
+    return inspect.isclass(obj) and obj.__name__ != "Base"
+
+
+def recreate_tables():
+    """
+    Recreate all tables in the database, mainly for schema changes and testing.
+    """
+    Base.metadata.drop_all(cogdb.eddb_engine)
+    Base.metadata.create_all(cogdb.eddb_engine)
 
 
 def import_eddb():
