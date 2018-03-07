@@ -1,5 +1,8 @@
 """
 Sidewinder's remote database.
+
+These classes map to remote tables.
+When querying from async code, await an executor to thread or process.
 """
 from __future__ import absolute_import, print_function
 import logging
@@ -17,14 +20,10 @@ from sqlalchemy.ext.hybrid import hybrid_method
 
 import cog.exc
 import cog.util
+from cogdb.eddb import LEN, TIME_FMT
 import cogdb.query
 
 
-LEN_FACTION = 64
-LEN_STATION = 50
-LEN_SYSTEM = 30
-TIME_FMT = "%d/%m/%y %H:%M:%S"
-SideBase = sqlalchemy.ext.declarative.declarative_base()
 #  http://elite-dangerous.wikia.com/wiki/Category:Power
 HQS = {
     "aisling duval": "Cubeo",
@@ -41,14 +40,15 @@ HQS = {
 }
 HUDSON_BGS = [['Feudal', 'Patronage'], ["Dictatorship"]]
 WINTERS_BGS = [["Corporate"], ["Communism", "Cooperative", "Feudal", "Patronage"]]
+Base = sqlalchemy.ext.declarative.declarative_base()
 
 
-class Allegiance(SideBase):
+class Allegiance(Base):
     """ Represents the allegiance of a faction. """
     __tablename__ = "allegiance"
 
     id = sqla.Column(sqla.Integer, primary_key=True)
-    text = sqla.Column(sqla.String(11))
+    text = sqla.Column(sqla.String(LEN["allegiance"]))
 
     def __repr__(self):
         keys = ['id', 'text']
@@ -61,7 +61,7 @@ class Allegiance(SideBase):
                 self.id == other.id)
 
 
-class BGSTick(SideBase):
+class BGSTick(Base):
     """ Represents an upcoming BGS Tick (estimated). """
     __tablename__ = "bgs_tick"
 
@@ -80,13 +80,13 @@ class BGSTick(SideBase):
         return isinstance(self, BGSTick) and isinstance(other, BGSTick) and self.day == other.day
 
 
-class Faction(SideBase):
+class Faction(Base):
     """ Information about a faction. """
     __tablename__ = "factions"
 
     id = sqla.Column(sqla.Integer, primary_key=True)
     updated_at = sqla.Column(sqla.Integer)
-    name = sqla.Column(sqla.String(LEN_FACTION))
+    name = sqla.Column(sqla.String(LEN["faction"]))
     home_system = sqla.Column(sqla.Integer)
     is_player_faction = sqla.Column(sqla.Integer)
     state_id = sqla.Column(sqla.Integer, sqla.ForeignKey('faction_state.id'))
@@ -104,13 +104,13 @@ class Faction(SideBase):
         return isinstance(self, Faction) and isinstance(other, Faction) and self.id == other.id
 
 
-class FactionHistory(SideBase):
+class FactionHistory(Base):
     """ Historical information about a faction. """
     __tablename__ = "factions_history"
 
     id = sqla.Column(sqla.Integer, primary_key=True)
     updated_at = sqla.Column(sqla.Integer, primary_key=True)
-    name = sqla.Column(sqla.String(LEN_FACTION))
+    name = sqla.Column(sqla.String(LEN["faction"]))
     home_system = sqla.Column(sqla.Integer)
     is_player_faction = sqla.Column(sqla.Integer)
     state_id = sqla.Column(sqla.Integer, sqla.ForeignKey('faction_state.id'))
@@ -128,13 +128,13 @@ class FactionHistory(SideBase):
         return isinstance(self, Faction) and isinstance(other, Faction) and self.id == other.id
 
 
-class FactionState(SideBase):
+class FactionState(Base):
     """ The state a faction is in. """
     __tablename__ = "faction_state"
 
     id = sqla.Column(sqla.Integer, primary_key=True)
-    text = sqla.Column(sqla.String(12))
-    eddn = sqla.Column(sqla.String(12))
+    text = sqla.Column(sqla.String(LEN["faction_state"]))
+    eddn = sqla.Column(sqla.String(LEN["eddn"]))
 
     def __repr__(self):
         keys = ['id', 'text', 'eddn']
@@ -147,13 +147,13 @@ class FactionState(SideBase):
                 self.id == other.id)
 
 
-class Government(SideBase):
+class Government(Base):
     """ All faction government types. """
     __tablename__ = "gov_type"
 
     id = sqla.Column(sqla.Integer, primary_key=True)
-    text = sqla.Column(sqla.String(13))
-    eddn = sqla.Column(sqla.String(20))
+    text = sqla.Column(sqla.String(LEN["gov"]))
+    eddn = sqla.Column(sqla.String(LEN["eddn"]))
 
     def __repr__(self):
         keys = ['id', 'text', 'eddn']
@@ -166,7 +166,7 @@ class Government(SideBase):
                 self.id == other.id)
 
 
-class Influence(SideBase):
+class Influence(Base):
     """ Represents influence of a faction in a system. """
     __tablename__ = "influence"
 
@@ -198,7 +198,7 @@ class Influence(SideBase):
         return '{}/{}'.format(self.date.day, self.date.month)
 
 
-class InfluenceHistory(SideBase):
+class InfluenceHistory(Base):
     """ Represents influence of a faction in a system. """
     __tablename__ = "influence_history"
 
@@ -230,13 +230,13 @@ class InfluenceHistory(SideBase):
         return '{}/{}'.format(self.date.day, self.date.month)
 
 
-class Power(SideBase):
+class Power(Base):
     """ Represents a powerplay leader. """
     __tablename__ = "powers"
 
     id = sqla.Column(sqla.Integer, primary_key=True)
-    text = sqla.Column(sqla.String(21))
-    abbrev = sqla.Column(sqla.String(5))
+    text = sqla.Column(sqla.String(LEN["power"]))
+    abbrev = sqla.Column(sqla.String(LEN["power_abv"]))
 
     def __repr__(self):
         keys = ['id', 'text', 'abbrev']
@@ -249,7 +249,7 @@ class Power(SideBase):
                 self.id == other.id)
 
 
-class PowerState(SideBase):
+class PowerState(Base):
     """
     Represents the power state of a system (i.e. control, exploited).
 
@@ -261,7 +261,7 @@ class PowerState(SideBase):
     __tablename__ = "power_state"
 
     id = sqla.Column(sqla.Integer, primary_key=True)
-    text = sqla.Column(sqla.String(10))
+    text = sqla.Column(sqla.String(LEN["power_state"]))
 
     def __repr__(self):
         keys = ['id', 'text']
@@ -274,13 +274,13 @@ class PowerState(SideBase):
                 self.id == other.id)
 
 
-class Security(SideBase):
+class Security(Base):
     """ Security states of a system. """
     __tablename__ = "security"
 
     id = sqla.Column(sqla.Integer, primary_key=True)
-    text = sqla.Column(sqla.String(8))
-    eddn = sqla.Column(sqla.String(20))
+    text = sqla.Column(sqla.String(LEN["security"]))
+    eddn = sqla.Column(sqla.String(LEN["eddn"]))
 
     def __repr__(self):
         keys = ['id', 'text', 'eddn']
@@ -293,12 +293,12 @@ class Security(SideBase):
                 self.id == other.id)
 
 
-class SettlementSecurity(SideBase):
+class SettlementSecurity(Base):
     """ The security of a settlement. """
     __tablename__ = "settlement_security"
 
     id = sqla.Column(sqla.Integer, primary_key=True)
-    text = sqla.Column(sqla.String(10))
+    text = sqla.Column(sqla.String(LEN["settlement_security"]))
 
     def __repr__(self):
         keys = ['id', 'text']
@@ -311,12 +311,12 @@ class SettlementSecurity(SideBase):
                 self.id == other.id)
 
 
-class SettlementSize(SideBase):
+class SettlementSize(Base):
     """ The size of a settlement. """
     __tablename__ = "settlement_size"
 
     id = sqla.Column(sqla.Integer, primary_key=True)
-    text = sqla.Column(sqla.String(3))
+    text = sqla.Column(sqla.String(LEN["settlement_size"]))
 
     def __repr__(self):
         keys = ['id', 'text']
@@ -329,12 +329,12 @@ class SettlementSize(SideBase):
                 self.id == other.id)
 
 
-class Station(SideBase):
+class Station(Base):
     """ Represents a station in a system. """
     __tablename__ = "stations"
 
     id = sqla.Column(sqla.Integer, primary_key=True)
-    name = sqla.Column(sqla.String(LEN_STATION))
+    name = sqla.Column(sqla.String(LEN["station"]))
     updated_at = sqla.Column(sqla.Integer)
     distance_to_star = sqla.Column(sqla.Integer)
     system_id = sqla.Column(sqla.Integer, sqla.ForeignKey('systems.id'))
@@ -356,12 +356,12 @@ class Station(SideBase):
                 self.id == other.id)
 
 
-class StationType(SideBase):
+class StationType(Base):
     """ The type of a station. """
     __tablename__ = "station_type"
 
     id = sqla.Column(sqla.Integer, primary_key=True)
-    text = sqla.Column(sqla.String(20))
+    text = sqla.Column(sqla.String(LEN["station_type"]))
 
     def __repr__(self):
         keys = ['id', 'text']
@@ -374,12 +374,12 @@ class StationType(SideBase):
                 self.id == other.id)
 
 
-class System(SideBase):
+class System(Base):
     """ Repesents a system in the universe. """
     __tablename__ = "systems"
 
     id = sqla.Column(sqla.Integer, primary_key=True)
-    name = sqla.Column(sqla.String(LEN_SYSTEM))
+    name = sqla.Column(sqla.String(LEN["system"]))
     population = sqla.Column(sqla.BigInteger)
     income = sqla.Column(sqla.Integer)
     hudson_upkeep = sqla.Column(sqla.Integer)
@@ -449,12 +449,12 @@ class System(SideBase):
         return round(5000 + (2750000 / math.pow(self.dist_to(system), 1.5)))
 
 
-class SystemAge(SideBase):
+class SystemAge(Base):
     """ Represents the age of eddn data received for control/system pair. """
     __tablename__ = "v_age"
 
-    control = sqla.Column(sqla.String(LEN_SYSTEM), primary_key=True)
-    system = sqla.Column(sqla.String(LEN_SYSTEM), primary_key=True)
+    control = sqla.Column(sqla.String(LEN["system"]), primary_key=True)
+    system = sqla.Column(sqla.String(LEN["system"]), primary_key=True)
     age = sqla.Column(sqla.Integer)
 
     def __repr__(self):

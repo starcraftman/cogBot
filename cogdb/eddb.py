@@ -25,10 +25,30 @@ import cog.util
 import cogdb
 
 PRELOAD = True
-LEN_COM = 30
-LEN_FACTION = 64
-LEN_STATION = 76
-LEN_SYSTEM = 30
+LEN = {  # Lengths for strings stored in the db
+    "allegiance": 18,
+    "commodity": 30,
+    "com_cat": 20,
+    "eddn": 20,
+    "faction": 64,
+    "faction_state": 12,
+    "gov": 13,
+    "module": 30,
+    "module_category": 20,  # Name of group of similar groups like limpets, weapons
+    "module_group": 31,  # Name of module group, i.e. "Beam Laser"
+    "power": 21,
+    "power_abv": 5,
+    "power_state": 10,
+    "security": 8,
+    "settlement_security": 10,
+    "settlement_size": 3,
+    "ship": 20,
+    "station": 76,
+    "station_pad": 4,
+    "station_type": 24,
+    "system": 30,
+    "weapon_mode": 6,
+}
 TIME_FMT = "%d/%m/%y %H:%M:%S"
 POWER_IDS = {
     None: None,
@@ -52,7 +72,7 @@ class Allegiance(Base):
     __tablename__ = "allegiance"
 
     id = sqla.Column(sqla.Integer, primary_key=True)
-    text = sqla.Column(sqla.String(18))
+    text = sqla.Column(sqla.String(LEN["allegiance"]))
 
     def __repr__(self):
         keys = ['id', 'text']
@@ -72,7 +92,7 @@ class Commodity(Base):
     id = sqla.Column(sqla.Integer, primary_key=True)
     category_id = sqla.Column(sqla.Integer,
                               sqla.ForeignKey("commodity_categories.id"), nullable=False)
-    name = sqla.Column(sqla.String(LEN_COM))
+    name = sqla.Column(sqla.String(LEN["commodity"]))
     average_price = sqla.Column(sqla.Integer, default=0)
     is_rare = sqla.Column(sqla.Boolean, default=False)
 
@@ -92,7 +112,7 @@ class CommodityCat(Base):
     __tablename__ = "commodity_categories"
 
     id = sqla.Column(sqla.Integer, primary_key=True)
-    name = sqla.Column(sqla.String(20))
+    name = sqla.Column(sqla.String(LEN["com_cat"]))
 
     def __repr__(self):
         keys = ['id', 'name']
@@ -111,7 +131,7 @@ class Faction(Base):
 
     id = sqla.Column(sqla.Integer, primary_key=True)
     updated_at = sqla.Column(sqla.Integer)
-    name = sqla.Column(sqla.String(LEN_FACTION))
+    name = sqla.Column(sqla.String(LEN["faction"]))
     home_system = sqla.Column(sqla.Integer)
     is_player_faction = sqla.Column(sqla.Integer)
     state_id = sqla.Column(sqla.Integer, sqla.ForeignKey('faction_state.id'))
@@ -142,8 +162,8 @@ class FactionState(Base):
     __tablename__ = "faction_state"
 
     id = sqla.Column(sqla.Integer, primary_key=True, nullable=True, autoincrement=False)
-    text = sqla.Column(sqla.String(12), nullable=False)
-    eddn = sqla.Column(sqla.String(12), default=None)
+    text = sqla.Column(sqla.String(LEN["faction_state"]), nullable=False)
+    eddn = sqla.Column(sqla.String(LEN["eddn"]), default=None)
 
     def __repr__(self):
         keys = ['id', 'text', 'eddn']
@@ -161,8 +181,8 @@ class Government(Base):
     __tablename__ = "gov_type"
 
     id = sqla.Column(sqla.Integer, primary_key=True, nullable=True, autoincrement=False)
-    text = sqla.Column(sqla.String(13), nullable=False)
-    eddn = sqla.Column(sqla.String(20), default=None)
+    text = sqla.Column(sqla.String(LEN["gov"]), nullable=False)
+    eddn = sqla.Column(sqla.String(LEN["eddn"]), default=None)
 
     def __repr__(self):
         keys = ['id', 'text', 'eddn']
@@ -185,9 +205,9 @@ class Module(Base):
     rating = sqla.Column(sqla.String(1))  # Rating is A-E
     price = sqla.Column(sqla.Integer, default=0)
     mass = sqla.Column(sqla.Integer, default=0)
-    name = sqla.Column(sqla.String(LEN_COM))  # Pacifier
-    ship = sqla.Column(sqla.String(20))  # Module sepfically for this ship
-    weapon_mode = sqla.Column(sqla.String(6))  # Fixed, Gimbal or Turret
+    name = sqla.Column(sqla.String(LEN["module"]))  # Pacifier
+    ship = sqla.Column(sqla.String(LEN["ship"]))  # Module sepfically for this ship
+    weapon_mode = sqla.Column(sqla.String(LEN["weapon_mode"]))  # Fixed, Gimbal or Turret
 
     def __repr__(self):
         keys = ['id', 'name', 'group_id', 'size', 'rating', 'mass', 'price', 'ship', 'weapon_mode']
@@ -204,8 +224,8 @@ class ModuleGroup(Base):
     __tablename__ = "module_groups"
 
     id = sqla.Column(sqla.Integer, primary_key=True)
-    category = sqla.Column(sqla.String(20))
-    name = sqla.Column(sqla.String(31))  # Name of module group, like "Beam Laser"
+    category = sqla.Column(sqla.String(LEN["module_category"]))
+    name = sqla.Column(sqla.String(LEN["module_group"]))  # Name of module group, i.e. "Beam Laser"
     category_id = sqla.Column(sqla.Integer)
 
     def __repr__(self):
@@ -223,8 +243,8 @@ class Power(Base):
     __tablename__ = "powers"
 
     id = sqla.Column(sqla.Integer, primary_key=True, nullable=True, autoincrement=False)
-    text = sqla.Column(sqla.String(21))
-    abbrev = sqla.Column(sqla.String(5))
+    text = sqla.Column(sqla.String(LEN["power"]))
+    abbrev = sqla.Column(sqla.String(LEN["power_abv"]))
 
     def __repr__(self):
         keys = ['id', 'text', 'abbrev']
@@ -249,7 +269,7 @@ class PowerState(Base):
     __tablename__ = "power_state"
 
     id = sqla.Column(sqla.Integer, primary_key=True, nullable=True, autoincrement=False)
-    text = sqla.Column(sqla.String(10))
+    text = sqla.Column(sqla.String(LEN["power_state"]))
 
     def __repr__(self):
         keys = ['id', 'text']
@@ -267,8 +287,8 @@ class Security(Base):
     __tablename__ = "security"
 
     id = sqla.Column(sqla.Integer, primary_key=True)
-    text = sqla.Column(sqla.String(8))
-    eddn = sqla.Column(sqla.String(20))
+    text = sqla.Column(sqla.String(LEN["security"]))
+    eddn = sqla.Column(sqla.String(LEN["eddn"]))
 
     def __repr__(self):
         keys = ['id', 'text', 'eddn']
@@ -286,7 +306,7 @@ class SettlementSecurity(Base):
     __tablename__ = "settlement_security"
 
     id = sqla.Column(sqla.Integer, primary_key=True)
-    text = sqla.Column(sqla.String(10))
+    text = sqla.Column(sqla.String(LEN["settlement_security"]))
 
     def __repr__(self):
         keys = ['id', 'text']
@@ -304,7 +324,7 @@ class SettlementSize(Base):
     __tablename__ = "settlement_size"
 
     id = sqla.Column(sqla.Integer, primary_key=True)
-    text = sqla.Column(sqla.String(3))
+    text = sqla.Column(sqla.String(LEN["settlement_size"]))
 
     def __repr__(self):
         keys = ['id', 'text']
@@ -349,7 +369,7 @@ class StationType(Base):
     __tablename__ = "station_types"
 
     id = sqla.Column(sqla.Integer, primary_key=True)
-    text = sqla.Column(sqla.String(24))
+    text = sqla.Column(sqla.String(LEN["station_type"]))
 
     def __repr__(self):
         keys = ['id', 'name']
@@ -368,9 +388,9 @@ class Station(Base):
 
     id = sqla.Column(sqla.Integer, sqla.ForeignKey('station_features.id'), primary_key=True)
     updated_at = sqla.Column(sqla.Integer, default=0)
-    name = sqla.Column(sqla.String(LEN_STATION))
+    name = sqla.Column(sqla.String(LEN["station"]))
     distance_to_star = sqla.Column(sqla.Integer)
-    max_landing_pad_size = sqla.Column(sqla.String(4))
+    max_landing_pad_size = sqla.Column(sqla.String(LEN["station_pad"]))
     type_id = sqla.Column(sqla.Integer, sqla.ForeignKey('station_types.id'))
     system_id = sqla.Column(sqla.Integer)
     controlling_minor_faction_id = sqla.Column(sqla.Integer, sqla.ForeignKey('factions.id'))
@@ -392,7 +412,7 @@ class System(Base):
 
     id = sqla.Column(sqla.Integer, primary_key=True)
     updated_at = sqla.Column(sqla.Integer)
-    name = sqla.Column(sqla.String(LEN_SYSTEM))
+    name = sqla.Column(sqla.String(LEN["system"]))
     population = sqla.Column(sqla.BigInteger)
     needs_permit = sqla.Column(sqla.Integer)
     edsm_id = sqla.Column(sqla.Integer)
