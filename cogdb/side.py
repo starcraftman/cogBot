@@ -19,6 +19,7 @@ from sqlalchemy import func as sqlfunc
 from sqlalchemy.ext.hybrid import hybrid_method
 
 import cog.exc
+import cog.tbl
 import cog.util
 from cogdb.eddb import LEN, TIME_FMT
 import cogdb.query
@@ -1024,7 +1025,111 @@ def bgs_funcs(system):
 
 
 def main():
-    pass
+    # Some experiments
+    # TODO: List retreats pending/current
+    # TODO: List expansion pending/current
+    # TODO: List War/Civil War pending/current
+    # TODO: List Election pending/current
+    # TODO: List civil unrest/lockdown pending/current
+    session = cogdb.SideSession()
+    # filter = ['Civil Unrest', 'Civil War', 'Election', 'Expansion', 'Lockdown', 'War', 'Retreat']
+    retreat_id = session.query(FactionState.id).filter(FactionState.text == "Retreat").subquery()
+    expand_id = session.query(FactionState.id).filter(FactionState.text == "Expansion").subquery()
+    elect_id = session.query(FactionState.id).filter(FactionState.text == "Election").subquery()
+    war_id = session.query(FactionState.id).filter(FactionState.text == "War").subquery()
+    cwar_id = session.query(FactionState.id).filter(FactionState.text == "Civil War").subquery()
+    current = sqla_orm.aliased(FactionState)
+    pending = sqla_orm.aliased(FactionState)
+
+    control = sqla_orm.aliased(System, session.query(System).filter(System.name == "Rana").subquery())
+    systems = session.query(System.id).filter(System.dist_to(control) <= 15).subquery()
+    infs = session.query(Influence, System, Faction, Government.text, current.text, pending.text).\
+        filter(Influence.system_id.in_(systems),
+               sqla.or_(Influence.state_id == retreat_id,
+                        Influence.pending_state_id == retreat_id)).\
+        filter(Influence.system_id == System.id,
+               Influence.faction_id == Faction.id,
+               Faction.government_id == Government.id,
+               current.id == Influence.state_id,
+               pending.id == Influence.pending_state_id).\
+        order_by(System.name).\
+        all()
+
+    retreats = [["System", "Faction", "Gov", "Current", "Pending"]]
+    retreats += [[mat[1].name[:16], mat[2].name[:16], mat[3][:3], mat[-2], mat[-1]] for mat in infs]
+    print("Retreats\n\n", cog.tbl.format_table(retreats, header=True))
+
+    control = sqla_orm.aliased(System, session.query(System).filter(System.name == "Wolf 906").subquery())
+    systems = session.query(System.id).filter(System.dist_to(control) <= 15).subquery()
+    infs = session.query(Influence, System, Faction, Government.text, current.text, pending.text).\
+        filter(Influence.system_id.in_(systems),
+               sqla.or_(Influence.state_id == expand_id,
+                        Influence.pending_state_id == expand_id)).\
+        filter(Influence.system_id == System.id,
+               Influence.faction_id == Faction.id,
+               Faction.government_id == Government.id,
+               current.id == Influence.state_id,
+               pending.id == Influence.pending_state_id).\
+        order_by(System.name).\
+        all()
+
+    expands = [["System", "Faction", "Gov", "Current", "Pending"]]
+    expands += [[mat[1].name[:16], mat[2].name[:16], mat[3][:3], mat[-2], mat[-1]] for mat in infs]
+    print("Expansions\n\n", cog.tbl.format_table(expands, header=True))
+
+    control = sqla_orm.aliased(System, session.query(System).filter(System.name == "Mulachi").subquery())
+    systems = session.query(System.id).filter(System.dist_to(control) <= 15).subquery()
+    infs = session.query(Influence, System, Faction, Government.text, current.text, pending.text).\
+        filter(Influence.system_id.in_(systems),
+               sqla.or_(Influence.state_id == elect_id,
+                        Influence.pending_state_id == elect_id)).\
+        filter(Influence.system_id == System.id,
+               Influence.faction_id == Faction.id,
+               Faction.government_id == Government.id,
+               current.id == Influence.state_id,
+               pending.id == Influence.pending_state_id).\
+        order_by(System.name).\
+        all()
+
+    expands = [["System", "Faction", "Gov", "Current", "Pending"]]
+    expands += [[mat[1].name[:16], mat[2].name[:16], mat[3][:3], mat[-2], mat[-1]] for mat in infs]
+    print("Elections\n\n", cog.tbl.format_table(expands, header=True))
+
+    control = sqla_orm.aliased(System, session.query(System).filter(System.name == "Mulachi").subquery())
+    systems = session.query(System.id).filter(System.dist_to(control) <= 15).subquery()
+    infs = session.query(Influence, System, Faction, Government.text, current.text, pending.text).\
+        filter(Influence.system_id.in_(systems),
+               sqla.or_(Influence.state_id == war_id,
+                        Influence.pending_state_id == war_id)).\
+        filter(Influence.system_id == System.id,
+               Influence.faction_id == Faction.id,
+               Faction.government_id == Government.id,
+               current.id == Influence.state_id,
+               pending.id == Influence.pending_state_id).\
+        order_by(System.name).\
+        all()
+
+    expands = [["System", "Faction", "Gov", "Current", "Pending"]]
+    expands += [[mat[1].name[:16], mat[2].name[:16], mat[3][:3], mat[-2], mat[-1]] for mat in infs]
+    print("Wars\n\n", cog.tbl.format_table(expands, header=True))
+
+    control = sqla_orm.aliased(System, session.query(System).filter(System.name == "Mulachi").subquery())
+    systems = session.query(System.id).filter(System.dist_to(control) <= 15).subquery()
+    infs = session.query(Influence, System, Faction, Government.text, current.text, pending.text).\
+        filter(Influence.system_id.in_(systems),
+               sqla.or_(Influence.state_id == cwar_id,
+                        Influence.pending_state_id == cwar_id)).\
+        filter(Influence.system_id == System.id,
+               Influence.faction_id == Faction.id,
+               Faction.government_id == Government.id,
+               current.id == Influence.state_id,
+               pending.id == Influence.pending_state_id).\
+        order_by(System.name).\
+        all()
+
+    expands = [["System", "Faction", "Gov", "Current", "Pending"]]
+    expands += [[mat[1].name[:16], mat[2].name[:16], mat[3][:3], mat[-2], mat[-1]] for mat in infs]
+    print("Civil Wars\n\n", cog.tbl.format_table(expands, header=True))
 
 
 if __name__ == "__main__":
