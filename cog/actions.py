@@ -481,6 +481,17 @@ class BGS(Action):
         lines = [['Faction Name', 'Inf', 'Gov', 'PMF?']] + [inf[:-1] for inf in infs]
         return header + cog.tbl.wrap_markdown(cog.tbl.format_table(lines, header=True))
 
+    async def report(self, system_name):
+        """ Handle influence subcmd. """
+        session = cogdb.SideSession()
+        systems = process_system_args(system_name.split(" "))
+        show_jerks = await self.bot.loop.run_in_executor(None, cogdb.side.monitor_dictators,
+                                                         session, systems)
+        new_jerks = await self.bot.loop.run_in_executor(None, cogdb.side.new_dictators,
+                                                        session, systems)
+
+        return show_jerks + "\n\n" + new_jerks
+
     async def sys(self, system_name):
         """ Handle sys subcmd. """
         self.log.info('BGS - Looking for overview like: %s', system_name)

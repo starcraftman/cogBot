@@ -128,6 +128,8 @@ def subs_bgs(subs, prefix):
         Show all Feudal/Patronage factions near Frey within 50ly.
 {prefix}bgs inf Sol
         Show the factions and their influence in Sol.
+{prefix}bgs report Sol
+        Show an overall report for one or more bubbles.
 {prefix}bgs sys Frey
         Show a system overview and all factions.
     """.format(prefix=prefix)
@@ -147,6 +149,8 @@ def subs_bgs(subs, prefix):
     bgs_sub.add_argument('system', nargs='+', help='The system to lookup.')
     bgs_sub.add_argument('-m', '--max', type=int, help='The radius to look within.')
     bgs_sub = bgs_subs.add_parser('inf', help='Get the influence of factions inside a system.')
+    bgs_sub.add_argument('system', nargs='+', help='The system to lookup.')
+    bgs_sub = bgs_subs.add_parser('report', help='Get an overall report of the bubble.')
     bgs_sub.add_argument('system', nargs='+', help='The system to lookup.')
     bgs_sub = bgs_subs.add_parser('sys', help='Get a complete system overview.')
     bgs_sub.add_argument('system', nargs='+', help='The system to lookup.')

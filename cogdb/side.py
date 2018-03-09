@@ -1055,7 +1055,7 @@ def monitor_dictators(session, controls):
         filter(sqla.or_(*look_for))]
 
     control_system = sqla_orm.aliased(System)
-    dics = session.query(Influence, System, Faction, Government.text,
+    dics = session.query(Influence, System, Faction,
                          control_system, current.text, pending.text).\
         filter(Influence.system_id.in_(systems),
                sqla.or_(Influence.state_id.in_(dic_states),
@@ -1071,11 +1071,12 @@ def monitor_dictators(session, controls):
         order_by(control_system.name, System.name, current.text, pending.text).\
         all()
 
-    lines = [["Control", "System", "Faction", "Inf", "Gov", "Current", "Pending"]]
+    lines = [["Control", "System", "Faction", "Inf", "Current", "Pending"]]
     lines += [[mat[-3].name, mat[1].name[:16], mat[2].name[:16],
-              "{:5.2f}".format(round(mat[0].influence, 2)),
-              mat[3][:3], mat[-2], mat[-1]] for mat in dics]
-    print("Dictatorship Events\n\n" + cog.tbl.format_table(lines, header=True))
+               "{:5.2f}".format(round(mat[0].influence, 2)),
+               mat[-2], mat[-1]] for mat in dics]
+
+    return "**Dictatorship Events**\n\n" + cog.tbl.wrap_markdown(cog.tbl.format_table(lines, header=True))
 
 
 @wrap_exceptions
@@ -1116,7 +1117,7 @@ def new_dictators(session, controls):
     look_for = [sqla.and_(InfluenceHistory.system_id == pair[1].id,
                           InfluenceHistory.faction_id == pair[2].id)
                 for pair in dics]
-    time_window = time.time() - (60 * 60 * 24 * 5)
+    time_window = time.time() - (60 * 60 * 24 * 7)
     inf_history = session.query(InfluenceHistory).\
         filter(sqla.or_(*look_for)).\
         filter(InfluenceHistory.updated_at >= time_window).\
@@ -1136,7 +1137,7 @@ def new_dictators(session, controls):
             lines += [[dic[-1].name, dic[1].name[:16], dic[2].name[:16],
                        "{:5.2f}".format(round(dic[0].influence, 2))]]
 
-    print("New Dictators, Last 5 Days\n\n" + cog.tbl.format_table(lines, header=True))
+    return "**New Controlling Dictators** (last 7 days)\n\n" + cog.tbl.wrap_markdown(cog.tbl.format_table(lines, header=True))
 
 
 def main():
@@ -1251,8 +1252,8 @@ def main():
                # mat[3][:3], mat[-2], mat[-1]] for mat in civil_wars]
     # print("Elections\n\n" + cog.tbl.format_table(lines, header=True))
 
-    monitor_dictators(session, ["Othime", "Frey"])
-    new_dictators(session, ["Othime", "Rana", "Frey"])
+    print(monitor_dictators(session, ["Othime", "Frey"]))
+    print(new_dictators(session, ["Othime", "Rana", "Frey"]))
 
 
 if __name__ == "__main__":
