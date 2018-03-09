@@ -263,17 +263,23 @@ class Admin(Action):
                 except KeyError:
                     flat[cmdr]['last'] = flat[cmdr][chan]
 
-                all_members.remove(cmdr)
+                try:
+                    all_members.remove(cmdr)
+                except ValueError:
+                    pass
 
         response = "__Activity Report__\n\n"
         response += "The following CMDRs made no messages since: {}\n\n".format(str(after))
-        response += cog.tbl.wrap_markdown("\n".join([cmdr for cmdr in sorted(all_members)]))
-        response += "These CMDRs have made messages within the window."
+        response += "\n".join([cmdr for cmdr in sorted(all_members)])
+        response += "\n\nThese CMDRs have made messages within the window.\n"
         rows = [["CMDR", "Most Recent Msg"]]
         rows += [[cmdr, str(flat[cmdr]['last'])] for cmdr in sorted(flat)]
-        response += cog.tbl.wrap_markdown(cog.tbl.format_table(rows, header=True))
+        response += cog.tbl.format_table(rows, header=True)
 
-        return response
+        with open("/tmp/active.txt", "w") as fout:
+            fout.write(response)
+
+        return "See dump on server"
 
     async def cast(self):
         """ Broacast a message accross a server. """
