@@ -16,7 +16,7 @@ from cog.util import substr_match
 import cogdb
 from cogdb.schema import (DUser, System, PrepSystem, SystemUM, SheetRow, SheetCattle, SheetUM,
                           Drop, Hold, EFaction, ESheetType, kwargs_fort_system, kwargs_um_system,
-                          Admin, ChannelPerm, RolePerm, FortOrder)
+                          kwargs_umjoint_system, Admin, ChannelPerm, RolePerm, FortOrder)
 
 
 DEFER_MISSING = 750
@@ -723,9 +723,9 @@ class UMScanner(SheetScanner):
     def __init__(self, gsheet):
         super().__init__(gsheet, (SheetUM, EFaction.hudson), [Hold, SystemUM, SheetUM])
         # These are fixed based on current format
-        self.system_col = 'D'
+        self.system_col = 'G'
         self.user_col = 'B'
-        self.user_row = 14
+        self.user_row = 19
 
     def scan(self):
         """
@@ -759,7 +759,7 @@ class UMScanner(SheetScanner):
             while True:
                 col = cog.sheets.column_to_index(str(cell_column))
                 log.debug('UMSYSSCAN - Cells: %s', str(col))
-                kwargs = kwargs_um_system(self.cells[col:col + 2], str(cell_column))
+                kwargs = kwargs_umjoint_system(self.cells[col:col + 2], str(cell_column))
                 kwargs['id'] = cnt
                 cnt += 1
                 log.debug('UMSYSSCAN - Kwargs: %s', str(kwargs))
@@ -771,6 +771,7 @@ class UMScanner(SheetScanner):
         except cog.exc.SheetParsingError:
             pass
 
+        log.warning("Scanned Systems\n%s", str(found))
         return found
 
     def held_merits(self, systems, users, holds):
@@ -1104,3 +1105,15 @@ def complete_control_name(partial, include_winters=False):
         systems += WINTERS_CONTROLS
 
     return fuzzy_find(partial, systems)
+
+
+def main():
+    sheet = cog.util.get_config("scanners", "hudson_undermine")
+    scanner = UMScanner(sheet)
+    scanner.cells = scanner.gsheet.whole_sheet()
+    scanner.systems()
+
+
+
+if __name__ == "__main__":
+    main()
