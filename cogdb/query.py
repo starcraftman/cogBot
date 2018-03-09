@@ -877,8 +877,9 @@ class UMScanner(SheetScanner):
         """
         Update the system column of the sheet.
         """
-        cell_range = '!{col}{start}:{col}{end}'.format(col=col, start=10, end=13)
-        self.gsheet.update(cell_range, [[progress_us, progress_them, 'Hold Merits', map_offset]], dim='COLUMNS')
+        col2 = cog.sheets.Column(col).next()
+        cell_range = '!{col}{start}:{col2}{end}'.format(col=col, col2=col2, start=14, end=17)
+        self.gsheet.update(cell_range, [[progress_us, progress_them, 'Held', map_offset], ['', '', 'Redeemed', '']], dim='COLUMNS')
 
 
 def um_find_system(session, system_name):
