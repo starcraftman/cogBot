@@ -39,6 +39,20 @@ HQS = {
     "zachary hudson": "Nanomam",
     "zemina torval": "Synteini",
 }
+MONITOR = [
+    "Frey",
+    "Wat Yu",
+    "Gliese 868",
+    "Shoujeman",
+    "Wolf 906",
+    "Nurundere",
+    "Muncheim",
+    "Phra Mool",
+    "HR 2776",
+    "Othime",
+    "Mulachi",
+    "NU-2 Lupi",
+]
 HUDSON_BGS = [['Feudal', 'Patronage'], ["Dictatorship"]]
 WINTERS_BGS = [["Corporate"], ["Communism", "Cooperative", "Feudal", "Patronage"]]
 Base = sqlalchemy.ext.declarative.declarative_base()
@@ -1025,17 +1039,19 @@ def bgs_funcs(system):
 
 
 @wrap_exceptions
-def monitor_dictators(session, controls):
+def monitor_dictators(session, controls=None):
     """
     Monitor a number of controls for Dictators entering critical states.
 
     Subqueries galore, you've been warned.
     """
+    if not controls:
+        controls = MONITOR
     current = sqla_orm.aliased(FactionState)
     pending = sqla_orm.aliased(FactionState)
 
     gov_dic = session.query(Government.id).\
-        filter(Government.text == "Dictatorship").\
+        filter(Government.text.in_(["Anarchy", "Dictatorship"])).\
         subquery()
     dic_states = session.query(FactionState.id).\
         filter(FactionState.text.in_(["Election", "War", "Civil War", "Expansion"])).\
@@ -1079,36 +1095,54 @@ def monitor_dictators(session, controls):
     return "**Dictatorship Events**\n\n" + cog.tbl.wrap_markdown(cog.tbl.format_table(lines, header=True))
 
 
+def get_monitor_systems(session, controls):
+    """
+    Get all uncontested systems within the range of mentioned controls.
+    Include all systems with EG Union.
+
+    Returns: List of system_ids
+    """
+    eg_systems = session.query(System.id).\
+        outerjoin(Influence, Faction).\
+        filter(Faction.name == "EG Union",
+               Influence.faction_id == Faction.id,
+               Influence.system_id == System.id).\
+        limit(100).\
+        all()
+
+    look_for = [System.dist_to(sqla_orm.aliased(
+        System, session.query(System).filter(System.name == control).subquery())) <= 15
+                for control in controls]
+    pstates = session.query(PowerState.id).\
+        filter(PowerState.text.in_(["Exploited", "Control"])).\
+        subquery()
+    systems = [sys[0] for sys in session.query(System.id).\
+        filter(System.power_state_id.in_(pstates)).\
+        filter(sqla.or_(*look_for))]
+
+    return list(set(systems + [x[0] for x in eg_systems]))
+
+
 @wrap_exceptions
-def new_dictators(session, controls):
+def new_dictators(session, system_ids):
     """
     Show newly controlling dictators in the last 5 days.
 
     Subqueries galore, you've been warned.
     """
     gov_dic = session.query(Government.id).\
-        filter(Government.text == "Dictatorship").\
-        subquery()
-    pstates = session.query(PowerState.id).\
-        filter(PowerState.text.in_(["Exploited", "Control"])).\
+        filter(Government.text.in_(["Anarchy", "Dictatorship"])).\
         subquery()
     c_state = session.query(PowerState.id).\
         filter(PowerState.text == "Control").\
         subquery()
 
-    look_for = [System.dist_to(sqla_orm.aliased(
-        System, session.query(System).filter(System.name == control).subquery())) <= 15
-                for control in controls]
-    systems = [sys[0] for sys in session.query(System.id).\
-        filter(System.power_state_id.in_(pstates)).\
-        filter(sqla.or_(*look_for))]
-
     control_system = sqla_orm.aliased(System)
     dics = session.query(Influence, System, Faction, control_system).\
-        filter(Influence.system_id.in_(systems)).\
+        filter(Influence.system_id.in_(system_ids)).\
         filter(Influence.system_id == System.id,
                Influence.faction_id == Faction.id,
-               Faction.government_id == gov_dic,
+               Faction.government_id.in_(gov_dic),
                sqla.and_(control_system.power_state_id == c_state,
                          control_system.dist_to(System) <= 15)).\
         order_by(control_system.name, System.name).\
@@ -1133,11 +1167,15 @@ def new_dictators(session, controls):
     lines = [["Control", "System", "Faction", "Inf"]]
     for dic in dics:
         key = "{}_{}".format(dic[1].id, dic[2].id)
-        if dic[0].is_controlling_faction != pair_hist[key].is_controlling_faction:
+        try:
+            if dic[0].is_controlling_faction != pair_hist[key].is_controlling_faction:
+                lines += [[dic[-1].name, dic[1].name[:16], dic[2].name[:16],
+                           "{:5.2f}".format(round(dic[0].influence, 2))]]
+        except KeyError:
             lines += [[dic[-1].name, dic[1].name[:16], dic[2].name[:16],
                        "{:5.2f}".format(round(dic[0].influence, 2))]]
 
-    return "**New Controlling Dictators** (last 7 days)\n\n" + cog.tbl.wrap_markdown(cog.tbl.format_table(lines, header=True))
+    return "**New Controlling Anarchies/Dictators** (last 7 days)\n\n" + cog.tbl.wrap_markdown(cog.tbl.format_table(lines, header=True))
 
 
 def main():
@@ -1252,8 +1290,9 @@ def main():
                # mat[3][:3], mat[-2], mat[-1]] for mat in civil_wars]
     # print("Elections\n\n" + cog.tbl.format_table(lines, header=True))
 
-    print(monitor_dictators(session, ["Othime", "Frey"]))
-    print(new_dictators(session, ["Othime", "Rana", "Frey"]))
+    system_ids = get_monitor_systems(session, MONITOR)
+    # print(monitor_dictators(session, ["Othime", "Frey"]))
+    print(new_dictators(session, system_ids))
 
 
 if __name__ == "__main__":
