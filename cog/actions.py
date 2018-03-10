@@ -232,8 +232,8 @@ class Admin(Action):
         all_members = []
         for member in self.msg.server.members:
             for channel in self.msg.channel_mentions:
-                if channel.permissions_for(member).read_messages and member.name not in all_members:
-                    all_members += [member.name]
+                if channel.permissions_for(member).read_messages and member.id not in all_members:
+                    all_members += [member.id]
 
         after = datetime.datetime.utcnow() - datetime.timedelta(days=30 * self.args.months)
         report = {}
@@ -242,11 +242,12 @@ class Admin(Action):
             try:
                 async for msg in self.bot.logs_from(channel, after=after, limit=100000):
                     try:
-                        report[channel.name][msg.author.name]
+                        report[channel.name][msg.author.id]
                     except KeyError:
-                        report[channel.name][msg.author.name] = msg.timestamp
+                        report[channel.name][msg.author.id] = msg.timestamp
             except discord.errors.Forbidden:
                 raise cog.exc.InvalidCommandArgs("Bot has no permissions for channel: " + channel.name)
+
 
         flat = {}
         for chan in report:
@@ -268,16 +269,28 @@ class Admin(Action):
                 except ValueError:
                     pass
 
-        response = "__Activity Report__\n\n"
-        response += "The following CMDRs made no messages since: {}\n\n".format(str(after))
-        response += "\n".join([cmdr for cmdr in sorted(all_members)])
-        response += "\n\nThese CMDRs have made messages within the window.\n"
-        rows = [["CMDR", "Most Recent Msg"]]
-        rows += [[cmdr, str(flat[cmdr]['last'])] for cmdr in sorted(flat)]
-        response += cog.tbl.format_table(rows, header=True)
+        server = self.msg.server
+        header = "ID,Name,Top Role,Created At,Joined At\n"
+        with open("/tmp/inactive.csv", "w") as fout, open("/tmp/inactive_rec.csv", "w") as fout_rec:
+            fout.write(header)
+            fout_rec.write(header)
+            for member_id in all_members:
+                member = server.get_member(member_id)
+                line = "{},{},{},{},{}\n".format(member.id, member.name, member.top_role.name,
+                                                 member.created_at, member.joined_at)
+                if member.top_role.name == "FRC Recruit":
+                    fout_rec.write(line)
+                else:
+                    fout.write(line)
 
-        with open("/tmp/active.txt", "w") as fout:
-            fout.write(response)
+        with open("/tmp/active.csv", "w") as fout:
+            fout.write(header[:-1] + ",Last Message\n")
+            for member_id in flat:
+                member = server.get_member(member_id)
+                line = "{},{},{},{},{},{}\n".format(member.id, member.name, member.top_role.name,
+                                                    member.created_at, member.joined_at,
+                                                    str(flat[member_id]['last']))
+                fout.write(line)
 
         return "See dump on server"
 
@@ -333,7 +346,7 @@ class Admin(Action):
                 response = await func()
             await self.bot.send_long_message(self.msg.channel, response)
         except AttributeError:
-            raise cog.exc.InvalidCommandArgs("Bad subcommand of BGS, see help.")
+            raise cog.exc.InvalidCommandArgs("Bad subcommand of `!admin`, see `!admin -h` for help.")
 
 
 class BGS(Action):
@@ -500,7 +513,7 @@ If we should contact Gears or Sidewinder""".format(system_name)
             response = await func(' '.join(self.args.system))
             await self.bot.send_long_message(self.msg.channel, response)
         except AttributeError:
-            raise cog.exc.InvalidCommandArgs("Bad subcommand of BGS, see help.")
+            raise cog.exc.InvalidCommandArgs("Bad subcommand of `!bgs`, see `!bgs -h` for help.")
         except (cog.exc.NoMoreTargets, cog.exc.RemoteError) as exc:
             response = exc.reply()
 
