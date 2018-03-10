@@ -484,13 +484,19 @@ class BGS(Action):
     async def report(self, system_name):
         """ Handle influence subcmd. """
         session = cogdb.SideSession()
-        systems = process_system_args(system_name.split(" "))
-        show_jerks = await self.bot.loop.run_in_executor(None, cogdb.side.monitor_dictators,
-                                                         session, systems)
-        new_jerks = await self.bot.loop.run_in_executor(None, cogdb.side.new_dictators,
-                                                        session, systems)
+        system_ids = await self.bot.loop.run_in_executor(None, cogdb.side.get_monitor_systems,
+                                                         session, cogdb.side.MONITOR)
+        report = await self.bot.loop.run_in_executor(None, cogdb.side.control_dictators,
+                                                     session, system_ids)
+        report += await self.bot.loop.run_in_executor(None, cogdb.side.moving_dictators,
+                                                      session, system_ids)
+        report += await self.bot.loop.run_in_executor(None, cogdb.side.monitor_events,
+                                                      session, system_ids)
 
-        return show_jerks + "\n\n" + new_jerks
+        with open("/tmp/bgs_report", "w") as fout:
+            fout.write(report)
+
+        return "Report generated on server"
 
     async def sys(self, system_name):
         """ Handle sys subcmd. """
