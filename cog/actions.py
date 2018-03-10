@@ -276,9 +276,11 @@ class Admin(Action):
             fout_rec.write(header)
             for member_id in all_members:
                 member = server.get_member(member_id)
+                if not member:
+                    continue
                 line = "{},{},{},{},{}\n".format(member.id, member.name, member.top_role.name,
                                                  member.created_at, member.joined_at)
-                if member.top_role.name == "FRC Recruit":
+                if member.top_role.name in ["FRC Recruit", "FLC Recruit"]:
                     fout_rec.write(line)
                 else:
                     fout.write(line)
@@ -287,6 +289,8 @@ class Admin(Action):
             fout.write(header[:-1] + ",Last Message\n")
             for member_id in flat:
                 member = server.get_member(member_id)
+                if not member:
+                    continue
                 line = "{},{},{},{},{},{}\n".format(member.id, member.name, member.top_role.name,
                                                     member.created_at, member.joined_at,
                                                     str(flat[member_id]['last']))
