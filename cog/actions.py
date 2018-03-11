@@ -888,6 +888,33 @@ class Hold(Action):
         await self.bot.send_message(self.msg.channel, response)
 
 
+class Pin(Action):
+    """
+    Create an objetives pin.
+    """
+    # TODO: Incomplete, expect bot to manage pin entirely. Left undocumented.
+    async def execute(self):
+        systems = cogdb.query.fort_get_targets(self.session)
+        systems.reverse()
+        systems += cogdb.query.fort_get_next_targets(self.session, count=5)
+        for defer in cogdb.query.fort_get_deferred_targets(self.session):
+            if defer.name != "Othime":
+                systems += [defer]
+
+        lines = [":Fortifying: {} {}".format(
+            sys.name, "**{}**".format(sys.notes) if sys.notes else "") for sys in systems]
+        lines += [":Fortifying: The things in the list after that"]
+
+        await self.bot.send_message(self.msg.channel, cog.tbl.wrap_markdown('\n'.join(lines)))
+
+        # TODO: Use later in proper pin manager
+        # to_delete = [msg]
+        # async for message in self.bot.logs_from(msg.channel, 10):
+            # if not message.content or message.content == "!pin":
+                # to_delete += [message]
+        # await self.bot.delete_messages(to_delete)
+
+
 class Repair(Action):
     """
     Find a nearby station with a shipyard.

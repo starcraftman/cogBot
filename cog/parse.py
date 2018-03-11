@@ -302,6 +302,13 @@ and 130% opposition.
 
 
 @register_parser
+def subs_pin(subs, prefix):
+    """ Subcommand parsing for pin """
+    sub = subs.add_parser(prefix + 'pin', description='Make an objectives pin and keep updating.')
+    sub.set_defaults(cmd='Pin')
+
+
+@register_parser
 def subs_repair(subs, prefix):
     """ Subcommand parsing for repair """
     desc = """Find a station with both L pad and shipyard near you.
