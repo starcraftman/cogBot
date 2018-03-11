@@ -505,17 +505,19 @@ class BGS(Action):
         session = cogdb.SideSession()
         system_ids = await self.bot.loop.run_in_executor(None, cogdb.side.get_monitor_systems,
                                                          session, cogdb.side.MONITOR)
-        report = await self.bot.loop.run_in_executor(None, cogdb.side.control_dictators,
-                                                     session, system_ids)
-        report += await self.bot.loop.run_in_executor(None, cogdb.side.moving_dictators,
-                                                      session, system_ids)
-        report += await self.bot.loop.run_in_executor(None, cogdb.side.monitor_events,
-                                                      session, system_ids)
+        report = await asyncio.gather(
+            self.bot.loop.run_in_executor(None, cogdb.side.control_dictators,
+                                          cogdb.SideSession(), system_ids),
+            self.bot.loop.run_in_executor(None, cogdb.side.moving_dictators,
+                                          cogdb.SideSession(), system_ids),
+            self.bot.loop.run_in_executor(None, cogdb.side.monitor_events,
+                                          cogdb.SideSession(), system_ids))
+        report = "\n".join(report)
 
-        with open("/tmp/bgs_report", "w") as fout:
-            fout.write(report)
+        title = "BGS Report {}".format(datetime.datetime.utcnow())
+        paste_url = await cog.util.pastebin_new_paste(title, report)
 
-        return "Report generated on server"
+        return "Report Generated: <{}>".format(paste_url)
 
     async def sys(self, system_name):
         """ Handle sys subcmd. """

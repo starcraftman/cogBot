@@ -1,5 +1,12 @@
 """
-Utility functions, mainly matching now.
+Utility functions
+-----------------
+    BOT - Global reference to cog.bot.CogBot set post startup.
+    get_config - Pull out configuration information.
+    rel_to_abs - Convert relative paths to rooted at project ones.
+    init_logging - Project wide logging initialization.
+    msg_splitter - Long message splitter, not ideal.
+    pastebin_new_paste - Upload something to pastebin.
 """
 from __future__ import absolute_import, print_function
 import logging
@@ -7,6 +14,7 @@ import logging.handlers
 import logging.config
 import os
 
+import aiohttp
 import yaml
 try:
     from yaml import CLoader as Loader
@@ -17,6 +25,8 @@ import cog.exc
 
 BOT = None
 MSG_LIMIT = 1950  # Number chars before message truncation
+PASTE_LOGIN = "https://pastebin.com/api/api_login.php"
+PASTE_UPLOAD = "https://pastebin.com/api/api_post.php"
 
 
 class ModFormatter(logging.Formatter):
@@ -218,6 +228,59 @@ def msg_splitter(msg):
         parts += [part_line.rstrip("\n")]
 
     return parts
+
+
+# N.B. Intentionally untested, don't want to spam pastebin
+#      I don't see a dummy flag in api.
+async def pastebin_login(dev_key, user, pword):
+    """
+    Perform simple pastebin login.
+    """
+    data = {
+        "api_dev_key": dev_key,
+        "api_user_name": user,
+        "api_user_password": pword,
+    }
+    async with aiohttp.ClientSession() as http:
+        async with http.post(PASTE_LOGIN, data=data) as resp:
+            if resp.status != 200:
+                raise cog.exc.RemoteError("Pastebin upload failed!")
+
+            return await resp.text()
+
+
+async def pastebin_upload(dev_key, title, content, session=None):
+    """
+    Perform a simple paste to pastebin.
+
+    Session is optional, if provided paste will be associated to account.
+    """
+    data = {
+        "api_dev_key": dev_key,
+        "api_option": "paste",
+        "api_paste_code": content,
+        "api_paste_expire_date": "2W",  # 2 weeks then gone
+        "api_paste_name": title,
+        "api_paste_private": 1,  # 0/public, 1/unlisted, 2/private
+    }
+    if session:
+        data["api_user_key"] = session
+
+    async with aiohttp.ClientSession() as http:
+        async with http.post(PASTE_UPLOAD, data=data) as resp:
+            if resp.status != 200:
+                raise cog.exc.RemoteError("Pastebin upload failed!")
+
+            return await resp.text()
+
+
+async def pastebin_new_paste(title, content):
+    """
+    Simple wrapper to create a paste and return the url.
+    """
+    pbin = cog.util.get_config("pastebin")
+    user_session = await pastebin_login(pbin["dev_key"], pbin["user"], pbin["pass"])
+    return await pastebin_upload(pbin["dev_key"], title, content, session=user_session)
 
 
 ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
