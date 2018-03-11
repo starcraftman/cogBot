@@ -1189,10 +1189,10 @@ def control_dictators(session, system_ids):
         try:
             if dic[0].is_controlling_faction != pair_hist[key].is_controlling_faction:
                 lines += [[dic[-3].name, dic[1].name[:16], dic[2].name[:16], dic[3],
-                           "{:5.2f}".format(round(dic[0].influence, 2))]]
+                           "{:5.2f}".format(round(dic[0].influence, 2)), dic[-2], dic[-1]]]
         except KeyError:
             lines += [[dic[-3].name, dic[1].name[:16], dic[2].name[:16], dic[3],
-                       "{:5.2f}".format(round(dic[0].influence, 2))]]
+                       "{:5.2f}".format(round(dic[0].influence, 2)), dic[-2], dic[-1]]]
 
     con_dics = session.query(Influence, System, Faction, Government.text, control_system, current.text, pending.text).\
         filter(Influence.system_id.in_(system_ids)).\
