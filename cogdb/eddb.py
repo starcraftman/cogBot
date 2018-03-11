@@ -372,7 +372,7 @@ class StationType(Base):
     text = sqla.Column(sqla.String(LEN["station_type"]))
 
     def __repr__(self):
-        keys = ['id', 'name']
+        keys = ['id', 'text']
         kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
 
         return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
@@ -527,6 +527,7 @@ def preload_gov_type(session):
         Government(id=160, text='Theocracy', eddn='Theocracy'),
         Government(id=176, text='None', eddn='None'),
         Government(id=192, text='Engineer', eddn='Engineer'),
+        Government(id=208, text='Prison', eddn='Prison'),
     ])
 
 
@@ -991,12 +992,12 @@ def dump_db(session, classes):
     with open("/tmp/eddb_dump", "w") as fout:
         for cls in classes:
             for obj in session.query(cls):
-                fout.write(repr(obj) + ',')
+                fout.write(repr(obj) + '\n')
 
 
 def select_classes(obj):
     """ Simple predicate, select sublasses of Base. """
-    return inspect.isclass(obj) and obj.__name__ != "Base"
+    return inspect.isclass(obj) and obj.__name__ not in ["Base", "hybrid_method", "hybrid_property"]
 
 
 def recreate_tables():

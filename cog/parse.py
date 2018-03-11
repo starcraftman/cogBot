@@ -157,7 +157,7 @@ def subs_bgs(subs, prefix):
     bgs_sub = bgs_subs.add_parser('inf', help='Get the influence of factions inside a system.')
     bgs_sub.add_argument('system', nargs='+', help='The system to lookup.')
     bgs_sub = bgs_subs.add_parser('report', help='Get an overall report of the bubble.')
-    bgs_sub.add_argument('system', nargs='+', help='The system to lookup.')
+    bgs_sub.add_argument('system', nargs='*', default=[], help='The system to lookup.')
     bgs_sub = bgs_subs.add_parser('sys', help='Get a complete system overview.')
     bgs_sub.add_argument('system', nargs='+', help='The system to lookup.')
 

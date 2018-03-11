@@ -635,7 +635,6 @@ class SystemUM(Base):
     @property
     def missing(self):
         """ The remaining supplies to fortify """
-        print(self.name, self.cmdr_merits, self.map_offset, self.progress_us)
         return self.goal - max(self.cmdr_merits + self.map_offset, self.progress_us)
 
     @property

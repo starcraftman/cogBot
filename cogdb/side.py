@@ -1054,15 +1054,17 @@ def get_monitor_systems(session, controls):
         limit(100).\
         all()
 
-    look_for = [System.dist_to(sqla_orm.aliased(
-        System, session.query(System).filter(System.name == control).subquery())) <= 15
-                for control in controls]
+    look_for = [
+        System.dist_to(sqla_orm.aliased(System,
+                                        session.query(System).filter(System.name == control).subquery())) <= 15
+        for control in controls
+    ]
     pstates = session.query(PowerState.id).\
         filter(PowerState.text.in_(["Exploited", "Control"])).\
         subquery()
-    systems = [sys[0] for sys in session.query(System.id).\
-        filter(System.power_state_id.in_(pstates)).\
-        filter(sqla.or_(*look_for))]
+    systems = [sys[0] for sys in session.query(System.id).
+               filter(System.power_state_id.in_(pstates)).
+               filter(sqla.or_(*look_for))]
 
     return list(set(systems + [x[0] for x in eg_systems]))
 
@@ -1086,7 +1088,7 @@ def monitor_events(session, system_ids):
 
     control_system = sqla_orm.aliased(System)
     events = session.query(Influence, System, Faction,
-                         control_system, current.text, pending.text).\
+                           control_system, current.text, pending.text).\
         filter(Influence.system_id.in_(system_ids),
                sqla.or_(Influence.state_id.in_(monitor_states),
                         Influence.pending_state_id.in_(monitor_states))).\
@@ -1151,11 +1153,13 @@ def control_dictators(session, system_ids):
         subquery()
 
     control_system = sqla_orm.aliased(System)
-    dics = session.query(Influence, System, Faction, control_system, current.text, pending.text).\
+    dics = session.query(Influence, System, Faction, Government.text,
+                         control_system, current.text, pending.text).\
         filter(Influence.system_id.in_(system_ids)).\
         filter(Influence.system_id == System.id,
                Influence.faction_id == Faction.id,
                Faction.government_id.in_(gov_dic),
+               Faction.government_id == Government.id,
                Influence.state_id == current.id,
                Influence.pending_state_id == pending.id,
                sqla.and_(control_system.power_state_id == c_state,
@@ -1179,15 +1183,15 @@ def control_dictators(session, system_ids):
         key = "{}_{}".format(hist.system_id, hist.faction_id)
         pair_hist[key] = hist
 
-    lines = [["Control", "System", "Faction", "Inf", "State", "Pending State"]]
+    lines = [["Control", "System", "Faction", "Gov", "Inf", "State", "Pending State"]]
     for dic in dics:
         key = "{}_{}".format(dic[1].id, dic[2].id)
         try:
             if dic[0].is_controlling_faction != pair_hist[key].is_controlling_faction:
-                lines += [[dic[-1].name, dic[1].name[:16], dic[2].name[:16],
+                lines += [[dic[-3].name, dic[1].name[:16], dic[2].name[:16], dic[3],
                            "{:5.2f}".format(round(dic[0].influence, 2))]]
         except KeyError:
-            lines += [[dic[-1].name, dic[1].name[:16], dic[2].name[:16],
+            lines += [[dic[-3].name, dic[1].name[:16], dic[2].name[:16], dic[3],
                        "{:5.2f}".format(round(dic[0].influence, 2))]]
 
     con_dics = session.query(Influence, System, Faction, Government.text, control_system, current.text, pending.text).\
@@ -1204,9 +1208,9 @@ def control_dictators(session, system_ids):
         order_by(control_system.name, System.name).\
         all()
 
-    con_lines = [["Control", "System", "Faction", "Inf", "State", "Pending State"]]
+    con_lines = [["Control", "System", "Faction", "Gov", "Inf", "State", "Pending State"]]
     for dic in con_dics:
-        con_lines += [[dic[-3].name, dic[1].name[:16], dic[2].name[:16],
+        con_lines += [[dic[-3].name, dic[1].name[:16], dic[2].name[:16], dic[3],
                        "{:5.2f}".format(round(dic[0].influence, 2)), dic[-2], dic[-1]]]
 
     response = "**\n\nNew Controlling Anarchies/Dictators** (last 7 days)\n" + cog.tbl.format_table(lines, header=True)
