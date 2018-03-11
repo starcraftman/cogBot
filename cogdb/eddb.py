@@ -968,7 +968,9 @@ def find_best_route(session, systems):
     Returns:
         [total_distance, [System, System, ...]]
     """
-    if not isinstance(systems[0], System):
+    if isinstance(systems[0], System):
+        if not isinstance(systems[0], type('')):
+            systems = [sys.name for sys in systems]
         systems = get_systems(session, systems)
 
     best = []

@@ -118,6 +118,10 @@ def subs_bgs(subs, prefix):
         Show exploiteds in 16 Cygni bubble by age.
 {prefix}bgs dash othime
         Show the bgs state of a bubble's exploited systems.
+{prefix}bgs edmc
+        Present the optimized route to jump and update EDMC for default systems.
+{prefix}bgs edmc Rana, Frey
+        Present the optimized route to jump and update EDMC for Rana, Frey.
 {prefix}bgs exp Rana
         Show all factions in Rana, select one, then show all expansion candidates.
 {prefix}bgs expto Rana
@@ -141,6 +145,8 @@ def subs_bgs(subs, prefix):
     bgs_sub.add_argument('system', nargs='+', help='The system to lookup.')
     bgs_sub = bgs_subs.add_parser('dash', help='Dashboard overview of exploiteds around a control.')
     bgs_sub.add_argument('system', nargs='+', help='The system to lookup.')
+    bgs_sub = bgs_subs.add_parser('edmc', help='Create the EDMC update route.')
+    bgs_sub.add_argument('system', nargs='*', help='The control systems to update.')
     bgs_sub = bgs_subs.add_parser('exp', help='Find expansion candidates from system.')
     bgs_sub.add_argument('system', nargs='+', help='The system to lookup.')
     bgs_sub = bgs_subs.add_parser('expto', help='Find all possible expansion candidates to system.')

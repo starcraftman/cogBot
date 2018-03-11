@@ -1038,6 +1038,35 @@ def bgs_funcs(system):
     return strong, weak
 
 
+# TODO: Unit test below.
+def get_monitor_systems(session, controls):
+    """
+    Get all uncontested systems within the range of mentioned controls.
+    Include all systems with EG Union.
+
+    Returns: List of system_ids
+    """
+    eg_systems = session.query(System.id).\
+        outerjoin(Influence, Faction).\
+        filter(Faction.name == "EG Union",
+               Influence.faction_id == Faction.id,
+               Influence.system_id == System.id).\
+        limit(100).\
+        all()
+
+    look_for = [System.dist_to(sqla_orm.aliased(
+        System, session.query(System).filter(System.name == control).subquery())) <= 15
+                for control in controls]
+    pstates = session.query(PowerState.id).\
+        filter(PowerState.text.in_(["Exploited", "Control"])).\
+        subquery()
+    systems = [sys[0] for sys in session.query(System.id).\
+        filter(System.power_state_id.in_(pstates)).\
+        filter(sqla.or_(*look_for))]
+
+    return list(set(systems + [x[0] for x in eg_systems]))
+
+
 @wrap_exceptions
 def monitor_events(session, system_ids):
     """
@@ -1102,34 +1131,6 @@ def monitor_events(session, system_ids):
     response += "\n\n**Retreats**\n" + cog.tbl.format_table(retreats, header=True)
 
     return response
-
-
-def get_monitor_systems(session, controls):
-    """
-    Get all uncontested systems within the range of mentioned controls.
-    Include all systems with EG Union.
-
-    Returns: List of system_ids
-    """
-    eg_systems = session.query(System.id).\
-        outerjoin(Influence, Faction).\
-        filter(Faction.name == "EG Union",
-               Influence.faction_id == Faction.id,
-               Influence.system_id == System.id).\
-        limit(100).\
-        all()
-
-    look_for = [System.dist_to(sqla_orm.aliased(
-        System, session.query(System).filter(System.name == control).subquery())) <= 15
-                for control in controls]
-    pstates = session.query(PowerState.id).\
-        filter(PowerState.text.in_(["Exploited", "Control"])).\
-        subquery()
-    systems = [sys[0] for sys in session.query(System.id).\
-        filter(System.power_state_id.in_(pstates)).\
-        filter(sqla.or_(*look_for))]
-
-    return list(set(systems + [x[0] for x in eg_systems]))
 
 
 @wrap_exceptions
@@ -1279,6 +1280,17 @@ def moving_dictators(session, system_ids):
     response = header + cog.tbl.format_table(lines, header=True)
 
     return response
+
+
+@wrap_exceptions
+def get_edmc_systems(session, controls):
+    """
+    Get the list of Systems that have stale EDDN data.
+    """
+    return session.query(System).\
+        filter(SystemAge.control.in_(controls),
+               SystemAge.system == System.name).\
+        all()
 
 
 def main():

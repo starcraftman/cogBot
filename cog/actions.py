@@ -419,6 +419,25 @@ class BGS(Action):
 
         return header + table + explain
 
+    async def edmc(self, system_name):
+        """ Handle edmc subcmd. """
+        if not system_name:
+            controls = cogdb.side.MONITOR
+        else:
+            controls = process_system_args(system_name.split(' '))
+
+        systems = await self.bot.loop.run_in_executor(None, cogdb.side.get_edmc_systems,
+                                                      cogdb.SideSession(), controls)
+        if len(systems) > 2:
+            systems = [system.name for system in systems]
+            _, route = await self.bot.loop.run_in_executor(None, cogdb.eddb.find_best_route,
+                                                           cogdb.EDDBSession(), systems)
+        else:
+            route = systems
+
+        controls_line = "Controls Checked: {}".format(", ".join(controls))
+        return "__**EDMC Route**__\n{}\n\n".format(controls_line) + "\n".join([sys.name for sys in route])
+
     async def exp(self, system_name):
         """ Handle exp subcmd. """
         side_session = cogdb.SideSession()
