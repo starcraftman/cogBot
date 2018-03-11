@@ -829,6 +829,60 @@ def kwargs_fort_system(lines, order, column):
         raise cog.exc.SheetParsingError
 
 
+def kwargs_umjoint_system(cells, sheet_col):
+    """
+    Return keyword args parsed from cell frame.
+
+    Format !D1:E11:
+        1: blank
+        2: blank
+        3: completed %
+        4: UM trigger
+        5: Total CMDR Merits
+        6: Missing:
+        7: Security | Notes
+        8-10: Closest Kumo/Hudson/Winters control
+        11: Closest Restock
+        12: System
+        13: Target UM
+        14: UM Progress
+        15: Fort Progress
+        16: Labels
+        17: Galmap Offset
+        18: IGNORE
+        19+ Merits
+    """
+    try:
+        main_col, sec_col = cells[0], cells[1]
+
+        if main_col[12] == '':
+            raise cog.exc.SheetParsingError
+
+        cls = UMControl
+
+        # Cell is not guaranteed to exist in list
+        try:
+            map_offset = parse_int(main_col[16])
+        except IndexError:
+            map_offset = 0
+
+        return {
+            'exp_trigger': 0,
+            'goal': int(parse_int(main_col[3]) * parse_float(main_col[12])),
+            'security': main_col[6].strip().replace('Sec: ', ''),
+            'notes': str(sec_col[6]).strip(),
+            'close_control': main_col[8].strip(),
+            'name': main_col[11].strip(),
+            'progress_us': parse_int(main_col[13]),
+            'progress_them': parse_float(main_col[14]),
+            'map_offset': map_offset,
+            'sheet_col': sheet_col,
+            'cls': cls,
+        }
+    except (IndexError, TypeError):
+        raise cog.exc.SheetParsingError
+
+
 def parse_int(word):
     """ Parse into int, on failure return 0 """
     try:
