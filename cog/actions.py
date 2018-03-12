@@ -248,7 +248,6 @@ class Admin(Action):
             except discord.errors.Forbidden:
                 raise cog.exc.InvalidCommandArgs("Bot has no permissions for channel: " + channel.name)
 
-
         flat = {}
         for chan in report:
             for cmdr in report[chan]:
@@ -271,32 +270,32 @@ class Admin(Action):
 
         server = self.msg.server
         header = "ID,Name,Top Role,Created At,Joined At\n"
-        with open("/tmp/inactive.csv", "w") as fout, open("/tmp/inactive_rec.csv", "w") as fout_rec:
-            fout.write(header)
-            fout_rec.write(header)
-            for member_id in all_members:
-                member = server.get_member(member_id)
-                if not member:
-                    continue
-                line = "{},{},{},{},{}\n".format(member.id, member.name, member.top_role.name,
-                                                 member.created_at, member.joined_at)
-                if member.top_role.name in ["FRC Recruit", "FLC Recruit"]:
-                    fout_rec.write(line)
-                else:
-                    fout.write(line)
+        inactive_recruits = "**Inactive Recruits**\n" + header
+        inactive_members = "**Inactive Members or Above**\n" + header
+        for member_id in all_members:
+            member = server.get_member(member_id)
+            if not member:
+                continue
 
-        with open("/tmp/active.csv", "w") as fout:
-            fout.write(header[:-1] + ",Last Message\n")
-            for member_id in flat:
-                member = server.get_member(member_id)
-                if not member:
-                    continue
-                line = "{},{},{},{},{},{}\n".format(member.id, member.name, member.top_role.name,
-                                                    member.created_at, member.joined_at,
-                                                    str(flat[member_id]['last']))
-                fout.write(line)
+            line = "{},{},{},{},{}\n".format(member.id, member.name, member.top_role.name,
+                                             member.created_at, member.joined_at)
+            if member.top_role.name in ["FRC Recruit", "FLC Recruit"]:
+                inactive_recruits += line
+            else:
+                inactive_members += line
 
-        return "See dump on server"
+        actives = "**Active Membership (last 90 days)**\n" + header[:-1] + ",Last Message\n"
+        for member_id in flat:
+            member = server.get_member(member_id)
+            if not member:
+                continue
+            line = "{},{},{},{},{},{}\n".format(member.id, member.name, member.top_role.name,
+                                                member.created_at, member.joined_at,
+                                                str(flat[member_id]['last']))
+            actives += line
+
+        response = "\n".join([inactive_recruits, inactive_members, actives])
+        return await cog.util.pastebin_new_paste("Activity Summary", response)
 
     async def cast(self):
         """ Broacast a message accross a server. """
