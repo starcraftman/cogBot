@@ -421,6 +421,8 @@ class BGS(Action):
 
     async def edmc(self, system_name):
         """ Handle edmc subcmd. """
+        # TODO: Route each bubble separately, suggest overall order to mimize jumps.
+        # TODO: Sort bubble order by finding a route linking tail to front of next.
         if not system_name:
             controls = cogdb.side.MONITOR
         else:
@@ -869,6 +871,7 @@ class Hold(Action):
             response = 'Sorry you died :(. Held merits reset.'
 
         elif self.args.redeem:
+            # TODO: Print overall user merit summary for cycle and prompt to update galmap if not.
             holds, redeemed = cogdb.query.um_redeem_merits(self.session, self.undermine)
             self.log.info('HOLD %s - Redeemed %d merits.', self.duser.display_name, redeemed)
             response = 'You redeemed {} new merits.\n{}'.format(redeemed,
@@ -941,6 +944,8 @@ class Route(Action):
     Find a nearby station with a shipyard.
     """
     async def execute(self):
+        # TODO: Add ability to fix endpoint. That is solve route but then add distance to jump back.
+        # TODO: Probably allow dupes.
         session = cogdb.EDDBSession()
         self.args.system = [arg.lower() for arg in self.args.system]
         system_names = process_system_args(self.args.system)
