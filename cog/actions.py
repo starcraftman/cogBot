@@ -870,11 +870,14 @@ class Hold(Action):
             response = 'Sorry you died :(. Held merits reset.'
 
         elif self.args.redeem:
-            # TODO: Print overall user merit summary for cycle and prompt to update galmap if not.
             holds, redeemed = cogdb.query.um_redeem_merits(self.session, self.undermine)
             self.log.info('HOLD %s - Redeemed %d merits.', self.duser.display_name, redeemed)
-            response = 'You redeemed {} new merits.\n{}'.format(redeemed,
-                                                                self.undermine.merit_summary())
+
+            response = '**Redeemed Now** {}\n\n__Cycle Summary__\n'.format(redeemed)
+            lines = [['System', 'Hold', 'Redeemed']]
+            lines += [[merit.system.name, merit.held, merit.redeemed] for merit
+                      in self.undermine.merits if merit.held + merit.redeemed > 0]
+            response += cog.tbl.wrap_markdown(cog.tbl.format_table(lines, header=True))
 
         else:  # Default case, update the hold for a system
             holds, response = await self.set_hold()

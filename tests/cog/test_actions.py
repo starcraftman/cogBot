@@ -515,7 +515,14 @@ async def test_cmd_hold_redeem(f_bot, f_testbed):
 
     await action_map(msg, f_bot).execute()
 
-    expect = 'You redeemed 2600 new merits.\nHolding 0, Redeemed 13950'
+    expect = """**Redeemed Now** 2600
+
+__Cycle Summary__
+```  System   | Hold | Redeemed
+---------- | ---- | --------
+Cemplangpa | 0    | 4000
+Pequen     | 0    | 1950
+Burr       | 0    | 8000```"""
     f_bot.send_message.assert_called_with(msg.channel, expect)
     session = cogdb.Session()
     duser = session.query(DUser).filter_by(id=msg.author.id).one()
