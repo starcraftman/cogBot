@@ -579,7 +579,9 @@ class FortScanner(SheetScanner):
         session = cogdb.Session()
         self.drop_entries(session)
         session.commit()
-        session.add_all(systems + users + merits)
+        session.add_all(systems + users)
+        session.commit()
+        session.add_all(merits)
         session.commit()
 
         return True
@@ -739,8 +741,9 @@ class UMScanner(SheetScanner):
 
         session = cogdb.Session()
         self.drop_entries(session)
+        session.add_all(systems + users)
         session.commit()
-        session.add_all(systems + users + merits)
+        session.add_all(merits)
         session.commit()
 
         return True
