@@ -8,6 +8,7 @@ import asyncio
 import datetime
 import logging
 import re
+import string
 from functools import partial
 
 import decorator
@@ -420,24 +421,34 @@ class BGS(Action):
 
     async def edmc(self, system_name):
         """ Handle edmc subcmd. """
-        # TODO: Route each bubble separately, suggest overall order to mimize jumps.
-        # TODO: Sort bubble order by finding a route linking tail to front of next.
         if not system_name:
             controls = cogdb.side.MONITOR
         else:
             controls = process_system_args(system_name.split(' '))
 
-        systems = await self.bot.loop.run_in_executor(None, cogdb.side.get_edmc_systems,
-                                                      cogdb.SideSession(), controls)
-        if len(systems) > 2:
-            systems = [system.name for system in systems]
+        eddb_session = cogdb.EDDBSession()
+        side_session = cogdb.SideSession()
+        resp = "__**EDMC Route**__\nIf no systems listed under control, up to date.\n\n__Suggested Scout Order__\n"
+        if len(controls) > 2:
             _, route = await self.bot.loop.run_in_executor(None, cogdb.eddb.find_best_route,
-                                                           cogdb.EDDBSession(), systems)
+                                                           eddb_session, controls)
+            resp += "\n".join([sys.name for sys in route])
         else:
-            route = systems
+            resp += "\n".join([sys for sys in controls])
 
-        controls_line = "Controls Checked: {}".format(", ".join(controls))
-        return "__**EDMC Route**__\n{}\n\n".format(controls_line) + "\n".join([sys.name for sys in route])
+        for control in controls:
+            resp += "\n\n__{}__\n".format(string.capwords(control))
+            systems = await self.bot.loop.run_in_executor(None, cogdb.side.get_edmc_systems,
+                                                          side_session, [control])
+            if len(systems) > 2:
+                systems = [system.name for system in systems]
+                _, route = await self.bot.loop.run_in_executor(None, cogdb.eddb.find_best_route,
+                                                               eddb_session, systems)
+                resp += "\n".join([sys.name for sys in route])
+            else:
+                resp += "\n".join([sys.name for sys in systems])
+
+        return resp
 
     async def exp(self, system_name):
         """ Handle exp subcmd. """
