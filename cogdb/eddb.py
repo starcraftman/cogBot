@@ -35,7 +35,7 @@ LEN = {  # Lengths for strings stored in the db
     "government": 13,
     "module": 30,
     "module_category": 20,  # Name of group of similar groups like limpets, weapons
-    "module_group": 31,  # Name of module group, i.e. "Beam Laser"
+    "module_group": 36,  # Name of module group, i.e. "Beam Laser"
     "power": 21,
     "power_abv": 5,
     "power_state": 10,
