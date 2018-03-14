@@ -41,17 +41,17 @@ HQS = {
 }
 MONITOR = [
     "Frey",
+    "Nurundere",
     "Wat Yu",
     "Gliese 868",
     "Shoujeman",
-    "Wolf 906",
-    "Nurundere",
-    "Muncheim",
-    "Phra Mool",
-    "HR 2776",
     "Othime",
+    "Wolf 906",
+    "Muncheim",
     "Mulachi",
     "NU-2 Lupi",
+    "Phra Mool",
+    "HR 2776",
 ]
 HUDSON_BGS = [['Feudal', 'Patronage'], ["Dictatorship"]]
 WINTERS_BGS = [["Corporate"], ["Communism", "Cooperative", "Feudal", "Patronage"]]

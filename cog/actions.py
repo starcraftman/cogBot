@@ -425,28 +425,26 @@ class BGS(Action):
             controls = cogdb.side.MONITOR
         else:
             controls = process_system_args(system_name.split(' '))
-
         eddb_session = cogdb.EDDBSession()
         side_session = cogdb.SideSession()
-        resp = "__**EDMC Route**__\nIf no systems listed under control, up to date.\n\n__Suggested Scout Order__\n"
+
+        resp = "__**EDMC Route**__\nIf no systems listed under control, up to date."
+        resp += "\n\n__Bubbles By Proximity__\n"
         if len(controls) > 2:
             _, route = await self.bot.loop.run_in_executor(None, cogdb.eddb.find_best_route,
                                                            eddb_session, controls)
-            resp += "\n".join([sys.name for sys in route])
-        else:
-            resp += "\n".join([sys for sys in controls])
+            controls = [sys.name for sys in route]
+        resp += "\n".join([sys for sys in controls])
 
         for control in controls:
             resp += "\n\n__{}__\n".format(string.capwords(control))
             systems = await self.bot.loop.run_in_executor(None, cogdb.side.get_edmc_systems,
                                                           side_session, [control])
             if len(systems) > 2:
-                systems = [system.name for system in systems]
-                _, route = await self.bot.loop.run_in_executor(None, cogdb.eddb.find_best_route,
-                                                               eddb_session, systems)
-                resp += "\n".join([sys.name for sys in route])
-            else:
-                resp += "\n".join([sys.name for sys in systems])
+                _, systems = await self.bot.loop.run_in_executor(None, cogdb.eddb.find_best_route,
+                                                                 eddb_session,
+                                                                 [system.name for system in systems])
+            resp += "\n".join([sys.name for sys in systems])
 
         return resp
 
