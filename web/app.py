@@ -34,8 +34,10 @@ try:
 except ImportError:
     print("Falling back to default python loop.")
 
+import cog.util
+
 app = sanic.Sanic()
-ADDR = 'tcp://127.0.0.1:9000'
+ADDR = 'tcp://127.0.0.1:{}'.format(cog.util.get_config('ports', 'zmq'))
 LOG_FILE = os.path.join(tempfile.gettempdir(), 'posts')
 PUB = None
 RECV = []
@@ -69,7 +71,7 @@ async def post(request):
     """ Handle post requests. """
     global PUB
     if not PUB:
-        PUB = await aiozmq.rpc.connect_pubsub(connect=ADDR)
+        PUB = await aiozmq.rpc.connect_pubsub(bind=ADDR)
         atexit.register(functools.partial(pub_close, PUB))
 
     if request.method == 'POST':
@@ -95,6 +97,14 @@ async def post(request):
         return sanic.response.html(msg + '</pre>')
 
 
-init_log()
+def main():
+    """ Start sanic server and pass POSTs to bot. """
+    init_log()
+    port = cog.util.get_config('ports', 'sanic')
+    print("Sanic server listening on:", port)
+    print("ZMQ pub/sub binding on:", ADDR)
+    app.run(host='0.0.0.0', port=port)
+
+
 if __name__ == "__main__":
-    app.run(host='0.0.0.0', port=8000)
+    main()

@@ -19,7 +19,7 @@ import aiozmq.rpc
 import cog.jobs
 import cog.util
 
-POST_ADDR = "tcp://127.0.0.1:9000"
+ADDR = 'tcp://127.0.0.1:{}'.format(cog.util.get_config('ports', 'zmq'))
 
 
 class Scheduler(aiozmq.rpc.AttrHandler):
@@ -98,9 +98,9 @@ class Scheduler(aiozmq.rpc.AttrHandler):
         """ Connect the zmq subscriber. """
         channel = 'POSTs'
         self.sub = await aiozmq.rpc.serve_pubsub(self, subscribe=channel,
-                                                 bind=POST_ADDR, log_exceptions=True)
+                                                 connect=ADDR, log_exceptions=True)
         atexit.register(self.close)
-        print("Scheduler Subscribed to: {} with tag '{}'".format(POST_ADDR, channel))
+        print("Scheduler Subscribed to: {} with tag '{}'".format(ADDR, channel))
         print(aiozmq.rpc.logger)
 
 

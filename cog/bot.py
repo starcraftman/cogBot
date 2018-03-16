@@ -176,10 +176,13 @@ class CogBot(discord.Client):
             asyncio.ensure_future(asyncio.gather(
                 presence_task(self),
                 cog.jobs.pool_monitor_task(),
-                self.sched.connect_sub(),
                 simple_heartbeat(),
             ))
-            await asyncio.sleep(0.5)
+            await asyncio.sleep(0.2)
+
+            # separate to force crash if port busy, essential connection
+            await self.sched.connect_sub()
+            await asyncio.sleep(0.2)
 
             self.deny_commands = False
 
