@@ -21,6 +21,7 @@ import cog.util
 EDDB_URLS = [
     "https://eddb.io/archive/v5/commodities.json",
     "https://eddb.io/archive/v5/factions.json",
+    # "https://eddb.io/archive/v5/listings.csv",
     "https://eddb.io/archive/v5/modules.json",
     "https://eddb.io/archive/v5/stations.json",
     "https://eddb.io/archive/v5/systems_populated.json",
@@ -48,7 +49,7 @@ async def fetch(url, fname, sort=True):
 
     print("Downloaded to", fname)
 
-    if sort:
+    if sort and fname.endswith(".json"):
         print("Using jq to pretty print:", fname)
         await asyncio.get_event_loop().run_in_executor(None, pretty_json, fname)
         print("Created pretty file", fname + 'l')
