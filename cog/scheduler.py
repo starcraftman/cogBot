@@ -47,6 +47,12 @@ class Scheduler(aiozmq.rpc.AttrHandler):
         for wrap in self.wraps.values():
             msg += "\n{!r}".format(wrap)
 
+    async def wait_for(self, cmd):
+        """ Wait until the scanners for cmd finished. """
+        for scanner in self.wraps.values():
+            if scanner.is_scheduled and cmd in scanner.cmds:
+                await scanner.event.wait()
+
     def disabled(self, cmd):
         """ Check if a command is disabled due to scheduled update. """
         for scanner in self.wraps.values():
@@ -112,6 +118,7 @@ class WrapScanner(object):
         self.name = name
         self.cmds = cmds
         self.scanner = scanner
+        self.event = asyncio.Event()
         self.future = None
         self.job = None
 
@@ -150,6 +157,7 @@ class WrapScanner(object):
         """
         Handle both scheduling this new job and cancelling old one.
         """
+        self.event.clear()
         self.job = cog.jobs.Job(self.scanner.scan, attempts=6, timeout=30)
         self.job.ident = "Scheduled update for " + self.name
         self.job.add_done_callback(functools.partial(scan_done_cb, self))
@@ -172,6 +180,7 @@ def scan_done_cb(wrap, _):
     """ When finished reset wrap. """
     wrap.job = None
     wrap.future = None
+    wrap.event.set()
 
 
 def scan_fail_cb():

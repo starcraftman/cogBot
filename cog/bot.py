@@ -313,14 +313,12 @@ class CogBot(discord.Client):
         args = kwargs.get('args')
         msg = kwargs.get('msg')
 
-        if self.sched.disabled(args.cmd):
+        while self.sched.disabled(args.cmd):
             reply = 'Synchronizing sheet changes.\n\n'\
                     'Your command will resume after update has finished.'
             await self.send_message(msg.channel, reply)
 
-            # TODO: Give scheduler a asyncio.Lock to block on.
-            while self.sched.disabled(args.cmd):
-                await asyncio.sleep(2)
+            await self.sched.wait_for(args.cmd)
 
             await self.send_message(msg.channel, '{} Resuming your command: **{}**'.format(
                 msg.author.mention, msg.content))
