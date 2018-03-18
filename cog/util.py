@@ -259,7 +259,7 @@ async def pastebin_upload(dev_key, title, content, session=None):
         "api_dev_key": dev_key,
         "api_option": "paste",
         "api_paste_code": content,
-        "api_paste_expire_date": "2W",  # 2 weeks then gone
+        "api_paste_expire_date": "1D",  # 1 day then expire
         "api_paste_name": title,
         "api_paste_private": 1,  # 0/public, 1/unlisted, 2/private
     }

@@ -741,6 +741,7 @@ class UMScanner(SheetScanner):
 
         session = cogdb.Session()
         self.drop_entries(session)
+        session.commit()
         session.add_all(systems + users)
         session.commit()
         session.add_all(merits)
