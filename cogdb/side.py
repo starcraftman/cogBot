@@ -39,7 +39,7 @@ HQS = {
     "zachary hudson": "Nanomam",
     "zemina torval": "Synteini",
 }
-MONITOR = [
+WATCH_BUBBLES = [
     "Frey",
     "Nurundere",
     "Wat Yu",
@@ -52,6 +52,11 @@ MONITOR = [
     "NU-2 Lupi",
     "Phra Mool",
     "HR 2776",
+]
+WATCH_FACTIONS = [
+    "Civitas Dei",
+    "EG Union",
+    "Future of Udegoci",
 ]
 HUDSON_BGS = [['Feudal', 'Patronage'], ["Dictatorship"]]
 WINTERS_BGS = [["Corporate"], ["Communism", "Cooperative", "Feudal", "Patronage"]]
@@ -1087,8 +1092,8 @@ def monitor_events(session, system_ids):
         subquery()
 
     control_system = sqla_orm.aliased(System)
-    events = session.query(Influence, System, Faction,
-                           control_system, current.text, pending.text).\
+    events = session.query(Influence.influence, System.name, Faction.name, Government.text,
+                           control_system.name, current.text, pending.text).\
         filter(Influence.system_id.in_(system_ids),
                sqla.or_(Influence.state_id.in_(monitor_states),
                         Influence.pending_state_id.in_(monitor_states))).\
@@ -1103,30 +1108,29 @@ def monitor_events(session, system_ids):
         limit(1000).\
         all()
 
-    wars = [["Control", "System", "Faction", "Inf", "Current", "Pending"]]
-    expansions = [["Control", "System", "Faction", "Inf", "Current", "Pending"]]
-    retreats = [["Control", "System", "Faction", "Inf", "Current", "Pending"]]
-    elections = [["Control", "System", "Faction", "Inf", "Current", "Pending"]]
+    wars = [["Control", "System", "Faction", "Gov", "Inf", "Current", "Pending"]]
+    expansions = wars[:]
+    retreats = wars[:]
+    elections = wars[:]
 
     for event in events:
         states = [event[-2], event[-1]]
+        line = [[event[-3], event[1][:16], event[2][:16], event[3][:3],
+                 "{:5.2f}".format(round(event[0], 2)), event[-2], event[-1]]]
+
         if "Election" in states:
-            elections += [[event[-3].name, event[1].name[:16], event[2].name[:16],
-                           "{:5.2f}".format(round(event[0].influence, 2)), event[-2], event[-1]]]
+            elections += line
 
         if "War" in states:
-            wars += [[event[-3].name, event[1].name[:16], event[2].name[:16],
-                      "{:5.2f}".format(round(event[0].influence, 2)), event[-2], event[-1]]]
+            wars += line
 
         if "Expansion" in states:
-            expansions += [[event[-3].name, event[1].name[:16], event[2].name[:16],
-                            "{:5.2f}".format(round(event[0].influence, 2)), event[-2], event[-1]]]
+            expansions += line
 
         if "Retreat" in states:
-            retreats += [[event[-3].name, event[1].name[:16], event[2].name[:16],
-                          "{:5.2f}".format(round(event[0].influence, 2)), event[-2], event[-1]]]
+            retreats += line
 
-    response = "**__Events in Monitored Systems__**\nMonitoring: {}".format(", ".join(MONITOR))
+    response = "**__Events in Monitored Systems__**\nMonitoring: {}".format(", ".join(WATCH_BUBBLES))
     response += "\n\n**Elections**\n" + cog.tbl.format_table(elections, header=True)
     response += "\n\n**Wars**\n" + cog.tbl.format_table(wars, header=True)
     response += "\n\n**Expansions**\n" + cog.tbl.format_table(expansions, header=True)
@@ -1194,7 +1198,8 @@ def control_dictators(session, system_ids):
             lines += [[dic[-3].name, dic[1].name[:16], dic[2].name[:16], dic[3],
                        "{:5.2f}".format(round(dic[0].influence, 2)), dic[-2], dic[-1]]]
 
-    con_dics = session.query(Influence, System, Faction, Government.text, control_system, current.text, pending.text).\
+    con_dics = session.query(Influence, System, Faction, Government.text,
+                             control_system, current.text, pending.text).\
         filter(Influence.system_id.in_(system_ids)).\
         filter(Influence.system_id == System.id,
                Influence.faction_id == Faction.id,
@@ -1237,7 +1242,8 @@ def moving_dictators(session, system_ids):
         subquery()
 
     control_system = sqla_orm.aliased(System)
-    dics = session.query(Influence, System, Faction, Government.text, control_system, current.text, pending.text).\
+    dics = session.query(Influence, System, Faction, Government.text,
+                         control_system, current.text, pending.text).\
         filter(Influence.system_id.in_(system_ids)).\
         filter(Influence.system_id == System.id,
                Influence.faction_id == Faction.id,
@@ -1266,7 +1272,8 @@ def moving_dictators(session, system_ids):
         key = "{}_{}".format(hist.system_id, hist.faction_id)
         pair_hist[key] = hist
 
-    lines = [["Control", "System", "Faction", "Gov", "Date", "Inf", "Inf (2 days)", "State", "Pending State"]]
+    lines = [["Control", "System", "Faction", "Gov", "Date",
+              "Inf", "Inf (2 days)", "State", "Pending State"]]
     for dic in dics:
         key = "{}_{}".format(dic[1].id, dic[2].id)
         try:
@@ -1287,6 +1294,45 @@ def moving_dictators(session, system_ids):
 
 
 @wrap_exceptions
+def monitor_factions(session, faction_names=None):
+    """
+    Get all information on the provided factions. By default use set list.
+    """
+    current = sqla_orm.aliased(FactionState)
+    pending = sqla_orm.aliased(FactionState)
+    control_system = sqla_orm.aliased(System)
+    c_state = session.query(PowerState.id).\
+        filter(PowerState.text == "Control").\
+        subquery()
+    if not faction_names:
+        faction_names = WATCH_FACTIONS
+    faction_ids = session.query(Faction.id).\
+        filter(Faction.name.in_(faction_names)).\
+        subquery()
+
+    matches = session.query(Influence.influence, System.name, Faction.name, Government.text,
+                            control_system.name, current.text, pending.text).\
+        filter(Influence.faction_id.in_(faction_ids)).\
+        filter(Influence.system_id == System.id,
+               Influence.faction_id == Faction.id,
+               Faction.government_id == Government.id,
+               Influence.state_id == current.id,
+               Influence.pending_state_id == pending.id,
+               sqla.and_(control_system.power_state_id == c_state,
+                         control_system.dist_to(System) <= 15)).\
+        order_by(Faction.name, control_system.name, System.name).\
+        all()
+
+    lines = [["Control", "System", "Faction", "Gov", "Inf",
+              "State", "Pending State"]]
+    for match in matches:
+        lines += [[match[-3], match[1][:16], match[2][:16], match[3][:3],
+                   "{:5.2f}".format(round(match[0], 2)), match[-2], match[-1]]]
+
+    return "\n\n**Monitored Factions**\n" + cog.tbl.wrap_markdown(cog.tbl.format_table(lines, header=True))
+
+
+@wrap_exceptions
 def get_edmc_systems(session, controls):
     """
     Get the list of Systems that have stale EDDN data.
@@ -1300,9 +1346,10 @@ def get_edmc_systems(session, controls):
 def main():
     pass
     # session = cogdb.SideSession()
-    # system_ids = get_monitor_systems(session, MONITOR)
+    # system_ids = get_monitor_systems(session, WATCH_BUBBLES)
     # print(monitor_dictators(session, ["Othime", "Frey"]))
     # print(moving_dictators(session, system_ids))
+    # print(get_monitor_factions(session))
 
 
 if __name__ == "__main__":

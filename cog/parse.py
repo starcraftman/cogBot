@@ -126,6 +126,10 @@ def subs_bgs(subs, prefix):
         Show all factions in Rana, select one, then show all expansion candidates.
 {prefix}bgs expto Rana
         Show all factions that could possibly expand to Rana.
+{prefix}bgs faction
+        Show a report for all systems where default factions present.
+{prefix}bgs faction Democrats of Muncheim
+        Show a report for all systems where Democrats of Muncheim present.
 {prefix}bgs find Frey
         Show all Feudal/Patronage factions near Frey, expanding in 15ly increments.
 {prefix}bgs find Frey --max 50
@@ -138,7 +142,7 @@ def subs_bgs(subs, prefix):
         Show a system overview and all factions.
     """.format(prefix=prefix)
     sub = subs.add_parser(prefix + 'bgs', description=desc, formatter_class=RawHelp)
-    sub.set_defaults(cmd='BGS')
+    sub.set_defaults(cmd='BGS', system=[])
     bgs_subs = sub.add_subparsers(title='subcommands',
                                   description='BGS subcommands', dest='subcmd')
     bgs_sub = bgs_subs.add_parser('age', help='Get the age of exploiteds around a control.')
@@ -151,6 +155,8 @@ def subs_bgs(subs, prefix):
     bgs_sub.add_argument('system', nargs='+', help='The system to lookup.')
     bgs_sub = bgs_subs.add_parser('expto', help='Find all possible expansion candidates to system.')
     bgs_sub.add_argument('system', nargs='+', help='The system to lookup.')
+    bgs_sub = bgs_subs.add_parser('faction', help='Show faction report by system.')
+    bgs_sub.add_argument('faction', nargs='*', help='The faction(s) to lookup.')
     bgs_sub = bgs_subs.add_parser('find', help='Show favorable factions around a system.')
     bgs_sub.add_argument('system', nargs='+', help='The system to lookup.')
     bgs_sub.add_argument('-m', '--max', type=int, help='The radius to look within.')

@@ -422,7 +422,7 @@ class BGS(Action):
     async def edmc(self, system_name):
         """ Handle edmc subcmd. """
         if not system_name:
-            controls = cogdb.side.MONITOR
+            controls = cogdb.side.WATCH_BUBBLES
         else:
             controls = process_system_args(system_name.split(' '))
         eddb_session = cogdb.EDDBSession()
@@ -489,6 +489,14 @@ class BGS(Action):
         header = "**Nearby Expansion Candidates**\n\n"
         return header + cog.tbl.wrap_markdown(cog.tbl.format_table(matches, header=True))
 
+    async def faction(self, _):
+        """ Handle faction subcmd. """
+        names = []
+        if self.args.faction:
+            names = process_system_args(self.args.faction)
+        return await self.bot.loop.run_in_executor(None, cogdb.side.monitor_factions,
+                                                   cogdb.SideSession(), names)
+
     async def find(self, system_name):
         """ Handle find subcmd. """
         matches = await self.bot.loop.run_in_executor(None, cogdb.side.find_favorable,
@@ -514,7 +522,7 @@ class BGS(Action):
         """ Handle influence subcmd. """
         session = cogdb.SideSession()
         system_ids = await self.bot.loop.run_in_executor(None, cogdb.side.get_monitor_systems,
-                                                         session, cogdb.side.MONITOR)
+                                                         session, cogdb.side.WATCH_BUBBLES)
         report = await asyncio.gather(
             self.bot.loop.run_in_executor(None, cogdb.side.control_dictators,
                                           cogdb.SideSession(), system_ids),
