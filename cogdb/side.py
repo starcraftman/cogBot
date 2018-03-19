@@ -1313,8 +1313,10 @@ def monitor_factions(session, faction_names=None):
     matches = session.query(Influence.influence, System.name, Faction.name, Government.text,
                             control_system.name, current.text, pending.text).\
         filter(Influence.faction_id.in_(faction_ids)).\
-        join(System, Faction, Government).\
-        filter(Influence.state_id == current.id,
+        filter(Influence.system_id == System.id,
+               Influence.faction_id == Faction.id,
+               Faction.government_id == Government.id,
+               Influence.state_id == current.id,
                Influence.pending_state_id == pending.id,
                sqla.and_(control_system.power_state_id == c_state,
                          control_system.dist_to(System) <= 15)).\
