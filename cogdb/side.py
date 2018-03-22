@@ -1306,9 +1306,9 @@ def monitor_factions(session, faction_names=None):
         subquery()
     if not faction_names:
         faction_names = WATCH_FACTIONS
-    faction_ids = [x[0] for x in session.query(Faction.id).\
-        filter(Faction.name.in_(faction_names)).\
-        all()]
+    faction_ids = [x[0] for x in session.query(Faction.id).
+                   filter(Faction.name.in_(faction_names)).
+                   all()]
 
     matches = session.query(Influence.influence, System.name, Faction.name, Government.text,
                             control_system.name, current.text, pending.text).\

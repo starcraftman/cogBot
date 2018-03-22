@@ -126,8 +126,10 @@ def test_add_sheet(session, f_dusers, f_sheets):
     assert latest.type == ESheetType.undermine
 
 
-def test_fort_get_othime(session, f_systems):
-    assert cogdb.query.fort_get_othime(session).name == 'Othime'
+def test_fort_get_medium_systems(session, f_systems):
+    mediums = cogdb.query.fort_get_medium_systems(session)
+    assert mediums
+    assert mediums[0].name == "Othime"
 
 
 def test_fort_get_systems(session, f_systems):
@@ -142,8 +144,8 @@ def test_fort_get_preps(session, f_prepsystem):
     assert [system.name for system in systems] == ['Rhea']
 
 
-def test_fort_get_systems_not_othime(session, f_systems):
-    systems = cogdb.query.fort_get_systems(session, not_othime=True)
+def test_fort_get_systems_no_mediums(session, f_systems):
+    systems = cogdb.query.fort_get_systems(session, mediums=False)
     assert len(systems) == 9
     assert systems[0].name == 'Frey'
     assert systems[-1].name == 'LPM 229'

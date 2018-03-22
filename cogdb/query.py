@@ -188,23 +188,28 @@ def add_sheet(session, name, **kwargs):
     return sheet
 
 
-def fort_get_othime(session):
+def fort_get_medium_systems(session):
     """
-    Return the System Othime.
+    Return unfortified systems designated for small/medium ships.
     """
-    return session.query(System).filter_by(name='Othime').one()
+    mediums = session.query(System).all()
+    unforted = [med for med in mediums if "S/M" in med.notes and not med.is_fortified and not
+                med.skip and not med.missing < DEFER_MISSING]
+    return unforted
 
 
-def fort_get_systems(session, not_othime=False):
+def fort_get_systems(session, mediums=True):
     """
     Return a list of all Systems. PrepSystems are not included.
 
     args:
-        not_othime: If true, remove Othime from Systems results.
+        mediums: If false, exclude all systems designated for j
+                 Determined by "S/M" being in notes.
     """
     query = session.query(System).filter(System.type != 'prep')
-    if not_othime:
-        query = query.filter(System.name != 'Othime')
+    if not mediums:
+        med_names = [med.name for med in fort_get_medium_systems(session)]
+        query = query.filter(System.name.notin_(med_names))
 
     return query.all()
 
@@ -223,7 +228,7 @@ def fort_find_current_index(session):
     Raises:
         NoMoreTargets - No more targets left OR a serious problem with data.
     """
-    for ind, system in enumerate(fort_get_systems(session, not_othime=True)):
+    for ind, system in enumerate(fort_get_systems(session)):
         if system.is_fortified or system.skip or system.missing < DEFER_MISSING:
             continue
 
@@ -304,12 +309,12 @@ def fort_get_targets(session):
         return targets[:1]
 
     current = fort_find_current_index(session)
-    systems = fort_get_systems(session, not_othime=True)
+    systems = fort_get_systems(session)
     targets = [systems[current]]
 
-    othime = fort_get_othime(session)
-    if not othime.is_fortified:
-        targets.append(othime)
+    mediums = fort_get_medium_systems(session)
+    if mediums and mediums[0].name != targets[0].name:
+        targets.append(mediums[0])
 
     targets += fort_get_preps(session)
 
@@ -323,7 +328,7 @@ def fort_get_next_targets(session, count=1):
     systems = fort_order_get(session)
     start = 1
     if not systems:
-        systems = fort_get_systems(session, not_othime=True)
+        systems = fort_get_systems(session)
         start = fort_find_current_index(session) + 1
 
     targets = []
