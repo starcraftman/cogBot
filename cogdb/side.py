@@ -49,7 +49,6 @@ WATCH_BUBBLES = [
     "Wolf 906",
     "Muncheim",
     "Mulachi",
-    "NU-2 Lupi",
     "Phra Mool",
     "HR 2776",
 ]
