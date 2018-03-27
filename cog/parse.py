@@ -353,6 +353,21 @@ def subs_route(subs, prefix):
 
 
 @register_parser
+def subs_scout(subs, prefix):
+    """ Subcommand parsing for scout """
+    desc = """Generate a scouting list. Control output with flags.
+    Examples:
+
+{prefix}scout
+        Generate a scouting list.
+    """.format(prefix=prefix)
+    sub = subs.add_parser(prefix + 'scout', description=desc, formatter_class=RawHelp)
+    sub.set_defaults(cmd='Scout')
+    sub.add_argument('-r', '--round', type=int, help='The round to run.', choices=[1, 2, 3])
+    sub.add_argument('-c', '--custom', nargs='+', help='Run a custom scout of systems.')
+
+
+@register_parser
 def subs_status(subs, prefix):
     """ Subcommand parsing for status """
     sub = subs.add_parser(prefix + 'status', description='Info about this bot.')

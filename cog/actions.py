@@ -20,6 +20,7 @@ import cogdb.query
 import cogdb.side
 import cog.inara
 import cog.jobs
+import cog.scout
 import cog.tbl
 import cog.util
 
@@ -986,6 +987,65 @@ class Route(Action):
         lines += [sys.name for sys in result[1]]
 
         await self.bot.send_message(self.msg.channel, "\n".join(lines))
+
+
+class Scout(Action):
+    """
+    Find a nearby station with a shipyard.
+    """
+    async def interact_revise(self, systems):
+        """
+        Interactively edit the list of systems to scout.
+
+        Returns:
+            The list of systems after changes.
+        """
+        while True:
+            l_systems = [sys.lower() for sys in systems]
+            try:
+                prompt = cog.scout.INTERACT.format('    ' + '\n    '.join(systems))
+                responses = [await cog.util.BOT.send_message(self.msg.channel, prompt)]
+                user_msg = await cog.util.BOT.wait_for_message(timeout=30, author=self.msg.author,
+                                                               channel=self.msg.channel)
+                if user_msg:
+                    responses += [user_msg]
+
+                system = user_msg.content.strip()
+                if system.lower() == 'stop':
+                    break
+                elif system.lower() in l_systems:
+                    systems = [sys for sys in systems if sys.lower() != system.lower()]
+                elif system:
+                    systems.append(system)
+                    l_systems.append(system.lower())
+            finally:
+                asyncio.ensure_future(asyncio.gather(
+                    *[cog.util.BOT.delete_message(response) for response in responses]))
+
+        return systems
+
+    async def execute(self):
+        session = cogdb.EDDBSession()
+
+        if not self.args.round and not self.args.custom:
+            raise cog.exc.InvalidCommandArgs("Select a --round or provide a --custom list.")
+
+        if self.args.custom:
+            systems = process_system_args(self.args.custom)
+        else:
+            systems = cog.scout.ROUND[self.args.round]
+            systems = await self.interact_revise(systems)
+
+        result = await self.bot.loop.run_in_executor(
+            None, cogdb.eddb.find_best_route, session, systems)
+        system_list = "\n".join([":Exploration: " + sys.name for sys in result[1]])
+
+        now = datetime.datetime.utcnow()
+        lines = cog.scout.TEMPLATE.format(
+            round(result[0], 2), now.strftime("%B"),
+            now.day, now.year + 1286, system_list)
+
+        await self.bot.send_message(self.msg.channel, lines)
 
 
 class Status(Action):
