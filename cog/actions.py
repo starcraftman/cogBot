@@ -1006,6 +1006,8 @@ class Scout(Action):
                                                                channel=self.msg.channel)
                 if user_msg:
                     responses += [user_msg]
+                if not user_msg:
+                    break
 
                 system = user_msg.content.strip()
                 if system.lower() == 'stop':
