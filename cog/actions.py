@@ -20,12 +20,8 @@ import cogdb.query
 import cogdb.side
 import cog.inara
 import cog.jobs
-import cog.scout
 import cog.tbl
 import cog.util
-
-
-SCANNERS = {}
 
 
 async def bot_shutdown(bot, delay=60):  # pragma: no cover
@@ -826,6 +822,7 @@ class Help(Action):
             ['{prefix}hold', 'Declare held merits or redeem them'],
             ['{prefix}repair', 'Show the nearest orbitals with shipyards'],
             ['{prefix}route', 'Plot the shortest route between these systems'],
+            ['{prefix}scout', 'Generate a list of systems to scout'],
             ['{prefix}status', 'Info about this bot'],
             ['{prefix}time', 'Show game time and time to ticks'],
             ['{prefix}trigger', 'Calculate fort and um triggers for systems'],
@@ -991,7 +988,7 @@ class Route(Action):
 
 class Scout(Action):
     """
-    Find a nearby station with a shipyard.
+    Generate scout route.
     """
     async def interact_revise(self, systems):
         """
@@ -1003,7 +1000,7 @@ class Scout(Action):
         while True:
             l_systems = [sys.lower() for sys in systems]
             try:
-                prompt = cog.scout.INTERACT.format('    ' + '\n    '.join(systems))
+                prompt = SCOUT_INTERACT.format('    ' + '\n    '.join(systems))
                 responses = [await cog.util.BOT.send_message(self.msg.channel, prompt)]
                 user_msg = await cog.util.BOT.wait_for_message(timeout=30, author=self.msg.author,
                                                                channel=self.msg.channel)
@@ -1033,7 +1030,7 @@ class Scout(Action):
         if self.args.custom:
             systems = process_system_args(self.args.custom)
         else:
-            systems = cog.scout.ROUND[self.args.round]
+            systems = SCOUT_RND[self.args.round]
             systems = await self.interact_revise(systems)
 
         result = await self.bot.loop.run_in_executor(
@@ -1041,7 +1038,7 @@ class Scout(Action):
         system_list = "\n".join([":Exploration: " + sys.name for sys in result[1]])
 
         now = datetime.datetime.utcnow()
-        lines = cog.scout.TEMPLATE.format(
+        lines = SCOUT_TEMPLATE.format(
             round(result[0], 2), now.strftime("%B"),
             now.day, now.year + 1286, system_list)
 
@@ -1320,3 +1317,76 @@ def get_scanner(name):
     Store scanners in this module for shared use.
     """
     return SCANNERS[name]
+
+SCANNERS = {}
+SCOUT_RND = {
+    1: [
+        "Epsilon Scorpii",
+        "39 Serpentis",
+        "Parutis",
+        "Mulachi",
+        "Aornum",
+        "WW Piscis Austrini",
+        "LHS 142",
+        "LHS 6427",
+        "LP 580-33",
+        "BD+42 3917",
+        "Venetic",
+        "Kaushpoos",
+    ],
+    2: [
+        "Atropos",
+        "Alpha Fornacis",
+        "Rana",
+        "Anlave",
+        "NLTT 46621",
+        "16 Cygni",
+        "Adeo",
+        "LTT 15449",
+        "LHS 3447",
+        "Lalande 39866",
+        "Abi",
+        "Gliese 868",
+        "Othime",
+        "Phra Mool",
+        "Wat Yu",
+        "Shoujeman",
+        "Phanes",
+        "Dongkum",
+        "Nurundere",
+        "LHS 3749",
+        "Mariyacoch",
+        "Frey",
+    ],
+    3: [
+        "GD 219",
+        "Wolf 867",
+        "Gilgamesh",
+        "LTT 15574",
+        "LHS 3885",
+        "Wolf 25",
+        "LHS 6427",
+        "LHS 1541",
+        "LHS 1197",
+    ]
+}
+SCOUT_TEMPLATE = """__**Scout List**__
+Total Distance: **{}**ly
+
+```**REQUESTING NEW RECON OBJECTIVES __{} {}__  , {}**
+
+If you are running more than one system, do them in this order and you'll not ricochet the whole galaxy. Also let us know if you want to be a member of the FRC Scout Squad!
+@here @FRC Scout
+
+{}
+
+:o7:```"""
+SCOUT_INTERACT = """Will generate scout list with the following systems:\nkj
+
+{}
+
+To add system: type system name **NOT** in list
+To remove system: type system name in list
+To generate list: reply with **stop**
+
+__This message will delete itself on success or 30s timeout.__"""
