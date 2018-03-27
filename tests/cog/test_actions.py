@@ -611,6 +611,68 @@ async def test_cmd_route_bad_system(f_bot):
 
 
 @pytest.mark.asyncio
+async def test_cmd_scout_rnd(f_bot):
+    msg = fake_msg_gears("!scout -r 1")
+
+    f_bot.wait_for_message.async_return_value = fake_msg_gears('stop')
+    await action_map(msg, f_bot).execute()
+
+    expect = """
+If you are running more than one system, do them in this order and you'll not ricochet the whole galaxy. Also let us know if you want to be a member of the FRC Scout Squad!
+@here @FRC Scout
+
+:Exploration: Epsilon Scorpii
+:Exploration: Mulachi
+:Exploration: Parutis
+:Exploration: 39 Serpentis
+:Exploration: Venetic
+:Exploration: BD+42 3917
+:Exploration: LHS 6427
+:Exploration: LP 580-33
+:Exploration: WW Piscis Austrini
+:Exploration: Aornum
+:Exploration: LHS 142
+:Exploration: Kaushpoos
+
+:o7:```"""
+    assert expect in str(f_bot.send_message.call_args).replace("\\n", "\n")
+
+
+@pytest.mark.asyncio
+async def test_cmd_scout_custom(f_bot):
+    msg = fake_msg_gears("!scout -c rana, nurundere, frey")
+
+    await action_map(msg, f_bot).execute()
+
+    expect = """
+If you are running more than one system, do them in this order and you'll not ricochet the whole galaxy. Also let us know if you want to be a member of the FRC Scout Squad!
+@here @FRC Scout
+
+:Exploration: Nurundere
+:Exploration: Rana
+:Exploration: Frey
+
+:o7:```"""
+    assert expect in str(f_bot.send_message.call_args).replace("\\n", "\n")
+
+
+@pytest.mark.asyncio
+async def test_cmd_scout_bad_args(f_bot):
+    msg = fake_msg_gears("!scout -c raaaaaaaaaa, zzzzzzzzz")
+
+    with pytest.raises(cog.exc.InvalidCommandArgs):
+        await action_map(msg, f_bot).execute()
+
+
+@pytest.mark.asyncio
+async def test_cmd_scout_no_args(f_bot):
+    msg = fake_msg_gears("!scout")
+
+    with pytest.raises(cog.exc.InvalidCommandArgs):
+        await action_map(msg, f_bot).execute()
+
+
+@pytest.mark.asyncio
 async def test_cmd_status(f_bot):
     msg = fake_msg_gears("!status")
 
