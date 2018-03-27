@@ -1382,7 +1382,7 @@ If you are running more than one system, do them in this order and you'll not ri
 {}
 
 :o7:```"""
-SCOUT_INTERACT = """Will generate scout list with the following systems:\nkj
+SCOUT_INTERACT = """Will generate scout list with the following systems:\n
 
 {}
 
