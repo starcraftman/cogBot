@@ -941,7 +941,7 @@ def expand_to_candidates(session, system_name):
     """
     centre = get_systems(session, [system_name])[0]
     blacklist = [fact.id for fact in get_factions_in_system(session, system_name)]
-    matches = session.query(System.name, System.dist_to(centre), Influence,
+    matches = session.query(System.name, System.dist_to(centre), System.population, Influence,
                             Faction, FactionState.text, Government.text).\
         filter(System.dist_to(centre) <= 20,
                System.name != centre.name).\
@@ -949,8 +949,8 @@ def expand_to_candidates(session, system_name):
         order_by(System.dist_to(centre)).\
         all()
 
-    lines = [["System", "Dist", "Inf", "Gov", "State", "Faction"]]
-    for sys_name, sys_dist, inf, fact, fact_state, gov in matches:
+    lines = [["System", "Dist", "Pop", "Inf", "Gov", "State", "Faction"]]
+    for sys_name, sys_dist, sys_pop, inf, fact, fact_state, gov in matches:
         if not inf:
             lines += [[
                 sys_name[:16],
@@ -964,6 +964,7 @@ def expand_to_candidates(session, system_name):
             lines += [[
                 sys_name[:16],
                 "{:5.2f}".format(sys_dist),
+                "{:3.1f}".format(math.log(sys_pop, 10)),
                 "{:5.2f}".format(inf.influence),
                 gov[:4],
                 fact_state,
