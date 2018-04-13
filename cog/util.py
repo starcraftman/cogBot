@@ -13,13 +13,14 @@ import logging
 import logging.handlers
 import logging.config
 import os
+import re
 
 import aiohttp
 import yaml
 try:
-    from yaml import CLoader as Loader
+    from yaml import CLoader as Loader, CDumper as Dumper
 except ImportError:
-    from yaml import Loader
+    from yaml import Loader, Dumper
 
 import cog.exc
 
@@ -104,6 +105,43 @@ def get_config(*keys):
         conf = conf[key]
 
     return conf
+
+
+def update_config(new_val, *keys):
+    """
+    Get current config and replace the value of keys with new_val.
+    Then flush new config to the file.
+
+    N. B. The key must exist, else KeyError
+    """
+    try:
+        with open(YAML_FILE) as fin:
+            conf = yaml.load(fin, Loader=Loader)
+    except FileNotFoundError:
+        raise cog.exc.MissingConfigFile("Missing config.yml. Expected at: " + YAML_FILE)
+
+    whole_conf = conf
+    for key in keys[:-1]:
+        conf = conf[key]
+    conf[keys[-1]] = new_val
+
+    with open(YAML_FILE, 'w') as fout:
+        yaml.dump(whole_conf, fout, Dumper=Dumper, default_flow_style=False)
+
+
+def number_increment(line):
+    """
+    Take a string of form: text 10
+    Parse the number part, increment it by 1 and return the original string with new number.
+
+    Returns: The new string with number portion incremented.
+    """
+    match = re.search(r'\d+', line)
+    if not match:
+        raise ValueError("number_increment: line did NOT contain a parsable integer.")
+
+    old_num = int(match.group(0))
+    return line.replace(str(old_num), str(old_num + 1))
 
 
 def init_logging():  # pragma: no cover

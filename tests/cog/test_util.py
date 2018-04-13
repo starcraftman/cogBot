@@ -3,6 +3,8 @@ Test util the grab all module.
 """
 from __future__ import absolute_import, print_function
 import os
+import shutil
+import tempfile
 
 import mock
 import pytest
@@ -37,6 +39,35 @@ def test_dict_to_columns():
 
 def test_get_config():
     assert cog.util.get_config('paths', 'log_conf') == 'data/log.yml'
+
+
+def test_update_config():
+    try:
+        tfile = tempfile.mktemp()
+        shutil.copyfile(cog.util.YAML_FILE, tfile)
+        assert os.path.exists(tfile)
+
+        cog.util.update_config(150, 'scanners', 'hudson_cattle', 'page')
+
+        assert cog.util.get_config('scanners', 'hudson_cattle', 'page') == 150
+        found = False
+        for line in open(cog.util.YAML_FILE):
+            if 'page: 150' in line:
+                found = True
+
+        assert found
+
+    finally:
+        shutil.copyfile(tfile, cog.util.YAML_FILE)
+
+
+def test_number_increment():
+    assert cog.util.number_increment('C149') == 'C150'
+    assert cog.util.number_increment('Cycle 149') == 'Cycle 150'
+    assert cog.util.number_increment('Cycle 149 never ends') == 'Cycle 150 never ends'
+
+    with pytest.raises(ValueError):
+        cog.util.number_increment('Cycle')
 
 
 def test_rel_to_abs():

@@ -75,6 +75,8 @@ def subs_admin(subs, prefix):
         Generate an activity report on cmdrs in listed channels, look back about 3 months.
 {prefix}admin cast A message here
         Broadcast a message to all channels.
+{prefix}admin cycle
+        Point bot to new cycle's sheets.
 {prefix}admin deny
         Toggle command processing.
 {prefix}admin dump
@@ -98,6 +100,7 @@ def subs_admin(subs, prefix):
     admin_sub.add_argument('role', nargs='*', help='The role name, if a role restriction.')
     admin_sub = admin_subs.add_parser('cast', help='Broadcast a message to all channels.')
     admin_sub.add_argument('content', nargs='+', help='The message to send, no hyphens.')
+    admin_subs.add_parser('cycle', help='Roll sheets to new cycle.')
     admin_subs.add_parser('deny', help='Toggle command processing.')
     admin_subs.add_parser('dump', help='Dump the db to console.')
     admin_subs.add_parser('halt', help='Stop accepting commands and halt bot.')

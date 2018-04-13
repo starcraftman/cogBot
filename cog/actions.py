@@ -13,6 +13,7 @@ from functools import partial
 
 import decorator
 import discord
+import googleapiclient.errors
 
 import cogdb
 import cogdb.eddb
@@ -332,6 +333,46 @@ class Admin(Action):
         """ Schedule all sheets for update. """
         self.bot.sched.schedule_all()
         return 'All sheets scheduled for update.'
+
+    # Should test eventually but mainly just recombines code
+    async def cycle(self):  # pragma: no cover
+        """
+        Rollover scanners to new sheets post cycle tick.
+
+        Configs will be modified and scanners re-initialized.
+
+        Raises:
+            InternalException - No parseable numeric component found in tab.
+            RemoteError - The sheet/tab combination could not be resolved. Tab needs creating.
+        """
+        self.bot.deny_commands = True
+        scanners = cog.util.get_config('scanners')
+
+        try:
+            for name in scanners:
+                scanners[name]['page'] = cog.util.number_increment(scanners[name]['page'])
+
+                # Check the sheet actually exists before committing
+                cls = getattr(cogdb.query, scanners[name]["cls"])
+                scanner = cls(scanners[name])
+                assert scanner.gsheet.get('!A1:A1')
+
+            cog.util.update_config(scanners, 'scanners')
+            for name in scanners:
+                init_scanner(name)
+                # FIXME: Feels icky reaching into code like so
+                self.bot.sched.wraps[name].scanner = cog.actions.get_scanner(name)
+
+            self.bot.sched.schedule_all()
+
+            return "Cycle has been incremented, bot has scheduled sheets for update."
+        except ValueError:
+            raise cog.exc.InternalException("Impossible to increment scanner: {}".format(name))
+        except (AssertionError, googleapiclient.errors.HttpError):
+            raise cog.exc.RemoteError("The sheet {} with tab {} does not exist!".format(
+                name, scanners[name]['page']))
+        finally:
+            self.bot.deny_commands = False
 
     async def execute(self):
         try:
@@ -1309,7 +1350,7 @@ def init_scanner(name):
     print("Intializing scanner -> ", name)
     logging.getLogger('cog.actions').info("Initializing the %s scanner.", name)
     sheet = cog.util.get_config("scanners", name)
-    cls = getattr(cogdb.query, sheet.pop("cls"))
+    cls = getattr(cogdb.query, sheet["cls"])
     scanner = cls(sheet)
     SCANNERS[name] = scanner
 
