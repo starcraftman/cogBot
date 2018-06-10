@@ -265,9 +265,10 @@ class UMLDocs(Command):
 SHORT_DESC = 'The Elite Federal Discord Bot'
 MY_NAME = 'Jeremy Pallats / starcraft.man'
 MY_EMAIL = 'N/A'
+# Sanic stuck on 0.6.0, 0.7.0 wants websockets >4.0 but discord.py wants <4.0
 RUN_DEPS = ['aiofiles', 'aiozmq', 'argparse', 'decorator', 'discord.py',
             'google-api-python-client', 'msgpack-python', 'pebble', 'pymysql', 'pyyaml',
-            'pyzmq', 'Sanic', 'SQLalchemy', 'uvloop']
+            'pyzmq', 'Sanic==0.6.0', 'SQLalchemy', 'uvloop']
 TEST_DEPS = ['coverage', 'flake8', 'aiomock', 'mock', 'pylint', 'pytest', 'pytest-asyncio',
              'pytest-cov', 'sphinx', 'tox']
 setup(
