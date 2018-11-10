@@ -360,6 +360,31 @@ class Hold(Base):
         return self.held + self.redeemed < other.held + other.redeemed
 
 
+class KOS(Base):
+    """
+    Represents a the kos list.
+    """
+    __tablename__ = 'kos'
+
+    id = sqla.Column(sqla.Integer, primary_key=True)
+    cmdr = sqla.Column(sqla.String(100), unique=True, nullable=False)
+    faction = sqla.Column(sqla.String(100), nullable=False)
+    danger = sqla.Column(sqla.Integer)
+    is_friendly = sqla.Column(sqla.Boolean)
+
+    def __repr__(self):
+        keys = ['cmdr', 'faction', 'danger', 'is_friendly']
+        kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
+
+        return "KOS({})".format(', '.join(kwargs))
+
+    def __str__(self):
+        return "id={!r}, {!r}".format(self.id, self)
+
+    def __eq__(self, other):
+        return isinstance(other, KOS) and (self.cmdr) == (other.cmdr)
+
+
 class System(Base):
     """
     Represent a single system for fortification.

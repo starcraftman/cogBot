@@ -861,6 +861,7 @@ class Help(Action):
             ['{prefix}feedback', 'Give feedback or report a bug'],
             ['{prefix}fort', 'Get information about our fort systems'],
             ['{prefix}hold', 'Declare held merits or redeem them'],
+            ['{prefix}kos', 'Manage or search kos list'],
             ['{prefix}repair', 'Show the nearest orbitals with shipyards'],
             ['{prefix}route', 'Plot the shortest route between these systems'],
             ['{prefix}scout', 'Generate a list of systems to scout'],
@@ -947,6 +948,33 @@ class Hold(Action):
         await cog.jobs.background_start(job)
 
         await self.bot.send_message(self.msg.channel, response)
+
+
+class KOS(Action):
+    """
+    Handle the KOS command.
+    """
+    async def execute(self):
+        session = cogdb.Session()
+
+        if self.args.subcmd == 'add':
+            line = self.msg.content.replace('!kos add ', '')
+            terms = [x.strip() for x in line.split(',')]
+            cogdb.query.kos_add_cmdr(session, terms)
+
+            await self.bot.send_message(self.msg.channel, 'CMDR added: ' + terms[0])
+        elif self.args.subcmd == 'search':
+            msg = 'Searching for "{}" against known CMDRs\n\n'.format(self.args.term)
+            cmdrs = cogdb.query.kos_search_cmdr(session, self.args.term)
+            if cmdrs:
+                cmdrs = [[x.cmdr, x.faction, x.danger, "FRIENDLY" if x.is_friendly else "KILL"]
+                         for x in cmdrs]
+                cmdrs = [['CMDR Name', 'Faction', 'Danger', 'Is Friendly?']] + cmdrs
+                msg += cog.tbl.wrap_markdown(cog.tbl.format_table(cmdrs, header=True))
+            else:
+                msg += "No matches!"
+
+            await self.bot.send_message(self.msg.channel, msg)
 
 
 class Pin(Action):

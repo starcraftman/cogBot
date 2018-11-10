@@ -311,6 +311,30 @@ and 130% opposition.
 
 
 @register_parser
+def subs_kos(subs, prefix):
+    """ Subcommand parsing for kos """
+    desc = """KOS related commands. Examples:
+
+{prefix}kos add user_name, main faction, danger level, friendly yes/no, tags
+        Show exploiteds in 16 Cygni bubble by age.
+{prefix}kos search user_name
+        Search for a user, list all matching users.
+{prefix}kos search_tag
+        Search for a tag, list matching users.
+    """.format(prefix=prefix)
+    sub = subs.add_parser(prefix + 'kos', description=desc, formatter_class=RawHelp)
+    sub.set_defaults(cmd='KOS', system=[])
+    bgs_subs = sub.add_subparsers(title='subcommands',
+                                  description='KOS subcommands', dest='subcmd')
+    bgs_sub = bgs_subs.add_parser('add', help='Add a user to KOS.')
+    bgs_sub.add_argument('term', nargs='+', help='The words to lookup.')
+    bgs_sub = bgs_subs.add_parser('search', help='Search for a user.')
+    bgs_sub.add_argument('term', help='The username to look for.')
+    bgs_sub = bgs_subs.add_parser('search_tag', help='Search for a tag.')
+    bgs_sub.add_argument('term', help='The tag to look for.')
+
+
+@register_parser
 def subs_pin(subs, prefix):
     """ Subcommand parsing for pin """
     sub = subs.add_parser(prefix + 'pin', description='Make an objectives pin and keep updating.')

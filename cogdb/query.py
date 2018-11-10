@@ -16,7 +16,7 @@ from cog.util import substr_match
 import cogdb
 from cogdb.schema import (DUser, System, PrepSystem, SystemUM, SheetRow, SheetCattle, SheetUM,
                           Drop, Hold, EFaction, ESheetType, kwargs_fort_system, kwargs_um_system,
-                          Admin, ChannelPerm, RolePerm, FortOrder)
+                          Admin, ChannelPerm, RolePerm, FortOrder, KOS)
 
 
 DEFER_MISSING = 750
@@ -1113,3 +1113,39 @@ def complete_control_name(partial, include_winters=False):
         systems += WINTERS_CONTROLS
 
     return fuzzy_find(partial, systems)
+
+
+def kos_add_cmdr(session, terms):
+    """
+    Add a kos cmdr to the database.
+
+    Raises:
+        InvalidCommandArgs, ValueError - Problem with input values.
+    """
+    try:
+        danger = int(terms[2])
+        if danger < 0 or danger > 10:
+            raise cog.exc.InvalidCommandArgs("KOS: Danger should be [0, 10].")
+        is_friendly = int(terms[3])
+        # TODO: Map kill -> 0, friendly -> 1, perhaps using k/h startswith
+        if is_friendly not in [0, 1]:
+            raise cog.exc.InvalidCommandArgs("KOS: 0 == hostile or 1 == friendly")
+
+        new_kos = KOS(cmdr=terms[0], faction=terms[1], danger=danger, is_friendly=is_friendly)
+    except IndexError:
+        raise cog.exc.InvalidCommandArgs("KOS: Insufficient terms for the kos command, see help.")
+    except ValueError:
+        raise cog.exc.InvalidCommandArgs("KOS: Check the command help.")
+
+    session.add(new_kos)
+    session.commit()
+
+    return new_kos
+
+
+def kos_search_cmdr(session, term):
+    """
+    Search for a kos entry for cmdr.
+    """
+    term = '%' + str(term) + '%'
+    return session.query(KOS).filter(KOS.cmdr.ilike(term)).all()

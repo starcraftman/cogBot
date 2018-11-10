@@ -14,8 +14,8 @@ try:
     from apiclient import discovery
     from oauth2client import client, tools
     from oauth2client.file import Storage
-except ImportError:
-    print('Please run: pip install google-api-python-client')
+except ImportError as exc:
+    print('Please run: pip install google-api-python-client oauth2client')
 
 import cog.exc
 
