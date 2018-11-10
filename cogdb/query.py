@@ -889,6 +889,62 @@ class UMScanner(SheetScanner):
         self.gsheet.update(cell_range, [[progress_us, progress_them, 'Hold Merits', map_offset]], dim='COLUMNS')
 
 
+class KOSScanner(SheetScanner):
+    """
+    Scanner for the Hudson KOS sheet.
+
+    args:
+        gsheet: Either a dictionary to create a GSheet from or a premade GSheet.
+    """
+    def __init__(self, gsheet):
+        super().__init__(gsheet, (SheetUM, EFaction.hudson), [Hold, SystemUM, SheetUM])
+
+    def scan(self):
+        """
+        Main function, scan the sheet into the database.
+        """
+        self.cells = self.gsheet.whole_sheet(dim='ROWS')
+        kos_rows = self.parse_rows()
+        print(str(kos_rows))
+
+        session = cogdb.Session()
+        self.drop_entries(session)
+        session.commit()
+        session.add_all(kos_rows)
+        session.commit()
+
+        return True
+
+    def parse_rows(self):
+        rows = []
+        row = 1  # row 0 is header
+
+        try:
+            while self.cells[row][0] != '':
+                data = self.cells[row]
+                try:
+                    danger = int(data[2])
+                except ValueError:
+                    danger = 1
+                is_friendly = str(data[3]).lower()[0].startswith('F')
+                rows += [cogdb.schema.KOS(id=row, cmdr=data[0], faction=data[1], danger=danger,
+                                          is_friendly=is_friendly)]
+
+                row += 1
+        except IndexError:
+            pass
+
+        return rows
+
+    def update_whole_sheet(self, entries):
+        """
+        Update the whole KOS sheet, pass in queried KOS objects.
+        """
+        cell_range = '!A2:D{}'.format(1 + len(entries))
+        entries = [[ent.cmdr, ent.faction, str(ent.danger), ent.friendly_output] for ent in entries]
+        self.gsheet.update(cell_range, entries)
+
+
 def um_find_system(session, system_name):
     """
     Find the SystemUM with system_name

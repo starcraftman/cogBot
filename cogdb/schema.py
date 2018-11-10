@@ -384,6 +384,9 @@ class KOS(Base):
     def __eq__(self, other):
         return isinstance(other, KOS) and (self.cmdr) == (other.cmdr)
 
+    def friendly_output(self):
+        return 'FRIENDLY' if self.is_friendly else 'KILL'
+
 
 class System(Base):
     """

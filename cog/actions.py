@@ -962,19 +962,29 @@ class KOS(Action):
             terms = [x.strip() for x in line.split(',')]
             cogdb.query.kos_add_cmdr(session, terms)
 
-            await self.bot.send_message(self.msg.channel, 'CMDR added: ' + terms[0])
+            msg = 'CMDR added: ' + terms[0]
+
+        elif self.args.subcmd == 'pull':
+            get_scanner('hudson_kos').scan()
+            msg = 'KOS list refreshed from sheet.'
+
+        elif self.args.subcmd == 'push':
+            entries = session.query(cogdb.schema.KOS).all()
+            get_scanner('hudson_kos').update_whole_sheet(session, entries)
+            msg = 'KOS list flushed to sheet.'
+
         elif self.args.subcmd == 'search':
             msg = 'Searching for "{}" against known CMDRs\n\n'.format(self.args.term)
             cmdrs = cogdb.query.kos_search_cmdr(session, self.args.term)
             if cmdrs:
-                cmdrs = [[x.cmdr, x.faction, x.danger, "FRIENDLY" if x.is_friendly else "KILL"]
+                cmdrs = [[x.cmdr, x.faction, x.danger, x.friendly_output()]
                          for x in cmdrs]
                 cmdrs = [['CMDR Name', 'Faction', 'Danger', 'Is Friendly?']] + cmdrs
                 msg += cog.tbl.wrap_markdown(cog.tbl.format_table(cmdrs, header=True))
             else:
                 msg += "No matches!"
 
-            await self.bot.send_message(self.msg.channel, msg)
+        await self.bot.send_message(self.msg.channel, msg)
 
 
 class Pin(Action):
