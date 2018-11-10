@@ -897,7 +897,7 @@ class KOSScanner(SheetScanner):
         gsheet: Either a dictionary to create a GSheet from or a premade GSheet.
     """
     def __init__(self, gsheet):
-        super().__init__(gsheet, (SheetUM, EFaction.hudson), [Hold, SystemUM, SheetUM])
+        super().__init__(gsheet, None, [KOS])
 
     def scan(self):
         """
@@ -941,7 +941,8 @@ class KOSScanner(SheetScanner):
         Update the whole KOS sheet, pass in queried KOS objects.
         """
         cell_range = '!A2:D{}'.format(1 + len(entries))
-        entries = [[ent.cmdr, ent.faction, str(ent.danger), ent.friendly_output] for ent in entries]
+        entries = [[ent.cmdr, ent.faction, str(ent.danger), ent.friendly_output()] for ent in entries]
+        print(str(entries))
         self.gsheet.update(cell_range, entries)
 
 
@@ -1182,10 +1183,9 @@ def kos_add_cmdr(session, terms):
         danger = int(terms[2])
         if danger < 0 or danger > 10:
             raise cog.exc.InvalidCommandArgs("KOS: Danger should be [0, 10].")
-        is_friendly = int(terms[3])
-        # TODO: Map kill -> 0, friendly -> 1, perhaps using k/h startswith
-        if is_friendly not in [0, 1]:
-            raise cog.exc.InvalidCommandArgs("KOS: 0 == hostile or 1 == friendly")
+        is_friendly = str(terms[3]).lower()[0].startswith('f')
+        if terms[3][0] not in ['f', 'k']:
+            raise cog.exc.InvalidCommandArgs("KOS: k == kill or f == friendly")
 
         new_kos = KOS(cmdr=terms[0], faction=terms[1], danger=danger, is_friendly=is_friendly)
     except IndexError:

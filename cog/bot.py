@@ -167,6 +167,7 @@ class CogBot(discord.Client):
             for name in cog.util.get_config("scanners"):  # Populate on import
                 cog.actions.init_scanner(name)
 
+            cog.actions.get_scanner('hudson_kos').scan()
             self.sched.register('hudson_cattle', cog.actions.get_scanner('hudson_cattle'),
                                 ['Drop', 'Fort', 'User'])
             self.sched.register('hudson_undermine', cog.actions.get_scanner('hudson_undermine'),

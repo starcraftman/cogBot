@@ -315,10 +315,10 @@ def subs_kos(subs, prefix):
     """ Subcommand parsing for kos """
     desc = """KOS related commands. Examples:
 
-{prefix}kos add user_name, main faction, danger level, friendly yes/no, tags
-        Show exploiteds in 16 Cygni bubble by age.
+{prefix}kos add user_name, main faction, danger level, friend or kill
+        Add a user to the KOS list.
 {prefix}kos search user_name
-        Search for a user, list all matching users.
+        Search for a user, list all possible matching users.
 {prefix}kos search_tag
         Search for a tag, list matching users.
 {prefix}kos push

@@ -956,6 +956,7 @@ class KOS(Action):
     """
     async def execute(self):
         session = cogdb.Session()
+        msg = 'KOS: Invalid subcommand'
 
         if self.args.subcmd == 'add':
             line = self.msg.content.replace('!kos add ', '')
@@ -970,7 +971,7 @@ class KOS(Action):
 
         elif self.args.subcmd == 'push':
             entries = session.query(cogdb.schema.KOS).all()
-            get_scanner('hudson_kos').update_whole_sheet(session, entries)
+            get_scanner('hudson_kos').update_whole_sheet(entries)
             msg = 'KOS list flushed to sheet.'
 
         elif self.args.subcmd == 'search':
