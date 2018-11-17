@@ -315,28 +315,22 @@ def subs_kos(subs, prefix):
     """ Subcommand parsing for kos """
     desc = """KOS related commands. Examples:
 
-{prefix}kos add user_name, main faction, danger level, friend or kill
-        Add a user to the KOS list.
+{prefix}kos report user_name Explain why he is reported after name.
+        Report an enemy PP user for KOS addition.
 {prefix}kos search user_name
         Search for a user, list all possible matching users.
-{prefix}kos search_tag
-        Search for a tag, list matching users.
-{prefix}kos push
-        Flush all changes to sheet.
 {prefix}kos pull
-        Pull all changes from sheet.
+        Pull all changes from sheet. Mainly to be used after modifying list.
     """.format(prefix=prefix)
     sub = subs.add_parser(prefix + 'kos', description=desc, formatter_class=RawHelp)
     sub.set_defaults(cmd='KOS', system=[])
     bgs_subs = sub.add_subparsers(title='subcommands',
                                   description='KOS subcommands', dest='subcmd')
-    bgs_sub = bgs_subs.add_parser('add', help='Add a user to KOS.')
-    bgs_sub.add_argument('term', nargs='+', help='The words to lookup.')
+    bgs_sub = bgs_subs.add_parser('report', help='Report user to KOS.')
+    bgs_sub.add_argument('cmdr', help='The CMDR reported.')
+    bgs_sub.add_argument('reason', nargs='+', help='The reason reported.')
     bgs_sub = bgs_subs.add_parser('search', help='Search for a user.')
     bgs_sub.add_argument('term', help='The username to look for.')
-    bgs_sub = bgs_subs.add_parser('search_tag', help='Search for a tag.')
-    bgs_sub.add_argument('term', help='The tag to look for.')
-    bgs_sub = bgs_subs.add_parser('push', help='Push data to sheet.')
     bgs_sub = bgs_subs.add_parser('pull', help='Pull data from sheet.')
 
 

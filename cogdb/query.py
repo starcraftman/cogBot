@@ -475,9 +475,9 @@ class SheetScanner(object):
         # FIXME: Testing hack, I'm open to suggestions.
         if isinstance(self._gsheet, type({})):
             paths = cog.util.get_config('paths')
-            return cog.sheets.GSheet(self._gsheet,
-                                     cog.util.rel_to_abs(paths['json']),
-                                     cog.util.rel_to_abs(paths['token']))
+            self._gsheet = cog.sheets.GSheet(self._gsheet,
+                                             cog.util.rel_to_abs(paths['json']),
+                                             cog.util.rel_to_abs(paths['token']))
 
         return self._gsheet
 
@@ -895,6 +895,9 @@ class KOSScanner(SheetScanner):
 
     args:
         gsheet: Either a dictionary to create a GSheet from or a premade GSheet.
+
+    Raises:
+        SheetParsingError - Duplicate CMDRs detected.
     """
     def __init__(self, gsheet):
         super().__init__(gsheet, None, [KOS])
@@ -905,7 +908,11 @@ class KOSScanner(SheetScanner):
         """
         self.cells = self.gsheet.whole_sheet(dim='ROWS')
         kos_rows = self.parse_rows()
-        print(str(kos_rows))
+        no_dupes = {getattr(obj, 'cmdr'): obj for obj in kos_rows}
+        dupes = list(set(kos_rows) - set(no_dupes.values()))
+        if dupes:
+            cmdrs = ["CMDR {} duplicated in sheet".format(x.cmdr) for x in dupes]
+            raise cog.exc.SheetParsingError("Duplicate CMDRs in KOS sheet.\n\n" + '\n'.join(cmdrs))
 
         session = cogdb.Session()
         self.drop_entries(session)
@@ -936,14 +943,30 @@ class KOSScanner(SheetScanner):
 
         return rows
 
-    def update_whole_sheet(self, entries):
+    def add_report(self, reported_by, cmdr, reason):
         """
-        Update the whole KOS sheet, pass in queried KOS objects.
+        Add a report of a user to the 'reports' tab.
         """
-        cell_range = '!A2:D{}'.format(1 + len(entries))
-        entries = [[ent.cmdr, ent.faction, str(ent.danger), ent.friendly_output()] for ent in entries]
-        print(str(entries))
-        self.gsheet.update(cell_range, entries)
+        try:
+            old_page = self.gsheet.page
+            self.gsheet.page = "'{}'".format('reports')
+            reports = self.gsheet.get('!A:ZZ', dim='ROWS')
+
+            cnt = 0
+            try:
+                while reports[cnt][0]:
+                    cnt += 1
+            except IndexError:
+                pass
+            cnt += 1
+
+            cell_range = '!A{}:C{}'.format(cnt, cnt)
+            entries = [[reported_by, cmdr, reason]]
+            print(str(entries))
+            self.gsheet.update(cell_range, entries)
+            print("finished)", cnt)
+        finally:
+            self.gsheet.page = old_page
 
 
 def um_find_system(session, system_name):
@@ -1170,33 +1193,6 @@ def complete_control_name(partial, include_winters=False):
         systems += WINTERS_CONTROLS
 
     return fuzzy_find(partial, systems)
-
-
-def kos_add_cmdr(session, terms):
-    """
-    Add a kos cmdr to the database.
-
-    Raises:
-        InvalidCommandArgs, ValueError - Problem with input values.
-    """
-    try:
-        danger = int(terms[2])
-        if danger < 0 or danger > 10:
-            raise cog.exc.InvalidCommandArgs("KOS: Danger should be [0, 10].")
-        is_friendly = str(terms[3]).lower()[0].startswith('f')
-        if terms[3][0] not in ['f', 'k']:
-            raise cog.exc.InvalidCommandArgs("KOS: k == kill or f == friendly")
-
-        new_kos = KOS(cmdr=terms[0], faction=terms[1], danger=danger, is_friendly=is_friendly)
-    except IndexError:
-        raise cog.exc.InvalidCommandArgs("KOS: Insufficient terms for the kos command, see help.")
-    except ValueError:
-        raise cog.exc.InvalidCommandArgs("KOS: Check the command help.")
-
-    session.add(new_kos)
-    session.commit()
-
-    return new_kos
 
 
 def kos_search_cmdr(session, term):

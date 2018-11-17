@@ -484,3 +484,9 @@ def test_complete_control_name():
 
     with pytest.raises(cog.exc.MoreThanOneMatch):
         assert cogdb.query.complete_control_name("lhs")
+
+
+def test_kos_search_cmdr(session, f_kos):
+    results = cogdb.query.kos_search_cmdr(session, 'good_guy')
+    assert len(results) == 2
+    assert sorted([x.cmdr for x in results]) == sorted(['good_guy', 'good_guy_pvp'])

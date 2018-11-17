@@ -955,30 +955,23 @@ class KOS(Action):
     Handle the KOS command.
     """
     async def execute(self):
-        session = cogdb.Session()
         msg = 'KOS: Invalid subcommand'
 
-        if self.args.subcmd == 'add':
-            line = self.msg.content.replace('!kos add ', '')
-            terms = [x.strip() for x in line.split(',')]
-            cogdb.query.kos_add_cmdr(session, terms)
-
-            msg = 'CMDR added: ' + terms[0]
+        if self.args.subcmd == 'report':
+            get_scanner('hudson_kos').add_report(self.msg.author.name, self.args.cmdr,
+                                                 ' '.join(self.args.reason))
+            msg = 'CMDR {} has been reported for moderation.'.format(self.args.cmdr)
 
         elif self.args.subcmd == 'pull':
             get_scanner('hudson_kos').scan()
             msg = 'KOS list refreshed from sheet.'
 
-        elif self.args.subcmd == 'push':
-            entries = session.query(cogdb.schema.KOS).all()
-            get_scanner('hudson_kos').update_whole_sheet(entries)
-            msg = 'KOS list flushed to sheet.'
-
         elif self.args.subcmd == 'search':
+            session = cogdb.Session()
             msg = 'Searching for "{}" against known CMDRs\n\n'.format(self.args.term)
             cmdrs = cogdb.query.kos_search_cmdr(session, self.args.term)
             if cmdrs:
-                cmdrs = [[x.cmdr, x.faction, x.danger, x.friendly_output()]
+                cmdrs = [[x.cmdr, x.faction, x.danger, x.friendly]
                          for x in cmdrs]
                 cmdrs = [['CMDR Name', 'Faction', 'Danger', 'Is Friendly?']] + cmdrs
                 msg += cog.tbl.wrap_markdown(cog.tbl.format_table(cmdrs, header=True))

@@ -390,6 +390,24 @@ def test_hold__str__(f_dusers, f_sheets, f_systemsum, f_holds):
                         "Hold(system_id=1, user_id=2, held=0, redeemed=4000)"
 
 
+def test_kos__repr__(f_kos):
+    assert repr(f_kos[0]) == "KOS(cmdr='good_guy', faction='Hudson', danger=1, is_friendly=True)"
+
+
+def test_kos__str__(f_kos):
+    assert str(f_kos[0]) == "id=1, KOS(cmdr='good_guy', faction='Hudson', danger=1, is_friendly=True)"
+
+
+def test_kos__eq__(f_kos):
+    assert f_kos[0] == f_kos[0]
+    assert f_kos[0] != f_kos[1]
+
+
+def test_kos_friendly(f_kos):
+    assert f_kos[0].friendly == 'FRIENDLY'
+    assert f_kos[2].friendly == 'KILL'
+
+
 def test_systemum__repr__(f_dusers, f_sheets, f_systemsum, f_holds):
     system = f_systemsum[0]
 

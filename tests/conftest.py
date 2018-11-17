@@ -27,7 +27,7 @@ import cogdb.query
 from cogdb.schema import (DUser, PrepSystem, System, SystemUM, Drop, Hold,
                           UMExpand, UMOppose, UMControl,
                           SheetRow, SheetCattle, SheetUM,
-                          EFaction, Admin, ChannelPerm, RolePerm, FortOrder)
+                          EFaction, Admin, ChannelPerm, RolePerm, FortOrder, KOS)
 from tests.data import CELLS_FORT, CELLS_FORT_FMT, CELLS_UM
 
 
@@ -340,6 +340,26 @@ def f_fortorders(session):
     yield systems
 
     for matched in session.query(FortOrder):
+        session.delete(matched)
+    session.commit()
+
+
+@pytest.fixture
+def f_kos(session):
+    """
+    Fixture to insert some test SheetRows.
+    """
+    kos_rows = (
+        KOS(id=1, cmdr='good_guy', faction="Hudson", danger=1, is_friendly=1),
+        KOS(id=2, cmdr='good_guy_pvp', faction="Hudson", danger=10, is_friendly=1),
+        KOS(id=3, cmdr='bad_guy', faction="Hudson", danger=8, is_friendly=0),
+    )
+    session.add_all(kos_rows)
+    session.commit()
+
+    yield kos_rows
+
+    for matched in session.query(KOS):
         session.delete(matched)
     session.commit()
 
