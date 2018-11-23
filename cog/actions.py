@@ -346,7 +346,7 @@ class Admin(Action):
             RemoteError - The sheet/tab combination could not be resolved. Tab needs creating.
         """
         self.bot.deny_commands = True
-        scanners = cog.util.get_config('scanners')
+        scanners = [x for x in cog.util.get_config('scanners') if 'cattle' in x or 'undermine' in x]
 
         try:
             for name in scanners:

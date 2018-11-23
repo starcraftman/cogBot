@@ -933,7 +933,7 @@ class KOSScanner(SheetScanner):
                     danger = int(data[2])
                 except ValueError:
                     danger = 0
-                is_friendly = str(data[3]).lower()[0].startswith('F')
+                is_friendly = str(data[3]).lower()[0].startswith('f')
                 rows += [cogdb.schema.KOS(id=row, cmdr=data[0], faction=data[1], danger=danger,
                                           is_friendly=is_friendly)]
 
