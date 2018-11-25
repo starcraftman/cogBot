@@ -30,7 +30,7 @@ LEN = {  # Lengths for strings stored in the db
     "commodity": 30,
     "commodity_category": 20,
     "eddn": 20,
-    "faction": 64,
+    "faction": 90,
     "faction_state": 12,
     "government": 13,
     "module": 30,

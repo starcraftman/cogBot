@@ -304,6 +304,7 @@ class CogBot(discord.Client):
 
         except apiclient.errors.Error as exc:
             line = "Google Sheets API raised an exception"
+            line += "\n" + str(exc) + "\n\n"
             line += cog.exc.log_format(content=content, author=author, channel=channel)
             log.exception(line)
 

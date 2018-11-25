@@ -73,7 +73,8 @@ async def test_reply_with_api_result(f_bot):
 @pytest.mark.asyncio
 async def test_select_from_multiple_exact(f_bot):
     api = cog.inara.InaraApi()
-    f_bot.wait_for_message.async_return_value = fake_msg_gears('cmdr 2')
+    # 4 is not guaranteed, based on external inara cmdr names order in results
+    f_bot.wait_for_message.async_return_value = fake_msg_gears('cmdr 4')
     cog.util.BOT = f_bot
     cmdr = await api.search_with_api('gears', fake_msg_gears('!whois gears'))
     assert cmdr["name"] == "GearsandCogs"
