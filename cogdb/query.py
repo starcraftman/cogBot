@@ -234,14 +234,7 @@ def fort_find_current_index(session):
 
         return ind
 
-    lines = [
-        "**Critical Error**",
-        "----------------",
-        "Fort information invalid, cannot determine fort targets.",
-        "\nPlease check the fort sheet, it may be broken.",
-        "Once the sheet displays properly run: `!admin scan`",
-    ]
-    raise cog.exc.NoMoreTargets('\n'.join(lines))
+    raise cog.exc.NoMoreTargets('No more fort targets at this time.')
 
 
 def fort_find_system(session, system_name, search_all=True):
