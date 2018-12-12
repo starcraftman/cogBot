@@ -347,10 +347,13 @@ class Admin(Action):
         """
         self.bot.deny_commands = True
         scanners = cog.util.get_config('scanners')
+        ignore = scanners.copy()
 
-        # FIXME: Bit of a hack, KOS can't get incremented
+        # Only cattle or um sheets should move.
         for key in list(scanners.keys()):
-            if 'cattle' not in key and 'undermine' not in key:
+            if 'cattle' in key or 'undermine' in key:
+                del ignore[key]
+            else:
                 del scanners[key]
 
         try:
@@ -362,11 +365,13 @@ class Admin(Action):
                 scanner = cls(scanners[name])
                 assert scanner.gsheet.get('!A1:A1')
 
-            cog.util.update_config(scanners, 'scanners')
             for name in scanners:
                 init_scanner(name)
                 # FIXME: Feels icky reaching into code like so
                 self.bot.sched.wraps[name].scanner = cog.actions.get_scanner(name)
+
+            scanners.update(ignore)
+            cog.util.update_config(scanners, 'scanners')
 
             self.bot.sched.schedule_all()
 
