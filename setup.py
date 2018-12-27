@@ -3,7 +3,7 @@ The setup file for packaging cogbot
 """
 from __future__ import absolute_import, print_function
 
-import fnmatch
+import pathlib
 import glob
 import os
 import shlex
@@ -50,21 +50,6 @@ def make_get_input():
 get_input = make_get_input()
 
 
-def rec_search(wildcard):
-    """
-    Traverse all subfolders and match files against the wildcard.
-
-    Returns:
-        A list of all matching files absolute paths.
-    """
-    matched = []
-    for dirpath, _, files in os.walk(os.getcwd()):
-        fn_files = [os.path.join(dirpath, fn_file) for fn_file
-                    in fnmatch.filter(files, wildcard)]
-        matched.extend(fn_files)
-    return matched
-
-
 class Clean(Command):
     """
     Equivalent of make clean.
@@ -78,14 +63,26 @@ class Clean(Command):
         pass
 
     def run(self):
-        matched = ' '.join(rec_search('*.pyc'))
-        matched += ' ' + ' '.join(glob.glob('*.egg-info') + glob.glob('*.egg'))
-        matched += ' ' + ' '.join(rec_search('*diagram.png'))
-        cmd = 'rm -vrf .eggs .tox build dist ' + matched
-        print('Executing: ' + cmd)
+        p = pathlib.Path(ROOT)
+
+        # Ignore .pyc files in .tox as whole dir will be removed,
+        # dramaticly reduces list of paths for ease of reading.
+        rm_list = [x for x in p.glob('**/*.pyc')
+                   if p / '.tox' not in x.parents]
+        rm_list += list(p.glob('*.egg-info'))
+        rm_list += list(p.glob('*.egg'))
+        rm_list += list(p.rglob('*diagram.png'))
+        rm_list.append(p / '.eggs')
+        rm_list.append(p / '.tox')
+        rm_list.append(p / 'build')
+        rm_list.append(p / 'dist')
+
+        print("Removing:")
+        for path in rm_list:
+            print("\t{}".format(path))
         recv = get_input('OK? y/n  ').strip().lower()
         if recv.startswith('y'):
-            subprocess.call(shlex.split(cmd))
+            subprocess.run(['rm', '-vrf'] + [str(f) for f in rm_list])
 
 
 class InstallDeps(Command):
