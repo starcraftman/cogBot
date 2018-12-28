@@ -602,6 +602,7 @@ def preload_station_types(session):
         StationType(id=7, text='Ocellus Starport'),
         StationType(id=8, text='Orbis Starport'),
         StationType(id=9, text='Scientific Outpost'),
+        StationType(id=10, text='Unsanctioned Outpost'),
         StationType(id=11, text='Unknown Outpost'),
         StationType(id=12, text='Unknown Starport'),
         StationType(id=13, text='Planetary Outpost'),
