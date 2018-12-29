@@ -3,9 +3,9 @@ The setup file for packaging cogbot
 """
 from __future__ import absolute_import, print_function
 
-import pathlib
 import glob
 import os
+import pathlib
 import shlex
 import subprocess
 import sys
@@ -63,19 +63,19 @@ class Clean(Command):
         pass
 
     def run(self):
-        p = pathlib.Path(ROOT)
+        root = pathlib.Path(ROOT)
 
         # Ignore .pyc files in .tox as whole dir will be removed,
         # dramaticly reduces list of paths for ease of reading.
-        rm_list = [x for x in p.glob('**/*.pyc')
-                   if p / '.tox' not in x.parents]
-        rm_list += list(p.glob('*.egg-info'))
-        rm_list += list(p.glob('*.egg'))
-        rm_list += list(p.rglob('*diagram.png'))
-        rm_list.append(p / '.eggs')
-        rm_list.append(p / '.tox')
-        rm_list.append(p / 'build')
-        rm_list.append(p / 'dist')
+        rm_list = [file for file in root.glob('**/*.pyc')
+                   if root / '.tox' not in file.parents]
+        rm_list += list(root.glob('*.egg-info'))
+        rm_list += list(root.glob('*.egg'))
+        rm_list += list(root.rglob('*diagram.png'))
+        rm_list.append(root / '.eggs')
+        rm_list.append(root / '.tox')
+        rm_list.append(root / 'build')
+        rm_list.append(root / 'dist')
 
         print("Removing:")
         for path in rm_list:
