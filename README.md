@@ -98,7 +98,7 @@ python setup.py coverage
 **Clean Project**
 Note: This will remove all pyc objects, tox cache and other useless files.
 ```
-python setup.py coverage
+python setup.py clean
 ```
 
 #### Running Tests
