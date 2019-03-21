@@ -17,33 +17,10 @@ import cogdb
 from cogdb.schema import (DUser, System, PrepSystem, SystemUM, SheetRow, SheetCattle, SheetUM,
                           Drop, Hold, EFaction, ESheetType, kwargs_fort_system, kwargs_um_system,
                           Admin, ChannelPerm, RolePerm, FortOrder, KOS)
+from cogdb.side import HUDSON_CONTROLS, WINTERS_CONTROLS
 
 
 DEFER_MISSING = 750
-HUDSON_CONTROLS = [
-    '16 Cygni', '37 Xi Bootis', '39 Serpentis', 'Abi', 'Adeo', 'Alpha Fornacis',
-    'Anlave', 'Aornum', 'Arnemil', 'Atropos', 'BD+42 3917', 'Bhritzameno', 'Burr', 'Dongkum',
-    'Epsilon Scorpii', 'Frey', 'G 250-34', 'GD 219', 'Gilgamesh', 'Gliese 868',
-    'Groombridge 1618', 'HR 2776', 'Kaushpoos', 'Lalande 39866', 'LHS 1197', 'LHS 142',
-    'LHS 1541', 'LHS 3447', 'LHS 3577', 'LHS 3749', 'LHS 3885', 'LHS 6427', 'LP 291-34',
-    'LP 580-33', 'LPM 229', 'LTT 15449', 'LTT 15574', 'Lung', 'Lushertha', 'Mariyacoch',
-    'Mulachi', 'Muncheim', 'Nanomam', 'NLTT 46621', 'Nurundere', 'Othime', 'Parutis',
-    'Phanes', 'Phra Mool', 'Rana', 'Ross 33', 'Shoujeman', 'Sol', 'Tun', 'Vega', 'Venetic',
-    'Wat Yu', 'Wolf 25', 'Wolf 867', 'Wolf 906', 'WW Piscis Austrini'
-]
-WINTERS_CONTROLS = [
-    '169 G. Canis Majoris', '18 Puppis', '41 Lambda Hydrae', '54 G. Antlia',
-    'Amuzgo', 'Ao Kang', 'BD-21 3153', 'Binjamingi', 'Breksta', 'Bulkuylkana',
-    'Bunda', 'C Hydrae', 'Carnoeck', 'Chandra', 'Charunder', 'Crowfor', 'Dierfar',
-    'Eir', 'Elli', 'Ennead', 'Erivit', 'Fan Yin', 'Fousang', 'HIP 24655', 'HIP 38747',
-    'HIP 44811', 'HIP 47328', 'HIP 50489', 'Kali', 'Kaline', 'Kanati', 'Kaura', 'Kherthaje',
-    'Kwattrages', 'LFT 601', 'LFT 926', 'LHS 1887', 'LHS 2150', 'LHS 235', 'LP 417-213',
-    'LP 792-33', 'LP 906-9', 'LTT 4337', 'Lumbla', 'Mangwe', 'Mechucos', 'Mendindui',
-    'Mexicatese', 'Minmar', 'Miroman', 'Momoirent', 'Morixa', 'Namte', 'Neche',
-    'NLTT 19808', 'OU Geminorum', 'Perktomen', 'Ragapajo', 'Reieni', 'Rhea', 'Ross 89',
-    'Sanos', 'Sawali', 'Shenggan', 'Simyr', 'Skeggiko O', 'V902 Centauri', 'Velnians',
-    'Xiriwal', 'Yam', 'Zeta Trianguli Australis', 'Pepper', 'Hyades Sector IC-K b9-4'
-]
 
 
 def fuzzy_find(needle, stack, obj_attr='zzzz', ignore_case=True):
@@ -681,7 +658,7 @@ class FortScanner(SheetScanner):
     def find_system_column(self):
         """
         Find the first column that has a system cell in it.
-        Determined based on cell's background color.
+        Determined based on currently owned systems.
 
         Raises:
             SheetParsingError when fails to locate expected anchor in cells.
@@ -691,10 +668,13 @@ class FortScanner(SheetScanner):
 
         col_count = cog.sheets.Column()
         for column in self.cells:
-            if 'Frey' in column:
-                return str(col_count)
+            try:
+                if column[9] in HUDSON_CONTROLS:
+                    return str(col_count)
 
-            col_count.next()
+                col_count.next()
+            except IndexError:
+                pass
 
         raise cog.exc.SheetParsingError("Unable to determine system column.")
 

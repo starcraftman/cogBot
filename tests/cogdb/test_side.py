@@ -217,3 +217,8 @@ def test_bgs_funcs_winters():
     assert weak("Cooperative")
     assert weak("Feudal")
     assert weak("Patronage")
+
+
+def test_get_control_system_names(side_session):
+    assert 'Nanomam' in cogdb.side.get_control_system_names(side_session, False)
+    assert 'Rhea' in cogdb.side.get_control_system_names(side_session, True)

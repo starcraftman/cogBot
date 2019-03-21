@@ -21,8 +21,8 @@ from sqlalchemy.ext.hybrid import hybrid_method
 import cog.exc
 import cog.tbl
 import cog.util
+import cogdb
 from cogdb.eddb import LEN, TIME_FMT
-import cogdb.query
 
 
 #  http://elite-dangerous.wikia.com/wiki/Category:Power
@@ -1034,7 +1034,7 @@ def bgs_funcs(system):
         strong(gov_type), weak(gov_type)
     """
     bgs = HUDSON_BGS
-    if system in cogdb.query.WINTERS_CONTROLS:
+    if system in WINTERS_CONTROLS:
         bgs = WINTERS_BGS
 
     def strong(gov_type):
@@ -1346,6 +1346,27 @@ def get_edmc_systems(session, controls):
         filter(SystemAge.control.in_(controls),
                SystemAge.system == System.name).\
         all()
+
+
+@wrap_exceptions
+def get_control_system_names(session, winters=False):
+    """
+    Get the latest names of controls from the bgs database.
+    """
+    power_id = 9
+    if winters:
+        power_id = 6
+
+    systems = session.query(System.name).\
+        filter(System.power_id == power_id,
+               System.id == System.control_system_id).\
+        all()
+
+    return [x[0] for x in systems]
+
+
+HUDSON_CONTROLS = get_control_system_names(cogdb.SideSession(), False)
+WINTERS_CONTROLS = get_control_system_names(cogdb.SideSession(), True)
 
 
 def main():
