@@ -67,6 +67,7 @@ WINTERS_BGS = [["Corporate"], ["Communism", "Cooperative", "Feudal", "Patronage"
 Base = sqlalchemy.ext.declarative.declarative_base()
 
 
+# TODO: Determine why explicit joins now required? Change in library? For now fix.
 class Allegiance(Base):
     """ Represents the allegiance of a faction. """
     __tablename__ = "allegiance"
@@ -565,7 +566,8 @@ def influence_in_system(session, system):
     infs = session.query(Influence.influence, Influence.updated_at,
                          Faction.name, Faction.is_player_faction, Government.text).\
         filter(Influence.system_id == subq).\
-        join(Faction, Government).\
+        join(Faction, Influence.faction_id == Faction.id).\
+        join(Government, Faction.government_id == Government.id).\
         order_by(Influence.influence.desc()).\
         all()
 
@@ -777,10 +779,10 @@ def dash_overview(session, control_system):
     control = session.query(System).filter_by(name=control_system).one()
     factions = session.query(System, Faction, Government, Influence, SystemAge.age).\
         filter(System.dist_to(control) <= 15,
-               System.power_state_id != 48,
-               Influence.faction_id == Faction.id,
-               Influence.system_id == System.id).\
-        join(Faction, Government).\
+               System.power_state_id != 48).\
+        join(Influence, System.id == Influence.system_id).\
+        join(Faction, Influence.faction_id == Faction.id).\
+        join(Government, Faction.government_id == Government.id).\
         outerjoin(SystemAge, SystemAge.system == System.name).\
         order_by(System.name).\
         all()
@@ -824,7 +826,9 @@ def find_favorable(session, centre_name, max_dist=None, inc=20):
         matches = session.query(System.name, System.dist_to(centre),
                                 Influence.influence, Faction.name, Government.text).\
             filter(System.dist_to(centre) <= dist).\
-            outerjoin(Influence, Faction, Government).\
+            join(Influence, Influence.system_id == System.id).\
+            join(Faction, Influence.faction_id == Faction.id).\
+            join(Government, Faction.government_id == Government.id).\
             order_by(System.dist_to(centre)).\
             all()
 
@@ -870,7 +874,8 @@ def expansion_candidates(session, centre, faction):
     matches = session.query(System.name, System.dist_to(centre), Faction.id).\
         filter(System.dist_to(centre) <= 20,
                System.name != centre.name).\
-        outerjoin(Influence, Faction).\
+        join(Influence, Influence.system_id == System.id).\
+        join(Faction, Influence.faction_id == Faction.id).\
         order_by(System.dist_to(centre)).\
         all()
 
@@ -950,7 +955,10 @@ def expand_to_candidates(session, system_name):
                             Faction, FactionState.text, Government.text).\
         filter(System.dist_to(centre) <= 20,
                System.name != centre.name).\
-        outerjoin(Influence, Faction, FactionState, Government).\
+        join(Influence, Influence.system_id == System.id).\
+        join(Faction, Influence.faction_id == Faction.id).\
+        join(FactionState, Faction.state_id == FactionState.id).\
+        join(Government, Faction.government_id == Government.id).\
         order_by(System.dist_to(centre)).\
         all()
 
