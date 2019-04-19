@@ -19,12 +19,12 @@ import cog.util
 
 
 EDDB_URLS = [
-    "https://eddb.io/archive/v5/commodities.json",
-    "https://eddb.io/archive/v5/factions.json",
-    # "https://eddb.io/archive/v5/listings.csv",
-    "https://eddb.io/archive/v5/modules.json",
-    "https://eddb.io/archive/v5/stations.json",
-    "https://eddb.io/archive/v5/systems_populated.json",
+    "https://eddb.io/archive/v6/commodities.json",
+    "https://eddb.io/archive/v6/factions.json",
+    # "https://eddb.io/archive/v6/listings.csv",
+    "https://eddb.io/archive/v6/modules.json",
+    "https://eddb.io/archive/v6/stations.json",
+    "https://eddb.io/archive/v6/systems_populated.json",
 ]
 
 

@@ -27,10 +27,11 @@ import cogdb
 PRELOAD = True
 LEN = {  # Lengths for strings stored in the db
     "allegiance": 18,
-    "commodity": 30,
+    "commodity": 34,
     "commodity_category": 20,
     "eddn": 20,
     "faction": 90,
+    "faction_happiness": 12,
     "faction_state": 12,
     "government": 13,
     "module": 30,
@@ -155,6 +156,25 @@ class Faction(Base):
 
     def __eq__(self, other):
         return isinstance(self, Faction) and isinstance(other, Faction) and self.id == other.id
+
+
+class FactionHappiness(Base):
+    """ The happiness of a faction. """
+    __tablename__ = "faction_happiness"
+
+    id = sqla.Column(sqla.Integer, primary_key=True, nullable=True, autoincrement=False)
+    text = sqla.Column(sqla.String(LEN["faction_happiness"]), nullable=False)
+    eddn = sqla.Column(sqla.String(LEN["eddn"]), default=None)
+
+    def __repr__(self):
+        keys = ['id', 'text', 'eddn']
+        kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
+
+        return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
+
+    def __eq__(self, other):
+        return (isinstance(self, FactionHappiness) and isinstance(other, FactionHappiness) and
+                self.id == other.id)
 
 
 class FactionState(Base):
@@ -492,6 +512,16 @@ def preload_allegiance(session):
     ])
 
 
+def preload_faction_happiness(session):
+    session.add_all([
+        FactionHappiness(id=1, text='Elated', eddn='Elated'),
+        FactionHappiness(id=2, text='Happy', eddn='Happy'),
+        FactionHappiness(id=3, text='Discontented', eddn='Discontented'),
+        FactionHappiness(id=4, text='Unhappy', eddn='Unhappy'),
+        FactionHappiness(id=5, text='Despondent', eddn='Despondent'),
+    ])
+
+
 def preload_faction_state(session):
     session.add_all([
         FactionState(id=0, text="(unknown)", eddn=None),
@@ -612,6 +642,8 @@ def preload_station_types(session):
         StationType(id=17, text='Planetary Engineer Base'),
         StationType(id=19, text='Megaship'),
         StationType(id=20, text='Asteroid Base'),
+        StationType(id=22, text='Unknown Dockable'),
+        StationType(id=23, text='Non-Dockable Orbital'),
     ])
 
 
@@ -623,6 +655,7 @@ def preload_tables(session):
         return
 
     preload_allegiance(session)
+    preload_faction_happiness(session)
     preload_faction_state(session)
     preload_gov_type(session)
     preload_powers(session)
@@ -660,6 +693,21 @@ def parse_commodity_categories(session):
         del data['category']
 
         return data['category_id']
+
+    return parse_actual
+
+
+def parse_faction_happiness(session):
+    objs = []
+
+    def parse_actual(data):
+        if data["state_id"] and data["state_id"] not in objs and not PRELOAD:
+            if data["state"] is None:
+                data["state"] = "None"
+            session.add(FactionHappiness(id=data["state_id"], text=data["state"]))
+            session.commit()
+            objs.append(data["state_id"])
+        del data["state"]
 
     return parse_actual
 
@@ -797,7 +845,7 @@ def load_factions(session, fname):
     with open(fname) as fin:
         all_data = json.load(fin)
 
-    parsers = [parse_allegiance(session), parse_government(session), parse_faction_state(session)]
+    parsers = [parse_allegiance(session), parse_government(session)]
     print("Parsing factions, takes a while ...")
     for data in all_data:
         for parse in parsers:
@@ -826,7 +874,8 @@ def load_systems(session, fname):
                     "primary_economy", "primary_economy_id",
                     "reserve_type", "reserve_type_id",
                     "security", "simbad_ref",
-                    "state", "state_id"]:
+                    "states",
+                    ]:
             del data[key]
 
         data = parse_power(data)
@@ -854,14 +903,13 @@ def load_stations(session, fname):
                           max_landing_pad_size=data['max_landing_pad_size'],
                           controlling_minor_faction_id=data['controlling_minor_faction_id'],
                           system_id=data['system_id'], updated_at=data['updated_at'])
-
         session.add(station)
 
         if count:
+            print('--' * 8)
             print(data)
             print(station)
             print(4 * ' ', station.features)
-            print(4 * ' ', station.type)
             count -= 1
 
 
