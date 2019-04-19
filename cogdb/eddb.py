@@ -1059,7 +1059,12 @@ def recreate_tables():
 
 def import_eddb():
     """ Allows the seeding of db from eddb dumps. """
-    confirm = input("Reimport EDDB Database? (y/n) ").strip().lower()
+    try:
+        confirm = sys.argv[1].strip().lower()
+    except IndexError:
+        confirm = input("Reimport EDDB Database? (y/n) ")
+    confirm = confirm.strip().lower()
+
     if confirm == "dump":
         print("Dumping to: /tmp/eddb_dump")
         classes = [x[1] for x in inspect.getmembers(sys.modules[__name__], select_classes)]

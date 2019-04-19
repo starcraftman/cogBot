@@ -64,7 +64,10 @@ def main():
     except IndexError:
         folder = cog.util.rel_to_abs(os.path.sep.join(['data', 'eddb']))
 
-    confirm = input("Proceeding will overwrite {} with the latest dumps from eddb.\
+    try:
+        confirm = sys.argv[2].strip().lower()
+    except IndexError:
+        confirm = input("Proceeding will overwrite {} with the latest dumps from eddb.\
 \nProceed? (y/n) ".format(folder))
     confirm = confirm.strip().lower()
 
