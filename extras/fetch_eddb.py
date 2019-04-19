@@ -40,8 +40,10 @@ async def fetch(url, fname, sort=True):
     """
     print("Download started", url)
 
-    async with aiofiles.open(fname, "wb") as fout, aiohttp.ClientSession() as session:
-        async with session.get(url, encoding={"Accept-Encoding": "gzip, deflate, sdch"}) as resp:
+    headers = {"Accept-Encoding": "gzip, deflate, sdch"}
+    async with aiofiles.open(fname, "wb") as fout,\
+            aiohttp.ClientSession(headers=headers) as session:
+        async with session.get(url) as resp:
             chunk = await resp.content.read(1000)
             while chunk:
                 await fout.write(chunk)

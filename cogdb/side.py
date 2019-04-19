@@ -1367,7 +1367,7 @@ def get_control_system_names(session, winters=False):
 
     systems = session.query(System.name).\
         filter(System.power_id == power_id,
-               System.id == System.control_system_id).\
+               System.power_state_id == 16).\
         all()
 
     return [x[0] for x in systems]
