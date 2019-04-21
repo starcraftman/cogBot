@@ -9,13 +9,11 @@ from __future__ import absolute_import, print_function
 import inspect
 import math
 import sys
-try:
-    import simplejson as json
-except ImportError:
-    import json
+import ijson.backends.yajl2_cffi as ijson
 
 import sqlalchemy as sqla
 import sqlalchemy.orm as sqla_orm
+import sqlalchemy.exc as sqla_exc
 import sqlalchemy.ext.declarative
 from sqlalchemy.ext.hybrid import hybrid_property, hybrid_method
 
@@ -667,250 +665,286 @@ def preload_tables(session):
     session.commit()
 
 
-def parse_allegiance(session):
-    objs = []
-
-    def parse_actual(data):
-        if data["allegiance_id"] and data["allegiance_id"] not in objs and not PRELOAD:
-            if data["allegiance"] is None:
-                data["allegiance"] = "None"
-            session.add(Allegiance(id=data["allegiance_id"], text=data["allegiance"]))
-            session.commit()
-            objs.append(data["allegiance_id"])
-        del data["allegiance"]
-
-    return parse_actual
-
-
-def parse_commodity_categories(session):
-    objs = []
-
-    def parse_actual(data):
-        cat = data["category"]
-        if cat['id'] and cat["id"] not in objs:
-            objs.append(cat["id"])
-            session.add(CommodityCat(**cat))
-        del data['category']
-
-        return data['category_id']
-
-    return parse_actual
-
-
-def parse_faction_happiness(session):
-    objs = []
-
-    def parse_actual(data):
-        if data["state_id"] and data["state_id"] not in objs and not PRELOAD:
-            if data["state"] is None:
-                data["state"] = "None"
-            session.add(FactionHappiness(id=data["state_id"], text=data["state"]))
-            session.commit()
-            objs.append(data["state_id"])
-        del data["state"]
-
-    return parse_actual
-
-
-def parse_faction_state(session):
-    objs = []
-
-    def parse_actual(data):
-        if data["state_id"] and data["state_id"] not in objs and not PRELOAD:
-            if data["state"] is None:
-                data["state"] = "None"
-            session.add(FactionState(id=data["state_id"], text=data["state"]))
-            session.commit()
-            objs.append(data["state_id"])
-        del data["state"]
-
-    return parse_actual
-
-
-def parse_government(session):
-    objs = []
-
-    def parse_actual(data):
-        if data["government_id"] and data["government_id"] not in objs and not PRELOAD:
-            if data["government"] is None:
-                data["government"] = "None"
-            session.add(Government(id=data["government_id"], text=data["government"]))
-            session.commit()
-            objs.append(data["government_id"])
-        del data["government"]
-
-    return parse_actual
-
-
-def parse_module_groups(session):
-    objs = []
-
-    def parse_actual(data):
-        grp = data['group']
-        if grp['id'] and grp["id"] not in objs:
-            objs.append(grp["id"])
-            session.add(ModuleGroup(**grp))
-        gid = grp['id']
-        del data['group']
-
-        return gid
-
-    return parse_actual
-
-
-def parse_security(session):
-    objs = []
-
-    def parse_actual(data):
-        did = data["security_id"]
-        if did and did not in objs and not PRELOAD:
-            # if data["security"] is None:
-                # data["allegiance"] = "None"
-            session.add(Security(id=did, text=data["security"]))
-            session.commit()
-            objs.append(did)
-            del data["security"]
-        del data["allegiance"]
-
-    return parse_actual
-
-
-def parse_power(data):
-    data["power_id"] = POWER_IDS[data["power"]]
-    del data["power"]
-
-    return data
-
-
-def parse_station_features(session):
-    def parse_actual(data):
-        session.add(StationFeatures(id=data["id"],
-                                    blackmarket=data['has_blackmarket'],
-                                    commodities=data['has_commodities'],
-                                    docking=data['has_docking'],
-                                    market=data['has_market'],
-                                    outfitting=data['has_outfitting'],
-                                    refuel=data['has_refuel'],
-                                    repair=data['has_repair'],
-                                    rearm=data['has_rearm'],
-                                    shipyard=data['has_shipyard']))
-
-    return parse_actual
-
-
-def parse_station_type(session):
-    objs = []
-
-    def parse_actual(data):
-        if data["type_id"] and data["type_id"] not in objs and not PRELOAD:
-            session.add(StationType(id=data["type_id"], text=data["type"]))
-            # session.commit()
-            objs.append(data["type_id"])
-        del data["type"]
-
-    return parse_actual
-
-
+# TODO: Test these load functions
 def load_commodities(session, fname):
     """ Parse standard eddb dump commodities.json and enter into database. """
-    with open(fname) as fin:
-        all_data = json.load(fin)
+    item = {}
+    item_cat = {}
 
-    parse_cat = parse_commodity_categories(session)
-    for data in all_data:
-        commodity = Commodity(id=data["id"], category_id=parse_cat(data), name=data["name"],
-                              average_price=data["average_price"], is_rare=data["is_rare"])
-        session.add(commodity)
-        # print(commodity)
+    # High level mapppings direct data flow by path in json
+    # Mappings should be mutually exclusive
+    # Format prefix, [(target_dictionary, key_in_dict), (target_dictionary, key_in_dict), ...]
+    mappings = {
+        'item.id': [('item', 'id')],
+        'item.name': [('item', 'name')],
+        'item.average_price': [('item', 'average_price')],
+        'item.is_rare': [('item', 'is_rare')],
+        'item.category.id': [('item', 'category_id'), ('item_cat', 'id')],
+        'item.category.name': [('item_cat', 'name')],
+    }
+
+    print("Parsing commodities ...")
+    with open(fname, 'rb') as fin:
+        for prefix, the_type, value in ijson.parse(fin):
+            #  print(prefix, the_type, value)
+            if (prefix, the_type, value) == ('item', 'end_map', None):
+                # JSON Item terminated
+                commodity = Commodity(**item)
+                commodity_cat = CommodityCat(**item_cat)
+
+                #  Debug
+                #  print('Item', commodity)
+                #  print('Item Cat', commodity_cat)
+
+                try:
+                    session.add(commodity_cat)
+                    session.commit()
+                except (sqla_exc.IntegrityError, sqla_orm.exc.FlushError):
+                    session.rollback()
+                session.add(commodity)
+                session.commit()
+
+                item.clear()
+                item_cat.clear()
+                continue
+
+            try:
+                for dic, key in mappings[prefix]:
+                    locals()[dic][key] = value
+            except KeyError:
+                pass
 
 
 def load_modules(session, fname):
     """ Parse standard eddb dump modules.json and enter into database. """
-    with open(fname) as fin:
-        all_data = json.load(fin)
+    item = {'size': None, 'mass': None}
+    item_group = {}
 
-    group_parser = parse_module_groups(session)
-    for data in all_data:
-        gid = group_parser(data)
-        module = Module(id=data["id"], group_id=gid, name=data["name"],
-                        size=data.get('class'), rating=data['rating'],
-                        mass=data.get('mass'), price=data['price'],
-                        ship=data['ship'], weapon_mode=data["weapon_mode"])
-        session.add(module)
-        # print(module)
+    # High level mapppings direct data flow by path in json
+    # Mappings should be mutually exclusive
+    # Format prefix, [(target_dictionary, key_in_dict), (target_dictionary, key_in_dict), ...]
+    mappings = {
+        'item.id': [('item', 'id')],
+        'item.name': [('item', 'name')],
+        'item.rating': [('item', 'rating')],
+        'item.price': [('item', 'price')],
+        'item.ship': [('item', 'ship')],
+        'item.weapon_mode': [('item', 'weapon_mode')],
+        'item.class': [('item', 'size')],
+        'item.mass': [('item', 'mass')],
+        'item.group.id': [('item', 'group_id'), ('item_group', 'id')],
+        'item.group.name': [('item_group', 'name')],
+        'item.group.category': [('item_group', 'category')],
+        'item.group.category_id': [('item_group', 'category_id')],
+    }
+
+    print("Parsing modules ...")
+    with open(fname, 'rb') as fin:
+        for prefix, the_type, value in ijson.parse(fin):
+            #  print(prefix, the_type, value)
+            if (prefix, the_type, value) == ('item', 'end_map', None):
+                # JSON Item terminated
+                module = Module(**item)
+                module_group = ModuleGroup(**item_group)
+
+                # Debug
+                #  print('Item', module)
+                #  print('Item mod', module_group)
+
+                try:
+                    session.add(module_group)
+                    session.commit()
+                except (sqla_exc.IntegrityError, sqla_orm.exc.FlushError):
+                    session.rollback()
+                session.add(module)
+                session.commit()
+
+                item.clear()
+                item['size'] = None
+                item['mass'] = None
+                item_group.clear()
+                continue
+
+            try:
+                for dic, key in mappings[prefix]:
+                    locals()[dic][key] = value
+            except KeyError:
+                pass
 
 
 def load_factions(session, fname):
-    """ Parse standard eddb dump factions.json and enter into database. """
-    with open(fname) as fin:
-        all_data = json.load(fin)
+    """ Parse standard eddb dump modules.json and enter into database. """
+    faction = {}
+    allegiance = {}
+    government = {}
 
-    parsers = [parse_allegiance(session), parse_government(session)]
+    # High level mapppings direct data flow by path in json
+    # Mappings should be mutually exclusive
+    # Format prefix, [(target_dictionary, key_in_dict), (target_dictionary, key_in_dict), ...]
+    mappings = {
+        'item.id': [('faction', 'id')],
+        'item.name': [('faction', 'name')],
+        'item.home_system_id': [('faction', 'home_system')],
+        'item.is_player_faction': [('faction', 'is_player_faction')],
+        'item.updated_at': [('faction', 'updated_at')],
+        'item.government_id': [('faction', 'government_id'), ('government', 'id')],
+        'item.government': [('government', 'text')],
+        'item.allegiance_id': [('faction', 'allegiance_id'), ('allegiance', 'id')],
+        'item.allegiance': [('allegiance', 'text')],
+    }
+
     print("Parsing factions, takes a while ...")
-    for data in all_data:
-        for parse in parsers:
-            parse(data)
+    with open(fname, 'rb') as fin:
+        for prefix, the_type, value in ijson.parse(fin):
+            #  print(prefix, the_type, value)
+            if (prefix, the_type, value) == ('item', 'end_map', None):
+                # JSON Item terminated
+                faction_db = Faction(**faction)
+                allegiance_db = Allegiance(**allegiance)
+                government_db = Government(**government)
 
-        data['home_system'] = data.pop('home_system_id')
+                # Debug
+                #  print('Faction', faction_db)
+                #  print('Allegiance', allegiance_db)
+                #  print('Government', government_db)
 
-        faction = Faction(**data)
-        session.add(faction)
-        # print(faction)  # A lot of spam
+                if not PRELOAD:
+                    try:
+                        session.add(allegiance_db)
+                        session.commit()
+                    except (sqla_exc.IntegrityError, sqla_orm.exc.FlushError):
+                        session.rollback()
+                    try:
+                        session.add(government_db)
+                        session.commit()
+                    except (sqla_exc.IntegrityError, sqla_orm.exc.FlushError):
+                        session.rollback()
+                session.add(faction_db)
+                session.commit()
+
+                faction.clear()
+                allegiance.clear()
+                government.clear()
+                continue
+
+            try:
+                for dic, key in mappings[prefix]:
+                    locals()[dic][key] = value
+            except KeyError:
+                pass
 
 
 def load_systems(session, fname):
     """ Parse standard eddb dump populated_systems.json and enter into database. """
-    with open(fname) as fin:
-        all_data = json.load(fin)
+    system = {}
+
+    # High level mapppings direct data flow by path in json
+    # Mappings should be mutually exclusive
+    # Format prefix, [(target_dictionary, key_in_dict), (target_dictionary, key_in_dict), ...]
+    mappings = {
+        'item.id': [('system', 'id')],
+        'item.updated_at': [('system', 'updated_at')],
+        'item.name': [('system', 'name')],
+        'item.population': [('system', 'population')],
+        'item.needs_permit': [('system', 'needs_permit')],
+        'item.edsm_id': [('system', 'edsm_id')],
+        'item.security_id': [('system', 'security_id')],
+        'item.power_state_id': [('system', 'power_state_id')],
+        'item.controlling_minor_faction_id': [('system', 'controlling_minor_faction_id')],
+        'item.control_system_id': [('system', 'control_system_id')],
+        'item.x': [('system', 'x')],
+        'item.y': [('system', 'y')],
+        'item.z': [('system', 'z')],
+    }
 
     print("Parsing systems, takes a while ...")
-    for data in all_data:
-        # Until I start parsing, delete. Some can be inferred and won't store.
-        for key in ["allegiance", "allegiance_id",
-                    "controlling_minor_faction",
-                    "government", "government_id", "is_populated",
-                    "minor_faction_presences",  # Inluence numbers
-                    "power_state",
-                    "primary_economy", "primary_economy_id",
-                    "reserve_type", "reserve_type_id",
-                    "security", "simbad_ref",
-                    "states",
-                    ]:
-            del data[key]
+    with open(fname, 'rb') as fin:
+        for prefix, the_type, value in ijson.parse(fin):
+            #  print(prefix, the_type, value)
+            if (prefix, the_type, value) == ('item', 'end_map', None):
+                # JSON Item terminated
+                system_db = System(**system)
 
-        data = parse_power(data)
+                # Debug
+                #  print('System', system_db)
 
-        system = System(**data)
-        session.add(system)
-        # print(system)  # A lot of spam
+                session.add(system_db)
+                session.commit()
+
+                system.clear()
+                continue
+
+            try:
+                for dic, key in mappings[prefix]:
+                    locals()[dic][key] = value
+            except KeyError:
+                pass
 
 
 def load_stations(session, fname):
     """ Parse standard eddb dump stations.json and enter into database. """
-    with open(fname) as fin:
-        all_data = json.load(fin)
+    station = {}
+    features = {}
+    type = {}
+
+    # High level mapppings direct data flow by path in json
+    # Mappings should be mutually exclusive
+    # Format prefix, [(target_dictionary, key_in_dict), (target_dictionary, key_in_dict), ...]
+    mappings = {
+        'item.id': [('station', 'id'), ('features', 'id')],
+        'item.name': [('station', 'name')],
+        'item.type_id': [('station', 'type_id'), ('type', 'id')],
+        'item.distance_to_star': [('station', 'distance_to_star')],
+        'item.max_landing_pad_size': [('station', 'max_landing_pad_size')],
+        'item.controlling_minor_faction_id': [('station', 'controlling_minor_faction_id')],
+        'item.system_id': [('station', 'system_id')],
+        'item.updated_at': [('station', 'updated_at')],
+        'item.has_blackmarket': [('features', 'blackmarket')],
+        'item.has_commodities': [('features', 'commodities')],
+        'item.has_docking': [('features', 'docking')],
+        'item.has_market': [('features', 'market')],
+        'item.has_outfitting': [('features', 'outfitting')],
+        'item.has_refuel': [('features', 'refuel')],
+        'item.has_repair': [('features', 'repair')],
+        'item.has_rearm': [('features', 'rearm')],
+        'item.has_shipyard': [('features', 'shipyard')],
+        'item.type': [('type', 'text')],
+    }
 
     print("Parsing stations, takes a while ...")
-    parse_type = parse_station_type(session)
-    parse_features = parse_station_features(session)
-    count = 0
-    for data in all_data:
-        parse_type(data)
-        parse_features(data)
+    with open(fname, 'rb') as fin:
+        for prefix, the_type, value in ijson.parse(fin):
+            #  print(prefix, the_type, value)
+            if (prefix, the_type, value) == ('item', 'end_map', None):
+                # JSON Item terminated
+                station_db = Station(**station)
+                features_db = StationFeatures(**features)
+                type_db = StationType(**type)
 
-        station = Station(id=data['id'], name=data['name'], type_id=data['type_id'],
-                          distance_to_star=data['distance_to_star'],
-                          max_landing_pad_size=data['max_landing_pad_size'],
-                          controlling_minor_faction_id=data['controlling_minor_faction_id'],
-                          system_id=data['system_id'], updated_at=data['updated_at'])
-        session.add(station)
+                # Debug
+                #  print('Station', station_db)
+                #  print('Station Features', features_db)
+                #  print('Station Type', type_db)
 
-        if count:
-            print('--' * 8)
-            print(data)
-            print(station)
-            print(4 * ' ', station.features)
-            count -= 1
+                try:
+                    session.add(type_db)
+                    session.commit()
+                except (sqla_exc.IntegrityError, sqla_orm.exc.FlushError):
+                    session.rollback()
+                session.add(features_db)
+                session.add(station_db)
+                session.commit()
+
+                station.clear()
+                features.clear()
+                type.clear()
+                continue
+
+            try:
+                for dic, key in mappings[prefix]:
+                    locals()[dic][key] = value
+            except KeyError:
+                pass
 
 
 def get_systems(session, system_names):
@@ -1081,10 +1115,8 @@ def import_eddb():
     load_commodities(session, cog.util.rel_to_abs("data", "eddb", "commodities.json"))
     load_modules(session, cog.util.rel_to_abs("data", "eddb", "modules.json"))
     load_factions(session, cog.util.rel_to_abs("data", "eddb", "factions.json"))
-    session.commit()
     load_systems(session, cog.util.rel_to_abs("data", "eddb", "systems_populated.json"))
     load_stations(session, cog.util.rel_to_abs("data", "eddb", "stations.json"))
-    session.commit()
 
     print("Faction count:", session.query(Faction).count())
     print("System count (populated):", session.query(System).count())
