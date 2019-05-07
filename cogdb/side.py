@@ -64,6 +64,8 @@ WATCH_FACTIONS = [
 ]
 HUDSON_BGS = [['Feudal', 'Patronage'], ["Dictatorship"]]
 WINTERS_BGS = [["Corporate"], ["Communism", "Cooperative", "Feudal", "Patronage"]]
+PILOTS_FED_FACTION_ID = 76748  # N.B. 76748 is Useless pilots federation faction ID
+# They are not useful for any faction related predictions/interactions.
 Base = sqlalchemy.ext.declarative.declarative_base()
 
 
@@ -565,7 +567,8 @@ def influence_in_system(session, system):
     subq = session.query(System.id).filter(System.name == system).subquery()
     infs = session.query(Influence.influence, Influence.updated_at,
                          Faction.name, Faction.is_player_faction, Government.text).\
-        filter(Influence.system_id == subq).\
+        filter(Influence.system_id == subq,
+               Faction.id != PILOTS_FED_FACTION_ID).\
         join(Faction, Influence.faction_id == Faction.id).\
         join(Government, Faction.government_id == Government.id).\
         order_by(Influence.influence.desc()).\
@@ -678,6 +681,7 @@ def system_overview(session, system):
                                  current.text, pending.text, Government.text, Influence).\
             filter(Influence.system_id == system.id,
                    Faction.id == Influence.faction_id,
+                   Faction.id != PILOTS_FED_FACTION_ID,
                    Faction.government_id == Government.id,
                    Influence.state_id == current.id,
                    Influence.pending_state_id == pending.id).\
@@ -873,7 +877,8 @@ def expansion_candidates(session, centre, faction):
     """
     matches = session.query(System.name, System.dist_to(centre), Faction.id).\
         filter(System.dist_to(centre) <= 20,
-               System.name != centre.name).\
+               System.name != centre.name,
+               Faction.id != PILOTS_FED_FACTION_ID).\
         join(Influence, Influence.system_id == System.id).\
         join(Faction, Influence.faction_id == Faction.id).\
         order_by(System.dist_to(centre)).\
@@ -936,7 +941,8 @@ def get_factions_in_system(session, system_name):
     return session.query(Faction).\
         filter(System.name == system_name,
                Influence.system_id == System.id,
-               Faction.id == Influence.faction_id).\
+               Faction.id == Influence.faction_id,
+               Faction.id != PILOTS_FED_FACTION_ID).\
         order_by(Faction.name).\
         all()
 
