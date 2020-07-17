@@ -424,11 +424,7 @@ class BGS(Action):
             None, cogdb.side.dash_overview, cogdb.SideSession(), control_name)
 
         lines = [['Age', 'System', 'Control Faction', 'Gov', 'Inf', 'Net', 'N', 'Pop']]
-        cnt = {
-            "anarchy": 0,
-            "strong": 0,
-            "weak": 0,
-        }
+        strong_cnt, weak_cnt = 0, 0
 
         strong, weak = cogdb.side.bgs_funcs(control_name)
         for system, faction, gov, inf, age in systems:
@@ -438,21 +434,23 @@ class BGS(Action):
                 facts_count[system.name], system.log_pop
             ]]
 
-            if gov.text == 'Anarchy':
-                cnt["anarchy"] += 1
-            elif weak(gov.text):
-                cnt["weak"] += 1
+            if system.is_control_system:
+                continue
+
+            if weak(gov.text):
+                weak_cnt += 1
             elif strong(gov.text):
-                cnt["strong"] += 1
+                strong_cnt += 1
 
         table = cog.tbl.wrap_markdown(cog.tbl.format_table(lines, sep=' | ', center=False,
                                                            header=True))
 
         header = "**{}**".format(control.name)
+        tot_systems = len(systems) - 1
         hlines = [
-            ["Strong", "{}/{}".format(cnt["strong"], len(systems))],
-            ["Weak", "{}/{}".format(cnt["weak"], len(systems))],
-            ["Anarchy", "{}/{}".format(cnt["anarchy"], len(systems))],
+            ["Strong", "{}/{}".format(strong_cnt, tot_systems)],
+            ["Weak", "{}/{}".format(weak_cnt, tot_systems)],
+            ["Neutral", "{}/{}".format(tot_systems - strong_cnt - weak_cnt, tot_systems)],
         ]
         header += cog.tbl.wrap_markdown(cog.tbl.format_table(hlines))
 

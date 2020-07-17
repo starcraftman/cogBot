@@ -784,11 +784,13 @@ def dash_overview(session, control_system):
     factions = session.query(System, Faction, Government, Influence, SystemAge.age).\
         filter(System.dist_to(control) <= 15,
                System.power_state_id != 48).\
+        outerjoin(SystemAge, SystemAge.system == System.name).\
         join(Influence, System.id == Influence.system_id).\
+        filter(Influence.is_controlling_faction == 1).\
         join(Faction, Influence.faction_id == Faction.id).\
         join(Government, Faction.government_id == Government.id).\
-        outerjoin(SystemAge, SystemAge.system == System.name).\
         order_by(System.name).\
+        limit(100).\
         all()
 
     facts_in_system = count_factions_in_systems(session,

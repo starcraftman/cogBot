@@ -534,8 +534,16 @@ def preload_faction_state(session):
         FactionState(id=72, text="Outbreak", eddn="Outbreak"),
         FactionState(id=73, text="War", eddn="War"),
         FactionState(id=80, text="None", eddn="None"),
+        FactionState(id=81, text="Pirate Attack", eddn="PirateAttack"),
         FactionState(id=96, text="Retreat", eddn="Retreat"),
         FactionState(id=101, text="Investment", eddn="Investment"),
+        FactionState(id=102, text="Blight", eddn="Blight"),
+        FactionState(id=103, text="Drought", eddn="Drought"),
+        FactionState(id=104, text="Infrastructure Failure", eddn="InfrastructureFailure"),
+        FactionState(id=105, text="Natural Disaster", eddn="NaturalDisaster"),
+        FactionState(id=106, text="Public Holiday", eddn="PublicHoliday"),
+        FactionState(id=107, text="Terrorist Attack", eddn="Terrorism"),
+        FactionState(id=127, text="Civil Liberty", eddn="CivilLiberty"),
     ])
 
 
