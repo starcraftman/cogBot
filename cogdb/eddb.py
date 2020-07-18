@@ -27,11 +27,11 @@ LEN = {  # Lengths for strings stored in the db
     "allegiance": 18,
     "commodity": 34,
     "commodity_category": 20,
-    "eddn": 20,
+    "eddn": 25,
     "faction": 90,
     "faction_happiness": 12,
-    "faction_state": 12,
-    "government": 13,
+    "faction_state": 23,
+    "government": 18,
     "module": 30,
     "module_category": 20,  # Name of group of similar groups like limpets, weapons
     "module_group": 36,  # Name of module group, i.e. "Beam Laser"
@@ -1120,11 +1120,11 @@ def import_eddb():
     session = cogdb.EDDBSession()
     preload_tables(session)
 
-    load_commodities(session, cog.util.rel_to_abs("data", "eddb", "commodities.json"))
-    load_modules(session, cog.util.rel_to_abs("data", "eddb", "modules.json"))
-    load_factions(session, cog.util.rel_to_abs("data", "eddb", "factions.json"))
-    load_systems(session, cog.util.rel_to_abs("data", "eddb", "systems_populated.json"))
-    load_stations(session, cog.util.rel_to_abs("data", "eddb", "stations.json"))
+    load_commodities(session, cog.util.rel_to_abs("data", "eddb", "commodities.jsonl"))
+    load_modules(session, cog.util.rel_to_abs("data", "eddb", "modules.jsonl"))
+    load_factions(session, cog.util.rel_to_abs("data", "eddb", "factions.jsonl"))
+    load_systems(session, cog.util.rel_to_abs("data", "eddb", "systems_populated.jsonl"))
+    load_stations(session, cog.util.rel_to_abs("data", "eddb", "stations.jsonl"))
 
     print("Faction count:", session.query(Faction).count())
     print("System count (populated):", session.query(System).count())
