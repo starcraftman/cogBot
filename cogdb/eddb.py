@@ -283,6 +283,7 @@ class PowerState(Base):
     | 16 | Control   |
     | 32 | Exploited |
     | 48 | Contested |
+    | 64 | Expansion |
     """
     __tablename__ = "power_state"
 
@@ -564,6 +565,7 @@ def preload_gov_type(session):
         Government(id=176, text='None', eddn='None'),
         Government(id=192, text='Engineer', eddn='Engineer'),
         Government(id=208, text='Prison', eddn='Prison'),
+        Government(id=209, text='Private Ownership', eddn='PrivateOwnership'),
     ])
 
 
@@ -592,6 +594,7 @@ def preload_power_states(session):
         PowerState(id=16, text="Control"),
         PowerState(id=32, text="Exploited"),
         PowerState(id=48, text="Contested"),
+        PowerState(id=64, text="Expansion"),
     ])
 
 

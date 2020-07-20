@@ -15,9 +15,6 @@ import aiofiles
 import aiohttp
 
 
-import cog.util
-
-
 EDDB_URLS = [
     "https://eddb.io/archive/v6/commodities.json",
     "https://eddb.io/archive/v6/factions.json",
@@ -59,16 +56,13 @@ async def fetch(url, fname, sort=True):
 
 def main():
     sort = False
-    try:
-        folder = os.path.abspath(sys.argv[1])
-    except IndexError:
-        folder = cog.util.rel_to_abs(os.path.sep.join(['data', 'eddb']))
+    eddb_d = os.path.join(os.path.dirname(os.path.abspath(os.path.dirname(__file__))), 'data', 'eddb')
 
     try:
-        confirm = sys.argv[2].strip().lower()
+        confirm = sys.argv[1]
     except IndexError:
         confirm = input("Proceeding will overwrite {} with the latest dumps from eddb.\
-\nProceed? (y/n) ".format(folder))
+\nProceed? (y/n) ".format(eddb_d))
     confirm = confirm.strip().lower()
 
     if confirm == "sort":
@@ -78,13 +72,13 @@ def main():
         return
 
     try:
-        os.makedirs(folder)
+        os.makedirs(eddb_d)
     except OSError:
         pass
 
-    jobs = [fetch(url, os.path.join(folder, os.path.basename(url)), sort) for url in EDDB_URLS]
+    jobs = [fetch(url, os.path.join(eddb_d, os.path.basename(url)), sort) for url in EDDB_URLS]
     asyncio.get_event_loop().run_until_complete(asyncio.gather(*jobs))
-    print("All files updated in", folder)
+    print("All files updated in", eddb_d)
 
 
 if __name__ == "__main__":
