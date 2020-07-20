@@ -2,6 +2,8 @@
 Tests for cog.inara
 """
 from __future__ import absolute_import, print_function
+import os
+
 try:
     import simplejson as json
 except ImportError:
@@ -27,24 +29,26 @@ def test_inara_api_input():
         'eventName': 'fakeEvent',
     }
     assert events == expect
-    assert actual["header"]["appName"] == "CogBot"
+    assert actual["header"]["APIkey"].startswith("3")
 
 
 @pytest.mark.asyncio
 async def test_inara_api_key_unset(f_bot):
     try:
-        old_key = cog.inara.API_KEY
-        cog.inara.API_KEY = None
+        old_key = cog.inara.HEADER_PROTO
+        cog.inara.HEADER_PROTO = None
 
         api = cog.inara.InaraApi()
         cog.util.BOT = f_bot
         await api.search_with_api('gearsandcogs',
                                   fake_msg_gears('!whois gearsandcogs'))
+        __import__('pprint').pprint(str(f_bot.send_message.call_args))
         assert "!whois is currently disabled." in str(f_bot.send_message.call_args)
     finally:
-        cog.inara.API_KEY = old_key
+        cog.inara.HEADER_PROTO = old_key
 
 
+@pytest.mark.skipif(not os.environ.get('ALL_TESTS'), reason="Prevent temp inara ban.")
 @pytest.mark.asyncio
 async def test_search_with_api(f_bot):
     api = cog.inara.InaraApi()
@@ -57,6 +61,7 @@ async def test_search_with_api(f_bot):
     assert cmdr["req_id"] == 0
 
 
+@pytest.mark.skipif(not os.environ.get('ALL_TESTS'), reason="Prevent temp inara ban.")
 @pytest.mark.asyncio
 async def test_reply_with_api_result(f_bot):
     api = cog.inara.InaraApi()
@@ -70,11 +75,12 @@ async def test_reply_with_api_result(f_bot):
     assert 'embed=<discord.embeds.Embed' in str(f_bot.send_message.call_args)
 
 
+@pytest.mark.skipif(not os.environ.get('ALL_TESTS'), reason="Prevent temp inara ban.")
 @pytest.mark.asyncio
 async def test_select_from_multiple_exact(f_bot):
     api = cog.inara.InaraApi()
     # 4 is not guaranteed, based on external inara cmdr names order in results
-    f_bot.wait_for_message.async_return_value = fake_msg_gears('cmdr 4')
+    f_bot.wait_for_message.async_return_value = fake_msg_gears('cmdr 7')
     cog.util.BOT = f_bot
     cmdr = await api.search_with_api('gears', fake_msg_gears('!whois gears'))
     assert cmdr["name"] == "GearsandCogs"
@@ -82,6 +88,7 @@ async def test_select_from_multiple_exact(f_bot):
         cmdr["otherNamesFound"]
 
 
+@pytest.mark.skipif(not os.environ.get('ALL_TESTS'), reason="Prevent temp inara ban.")
 @pytest.mark.asyncio
 async def test_select_from_multiple_stop(f_bot):
     api = cog.inara.InaraApi()

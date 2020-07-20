@@ -13,7 +13,7 @@ def test_get_shipyard_stations(eddb_session):
 
     actual = cogdb.eddb.get_shipyard_stations(eddb_session, "Rana", 30)
     assert actual[0][:3] == ['Rana', 0.0, 'Ali Hub']
-    assert len(actual) == 115
+    assert len(actual) == 117
 
     actual = cogdb.eddb.get_shipyard_stations(eddb_session, "Rana", 15, 50000)
     assert actual[0][:3] == ['Rana', 0.0, 'Ali Hub']

@@ -5,6 +5,19 @@ Lookup can be exact or loose, responds with all relevant CMDR info.
 Thanks to CMDR shotwn for the contribution.
 Contributed: 20/10/2017
 Inara API version: 01/12/2017 - v1
+
+Information on api: https://inara.cz/inara-api-devguide/
+IMPORTANT: Request rate hard limited to 25/min, temp ban after 1-2 hours.
+
+HEADER_PROTO contains key and identifying info for each request.
+Example of how header should look. Now pulled directly from config.
+#  HEADER_PROTO = {
+    #  "appName": 'AppName',
+    #  "appVersion": AppVersion,
+    #  "APIkey": APIKey,
+    #  "isDeveloped": True  # Just leae this true.
+#  }
+TODO: Implement rate limiting here or upstream in actions.
 '''
 import asyncio
 import datetime
@@ -26,12 +39,12 @@ import cog.util
 # Disable line too long, pylint: disable=C0301
 
 try:
-    API_KEY = cog.util.get_config('inara', 'api_key')
+    HEADER_PROTO = cog.util.get_config('inara', 'proto_header')
 except KeyError:
+    HEADER_PROTO = None
     logging.getLogger('cog.inara').\
         warning("!whois inara search disabled. No inara field or api_key in config.yml")
     print("!whois inara search disabled. No inara field or api_key in config.yml")
-    API_KEY = None
 
 SITE = 'https://inara.cz'
 API_ENDPOINT = SITE + '/inapi/v1/'
@@ -42,13 +55,6 @@ API_RESPONSE_CODES = {
     'error': 400
 }
 API_HEADERS = {'content-type': 'application/json'}
-# Prototype for all json header sections
-HEADER_PROTO = {
-    "appName": 'CogBot',
-    "appVersion": cog.__version__,
-    "APIkey": API_KEY,
-    "isDeveloped": True
-}
 
 PP_COLORS = {
     'Alliance': 0x008000,
@@ -136,7 +142,7 @@ class InaraApi():
             None if disabled or not found.
         """
         # keep search disabled if there is no API_KEY
-        if not API_KEY:
+        if not HEADER_PROTO:
             await cog.util.BOT.send_message(msg.channel,
                                             "!whois is currently disabled. Inara API key is not set.")
             return None
@@ -169,7 +175,8 @@ class InaraApi():
 
             # handle rejection.
             if r_code == API_RESPONSE_CODES["error"] or r_code not in API_RESPONSE_CODES.values():
-                raise cog.exc.RemoteError("Inara search failed. API Response code bad: " +
+                logging.getLogger('cog.inara').error("INARA Response Failure: \n" + str(response_json))
+                raise cog.exc.RemoteError("Inara search failed. See log for details. API Response code bad: " +
                                           str(r_code))
 
             event = response_json["events"][0]

@@ -434,7 +434,7 @@ class BGS(Action):
                 facts_count[system.name], system.log_pop
             ]]
 
-            if system.is_control_system:
+            if system.name == control_name:
                 continue
 
             if weak(gov.text):

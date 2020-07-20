@@ -255,7 +255,7 @@ def test_fortscanner_merits(mock_fortsheet):
     scanner.scan()
 
     session = cogdb.Session()
-    fort1 = session.query(cogdb.schema.Drop).all()[0]
+    fort1 = session.query(cogdb.schema.Drop).filter(cogdb.schema.Drop.system_id == 1003).all()[0]
     assert fort1.amount == 2222
     assert fort1.system.name == 'Frey'
     assert fort1.user.name == 'Toliman'
@@ -265,7 +265,9 @@ def test_fortscanner_systems(mock_fortsheet):
     scanner = cogdb.query.FortScanner(mock_fortsheet)
     scanner.scan()
     result = [sys.name for sys in scanner.systems()]
-    assert result == SYSTEMS[:6] + ['Othime']
+
+    for sys in SYSTEMS[:6] + ['Othime']:
+        assert sys in result
 
 
 def test_fortscanner_users(mock_fortsheet):
