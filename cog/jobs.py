@@ -45,7 +45,7 @@ RUN = True
 TIME_FMT = "%d/%m %H:%M:%S"
 
 
-class Job(object):
+class Job():
     """
     Represents a function executing in a separatee process.
 
@@ -195,7 +195,7 @@ async def pool_monitor_task(delay=2):
             except Exception as exc:  # If amy exception, it failed, try again.
                 if not isinstance(exc, concurrent.futures.TimeoutError):
                     msg = "Exception raised during process execution!"
-                    log.exception(msg + "\n" + str(exc))
+                    log.exception("%s\n%s", msg, exc)
                 try:
                     job.check_timeout()
                 except cog.exc.FailedJob:

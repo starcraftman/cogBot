@@ -30,19 +30,19 @@ LEN_SHEET = 15
 Base = sqlalchemy.ext.declarative.declarative_base()
 
 
-class EFaction(object):
+class EFaction():
     """ Switch between the two fed factions. """
     hudson = 'hudson'
     winters = 'winters'
 
 
-class ESheetType(object):
+class ESheetType():
     """ Type of sheet. """
     cattle = 'SheetCattle'
     undermine = 'SheetUM'
 
 
-class EUMType(object):
+class EUMType():
     """ Type of undermine system. """
     control = 'control'
     expand = 'expanding'
@@ -447,8 +447,7 @@ class System(Base):
 
     def __lt__(self, other):
         """ Order systems by remaining supplies needed. """
-        if isinstance(other, self.__class__):
-            return self.missing < other.missing
+        return isinstance(other, self.__class__) and self.missing < other.missing
 
     @property
     def cmdr_merits(self):
@@ -482,11 +481,7 @@ class System(Base):
     @property
     def is_fortified(self):
         """ The remaining supplies to fortify """
-        # FIXME: Hack until import sheet included.
-        if self.fort_override >= 1.0:
-            return True
-
-        return self.current_status >= self.trigger
+        return self.fort_override >= 1.0 or self.current_status >= self.trigger
 
     @property
     def is_undermined(self):

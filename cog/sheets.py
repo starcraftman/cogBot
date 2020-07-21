@@ -25,7 +25,7 @@ APPLICATION_NAME = 'CogBot'
 REQ_SCOPE = 'https://www.googleapis.com/auth/spreadsheets'
 
 
-class ColCnt(object):
+class ColCnt():
     """
     Simple counter that resets and prints its character.
     """
@@ -77,7 +77,7 @@ class ColCnt(object):
             self.char = ord('Z')
 
 
-class Column(object):
+class Column():
     """
     Model a column in an excel sheet of form A-Z, AA, AB ... AZ, BA ....
     """
@@ -165,7 +165,7 @@ class Column(object):
         return self.__str__()
 
 
-class GSheet(object):
+class GSheet():
     """
     Class to wrap the sheet api and provide convenience methods.
 

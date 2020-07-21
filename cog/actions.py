@@ -104,7 +104,7 @@ def check_sheet(scanner_name, stype):
     return inner
 
 
-class Action(object):
+class Action():
     """
     Top level action, contains shared logic.
     """
@@ -480,7 +480,7 @@ class BGS(Action):
             _, route = await self.bot.loop.run_in_executor(None, cogdb.eddb.find_best_route,
                                                            eddb_session, controls)
             controls = [sys.name for sys in route]
-        resp += "\n".join([sys for sys in controls])
+        resp += "\n".join(controls)
 
         for control in controls:
             resp += "\n\n__{}__\n".format(string.capwords(control))
@@ -1093,7 +1093,8 @@ class Scout(Action):
                 system = user_msg.content.strip()
                 if system.lower() == 'stop':
                     break
-                elif system.lower() in l_systems:
+
+                if system.lower() in l_systems:
                     systems = [sys for sys in systems if sys.lower() != system.lower()]
                 elif system:
                     systems.append(system)
@@ -1218,7 +1219,7 @@ class UM(Action):
         if (self.args.set or self.args.offset) and not self.args.system:
             raise cog.exc.InvalidCommandArgs("You forgot to specify a system to update.")
 
-        elif self.args.list:
+        if self.args.list:
             now = datetime.datetime.utcnow().replace(microsecond=0)
             today = now.replace(hour=0, minute=0, second=0)  # pylint: disable=unexpected-keyword-arg
             weekly_tick = today + datetime.timedelta(hours=7)

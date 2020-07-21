@@ -388,7 +388,7 @@ def mock_umsheet(db_cleanup):
 
 
 # Fake objects look like discord data classes
-class FakeObject(object):
+class FakeObject():
     """
     A fake class to impersonate Data Classes from discord.py
     """

@@ -32,7 +32,7 @@ class CogException(Exception):
         return self.message
 
     def __str__(self):
-        return self.reply()
+        return str(self.reply())
 
 
 class UserException(CogException):

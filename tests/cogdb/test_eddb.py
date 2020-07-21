@@ -9,15 +9,19 @@ import cogdb.eddb
 def test_get_shipyard_stations(eddb_session):
     actual = cogdb.eddb.get_shipyard_stations(eddb_session, "Rana")
     assert actual[0][:3] == ['Rana', 0.0, 'Ali Hub']
-    assert len(actual) == 9
+    assert len(actual) > 15
 
+
+def test_get_shipyard_stations_dist(eddb_session):
     actual = cogdb.eddb.get_shipyard_stations(eddb_session, "Rana", 30)
-    assert actual[0][:3] == ['Rana', 0.0, 'Ali Hub']
-    assert len(actual) == 117
+    assert ['Sol', 29.49, 'Daedalus', 209] in actual
+    assert len(actual) > 100
 
+
+def test_get_shipyard_stations_dist_arrival(eddb_session):
     actual = cogdb.eddb.get_shipyard_stations(eddb_session, "Rana", 15, 50000)
-    assert actual[0][:3] == ['Rana', 0.0, 'Ali Hub']
-    assert len(actual) == 18
+    assert ['LTT 2151', 11.16, 'Read Terminal', 387] in actual
+    assert len(actual) > 20
 
 
 def test_get_systems(eddb_session):

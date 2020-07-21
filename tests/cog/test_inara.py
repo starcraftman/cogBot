@@ -15,6 +15,9 @@ import cog.util
 
 from tests.conftest import Message, fake_msg_gears
 
+REASON_INARA = 'Prevent temp inara ban due flooding. To enable, ensure os.environ ALL_TESTS=True'
+INARA_TEST = pytest.mark.skipif(not os.environ.get('ALL_TESTS'), reason=REASON_INARA)
+
 
 def test_inara_api_input():
     api_input = cog.inara.InaraApiInput()
@@ -42,13 +45,12 @@ async def test_inara_api_key_unset(f_bot):
         cog.util.BOT = f_bot
         await api.search_with_api('gearsandcogs',
                                   fake_msg_gears('!whois gearsandcogs'))
-        __import__('pprint').pprint(str(f_bot.send_message.call_args))
         assert "!whois is currently disabled." in str(f_bot.send_message.call_args)
     finally:
         cog.inara.HEADER_PROTO = old_key
 
 
-@pytest.mark.skipif(not os.environ.get('ALL_TESTS'), reason="Prevent temp inara ban.")
+@INARA_TEST
 @pytest.mark.asyncio
 async def test_search_with_api(f_bot):
     api = cog.inara.InaraApi()
@@ -61,7 +63,7 @@ async def test_search_with_api(f_bot):
     assert cmdr["req_id"] == 0
 
 
-@pytest.mark.skipif(not os.environ.get('ALL_TESTS'), reason="Prevent temp inara ban.")
+@INARA_TEST
 @pytest.mark.asyncio
 async def test_reply_with_api_result(f_bot):
     api = cog.inara.InaraApi()
@@ -75,7 +77,7 @@ async def test_reply_with_api_result(f_bot):
     assert 'embed=<discord.embeds.Embed' in str(f_bot.send_message.call_args)
 
 
-@pytest.mark.skipif(not os.environ.get('ALL_TESTS'), reason="Prevent temp inara ban.")
+@INARA_TEST
 @pytest.mark.asyncio
 async def test_select_from_multiple_exact(f_bot):
     api = cog.inara.InaraApi()
@@ -88,7 +90,7 @@ async def test_select_from_multiple_exact(f_bot):
         cmdr["otherNamesFound"]
 
 
-@pytest.mark.skipif(not os.environ.get('ALL_TESTS'), reason="Prevent temp inara ban.")
+@INARA_TEST
 @pytest.mark.asyncio
 async def test_select_from_multiple_stop(f_bot):
     api = cog.inara.InaraApi()

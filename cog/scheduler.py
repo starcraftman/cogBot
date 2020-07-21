@@ -110,7 +110,7 @@ class Scheduler(aiozmq.rpc.AttrHandler):
         print(aiozmq.rpc.logger)
 
 
-class WrapScanner(object):
+class WrapScanner():
     """
     Wrap a scanner with info about scheduling. Mainly a data class.
     """

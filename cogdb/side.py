@@ -526,13 +526,14 @@ def next_bgs_tick(session, now):
     log = logging.getLogger("cogdb.side")
     result = session.query(BGSTick).filter(BGSTick.tick > now).order_by(BGSTick.tick).\
         limit(1).first()
-    if result:
-        log.info("BGS_TICK - %s -> %s", str(now), result.tick)
-        return "BGS Tick in **{}**    (Expected {})".format(result.tick - now, result.tick)
-    else:
+
+    if not result:
         log.warning("BGS_TICK - Remote out of estimates")
         side = cog.util.BOT.get_member_by_substr("sidewinder40")
         raise cog.exc.NoMoreTargets("BGS Tick estimate unavailable. No more estimates, " + side.mention)
+
+    log.info("BGS_TICK - %s -> %s", str(now), result.tick)
+    return "BGS Tick in **{}**    (Expected {})".format(result.tick - now, result.tick)
 
 
 @wrap_exceptions

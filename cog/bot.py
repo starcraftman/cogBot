@@ -52,7 +52,7 @@ import cog.util
 import cogdb.query
 
 
-class EmojiResolver(object):
+class EmojiResolver():
     """
     Map emoji embeds onto the text required to make them appear.
     """
@@ -338,6 +338,7 @@ class CogBot(discord.Client):
         for part in cog.util.complete_blocks(cog.util.msg_splitter(content)):
             await self.send_message(destination, part, tts=tts, embed=embed)
 
+    # TODO: Signature changed in library, update later.
     async def send_message(self, destination, content=None, *, tts=False, embed=None):
         """
         Behaves excactly like Client.send_message except it:

@@ -40,11 +40,12 @@ def fuzzy_find(needle, stack, obj_attr='zzzz', ignore_case=True):
     num_matches = len(matches)
     if num_matches == 1:
         return matches[0]
-    elif num_matches == 0:
+
+    if num_matches == 0:
         cls = stack[0].__class__.__name__ if getattr(stack[0], '__class__') else 'string'
         raise cog.exc.NoMatch(needle, cls)
-    else:
-        raise cog.exc.MoreThanOneMatch(needle, matches, obj_attr)
+
+    raise cog.exc.MoreThanOneMatch(needle, matches, obj_attr)
 
 
 def dump_db():  # pragma: no cover
@@ -411,7 +412,7 @@ def fort_order_drop(session, systems):
     session.commit()
 
 
-class SheetScanner(object):
+class SheetScanner():
     """
     Scan a sheet to populate the database with information
     Also provide methods to update the sheet with new data
@@ -933,7 +934,7 @@ class KOSScanner(SheetScanner):
                 pass
             cnt += 1
 
-            cell_range = '!A{}:C{}'.format(cnt, cnt)
+            cell_range = '!A{cnt}:C{cnt}'.format(cnt=cnt)
             entries = [[reported_by, cmdr, reason]]
             print(str(entries))
             self.gsheet.update(cell_range, entries)
@@ -1150,9 +1151,9 @@ def check_role_perms(session, cmd, server_name, member_roles):
 
     Raises InvalidPerms if fails permission check.
     """
-    perm_roles = set([perm.role for perm in session.query(RolePerm).
-                      filter_by(cmd=cmd, server=server_name)])
-    member_roles = set([role.name for role in member_roles])
+    perm_roles = {perm.role for perm in session.query(RolePerm).
+                  filter_by(cmd=cmd, server=server_name)}
+    member_roles = {role.name for role in member_roles}
     if perm_roles and len(member_roles - perm_roles) == len(member_roles):
         raise cog.exc.InvalidPerms("You do not have the roles for the command.")
 

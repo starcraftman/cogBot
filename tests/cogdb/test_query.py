@@ -243,7 +243,7 @@ def test_fort_order_drop(session, f_systems, f_fortorders):
 def test_fortscanner_find_system_column(mock_fortsheet):
     scanner = cogdb.query.FortScanner(mock_fortsheet)
     scanner.cells = mock_fortsheet.whole_sheet()
-    scanner.find_system_column() == 'F'
+    assert scanner.find_system_column() == 'H'
 
     with pytest.raises(cog.exc.SheetParsingError):
         scanner.cells = [[''], ['CMDR Name']]

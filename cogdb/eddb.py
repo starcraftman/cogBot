@@ -1115,7 +1115,7 @@ def import_eddb():
         classes = [x[1] for x in inspect.getmembers(sys.modules[__name__], select_classes)]
         dump_db(cogdb.EDDBSession(), classes)
         return
-    elif not confirm.startswith('y'):
+    if not confirm.startswith('y'):
         print("Aborting.")
         return
 

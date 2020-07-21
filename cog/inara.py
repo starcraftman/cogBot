@@ -175,7 +175,7 @@ class InaraApi():
 
             # handle rejection.
             if r_code == API_RESPONSE_CODES["error"] or r_code not in API_RESPONSE_CODES.values():
-                logging.getLogger('cog.inara').error("INARA Response Failure: \n" + str(response_json))
+                logging.getLogger('cog.inara').error("INARA Response Failure: \n%s", response_json)
                 raise cog.exc.RemoteError("Inara search failed. See log for details. API Response code bad: " +
                                           str(r_code))
 
