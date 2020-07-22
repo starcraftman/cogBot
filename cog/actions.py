@@ -45,7 +45,7 @@ def user_info(user):  # pragma: no cover
     """
     lines = [
         ['Username', '{}#{}'.format(user.name, user.discriminator)],
-        ['ID', user.id],
+        ['ID', str(user.id)],
         ['Status', str(user.status)],
         ['Join Date', str(user.joined_at)],
         ['All Roles:', str([str(role) for role in user.roles[1:]])],
@@ -149,7 +149,7 @@ class Admin(Action):
     """
     def check_role(self, role):
         """ Sanity check that role exists. """
-        if role not in [role.name for role in self.msg.channel.server.roles]:
+        if role not in [role.name for role in self.msg.channel.guild.roles]:
             raise cog.exc.InvalidCommandArgs("Role does not exist!")
 
     def check_cmd(self):
@@ -177,7 +177,7 @@ class Admin(Action):
 
             if self.msg.channel_mentions:
                 cogdb.query.add_channel_perm(self.session, self.args.rule_cmd,
-                                             self.msg.channel.server.name,
+                                             self.msg.channel.guild.name,
                                              self.msg.channel_mentions[0].name)
                 response = "Channel permission added."
 
@@ -185,7 +185,7 @@ class Admin(Action):
                 role = ' '.join(self.args.role)
                 self.check_role(role)
                 cogdb.query.add_role_perm(self.session, self.args.rule_cmd,
-                                          self.msg.channel.server.name,
+                                          self.msg.channel.guild.name,
                                           ' '.join(self.args.role))
                 response = "Role permission added."
 
@@ -208,7 +208,7 @@ class Admin(Action):
 
             if self.msg.channel_mentions:
                 cogdb.query.remove_channel_perm(self.session, self.args.rule_cmd,
-                                                self.msg.channel.server.name,
+                                                self.msg.channel.guild.name,
                                                 self.msg.channel_mentions[0].name)
                 response = "Channel permission removed."
 
@@ -216,7 +216,7 @@ class Admin(Action):
                 role = ' '.join(self.args.role)
                 self.check_role(role)
                 cogdb.query.remove_role_perm(self.session, self.args.rule_cmd,
-                                             self.msg.channel.server.name, role)
+                                             self.msg.channel.guild.name, role)
                 response = "Role permission removed."
 
         return response
@@ -229,10 +229,10 @@ class Admin(Action):
         No storage, just requests info on demand.
         """
         all_members = []
-        for member in self.msg.server.members:
+        for member in self.msg.guild.members:
             for channel in self.msg.channel_mentions:
-                if channel.permissions_for(member).read_messages and member.id not in all_members:
-                    all_members += [member.id]
+                if channel.permissions_for(member).read_messages and str(member.id) not in all_members:
+                    all_members += [str(member.id)]
 
         after = datetime.datetime.utcnow() - datetime.timedelta(days=30 * self.args.months)
         report = {}
@@ -241,9 +241,9 @@ class Admin(Action):
             try:
                 async for msg in self.bot.logs_from(channel, after=after, limit=100000):
                     try:
-                        report[channel.name][msg.author.id]
+                        report[channel.name][str(msg.author.id)]
                     except KeyError:
-                        report[channel.name][msg.author.id] = msg.timestamp
+                        report[channel.name][str(msg.author.id)] = msg.created_at
             except discord.errors.Forbidden:
                 raise cog.exc.InvalidCommandArgs("Bot has no permissions for channel: " + channel.name)
 
@@ -267,12 +267,12 @@ class Admin(Action):
                 except ValueError:
                     pass
 
-        server = self.msg.server
+        guild = self.msg.guild
         header = "ID,Name,Top Role,Created At,Joined At\n"
         inactive_recruits = "**Inactive Recruits**\n" + header
         inactive_members = "**Inactive Members or Above**\n" + header
         for member_id in all_members:
-            member = server.get_member(member_id)
+            member = guild.get_member(member_id)
             if not member:
                 continue
 
@@ -285,7 +285,7 @@ class Admin(Action):
 
         actives = "**Active Membership (last 90 days)**\n" + header[:-1] + ",Last Message\n"
         for member_id in flat:
-            member = server.get_member(member_id)
+            member = guild.get_member(member_id)
             if not member:
                 continue
             line = "{},{},{},{},{},{}\n".format(member.id, member.name, member.top_role.name,
@@ -507,8 +507,8 @@ class BGS(Action):
         for ind, name in enumerate([fact.name for fact in factions]):
             prompt += "\n({}) {}".format(ind, name)
         sent = await self.bot.send_message(self.msg.channel, prompt)
-        select = await self.bot.wait_for_message(timeout=30, author=self.msg.author,
-                                                 channel=self.msg.channel)
+        select = await self.bot.wait_for('message',
+                check=lambda m: m.author == self.msg.author and m.channel == self.msg.channel, timeout=30)
 
         try:
             ind = int(select.content)
@@ -523,8 +523,7 @@ class BGS(Action):
             raise cog.exc.InvalidCommandArgs("Selection was invalid, try command again.")
         finally:
             try:
-                await self.bot.delete_message(sent)
-                await self.bot.delete_message(select)
+                await sent.channel.delete_messages(sent, select)
             except discord.errors.DiscordException:
                 pass
 
@@ -713,7 +712,7 @@ class Drop(Action):
         if system.is_fortified:
             response += self.finished(system)
         await self.bot.send_message(self.msg.channel,
-                                    self.bot.emoji.fix(response, self.msg.server))
+                                    self.bot.emoji.fix(response, self.msg.guild))
 
 
 class Fort(Action):
@@ -826,7 +825,7 @@ To unset override, simply set an empty list of systems.
             response = '\n'.join(lines)
 
         await self.bot.send_message(self.msg.channel,
-                                    self.bot.emoji.fix(response, self.msg.server))
+                                    self.bot.emoji.fix(response, self.msg.guild))
 
 
 class Feedback(Action):
@@ -835,7 +834,7 @@ class Feedback(Action):
     """
     async def execute(self):
         lines = [
-            ['Server', self.msg.server.name],
+            ['Guild', self.msg.guild.name],
             ['Channel', self.msg.channel.name],
             ['Author', self.msg.author.name],
             ['Date (UTC)', datetime.datetime.utcnow()],
@@ -885,7 +884,7 @@ class Help(Action):
 
         response = '\n'.join(over) + cog.tbl.wrap_markdown(cog.tbl.format_table(lines, header=True))
         await self.bot.send_ttl_message(self.msg.channel, response)
-        await self.bot.delete_message(self.msg)
+        await self.msg.delete()
 
 
 class Hold(Action):
@@ -1013,7 +1012,7 @@ class Pin(Action):
         # async for message in self.bot.logs_from(msg.channel, 10):
             # if not message.content or message.content == "!pin":
                 # to_delete += [message]
-        # await self.bot.delete_messages(to_delete)
+        # await to_delete.delete()
 
 
 class Repair(Action):
@@ -1083,8 +1082,9 @@ class Scout(Action):
             try:
                 prompt = SCOUT_INTERACT.format('    ' + '\n    '.join(systems))
                 responses = [await cog.util.BOT.send_message(self.msg.channel, prompt)]
-                user_msg = await cog.util.BOT.wait_for_message(timeout=30, author=self.msg.author,
-                                                               channel=self.msg.channel)
+                user_msg = await cog.util.BOT.wait_for('message',
+                        check=lambda m: m.author == self.msg.author and m.channel == self.msg.channel, timeout=30)
+
                 if user_msg:
                     responses += [user_msg]
                 if not user_msg:
@@ -1100,8 +1100,7 @@ class Scout(Action):
                     systems.append(system)
                     l_systems.append(system.lower())
             finally:
-                asyncio.ensure_future(asyncio.gather(
-                    *[cog.util.BOT.delete_message(response) for response in responses]))
+                asyncio.ensure_future(responses[0].channel.delete_messages(responses))
 
         return systems
 

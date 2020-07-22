@@ -89,7 +89,7 @@ class Job():
         If this job is part of more than one step, use 'part' to add further
         information about what the job does.
         """
-        self.ident = "{} {} {}{}".format(msg.timestamp, msg.author, msg.content,
+        self.ident = "{} {} {}{}".format(msg.created_at, msg.author, msg.content,
                                          ' ' + part if part else '')
 
     def start(self):

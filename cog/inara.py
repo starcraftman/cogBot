@@ -125,7 +125,7 @@ class InaraApi():
     async def delete_waiting_message(self, req_id):  # pragma: no cover
         """ Delete the message which informs user about start of search """
         if req_id in self.waiting_messages:
-            await cog.util.BOT.delete_message(self.waiting_messages[req_id])
+            await self.waiting_messages[req_id].delete()
             del self.waiting_messages[req_id]
 
     async def search_with_api(self, cmdr_name, msg, ignore_multiple_match=False):
@@ -256,8 +256,11 @@ class InaraApi():
         while True:
             try:
                 responses = [await cog.util.BOT.send_message(msg.channel, reply)]
-                user_select = await cog.util.BOT.wait_for_message(timeout=30, author=msg.author,
-                                                                  channel=msg.channel)
+                try:
+                    user_select = await cog.util.BOT.wait_for('message',
+                        check=lambda m: m.author == msg.author and m.channel == msg.channel, timeout=30)
+                except asyncio.TimeoutError: # TODO: Temp hack
+                    user_select = None
                 if user_select:
                     responses += [user_select]
 
@@ -268,8 +271,7 @@ class InaraApi():
                 if user_select:
                     responses += [await cog.util.BOT.send_message(msg.channel, str(exc))]
             finally:
-                asyncio.ensure_future(asyncio.gather(
-                    *[cog.util.BOT.delete_message(response) for response in responses]))
+                asyncio.ensure_future(responses[0].channel.delete_messages(responses))
 
     async def wing_details(self, event_data, cmdr):
         """

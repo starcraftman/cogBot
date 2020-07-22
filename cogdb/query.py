@@ -1124,8 +1124,8 @@ def check_perms(msg, args):
     Raises InvalidPerms if any permission issue.
     """
     session = cogdb.Session()
-    check_channel_perms(session, args.cmd, msg.channel.server.name, msg.channel.name)
-    check_role_perms(session, args.cmd, msg.channel.server.name, msg.author.roles)
+    check_channel_perms(session, args.cmd, msg.channel.guild.name, msg.channel.name)
+    check_role_perms(session, args.cmd, msg.channel.guild.name, msg.author.roles)
 
 
 def check_channel_perms(session, cmd, server_name, channel_name):

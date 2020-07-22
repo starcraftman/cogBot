@@ -197,10 +197,10 @@ def emphasize_match(seq, line, fmt='__{}__'):
 def log_format(*, content, author, channel):
     """ Log useful information from discord.py """
     msg = "{aut} sent {cmd} from {cha}/{srv}"
-    msg += "\n    Discord ID: " + author.id
+    msg += "\n    Discord ID: " + str(author.id)
     msg += "\n    Username: {}#{}".format(author.name, author.discriminator)
     for role in author.roles[1:]:
-        msg += "\n    {} on {}".format(role.name, role.server.name)
+        msg += "\n    {} on {}".format(role.name, role.guild.name)
 
     return msg.format(aut=author.display_name, cmd=content,
-                      cha=channel, srv=channel.server)
+                      cha=channel, srv=channel.guild)

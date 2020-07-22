@@ -428,7 +428,7 @@ class Server(FakeObject):
 class Channel(FakeObject):
     def __init__(self, name, *, srv=None, id=None):
         super().__init__(name, id)
-        self.server = srv
+        self.guild = srv
 
     # def __repr__(self):
         # return super().__repr__() + ", Server: {}".format(self.server.name)
@@ -453,7 +453,7 @@ class Member(FakeObject):
 class Role(FakeObject):
     def __init__(self, name, srv=None, *, id=None):
         super().__init__(name, id)
-        self.server = srv
+        self.guild = srv
 
     # def __repr__(self):
         # return super().__repr__() + "\n  {}".format(self.server)
@@ -466,7 +466,7 @@ class Message(FakeObject):
         self.channel = channel
         self.content = content
         self.mentions = mentions
-        self.server = srv
+        self.guild = srv
 
     @property
     def timestamp(self):
@@ -534,7 +534,7 @@ def f_bot():
     fake_bot.get_member_by_substr.return_value = member
     fake_bot.delete_message.async_return_value = None
     fake_bot.emoji.fix = lambda x, y: x
-    fake_bot.servers = fake_servers()
+    fake_bot.guilds = fake_servers()
 
     def fake_exec(_, func, *args):
         return func(*args)
