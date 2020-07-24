@@ -259,7 +259,7 @@ class InaraApi():
                 try:
                     user_select = await cog.util.BOT.wait_for('message',
                         check=lambda m: m.author == msg.author and m.channel == msg.channel, timeout=30)
-                except asyncio.TimeoutError: # TODO: Temp hack
+                except asyncio.TimeoutError:  # TODO: Temp hack
                     user_select = None
                 if user_select:
                     responses += [user_select]

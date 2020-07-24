@@ -523,7 +523,7 @@ class BGS(Action):
             raise cog.exc.InvalidCommandArgs("Selection was invalid, try command again.")
         finally:
             try:
-                await sent.channel.delete_messages(sent, select)
+                await sent.channel.delete_messages([sent, select])
             except discord.errors.DiscordException:
                 pass
 
@@ -1403,7 +1403,7 @@ def get_scanner(name):
 
 
 SCANNERS = {}
-SCOUT_RND = {
+SCOUT_RND = {  # TODO: Extract to data config or tables.
     1: [
         "Epsilon Scorpii",
         "39 Serpentis",

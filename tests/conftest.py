@@ -429,9 +429,15 @@ class Channel(FakeObject):
     def __init__(self, name, *, srv=None, id=None):
         super().__init__(name, id)
         self.guild = srv
+        self.all_delete_messages = []
 
     # def __repr__(self):
         # return super().__repr__() + ", Server: {}".format(self.server.name)
+
+    async def delete_messages(self, messages):
+        for msg in messages:
+            msg.is_deleted = True
+        self.all_delete_messages += messages
 
 
 class Member(FakeObject):
@@ -467,14 +473,22 @@ class Message(FakeObject):
         self.content = content
         self.mentions = mentions
         self.guild = srv
-
-    @property
-    def timestamp(self):
-        return datetime.datetime.utcnow()
+        self.is_deleted = False
 
     # def __repr__(self):
         # return super().__repr__() + "\n  Content: {}\n  Author: {}\n  Channel: {}\n  Server: {}".format(
             # self.content, self.author, self.channel, self.server)
+
+    @property
+    def created_at(self):
+        return datetime.datetime.utcnow()
+
+    @property
+    def edited_at(self):
+        return datetime.datetime.utcnow()
+
+    async def delete(self):
+        self.is_deleted = True
 
 
 def fake_servers():
@@ -528,11 +542,11 @@ def f_bot():
     member = aiomock.Mock()
     member.mention = "@Sidewinder40"
     fake_bot = aiomock.AIOMock(uptime=5, prefix="!")
-    fake_bot.send_message.async_return_value = None
-    fake_bot.send_ttl_message.async_return_value = None
-    fake_bot.send_long_message.async_return_value = None
+    fake_bot.send_message.async_return_value = fake_msg_gears("A message to send.")
+    fake_bot.send_ttl_message.async_return_value = fake_msg_gears("A ttl message to send.")
+    fake_bot.send_long_message.async_return_value = fake_msg_gears("A long message to send.")
     fake_bot.get_member_by_substr.return_value = member
-    fake_bot.delete_message.async_return_value = None
+    fake_bot.wait_for.async_return_value = None  # Whenever wait_for needed, put message here.
     fake_bot.emoji.fix = lambda x, y: x
     fake_bot.guilds = fake_servers()
 

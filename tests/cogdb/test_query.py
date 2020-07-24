@@ -442,6 +442,8 @@ def test_check_perms(session, f_cperms, f_rperms):
     roles = [Role('FRC Member'), Role('Winters')]
     author = Member('Gears', roles)
     msg = Message('!drop', author, server, ops_channel, None)
+    msg.channel = ops_channel
+    msg.channel.guild = server
 
     cogdb.query.check_perms(msg, mock.Mock(cmd='Drop'))  # Silent pass
 

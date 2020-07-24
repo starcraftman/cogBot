@@ -137,7 +137,7 @@ async def test_cmd_bgs_dash(side_session, f_systems, f_bot):
 async def test_cmd_bgs_exp(f_bot):
     msg = fake_msg_gears("!bgs exp rana")
 
-    f_bot.wait_for_message.async_return_value = fake_msg_gears('0')
+    f_bot.wait_for.async_return_value = fake_msg_gears('0')
     await action_map(msg, f_bot).execute()
 
     actual = str(f_bot.send_long_message.call_args).replace("\\n", "\n")[:-2]
@@ -396,6 +396,7 @@ async def test_cmd_help(f_bot):
     await action_map(msg, f_bot).execute()
 
     assert "Here is an overview of my commands." in str(f_bot.send_ttl_message.call_args)
+    assert msg.is_deleted
 
 
 @pytest.mark.asyncio

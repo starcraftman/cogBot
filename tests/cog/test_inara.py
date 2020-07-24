@@ -54,7 +54,7 @@ async def test_inara_api_key_unset(f_bot):
 @pytest.mark.asyncio
 async def test_search_with_api(f_bot):
     api = cog.inara.InaraApi()
-    f_bot.wait_for_message.async_return_value = fake_msg_gears('stop')
+    f_bot.wait_for.async_return_value = fake_msg_gears('stop')
     cog.util.BOT = f_bot
     f_msg = fake_msg_gears('!whois gearsandcogs')
     cmdr = await api.search_with_api('gearsandcogs', f_msg)
@@ -67,7 +67,7 @@ async def test_search_with_api(f_bot):
 @pytest.mark.asyncio
 async def test_reply_with_api_result(f_bot):
     api = cog.inara.InaraApi()
-    f_bot.wait_for_message.async_return_value = fake_msg_gears('stop')
+    f_bot.wait_for.async_return_value = fake_msg_gears('stop')
     cog.util.BOT = f_bot
     f_msg = fake_msg_gears('!whois gearsandcogs')
     cmdr = await api.search_with_api('gearsandcogs', f_msg)
@@ -81,8 +81,8 @@ async def test_reply_with_api_result(f_bot):
 @pytest.mark.asyncio
 async def test_select_from_multiple_exact(f_bot):
     api = cog.inara.InaraApi()
-    # 4 is not guaranteed, based on external inara cmdr names order in results
-    f_bot.wait_for_message.async_return_value = fake_msg_gears('cmdr 7')
+    # 7 is not guaranteed, based on external inara cmdr names order in results
+    f_bot.wait_for.async_return_value = fake_msg_gears('cmdr 7')
     cog.util.BOT = f_bot
     cmdr = await api.search_with_api('gears', fake_msg_gears('!whois gears'))
     assert cmdr["name"] == "GearsandCogs"
@@ -94,7 +94,7 @@ async def test_select_from_multiple_exact(f_bot):
 @pytest.mark.asyncio
 async def test_select_from_multiple_stop(f_bot):
     api = cog.inara.InaraApi()
-    f_bot.wait_for_message.async_return_value = fake_msg_gears('stop')
+    f_bot.wait_for.async_return_value = fake_msg_gears('stop')
     cog.util.BOT = f_bot
     with pytest.raises(cog.exc.CmdAborted):
         await api.search_with_api('gears', fake_msg_gears('!whois gears'))

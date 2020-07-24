@@ -385,8 +385,10 @@ def subs_scout(subs, prefix):
     desc = """Generate a scouting list. Control output with flags.
     Examples:
 
-{prefix}scout
-        Generate a scouting list.
+{prefix}scout -r 1
+        Generate a scouting list, use first round. Choices are 1, 2 or 3.
+{prefix}scout --custom Atropos, Alpha Fornacis, Rana, Anlave, NLTT 46621, 16 Cygni
+        Generate a scouting list, round the specified systems.
     """.format(prefix=prefix)
     sub = subs.add_parser(prefix + 'scout', description=desc, formatter_class=RawHelp)
     sub.set_defaults(cmd='Scout')
