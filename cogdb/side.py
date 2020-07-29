@@ -84,8 +84,8 @@ class Allegiance(Base):
         return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
 
     def __eq__(self, other):
-        return (isinstance(self, Allegiance) and isinstance(other, Allegiance) and
-                self.id == other.id)
+        return (isinstance(self, Allegiance) and isinstance(other, Allegiance)
+                and self.id == other.id)
 
 
 class BGSTick(Base):
@@ -170,8 +170,8 @@ class FactionState(Base):
         return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
 
     def __eq__(self, other):
-        return (isinstance(self, FactionState) and isinstance(other, FactionState) and
-                self.id == other.id)
+        return (isinstance(self, FactionState) and isinstance(other, FactionState)
+                and self.id == other.id)
 
 
 class Government(Base):
@@ -189,8 +189,8 @@ class Government(Base):
         return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
 
     def __eq__(self, other):
-        return (isinstance(self, Government) and isinstance(other, Government) and
-                self.id == other.id)
+        return (isinstance(self, Government) and isinstance(other, Government)
+                and self.id == other.id)
 
 
 class Influence(Base):
@@ -213,8 +213,9 @@ class Influence(Base):
         return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
 
     def __eq__(self, other):
-        return (isinstance(self, Influence) and isinstance(other, Influence) and
-                self.system_id == other.system_id and self.faction_id == other.faction_id)
+        return (isinstance(self, Influence) and isinstance(other, Influence)
+                and self.system_id == other.system_id
+                and self.faction_id == other.faction_id)
 
     @property
     def date(self):
@@ -245,8 +246,8 @@ class InfluenceHistory(Base):
         return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
 
     def __eq__(self, other):
-        return (isinstance(self, Influence) and isinstance(other, Influence) and
-                self.system_id == other.system_id and self.faction_id == other.faction_id)
+        return (isinstance(self, Influence) and isinstance(other, Influence)
+                and self.system_id == other.system_id and self.faction_id == other.faction_id)
 
     @property
     def date(self):
@@ -272,8 +273,8 @@ class Power(Base):
         return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
 
     def __eq__(self, other):
-        return (isinstance(self, Power) and isinstance(other, Power) and
-                self.id == other.id)
+        return (isinstance(self, Power) and isinstance(other, Power)
+                and self.id == other.id)
 
 
 class PowerState(Base):
@@ -297,8 +298,8 @@ class PowerState(Base):
         return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
 
     def __eq__(self, other):
-        return (isinstance(self, PowerState) and isinstance(other, PowerState) and
-                self.id == other.id)
+        return (isinstance(self, PowerState) and isinstance(other, PowerState)
+                and self.id == other.id)
 
 
 class Security(Base):
@@ -316,8 +317,8 @@ class Security(Base):
         return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
 
     def __eq__(self, other):
-        return (isinstance(self, Security) and isinstance(other, Security) and
-                self.id == other.id)
+        return (isinstance(self, Security) and isinstance(other, Security)
+                and self.id == other.id)
 
 
 class SettlementSecurity(Base):
@@ -334,8 +335,8 @@ class SettlementSecurity(Base):
         return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
 
     def __eq__(self, other):
-        return (isinstance(self, SettlementSecurity) and isinstance(other, SettlementSecurity) and
-                self.id == other.id)
+        return (isinstance(self, SettlementSecurity) and isinstance(other, SettlementSecurity)
+                and self.id == other.id)
 
 
 class SettlementSize(Base):
@@ -352,8 +353,8 @@ class SettlementSize(Base):
         return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
 
     def __eq__(self, other):
-        return (isinstance(self, SettlementSize) and isinstance(other, SettlementSize) and
-                self.id == other.id)
+        return (isinstance(self, SettlementSize) and isinstance(other, SettlementSize)
+                and self.id == other.id)
 
 
 class Station(Base):
@@ -379,8 +380,8 @@ class Station(Base):
         return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
 
     def __eq__(self, other):
-        return (isinstance(self, Station) and isinstance(other, Station) and
-                self.id == other.id)
+        return (isinstance(self, Station) and isinstance(other, Station)
+                and self.id == other.id)
 
 
 class StationType(Base):
@@ -397,8 +398,8 @@ class StationType(Base):
         return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
 
     def __eq__(self, other):
-        return (isinstance(self, StationType) and isinstance(other, StationType) and
-                self.id == other.id)
+        return (isinstance(self, StationType) and isinstance(other, StationType)
+                and self.id == other.id)
 
 
 class System(Base):
@@ -457,9 +458,9 @@ class System(Base):
         """
         Compute the distance from this system to other.
         """
-        return sqlfunc.sqrt((other.x - self.x) * (other.x - self.x) +
-                            (other.y - self.y) * (other.y - self.y) +
-                            (other.z - self.z) * (other.z - self.z))
+        return sqlfunc.sqrt((other.x - self.x) * (other.x - self.x)
+                            + (other.y - self.y) * (other.y - self.y)
+                            + (other.z - self.z) * (other.z - self.z))
 
     def calc_upkeep(self, system):
         """ Approximates the default upkeep. """
@@ -491,8 +492,8 @@ class SystemAge(Base):
         return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
 
     def __eq__(self, other):
-        return (isinstance(self, SystemAge) and isinstance(other, SystemAge) and
-                self.control == other.control and self.system == other.system)
+        return (isinstance(self, SystemAge) and isinstance(other, SystemAge)
+                and self.control == other.control and self.system == other.system)
 
 
 def wrap_exceptions(func):
@@ -530,7 +531,8 @@ def next_bgs_tick(session, now):
     if not result:
         log.warning("BGS_TICK - Remote out of estimates")
         side = cog.util.BOT.get_member_by_substr("sidewinder40")
-        raise cog.exc.NoMoreTargets("BGS Tick estimate unavailable. No more estimates, " + side.mention)
+        raise cog.exc.NoMoreTargets("BGS Tick estimate unavailable. No more estimates, %s"
+                                    % side.mention)
 
     log.info("BGS_TICK - %s -> %s", str(now), result.tick)
     return "BGS Tick in **{}**    (Expected {})".format(result.tick - now, result.tick)

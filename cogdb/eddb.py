@@ -80,8 +80,8 @@ class Allegiance(Base):
         return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
 
     def __eq__(self, other):
-        return (isinstance(self, Allegiance) and isinstance(other, Allegiance) and
-                self.id == other.id)
+        return (isinstance(self, Allegiance) and isinstance(other, Allegiance)
+                and self.id == other.id)
 
 
 class Commodity(Base):
@@ -102,8 +102,8 @@ class Commodity(Base):
         return "Commodity({})".format(', '.join(kwargs))
 
     def __eq__(self, other):
-        return (isinstance(self, Commodity) and isinstance(other, Commodity) and
-                self.id == other.id)
+        return (isinstance(self, Commodity) and isinstance(other, Commodity)
+                and self.id == other.id)
 
 
 class CommodityCat(Base):
@@ -120,8 +120,8 @@ class CommodityCat(Base):
         return "CommodityCat({})".format(', '.join(kwargs))
 
     def __eq__(self, other):
-        return (isinstance(self, CommodityCat) and isinstance(other, CommodityCat) and
-                self.id == other.id)
+        return (isinstance(self, CommodityCat) and isinstance(other, CommodityCat)
+                and self.id == other.id)
 
 
 class Faction(Base):
@@ -171,8 +171,8 @@ class FactionHappiness(Base):
         return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
 
     def __eq__(self, other):
-        return (isinstance(self, FactionHappiness) and isinstance(other, FactionHappiness) and
-                self.id == other.id)
+        return (isinstance(self, FactionHappiness) and isinstance(other, FactionHappiness)
+                and self.id == other.id)
 
 
 class FactionState(Base):
@@ -190,8 +190,8 @@ class FactionState(Base):
         return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
 
     def __eq__(self, other):
-        return (isinstance(self, FactionState) and isinstance(other, FactionState) and
-                self.id == other.id)
+        return (isinstance(self, FactionState) and isinstance(other, FactionState)
+                and self.id == other.id)
 
 
 class Government(Base):
@@ -209,8 +209,8 @@ class Government(Base):
         return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
 
     def __eq__(self, other):
-        return (isinstance(self, Government) and isinstance(other, Government) and
-                self.id == other.id)
+        return (isinstance(self, Government) and isinstance(other, Government)
+                and self.id == other.id)
 
 
 class Module(Base):
@@ -271,8 +271,8 @@ class Power(Base):
         return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
 
     def __eq__(self, other):
-        return (isinstance(self, Power) and isinstance(other, Power) and
-                self.id == other.id)
+        return (isinstance(self, Power) and isinstance(other, Power)
+                and self.id == other.id)
 
 
 class PowerState(Base):
@@ -297,8 +297,8 @@ class PowerState(Base):
         return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
 
     def __eq__(self, other):
-        return (isinstance(self, PowerState) and isinstance(other, PowerState) and
-                self.id == other.id)
+        return (isinstance(self, PowerState) and isinstance(other, PowerState)
+                and self.id == other.id)
 
 
 class Security(Base):
@@ -316,8 +316,8 @@ class Security(Base):
         return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
 
     def __eq__(self, other):
-        return (isinstance(self, Security) and isinstance(other, Security) and
-                self.id == other.id)
+        return (isinstance(self, Security) and isinstance(other, Security)
+                and self.id == other.id)
 
 
 class SettlementSecurity(Base):
@@ -334,8 +334,8 @@ class SettlementSecurity(Base):
         return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
 
     def __eq__(self, other):
-        return (isinstance(self, SettlementSecurity) and isinstance(other, SettlementSecurity) and
-                self.id == other.id)
+        return (isinstance(self, SettlementSecurity) and isinstance(other, SettlementSecurity)
+                and self.id == other.id)
 
 
 class SettlementSize(Base):
@@ -352,8 +352,8 @@ class SettlementSize(Base):
         return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
 
     def __eq__(self, other):
-        return (isinstance(self, SettlementSize) and isinstance(other, SettlementSize) and
-                self.id == other.id)
+        return (isinstance(self, SettlementSize) and isinstance(other, SettlementSize)
+                and self.id == other.id)
 
 
 class StationFeatures(Base):
@@ -380,8 +380,8 @@ class StationFeatures(Base):
         return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
 
     def __eq__(self, other):
-        return (isinstance(self, StationFeatures) and isinstance(other, StationFeatures) and
-                self.id == other.id)
+        return (isinstance(self, StationFeatures) and isinstance(other, StationFeatures)
+                and self.id == other.id)
 
 
 class StationType(Base):
@@ -397,8 +397,8 @@ class StationType(Base):
         return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
 
     def __eq__(self, other):
-        return (isinstance(self, StationType) and isinstance(other, StationType) and
-                self.id == other.id)
+        return (isinstance(self, StationType) and isinstance(other, StationType)
+                and self.id == other.id)
 
 
 class Station(Base):
@@ -469,9 +469,9 @@ class System(Base):
         """
         Compute the distance from this system to other.
         """
-        return sqla.func.sqrt((other.x - self.x) * (other.x - self.x) +
-                              (other.y - self.y) * (other.y - self.y) +
-                              (other.z - self.z) * (other.z - self.z))
+        return sqla.func.sqrt((other.x - self.x) * (other.x - self.x)
+                              + (other.y - self.y) * (other.y - self.y)
+                              + (other.z - self.z) * (other.z - self.z))
 
     def __repr__(self):
         keys = ['id', 'name', 'population',

@@ -164,8 +164,8 @@ class InaraApi():
                 async with http.post(API_ENDPOINT, data=api_input.serialize(),
                                      headers=API_HEADERS) as resp:
                     if resp.status != 200:
-                        raise cog.exc.RemoteError("Inara search failed. HTTP Response code bad: " +
-                                                  str(resp.status))
+                        raise cog.exc.RemoteError("Inara search failed. HTTP Response code bad: %s"
+                                                  % str(resp.status))
 
                     response_json = await resp.json(loads=wrap_json_loads)
 
@@ -176,8 +176,8 @@ class InaraApi():
             # handle rejection.
             if r_code == API_RESPONSE_CODES["error"] or r_code not in API_RESPONSE_CODES.values():
                 logging.getLogger('cog.inara').error("INARA Response Failure: \n%s", response_json)
-                raise cog.exc.RemoteError("Inara search failed. See log for details. API Response code bad: " +
-                                          str(r_code))
+                raise cog.exc.RemoteError("Inara search failed. See log for details. API Response code bad: %s"
+                                          % str(r_code))
 
             event = response_json["events"][0]
             if event["eventStatus"] == API_RESPONSE_CODES["no result"]:
@@ -257,8 +257,10 @@ class InaraApi():
             try:
                 responses = [await cog.util.BOT.send_message(msg.channel, reply)]
                 try:
-                    user_select = await cog.util.BOT.wait_for('message',
-                        check=lambda m: m.author == msg.author and m.channel == msg.channel, timeout=30)
+                    user_select = await cog.util.BOT.wait_for(
+                        'message',
+                        check=lambda m: m.author == msg.author and m.channel == msg.channel,
+                        timeout=30)
                 except asyncio.TimeoutError:  # TODO: Temp hack
                     user_select = None
                 if user_select:

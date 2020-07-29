@@ -157,8 +157,8 @@ class Admin(Action):
         cmd_set = sorted([cls.__name__ for cls in cog.actions.Action.__subclasses__()])
         cmd_set.remove('Admin')  # Admin cannot be restricted even by admins
         if not self.args.rule_cmd or self.args.rule_cmd not in cmd_set:
-            raise cog.exc.InvalidCommandArgs("Rules require a command in following set: \n\n" +
-                                             str(cmd_set))
+            raise cog.exc.InvalidCommandArgs("Rules require a command in following set: \n\n%s"
+                                             % str(cmd_set))
 
     async def add(self):
         """
@@ -507,8 +507,10 @@ class BGS(Action):
         for ind, name in enumerate([fact.name for fact in factions]):
             prompt += "\n({}) {}".format(ind, name)
         sent = await self.bot.send_message(self.msg.channel, prompt)
-        select = await self.bot.wait_for('message',
-                check=lambda m: m.author == self.msg.author and m.channel == self.msg.channel, timeout=30)
+        select = await self.bot.wait_for(
+            'message',
+            check=lambda m: m.author == self.msg.author and m.channel == self.msg.channel,
+            timeout=30)
 
         try:
             ind = int(select.content)
@@ -1082,8 +1084,10 @@ class Scout(Action):
             try:
                 prompt = SCOUT_INTERACT.format('    ' + '\n    '.join(systems))
                 responses = [await cog.util.BOT.send_message(self.msg.channel, prompt)]
-                user_msg = await cog.util.BOT.wait_for('message',
-                        check=lambda m: m.author == self.msg.author and m.channel == self.msg.channel, timeout=30)
+                user_msg = await cog.util.BOT.wait_for(
+                    'message',
+                    check=lambda m: m.author == self.msg.author and m.channel == self.msg.channel,
+                    timeout=30)
 
                 if user_msg:
                     responses += [user_msg]

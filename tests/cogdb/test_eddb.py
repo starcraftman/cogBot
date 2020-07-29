@@ -14,7 +14,7 @@ def test_get_shipyard_stations(eddb_session):
 
 def test_get_shipyard_stations_dist(eddb_session):
     actual = cogdb.eddb.get_shipyard_stations(eddb_session, "Rana", 30)
-    assert ['Sol', 29.49, 'Daedalus', 209] in actual
+    assert ['Wolf 124', 15.08, 'Willis Port', 138] in actual
     assert len(actual) > 100
 
 

@@ -318,8 +318,8 @@ def get_credentials(json_secret, sheets_token):  # pragma: no cover
     Returns: Credentials obtained from oauth process.
     """
     if not os.path.exists(json_secret):
-        raise cog.exc.MissingConfigFile('Missing JSON Secret for OAUTH. Expected at: ' +
-                                        json_secret)
+        raise cog.exc.MissingConfigFile('Missing JSON Secret for OAUTH. Expected at: %s'
+                                        % json_secret)
 
     store = Storage(sheets_token)
     credentials = store.get()

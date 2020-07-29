@@ -205,8 +205,8 @@ def test_sheetcattle_merit_summary(session, f_dusers, f_sheets, f_systems, f_dro
 
 
 def test_sheetum_merit_summary(session, f_dusers, f_sheets, f_systemsum, f_holds):
-    sheet = [sheet for sheet in f_sheets if sheet.name == 'GearsandCogs' and
-             sheet.type == ESheetType.undermine][0]
+    sheet = [sheet for sheet in f_sheets if sheet.name == 'GearsandCogs'
+             and sheet.type == ESheetType.undermine][0]
     held, redeemed = 0, 0
     for hold in session.query(Hold).filter_by(user_id=sheet.id).all():
         held += hold.held
