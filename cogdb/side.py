@@ -831,41 +831,35 @@ def find_favorable(session, centre_name, max_dist=None, inc=20):
 
     dist = max_dist if max_dist else inc
     keep_looking = True
+    subq = session.query(Government.id).\
+        filter(Government.text.in_(HUDSON_BGS[0])).\
+        subquery()
+
     while keep_looking:
         matches = session.query(System.name, System.dist_to(centre),
                                 Influence.influence, Faction.name, Government.text).\
-            filter(System.dist_to(centre) <= dist).\
             join(Influence, Influence.system_id == System.id).\
             join(Faction, Influence.faction_id == Faction.id).\
             join(Government, Faction.government_id == Government.id).\
+            filter(System.dist_to(centre) <= dist,
+                   Government.id.in_(subq)).\
             order_by(System.dist_to(centre)).\
+            limit(100).\
             all()
 
-        for *_, gov in matches:
-            if gov in HUDSON_BGS[0] or max_dist:
-                keep_looking = False
-                break
-
+        if matches or max_dist:
+            keep_looking = False
         dist += inc
 
     lines = []
     for sys_name, sys_dist, inf, faction, gov in matches:
-        if not gov:
-            lines += [[
-                sys_name[:16],
-                '-',
-                "{:5.2f}".format(sys_dist),
-                '-',
-                'No Info',
-            ]]
-        elif gov in HUDSON_BGS[0]:
-            lines += [[
-                sys_name[:16],
-                gov[:4],
-                "{:5.2f}".format(sys_dist),
-                "{:5.2f}".format(inf),
-                faction,
-            ]]
+        lines += [[
+            sys_name[:16],
+            gov[:4],
+            "{:5.2f}".format(sys_dist),
+            "{:5.2f}".format(inf),
+            faction,
+        ]]
 
     return [['System Name', 'Govt', 'Dist', 'Inf', 'Faction Name']] + lines
 
@@ -1010,20 +1004,23 @@ def compute_dists(session, system_names):
         InvalidCommandArgs - One or more system could not be matched.
     """
     system_names = [name.lower() for name in system_names]
-    systems = session.query(System).\
-        filter(System.name.in_(system_names)).\
+    try:
+        centre = session.query(System).filter(System.name.ilike(system_names[0])).one()
+    except sqla_orm.exc.NoResultFound:
+        raise cog.exc.InvalidCommandArgs("The start system %s was not found." % system_names[0])
+    systems = session.query(System.name, System.dist_to(centre)).\
+        filter(System.name.in_(system_names[1:])).\
+        order_by(System.name).\
         all()
 
-    if len(systems) != len(system_names):
+    if len(systems) != len(system_names[1:]):
         for system in systems:
-            system_names.remove(system.name.lower())
+            system_names.remove(system[0].lower())
 
-        msg = "Some systems were not found:\n" + "\n    " + "\n    ".join(system_names)
+        msg = "Some systems were not found:\n%s" % "\n    " + "\n    ".join(system_names)
         raise cog.exc.InvalidCommandArgs(msg)
 
-    centre = [sys for sys in systems if sys.name.lower() == system_names[0]][0]
-    rest = [sys for sys in systems if sys.name.lower() != system_names[0]]
-    return {system.name: centre.dist_to(system) for system in rest}
+    return systems
 
 
 def get_power_hq(substr):

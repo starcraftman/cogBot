@@ -150,11 +150,11 @@ def test_expand_to_candidates(side_session):
 
 
 def test_compute_dists(side_session):
-    expect = {
-        'Othime': 83.67581252406517,
-        'Rana': 46.100296145334035,
-        'Sol': 28.938141191600405,
-    }
+    expect = [
+        ('Othime',  83.67581252406517),
+        ('Rana', 46.100296145334035),
+        ('Sol', 28.938141191600405),
+    ]
     actual = cogdb.side.compute_dists(side_session, ['Nanomam', 'Sol', 'Rana', 'Othime'])
     assert actual == expect
 

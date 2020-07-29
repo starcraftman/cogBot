@@ -638,7 +638,7 @@ class Dist(Action):
                                                     cogdb.SideSession(), system_names)
 
         response = 'Distances From: **{}**\n\n'.format(system_names[0].capitalize())
-        lines = [[key, '{:.2f}ly'.format(dists[key])] for key in sorted(dists)]
+        lines = [[name, '{:.2f}ly'.format(dist)] for name, dist in dists]
         response += cog.tbl.wrap_markdown(cog.tbl.format_table(lines))
 
         await self.bot.send_message(self.msg.channel, response)
