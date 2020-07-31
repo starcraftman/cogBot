@@ -31,20 +31,21 @@ from cogdb.schema import (DUser, PrepSystem, System, SystemUM, Drop, Hold,
 from tests.data import CELLS_FORT, CELLS_FORT_FMT, CELLS_UM
 
 
-# @pytest.yield_fixture(scope='function', autouse=True)
-# def around_all_tests(session):
-    # """
-    # Executes before and after EVERY test.
+#  @pytest.yield_fixture(scope='function', autouse=True)
+#  def around_all_tests(session):
+    #  """
+    #  Executes before and after EVERY test.
 
-    # Can be helpful for tracking bugs, like dirty database after test.
-    # Disabled unless needed. Non-trivial overhead.
-    # """
+    #  Can be helpful for tracking bugs, like dirty database after test.
+    #  Disabled unless needed. Non-trivial overhead.
+    #  """
+    #  start = datetime.datetime.utcnow()
+    #  yield
+    #  print(" Time", datetime.datetime.utcnow() - start, end="")
 
-    # yield
-
-    # classes = [DUser, SheetRow, System, SystemUM, Drop, Hold]
-    # for cls in classes:
-        # assert not session.query(cls).all()
+    #  classes = [DUser, SheetRow, System, SystemUM, Drop, Hold]
+    #  for cls in classes:
+        #  assert not session.query(cls).all()
 
 
 REASON_SLOW = 'Slow as blocking to sheet. To enable, ensure os.environ ALL_TESTS=True'

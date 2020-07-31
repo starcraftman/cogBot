@@ -331,7 +331,7 @@ setup(
     # # have to be included in MANIFEST.in as well.
     # package_dir={'cog' : 'cog'},
     # package_data={
-        # 'cog': ['.secrets/*']
+    #     'cog': ['.secrets/*']
     # },
 
     # # Although 'package_data' is the preferred approach, in some case you may
@@ -344,9 +344,9 @@ setup(
     # "scripts" keyword. Entry points provide cross-platform support and allow
     # pip to create the appropriate form of executable for the target platform.
     # entry_points={
-        # 'console_scripts': [
-            # 'cogbot = cog.bot:main',
-        # ],
+    #     'console_scripts': [
+    #         'cogbot = cog.bot:main',
+    #     ],
     # },
 
     cmdclass={

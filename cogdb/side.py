@@ -16,6 +16,7 @@ import sqlalchemy.exc as sqla_exe
 import sqlalchemy.orm as sqla_orm
 import sqlalchemy.ext.declarative
 from sqlalchemy import func as sqlfunc
+from sqlalchemy.sql import expression as sqlexp
 from sqlalchemy.ext.hybrid import hybrid_method
 
 import cog.exc
@@ -596,13 +597,13 @@ def stations_in_system(session, system_id):
         filter(Station.system_id == system_id).\
         join(Faction, StationType).\
         all()
-    stations_dict = {}
-    for tup in stations:
+    stations_dict = {fact_id: [] for _, fact_id, _ in stations}
+    for name, fact_id, station_type in stations:
         try:
-            station = tup[0] + station_suffix(tup[2])
-            stations_dict[tup[1]] += [station]
+            station = "%s%s" % (name, station_suffix(station_type))
+            stations_dict[fact_id] += [station]
         except KeyError:
-            stations_dict[tup[1]] = [station]
+            stations_dict[fact_id] = [station]
 
     return stations_dict
 
@@ -653,6 +654,8 @@ def station_suffix(station_type):
         suffix = ' (AB)'
     elif 'Outpost' in station_type:
         suffix = ' (M)'
+    elif 'Carrier' in station_type:
+        suffix = ' (C)'
 
     return suffix
 
@@ -733,19 +736,13 @@ def count_factions_in_systems(session, system_ids):
     """
     Count the number of factions in all systems that are in the system_ids list.
     """
-    systems = session.query(Influence.faction_id, System.name).\
+    systems = session.query(System.name, sqlfunc.count(Influence.faction_id)).\
         filter(Influence.system_id.in_(system_ids)).\
         join(System).order_by(Influence.system_id).\
+        group_by(System.name).\
         all()
 
-    systems_fact_count = {}
-    for _, system in systems:
-        try:
-            systems_fact_count[system] += 1
-        except KeyError:
-            systems_fact_count[system] = 1
-
-    return systems_fact_count
+    return dict(systems)
 
 
 def inf_history_for_pairs(session, data_pairs):
@@ -761,19 +758,14 @@ def inf_history_for_pairs(session, data_pairs):
                 for pair in data_pairs]
 
     time_window = time.time() - (60 * 60 * 24 * 5)
-    inf_history = session.query(InfluenceHistory).\
-        filter(sqla.or_(*look_for)).\
-        filter(InfluenceHistory.updated_at >= time_window).\
-        order_by(InfluenceHistory.system_id, InfluenceHistory.faction_id,
-                 InfluenceHistory.updated_at.desc()).\
+    inf_history = session.query(sqlfunc.concat(sqlexp.cast(InfluenceHistory.system_id, sqla.types.Unicode), "_", sqlexp.cast(InfluenceHistory.faction_id, sqla.types.Unicode)), InfluenceHistory.influence).\
+        filter(sqla.or_(*look_for), InfluenceHistory.updated_at >= time_window).\
+        group_by(InfluenceHistory.system_id, InfluenceHistory.faction_id).\
+        order_by(InfluenceHistory.updated_at.asc()).\
+        limit(100).\
         all()
 
-    pair_hist = {}
-    for hist in inf_history:
-        key = "{}_{}".format(hist.system_id, hist.faction_id)
-        pair_hist[key] = hist.influence
-
-    return pair_hist
+    return dict(inf_history)
 
 
 @wrap_exceptions
@@ -874,33 +866,20 @@ def expansion_candidates(session, centre, faction):
     Returns:
         [[system_name, dictance, faction_count], ...]
     """
-    matches = session.query(System.name, System.dist_to(centre), Faction.id).\
-        filter(System.dist_to(centre) <= 20,
-               System.name != centre.name,
-               Faction.id != PILOTS_FED_FACTION_ID).\
+    # TODO: Further filter faction count to query?
+    dist_centre = System.dist_to(centre)
+    matches = session.query(System.name, dist_centre, sqlfunc.count(Faction.id)).\
         join(Influence, Influence.system_id == System.id).\
         join(Faction, Influence.faction_id == Faction.id).\
-        order_by(System.dist_to(centre)).\
+        filter(System.id != centre.id,
+               dist_centre <= 20,
+               Faction.id != PILOTS_FED_FACTION_ID).\
+        group_by(System).\
+        order_by(dist_centre).\
         all()
 
-    sys_order = []
-    systems = {}
-    for sys_name, sys_dist, fact_id in matches:
-        try:
-            if sys_name not in sys_order:
-                sys_order += [sys_name]
-            systems[sys_name] += [fact_id]
-        except KeyError:
-            systems[sys_name] = [fact_id]
-            systems[sys_name + 'dist'] = "{:5.2f}".format(sys_dist)
-
     result = [["System", "Dist", "Faction Count"]]
-    for sys in sys_order:
-        if systems[sys] == [None]:
-            result += [[sys, systems[sys + 'dist'], 'No Info']]
-        elif len(systems[sys]) < 7 and faction.id not in systems[sys]:
-            result += [[sys, systems[sys + 'dist'], len(systems[sys])]]
-
+    result += [[name, "{:5.2f}".format(dist), cnt] for name, dist, cnt in matches if cnt < 7]
     return result
 
 
@@ -955,43 +934,42 @@ def expand_to_candidates(session, system_name):
         [[system_name, distance, influence, state, faction_name], ...]
     """
     centre = get_systems(session, [system_name])[0]
-    blacklist = [fact.id for fact in get_factions_in_system(session, system_name)]
+    blacklist = session.query(Faction.id).\
+        join(Influence, Influence.faction_id == Faction.id).\
+        join(System, Influence.system_id == System.id).\
+        filter(System.name == system_name,
+               Influence.system_id == System.id,
+               Faction.id == Influence.faction_id).\
+        subquery()
     matches = session.query(System.name, System.dist_to(centre), System.population, Influence,
                             Faction, FactionState.text, Government.text).\
-        filter(System.dist_to(centre) <= 20,
-               System.name != centre.name).\
         join(Influence, Influence.system_id == System.id).\
         join(Faction, Influence.faction_id == Faction.id).\
         join(FactionState, Faction.state_id == FactionState.id).\
         join(Government, Faction.government_id == Government.id).\
+        filter(System.dist_to(centre) <= 20,
+               System.name != centre.name,
+               Influence.is_controlling_faction == 1,
+               Faction.id.notin_(blacklist)).\
         order_by(System.dist_to(centre)).\
         all()
 
     lines = [["System", "Dist", "Pop", "Inf", "Gov", "State", "Faction"]]
     for sys_name, sys_dist, sys_pop, inf, fact, fact_state, gov in matches:
-        if not inf:
-            lines += [[
-                sys_name[:16],
-                "{:5.2f}".format(sys_dist),
-                "-",
-                "-",
-                "-",
-                "No Info",
-            ]]
-        elif inf.is_controlling_faction and fact.id not in blacklist:
-            lines += [[
-                sys_name[:16],
-                "{:5.2f}".format(sys_dist),
-                "{:3.1f}".format(math.log(sys_pop, 10)),
-                "{:5.2f}".format(inf.influence),
-                gov[:4],
-                fact_state,
-                fact.name
-            ]]
+        lines += [[
+            sys_name[:16],
+            "{:5.2f}".format(sys_dist),
+            "{:3.1f}".format(math.log(sys_pop, 10)),
+            "{:5.2f}".format(inf.influence),
+            gov[:4],
+            fact_state,
+            fact.name
+        ]]
 
     return lines
 
 
+# TODO: Move to eddb.py, can be done entirely local.
 @wrap_exceptions
 def compute_dists(session, system_names):
     """

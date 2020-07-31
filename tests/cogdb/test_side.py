@@ -57,6 +57,7 @@ def test_station_suffix():
     assert cogdb.side.station_suffix('Orbis Starport') == ' (L)'
     assert cogdb.side.station_suffix('Asteroid Base') == ' (AB)'
     assert cogdb.side.station_suffix('Military Outpost') == ' (M)'
+    assert cogdb.side.station_suffix('Fleet Carrier') == ' (C)'
 
 
 def test_stations_in_system(side_session):
@@ -89,8 +90,9 @@ def test_system_overview(side_session):
 
 
 def test_count_factions_in_system(side_session):
-    sys_id = side_session.query(System.id).filter(System.name == "Sol").one()
-    assert cogdb.side.count_factions_in_systems(side_session, sys_id) == {"Sol": 6}
+    sys_ids = side_session.query(System.id).filter(System.name.in_(["Sol", "Rana", "Othime"])).all()
+    sys_ids = [x[0] for x in sys_ids]
+    assert cogdb.side.count_factions_in_systems(side_session, sys_ids) == {"Sol": 6, "Othime": 7, "Rana": 7}
 
 
 def test_inf_history_for_pairs(side_session):
@@ -98,6 +100,7 @@ def test_inf_history_for_pairs(side_session):
     pairs = [(17072, 588), (17072, 589), (17072, 591), (17072, 592), (17072, 593)]
     result = cogdb.side.inf_history_for_pairs(side_session, pairs)
 
+    assert isinstance(result, type({}))
     for sys_id, fact_id in pairs:
         assert "{}_{}".format(sys_id, fact_id) in result
 
@@ -151,7 +154,7 @@ def test_expand_to_candidates(side_session):
 
 def test_compute_dists(side_session):
     expect = [
-        ('Othime',  83.67581252406517),
+        ('Othime', 83.67581252406517),
         ('Rana', 46.100296145334035),
         ('Sol', 28.938141191600405),
     ]
