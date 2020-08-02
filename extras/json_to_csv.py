@@ -38,7 +38,16 @@ def generate_csv(file_in, file_out):
     with open(file_out, 'w', newline='') as csv_file:
         csv_file.write(HEADER)
         for row in json_content:
-            csv_file.write(FMT.format(**row))
+            csv_file.write(FMT.format(
+                name=row['name'],
+                security=row['security'],
+                population=row['population'],
+                government=row['government'],
+                power=row['power'] if row['power'] else 0,
+                power_state=row['power_state'] if row['power_state'] else 0,
+                x=row['x'],
+                y=row['y'],
+                z=row['z']))
 
     print("Finished writing csvs to %s" % file_out)
 
