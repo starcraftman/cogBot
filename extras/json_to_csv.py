@@ -1,10 +1,13 @@
 """
 Reprocess a json file into a csv for import into a google sheet.
+Only works for systems_populated.json now. Prune uneeded columns from data.
 """
 import argparse
 import json
-import csv
 import collections
+
+HEADER = "SYSTEM, SECURITY, POPULATION, GOVERNMENT, POWER, POWER STATE, X, Y, Z\n"
+FMT = "{name},{security},{population},{government},{power},{power_state},{x},{y},{z}\n"
 
 
 def make_parser():
@@ -33,9 +36,9 @@ def generate_csv(file_in, file_out):
 
     print("Beginning to write contents of %s to %s" % (file_in, file_out))
     with open(file_out, 'w', newline='') as csv_file:
-        writer = csv.DictWriter(csv_file, json_content[0].keys())
-        writer.writeheader()
-        writer.writerows(json_content)
+        csv_file.write(HEADER)
+        for row in json_content:
+            csv_file.write(FMT.format(**row))
 
     print("Finished writing csvs to %s" % file_out)
 
