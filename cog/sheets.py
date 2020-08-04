@@ -1,16 +1,22 @@
 """
 Interface with the google sheets api.
 
-Tutorial and reference available at:
+Underlying API and model
     https://developers.google.com/sheets/api/quickstart/python
+New asyncio wrapper library
+    https://gspread-asyncio.readthedocs.io/en/latest/#example-usage
 """
 from __future__ import absolute_import, print_function
+import asyncio
+import functools
 import logging
 import os
 
 import argparse
 import httplib2
 try:
+    import gspread_asyncio
+    from oauth2client.service_account import ServiceAccountCredentials
     from apiclient import discovery
     from oauth2client import client, tools
     from oauth2client.file import Storage
@@ -23,6 +29,22 @@ import cog.exc
 APPLICATION_NAME = 'CogBot'
 # Requires read and write access to user's account
 REQ_SCOPE = 'https://www.googleapis.com/auth/spreadsheets'
+AGCM = None
+
+
+def init_agcm(json_secret, sheet_token):
+    """
+    Initialize the global AGCM, share with all sheets.
+    Has internal rate limitting but we should do batch updates still to prevent hitting them.
+
+    Args:
+        json_secret: The path to the secret json file.
+        sheet_token: The path to the cached token authorization.
+    """
+    return gspread_asyncio.AsyncioGspreadClientManager(
+        functools.partial(get_credentials, json_secret, sheet_token),
+        loop=asyncio.new_event_loop()
+    )
 
 
 class ColCnt():
@@ -191,6 +213,8 @@ class GSheet():
         self.sheet_id = sheet['id']
         self.page = "'{}'".format(sheet['page'])
         self.credentials = get_credentials(json_secret, sheet_token)
+        self.agcm = AGCM
+        print("New Sheet", self.agcm)
         http = self.credentials.authorize(httplib2.Http())
         discovery_url = ('https://sheets.googleapis.com/$discovery/rest?'
                          'version=v4')

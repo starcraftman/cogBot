@@ -163,6 +163,10 @@ class CogBot(discord.Client):
         self.emoji.update(self.guilds)
 
         # This block is effectively a one time setup.
+
+        paths = cog.util.get_config("paths")
+        cog.sheets.AGCM = cog.sheets.init_agcm(paths['json'], paths['token'])
+        print(cog.sheets.AGCM)
         if not cog.actions.SCANNERS:
             for name in cog.util.get_config("scanners"):  # Populate on import
                 cog.actions.init_scanner(name)
