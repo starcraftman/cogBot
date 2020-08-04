@@ -3,8 +3,10 @@ Interface with the google sheets api.
 
 Underlying API and model
     https://developers.google.com/sheets/api/quickstart/python
+Gspread base library
+    https://gspread.readthedocs.io/en/latest/
 New asyncio wrapper library
-    https://gspread-asyncio.readthedocs.io/en/latest/#example-usage
+    https://gspread-asyncio.readthedocs.io/en/latest/
 """
 from __future__ import absolute_import, print_function
 import asyncio
@@ -32,7 +34,7 @@ REQ_SCOPE = 'https://www.googleapis.com/auth/spreadsheets'
 AGCM = None
 
 
-def init_agcm(json_secret, sheet_token):
+def init_agcm(json_secret, sheet_token, loop=None):
     """
     Initialize the global AGCM, share with all sheets.
     Has internal rate limitting but we should do batch updates still to prevent hitting them.
@@ -41,9 +43,12 @@ def init_agcm(json_secret, sheet_token):
         json_secret: The path to the secret json file.
         sheet_token: The path to the cached token authorization.
     """
+    if not loop:
+        loop = asyncio.get_event_loop()
+
     return gspread_asyncio.AsyncioGspreadClientManager(
         functools.partial(get_credentials, json_secret, sheet_token),
-        loop=asyncio.new_event_loop()
+        loop=loop
     )
 
 
@@ -187,6 +192,125 @@ class Column():
         return self.__str__()
 
 
+class AsyncGSheet():
+    """
+    Class to wrap the sheet api and provide convenience methods.
+
+    Important: The A1 range specified is inclusive on both sides.
+    For example sheet.get('!A1:B2') fetches cells [[A1, A2], [B1, B2]]
+
+    Results are returned or sent via api in following form:
+    {
+        "range": string,
+        "majorDimension": enum(Dimension),
+        "values": [
+            array
+        ],
+    }
+    """
+    def __init__(self, sheet, json_secret, sheet_token):
+        """
+        Args:
+            sheet_id: The id of the google sheet to interact with.
+            json_secret: Path to the secret json api for client.
+            sheet_token: Path to store token authorizing api.
+        """
+        self.sheet_id = sheet['id']
+        self.page = "'{}'".format(sheet['page'])
+        self.credentials = get_credentials(json_secret, sheet_token)
+        self.agcm = AGCM
+        print("New Sheet", self.agcm)
+                                       #  discoveryServiceUrl=discovery_url)
+
+    def get(self, cell_range, dim='ROWS'):
+        """
+        Args:
+            service: The service returned by the sheets api.
+            sheet_id: The sheet identifier.
+            cell_range: An A1 range that describes a single area to return.
+
+        Returns: A list of rows in the area.
+        """
+        log = logging.getLogger('cog.sheets')
+        log.info('SHEETS - Get Start')
+        # Default returns by row, use majorDimension = 'COLUMNS' to flip.
+        result = self.values.get(spreadsheetId=self.sheet_id,
+                                 range=self.page + cell_range,
+                                 majorDimension=dim,
+                                 valueRenderOption='UNFORMATTED_VALUE').execute()
+        log.info('SHEETS - Get End')
+        return result.get('values', [])
+
+    def update(self, cell_range, n_vals, dim='ROWS'):
+        """
+        Set a whole range of values in the sheet.
+
+        Args:
+            service: The service returned by the sheets api.
+            sheet_id: The sheet identifier.
+            range: An A1 range that describes a single area to return.
+            n_vals: New values to fit into range, list of lists.
+        """
+        log = logging.getLogger('cog.sheets')
+        log.info('SHEETS - Update Start')
+        body = {
+            'majorDimension': dim,
+            'values': n_vals
+        }
+        self.values.update(spreadsheetId=self.sheet_id, range=self.page + cell_range,
+                           valueInputOption='RAW', body=body).execute()
+        log.info('SHEETS - Update End')
+
+    def batch_get(self, cell_ranges, dim='ROWS'):
+        """
+        Similar to get_range except take a list of cell_ranges.
+        """
+        cell_ranges = [self.page + crange for crange in cell_ranges]
+        result = self.values.batchGet(spreadsheetId=self.sheet_id, ranges=cell_ranges,
+                                      majorDimension=dim,
+                                      valueRenderOption='UNFORMATTED_VALUE').execute()
+
+        return [ent.get('values', []) for ent in result['valueRanges']]
+
+    def batch_update(self, cell_ranges, n_vals, dim='ROWS'):
+        """
+        Similar to set_range except take a list of lists for ranges and n_vals.
+        """
+        cell_ranges = [self.page + crange for crange in cell_ranges]
+        body = {
+            'valueInputOption': 'RAW',
+            'data': [],
+        }
+        for cell_range, n_val in zip(cell_ranges, n_vals):
+            body['data'].append({
+                'range': cell_range,
+                'majorDimension': dim,
+                'values': n_val,
+            })
+        self.values.batchUpdate(spreadsheetId=self.sheet_id, body=body).execute()
+
+    def get_with_formatting(self, cell_range):
+        """
+        Get cells with formatting information.
+        """
+        log = logging.getLogger('cog.sheets')
+        log.info('SHEETS - FmtGet Start')
+        sheets = self.service.spreadsheets()  # pylint: disable=no-member
+        data = sheets.get(spreadsheetId=self.sheet_id, ranges=self.page + cell_range,
+                          includeGridData=True).execute()
+        log.info('SHEETS - FmtGet End')
+        return data
+
+    def whole_sheet(self, dim='COLUMNS'):  # pragma: no cover
+        """
+        Simple alias to fetch a whole sheet, simply request far beyond
+        possible column range.
+
+        Returns: 2D list of sheet.
+        """
+        return self.get('!A:ZZ', dim=dim)
+
+
 class GSheet():
     """
     Class to wrap the sheet api and provide convenience methods.
@@ -215,11 +339,11 @@ class GSheet():
         self.credentials = get_credentials(json_secret, sheet_token)
         self.agcm = AGCM
         print("New Sheet", self.agcm)
-        http = self.credentials.authorize(httplib2.Http())
-        discovery_url = ('https://sheets.googleapis.com/$discovery/rest?'
-                         'version=v4')
-        self.service = discovery.build('sheets', 'v4', http=http,
-                                       discoveryServiceUrl=discovery_url)
+        #  http = self.credentials.authorize(httplib2.Http())
+        #  discovery_url = ('https://sheets.googleapis.com/$discovery/rest?'
+                         #  'version=v4')
+        #  self.service = discovery.build('sheets', 'v4', http=http,
+                                       #  discoveryServiceUrl=discovery_url)
 
     @property
     def values(self):
@@ -358,3 +482,32 @@ def get_credentials(json_secret, sheets_token):  # pragma: no cover
         print('Storing credentials to ' + sheets_token)
 
     return credentials
+
+
+async def test_func():
+    paths = cog.util.get_config('paths')
+    agcm = init_agcm(paths['json'], paths['token'])
+    sclient = await agcm.authorize()
+    print('Authorized', client)
+
+    sid = '1p75GrSdqjCi_0Y-9aLZHN4maruuSluhzpxjcWtmquGw'
+    page = 'TestLive'
+    sheet = await sclient.open_by_key(sid)
+    print('title', await sheet.get_title())
+
+    wsheet = await sheet.worksheet(page)
+    print("All values")
+    __import__('pprint').pprint(await wsheet.get_all_values())
+
+
+def main():
+    import uvloop
+    asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
+    asyncio.get_event_loop().set_debug(True)
+
+    loop = asyncio.get_event_loop()
+    loop.run_until_complete(test_func())
+
+
+if __name__ == "__main__":
+    main()
