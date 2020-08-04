@@ -461,7 +461,14 @@ def main():  # pragma: no cover
 
     token = cog.util.get_config('discord', os.environ.get('COG_TOKEN', 'dev'))
     print("Waiting on connection to Discord ...")
-    cog.util.BOT.run(token)  # BLOCKING: N.o. e.s.c.a.p.e.
+    try:
+        loop = asyncio.get_event_loop()
+        # BLOCKING: N.o. e.s.c.a.p.e.
+        loop.run_until_complete(cog.util.BOT.start(token))
+    except KeyboardInterrupt:
+        loop.run_until_complete(cog.util.BOT.logout())
+    finally:
+        loop.close()
 
 
 if __name__ == "__main__":  # pragma: no cover
