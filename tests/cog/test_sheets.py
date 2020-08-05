@@ -4,6 +4,7 @@ Test sheets api logic
 NOTE: GSheet tests being skipped, they are slow and that code is mostly frozen.
 """
 from __future__ import absolute_import, print_function
+import gspread_asyncio
 
 import pytest
 
@@ -167,7 +168,41 @@ def test_column_offset():
 
 def test_column_to_index():
     column = cog.sheets.Column('A')
-    assert cog.sheets.column_to_index(str(column)) == 0
+    assert cog.sheets.column_to_index(str(column)) == 1
 
     column2 = cog.sheets.Column('AA')
-    assert cog.sheets.column_to_index(str(column2)) == 26
+    assert cog.sheets.column_to_index(str(column2)) == 27
+
+
+def test_column_to_index_zero_index():
+    column = cog.sheets.Column('A')
+    assert cog.sheets.column_to_index(str(column), zero_index=True) == 0
+
+
+def test_index_to_column():
+    assert cog.sheets.index_to_column(1) == 'A'
+
+    assert cog.sheets.index_to_column(27) == 'AA'
+
+
+def test_transpose_table():
+    input = [
+        [0, 1, 2, 3],
+        [4, 5, 6, 7],
+        [8, 9, 10, 11],
+    ]
+    expect = [
+        [0, 4, 8],
+        [1, 5, 9],
+        [2, 6, 10],
+        [3, 7, 11],
+    ]
+
+    assert cog.sheets.transpose_table(input) == expect
+
+
+@pytest.mark.asyncio
+async def test_init_agcm():
+    sheets = cog.util.get_config('tests', 'hudson_cattle')
+    agcm = cog.sheets.init_agcm(sheets['id'], sheets['page'])
+    assert isinstance(agcm, gspread_asyncio.AsyncioGspreadClientManager)
