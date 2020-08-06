@@ -35,7 +35,6 @@ REQ_SCOPE = 'https://www.googleapis.com/auth/spreadsheets'
 AGCM = None  # Rate limiting by this manager
 
 
-# TODO: Rename next below to fwd, low priority
 class ColCnt():
     """
     Simple counter that resets and prints its character.
@@ -54,7 +53,7 @@ class ColCnt():
     def __str__(self):
         return chr(self.char)
 
-    def next(self):
+    def fwd(self):
         """
         Move to next character.
 
@@ -117,7 +116,7 @@ class Column():
 
         return msg
 
-    def next(self):
+    def fwd(self):
         """
         Add exactly 1 to the column counters.
 
@@ -126,7 +125,7 @@ class Column():
         add_counter = True
         for counter in self.counters:
             try:
-                counter.next()
+                counter.fwd()
                 add_counter = False
                 break
             except cog.exc.ColOverflow:
@@ -164,7 +163,7 @@ class Column():
         Returns: The new column string.
         """
         if offset > 0:
-            call = self.next
+            call = self.fwd
         else:
             call = self.prev
             offset = offset * -1
@@ -298,21 +297,14 @@ class AsyncGSheet():
         await AGCM.authorize()
         await self.worksheet.update_cells(cells, value_input_option=input_opt)
 
-    async def whole_sheet(self, rows_major=True):  # pragma: no cover
+    async def whole_sheet(self):  # pragma: no cover
         """
         Fetch and return the entire sheet as a list of lists of strings of cell values.
-
-        Args:
-            rows_major: By default returns the data row first.
-                        Set to false to receive data by column first.
+        The cells will be in a 2d list that is row major.
         """
+        # TODO: Fetch only part needed, we can trim by last_col_a1 and last_row
         await AGCM.authorize()
-        values = await self.worksheet.get_all_values()
-
-        if not rows_major:
-            values = cog.util.transpose_table(values)
-
-        return values
+        return await self.worksheet.get_all_values()
 
     # TODO: Deprecated, prefer batch_get
     async def get(self, a1_range, dim='ROWS', value_render='UNFORMATTED_VALUE'):
@@ -345,19 +337,6 @@ class AsyncGSheet():
         logging.getLogger('cog.sheets').info('SHEETS - Update Start')
         await self.batch_update([{'range': a1_range, 'values': n_vals}])
         logging.getLogger('cog.sheets').info('SHEETS - Update End')
-
-    # TODO: Deprecated, to delete
-    async def get_with_formatting(self, cell_range):
-        """
-        Get cells with formatting information.
-        """
-        raise NotImplementedError
-        logging.getLogger('cog.sheets').info('SHEETS - FmtGet Start')
-        sheets = self.service.spreadsheets()  # pylint: disable=no-member
-        data = sheets.get(spreadsheetId=self.sheet_id, ranges=self.page + cell_range,
-                          includeGridData=True).execute()
-        logging.getLogger('cog.sheets').info('SHEETS - FmtGet End')
-        return data
 
 
 def get_credentials(json_secret, sheets_token):  # pragma: no cover
@@ -423,7 +402,7 @@ def column_to_index(col_str, zero_index=False):
     column = Column('A')
 
     while str(column) != col_str:
-        column.next()
+        column.fwd()
         cnt += 1
 
     if zero_index:

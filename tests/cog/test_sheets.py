@@ -91,14 +91,14 @@ def test_colcnt__repr__():
     assert repr(col1) == 'ColCnt(char=65, low_bound=64, high_bound=91)'
 
 
-def test_colcnt_next():
+def test_colcnt_fwd():
     col1 = cog.sheets.ColCnt('A')
-    col1.next()
+    col1.fwd()
     assert str(col1) == 'B'
 
     col2 = cog.sheets.ColCnt('Z')
     with pytest.raises(cog.exc.ColOverflow):
-        col2.next()
+        col2.fwd()
     assert str(col2) == 'A'
 
 
@@ -139,13 +139,13 @@ def test_column__repr__():
                          "ColCnt(char=65, low_bound=64, high_bound=91)])"
 
 
-def test_column_next():
+def test_column_fwd():
     column = cog.sheets.Column('A')
-    assert column.next() == 'B'
+    assert column.fwd() == 'B'
 
     column = cog.sheets.Column('Z')
-    assert column.next() == 'AA'
-    assert column.next() == 'AB'
+    assert column.fwd() == 'AA'
+    assert column.fwd() == 'AB'
 
 
 def test_column_prev():
