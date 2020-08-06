@@ -26,6 +26,7 @@ except ImportError:
     print('Please run: pip install google-api-python-client oauth2client')
 
 import cog.exc
+import cog.util
 
 
 APPLICATION_NAME = 'CogBot'
@@ -34,6 +35,7 @@ REQ_SCOPE = 'https://www.googleapis.com/auth/spreadsheets'
 AGCM = None  # Rate limiting by this manager
 
 
+# TODO: Rename next below to fwd, low priority
 class ColCnt():
     """
     Simple counter that resets and prints its character.
@@ -308,7 +310,7 @@ class AsyncGSheet():
         values = await self.worksheet.get_all_values()
 
         if not rows_major:
-            values = transpose_table(values)
+            values = cog.util.transpose_table(values)
 
         return values
 
@@ -440,25 +442,6 @@ def index_to_column(one_index):
     col = Column()
     col.offset(one_index - 1)
     return str(col)
-
-
-def transpose_table(table):
-    """
-    Transpose any table of values stored as list of lists.
-    Table must be rectangular.
-
-    Returns: Transposed list of lists.
-    """
-    n_table = []
-
-    while len(n_table) != len(table[0]):
-        n_table += [[]]
-
-    for col_ind in range(0, len(table[0])):
-        for row_ind in range(0, len(table)):
-            n_table[col_ind] += [table[row_ind][col_ind]]
-
-    return n_table
 
 
 async def test_func():

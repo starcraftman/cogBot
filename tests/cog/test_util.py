@@ -126,3 +126,19 @@ def test_msg_splitter():
         assert cog.util.msg_splitter(test2) == [test1 + "stop here", test1[:-1]]
     finally:
         cog.util.MSG_LIMIT = old_limit
+
+
+def test_transpose_table():
+    input = [
+        [0, 1, 2, 3],
+        [4, 5, 6, 7],
+        [8, 9, 10, 11],
+    ]
+    expect = [
+        [0, 4, 8],
+        [1, 5, 9],
+        [2, 6, 10],
+        [3, 7, 11],
+    ]
+
+    assert cog.util.transpose_table(input) == expect

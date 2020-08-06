@@ -321,5 +321,24 @@ async def pastebin_new_paste(title, content):
     return await pastebin_upload(pbin["dev_key"], title, content, session=user_session)
 
 
+def transpose_table(table):
+    """
+    Transpose any table of values stored as list of lists.
+    Table must be rectangular.
+
+    Returns: Transposed list of lists.
+    """
+    n_table = []
+
+    while len(n_table) != len(table[0]):
+        n_table += [[]]
+
+    for col_ind in range(0, len(table[0])):
+        for row_ind in range(0, len(table)):
+            n_table[col_ind] += [table[row_ind][col_ind]]
+
+    return n_table
+
+
 ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 YAML_FILE = rel_to_abs('data', 'config.yml')

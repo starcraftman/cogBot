@@ -412,6 +412,225 @@ def fort_order_drop(session, systems):
     session.commit()
 
 
+class AFortScanner():
+    """
+    Scanner for the Hudson fort sheet.
+
+    args:
+        asheet: The AsyncGSheet that connects to the sheet.
+    """
+    SYSTEM_RANGE = '{}10:{}10'  # Fill in max column
+
+    def __init__(self, asheet):
+        self.asheet = asheet
+        self.users_args = (SheetCattle, EFaction.hudson)
+        self.db_classes = [Drop, System, SheetCattle]
+
+        self._cells = None
+        self._cells_column = None
+        self.system_col = None
+        self.user_col = 'B'
+        self.user_row = 11
+
+    @property
+    def cells_row_major(self):
+        return self._cells
+
+    @property
+    def cells_column_major(self):
+        if not self._cells_column:
+            self._cells_column = cog.util.transpose_table(self._cells)
+
+        return self._cells_column
+
+    async def update_cells(self):
+        self._cells = await self.asheet.whole_sheet()
+        self._cells_column = None
+
+    #  def scan(self):
+        #  """
+        #  Main function, scan the sheet into the database.
+        #  """
+        #  self.cells = self.gsheet.whole_sheet()
+        #  self.system_col = self.find_system_column()
+
+        #  systems = self.fort_systems() + self.prep_systems()
+        #  users = self.users(*self.users_args, first_id=1)
+        #  merits = self.merits(systems, users)
+
+        #  session = cogdb.Session()
+        #  self.drop_entries(session)
+        #  session.commit()
+        #  session.add_all(systems + users)
+        #  session.commit()
+        #  session.add_all(merits)
+        #  session.commit()
+
+        #  return True
+
+    def scan_users(self, first_id=1):
+        """
+        Scan the users in the sheet and return sheet user objects.
+
+        Args:
+            first_id: The id to start for the users.
+        """
+        row_cnt, found = 10, []
+        cls, faction = self.users_args
+
+        crys = self.cells_column_major[0][10:]
+        names = self.cells_column_major[1][10:]
+        for cry, name in list(zip(crys, names)):
+            row_cnt += 1
+            if name.strip() == '':
+                continue
+
+            sheet_user = cls(id=first_id, cry=cry, name=name, faction=faction, row=row_cnt)
+            first_id += 1
+            if sheet_user in found:
+                rows = [other.row for other in found if other == sheet_user] + [row_cnt]
+                raise cog.exc.NameCollisionError("Fort", sheet_user.name, rows)
+
+            found += [sheet_user]
+
+        return found
+
+    def fort_systems(self):
+        """
+        Scan and parse the system information into System objects.
+
+        Returns:
+            A list of System objects to be put in database.
+        """
+        found, order, cell_column = [], 1, cog.sheets.Column(self.system_col)
+        ind = cog.sheets.column_to_index(self.system_col, zero_index=True)
+
+        for col in self.cells_column_major[ind:]:
+            kwargs = kwargs_fort_system(col[0:10], order, str(cell_column))
+            kwargs['id'] = order
+            found += [System(**kwargs)]
+
+            order += 1
+            cell_column.next()
+
+        return found
+
+    def prep_systems(self):
+        """
+        Scan the Prep systems if any into the System db.
+
+        Preps exist in range [D, system_col)
+        """
+        found, order, cell_column = [], 0, cog.sheets.Column('C')
+        first_prep = cog.sheets.column_to_index(str(cell_column))
+        first_system = cog.sheets.column_to_index(self.system_col) - 1
+
+        cell_column.prev()
+        for col in self.cells_column_major[first_prep:first_system]:
+            order = order + 1
+            cell_column.next()
+            col = col[0:10]
+
+            if col[-1].strip() == "TBA":
+                continue
+
+            kwargs = kwargs_fort_system(col, order, str(cell_column))
+            kwargs['id'] = 1000 + order
+
+            found += [PrepSystem(**kwargs)]
+
+        return found
+
+    #  def merits(self, systems, users):
+        #  """
+        #  Scan the fortification area of the sheet and return Drop objects representing
+        #  merits each user has dropped in System.
+
+        #  Args:
+            #  systems: The list of Systems in the order entered in the sheet.
+            #  users: The list of Users in order the order entered in the sheet.
+        #  """
+        #  log = logging.getLogger('cogdb.query')
+        #  found = []
+
+        #  cnt = 1
+        #  for system in systems:
+            #  sys_ind = cog.sheets.column_to_index(system.sheet_col)
+            #  try:
+                #  for user in users:
+                    #  amount = self.cells[sys_ind][user.row - 1]
+
+                    #  if isinstance(amount, type('')):
+                        #  amount = amount.strip()
+                    #  if amount == '':  # Some rows just placeholders if empty
+                        #  continue
+
+                    #  found.append(Drop(id=cnt, user_id=user.id, system_id=system.id,
+                                      #  amount=cogdb.schema.parse_int(amount)))
+                    #  cnt += 1
+                    #  log.info('DROPSCAN - Adding: %s', found[-1])
+            #  except IndexError:
+                #  pass  # No more amounts in column
+
+        #  return found
+
+    async def find_system_column(self):
+        """
+        Find the first column that has a system cell in it.
+        Determined based on TBA columns.
+
+        Raises:
+            SheetParsingError when fails to locate expected anchor in cells.
+        """
+        row = await self.asheet.values_row(10)
+        col_count = cog.sheets.Column()
+
+        next_not_tba = False
+        for cell in row:
+            if next_not_tba and cell.strip() != 'TBA':
+                return str(col_count)
+
+            if cell == 'TBA':
+                next_not_tba = True
+
+            col_count.next()
+
+        raise cog.exc.SheetParsingError("Unable to determine system column.")
+
+    def update_sheet_user(self, row, cry, name):
+        """
+        Create an update user dict. See AsyncGSheet.batch_update
+
+        Returns: A list of update dicts to pass to batch_update.
+        """
+        range = 'A{row}:B{row}'.format(row=row)
+        return [{'range': range, 'values': [[cry, name]]}]
+
+    def update_drop_dict(self, system_col, user_row, amount):
+        """
+        Create an update drop dict. See AsyncGSheet.batch_update
+
+        Returns: A list of update dicts to pass to batch_update.
+        """
+        range = '{col}{row}:{col}{row}'.format(col=system_col, row=user_row)
+        return [{'range': range, 'values': [[amount]]}]
+
+    def update_system_dict(self, col, fort_status, um_status):
+        """
+        Create an update system dict. See AsyncGSheet.batch_update
+
+        Returns: A list of update dicts to pass to batch_update.
+        """
+        range = '{col}6:{col}7'.format(col=col)
+        return [{'range': range, 'values': [[fort_status, um_status]]}]
+
+    async def send_batch(self, dicts):
+        """
+        """
+        logging.getLogger("cogdb.query").info("Sending update to Fort Sheet.\n%s", str(dicts))
+        await self.asheet.batch_update(dicts)
+
+
 class SheetScanner():
     """
     Scan a sheet to populate the database with information
@@ -1175,3 +1394,35 @@ def kos_search_cmdr(session, term):
     """
     term = '%' + str(term) + '%'
     return session.query(KOS).filter(KOS.cmdr.ilike(term)).all()
+
+
+async def test_func2():
+    import cog.sheets
+    paths = cog.util.get_config('paths')
+    cog.sheets.AGCM = cog.sheets.init_agcm(paths['json'], paths['token'])
+
+    sid = '1p75GrSdqjCi_0Y-9aLZHN4maruuSluhzpxjcWtmquGw'
+    page = 'TestLive'
+    asheet = cog.sheets.AsyncGSheet(sid, page)
+    await asheet.init_sheet()
+
+    fscan = AFortScanner(asheet)
+    fscan.system_col = await fscan.find_system_column()
+    await fscan.update_cells()
+    print(fscan.scan_users())
+    print(fscan.fort_systems())
+    print(fscan.prep_systems())
+
+
+def main():
+    import asyncio
+    import uvloop
+    asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
+    asyncio.get_event_loop().set_debug(True)
+
+    loop = asyncio.get_event_loop()
+    loop.run_until_complete(test_func2())
+
+
+if __name__ == "__main__":
+    main()

@@ -185,22 +185,6 @@ def test_index_to_column():
     assert cog.sheets.index_to_column(27) == 'AA'
 
 
-def test_transpose_table():
-    input = [
-        [0, 1, 2, 3],
-        [4, 5, 6, 7],
-        [8, 9, 10, 11],
-    ]
-    expect = [
-        [0, 4, 8],
-        [1, 5, 9],
-        [2, 6, 10],
-        [3, 7, 11],
-    ]
-
-    assert cog.sheets.transpose_table(input) == expect
-
-
 @pytest.mark.asyncio
 async def test_init_agcm():
     sheets = cog.util.get_config('tests', 'hudson_cattle')
