@@ -385,7 +385,7 @@ class KOS(Base):
         return isinstance(other, KOS) and (self.cmdr) == (other.cmdr)
 
     def __hash__(self):
-        return hash((self.id, self.cmdr))
+        return hash(self.cmdr)
 
     @property
     def friendly(self):
@@ -483,6 +483,7 @@ class System(Base):
         """ The remaining supplies to fortify """
         return self.fort_override >= 1.0 or self.current_status >= self.trigger
 
+    # TODO: Make this useful in queries to db.
     @property
     def is_undermined(self):
         """ The system has been undermined """
@@ -876,7 +877,7 @@ def empty_tables(session, *, perm=False):
     """
     Drop all tables.
     """
-    classes = [Drop, Hold, System, SystemUM, SheetRow]
+    classes = [Drop, Hold, System, SystemUM, SheetRow, KOS]
     if perm:
         classes += [DUser]
 

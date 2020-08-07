@@ -96,8 +96,8 @@ def test_count_factions_in_system(side_session):
 
 
 def test_inf_history_for_pairs(side_session):
-    # Pairs in Sol, essentially static, last is engineer ignore
-    pairs = [(17072, 588), (17072, 589), (17072, 591), (17072, 592), (17072, 593)]
+    # Pairs in Sol, essentially static
+    pairs = [(17072, 588), (17072, 589), (17072, 591), (17072, 592)]
     result = cogdb.side.inf_history_for_pairs(side_session, pairs)
 
     assert isinstance(result, type({}))

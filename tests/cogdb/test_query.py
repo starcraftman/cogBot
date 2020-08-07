@@ -8,8 +8,7 @@ import pytest
 
 import cog.exc
 import cogdb
-from cogdb.schema import (DUser, System, SheetRow, SheetCattle, SheetUM,
-                          Hold, UMExpand, EFaction, ESheetType, Admin,
+from cogdb.schema import (DUser, System, SheetRow, SheetCattle, Hold, EFaction, ESheetType, Admin,
                           ChannelPerm, RolePerm, FortOrder)
 import cogdb.query
 
@@ -238,79 +237,6 @@ def test_fort_order_drop(session, f_systems, f_fortorders):
     cogdb.query.fort_order_drop(session, systems[:2])
 
     assert cogdb.Session().query(FortOrder).all() == [f_fortorders[2]]
-
-
-def test_fortscanner_find_system_column(mock_fortsheet):
-    scanner = cogdb.query.FortScanner(mock_fortsheet)
-    scanner.cells = mock_fortsheet.whole_sheet()
-    assert scanner.find_system_column() == 'H'
-
-    with pytest.raises(cog.exc.SheetParsingError):
-        scanner.cells = [[''], ['CMDR Name']]
-        scanner.find_system_column()
-
-
-def test_fortscanner_merits(mock_fortsheet):
-    scanner = cogdb.query.FortScanner(mock_fortsheet)
-    scanner.scan()
-
-    session = cogdb.Session()
-    fort1 = session.query(cogdb.schema.Drop).filter(cogdb.schema.Drop.system_id == 1003).all()[0]
-    assert fort1.amount == 2222
-    assert fort1.system.name == 'Frey'
-    assert fort1.user.name == 'Toliman'
-
-
-def test_fortscanner_systems(mock_fortsheet):
-    scanner = cogdb.query.FortScanner(mock_fortsheet)
-    scanner.scan()
-    result = [sys.name for sys in scanner.systems()]
-
-    for sys in SYSTEMS[:6] + ['Othime']:
-        assert sys in result
-
-
-def test_fortscanner_users(mock_fortsheet):
-    scanner = cogdb.query.FortScanner(mock_fortsheet)
-    scanner.cells = scanner.gsheet.whole_sheet()
-    result = [suser.name for suser in scanner.users(SheetCattle, EFaction.hudson)]
-    assert result == USERS
-
-
-def test_umscanner_systems(mock_umsheet):
-    scanner = cogdb.query.UMScanner(mock_umsheet)
-    scanner.cells = scanner.gsheet.whole_sheet()
-    system = scanner.systems()[0]
-    assert system.name == 'Burr'
-    assert isinstance(system, UMExpand)
-
-
-def test_umscanner_users(mock_umsheet):
-    scanner = cogdb.query.UMScanner(gsheet=mock_umsheet)
-    scanner.cells = scanner.gsheet.whole_sheet()
-    users = scanner.users(SheetUM, EFaction.hudson)
-    result = [user.name for user in users]
-    expect = ['Haphollas', 'Rico Char', 'MalvadoDiablo', 'Harmsus', 'Otorno', 'Blackneto',
-              'Paul Redpath', 'Xxxreaper752xxx ', 'FRENZY86', 'Sardaukar17', 'SpongeDoc',
-              'ActionFace', 'ilNibbio', 'Tomis[XB1]', 'UEG LONE', 'tfcheps', 'xxSNEAKELLAMAxx',
-              'Alexander Astropath', 'Rimos', 'Shepron', 'Willa', 'North Man', 'Tiddymun',
-              'Horizon', 'Phantom50Elite', 'BaronGreenback', 'Fod4u2', 'Eastbourne',
-              'KineticTrauma', 'CyberCarnivore', 'Renegade Bovine', 'crazyjay', 'harlequin_420th',
-              'NascentChemist', 'Oskiboy[PC/XB1]', 'Muaddib', 'DRAGON DARKO', 'Gaz Cullen']
-    assert result == expect
-    assert isinstance(users[0], SheetUM)
-
-
-def test_umscanner_merits(session, mock_umsheet):
-    scanner = cogdb.query.UMScanner(gsheet=mock_umsheet)
-    scanner.scan()
-    session.commit()
-
-    holds = session.query(cogdb.schema.Hold).all()
-    hold = [hold for hold in holds if
-            hold.system.name == 'Burr' and hold.user.name == 'Tomis[XB1]'][0]
-    assert hold.held == 7330
-    assert hold.redeemed == 890
 
 
 def test_um_find_system(session, f_systemsum):

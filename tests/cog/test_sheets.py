@@ -102,13 +102,13 @@ def test_colcnt_fwd():
     assert str(col2) == 'A'
 
 
-def test_colcnt_prev():
+def test_colcnt_back():
     col1 = cog.sheets.ColCnt('B')
-    col1.prev()
+    col1.back()
     assert str(col1) == 'A'
 
     with pytest.raises(cog.exc.ColOverflow):
-        col1.prev()
+        col1.back()
     assert str(col1) == 'Z'
 
 
@@ -148,13 +148,13 @@ def test_column_fwd():
     assert column.fwd() == 'AB'
 
 
-def test_column_prev():
+def test_column_back():
     column = cog.sheets.Column('B')
-    assert column.prev() == 'A'
+    assert column.back() == 'A'
 
     column = cog.sheets.Column('AA')
-    assert column.prev() == 'Z'
-    assert column.prev() == 'Y'
+    assert column.back() == 'Z'
+    assert column.back() == 'Y'
 
 
 def test_column_offset():

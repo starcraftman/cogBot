@@ -65,7 +65,7 @@ class ColCnt():
             self.reset()
             raise cog.exc.ColOverflow
 
-    def prev(self):
+    def back(self):
         """
         Move to previous character.
 
@@ -136,7 +136,7 @@ class Column():
 
         return self.__str__()
 
-    def prev(self):
+    def back(self):
         """
         Subtract exactly 1 from the column counters.
 
@@ -145,7 +145,7 @@ class Column():
         sub_counter = True
         for counter in self.counters:
             try:
-                counter.prev()
+                counter.back()
                 sub_counter = False
                 break
             except cog.exc.ColOverflow:
@@ -165,7 +165,7 @@ class Column():
         if offset > 0:
             call = self.fwd
         else:
-            call = self.prev
+            call = self.back
             offset = offset * -1
 
         while offset:
@@ -196,8 +196,8 @@ class AsyncGSheet():
         self.sheet_page = sheet_page
         self.worksheet = None
         # These are stored 1 index, same as google sheets operate.
-        self.last_col = None
-        self.last_row = None
+        self.last_col = 0
+        self.last_row = 0
 
     @property
     def last_col_a1(self):
@@ -213,9 +213,16 @@ class AsyncGSheet():
         sclient = await AGCM.authorize()
         document = await sclient.open_by_key(self.sheet_id)
         self.worksheet = await document.worksheet(self.sheet_page)
-        self.last_col = len(await self.values_row(1))
-        self.last_row = len(await self.values_col(1))
+        await self.refresh_last_indices()
         logging.getLogger('cog.sheets').info("GSHEET Setup Complete for %s", self.sheet_page)
+
+    async def refresh_last_indices(self):
+        """
+        Fetch latest sheet's row and column and take the maximum values.
+        Call this before adding data to sheet if uncertain of user additions.
+        """
+        self.last_col = max(self.last_col, len(await self.values_row(1)))
+        self.last_row = max(self.last_row, len(await self.values_col(1)))
 
     async def batch_get(self, cells, dim='ROWS', value_render='UNFORMATTED_VALUE'):
         """
@@ -297,46 +304,22 @@ class AsyncGSheet():
         await AGCM.authorize()
         await self.worksheet.update_cells(cells, value_input_option=input_opt)
 
-    async def whole_sheet(self):  # pragma: no cover
+    async def whole_sheet(self, update_indices=True):  # pragma: no cover
         """
         Fetch and return the entire sheet as a list of lists of strings of cell values.
         The cells will be in a 2d list that is row major.
+
+        Args:
+            update_indices: When True, update the sheets last indices based on new sheet.
         """
-        # TODO: Fetch only part needed, we can trim by last_col_a1 and last_row
         await AGCM.authorize()
-        return await self.worksheet.get_all_values()
+        values = await self.worksheet.get_all_values()
 
-    # TODO: Deprecated, prefer batch_get
-    async def get(self, a1_range, dim='ROWS', value_render='UNFORMATTED_VALUE'):
-        """
-        Args:
-            service: The service returned by the sheets api.
-            sheet_id: The sheet identifier.
-            cell_range: An A1 range that describes a single area to return.
+        if update_indices:
+            self.last_col = max(self.last_col, len(values))
+            self.last_row = max(self.last_row, len(values[0]))
 
-        Returns: A list of rows in the area.
-        """
-        logging.getLogger('cog.sheets').info('SHEETS - Get Start')
-        values = await self.batch_get([a1_range], dim)
-        print("GET", values)
-        logging.getLogger('cog.sheets').info('SHEETS - Get End')
-        return values[0]
-
-    # TODO: Deprecated, prefer batch_update
-    #  def update(self, cell_range, n_vals, dim='ROWS'):
-    async def update(self, a1_range, n_vals, input_opt='RAW', value_render='UNFORMATTED_VALUE'):
-        """
-        Set a whole range of values in the sheet.
-
-        Args:
-            service: The service returned by the sheets api.
-            sheet_id: The sheet identifier.
-            range: An A1 range that describes a single area to return.
-            n_vals: New values to fit into range, list of lists.
-        """
-        logging.getLogger('cog.sheets').info('SHEETS - Update Start')
-        await self.batch_update([{'range': a1_range, 'values': n_vals}])
-        logging.getLogger('cog.sheets').info('SHEETS - Update End')
+        return values
 
 
 def get_credentials(json_secret, sheets_token):  # pragma: no cover

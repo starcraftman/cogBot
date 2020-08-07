@@ -43,7 +43,7 @@ from tests.data import CELLS_FORT, CELLS_FORT_FMT, CELLS_UM
     #  yield
     #  print(" Time", datetime.datetime.utcnow() - start, end="")
 
-    #  classes = [DUser, SheetRow, System, SystemUM, Drop, Hold]
+    #  classes = [DUser, SheetRow, System, SystemUM, Drop, Hold, KOS]
     #  for cls in classes:
         #  assert not session.query(cls).all()
 
@@ -100,7 +100,7 @@ def db_cleanup(session):
 
     cogdb.schema.empty_tables(session, perm=True)
 
-    classes = [DUser, SheetRow, System, SystemUM, Drop, Hold]
+    classes = [DUser, SheetRow, System, SystemUM, Drop, Hold, KOS]
     for cls in classes:
         assert session.query(cls).all() == []
 
@@ -560,3 +560,90 @@ def f_bot():
     yield fake_bot
 
     cog.util.BOT = None
+
+
+@pytest.fixture
+def f_asheet():
+    """
+    Return a mocked AsyncGSheet object.
+
+    This is a VERY fake object with real methods that can do simple things:
+        - pull in data from a filename
+        - determine last row/column
+        - fake the transmissions but store sent
+    """
+    asheet = aiomock.Mock()
+    asheet.worksheet = aiomock.Mock()
+    asheet.last_col = 0
+    asheet.last_row = 0
+    asheet.last_col_a1 = 'A'
+    asheet.filename = None
+
+    async def batch_update_send_(dicts):
+        asheet.batch_update_sent = dicts
+
+    async def init_():
+        asheet.init_called = True
+
+    async def refresh_last_indices_():
+        with open(asheet.filename, 'r') as fin:
+            cells = eval(fin.read())
+            asheet.last_row = len(cells)
+            asheet.last_col = len(cog.util.transpose_table(cells))
+
+    async def values_col_(ind):
+        with open(asheet.filename, 'r') as fin:
+            cells = eval(fin.read())
+            return cog.util.transpose_table(cells)[ind]
+
+    async def values_row_(ind):
+        with open(asheet.filename, 'r') as fin:
+            cells = eval(fin.read())
+            return cells[ind]
+
+    async def whole_sheet_():
+        await refresh_last_indices_()
+        with open(asheet.filename, 'r') as fin:
+            return eval(fin.read())
+
+    asheet.batch_get.async_return_value = None
+    asheet.batch_update = batch_update_send_
+    asheet.init_sheet = init_
+    asheet.cells_get_range.async_return_value = None
+    asheet.cells_updatea.async_return_value = None
+    asheet.refresh_last_indices = refresh_last_indices_
+    asheet.values_col = values_col_
+    asheet.values_row = values_row_
+    asheet.whole_sheet = whole_sheet_
+
+    yield asheet
+
+
+@pytest.fixture
+def f_asheet_fortscanner(f_asheet):
+    """
+    Return a mocked AsyncGSheet for the fortscanner.
+    """
+    f_asheet.filename = os.path.join(cog.util.ROOT_DIR, 'tests', 'test_input.fortscanner.txt')
+
+    yield f_asheet
+
+
+@pytest.fixture
+def f_asheet_umscanner(f_asheet):
+    """
+    Return a mocked AsyncGSheet for the fortscanner.
+    """
+    f_asheet.filename = os.path.join(cog.util.ROOT_DIR, 'tests', 'test_input.umscanner.txt')
+
+    yield f_asheet
+
+
+@pytest.fixture
+def f_asheet_kos(f_asheet):
+    """
+    Return a mocked AsyncGSheet for the fortscanner.
+    """
+    f_asheet.filename = os.path.join(cog.util.ROOT_DIR, 'tests', 'test_input.kos.txt')
+
+    yield f_asheet
