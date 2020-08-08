@@ -15,7 +15,8 @@ import cog.sheets
 from cog.util import substr_match
 import cogdb
 from cogdb.schema import (DUser, System, PrepSystem, SystemUM, SheetRow, SheetCattle, SheetUM,
-                          Drop, Hold, EFaction, ESheetType, Admin, ChannelPerm, RolePerm, FortOrder, KOS)
+                          Drop, Hold, EFaction, ESheetType,
+                          Admin, ChannelPerm, RolePerm, FortOrder, KOS)
 from cogdb.side import HUDSON_CONTROLS, WINTERS_CONTROLS
 
 

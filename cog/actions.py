@@ -9,7 +9,6 @@ import datetime
 import logging
 import re
 import string
-from functools import partial
 
 import decorator
 import discord
@@ -18,6 +17,7 @@ import googleapiclient.errors
 import cogdb
 import cogdb.eddb
 import cogdb.query
+import cogdb.scanners
 import cogdb.side
 import cog.inara
 import cog.jobs
@@ -88,14 +88,10 @@ def check_sheet(scanner_name, stype):
                                           type=getattr(cogdb.schema.ESheetType, stype),
                                           start_row=get_scanner(scanner_name).user_row)
 
-            job = cog.jobs.Job(
-                partial(get_scanner(scanner_name).update_sheet_user,
-                        sheet.row, sheet.cry, sheet.name))
-            job.set_ident_from_msg(self.msg, 'Adding user to sheet')
-            job.add_fail_callback([self.bot, self.msg])
-            await cog.jobs.background_start(job)
+            self.payloads += cogdb.scanners.FortScanner.update_sheet_user_dict(
+                sheet.row, sheet.cry, sheet.name)
 
-            notice = 'Automatically added {} to {} sheet. See !user command to change.'.format(
+            notice = 'Will automatically add {} to {} sheet. See !user command to change.'.format(
                 self.duser.pref_name, stype)
             asyncio.ensure_future(self.bot.send_message(self.msg.channel, notice))
 
@@ -115,6 +111,7 @@ class Action():
         self.log = logging.getLogger('cog.actions')
         self.session = cogdb.Session()
         self.__duser = None
+        self.payloads = []  # FIXME: Temporary hack to bunch updates to sheet
 
     @property
     def duser(self):
@@ -699,14 +696,16 @@ class Drop(Action):
                       self.duser.display_name, drop, system)
         self.session.commit()
 
-        job = cog.jobs.Job(
-            partial(sync_drop,
-                    [drop.system.sheet_col, drop.user.row, drop.amount],
-                    [drop.system.sheet_col, drop.system.fort_status, drop.system.um_status]))
-        job.set_ident_from_msg(self.msg, 'Adding drop to fort sheet')
-        job.add_fail_callback([self.bot, self.msg])
-        await cog.jobs.background_start(job)
-
+        self.payloads += [
+            cogdb.scanners.FortScanner.update_system_dict(
+                drop.system.sheet_col, drop.system.fort_status, drop.system.um_status
+            ),
+            cogdb.scanners.FortScanner.update_drop_dict(
+                drop.system.sheet_col, drop.user.row, drop.amount
+            )
+        ]
+        scanner = get_scanner("hudson_cattle")
+        await scanner.send_batch(self.payloads)
         self.log.info('DROP %s - Sucessfully dropped %d at %s.',
                       self.duser.display_name, self.args.amount, system.name)
 
@@ -773,12 +772,14 @@ class Fort(Action):
             system.set_status(self.args.set)
             self.session.commit()
 
-            job = cog.jobs.Job(
-                partial(get_scanner("hudson_cattle").update_system,
-                        system.sheet_col, system.fort_status, system.um_status))
-            job.set_ident_from_msg(self.msg, 'Updating fort system')
-            job.add_fail_callback([self.bot, self.msg])
-            await cog.jobs.background_start(job)
+            self.payloads += [
+                cogdb.scanners.FortScanner.update_system_dict(
+                    system.sheet_col, system.fort_status, system.um_status
+                ),
+            ]
+            scanner = get_scanner("hudson_cattle")
+            await scanner.send_batch(self.payloads)
+
             response = system.display()
 
         elif self.args.miss:
@@ -906,14 +907,12 @@ class Hold(Action):
 
         if self.args.set:
             system.set_status(self.args.set)
-
-            job = cog.jobs.Job(
-                partial(get_scanner("hudson_undermine").update_system,
-                        system.sheet_col, system.progress_us,
-                        system.progress_them, system.map_offset))
-            job.set_ident_from_msg(self.msg, 'Updating undermining system')
-            job.add_fail_callback([self.bot, self.msg])
-            await cog.jobs.background_start(job)
+            self.payloads += [
+                cogdb.scanners.UMScanner.update_systemum_dict(
+                    system.sheet_col, system.progress_us,
+                    system.progress_them, system.map_offset
+                )
+            ]
 
         self.log.info('Hold %s - After update, hold: %s\nSystem: %s.',
                       self.duser.display_name, hold, system)
@@ -950,11 +949,12 @@ class Hold(Action):
 
         self.session.commit()
 
-        holds = [[hold.system.sheet_col, hold.user.row, hold.held, hold.redeemed] for hold in holds]
-        job = cog.jobs.Job(partial(sync_holds, holds), timeout=30)
-        job.set_ident_from_msg(self.msg, 'Updating undermining holds')
-        job.add_fail_callback([self.bot, self.msg])
-        await cog.jobs.background_start(job)
+        for hold in holds:
+            self.payloads += cogdb.scanners.UMScanner.update_hold_dict(
+                hold.system.sheet_col, hold.user.row, hold.held, hold.redeemed)
+
+        scanner = get_scanner("hudson_undermine")
+        await scanner.send_batch(self.payloads)
 
         await self.bot.send_message(self.msg.channel, response)
 
@@ -1243,13 +1243,14 @@ class UM(Action):
             if self.args.set or self.args.offset:
                 self.session.commit()
 
-                job = cog.jobs.Job(
-                    partial(get_scanner("hudson_undermine").update_system,
-                            system.sheet_col, system.progress_us,
-                            system.progress_them, system.map_offset))
-                job.set_ident_from_msg(self.msg, 'Updating undermining system status')
-                job.add_fail_callback([self.bot, self.msg])
-                await cog.jobs.background_start(job)
+                self.payloads += [
+                    cogdb.scanners.UMScanner.update_systemum_dict(
+                        system.sheet_col, system.progress_us,
+                        system.progress_them, system.map_offset
+                    )
+                ]
+                scanner = get_scanner("hudson_undermine")
+                await scanner.send_batch(self.payloads)
 
             response = system.display()
 
@@ -1277,21 +1278,17 @@ class User(Action):
         if args.name or args.cry:
             if self.cattle:
                 sheet = self.cattle
-                job = cog.jobs.Job(
-                    partial(get_scanner("hudson_cattle").update_sheet_user,
-                            sheet.row, sheet.cry, sheet.name))
-                job.set_ident_from_msg(self.msg, 'Updating cattle name/cry')
-                job.add_fail_callback([self.bot, self.msg])
-                await cog.jobs.background_start(job)
+                self.payloads += cogdb.scanners.FortScanner.update_sheet_user_dict(
+                    sheet.row, sheet.cry, sheet.name)
+                scanner = get_scanner("hudson_cattle")
 
             if self.undermine:
                 sheet = self.undermine
-                job = cog.jobs.Job(
-                    partial(get_scanner("hudson_undermine").update_sheet_user,
-                            sheet.row, sheet.cry, sheet.name))
-                job.set_ident_from_msg(self.msg, 'Updating undermining name/cry')
-                job.add_fail_callback([self.bot, self.msg])
-                await cog.jobs.background_start(job)
+                self.payloads += cogdb.scanners.UMScanner.update_sheet_user_dict(
+                    sheet.row, sheet.cry, sheet.name)
+                scanner = get_scanner("hudson_undermine")
+
+            await scanner.send_batch(self.payloads)
 
         lines = [
             '__{}__'.format(self.msg.author.display_name),
@@ -1372,21 +1369,6 @@ def process_system_args(args):
     return system_names.split(',')
 
 
-def sync_drop(drop_args, system_args):
-    """ Executes in another process. """
-    scanner = get_scanner("hudson_cattle")
-    scanner.update_drop(*drop_args)
-    scanner.update_system(*system_args)
-
-
-def sync_holds(holds):
-    """ Executes in another process. """
-    # TODO: Expand the holds to a continuous rectangle and one update.
-    scanner = get_scanner("hudson_undermine")
-    for hold in holds:
-        scanner.update_hold(*hold)
-
-
 def init_scanner(name):
     """
     Initialize a scanner based on configuration.
@@ -1394,7 +1376,7 @@ def init_scanner(name):
     print("Intializing scanner -> ", name)
     logging.getLogger('cog.actions').info("Initializing the %s scanner.", name)
     sheet = cog.util.get_config("scanners", name)
-    cls = getattr(cogdb.query, sheet["cls"])
+    cls = getattr(cogdb.scanners, sheet["cls"])
     scanner = cls(sheet)
     SCANNERS[name] = scanner
 
