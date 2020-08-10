@@ -433,7 +433,7 @@ class System(Base):
     }
 
     def __repr__(self):
-        keys = ['name', 'fort_status', 'trigger', 'um_status',
+        keys = ['name', 'fort_status', 'trigger', 'fort_override', 'um_status',
                 'undermine', 'distance', 'notes', 'sheet_col', 'sheet_order']
         kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
 
@@ -767,7 +767,7 @@ def kwargs_um_system(cells, sheet_col):
     """
     Return keyword args parsed from cell frame.
 
-    Format !D1:E11:
+    Format !D1:E13:
         1: Title | Title
         2: Exp Trigger/Opp. Tigger | % safety margin  -> If cells blank, not expansion system.
         3: Leading by xx% OR behind by xx% (
@@ -803,13 +803,13 @@ def kwargs_um_system(cells, sheet_col):
 
         return {
             'exp_trigger': parse_int(main_col[1]),
-            'goal': parse_int(main_col[3]),  # FIXME: May come down as float. This would truncate.
+            'goal': parse_int(main_col[3]),
             'security': main_col[6].strip().replace('Sec: ', ''),
             'notes': sec_col[6].strip(),
             'close_control': main_col[7].strip(),
             'name': main_col[8].strip(),
             'progress_us': parse_int(main_col[9]),
-            'progress_them': parse_float(main_col[10]),
+            'progress_them': parse_percent(main_col[10]),
             'map_offset': map_offset,
             'sheet_col': sheet_col,
             'cls': cls,
@@ -842,8 +842,8 @@ def kwargs_fort_system(lines, order, column):
             raise cog.exc.SheetParsingError
 
         return {
-            'undermine': parse_float(lines[0]),
-            'fort_override': parse_float(lines[1]),
+            'undermine': parse_percent(lines[0]),
+            'fort_override': parse_percent(lines[1]),
             'trigger': parse_int(lines[2]),
             'fort_status': parse_int(lines[5]),
             'um_status': parse_int(lines[6]),
@@ -862,13 +862,24 @@ def parse_int(word):
     try:
         return int(word)
     except ValueError:
-        return 0
+        try:
+            return int(word.replace(',', ''))
+        except ValueError:
+            return 0
 
 
 def parse_float(word):
     """ Parse into float, on failure return 0.0 """
     try:
         return float(word)
+    except ValueError:
+        return 0.0
+
+
+def parse_percent(word):
+    """ Parse a percent into a float. """
+    try:
+        return parse_float(word.replace('%', '')) / 100.0
     except ValueError:
         return 0.0
 

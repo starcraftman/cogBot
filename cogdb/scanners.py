@@ -5,6 +5,7 @@ Sheet scanners make heavy use of cog.sheets.AsyncGSheet
 """
 import asyncio
 import logging
+import sys
 
 import uvloop
 
@@ -225,7 +226,7 @@ class FortScanner():
         Returns: A list of update dicts to pass to batch_update.
         """
         cell_range = '{col}6:{col}7'.format(col=col)
-        return [{'range': cell_range, 'values': [[fort_status, um_status]]}]
+        return [{'range': cell_range, 'values': [[fort_status], [um_status]]}]
 
     @staticmethod
     def update_drop_dict(system_col, user_row, amount):
@@ -340,7 +341,7 @@ class UMScanner(FortScanner):
         Returns: A list of update dicts to pass to batch_update.
         """
         cell_range = '{col}10:{col}13'.format(col=col)
-        values = [[progress_us, progress_them, 'Hold Merits', map_offset]]
+        values = [[progress_us], [progress_them], ['Hold Merits'], [map_offset]]
         return [{'range': cell_range, 'values': values}]
 
     @staticmethod
@@ -426,6 +427,30 @@ class KOSScanner(FortScanner):
         return [{'range': cell_range, 'values': [list(values)]}]
 
 
+async def init_scanners():
+    """
+    Initialized all parts related to google sheet scanners.
+
+    Returns:
+        A dict where key is name of scanner and value is the scanner.
+    """
+    scanners, init_coros = {}, []
+    paths = cog.util.get_config("paths")
+    cog.sheets.AGCM = cog.sheets.init_agcm(paths['json'], paths['token'])
+
+    s_configs = cog.util.get_config('scanners')
+    for key in s_configs:
+        s_config = s_configs[key]
+        asheet = cog.sheets.AsyncGSheet(s_config['id'], s_config['page'])
+        init_coros += [asheet.init_sheet()]
+        scanners[key] = getattr(sys.modules[__name__], s_config['cls'])(asheet)
+
+    await asyncio.gather(*init_coros)
+    await asyncio.gather(*[x.update_cells() for x in scanners.values()])
+
+    return scanners
+
+
 async def test_fortscanner():
     paths = cog.util.get_config('paths')
     cog.sheets.AGCM = cog.sheets.init_agcm(paths['json'], paths['token'])
@@ -437,13 +462,13 @@ async def test_fortscanner():
     fscan = FortScanner(asheet)
     await fscan.update_cells()
     fscan.update_system_column()
-    print(fscan.system_col)
 
     #  users = fscan.users()
     #  f_sys = fscan.fort_systems()
+    #  __import__('pprint').pprint(f_sys)
     #  p_sys = fscan.prep_systems()
     #  merits = fscan.merits(f_sys + p_sys, users)
-    fscan.scan()
+    fscan.scan(cogdb.Session())
 
 
 async def test_umscanner():
@@ -463,7 +488,7 @@ async def test_umscanner():
     #  print(users)
     #  merits = fscan.merits(systems, users)
     #  print(merits)
-    fscan.scan()
+    fscan.scan(cogdb.Session())
 
 
 async def test_kosscanner():
@@ -477,15 +502,24 @@ async def test_kosscanner():
     fscan = KOSScanner(asheet)
     await fscan.update_cells()
 
-    fscan.scan()
+    fscan.scan(cogdb.Session())
 
 
 def main():
     asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
     asyncio.get_event_loop().set_debug(True)
 
+    coro = test_fortscanner
+    try:
+        if sys.argv[1] == 'um':
+            coro = test_umscanner
+        elif sys.argv[1] == 'kos':
+            coro = test_kosscanner
+    except IndexError:
+        pass
+
     loop = asyncio.get_event_loop()
-    loop.run_until_complete(test_fortscanner())
+    loop.run_until_complete(coro())
 
 
 if __name__ == "__main__":

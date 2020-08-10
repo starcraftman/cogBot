@@ -136,6 +136,7 @@ class WrapScanner():
         """ A job is scheduled if either future or job set. """
         return self.future or self.job
 
+    # TODO: Delete, new model will not cancel.
     def cancel(self):
         """
         Cancel any scheduled start or running job.

@@ -49,6 +49,8 @@ import cog.parse
 import cog.scheduler
 import cog.sheets
 import cog.util
+import cogdb
+import cogdb.scanners
 import cogdb.query
 
 
@@ -163,23 +165,17 @@ class CogBot(discord.Client):
         self.emoji.update(self.guilds)
 
         # This block is effectively a one time setup.
-
-        paths = cog.util.get_config("paths")
-        cog.sheets.AGCM = cog.sheets.init_agcm(paths['json'], paths['token'])
         if not cog.actions.SCANNERS:
-            for name in cog.util.get_config("scanners"):  # Populate on import
-                cog.actions.init_scanner(name)
+            scanners = await cogdb.scanners.init_scanners()
+            cog.actions.SCANNERS = scanners
 
-            cog.actions.get_scanner('hudson_kos').scan()
-            self.sched.register('hudson_cattle', cog.actions.get_scanner('hudson_cattle'),
-                                ['Drop', 'Fort', 'User'])
-            self.sched.register('hudson_undermine', cog.actions.get_scanner('hudson_undermine'),
-                                ['Hold', 'UM', 'User'])
-            self.sched.schedule_all()
+            session = cogdb.Session()
+            for key in scanners:
+                print("Scanning in sheet for: %s" % key)
+                scanners[key].scan(session)  # FIXME: Speedup startup, run in back
 
             asyncio.ensure_future(asyncio.gather(
                 presence_task(self),
-                cog.jobs.pool_monitor_task(),
                 simple_heartbeat(),
             ))
             await asyncio.sleep(0.2)
@@ -439,7 +435,7 @@ async def presence_task(bot, delay=180):
     ind = 0
     while True:
         try:
-            await bot.change_presence(game=discord.Game(name=lines[ind]))
+            await bot.change_presence(activity=discord.Game(name=lines[ind]))
         except websockets.exceptions.ConnectionClosed:
             pass
 

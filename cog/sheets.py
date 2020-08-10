@@ -214,7 +214,7 @@ class AsyncGSheet():
         document = await sclient.open_by_key(self.sheet_id)
         self.worksheet = await document.worksheet(self.sheet_page)
         await self.refresh_last_indices()
-        logging.getLogger('cog.sheets').info("GSHEET Setup Complete for %s", self.sheet_page)
+        logging.getLogger('cog.sheets').info("GSHEET Finished setup for %s", await document.get_title())
 
     async def refresh_last_indices(self):
         """
@@ -231,14 +231,14 @@ class AsyncGSheet():
         Args:
             cells: List of A1 format like [A1:B2, C12, C4:D8, ...]
             dim: Major dimension is ROWS by default. Possible choices: ROWS or COLUMNS
-            value_render: The rendering option to format the data in.
-                          By default, unformatted will only return the data.
+            resp_value_render: The rendering option to format the data in.
+                               By default, unformatted will only return the data.
         """
         await AGCM.authorize()
         return await self.worksheet.batch_get(cells, major_dimension=dim,
                                               value_render_option=value_render)
 
-    async def batch_update(self, data, input_opt='RAW', value_render='UNFORMATTED_VALUE'):
+    async def batch_update(self, data, input_opt='RAW', resp_value_render='UNFORMATTED_VALUE'):
         """
         This is exactly the same as the batch_get available via gspread.
 
@@ -254,7 +254,7 @@ class AsyncGSheet():
         """
         await AGCM.authorize()
         await self.worksheet.batch_update(data, value_input_option=input_opt,
-                                          value_render_option=value_render)
+                                          response_value_render_option=resp_value_render)
 
     async def values_col(self, col_index, value_render='UNFORMATTED_VALUE'):
         """
@@ -320,6 +320,12 @@ class AsyncGSheet():
             self.last_row = max(self.last_row, len(values[0]))
 
         return values
+
+        # TODO: An idea, returns non-square table, need to pad up to expected.
+        #  await AGCM.authorize()
+        #  await self.refresh_last_indices()
+        #  values =  await self.batch_get(['A1:{}{}'.format(self.last_col_a1, self.last_row)],
+        #                                  value_render=value_render)
 
 
 def get_credentials(json_secret, sheets_token):  # pragma: no cover

@@ -88,7 +88,7 @@ def check_sheet(scanner_name, stype):
                                           type=getattr(cogdb.schema.ESheetType, stype),
                                           start_row=get_scanner(scanner_name).user_row)
 
-            self.payloads += cogdb.scanners.FortScanner.update_sheet_user_dict(
+            self.payloads += get_scanner(scanner_name).__class__.update_sheet_user_dict(
                 sheet.row, sheet.cry, sheet.name)
 
             notice = 'Will automatically add {} to {} sheet. See !user command to change.'.format(
@@ -696,14 +696,12 @@ class Drop(Action):
                       self.duser.display_name, drop, system)
         self.session.commit()
 
-        self.payloads += [
-            cogdb.scanners.FortScanner.update_system_dict(
-                drop.system.sheet_col, drop.system.fort_status, drop.system.um_status
-            ),
-            cogdb.scanners.FortScanner.update_drop_dict(
-                drop.system.sheet_col, drop.user.row, drop.amount
-            )
-        ]
+        self.payloads += cogdb.scanners.FortScanner.update_system_dict(
+            drop.system.sheet_col, drop.system.fort_status, drop.system.um_status
+        )
+        self.payloads += cogdb.scanners.FortScanner.update_drop_dict(
+            drop.system.sheet_col, drop.user.row, drop.amount
+        )
         scanner = get_scanner("hudson_cattle")
         await scanner.send_batch(self.payloads)
         self.log.info('DROP %s - Sucessfully dropped %d at %s.',
@@ -772,11 +770,9 @@ class Fort(Action):
             system.set_status(self.args.set)
             self.session.commit()
 
-            self.payloads += [
-                cogdb.scanners.FortScanner.update_system_dict(
-                    system.sheet_col, system.fort_status, system.um_status
-                ),
-            ]
+            self.payloads += cogdb.scanners.FortScanner.update_system_dict(
+                system.sheet_col, system.fort_status, system.um_status
+            )
             scanner = get_scanner("hudson_cattle")
             await scanner.send_batch(self.payloads)
 
@@ -907,12 +903,10 @@ class Hold(Action):
 
         if self.args.set:
             system.set_status(self.args.set)
-            self.payloads += [
-                cogdb.scanners.UMScanner.update_systemum_dict(
-                    system.sheet_col, system.progress_us,
-                    system.progress_them, system.map_offset
-                )
-            ]
+            self.payloads += cogdb.scanners.UMScanner.update_systemum_dict(
+                system.sheet_col, system.progress_us,
+                system.progress_them, system.map_offset
+            )
 
         self.log.info('Hold %s - After update, hold: %s\nSystem: %s.',
                       self.duser.display_name, hold, system)
@@ -1243,12 +1237,10 @@ class UM(Action):
             if self.args.set or self.args.offset:
                 self.session.commit()
 
-                self.payloads += [
-                    cogdb.scanners.UMScanner.update_systemum_dict(
-                        system.sheet_col, system.progress_us,
-                        system.progress_them, system.map_offset
-                    )
-                ]
+                self.payloads += cogdb.scanners.UMScanner.update_systemum_dict(
+                    system.sheet_col, system.progress_us,
+                    system.progress_them, system.map_offset
+                )
                 scanner = get_scanner("hudson_undermine")
                 await scanner.send_batch(self.payloads)
 
