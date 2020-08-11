@@ -879,9 +879,12 @@ def parse_float(word):
 def parse_percent(word):
     """ Parse a percent into a float. """
     try:
-        return parse_float(word.replace('%', '')) / 100.0
+        return float(word)
     except ValueError:
-        return 0.0
+        try:
+            return parse_float(word.replace('%', '')) / 100.0
+        except ValueError:
+            return 0.0
 
 
 def empty_tables(session, *, perm=False):

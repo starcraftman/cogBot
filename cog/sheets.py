@@ -194,10 +194,12 @@ class AsyncGSheet():
         """
         self.sheet_id = sheet_id
         self.sheet_page = sheet_page
+        self.document = None
         self.worksheet = None
         # These are stored 1 index, same as google sheets operate.
         self.last_col = 0
         self.last_row = 0
+        self.__title = None
 
     @property
     def last_col_a1(self):
@@ -206,15 +208,22 @@ class AsyncGSheet():
         """
         return index_to_column(self.last_col)
 
+    async def title(self):
+        """ Fetch the title of the document. Cache it, operation is expensive. """
+        if not self.__title:
+            self.__title = await self.document.get_title()
+
+        return self.__title
+
     async def init_sheet(self):
         """
         IMPORTANT: Call this before any other calls made to sheet.
         """
         sclient = await AGCM.authorize()
-        document = await sclient.open_by_key(self.sheet_id)
-        self.worksheet = await document.worksheet(self.sheet_page)
+        self.document = await sclient.open_by_key(self.sheet_id)
+        self.worksheet = await self.document.worksheet(self.sheet_page)
         await self.refresh_last_indices()
-        logging.getLogger('cog.sheets').info("GSHEET Finished setup for %s", await document.get_title())
+        logging.getLogger('cog.sheets').info("GSHEET Finished setup for %s", await self.title())
 
     async def refresh_last_indices(self):
         """
@@ -280,7 +289,7 @@ class AsyncGSheet():
         await AGCM.authorize()
         return await self.worksheet.row_values(row_index, value_render_option=value_render)
 
-    async def cells_get_range(self, a1_range):
+    async def cells_get(self, a1_range):
         """
         Fetch a series of cells in an A1 range.
 
@@ -308,6 +317,7 @@ class AsyncGSheet():
         """
         Fetch and return the entire sheet as a list of lists of strings of cell values.
         The cells will be in a 2d list that is row major.
+        IMPORTANT: Cells are FORMATTED.
 
         Args:
             update_indices: When True, update the sheets last indices based on new sheet.

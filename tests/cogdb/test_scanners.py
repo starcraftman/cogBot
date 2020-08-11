@@ -135,7 +135,7 @@ def test_fortscanner_update_sheet_user_dict():
 
 def test_fortscanner_update_systems_dict():
     data = FortScanner.update_system_dict("G", 5000, 2222)
-    assert data == [{"range": "G6:G7", "values": [[5000, 2222]]}]
+    assert data == [{"range": "G6:G7", "values": [[5000], [2222]]}]
 
 
 def test_fortscanner_update_drop_dict():
@@ -214,7 +214,7 @@ async def test_umscanner_scan(f_asheet_umscanner, session, db_cleanup):
 
 def test_umscanner_update_systemsum_dict():
     data = UMScanner.update_systemum_dict("G", 7000, 500, 4300)
-    assert data == [{"range": "G10:G13", "values": [[7000, 500, "Hold Merits", 4300]]}]
+    assert data == [{"range": "G10:G13", "values": [[7000], [500], ["Hold Merits"], [4300]]}]
 
 
 def test_umscanner_update_hold_dict():

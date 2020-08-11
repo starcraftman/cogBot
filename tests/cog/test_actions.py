@@ -10,6 +10,7 @@ from __future__ import absolute_import, print_function
 import re
 
 import aiomock
+import mock
 import pytest
 
 import cog.actions
@@ -43,13 +44,16 @@ def patch_pool():
 def patch_scanners():
     """ Patch the scanners. """
     old_scanners = cog.actions.SCANNERS
-
     scanner = aiomock.Mock()
-    scanner.update_system.return_value = None
-    scanner.update_drop.return_value = None
-    scanner.update_hold.return_value = None
-    scanner.update_sheet_user.return_value = None
-    cog.actions.SCANNERS = {'hudson_cattle': scanner, 'hudson_undermine': scanner}
+
+    async def send_batch_(payloads):
+        scanner.payloads = payloads
+
+    mock_cls = aiomock.Mock()
+    mock_cls.update_sheet_user_dict.return_value = [{'range': 'A20:B20', 'values': [['test cry', 'test name']]}]
+    scanner.__class__ = mock_cls
+    scanner.send_batch = send_batch_
+    cog.actions.SCANNERS = {'hudson_cattle': scanner, 'hudson_undermine': scanner, 'hudson_kos': scanner}
 
     yield
 
@@ -283,6 +287,11 @@ async def test_cmd_fort_set(f_bot, f_systems):
     assert system.fort_status == 7000
     assert system.um_status == 222
 
+    expect = [
+        {'range': 'H6:H7', 'values': [[7000], [222]]},
+    ]
+    assert cog.actions.SCANNERS['hudson_cattle'].payloads == expect
+
 
 @pytest.mark.asyncio
 async def test_cmd_fort_details(f_bot, f_systems):
@@ -414,6 +423,12 @@ async def test_cmd_drop_simple(f_bot, f_testbed):
     drop = session.query(Drop).filter_by(user_id=cattle.id, system_id=system.id).one()
     assert drop.amount == 978
 
+    expect = [
+        {'range': 'H6:H7', 'values': [[6000], [0]]},
+        {'range': 'H15:H15', 'values': [[978]]},
+    ]
+    assert cog.actions.SCANNERS['hudson_cattle'].payloads == expect
+
 
 @pytest.mark.asyncio
 async def test_cmd_drop_negative(f_bot, f_testbed):
@@ -430,6 +445,12 @@ async def test_cmd_drop_negative(f_bot, f_testbed):
     drop = session.query(Drop).filter_by(user_id=cattle.id, system_id=system.id).one()
     assert drop.amount == 300
 
+    expect = [
+        {'range': 'H6:H7', 'values': [[5322], [0]]},
+        {'range': 'H15:H15', 'values': [[300]]},
+    ]
+    assert cog.actions.SCANNERS['hudson_cattle'].payloads == expect
+
 
 @pytest.mark.asyncio
 async def test_cmd_drop_newuser(f_bot, f_testbed):
@@ -437,7 +458,7 @@ async def test_cmd_drop_newuser(f_bot, f_testbed):
 
     await action_map(msg, f_bot).execute()
 
-    expect = 'Automatically added newuser to cattle sheet. See !user command to change.'
+    expect = 'Will automatically add newuser to cattle sheet. See !user command to change.'
     f_bot.send_message.assert_any_call(msg.channel, expect)
     f_bot.send_message.assert_any_call(msg.channel, '**Nurundere** 5922/8425 :Fortifying:')
 
@@ -448,6 +469,13 @@ async def test_cmd_drop_newuser(f_bot, f_testbed):
     sheet = session.query(SheetCattle).filter_by(name=duser.pref_name).one()
     drop = session.query(Drop).filter_by(user_id=sheet.id, system_id=system.id).one()
     assert drop.amount == 500
+
+    expect = [
+        {'range': 'A20:B20', 'values': [['test cry', 'test name']]},
+        {'range': 'H6:H7', 'values': [[5922], [0]]},
+        {'range': 'H18:H18', 'values': [[500]]},
+    ]
+    assert cog.actions.SCANNERS['hudson_cattle'].payloads == expect
 
 
 @pytest.mark.asyncio
@@ -464,6 +492,12 @@ async def test_cmd_drop_set(f_bot, f_testbed):
     cattle = session.query(SheetCattle).filter_by(name=duser.pref_name).one()
     drop = session.query(Drop).filter_by(user_id=cattle.id, system_id=system.id).one()
     assert drop.amount == 978
+
+    expect = [
+        {'range': 'H6:H7', 'values': [[6500], [0]]},
+        {'range': 'H15:H15', 'values': [[978]]},
+    ]
+    assert cog.actions.SCANNERS['hudson_cattle'].payloads == expect
 
 
 @pytest.mark.asyncio
@@ -486,6 +520,11 @@ Nearest Hudson | Rana```"""
     assert hold.held == 2000
     assert hold.redeemed == 0
 
+    expect = [
+        {'range': 'K18:L18', 'values': [[2000, 0]]},
+    ]
+    assert cog.actions.SCANNERS['hudson_undermine'].payloads == expect
+
 
 @pytest.mark.asyncio
 async def test_cmd_hold_newuser(f_bot, f_testbed):
@@ -493,7 +532,7 @@ async def test_cmd_hold_newuser(f_bot, f_testbed):
 
     await action_map(msg, f_bot).execute()
 
-    expect = 'Automatically added newuser to undermine sheet. See !user command to change.'
+    expect = 'Will automatically add newuser to undermine sheet. See !user command to change.'
     f_bot.send_message.assert_any_call(msg.channel, expect)
     expect2 = """```Control        | [M] Empty
 10%            | Merits Missing 9000
@@ -508,6 +547,12 @@ Nearest Hudson | Rana```"""
     sheet = session.query(SheetUM).filter_by(name=duser.pref_name).one()
     hold = session.query(Hold).filter_by(user_id=sheet.id, system_id=system.id).one()
     assert hold.held == 1000
+
+    expect = [
+        {'range': 'A20:B20', 'values': [['test cry', 'test name']]},
+        {'range': 'K20:L20', 'values': [[1000, 0]]},
+    ]
+    assert cog.actions.SCANNERS['hudson_undermine'].payloads == expect
 
 
 @pytest.mark.asyncio
@@ -533,6 +578,13 @@ Burr       | 0    | 8000```"""
     assert hold.held == 0
     assert hold.redeemed == 1950
 
+    expect = [
+        {'range': 'D18:E18', 'values': [[0, 4000]]},
+        {'range': 'F18:G18', 'values': [[0, 1950]]},
+        {'range': 'H18:I18', 'values': [[0, 8000]]},
+    ]
+    assert cog.actions.SCANNERS['hudson_undermine'].payloads == expect
+
 
 @pytest.mark.asyncio
 async def test_cmd_hold_died(f_bot, f_testbed):
@@ -548,6 +600,13 @@ async def test_cmd_hold_died(f_bot, f_testbed):
     hold = session.query(Hold).filter_by(user_id=um.id, system_id=system.id).one()
     assert hold.held == 0
     assert hold.redeemed == 1550
+
+    expect = [
+        {'range': 'D18:E18', 'values': [[0, 4000]]},
+        {'range': 'F18:G18', 'values': [[0, 1550]]},
+        {'range': 'H18:I18', 'values': [[0, 5800]]},
+    ]
+    assert cog.actions.SCANNERS['hudson_undermine'].payloads == expect
 
 
 @pytest.mark.asyncio
@@ -801,6 +860,11 @@ Nearest Hudson     | Atropos```"""
     assert after.progress_them == 0.4
     assert after.map_offset == 600
 
+    expect = [
+        {'range': 'F10:F13', 'values': [[12000], [0.4], ['Hold Merits'], [600]]}
+    ]
+    assert cog.actions.SCANNERS['hudson_undermine'].payloads == expect
+
 
 @pytest.mark.asyncio
 async def test_cmd_um_list_held(f_bot, f_testbed):
@@ -882,6 +946,12 @@ Burr       | 2200 | 5800```"""
     for sheet in duser.sheets(session):
         assert sheet.name == new_name
 
+    expect = [
+        {'range': 'A15:B15', 'values': [['Gears are forting late!', 'NotGears']]},
+        {'range': 'A18:B18', 'values': [['Gears are pew pew!', 'NotGears']]}
+    ]
+    assert cog.actions.SCANNERS['hudson_cattle'].payloads == expect
+
 
 @pytest.mark.asyncio
 async def test_cmd_user_set_cry(session, f_bot, f_testbed):
@@ -916,6 +986,12 @@ Burr       | 2200 | 5800```"""
     assert duser.pref_cry == new_cry
     for sheet in duser.sheets(session):
         assert sheet.cry == new_cry
+
+    expect = [
+        {'range': 'A15:B15', 'values': [['A new cry', 'GearsandCogs']]},
+        {'range': 'A18:B18', 'values': [['A new cry', 'GearsandCogs']]}
+    ]
+    assert cog.actions.SCANNERS['hudson_cattle'].payloads == expect
 
 
 @pytest.mark.asyncio

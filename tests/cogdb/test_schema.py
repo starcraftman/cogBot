@@ -225,7 +225,7 @@ def test_system__repr__(f_systems):
     system = f_systems[0]
 
     assert repr(system) == "System(name='Frey', fort_status=4910, trigger=4910, "\
-                           "um_status=0, undermine=0.0, distance=116.99, "\
+                           "fort_override=0.7, um_status=0, undermine=0.0, distance=116.99, "\
                            "notes='', sheet_col='G', sheet_order=1)"
     assert system == eval(repr(system))
 
@@ -234,7 +234,7 @@ def test_system__str__(f_systems):
     system = f_systems[0]
 
     assert str(system) == "id=1, cmdr_merits=0, System(name='Frey', fort_status=4910, "\
-                          "trigger=4910, um_status=0, undermine=0.0, distance=116.99, "\
+                          "trigger=4910, fort_override=0.7, um_status=0, undermine=0.0, distance=116.99, "\
                           "notes='', sheet_col='G', sheet_order=1)"
 
 
