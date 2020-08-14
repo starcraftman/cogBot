@@ -105,7 +105,10 @@ class Action():
         self.log = logging.getLogger('cog.actions')
         self.session = cogdb.Session()
         self.__duser = None
-        self.payloads = []  # FIXME: Temporary hack to bunch updates to sheet
+        self.payloads = []
+        # TODO: For now used to track updates to sheet prior to sending.
+        # Ideally have a separate mechanism to bunch and store inside of Scanners and
+        # flush to sheet on a window (i.e. every 10s)
 
     @property
     def duser(self):
@@ -325,8 +328,10 @@ class Admin(Action):
         self.bot.sched.schedule_all()
         return 'All sheets scheduled for update.'
 
-    # Should test eventually but mainly just recombines code
-    async def cycle(self):  # pragma: no cover
+    # TODO: Increase level of automation:
+    #   - Actually MAKE the new sheets, copy from templates.
+    #   - Turn on import in new sheet, turn off import in older sheet.
+    async def cycle(self):
         """
         Rollover scanners to new sheets post cycle tick.
 
@@ -338,33 +343,18 @@ class Admin(Action):
         """
         self.bot.deny_commands = True
         scanners = cog.util.get_config('scanners')
-        ignore = scanners.copy()
-
-        # Only cattle or um sheets should move.
-        for key in list(scanners.keys()):
-            if 'cattle' in key or 'undermine' in key:
-                del ignore[key]
-            else:
-                del scanners[key]
+        to_update, coros = ['hudson_cattle', 'hudson_undermine'], []
 
         try:
-            for name in scanners:
-                scanners[name]['page'] = cog.util.number_increment(scanners[name]['page'])
-
-                # Check the sheet actually exists before committing
-                cls = getattr(cogdb.query, scanners[name]["cls"])
-                scanner = cls(scanners[name])
-                assert scanner.gsheet.get('!A1:A1')
-
-            for name in scanners:
-                init_scanner(name)
-                # FIXME: Feels icky reaching into code like so
-                self.bot.sched.wraps[name].scanner = cog.actions.get_scanner(name)
-
-            scanners.update(ignore)
+            for name in to_update:
+                new_page = cog.util.number_increment(scanners[name]['page'])
+                scanners[name]['page'] = new_page
+                coros += SCANNERS[name].asheet.change_worksheet(new_page)
             cog.util.update_config(scanners, 'scanners')
 
-            self.bot.sched.schedule_all()
+            await asyncio.gather(*coros)
+            for name in to_update:
+                self.bot.sched.schedule(name)
 
             return "Cycle has been incremented, bot has scheduled sheets for update."
         except ValueError:

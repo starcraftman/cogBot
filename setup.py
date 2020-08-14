@@ -7,7 +7,7 @@ import glob
 import os
 import pathlib
 import shlex
-import subprocess
+import subprocess as sub
 import sys
 import tempfile
 from setuptools import setup, find_packages, Command
@@ -82,7 +82,7 @@ class Clean(Command):
             print("\t{}".format(path))
         recv = get_input('OK? y/n  ').strip().lower()
         if recv.startswith('y'):
-            subprocess.run(['rm', '-vrf'] + [str(f) for f in rm_list])
+            sub.run(['rm', '-vrf'] + [str(f) for f in rm_list])
 
 
 class InstallDeps(Command):
@@ -103,12 +103,13 @@ class InstallDeps(Command):
         print('Executing: ' + cmd)
         recv = get_input('OK? y/n  ').strip().lower()
         if recv.startswith('y'):
-            out = subprocess.DEVNULL if get_input.default else None
             timeout = 150
             try:
-                subprocess.Popen(shlex.split(cmd), stdout=out).wait(timeout)
-            except subprocess.TimeoutExpired:
+                sub.run(shlex.split(cmd), check=True, timeout=timeout)
+            except sub.TimeoutExpired:
                 print('Deps installation took over {} seconds, something is wrong.'.format(timeout))
+            except sub.CalledProcessError:
+                print("Error during pip installation, check pip.")
 
 
 class Test(Command):
@@ -127,16 +128,13 @@ class Test(Command):
         """
         Checks required programs.
         """
-        tfile = tempfile.NamedTemporaryFile()
-        with open(os.devnull, 'w') as dnull:
-            with open(tfile.name, 'w') as fout:
-                subprocess.Popen(shlex.split('py.test --version'),
-                                 stdout=dnull, stderr=fout).wait()
-            with open(tfile.name, 'r') as fin:
-                out = '\n'.join(fin.readlines())
-            if 'pytest-cov' not in out:
-                print('Please run: python setup.py deps')
-                sys.exit(1)
+        cap = sub.run(shlex.split('python -m pytest --trace-config --co'),
+                      stdout=sub.PIPE, stderr=sub.STDOUT)
+        stdout = cap.stdout.decode()
+        print(stdout)
+        if 'pytest-cov' not in stdout:
+            print('Please run: python setup.py deps')
+            sys.exit(1)
 
     def run(self):
         self.check_prereqs()
@@ -144,7 +142,7 @@ class Test(Command):
 
         try:
             os.chdir(ROOT)
-            subprocess.call(shlex.split('py.test --cov=cog --cov=cogdb'))
+            sub.run(shlex.split('python -m pytest --cov=cog --cov=cogdb'), check=True)
         finally:
             os.chdir(old_cwd)
 
@@ -165,20 +163,16 @@ class Coverage(Command):
         """
         Checks required programs.
         """
-        tfile = tempfile.NamedTemporaryFile()
-        with open(os.devnull, 'w') as dnull:
-            with open(tfile.name, 'w') as fout:
-                subprocess.Popen(shlex.split('py.test --version'),
-                                 stdout=dnull, stderr=fout).wait()
-            with open(tfile.name, 'r') as fin:
-                out = '\n'.join(fin.readlines())
-            if 'pytest-cov' not in out:
-                print('Please run: python setup.py deps')
-                sys.exit(1)
         try:
-            with open(os.devnull, 'w') as dnull:
-                subprocess.check_call(shlex.split('coverage --version'), stderr=dnull)
-        except subprocess.CalledProcessError:
+            cap = sub.run(shlex.split('python -m pytest --trace-config --co'),
+                          stdout=sub.PIPE, stderr=sub.STDOUT, check=True)
+            stdout = cap.stdout.decode()
+            if 'pytest-cov' not in stdout:
+                raise sub.CalledProcessError
+
+            sub.run(shlex.split('coverage --version'),
+                    stdout=sub.DEVNULL, stderr=sub.DEVNULL, check=True)
+        except sub.CalledProcessError:
             print('Please run: python setup.py deps')
             sys.exit(1)
 
@@ -186,16 +180,21 @@ class Coverage(Command):
         self.check_prereqs()
         old_cwd = os.getcwd()
         cov_dir = os.path.join(tempfile.gettempdir(), 'cogCoverage')
+        report = os.path.join(cov_dir, 'index.html')
         cmds = [
-            'py.test --cov=cog --cov=cogdb',
+            'python -m pytest --cov=cog --cov=cogdb',
             'coverage html -d ' + cov_dir,
-            'xdg-open ' + os.path.join(cov_dir, 'index.html'),
+            'xdg-open ' + report,
         ]
 
         try:
             os.chdir(ROOT)
             for cmd in cmds:
-                subprocess.call(shlex.split(cmd))
+                sub.run(shlex.split(cmd), check=True)
+            print("Final report available at: ", report)
+        except sub.CalledProcessError:
+            print("Error occurred running: {}".format(cmd))
+            sys.exit(1)
         finally:
             os.chdir(old_cwd)
 
@@ -217,17 +216,15 @@ class UMLDocs(Command):
         Checks required programs.
         """
         try:
-            with open(os.devnull, 'w') as dnull:
-                subprocess.check_call(shlex.split('pyreverse -h'),
-                                      stdout=dnull, stderr=dnull)
-        except subprocess.CalledProcessError:
+            sub.run(shlex.split('pyreverse -h'),
+                    stdout=sub.DEVNULL, stderr=sub.DEVNULL, check=True)
+        except sub.CalledProcessError:
             print('Please run: python setup.py deps')
             sys.exit(1)
         try:
-            with open(os.devnull, 'w') as dnull:
-                subprocess.check_call(shlex.split('dot -V'),
-                                      stdout=dnull, stderr=dnull)
-        except OSError:
+            sub.run(shlex.split('dot -V'),
+                    stdout=sub.DEVNULL, stderr=sub.DEVNULL, check=True)
+        except (sub.CalledProcessError, OSError):
             print('Missing graphviz library (dot). Please run:')
             print('sudo apt-get install graphviz')
             sys.exit(1)
@@ -248,7 +245,7 @@ class UMLDocs(Command):
         try:
             os.chdir(ROOT)
             for cmd in cmds:
-                subprocess.call(shlex.split(cmd))
+                sub.call(shlex.split(cmd))
             diagrams = [os.path.abspath(pic) for pic in glob.glob('extras/*diagram.png')]
         finally:
             for fname in glob.glob('*.dot'):

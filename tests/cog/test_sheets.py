@@ -132,6 +132,21 @@ async def test_asheet_refresh_last_indices(f_fort_ws):
 
 @SHEET_TEST
 @pytest.mark.asyncio
+async def test_asheet_change_worksheet(f_fort_ws):
+    ranges = ['B11:C12']
+    new_sheet = 'Cycle 240'
+    old_vals = await f_fort_ws.batch_get(ranges)
+    old_ws = f_fort_ws.worksheet
+
+    await f_fort_ws.change_worksheet(new_sheet)
+
+    assert await f_fort_ws.batch_get(ranges) != old_vals
+    assert f_fort_ws.worksheet != old_ws
+    assert f_fort_ws.sheet_page == new_sheet
+
+
+@SHEET_TEST
+@pytest.mark.asyncio
 async def test_asheet_batch_get(f_fort_ws):
     result = await f_fort_ws.batch_get(['B13:B13', 'F6:G6'])
 

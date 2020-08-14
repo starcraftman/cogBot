@@ -39,7 +39,7 @@ class Scheduler(aiozmq.rpc.AttrHandler):
         self.cmd_map = {}
 
     def __repr__(self):
-        keys = ['count', 'delay', 'sub', 'wraps']
+        keys = ['count', 'delay', 'sub', 'wrap_map', 'cmd_map']
         kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
 
         return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
@@ -50,16 +50,33 @@ class Scheduler(aiozmq.rpc.AttrHandler):
             msg += "\n{!r}".format(wrap)
 
     async def wait_for(self, cmd):
-        """ Wait until the scanners for cmd finished. """
-        for scanner in self.cmd_map[cmd]:
-            await scanner.r_aquire()
+        """
+        Wait until the scanners for cmd finished.
+        If command is not managed by scheduler silently return.
+        """
+        try:
+            for wrap in self.cmd_map[cmd]:
+                await wrap.scanner.r_aquire()
+        except KeyError:
+            pass
 
-    async def disabled(self, cmd):
+    async def unwait_for(self, cmd):
+        """
+        Release locks that were aquired waiting.
+        If command is not managed by scheduler silently return.
+        """
+        try:
+            for wrap in self.cmd_map[cmd]:
+                await wrap.scanner.r_release()
+        except KeyError:
+            pass
+
+    def disabled(self, cmd):
         """ Check if a command is disabled due to scheduled update. """
         resp = False
         try:
-            for scanner in self.cmd_map[cmd]:
-                if not await scanner.is_read_allowed():
+            for wrap in self.cmd_map[cmd]:
+                if wrap.future or wrap.job:
                     resp = True
         except KeyError:
             pass
@@ -70,12 +87,13 @@ class Scheduler(aiozmq.rpc.AttrHandler):
         """
         Register scanner to be updated.
         """
-        self.wrap_map[name] = WrapScanner(name, scanner, cmds)
+        wrap = WrapScanner(name, scanner, cmds)
+        self.wrap_map[name] = wrap
         for cmd in cmds:
             try:
-                self.cmd_map[cmd] += [scanner]
+                self.cmd_map[cmd] += [wrap]
             except KeyError:
-                self.cmd_map[cmd] = [scanner]
+                self.cmd_map[cmd] = [wrap]
 
     def schedule(self, name):
         """
@@ -171,19 +189,19 @@ async def delayed_update(delay, wrap):
     await asyncio.sleep(delay)
 
     log.info("%s | Starting delayed call", wrap.name)
-    await wrap.scanner.update_cells()
-    await wrap.scanner.lock.w_aquire()
+    try:
+        await wrap.scanner.lock.w_aquire()
+        await wrap.scanner.update_cells()
 
-    wrap.job = POOL.submit(wrap.scanner.parse_sheet)
-    wrap.job.add_done_callback(functools.partial(done_cb, wrap))
-    print("Pool", str(wrap.job))
-    wrap.future = None
+        wrap.job = POOL.submit(wrap.scanner.parse_sheet)
+        wrap.job.add_done_callback(functools.partial(done_cb, wrap))
+        wrap.future = None
 
-    await asyncio.sleep(1)
-    while not wrap.job.done():
-        await asyncio.sleep(0.5)
+        while not wrap.job.done():
+            await asyncio.sleep(0.5)
+        wrap.job = None
+    finally:
         await wrap.scanner.lock.w_release()
-
     log.info("%s | Finished delayed call", wrap.name)
 
 
@@ -197,5 +215,3 @@ def done_cb(wrap, fut):
         asyncio.ensure_future(cog.util.BOT.send_message(
             cog.util.BOT.get_channel_by_name('private_dev'),
             msg.format(cog.util.BOT.get_member_by_substr("gearsandcogs"))))
-
-    wrap.future = None

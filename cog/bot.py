@@ -311,22 +311,23 @@ class CogBot(discord.Client):
         """
         Simply inspect class and dispatch command. Guaranteed to be valid.
         """
-        args = kwargs.get('args')
-        msg = kwargs.get('msg')
+        args, msg = kwargs.get('args'), kwargs.get('msg')
 
-        while self.sched.disabled(args.cmd):
-            reply = 'Synchronizing sheet changes.\n\n'\
-                    'Your command will resume after update has finished.'
-            await self.send_message(msg.channel, reply)
+        try:
+            while self.sched.disabled(args.cmd):
+                reply = 'Synchronizing sheet changes.\n\n'\
+                        'Your command will resume after update has finished.'
+                await self.send_message(msg.channel, reply)
 
-            await self.sched.wait_for(args.cmd)
+                await self.sched.wait_for(args.cmd)
+                await self.send_message(msg.channel, '{} Resuming your command: **{}**'.format(
+                    msg.author.mention, msg.content))
 
-            await self.send_message(msg.channel, '{} Resuming your command: **{}**'.format(
-                msg.author.mention, msg.content))
-
-        cogdb.query.check_perms(msg, args)
-        cls = getattr(cog.actions, args.cmd)
-        await cls(**kwargs).execute()
+            cogdb.query.check_perms(msg, args)
+            cls = getattr(cog.actions, args.cmd)
+            await cls(**kwargs).execute()
+        finally:
+            await self.sched.unwait_for(args.cmd)
 
     async def send_long_message(self, destination, content=None, *, tts=False, embed=None):
         """

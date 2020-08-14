@@ -197,6 +197,7 @@ class AsyncGSheet():
         self.document = None
         self.worksheet = None
         # These are stored 1 index, same as google sheets operate.
+        # TODO: Purge last indices? Only needed to pad/square results
         self.last_col = 0
         self.last_row = 0
         self.__title = None
@@ -224,6 +225,14 @@ class AsyncGSheet():
         self.worksheet = await self.document.worksheet(self.sheet_page)
         await self.refresh_last_indices()
         logging.getLogger('cog.sheets').info("GSHEET Finished setup for %s", await self.title())
+
+    async def change_worksheet(self, sheet_page):
+        """
+        Change to a new worksheet.
+        """
+        self.sheet_page = sheet_page
+        self.worksheet = await self.document.worksheet(self.sheet_page)
+        await self.refresh_last_indices()
 
     async def refresh_last_indices(self):
         """
@@ -338,6 +347,7 @@ class AsyncGSheet():
         #                                  value_render=value_render)
 
 
+# TODO: This credential flow can be updated to remove oauth2client dependence I think
 def get_credentials(json_secret, sheets_token):  # pragma: no cover
     """
     Get credentials from OAuth process.

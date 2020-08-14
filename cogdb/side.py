@@ -757,9 +757,9 @@ def inf_history_for_pairs(session, data_pairs):
                           InfluenceHistory.faction_id == pair[1])
                 for pair in data_pairs]
 
-    time_window = time.time() - (60 * 60 * 24 * 5)
+    #  time_window = time.time() - (60 * 60 * 24 * 5)
     inf_history = session.query(sqlfunc.concat(sqlexp.cast(InfluenceHistory.system_id, sqla.types.Unicode), "_", sqlexp.cast(InfluenceHistory.faction_id, sqla.types.Unicode)), InfluenceHistory.influence).\
-        filter(sqla.or_(*look_for), InfluenceHistory.updated_at >= time_window).\
+        filter(sqla.or_(*look_for)).\
         group_by(InfluenceHistory.system_id, InfluenceHistory.faction_id).\
         order_by(InfluenceHistory.updated_at.asc()).\
         limit(100).\

@@ -353,9 +353,8 @@ class RWLockWrite():
     def __init__(self):
         """
         This is a standard reader-writer lock.
-
-        Args:
-            commands: A list of command
+        All required locks are internal.
+        Lock is not to be pickled.
         """
         self.readers = 0
         self.writers = 0
