@@ -3,9 +3,7 @@ Test sheets api logic
 
 NOTE: GSheet tests being skipped, they are slow and that code is mostly frozen.
 """
-from __future__ import absolute_import, print_function
 import os
-import sys
 
 import gspread
 import gspread_asyncio
@@ -21,8 +19,6 @@ from tests.conftest import SHEET_TEST
 PATHS = cog.util.get_config('paths')
 AGCM = None
 FORT_INPUT = os.path.join(cog.util.ROOT_DIR, 'tests', 'test_input.unit_fort.txt')
-FORT = {}
-UM = {}
 
 
 @pytest.fixture()
@@ -37,12 +33,6 @@ async def f_fort_ws():
     sheet = cog.util.get_config('tests', 'hudson_cattle')
     asheet = cog.sheets.AsyncGSheet(sheet['id'], sheet['page'])
     await asheet.init_sheet()
-
-    if not FORT:
-        sys.modules[__name__].FORT['last_col'] = len(await asheet.worksheet.row_values(1))
-        sys.modules[__name__].FORT['last_row'] = len(await asheet.worksheet.col_values(1))
-    asheet.last_row = FORT['last_col']
-    asheet.last_col = FORT['last_row']
 
     yield asheet
 
@@ -59,12 +49,6 @@ async def f_um_ws():
     sheet = cog.util.get_config('tests', 'hudson_undermine')
     asheet = cog.sheets.AsyncGSheet(sheet['id'], sheet['page'])
     await asheet.init_sheet()
-
-    if not UM:
-        sys.modules[__name__].UM['last_col'] = len(await asheet.worksheet.row_values(1))
-        sys.modules[__name__].UM['last_row'] = len(await asheet.worksheet.col_values(1))
-    asheet.last_row = UM['last_col']
-    asheet.last_col = UM['last_row']
 
     yield asheet
 
@@ -100,8 +84,6 @@ async def test_asheet_init_sheet():
     await asheet.init_sheet()
 
     assert isinstance(asheet.worksheet, gspread_asyncio.AsyncioGspreadWorksheet)
-    assert asheet.last_col
-    assert asheet.last_row
 
 
 @SHEET_TEST
@@ -116,18 +98,6 @@ async def test_asheet_last_col_a1(f_fort_ws):
     f_fort_ws.last_col = 25
 
     assert f_fort_ws.last_col_a1 == 'Y'
-
-
-@SHEET_TEST
-@pytest.mark.asyncio
-async def test_asheet_refresh_last_indices(f_fort_ws):
-    f_fort_ws.last_row = 0
-    f_fort_ws.last_col = 0
-
-    await f_fort_ws.refresh_last_indices()
-
-    assert f_fort_ws.last_row == FORT['last_row']
-    assert f_fort_ws.last_col == FORT['last_col']
 
 
 @SHEET_TEST

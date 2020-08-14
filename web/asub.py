@@ -2,8 +2,6 @@
 Example of what to put in bot, handle post and update in a separate process.
 Can be used for testing. This is a simple zmq subscriber.
 """
-from __future__ import absolute_import, print_function
-
 import asyncio
 import random
 

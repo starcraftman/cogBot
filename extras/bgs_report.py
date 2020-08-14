@@ -1,7 +1,6 @@
 """
 Generate a bgs report listing each bubble, system and their faction distribution.
 """
-from __future__ import absolute_import, print_function
 import sqlalchemy as sqla
 
 import cogdb

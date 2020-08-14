@@ -6,7 +6,6 @@ Importantly, I have stubbed/mocked everything to do with discord.py and the gshe
 Important Note Regarding DB:
     After executing an action ALWAYS make a new Session(). The old one will still be stale.
 """
-from __future__ import absolute_import, print_function
 import re
 
 import aiomock

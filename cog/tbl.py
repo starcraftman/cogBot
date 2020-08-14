@@ -6,7 +6,6 @@ Any logic having to do with formatting an ASCII table.
 String formatting reference:
   https://pyformat.info/#string_pad_align
 """
-from __future__ import absolute_import, print_function
 
 
 def wrap_markdown(text):

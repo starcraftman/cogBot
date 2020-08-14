@@ -4,8 +4,6 @@ Everything related to parsing arguements from the received text.
 By setting defaults passed on the parser (cmd, subcmd) can differeciate
 what action to be invoked.
 """
-from __future__ import absolute_import, print_function
-
 import argparse
 from argparse import RawDescriptionHelpFormatter as RawHelp
 

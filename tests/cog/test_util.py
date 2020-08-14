@@ -1,7 +1,6 @@
 """
 Test util the grab all module.
 """
-from __future__ import absolute_import, print_function
 import os
 import shutil
 import tempfile

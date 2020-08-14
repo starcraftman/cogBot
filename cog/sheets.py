@@ -11,7 +11,6 @@ New asyncio wrapper library
 Note on value_render_option to explain difference:
     https://developers.google.com/sheets/api/reference/rest/v4/ValueRenderOption
 """
-from __future__ import absolute_import, print_function
 import asyncio
 import functools
 import logging
@@ -196,10 +195,6 @@ class AsyncGSheet():
         self.sheet_page = sheet_page
         self.document = None
         self.worksheet = None
-        # These are stored 1 index, same as google sheets operate.
-        # TODO: Purge last indices? Only needed to pad/square results
-        self.last_col = 0
-        self.last_row = 0
         self.__title = None
 
     @property
@@ -223,7 +218,6 @@ class AsyncGSheet():
         sclient = await AGCM.authorize()
         self.document = await sclient.open_by_key(self.sheet_id)
         self.worksheet = await self.document.worksheet(self.sheet_page)
-        await self.refresh_last_indices()
         logging.getLogger('cog.sheets').info("GSHEET Finished setup for %s", await self.title())
 
     async def change_worksheet(self, sheet_page):
@@ -232,15 +226,6 @@ class AsyncGSheet():
         """
         self.sheet_page = sheet_page
         self.worksheet = await self.document.worksheet(self.sheet_page)
-        await self.refresh_last_indices()
-
-    async def refresh_last_indices(self):
-        """
-        Fetch latest sheet's row and column and take the maximum values.
-        Call this before adding data to sheet if uncertain of user additions.
-        """
-        self.last_col = max(self.last_col, len(await self.values_row(1)))
-        self.last_row = max(self.last_row, len(await self.values_col(1)))
 
     async def batch_get(self, cells, dim='ROWS', value_render='UNFORMATTED_VALUE'):
         """
@@ -322,7 +307,7 @@ class AsyncGSheet():
         await AGCM.authorize()
         await self.worksheet.update_cells(cells, value_input_option=input_opt)
 
-    async def whole_sheet(self, update_indices=True):  # pragma: no cover
+    async def whole_sheet(self):
         """
         Fetch and return the entire sheet as a list of lists of strings of cell values.
         The cells will be in a 2d list that is row major.
@@ -333,10 +318,6 @@ class AsyncGSheet():
         """
         await AGCM.authorize()
         values = await self.worksheet.get_all_values()
-
-        if update_indices:
-            self.last_col = max(self.last_col, len(values))
-            self.last_row = max(self.last_row, len(values[0]))
 
         return values
 

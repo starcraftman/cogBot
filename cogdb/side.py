@@ -4,7 +4,6 @@ Sidewinder's remote database.
 These classes map to remote tables.
 When querying from async code, await an executor to thread or process.
 """
-from __future__ import absolute_import, print_function
 import logging
 import datetime
 import math

@@ -5,7 +5,6 @@ Note there may be duplication between here and side.py.
 The latter is purely a mapping of sidewinder's remote.
 This module is for internal use.
 """
-from __future__ import absolute_import, print_function
 import inspect
 import math
 import sys

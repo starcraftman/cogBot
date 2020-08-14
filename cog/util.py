@@ -8,7 +8,6 @@ Utility functions
     msg_splitter - Long message splitter, not ideal.
     pastebin_new_paste - Upload something to pastebin.
 """
-from __future__ import absolute_import, print_function  # FIXME These are for deletion, code is 3.6+
 import asyncio
 import logging
 import logging.handlers

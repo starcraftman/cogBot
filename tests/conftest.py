@@ -1,7 +1,6 @@
 """
 Used for pytest fixtures and anything else test setup/teardown related.
 """
-from __future__ import absolute_import, print_function
 import copy
 import datetime
 import os
@@ -574,9 +573,6 @@ def f_asheet():
     """
     asheet = aiomock.Mock()
     asheet.worksheet = aiomock.Mock()
-    asheet.last_col = 0
-    asheet.last_row = 0
-    asheet.last_col_a1 = 'A'
     asheet.filename = None
 
     async def batch_update_send_(dicts):
@@ -584,12 +580,6 @@ def f_asheet():
 
     async def init_():
         asheet.init_called = True
-
-    async def refresh_last_indices_():
-        with open(asheet.filename, 'r') as fin:
-            cells = eval(fin.read())
-            asheet.last_row = len(cells)
-            asheet.last_col = len(cog.util.transpose_table(cells))
 
     async def values_col_(ind):
         with open(asheet.filename, 'r') as fin:
@@ -602,7 +592,6 @@ def f_asheet():
             return cells[ind]
 
     async def whole_sheet_():
-        await refresh_last_indices_()
         with open(asheet.filename, 'r') as fin:
             return eval(fin.read())
 
@@ -611,7 +600,6 @@ def f_asheet():
     asheet.init_sheet = init_
     asheet.cells_get_range.async_return_value = None
     asheet.cells_updatea.async_return_value = None
-    asheet.refresh_last_indices = refresh_last_indices_
     asheet.values_col = values_col_
     asheet.values_row = values_row_
     asheet.whole_sheet = whole_sheet_

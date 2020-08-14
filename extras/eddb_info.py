@@ -5,7 +5,6 @@ This module simply provides a means to extract all possible values from
 the fields of the dicts in eddb data. It also spits out the max str len to
 hold the field in question.
 """
-from __future__ import absolute_import, print_function
 import pprint
 import sys
 

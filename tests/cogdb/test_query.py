@@ -1,7 +1,6 @@
 """
 Test cogdb.query module.
 """
-from __future__ import absolute_import, print_function
 import sqlalchemy.orm.exc
 import mock
 import pytest

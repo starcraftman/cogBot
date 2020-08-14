@@ -5,7 +5,6 @@ Implements a very simple scheduler for updating the sheets when they change.
   - Updater logic to schedule jobs with the executor pool.
   - Scheduler registers scanners and commands to block during update.
 """
-from __future__ import absolute_import, print_function
 import asyncio
 import atexit
 import concurrent.futures as cfut
@@ -56,7 +55,7 @@ class Scheduler(aiozmq.rpc.AttrHandler):
         """
         try:
             for wrap in self.cmd_map[cmd]:
-                await wrap.scanner.r_aquire()
+                await wrap.scanner.lock.r_aquire()
         except KeyError:
             pass
 
@@ -67,7 +66,7 @@ class Scheduler(aiozmq.rpc.AttrHandler):
         """
         try:
             for wrap in self.cmd_map[cmd]:
-                await wrap.scanner.r_release()
+                await wrap.scanner.lock.r_release()
         except KeyError:
             pass
 

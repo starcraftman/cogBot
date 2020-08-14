@@ -1,7 +1,6 @@
 """
 Module should handle logic related to querying/manipulating tables from a high level.
 """
-from __future__ import absolute_import, print_function
 import logging
 import os
 import tempfile

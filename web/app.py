@@ -13,7 +13,6 @@ Run Gunicorn:
 Tutorial:
     https://www.digitalocean.com/community/tutorials/how-to-deploy-python-wsgi-apps-using-gunicorn-http-server-behind-nginx
 """
-from __future__ import absolute_import, print_function
 import asyncio
 import atexit
 import functools

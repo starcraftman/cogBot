@@ -19,7 +19,6 @@ aiozmq: Async python bindings for zmq. (depends on pyzmq)
 ZeroMQ: Listed mainly as a reference for core concepts.
     http://zguide.zeromq.org/py:all
 """
-from __future__ import absolute_import, print_function
 import asyncio
 import datetime
 import logging

@@ -5,7 +5,6 @@ Fetch the latest EDDB dump automatically.
 
 This is used to pre-seed EDDB database. See cogdb.eddb
 """
-from __future__ import absolute_import, print_function
 import asyncio
 import os
 import subprocess

@@ -1,7 +1,6 @@
 """
 Prototype of uvloop + aiozmq publish-subscribe connection.
 """
-from __future__ import absolute_import, print_function
 import asyncio
 import atexit
 import random

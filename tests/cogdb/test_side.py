@@ -1,7 +1,6 @@
 """
 Test remote queries to sidewinder's db.
 """
-from __future__ import absolute_import, print_function
 import datetime
 import pytest
 

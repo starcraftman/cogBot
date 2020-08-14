@@ -3,7 +3,6 @@ Define the database schema and some helpers.
 
 N.B. Schema defaults only applied once object commited.
 """
-from __future__ import absolute_import, print_function
 import datetime
 
 import sqlalchemy as sqla
