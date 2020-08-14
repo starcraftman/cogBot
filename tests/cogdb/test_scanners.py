@@ -19,20 +19,21 @@ async def test_fortscanner_update_cells(f_asheet_fortscanner):
     await fscan.update_cells()
 
     assert fscan.cells_row_major[2][0] == "Total Fortification Triggers:"
-    assert fscan.cells_column_major[0][2] == "Total Fortification Triggers:"
+    assert fscan.cells_col_major[0][2] == "Total Fortification Triggers:"
 
 
-def test_fortscanner_drop_entries(f_asheet_fortscanner, session,
+def test_fortscanner_flush_to_db(f_asheet_fortscanner, session,
                                   f_dusers, f_sheets, f_systems, f_drops, db_cleanup):
     fscan = FortScanner(f_asheet_fortscanner)
     assert session.query(cogdb.query.SheetCattle).all()
     assert session.query(cogdb.query.System).all()
     assert session.query(cogdb.query.Drop).all()
 
-    fscan.drop_entries(session)
+    objs = [cogdb.query.System(name='Test')]
+    fscan.flush_to_db(session, [objs])
 
     assert not session.query(cogdb.query.SheetCattle).all()
-    assert not session.query(cogdb.query.System).all()
+    assert session.query(cogdb.query.System).all()
     assert not session.query(cogdb.query.Drop).all()
 
 
@@ -102,7 +103,7 @@ async def test_fortscanner_drops(f_asheet_fortscanner):
 
 
 @pytest.mark.asyncio
-async def test_fortscanner_scan(f_asheet_fortscanner, session, db_cleanup):
+async def test_fortscanner_parse_sheet(f_asheet_fortscanner, session, db_cleanup):
     fscan = FortScanner(f_asheet_fortscanner)
 
     assert not session.query(cogdb.query.System).all()
@@ -111,7 +112,7 @@ async def test_fortscanner_scan(f_asheet_fortscanner, session, db_cleanup):
 
     await fscan.update_cells()
     await fscan.asheet.refresh_last_indices()
-    fscan.scan(session)
+    fscan.parse_sheet(session)
 
     assert session.query(cogdb.query.System).all()
     assert session.query(cogdb.query.SheetCattle).all()
@@ -153,7 +154,7 @@ async def test_umscanner_update_cells(f_asheet_umscanner):
     await fscan.update_cells()
 
     assert fscan.cells_row_major[2][0] == "Cycle ?: The Empire Sucks Placeholder"
-    assert fscan.cells_column_major[0][2] == "Cycle ?: The Empire Sucks Placeholder"
+    assert fscan.cells_col_major[0][2] == "Cycle ?: The Empire Sucks Placeholder"
 
 
 @pytest.mark.asyncio
@@ -196,7 +197,7 @@ async def test_umscanner_holds(f_asheet_umscanner):
 
 
 @pytest.mark.asyncio
-async def test_umscanner_scan(f_asheet_umscanner, session, db_cleanup):
+async def test_umscanner_parse_sheet(f_asheet_umscanner, session, db_cleanup):
     fscan = UMScanner(f_asheet_umscanner)
 
     assert not session.query(cogdb.query.SystemUM).all()
@@ -205,7 +206,7 @@ async def test_umscanner_scan(f_asheet_umscanner, session, db_cleanup):
 
     await fscan.update_cells()
     await fscan.asheet.refresh_last_indices()
-    fscan.scan(session)
+    fscan.parse_sheet(session)
 
     assert session.query(cogdb.query.SystemUM).all()
     assert session.query(cogdb.query.SheetUM).all()
@@ -232,7 +233,7 @@ async def test_kosscanner_update_cells(f_asheet_kos):
     await fscan.update_cells()
 
     assert fscan.cells_row_major[2][0] == "WildWetWalrus1"
-    assert fscan.cells_column_major[0][2] == "WildWetWalrus1"
+    assert fscan.cells_col_major[0][2] == "WildWetWalrus1"
 
 
 @pytest.mark.asyncio
@@ -246,20 +247,20 @@ async def test_kosscanner_kos_entries(f_asheet_kos):
 
 
 @pytest.mark.asyncio
-async def test_kosscanner_scan(f_asheet_kos, session, db_cleanup):
+async def test_kosscanner_parse_sheet(f_asheet_kos, session, db_cleanup):
     fscan = KOSScanner(f_asheet_kos)
 
     assert not session.query(cogdb.query.KOS).all()
 
     await fscan.update_cells()
     await fscan.asheet.refresh_last_indices()
-    fscan.scan(session)
+    fscan.parse_sheet(session)
 
     assert session.query(cogdb.query.KOS).all()
 
 
 @pytest.mark.asyncio
-async def test_kosscanner_scan_dupes(f_asheet_kos, session, db_cleanup):
+async def test_kosscanner_parse_sheet_dupes(f_asheet_kos, session, db_cleanup):
     fscan = KOSScanner(f_asheet_kos)
 
     assert not session.query(cogdb.query.KOS).all()
@@ -269,9 +270,9 @@ async def test_kosscanner_scan_dupes(f_asheet_kos, session, db_cleanup):
     await fscan.asheet.refresh_last_indices()
 
     with pytest.raises(cog.exc.SheetParsingError):
-        fscan.scan(session)
+        fscan.parse_sheet(session)
 
 
-def test_kosscanner_update_hold_dict():
+def test_kosscanner_kos_report_dict():
     data = KOSScanner.kos_report_dict(75, "Gears", "Cookies", 0, "KILL")
     assert data == [{"range": "A75:D75", "values": [["Gears", "Cookies", 0, "KILL"]]}]

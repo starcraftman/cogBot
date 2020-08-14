@@ -21,6 +21,7 @@ ZeroMQ: Listed mainly as a reference for core concepts.
 """
 from __future__ import absolute_import, print_function
 import asyncio
+import concurrent.futures as cfut
 import datetime
 import logging
 import os
@@ -44,7 +45,6 @@ finally:
 import cog.actions
 import cog.exc
 import cog.inara
-import cog.jobs
 import cog.parse
 import cog.scheduler
 import cog.sheets
@@ -169,20 +169,21 @@ class CogBot(discord.Client):
             scanners = await cogdb.scanners.init_scanners()
             cog.actions.SCANNERS = scanners
 
-            session = cogdb.Session()
-            for key in scanners:
-                print("Scanning in sheet for: %s" % key)
-                scanners[key].scan(session)  # FIXME: Speedup startup, run in back
+            self.sched.register('hudson_cattle', scanners['hudson_cattle'],
+                                ('Drop', 'Fort', 'User'))
+            self.sched.register('hudson_undermine', scanners['hudson_undermine'],
+                                ('Hold', 'UM', 'User'))
+            #  self.sched.register('hudson_kos', scanners['hudson_kos'], ('KOS'))
 
+            # separate to force crash if port busy, essential connection for scheduler
+            await self.sched.connect_sub()
+            await asyncio.sleep(0.2)
+
+            self.sched.schedule_all()
             asyncio.ensure_future(asyncio.gather(
                 presence_task(self),
                 simple_heartbeat(),
             ))
-            await asyncio.sleep(0.2)
-
-            # separate to force crash if port busy, essential connection
-            await self.sched.connect_sub()
-            await asyncio.sleep(0.2)
 
             self.deny_commands = False
 

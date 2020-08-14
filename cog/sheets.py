@@ -449,7 +449,7 @@ async def test_func2():
     asheet = AsyncGSheet(sid, page)
     await asheet.init_sheet()
 
-    vals = await asheet.cells_get_range('A10:{}10'.format(asheet.last_col_a1))
+    vals = await asheet.cells_get('A10:{}10'.format(asheet.last_col_a1))
     print(vals)
 
 

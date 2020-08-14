@@ -8,7 +8,8 @@ Utility functions
     msg_splitter - Long message splitter, not ideal.
     pastebin_new_paste - Upload something to pastebin.
 """
-from __future__ import absolute_import, print_function
+from __future__ import absolute_import, print_function  # FIXME These are for deletion, code is 3.6+
+import asyncio
 import logging
 import logging.handlers
 import logging.config
@@ -144,6 +145,7 @@ def number_increment(line):
     return line.replace(str(old_num), str(old_num + 1))
 
 
+# FIXME: Discord.py now flooding stdout, clean up this and data/log.yml
 def init_logging():  # pragma: no cover
     """
     Initialize project wide logging. See config file for details and reference on module.
@@ -338,6 +340,220 @@ def transpose_table(table):
             n_table[col_ind] += [table[row_ind][col_ind]]
 
     return n_table
+
+
+class RWLockWrite():
+    """
+    Implement a reader-writer lock. In this case, they are to be used to control sheet updates.
+
+    The "readers" are in this case all requests from users that can update the sheet without issue.
+    The "writers" are the full rescans of sheet that happen by dumping db.
+    Writers will be prioritized as data is drifting out of sync.
+    """
+    def __init__(self):
+        """
+        This is a standard reader-writer lock.
+
+        Args:
+            commands: A list of command
+        """
+        self.readers = 0
+        self.writers = 0
+
+        self.read_mut = asyncio.Lock()
+        self.write_mut = asyncio.Lock()
+        self.resource_mut = asyncio.Lock()
+
+        self.read_allowed = asyncio.Event()
+        self.read_allowed.set()
+
+    def __repr__(self):
+        keys = ['readers', 'writers', 'read_mut', 'write_mut', 'resource_mut',
+                'read_allowed']
+        kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
+
+        return "RWLockWrite({})".format(', '.join(kwargs))
+
+    def __str__(self):
+        return repr(self)
+
+    async def is_read_allowed(self):
+        """ Simple check if reading is allowed. """
+        async with self.write_mut:
+            return self.read_allowed.is_set()
+
+    async def r_aquire(self):
+        """
+        I wish to START an update TO the sheet.
+        """
+        await self.read_allowed.wait()
+        async with self.read_mut:
+            self.readers += 1
+            if self.readers == 1:
+                await self.resource_mut.acquire()
+
+    async def r_release(self):
+        """
+        I wish to FINISH an update TO the sheet.
+        """
+        async with self.read_mut:
+            self.readers -= 1
+            if self.readers == 0:
+                self.resource_mut.release()
+
+    async def w_aquire(self):
+        """
+        I wish to START an update FROM the sheet.
+        """
+        async with self.write_mut:
+            self.writers += 1
+            if self.writers == 1:
+                self.read_allowed.clear()
+            await self.resource_mut.acquire()
+
+    async def w_release(self):
+        """
+        I wish to FINISH an update FROM the sheet.
+        """
+        async with self.write_mut:
+            self.resource_mut.release()
+            self.writers -= 1
+            if self.writers == 0:
+                self.read_allowed.set()
+
+
+# Scenario multiple readers, always allowed
+async def a_run1(lock):
+    print("Run1 - aquire read")
+    await lock.r_aquire()
+    await asyncio.sleep(3)
+    await lock.r_release()
+
+    print("Run1 exit")
+
+
+async def a_run2(lock):
+    print("Run2 - aquire read")
+    await lock.r_aquire()
+    await lock.r_release()
+
+    print("Run2 exit")
+
+
+# Reader starts and writer comes along, readers no longer allowed
+async def b_run1(lock):
+    print("Run1 - aquire read")
+    await lock.r_aquire()
+    await asyncio.sleep(3)
+    await lock.r_release()
+
+    print("Run1 exit")
+
+
+async def b_run2(lock):
+    await asyncio.sleep(1)
+    print("Run2 - aquire write")
+    await lock.w_aquire()
+    await asyncio.sleep(4)
+
+    print("Run2 exit")
+    await lock.w_release()
+
+
+async def b_run3(lock):
+    await asyncio.sleep(2)
+    print("Run3 - aquire read")
+    await lock.r_aquire()
+
+    print("Run3 exit")
+
+
+# Writer starts, reader comes aglong, another writer, reader goes last.
+async def c_run1(lock):
+    print("Run1 - aquire write")
+    await lock.w_aquire()
+    await asyncio.sleep(3)
+    await lock.w_release()
+    print("Run1 - release write")
+
+    print("Run1 exit")
+
+
+async def c_run2(lock):
+    asyncio.sleep(1)
+    print("Run2 - aquire read")
+    await lock.r_aquire()  # Blocks until all writes done.
+
+    print("Run2 exit")
+
+
+async def c_run3(lock):
+    await asyncio.sleep(2)
+    print("Run3 - aquire write")
+    await lock.w_aquire()
+    await asyncio.sleep(6)
+    print("Run3 - release write")
+    await lock.w_release()
+
+    print("Run3 exit")
+
+
+# Two writers try to do exclusive resource changes.
+async def d_run1(lock):
+    print("Run1 - aquire write")
+    await lock.w_aquire()
+    async with lock:
+        print("Run1 Taken exclusive.")
+        await asyncio.sleep(3)
+        print("Run1 Done exclusive.")
+    await lock.w_release()
+    print("Run1 - release write")
+
+    print("Run1 exit")
+
+
+async def d_run2(lock):
+    await asyncio.sleep(1)
+    print("Run2 - aquire write")
+    await lock.w_aquire()
+    async with lock:
+        print("Run2 Taken exclusive.")
+        await asyncio.sleep(3)
+        print("Run2 Done exclusive.")
+    print("Run2 - release write")
+    await lock.w_release()
+
+    print("Run3 exit")
+
+
+async def e_take_context(lock):
+    async with lock:
+        print('Hello inside take.')
+
+
+# TODO: Write some real tests, I'm fairly confident it is correct though.
+def main():
+    loop = asyncio.get_event_loop()
+
+    #  lock = RWLockWrite()
+    #  loop.run_until_complete(asyncio.gather(a_run1(lock), a_run2(lock)))
+
+    #  lock = RWLockWrite()
+    #  loop.run_until_complete(asyncio.gather(b_run1(lock), b_run2(lock), b_run3(lock)))
+
+    #  lock = RWLockWrite()
+    #  loop.run_until_complete(asyncio.gather(c_run1(lock), c_run2(lock), c_run3(lock)))
+
+    #  lock = RWLockWrite()
+    #  loop.run_until_complete(asyncio.gather(d_run1(lock), d_run2(lock)))
+
+    lock = RWLockWrite()
+    print(str(lock))
+    loop.run_until_complete(e_take_context(lock))
+
+
+if __name__ == "__main__":
+    main()
 
 
 ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))

@@ -11,6 +11,7 @@ import uvloop
 
 import cog.exc
 import cog.sheets
+import cog.util
 import cogdb
 from cogdb.schema import (System, PrepSystem, SystemUM, SheetCattle, SheetUM,
                           EFaction, Drop, Hold, kwargs_fort_system, kwargs_um_system,
@@ -26,55 +27,96 @@ class FortScanner():
         user_args: The arguements to use for users parsing.
         db_classes: The database classes that should be purged on replacement.
     """
-    def __init__(self, asheet, user_args=None, db_classes=None):
+    def __init__(self, asheet, users_args=None, db_classes=None):
         self.asheet = asheet
-        self.users_args = user_args
         self.db_classes = db_classes if db_classes else [Drop, System, SheetCattle]
-        self.users_args = user_args if user_args else [SheetCattle, EFaction.hudson]
+        self.users_args = users_args if users_args else [SheetCattle, EFaction.hudson]
+        self.lock = cog.util.RWLockWrite()
 
         self.cells_row_major = None
-        self.cells_column_major = None
+        self.__cells_col_major = None
         self.system_col = None
         self.user_col = 'B'
         self.user_row = 11
 
+    def __repr__(self):
+        keys = ['asheet', 'users_args', 'db_classes', 'lock',
+                'system_col', 'user_col', 'user_row']
+        kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
+
+        return "FortScanner({})".format(', '.join(kwargs))
+
+    def __str__(self):
+        return repr(self)
+
+    def __getstate__(self):
+        """ Do not pickle asheet or lock. """
+        state = self.__dict__.copy()
+        state['asheet'] = None
+        state['lock'] = None
+
+        return state
+
+    def __setstate__(self, state):
+        """ Return from pickling, stub asheet. """
+        state['asheet'] = None
+        state['lock'] = None
+        self.__dict__.update(state)
+
+    @property
+    def cells_col_major(self):
+        """
+        Provide a view of cells with column as major dimension.
+        Transpose is carried out on first request post update and cached until next update.
+        """
+        if not self.__cells_col_major:
+            self.__cells_col_major = cog.util.transpose_table(self.cells_row_major)
+
+        return self.__cells_col_major
+
     async def update_cells(self):
         """ Fetch all cells from the sheet. """
         self.cells_row_major = await self.asheet.whole_sheet()
-        self.cells_column_major = cog.util.transpose_table(self.cells_row_major)
+        self.__cells_col_major = None
 
-    def drop_entries(self, session):
+    def parse_sheet(self, session=None):
         """
-        Before scan, drop the matching entries in the table.
-        """
-        for cls in self.db_classes:
-            for matched in session.query(cls):
-                session.delete(matched)
+        Parse the updated sheet and return information to directly pass to scan.
 
-    def scan(self, session):
-        """
-        Scan the entire sheet for all data.
-        Update the cells before parsing.
+        Returns:
+            [systems, users, drops]
         """
         self.update_system_column()
-
         systems = self.fort_systems() + self.prep_systems()
         users = self.users(first_id=1)
         drops = self.drops(systems, users)
 
-        self.drop_entries(session)
-        session.commit()
-        session.add_all(systems + users)
-        session.commit()
-        session.add_all(drops)
-        session.commit()
+        if not session:
+            session = cogdb.fresh_sessionmaker()()
+        self.flush_to_db(session, (systems + users, drops))
 
-        return True
+    def flush_to_db(self, session, pending):
+        """
+        Flush the parsed values directly into the database.
+        This method will purge old entries first.
+
+        Args:
+            session: A valid session for db.
+            pending: A list of list of db objects to put in database.
+        """
+        for cls in self.db_classes:
+            # TODO: Polymorphic sheet forces select, maybe drop polymorphism?
+            for obj in session.query(cls).all():
+                session.delete(obj)
+            session.commit()
+
+        for objs in pending:
+            session.add_all(objs)
+            session.commit()
 
     def users(self, *, row_cnt=None, first_id=1):
         """
         Scan the users in the sheet and return sheet user objects.
-        N.B. Depends on accuracy of AsyncGSheet.last_row, in underlying sheet.
 
         Args:
             row_cnt: The starting row for users, zero indexed. Default is user_row.
@@ -86,7 +128,7 @@ class FortScanner():
         if not row_cnt:
             row_cnt = self.user_row - 1
 
-        users = [x[row_cnt:self.asheet.last_row] for x in self.cells_column_major[:2]]
+        users = [x[row_cnt:] for x in self.cells_col_major[:2]]
         for cry, name in list(zip(*users)):
             row_cnt += 1
             if name.strip() == '':
@@ -112,7 +154,7 @@ class FortScanner():
         found, order, cell_column = [], 1, cog.sheets.Column(self.system_col)
         ind = cog.sheets.column_to_index(self.system_col, zero_index=True)
 
-        for col in self.cells_column_major[ind:]:
+        for col in self.cells_col_major[ind:]:
             kwargs = kwargs_fort_system(col[0:10], order, str(cell_column))
             kwargs['id'] = order
             found += [System(**kwargs)]
@@ -132,7 +174,7 @@ class FortScanner():
         first_prep = cog.sheets.column_to_index(str(cell_column))
         first_system = cog.sheets.column_to_index(self.system_col) - 1
 
-        for col in self.cells_column_major[first_prep:first_system]:
+        for col in self.cells_col_major[first_prep:first_system]:
             order = order + 1
             cell_column.fwd()
             col = col[0:10]
@@ -160,7 +202,7 @@ class FortScanner():
 
         for system in systems:
             ind = cog.sheets.column_to_index(system.sheet_col, zero_index=True)
-            merit_cells = self.cells_column_major[ind][10:]
+            merit_cells = self.cells_col_major[ind][10:]
 
             for user in users:
                 try:
@@ -207,6 +249,7 @@ class FortScanner():
         """
         logging.getLogger("cogdb.query").info("Sending update to Fort Sheet.\n%s", str(dicts))
         await self.asheet.batch_update(dicts)
+        logging.getLogger("cogdb.query").info("Finished sending update to Fort Sheet.\n%s", str(dicts))
 
     @staticmethod
     def update_sheet_user_dict(row, cry, name):
@@ -254,22 +297,23 @@ class UMScanner(FortScanner):
         self.user_col = 'B'
         self.user_row = 14
 
-    def scan(self, session):
+    def __repr__(self):
+        return super().__repr__().replace('FortScanner', 'UMScanner')
+
+    def parse_sheet(self, session=None):
         """
-        Main function, scan the sheet into the database.
+        Parse the updated sheet and return information to directly pass to scan.
+
+        Returns:
+            [systems, users, holds]
         """
         systems = self.systems()
         users = self.users(first_id=1001)
         holds = self.holds(systems, users)
 
-        self.drop_entries(session)
-        session.commit()
-        session.add_all(systems + users)
-        session.commit()
-        session.add_all(holds)
-        session.commit()
-
-        return True
+        if not session:
+            session = cogdb.fresh_sessionmaker()()
+        self.flush_to_db(session, (systems + users, holds))
 
     def systems(self):
         """
@@ -283,7 +327,8 @@ class UMScanner(FortScanner):
         found, cnt, sys_ind = [], 1, 3
 
         while True:
-            sys_cells = [x[:13] for x in self.cells_column_major[sys_ind:sys_ind + 2]]
+            sys_cells = [x[:self.user_row - 1] for x in
+                         self.cells_col_major[sys_ind:sys_ind + 2]]
 
             if not sys_cells[0][8] or 'Template' in sys_cells[0][8]:
                 break
@@ -302,7 +347,6 @@ class UMScanner(FortScanner):
     def holds(self, systems, users):
         """
         Parse the held and redeemed merits that fall under the same column as System.
-        N.B. Depends on accuracy of AsyncGSheet.last_row, in underlying sheet.
 
         Args:
             systems: The SystemUMs parsed from sheet.
@@ -315,8 +359,8 @@ class UMScanner(FortScanner):
 
         for system in systems:
             sys_ind = cog.sheets.column_to_index(system.sheet_col, zero_index=True)
-            sys_cells = [x[13:self.asheet.last_row] for x
-                         in self.cells_column_major[sys_ind:sys_ind + 2]]
+            sys_cells = [x[self.user_row - 1:] for x in
+                         self.cells_col_major[sys_ind:sys_ind + 2]]
 
             for user_ind, row in enumerate(zip(*sys_cells)):
                 held, redeemed = row
@@ -367,12 +411,18 @@ class KOSScanner(FortScanner):
     def __init__(self, asheet):
         super().__init__(asheet, None, [KOS])
 
-    def scan(self, session):
+    def __repr__(self):
+        return super().__repr__().replace('FortScanner', 'KOSScanner')
+
+    def parse_sheet(self, session=None):
         """
-        Main function, scan the sheet into the database.
+        Parse the updated sheet and return information to directly pass to scan.
+
+        Returns:
+            [kos_entries]
 
         Raises:
-            SheetParsingError - Duplicate CMDRs detected.
+            SheetParsingError - At least two commanders have same name.
         """
         entries = self.kos_entries()
 
@@ -383,12 +433,9 @@ class KOSScanner(FortScanner):
             cmdrs = ["CMDR {} duplicated in sheet".format(x.cmdr) for x in dupe_entries]
             raise cog.exc.SheetParsingError("Duplicate CMDRs in KOS sheet.\n\n" + '\n'.join(cmdrs))
 
-        self.drop_entries(session)
-        session.commit()
-        session.add_all(entries)
-        session.commit()
-
-        return True
+        if not session:
+            session = cogdb.fresh_sessionmaker()()
+        self.flush_to_db(session, (entries,))
 
     def kos_entries(self):
         """
@@ -446,7 +493,6 @@ async def init_scanners():
         scanners[key] = getattr(sys.modules[__name__], s_config['cls'])(asheet)
 
     await asyncio.gather(*init_coros)
-    await asyncio.gather(*[x.update_cells() for x in scanners.values()])
 
     return scanners
 
@@ -468,7 +514,7 @@ async def test_fortscanner():
     #  __import__('pprint').pprint(f_sys)
     #  p_sys = fscan.prep_systems()
     #  merits = fscan.merits(f_sys + p_sys, users)
-    fscan.scan(cogdb.Session())
+    __import__('pprint').pprint(fscan.parse_sheet())
 
 
 async def test_umscanner():
@@ -488,7 +534,12 @@ async def test_umscanner():
     #  print(users)
     #  merits = fscan.merits(systems, users)
     #  print(merits)
-    fscan.scan(cogdb.Session())
+
+    parsed = fscan.parse_sheet()
+    __import__('pprint').pprint(parsed)
+    session = cogdb.Session()
+    fscan.flush_to_db(session, parsed)
+    print(str(fscan.parse_sheet()[1][0]))
 
 
 async def test_kosscanner():
@@ -502,7 +553,7 @@ async def test_kosscanner():
     fscan = KOSScanner(asheet)
     await fscan.update_cells()
 
-    fscan.scan(cogdb.Session())
+    __import__('pprint').pprint(fscan.parse_sheet())
 
 
 def main():

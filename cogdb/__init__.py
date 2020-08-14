@@ -72,3 +72,13 @@ def event_checkout(dbapi_connecion, connection_record, connection_proxy):
         raise sqlalchemy.exc.DisconnectionError(
             'Connection record belongs to pid {}'
             'attempting to check out in pid {}'.format(connection_record.info['pid'], pid))
+
+
+def fresh_sessionmaker():
+    """
+    If in another process, create a new connection setup for new sessions.
+    """
+    creds = cog.util.get_config('dbs', 'main')
+    creds['db'] = os.environ.get('COG_TOKEN', 'dev')
+    engine = sqlalchemy.create_engine(MYSQL_SPEC.format(**creds), echo=False, pool_recycle=3600)
+    return sqlalchemy.orm.sessionmaker(bind=engine)

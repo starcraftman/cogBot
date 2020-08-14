@@ -24,20 +24,8 @@ from cogdb.schema import (DUser, SheetCattle, SheetUM,
 from tests.conftest import fake_msg_gears, fake_msg_newuser
 
 
-# Important, these get auto run to patch things
-pytestmark = pytest.mark.usefixtures("patch_pool", "patch_scanners")
-
-
-@pytest.fixture
-def patch_pool():
-    """ Patch the pool to silently ignore jobs. """
-    old_pool = cog.jobs.POOL
-    cog.jobs.POOL = aiomock.Mock()
-    cog.jobs.POOL.schedule.return_value = None
-
-    yield
-
-    cog.jobs.POOL = old_pool
+# Important, any fictures in here get auto run
+pytestmark = pytest.mark.usefixtures("patch_scanners")
 
 
 @pytest.fixture
@@ -50,10 +38,16 @@ def patch_scanners():
         scanner.payloads = payloads
 
     mock_cls = aiomock.Mock()
-    mock_cls.update_sheet_user_dict.return_value = [{'range': 'A20:B20', 'values': [['test cry', 'test name']]}]
+    mock_cls.update_sheet_user_dict.return_value = [
+        {'range': 'A20:B20', 'values': [['test cry', 'test name']]},
+    ]
     scanner.__class__ = mock_cls
     scanner.send_batch = send_batch_
-    cog.actions.SCANNERS = {'hudson_cattle': scanner, 'hudson_undermine': scanner, 'hudson_kos': scanner}
+    cog.actions.SCANNERS = {
+        'hudson_cattle': scanner,
+        'hudson_kos': scanner,
+        'hudson_undermine': scanner,
+    }
 
     yield
 

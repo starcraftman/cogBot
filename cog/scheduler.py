@@ -2,12 +2,13 @@
 Implements a very simple scheduler for updating the sheets when they change.
 
   - Uses rpc logic that wakes up scheduler on loop. Subscribes to POSTs.
-  - Updater logic to schedule and cancel updates. Uses cog.jobs for execution.
+  - Updater logic to schedule jobs with the executor pool.
   - Scheduler registers scanners and commands to block during update.
 """
 from __future__ import absolute_import, print_function
 import asyncio
 import atexit
+import concurrent.futures as cfut
 import datetime
 import functools
 import logging
@@ -16,10 +17,10 @@ import time
 import aiozmq
 import aiozmq.rpc
 
-import cog.jobs
 import cog.util
 
 ADDR = 'tcp://127.0.0.1:{}'.format(cog.util.get_config('ports', 'zmq'))
+POOL = cfut.ProcessPoolExecutor(max_workers=3)
 
 
 class Scheduler(aiozmq.rpc.AttrHandler):
@@ -30,11 +31,12 @@ class Scheduler(aiozmq.rpc.AttrHandler):
     if new activity detected in the hooked sheet.
     Both the job itself and future that delays start can be cancelled at any stage.
     """
-    def __init__(self, delay=20):
+    def __init__(self, *, delay=20):
         self.sub = None
         self.count = -1
         self.delay = delay  # Seconds of timeout before running actual update
-        self.wraps = {}
+        self.wrap_map = {}
+        self.cmd_map = {}
 
     def __repr__(self):
         keys = ['count', 'delay', 'sub', 'wraps']
@@ -44,28 +46,36 @@ class Scheduler(aiozmq.rpc.AttrHandler):
 
     def __str__(self):
         msg = "Delay: {}".format(self.delay)
-        for wrap in self.wraps.values():
+        for wrap in self.wrap_map.values():
             msg += "\n{!r}".format(wrap)
 
     async def wait_for(self, cmd):
         """ Wait until the scanners for cmd finished. """
-        for scanner in self.wraps.values():
-            if scanner.is_scheduled and cmd in scanner.cmds:
-                await scanner.event.wait()
+        for scanner in self.cmd_map[cmd]:
+            await scanner.r_aquire()
 
-    def disabled(self, cmd):
+    async def disabled(self, cmd):
         """ Check if a command is disabled due to scheduled update. """
-        for scanner in self.wraps.values():
-            if scanner.is_scheduled and cmd in scanner.cmds:
-                return True
+        resp = False
+        try:
+            for scanner in self.cmd_map[cmd]:
+                if not await scanner.is_read_allowed():
+                    resp = True
+        except KeyError:
+            pass
 
-        return False
+        return resp
 
     def register(self, name, scanner, cmds):
         """
         Register scanner to be updated.
         """
-        self.wraps[name] = WrapScanner(name, scanner, cmds)
+        self.wrap_map[name] = WrapScanner(name, scanner, cmds)
+        for cmd in cmds:
+            try:
+                self.cmd_map[cmd] += [scanner]
+            except KeyError:
+                self.cmd_map[cmd] = [scanner]
 
     def schedule(self, name):
         """
@@ -73,16 +83,16 @@ class Scheduler(aiozmq.rpc.AttrHandler):
 
         Name is the name of the scanner in the dictionary, i.e. hudson_cattle
         """
-        wrap = self.wraps[name]
+        wrap = self.wrap_map[name]
 
-        if wrap.is_scheduled:
+        if wrap.future:
             wrap.cancel()
 
         wrap.schedule(self.delay)
 
     def schedule_all(self):
         """ Schedule all wrappers for update. """
-        for name in self.wraps:
+        for name in self.wrap_map:
             self.schedule(name)
 
     @aiozmq.rpc.method
@@ -118,7 +128,6 @@ class WrapScanner():
         self.name = name
         self.cmds = cmds
         self.scanner = scanner
-        self.event = asyncio.Event()
         self.future = None
         self.job = None
 
@@ -131,26 +140,14 @@ class WrapScanner():
     def __str__(self):
         return repr(self)
 
-    @property
-    def is_scheduled(self):
-        """ A job is scheduled if either future or job set. """
-        return self.future or self.job
-
-    # TODO: Delete, new model will not cancel.
     def cancel(self):
         """
         Cancel any scheduled start or running job.
         """
-        log = logging.getLogger("cog.scheduler")
         try:
             self.future.cancel()
-            log.warning("Cancelled delayed call for: %s", self.name)
-        except AttributeError:
-            pass
-        try:
-            job_str = str(self.job)
-            self.job.future.cancel()
-            log.warning("Cancelled old job: %s", job_str)
+            logging.getLogger("cog.scheduler").warning(
+                "Cancelled delayed call for: %s", self.name)
         except AttributeError:
             pass
 
@@ -158,35 +155,46 @@ class WrapScanner():
         """
         Handle both scheduling this new job and cancelling old one.
         """
-        self.event.clear()
-        self.job = cog.jobs.Job(self.scanner.scan, attempts=6, timeout=30)
-        self.job.ident = "Scheduled update for " + self.name
-        self.job.add_done_callback(functools.partial(scan_done_cb, self))
-        # job.add_fail_callback(cog.jobs.warn_user_callback(bot, msg, job))
-
-        self.future = asyncio.ensure_future(
-            delay_call(delay, cog.jobs.background_start, self.job))
-        expected = datetime.datetime.utcnow() + datetime.timedelta(seconds=delay)
-        logging.getLogger('cog.scheduler').info(
-            'Update for %s scheduled for %s', self.name, expected)
+        self.future = asyncio.ensure_future(delayed_update(delay, self))
 
 
-async def delay_call(delay, coro, *args, **kwargs):
-    """ Simply delay then invoke a coroutine. """
+async def delayed_update(delay, wrap):
+    """
+    Delayed update of the scanner.
+    After delay seconds initialize a full reimport of the sheet.
+    """
+    logging.getLogger("cog.scheduler").info(
+        "Delaying by %d call for: %s", delay, wrap.name)
     await asyncio.sleep(delay)
-    await coro(*args, **kwargs)
 
+    logging.getLogger("cog.scheduler").info(
+        "Starting delayed call for: %s", wrap.name)
+    await wrap.scanner.update_cells()
+    await wrap.scanner.lock.w_aquire()
 
-def scan_done_cb(wrap, _):
-    """ When finished reset wrap. """
-    wrap.job = None
+    wrap.job = POOL.submit(wrap.scanner.parse_sheet)
+    wrap.job.add_done_callback(functools.partial(done_cb, wrap))
+    print("Pool", str(wrap.job))
     wrap.future = None
-    wrap.event.set()
+
+    await asyncio.sleep(1)
+    while not wrap.job.done():
+        await asyncio.sleep(0.5)
+        await wrap.scanner.lock.w_release()
+
+    logging.getLogger("cog.scheduler").info(
+        "Finished delayed call for: %s", wrap.name)
 
 
-def scan_fail_cb():
-    """ If a scheduled update fails, notify hideout. """
-    msg = "A scheduled sheet update failed. {} may have to look at me."
-    asyncio.ensure_future(cog.util.BOT.send_message(
-        cog.util.BOT.get_channel_by_name('private_dev'),
-        msg.format(cog.util.BOT.get_member_by_substr("gearsandcogs"))))
+def done_cb(wrap, fut):
+    """
+    Callback for the future that runs the scan.
+    Partial the wrap in.
+    """
+    if fut.exception():
+        msg = "A scheduled sheet update failed. {} may have to look at me."
+        asyncio.ensure_future(cog.util.BOT.send_message(
+            cog.util.BOT.get_channel_by_name('private_dev'),
+            msg.format(cog.util.BOT.get_member_by_substr("gearsandcogs"))))
+
+    wrap.future = None

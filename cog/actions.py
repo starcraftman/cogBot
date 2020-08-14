@@ -20,22 +20,16 @@ import cogdb.query
 import cogdb.scanners
 import cogdb.side
 import cog.inara
-import cog.jobs
 import cog.tbl
 import cog.util
 
 
-async def bot_shutdown(bot, delay=60):  # pragma: no cover
+async def bot_shutdown(bot):  # pragma: no cover
     """
     Shutdown the bot. Gives background jobs grace window to finish  unless empty.
     """
-    try:
-        cog.jobs.POOL.close()
-        await bot.loop.run_in_executor(None, cog.jobs.POOL.join, delay)
-    except TimeoutError:
-        logging.getLogger('cog.actions').error("Pool failed to close in time. Terminating.")
-        cog.jobs.POOL.stop()
-
+    logging.getLogger('cog.bot').error('FINAL SHUTDOWN REQUESTED')
+    cog.scheduler.POOL.shutdown()
     await bot.logout()
 
 
