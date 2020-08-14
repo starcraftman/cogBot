@@ -5,6 +5,7 @@ NOTE: GSheet tests being skipped, they are slow and that code is mostly frozen.
 """
 import os
 
+import aiofiles
 import gspread
 import gspread_asyncio
 import pytest
@@ -94,14 +95,6 @@ async def test_asheet_title(f_fort_ws):
 
 @SHEET_TEST
 @pytest.mark.asyncio
-async def test_asheet_last_col_a1(f_fort_ws):
-    f_fort_ws.last_col = 25
-
-    assert f_fort_ws.last_col_a1 == 'Y'
-
-
-@SHEET_TEST
-@pytest.mark.asyncio
 async def test_asheet_change_worksheet(f_fort_ws):
     ranges = ['B11:C12']
     new_sheet = 'Cycle 240'
@@ -143,8 +136,8 @@ async def test_asheet_batch_update(f_fort_reset):
 @SHEET_TEST
 @pytest.mark.asyncio
 async def test_asheet_values_col(f_fort_ws):
-    with open(FORT_INPUT, 'r') as fin:
-        expect = eval(fin.read())
+    async with aiofiles.open(FORT_INPUT, 'r') as fin:
+        expect = eval(await fin.read())
         expect = cog.util.transpose_table(expect)
 
     result = await f_fort_ws.values_col(1)
@@ -180,8 +173,8 @@ async def test_asheet_cells_update(f_fort_reset):
 @SHEET_TEST
 @pytest.mark.asyncio
 async def test_asheet_values_row(f_fort_ws):
-    with open(FORT_INPUT, 'r') as fin:
-        expect = eval(fin.read())
+    async with aiofiles.open(FORT_INPUT, 'r') as fin:
+        expect = eval(await fin.read())
 
     result = await f_fort_ws.values_row(10)
 
@@ -191,8 +184,8 @@ async def test_asheet_values_row(f_fort_ws):
 @SHEET_TEST
 @pytest.mark.asyncio
 async def test_asheet_whole_sheet(f_fort_ws):
-    with open(FORT_INPUT, 'r') as fin:
-        expect = cog.util.transpose_table(eval(fin.read()))
+    async with aiofiles.open(FORT_INPUT, 'r') as fin:
+        expect = cog.util.transpose_table(eval(await fin.read()))
 
     result = cog.util.transpose_table(await f_fort_ws.whole_sheet())
 

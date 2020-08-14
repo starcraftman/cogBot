@@ -4,6 +4,7 @@ Tests for cogdb.scanners
 import pytest
 
 import cog.exc
+import cogdb.scanners
 from cogdb.schema import (SheetCattle, SheetUM, System, SystemUM, Drop, Hold, KOS)
 from cogdb.scanners import (FortScanner, UMScanner, KOSScanner)
 
@@ -40,7 +41,6 @@ async def test_fortscanner_users(f_asheet_fortscanner):
     fscan = FortScanner(f_asheet_fortscanner)
 
     await fscan.update_cells()
-    await fscan.asheet.refresh_last_indices()
     users = fscan.users()
 
     assert len(users) == 22
@@ -109,7 +109,6 @@ async def test_fortscanner_parse_sheet(f_asheet_fortscanner, session, db_cleanup
     assert not session.query(Drop).all()
 
     await fscan.update_cells()
-    await fscan.asheet.refresh_last_indices()
     fscan.parse_sheet(session)
 
     assert session.query(System).all()
@@ -160,7 +159,6 @@ async def test_umscanner_users(f_asheet_umscanner):
     fscan = UMScanner(f_asheet_umscanner)
 
     await fscan.update_cells()
-    await fscan.asheet.refresh_last_indices()
     users = fscan.users()
 
     assert len(users) == 28
@@ -183,7 +181,6 @@ async def test_umscanner_holds(f_asheet_umscanner):
     fscan = UMScanner(f_asheet_umscanner)
 
     await fscan.update_cells()
-    await fscan.asheet.refresh_last_indices()
     users = fscan.users()
     systems = fscan.systems()
     merits = fscan.holds(systems, users)
@@ -203,7 +200,6 @@ async def test_umscanner_parse_sheet(f_asheet_umscanner, session, db_cleanup):
     assert not session.query(Hold).all()
 
     await fscan.update_cells()
-    await fscan.asheet.refresh_last_indices()
     fscan.parse_sheet(session)
 
     assert session.query(SystemUM).all()
@@ -251,7 +247,6 @@ async def test_kosscanner_parse_sheet(f_asheet_kos, session, db_cleanup):
     assert not session.query(KOS).all()
 
     await fscan.update_cells()
-    await fscan.asheet.refresh_last_indices()
     fscan.parse_sheet(session)
 
     assert session.query(KOS).all()
@@ -265,7 +260,6 @@ async def test_kosscanner_parse_sheet_dupes(f_asheet_kos, session, db_cleanup):
 
     await fscan.update_cells()
     fscan.cells_row_major = fscan.cells_row_major[:3] + fscan.cells_row_major[1:3]
-    await fscan.asheet.refresh_last_indices()
 
     with pytest.raises(cog.exc.SheetParsingError):
         fscan.parse_sheet(session)
@@ -274,3 +268,12 @@ async def test_kosscanner_parse_sheet_dupes(f_asheet_kos, session, db_cleanup):
 def test_kosscanner_kos_report_dict():
     data = KOSScanner.kos_report_dict(75, "Gears", "Cookies", 0, "KILL")
     assert data == [{"range": "A75:D75", "values": [["Gears", "Cookies", 0, "KILL"]]}]
+
+
+@pytest.mark.asyncio
+async def test_init_scanners():
+    scanners = await cogdb.scanners.init_scanners()
+
+    assert isinstance(scanners['hudson_cattle'], FortScanner)
+    assert isinstance(scanners['hudson_undermine'], UMScanner)
+    assert isinstance(scanners['hudson_kos'], KOSScanner)

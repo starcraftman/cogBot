@@ -444,6 +444,7 @@ async def presence_task(bot, delay=180):
 
 
 async def simple_heartbeat(delay=30):
+    """ Simple heartbeat function to check liveness of main loop. """
     hfile = os.path.join(tempfile.gettempdir(), 'hbeat' + os.environ.get('COG_TOKEN', 'dev'))
     print(hfile)
     while True:

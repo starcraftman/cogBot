@@ -7,8 +7,6 @@ import asyncio
 import logging
 import sys
 
-import uvloop
-
 import cog.exc
 import cog.sheets
 import cog.util
@@ -49,7 +47,7 @@ class FortScanner():
     def __str__(self):
         return repr(self)
 
-    def __getstate__(self):
+    def __getstate__(self):  # pragma: no cover
         """ Do not pickle asheet or lock. """
         state = self.__dict__.copy()
         state['asheet'] = None
@@ -57,7 +55,7 @@ class FortScanner():
 
         return state
 
-    def __setstate__(self, state):
+    def __setstate__(self, state):  # pragma: no cover
         """ Return from pickling, stub asheet. """
         state['asheet'] = None
         state['lock'] = None
@@ -495,79 +493,3 @@ async def init_scanners():
     await asyncio.gather(*init_coros)
 
     return scanners
-
-
-async def test_fortscanner():
-    paths = cog.util.get_config('paths')
-    cog.sheets.AGCM = cog.sheets.init_agcm(paths['json'], paths['token'])
-
-    sheet = cog.util.get_config('scanners', 'hudson_cattle')
-    asheet = cog.sheets.AsyncGSheet(sheet['id'], sheet['page'])
-    await asheet.init_sheet()
-
-    fscan = FortScanner(asheet)
-    await fscan.update_cells()
-    fscan.update_system_column()
-
-    #  users = fscan.users()
-    #  f_sys = fscan.fort_systems()
-    #  __import__('pprint').pprint(f_sys)
-    #  p_sys = fscan.prep_systems()
-    #  merits = fscan.merits(f_sys + p_sys, users)
-    fscan.parse_sheet()
-
-
-async def test_umscanner():
-    paths = cog.util.get_config('paths')
-    cog.sheets.AGCM = cog.sheets.init_agcm(paths['json'], paths['token'])
-
-    sheet = cog.util.get_config('scanners', 'hudson_undermine')
-    asheet = cog.sheets.AsyncGSheet(sheet['id'], sheet['page'])
-    await asheet.init_sheet()
-
-    fscan = UMScanner(asheet)
-    await fscan.update_cells()
-
-    #  systems = fscan.systems()
-    #  print(systems)
-    #  users = fscan.users()
-    #  print(users)
-    #  merits = fscan.merits(systems, users)
-    #  print(merits)
-
-    fscan.parse_sheet()
-
-
-async def test_kosscanner():
-    paths = cog.util.get_config('paths')
-    cog.sheets.AGCM = cog.sheets.init_agcm(paths['json'], paths['token'])
-
-    sheet = cog.util.get_config('scanners', 'hudson_kos')
-    asheet = cog.sheets.AsyncGSheet(sheet['id'], sheet['page'])
-    await asheet.init_sheet()
-
-    fscan = KOSScanner(asheet)
-    await fscan.update_cells()
-
-    fscan.parse_sheet()
-
-
-def main():
-    asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
-    asyncio.get_event_loop().set_debug(True)
-
-    coro = test_fortscanner
-    try:
-        if sys.argv[1] == 'um':
-            coro = test_umscanner
-        elif sys.argv[1] == 'kos':
-            coro = test_kosscanner
-    except IndexError:
-        pass
-
-    loop = asyncio.get_event_loop()
-    loop.run_until_complete(coro())
-
-
-if __name__ == "__main__":
-    main()

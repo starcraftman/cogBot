@@ -6,6 +6,7 @@ import datetime
 import os
 import sys
 
+import aiofiles
 import aiomock
 import mock
 import pytest
@@ -582,18 +583,18 @@ def f_asheet():
         asheet.init_called = True
 
     async def values_col_(ind):
-        with open(asheet.filename, 'r') as fin:
-            cells = eval(fin.read())
+        async with aiofiles.open(asheet.filename, 'r') as fin:
+            cells = eval(await fin.read())
             return cog.util.transpose_table(cells)[ind]
 
     async def values_row_(ind):
-        with open(asheet.filename, 'r') as fin:
-            cells = eval(fin.read())
+        async with aiofiles.open(asheet.filename, 'r') as fin:
+            cells = eval(await fin.read())
             return cells[ind]
 
     async def whole_sheet_():
-        with open(asheet.filename, 'r') as fin:
-            return eval(fin.read())
+        async with aiofiles.open(asheet.filename, 'r') as fin:
+            return eval(await fin.read())
 
     asheet.batch_get.async_return_value = None
     asheet.batch_update = batch_update_send_

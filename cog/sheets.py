@@ -183,7 +183,7 @@ class AsyncGSheet():
         Sheet is 1 indexed, if any method calls for index consider that.
 
         A1 ranges specified is inclusive on both sides.
-        For example fetching 'A1:B2' gets cells [[A1, A2], [B1, B2]]
+        For example fetching 'A1:B2' gets cells [[A1, B1], [A2, B2]]
     """
     def __init__(self, sheet_id, sheet_page):
         """
@@ -196,13 +196,6 @@ class AsyncGSheet():
         self.document = None
         self.worksheet = None
         self.__title = None
-
-    @property
-    def last_col_a1(self):
-        """
-        Get the A1 format last column in the current worksheet.
-        """
-        return index_to_column(self.last_col)
 
     async def title(self):
         """ Fetch the title of the document. Cache it, operation is expensive. """
@@ -225,6 +218,7 @@ class AsyncGSheet():
         Change to a new worksheet.
         """
         self.sheet_page = sheet_page
+        await AGCM.authorize()
         self.worksheet = await self.document.worksheet(self.sheet_page)
 
     async def batch_get(self, cells, dim='ROWS', value_render='UNFORMATTED_VALUE'):
@@ -317,9 +311,7 @@ class AsyncGSheet():
             update_indices: When True, update the sheets last indices based on new sheet.
         """
         await AGCM.authorize()
-        values = await self.worksheet.get_all_values()
-
-        return values
+        return await self.worksheet.get_all_values()
 
         # TODO: An idea, returns non-square table, need to pad up to expected.
         #  await AGCM.authorize()
@@ -411,44 +403,3 @@ def index_to_column(one_index):
     col = Column()
     col.offset(one_index - 1)
     return str(col)
-
-
-async def test_func():
-    paths = cog.util.get_config('paths')
-    agcm = init_agcm(paths['json'], paths['token'])
-    sclient = await agcm.authorize()
-    print('Authorized', sclient)
-
-    sid = '1p75GrSdqjCi_0Y-9aLZHN4maruuSluhzpxjcWtmquGw'
-    page = 'TestLive'
-    sheet = await sclient.open_by_key(sid)
-    print('title', await sheet.get_title())
-
-    wsheet = await sheet.worksheet(page)
-    print("All values")
-    vals = await wsheet.get_all_values()
-    __import__('pprint').pprint(vals[0:4])
-
-
-async def test_func2():
-    paths = cog.util.get_config('paths')
-    global AGCM
-    AGCM = init_agcm(paths['json'], paths['token'])
-
-    sid = '1p75GrSdqjCi_0Y-9aLZHN4maruuSluhzpxjcWtmquGw'
-    page = 'TestLive'
-    asheet = AsyncGSheet(sid, page)
-    await asheet.init_sheet()
-
-    vals = await asheet.cells_get('A10:{}10'.format(asheet.last_col_a1))
-    print(vals)
-
-
-def main():
-    loop = asyncio.get_event_loop()
-    loop.set_debug(True)
-    loop.run_until_complete(test_func2())
-
-
-if __name__ == "__main__":
-    main()

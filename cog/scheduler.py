@@ -44,9 +44,12 @@ class Scheduler(aiozmq.rpc.AttrHandler):
         return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
 
     def __str__(self):
-        msg = "Delay: {}".format(self.delay)
+        msg = "### Schedule ###\n\n\tDelay: {}".format(self.delay)
+        msg += '__Wraps__\n'
         for wrap in self.wrap_map.values():
-            msg += "\n{!r}".format(wrap)
+            msg += "\n\t{!r}\n".format(wrap)
+
+        return msg
 
     async def wait_for(self, cmd):
         """
@@ -125,7 +128,7 @@ class Scheduler(aiozmq.rpc.AttrHandler):
             self.schedule(name, delay)
 
     @aiozmq.rpc.method
-    def remote_func(self, scanner, timestamp):
+    def remote_func(self, scanner, timestamp):  # pragma: no cover
         """ Remote function to be executed. """
         self.count = (self.count + 1) % 1000
         logging.getLogger('cog.scheduler').info(
@@ -133,13 +136,13 @@ class Scheduler(aiozmq.rpc.AttrHandler):
         self.schedule(scanner)
         print('SCHEDULED: ', scanner, timestamp)
 
-    def close(self):
+    def close(self):  # pragma: no cover
         """ Properly close pubsub connection on termination. """
         if self.sub and self.count != -1:
             self.sub.close()
             time.sleep(0.5)
 
-    async def connect_sub(self):
+    async def connect_sub(self):  # pragma: no cover
         """ Connect the zmq subscriber. """
         channel = 'POSTs'
         self.sub = await aiozmq.rpc.serve_pubsub(self, subscribe=channel,
@@ -216,7 +219,7 @@ async def delayed_update(delay, wrap):
     log.info("%s | Finished delayed call", wrap.name)
 
 
-def done_cb(wrap, fut):
+def done_cb(wrap, fut):  # pragma: no cover
     """
     Callback for the future that runs the scan.
     Partial the wrap in.
