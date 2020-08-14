@@ -163,12 +163,14 @@ async def delayed_update(delay, wrap):
     Delayed update of the scanner.
     After delay seconds initialize a full reimport of the sheet.
     """
-    logging.getLogger("cog.scheduler").info(
-        "Delaying by %d call for: %s", delay, wrap.name)
+    log = logging.getLogger("cog.scheduler")
+    log.info(
+        "%s | Delaying start by %d seconds\n    Will run at: %s",
+        wrap.name, delay, str(datetime.datetime.utcnow() + datetime.timedelta(seconds=delay))
+    )
     await asyncio.sleep(delay)
 
-    logging.getLogger("cog.scheduler").info(
-        "Starting delayed call for: %s", wrap.name)
+    log.info("%s | Starting delayed call", wrap.name)
     await wrap.scanner.update_cells()
     await wrap.scanner.lock.w_aquire()
 
@@ -182,8 +184,7 @@ async def delayed_update(delay, wrap):
         await asyncio.sleep(0.5)
         await wrap.scanner.lock.w_release()
 
-    logging.getLogger("cog.scheduler").info(
-        "Finished delayed call for: %s", wrap.name)
+    log.info("%s | Finished delayed call", wrap.name)
 
 
 def done_cb(wrap, fut):

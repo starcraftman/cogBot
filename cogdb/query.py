@@ -4,7 +4,6 @@ Module should handle logic related to querying/manipulating tables from a high l
 from __future__ import absolute_import, print_function
 import logging
 import os
-import sys
 import tempfile
 
 import sqlalchemy.exc as sqla_exc
@@ -14,7 +13,8 @@ import cog.exc
 import cog.sheets
 from cog.util import substr_match
 import cogdb
-from cogdb.schema import (DUser, System, PrepSystem, SystemUM, SheetRow, SheetCattle, SheetUM,
+import cogdb.schema
+from cogdb.schema import (DUser, System, PrepSystem, SystemUM, SheetRow,
                           Drop, Hold, EFaction, ESheetType,
                           Admin, ChannelPerm, RolePerm, FortOrder, KOS)
 from cogdb.side import HUDSON_CONTROLS, WINTERS_CONTROLS
@@ -154,7 +154,7 @@ def add_sheet(session, name, **kwargs):
         start_row: Starting row if none inserted.
     """
     faction = kwargs.get('faction', EFaction.hudson)
-    cls = getattr(sys.modules[__name__], kwargs.get('type', ESheetType.cattle))
+    cls = getattr(cogdb.schema, kwargs.get('type', ESheetType.cattle))
     cry = kwargs.get('cry', '')
 
     next_row = next_sheet_row(session, cls=cls, faction=faction,

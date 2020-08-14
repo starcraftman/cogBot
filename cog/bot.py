@@ -21,7 +21,6 @@ ZeroMQ: Listed mainly as a reference for core concepts.
 """
 from __future__ import absolute_import, print_function
 import asyncio
-import concurrent.futures as cfut
 import datetime
 import logging
 import os

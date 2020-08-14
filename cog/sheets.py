@@ -454,11 +454,8 @@ async def test_func2():
 
 
 def main():
-    import uvloop
-    asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
-    asyncio.get_event_loop().set_debug(True)
-
     loop = asyncio.get_event_loop()
+    loop.set_debug(True)
     loop.run_until_complete(test_func2())
 
 

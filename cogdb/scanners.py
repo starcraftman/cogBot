@@ -514,7 +514,7 @@ async def test_fortscanner():
     #  __import__('pprint').pprint(f_sys)
     #  p_sys = fscan.prep_systems()
     #  merits = fscan.merits(f_sys + p_sys, users)
-    __import__('pprint').pprint(fscan.parse_sheet())
+    fscan.parse_sheet()
 
 
 async def test_umscanner():
@@ -535,11 +535,7 @@ async def test_umscanner():
     #  merits = fscan.merits(systems, users)
     #  print(merits)
 
-    parsed = fscan.parse_sheet()
-    __import__('pprint').pprint(parsed)
-    session = cogdb.Session()
-    fscan.flush_to_db(session, parsed)
-    print(str(fscan.parse_sheet()[1][0]))
+    fscan.parse_sheet()
 
 
 async def test_kosscanner():
@@ -553,7 +549,7 @@ async def test_kosscanner():
     fscan = KOSScanner(asheet)
     await fscan.update_cells()
 
-    __import__('pprint').pprint(fscan.parse_sheet())
+    fscan.parse_sheet()
 
 
 def main():

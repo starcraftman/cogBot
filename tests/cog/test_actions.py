@@ -10,7 +10,6 @@ from __future__ import absolute_import, print_function
 import re
 
 import aiomock
-import mock
 import pytest
 
 import cog.actions

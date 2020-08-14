@@ -74,11 +74,17 @@ def event_checkout(dbapi_connecion, connection_record, connection_proxy):
             'attempting to check out in pid {}'.format(connection_record.info['pid'], pid))
 
 
-def fresh_sessionmaker():
+def fresh_sessionmaker(db=None):
     """
     If in another process, create a new connection setup for new sessions.
+
+    args:
+        db: The database to select with mysql, by default COG_TOKEN.
     """
     creds = cog.util.get_config('dbs', 'main')
-    creds['db'] = os.environ.get('COG_TOKEN', 'dev')
-    engine = sqlalchemy.create_engine(MYSQL_SPEC.format(**creds), echo=False, pool_recycle=3600)
-    return sqlalchemy.orm.sessionmaker(bind=engine)
+    if not db:
+        db = os.environ.get('COG_TOKEN', 'dev')
+    creds['db'] = db
+
+    eng = sqlalchemy.create_engine(MYSQL_SPEC.format(**creds), echo=False, pool_recycle=3600)
+    return sqlalchemy.orm.sessionmaker(bind=eng)

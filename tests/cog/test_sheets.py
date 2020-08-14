@@ -147,8 +147,7 @@ async def test_asheet_batch_update(f_fort_reset):
     }, {
         'range': 'F6:G6',
         'values': [[2222, 3333]],
-    },
-    ]
+    }]
 
     await f_fort_reset.batch_update(payloads)
 

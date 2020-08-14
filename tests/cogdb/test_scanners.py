@@ -4,9 +4,7 @@ Tests for cogdb.scanners
 import pytest
 
 import cog.exc
-import cogdb
-import cogdb.query
-import cogdb.scanners
+from cogdb.schema import (SheetCattle, SheetUM, System, SystemUM, Drop, Hold, KOS)
 from cogdb.scanners import (FortScanner, UMScanner, KOSScanner)
 
 
@@ -23,18 +21,18 @@ async def test_fortscanner_update_cells(f_asheet_fortscanner):
 
 
 def test_fortscanner_flush_to_db(f_asheet_fortscanner, session,
-                                  f_dusers, f_sheets, f_systems, f_drops, db_cleanup):
+                                 f_dusers, f_sheets, f_systems, f_drops, db_cleanup):
     fscan = FortScanner(f_asheet_fortscanner)
-    assert session.query(cogdb.query.SheetCattle).all()
-    assert session.query(cogdb.query.System).all()
-    assert session.query(cogdb.query.Drop).all()
+    assert session.query(SheetCattle).all()
+    assert session.query(System).all()
+    assert session.query(Drop).all()
 
-    objs = [cogdb.query.System(name='Test')]
+    objs = [System(name='Test')]
     fscan.flush_to_db(session, [objs])
 
-    assert not session.query(cogdb.query.SheetCattle).all()
-    assert session.query(cogdb.query.System).all()
-    assert not session.query(cogdb.query.Drop).all()
+    assert not session.query(SheetCattle).all()
+    assert session.query(System).all()
+    assert not session.query(Drop).all()
 
 
 @pytest.mark.asyncio
@@ -106,17 +104,17 @@ async def test_fortscanner_drops(f_asheet_fortscanner):
 async def test_fortscanner_parse_sheet(f_asheet_fortscanner, session, db_cleanup):
     fscan = FortScanner(f_asheet_fortscanner)
 
-    assert not session.query(cogdb.query.System).all()
-    assert not session.query(cogdb.query.SheetCattle).all()
-    assert not session.query(cogdb.query.Drop).all()
+    assert not session.query(System).all()
+    assert not session.query(SheetCattle).all()
+    assert not session.query(Drop).all()
 
     await fscan.update_cells()
     await fscan.asheet.refresh_last_indices()
     fscan.parse_sheet(session)
 
-    assert session.query(cogdb.query.System).all()
-    assert session.query(cogdb.query.SheetCattle).all()
-    assert session.query(cogdb.query.Drop).all()
+    assert session.query(System).all()
+    assert session.query(SheetCattle).all()
+    assert session.query(Drop).all()
 
 
 @pytest.mark.asyncio
@@ -200,17 +198,17 @@ async def test_umscanner_holds(f_asheet_umscanner):
 async def test_umscanner_parse_sheet(f_asheet_umscanner, session, db_cleanup):
     fscan = UMScanner(f_asheet_umscanner)
 
-    assert not session.query(cogdb.query.SystemUM).all()
-    assert not session.query(cogdb.query.SheetUM).all()
-    assert not session.query(cogdb.query.Hold).all()
+    assert not session.query(SystemUM).all()
+    assert not session.query(SheetUM).all()
+    assert not session.query(Hold).all()
 
     await fscan.update_cells()
     await fscan.asheet.refresh_last_indices()
     fscan.parse_sheet(session)
 
-    assert session.query(cogdb.query.SystemUM).all()
-    assert session.query(cogdb.query.SheetUM).all()
-    assert session.query(cogdb.query.Hold).all()
+    assert session.query(SystemUM).all()
+    assert session.query(SheetUM).all()
+    assert session.query(Hold).all()
 
 
 def test_umscanner_update_systemsum_dict():
@@ -250,20 +248,20 @@ async def test_kosscanner_kos_entries(f_asheet_kos):
 async def test_kosscanner_parse_sheet(f_asheet_kos, session, db_cleanup):
     fscan = KOSScanner(f_asheet_kos)
 
-    assert not session.query(cogdb.query.KOS).all()
+    assert not session.query(KOS).all()
 
     await fscan.update_cells()
     await fscan.asheet.refresh_last_indices()
     fscan.parse_sheet(session)
 
-    assert session.query(cogdb.query.KOS).all()
+    assert session.query(KOS).all()
 
 
 @pytest.mark.asyncio
 async def test_kosscanner_parse_sheet_dupes(f_asheet_kos, session, db_cleanup):
     fscan = KOSScanner(f_asheet_kos)
 
-    assert not session.query(cogdb.query.KOS).all()
+    assert not session.query(KOS).all()
 
     await fscan.update_cells()
     fscan.cells_row_major = fscan.cells_row_major[:3] + fscan.cells_row_major[1:3]
