@@ -172,13 +172,13 @@ class CogBot(discord.Client):
                                 ('Drop', 'Fort', 'User'))
             self.sched.register('hudson_undermine', scanners['hudson_undermine'],
                                 ('Hold', 'UM', 'User'))
-            #  self.sched.register('hudson_kos', scanners['hudson_kos'], ('KOS'))
+            self.sched.register('hudson_kos', scanners['hudson_kos'], ('KOS'))
 
             # separate to force crash if port busy, essential connection for scheduler
             await self.sched.connect_sub()
             await asyncio.sleep(0.2)
 
-            self.sched.schedule_all()
+            self.sched.schedule_all(delay=1)
             asyncio.ensure_future(asyncio.gather(
                 presence_task(self),
                 simple_heartbeat(),

@@ -95,23 +95,35 @@ class Scheduler(aiozmq.rpc.AttrHandler):
             except KeyError:
                 self.cmd_map[cmd] = [wrap]
 
-    def schedule(self, name):
+    def schedule(self, name, delay=None):
         """
         Schedule a scanner to fetch latest sheet. If another scheduled, cancel it.
-
         Name is the name of the scanner in the dictionary, i.e. hudson_cattle
+
+        Args:
+            delay: Override the default delay for this scheduling.
         """
         wrap = self.wrap_map[name]
+        if not delay:
+            delay = self.delay
 
         if wrap.future:
             wrap.cancel()
 
-        wrap.schedule(self.delay)
+        wrap.schedule(delay)
 
-    def schedule_all(self):
-        """ Schedule all wrappers for update. """
+    def schedule_all(self, delay=None):
+        """
+        Schedule all scanners for update.
+
+        Args:
+            delay: Override the default delay for this scheduling.
+        """
+        if not delay:
+            delay = self.delay
+
         for name in self.wrap_map:
-            self.schedule(name)
+            self.schedule(name, delay)
 
     @aiozmq.rpc.method
     def remote_func(self, scanner, timestamp):

@@ -354,7 +354,7 @@ class Admin(Action):
 
             await asyncio.gather(*coros)
             for name in to_update:
-                self.bot.sched.schedule(name)
+                self.bot.sched.schedule(name, delay=1)
 
             return "Cycle has been incremented, bot has scheduled sheets for update."
         except ValueError:
