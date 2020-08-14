@@ -356,8 +356,8 @@ def init_agcm(json_secret, sheet_token, loop=None):
     Has internal rate limitting but we should do batch updates still to prevent hitting them.
 
     Args:
-        json_secret: The path to the secret json file
-        sheet_token: The path to the cached token authorization
+        json_secret: The *absolute* path to the secret json file
+        sheet_token: The *absolute* path to the cached token authorization
         loop: The loop to attach the agcm to, by default with get_event_loop()
     """
     if not loop:

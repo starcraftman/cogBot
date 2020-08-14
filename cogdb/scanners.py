@@ -481,7 +481,10 @@ async def init_scanners():
     """
     scanners, init_coros = {}, []
     paths = cog.util.get_config("paths")
-    cog.sheets.AGCM = cog.sheets.init_agcm(paths['json'], paths['token'])
+    cog.sheets.AGCM = cog.sheets.init_agcm(
+        cog.util.rel_to_abs(paths['json']),
+        cog.util.rel_to_abs(paths['token']),
+    )
 
     s_configs = cog.util.get_config('scanners')
     for key in s_configs:

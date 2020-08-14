@@ -3,8 +3,6 @@ Test sheets api logic
 
 NOTE: GSheet tests being skipped, they are slow and that code is mostly frozen.
 """
-import os
-
 import aiofiles
 import gspread
 import gspread_asyncio
@@ -19,7 +17,7 @@ from tests.conftest import SHEET_TEST
 # Caching for a library component that I want to share across tests.
 PATHS = cog.util.get_config('paths')
 AGCM = None
-FORT_INPUT = os.path.join(cog.util.ROOT_DIR, 'tests', 'test_input.unit_fort.txt')
+FORT_INPUT = cog.util.rel_to_abs('tests', 'test_input.unit_fort.txt')
 
 
 @pytest.fixture()
