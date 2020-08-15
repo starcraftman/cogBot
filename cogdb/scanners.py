@@ -58,7 +58,7 @@ class FortScanner():
     def __setstate__(self, state):  # pragma: no cover
         """ Return from pickling, stub asheet. """
         state['asheet'] = None
-        state['lock'] = None
+        state['lock'] = cog.util.RWLockWrite()
         self.__dict__.update(state)
 
     @property
@@ -367,11 +367,14 @@ class UMScanner(FortScanner):
 
                 held = cogdb.schema.parse_int(held)
                 redeemed = cogdb.schema.parse_int(redeemed)
-                hold = Hold(id=cnt, user_id=users[user_ind].id, system_id=system.id,
-                            held=held, redeemed=redeemed)
-                found += [hold]
+                try:
+                    hold = Hold(id=cnt, user_id=users[user_ind].id, system_id=system.id,
+                                held=held, redeemed=redeemed)
+                    found += [hold]
 
-                cnt += 1
+                    cnt += 1
+                except IndexError:
+                    pass
 
         return found
 

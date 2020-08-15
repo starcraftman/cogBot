@@ -205,18 +205,33 @@ async def delayed_update(delay, wrap):
     log.info("%s | Starting delayed call", wrap.name)
     try:
         await wrap.scanner.lock.w_aquire()
+        log.info("%s | w lock get", wrap.name)
         await wrap.scanner.update_cells()
+        log.info("%s | update", wrap.name)
 
         wrap.job = POOL.submit(wrap.scanner.parse_sheet)
         wrap.job.add_done_callback(functools.partial(done_cb, wrap))
         wrap.future = None
+        log.info("%s | job made", wrap.name)
 
         while not wrap.job.done():
             await asyncio.sleep(0.5)
+
+        if wrap.job.exception():
+            msg = "Sheet update for `{}` failed at {}. {} have a look!\n\n{}"
+            await cog.util.BOT.send_message(
+                cog.util.BOT.get_channel_by_name('private_dev'),
+                msg.format(
+                    wrap.name, datetime.datetime.utcnow(),
+                    cog.util.BOT.get_member_by_substr("gearsandcogs").mention,
+                    str(wrap.job.exception()),
+                ))
+
         wrap.job = None
     finally:
         await wrap.scanner.lock.w_release()
     log.info("%s | Finished delayed call", wrap.name)
+    log.info("%s | lock %s", wrap.name, wrap.scanner.lock)
 
 
 def done_cb(wrap, fut):  # pragma: no cover

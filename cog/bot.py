@@ -313,15 +313,7 @@ class CogBot(discord.Client):
         args, msg = kwargs.get('args'), kwargs.get('msg')
 
         try:
-            while self.sched.disabled(args.cmd):
-                reply = 'Synchronizing sheet changes.\n\n'\
-                        'Your command will resume after update has finished.'
-                await self.send_message(msg.channel, reply)
-
-                await self.sched.wait_for(args.cmd)
-                await self.send_message(msg.channel, '{} Resuming your command: **{}**'.format(
-                    msg.author.mention, msg.content))
-
+            await self.sched.wait_for(args.cmd)
             cogdb.query.check_perms(msg, args)
             cls = getattr(cog.actions, args.cmd)
             await cls(**kwargs).execute()
