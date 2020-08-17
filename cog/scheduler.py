@@ -228,7 +228,8 @@ async def delayed_update(delay, wrap):
         if wrap.job.exception():
             msg = "Sheet update for `{}` failed at {}. {} have a look!\n\n{}"
 
-            await chan.send_message(
+            await cog.util.BOT.send_message(
+                chan,
                 msg.format(
                     wrap.name, datetime.datetime.utcnow(),
                     cog.util.BOT.get_member_by_substr("gearsandcogs").mention,
