@@ -785,7 +785,7 @@ def kwargs_um_system(cells, sheet_col):
         main_col, sec_col = cells[0], cells[1]
 
         if main_col[8] == '' or 'template' in main_col[8].lower():
-            raise cog.exc.SheetParsingError
+            raise cog.exc.SheetParsingError("Halt SystemUM parsing.")
 
         if main_col[0].startswith('Exp'):
             cls = UMExpand
@@ -814,7 +814,7 @@ def kwargs_um_system(cells, sheet_col):
             'cls': cls,
         }
     except (IndexError, TypeError):
-        raise cog.exc.SheetParsingError
+        raise cog.exc.SheetParsingError("Halt SystemUM parsing.")
 
 
 def kwargs_fort_system(lines, order, column):
@@ -838,7 +838,7 @@ def kwargs_fort_system(lines, order, column):
     """
     try:
         if lines[9] == '':
-            raise cog.exc.SheetParsingError
+            raise cog.exc.SheetParsingError("Halt System parsing.")
 
         return {
             'undermine': parse_percent(lines[0]),
@@ -853,7 +853,7 @@ def kwargs_fort_system(lines, order, column):
             'sheet_order': order,
         }
     except (IndexError, TypeError):
-        raise cog.exc.SheetParsingError
+        raise cog.exc.SheetParsingError("Halt System parsing.")
 
 
 def parse_int(word):

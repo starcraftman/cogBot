@@ -152,13 +152,16 @@ class FortScanner():
         found, order, cell_column = [], 1, cog.sheets.Column(self.system_col)
         ind = cog.sheets.column_to_index(self.system_col, zero_index=True)
 
-        for col in self.cells_col_major[ind:]:
-            kwargs = kwargs_fort_system(col[0:10], order, str(cell_column))
-            kwargs['id'] = order
-            found += [System(**kwargs)]
+        try:
+            for col in self.cells_col_major[ind:]:
+                kwargs = kwargs_fort_system(col[0:10], order, str(cell_column))
+                kwargs['id'] = order
+                found += [System(**kwargs)]
 
-            order += 1
-            cell_column.fwd()
+                order += 1
+                cell_column.fwd()
+        except cog.exc.SheetParsingError:
+            pass
 
         return found
 
@@ -172,18 +175,21 @@ class FortScanner():
         first_prep = cog.sheets.column_to_index(str(cell_column))
         first_system = cog.sheets.column_to_index(self.system_col) - 1
 
-        for col in self.cells_col_major[first_prep:first_system]:
-            order = order + 1
-            cell_column.fwd()
-            col = col[0:10]
+        try:
+            for col in self.cells_col_major[first_prep:first_system]:
+                order = order + 1
+                cell_column.fwd()
+                col = col[0:10]
 
-            if col[-1].strip() == "TBA":
-                continue
+                if col[-1].strip() == "TBA":
+                    continue
 
-            kwargs = kwargs_fort_system(col, order, str(cell_column))
-            kwargs['id'] = 1000 + order
+                kwargs = kwargs_fort_system(col, order, str(cell_column))
+                kwargs['id'] = 1000 + order
 
-            found += [PrepSystem(**kwargs)]
+                found += [PrepSystem(**kwargs)]
+        except cog.exc.SheetParsingError:
+            pass
 
         return found
 
@@ -324,21 +330,24 @@ class UMScanner(FortScanner):
         cell_column = cog.sheets.Column(self.system_col)
         found, cnt, sys_ind = [], 1, 3
 
-        while True:
-            sys_cells = [x[:self.user_row - 1] for x in
-                         self.cells_col_major[sys_ind:sys_ind + 2]]
+        try:
+            while True:
+                sys_cells = [x[:self.user_row - 1] for x in
+                            self.cells_col_major[sys_ind:sys_ind + 2]]
 
-            if not sys_cells[0][8] or 'Template' in sys_cells[0][8]:
-                break
+                if not sys_cells[0][8] or 'Template' in sys_cells[0][8]:
+                    break
 
-            kwargs = kwargs_um_system(sys_cells, str(cell_column))
-            kwargs['id'] = cnt
-            cnt += 1
-            cls = kwargs.pop('cls')
-            found += [(cls(**kwargs))]
+                kwargs = kwargs_um_system(sys_cells, str(cell_column))
+                kwargs['id'] = cnt
+                cnt += 1
+                cls = kwargs.pop('cls')
+                found += [(cls(**kwargs))]
 
-            sys_ind += 2
-            cell_column.offset(2)
+                sys_ind += 2
+                cell_column.offset(2)
+        except cog.exc.SheetParsingError:
+            pass
 
         return found
 
