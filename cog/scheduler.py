@@ -236,7 +236,7 @@ async def delayed_update(delay, wrap):
                 )
             )
 
-        log.info('Scanner %s has lock %s', wrap.scanner.name, wrap.scanner.lock)
+        log.info('Scanner %s has lock %s', wrap.name, wrap.scanner.lock)
         wrap.job = None
     finally:
         await wrap.scanner.lock.w_release()

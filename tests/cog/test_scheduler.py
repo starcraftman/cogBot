@@ -130,10 +130,15 @@ async def test_scheduler_schedule_all(f_asheet_fortscanner, f_asheet_umscanner):
 
 
 @pytest.mark.asyncio
-async def test_scheduler_delayed_update(f_asheet_fortscanner):
+async def test_scheduler_delayed_update(f_bot, f_asheet_fortscanner):
     fscan = cogdb.scanners.FortScanner(f_asheet_fortscanner)
     wrap = WrapScanner('fort', fscan, ['Fort'])
 
-    await cog.scheduler.delayed_update(1, wrap)
+    try:
+        old_bot = cog.util.BOT
+        cog.util.BOT = f_bot
+        await cog.scheduler.delayed_update(1, wrap)
+    finally:
+        cog.util.BOT = old_bot
 
     assert not wrap.scanner.lock.read_mut.locked()

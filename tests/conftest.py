@@ -550,6 +550,7 @@ def f_bot():
     fake_bot.wait_for.async_return_value = None  # Whenever wait_for needed, put message here.
     fake_bot.emoji.fix = lambda x, y: x
     fake_bot.guilds = fake_servers()
+    fake_bot.get_channel_by_name.return_value = 'private_dev'
 
     def fake_exec(_, func, *args):
         return func(*args)
