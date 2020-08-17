@@ -11,6 +11,7 @@ import concurrent.futures as cfut
 import datetime
 import functools
 import logging
+import os
 import time
 
 import aiozmq
@@ -217,16 +218,25 @@ async def delayed_update(delay, wrap):
         while not wrap.job.done():
             await asyncio.sleep(0.5)
 
+        env = os.environ.get('COG_TOKEN', 'dev')
+        if env in ['dev', 'prod', 'live']:
+            chan_name = 'private_{}'.format(env)
+        else:
+            chan_name = 'private_dev'
+        chan = cog.util.BOT.get_channel_by_name(chan_name)
+
         if wrap.job.exception():
             msg = "Sheet update for `{}` failed at {}. {} have a look!\n\n{}"
-            await cog.util.BOT.send_message(
-                cog.util.BOT.get_channel_by_name('private_dev'),
+
+            await chan.send_message(
                 msg.format(
                     wrap.name, datetime.datetime.utcnow(),
                     cog.util.BOT.get_member_by_substr("gearsandcogs").mention,
                     str(wrap.job.exception()),
-                ))
+                )
+            )
 
+        log.info('Scanner %s has lock %s', wrap.scanner.name, wrap.scanner.lock)
         wrap.job = None
     finally:
         await wrap.scanner.lock.w_release()

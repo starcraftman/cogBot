@@ -420,138 +420,138 @@ class RWLockWrite():
                 self.read_allowed.set()
 
 
-# Scenario multiple readers, always allowed
-async def a_run1(lock):
-    print("Run1 - aquire read")
-    await lock.r_aquire()
-    await asyncio.sleep(3)
-    await lock.r_release()
+#  # Scenario multiple readers, always allowed
+#  async def a_run1(lock):
+    #  print("Run1 - aquire read")
+    #  await lock.r_aquire()
+    #  await asyncio.sleep(3)
+    #  await lock.r_release()
 
-    print("Run1 exit")
-
-
-async def a_run2(lock):
-    print("Run2 - aquire read")
-    await lock.r_aquire()
-    await lock.r_release()
-
-    print("Run2 exit")
+    #  print("Run1 exit")
 
 
-# Reader starts and writer comes along, readers no longer allowed
-async def b_run1(lock):
-    print("Run1 - aquire read")
-    await lock.r_aquire()
-    await asyncio.sleep(3)
-    await lock.r_release()
+#  async def a_run2(lock):
+    #  print("Run2 - aquire read")
+    #  await lock.r_aquire()
+    #  await lock.r_release()
 
-    print("Run1 exit")
+    #  print("Run2 exit")
 
 
-async def b_run2(lock):
-    await asyncio.sleep(1)
-    print("Run2 - aquire write")
-    await lock.w_aquire()
-    await asyncio.sleep(4)
+#  # Reader starts and writer comes along, readers no longer allowed
+#  async def b_run1(lock):
+    #  print("Run1 - aquire read")
+    #  await lock.r_aquire()
+    #  await asyncio.sleep(3)
+    #  await lock.r_release()
 
-    print("Run2 exit")
-    await lock.w_release()
-
-
-async def b_run3(lock):
-    await asyncio.sleep(2)
-    print("Run3 - aquire read")
-    await lock.r_aquire()
-
-    print("Run3 exit")
+    #  print("Run1 exit")
 
 
-# Writer starts, reader comes aglong, another writer, reader goes last.
-async def c_run1(lock):
-    print("Run1 - aquire write")
-    await lock.w_aquire()
-    await asyncio.sleep(3)
-    await lock.w_release()
-    print("Run1 - release write")
+#  async def b_run2(lock):
+    #  await asyncio.sleep(1)
+    #  print("Run2 - aquire write")
+    #  await lock.w_aquire()
+    #  await asyncio.sleep(4)
 
-    print("Run1 exit")
-
-
-async def c_run2(lock):
-    asyncio.sleep(1)
-    print("Run2 - aquire read")
-    await lock.r_aquire()  # Blocks until all writes done.
-
-    print("Run2 exit")
+    #  print("Run2 exit")
+    #  await lock.w_release()
 
 
-async def c_run3(lock):
-    await asyncio.sleep(2)
-    print("Run3 - aquire write")
-    await lock.w_aquire()
-    await asyncio.sleep(6)
-    print("Run3 - release write")
-    await lock.w_release()
+#  async def b_run3(lock):
+    #  await asyncio.sleep(2)
+    #  print("Run3 - aquire read")
+    #  await lock.r_aquire()
 
-    print("Run3 exit")
+    #  print("Run3 exit")
 
 
-# Two writers try to do exclusive resource changes.
-async def d_run1(lock):
-    print("Run1 - aquire write")
-    await lock.w_aquire()
-    async with lock:
-        print("Run1 Taken exclusive.")
-        await asyncio.sleep(3)
-        print("Run1 Done exclusive.")
-    await lock.w_release()
-    print("Run1 - release write")
+#  # Writer starts, reader comes aglong, another writer, reader goes last.
+#  async def c_run1(lock):
+    #  print("Run1 - aquire write")
+    #  await lock.w_aquire()
+    #  await asyncio.sleep(3)
+    #  await lock.w_release()
+    #  print("Run1 - release write")
 
-    print("Run1 exit")
+    #  print("Run1 exit")
 
 
-async def d_run2(lock):
-    await asyncio.sleep(1)
-    print("Run2 - aquire write")
-    await lock.w_aquire()
-    async with lock:
-        print("Run2 Taken exclusive.")
-        await asyncio.sleep(3)
-        print("Run2 Done exclusive.")
-    print("Run2 - release write")
-    await lock.w_release()
+#  async def c_run2(lock):
+    #  asyncio.sleep(1)
+    #  print("Run2 - aquire read")
+    #  await lock.r_aquire()  # Blocks until all writes done.
 
-    print("Run3 exit")
+    #  print("Run2 exit")
 
 
-async def e_take_context(lock):
-    async with lock:
-        print('Hello inside take.')
+#  async def c_run3(lock):
+    #  await asyncio.sleep(2)
+    #  print("Run3 - aquire write")
+    #  await lock.w_aquire()
+    #  await asyncio.sleep(6)
+    #  print("Run3 - release write")
+    #  await lock.w_release()
+
+    #  print("Run3 exit")
 
 
-# TODO: Write some real tests, I'm fairly confident it is correct though.
-def main():
-    loop = asyncio.get_event_loop()
+#  # Two writers try to do exclusive resource changes.
+#  async def d_run1(lock):
+    #  print("Run1 - aquire write")
+    #  await lock.w_aquire()
+    #  async with lock:
+        #  print("Run1 Taken exclusive.")
+        #  await asyncio.sleep(3)
+        #  print("Run1 Done exclusive.")
+    #  await lock.w_release()
+    #  print("Run1 - release write")
+
+    #  print("Run1 exit")
+
+
+#  async def d_run2(lock):
+    #  await asyncio.sleep(1)
+    #  print("Run2 - aquire write")
+    #  await lock.w_aquire()
+    #  async with lock:
+        #  print("Run2 Taken exclusive.")
+        #  await asyncio.sleep(3)
+        #  print("Run2 Done exclusive.")
+    #  print("Run2 - release write")
+    #  await lock.w_release()
+
+    #  print("Run3 exit")
+
+
+#  async def e_take_context(lock):
+    #  async with lock:
+        #  print('Hello inside take.')
+
+
+#  # TODO: Write some real tests, I'm fairly confident it is correct though.
+#  def main():
+    #  loop = asyncio.get_event_loop()
+
+    #  #  lock = RWLockWrite()
+    #  #  loop.run_until_complete(asyncio.gather(a_run1(lock), a_run2(lock)))
+
+    #  #  lock = RWLockWrite()
+    #  #  loop.run_until_complete(asyncio.gather(b_run1(lock), b_run2(lock), b_run3(lock)))
+
+    #  #  lock = RWLockWrite()
+    #  #  loop.run_until_complete(asyncio.gather(c_run1(lock), c_run2(lock), c_run3(lock)))
+
+    #  #  lock = RWLockWrite()
+    #  #  loop.run_until_complete(asyncio.gather(d_run1(lock), d_run2(lock)))
 
     #  lock = RWLockWrite()
-    #  loop.run_until_complete(asyncio.gather(a_run1(lock), a_run2(lock)))
-
-    #  lock = RWLockWrite()
-    #  loop.run_until_complete(asyncio.gather(b_run1(lock), b_run2(lock), b_run3(lock)))
-
-    #  lock = RWLockWrite()
-    #  loop.run_until_complete(asyncio.gather(c_run1(lock), c_run2(lock), c_run3(lock)))
-
-    #  lock = RWLockWrite()
-    #  loop.run_until_complete(asyncio.gather(d_run1(lock), d_run2(lock)))
-
-    lock = RWLockWrite()
-    print(str(lock))
-    loop.run_until_complete(e_take_context(lock))
+    #  print(str(lock))
+    #  loop.run_until_complete(e_take_context(lock))
 
 
-if __name__ == "__main__":
-    main()
+#  if __name__ == "__main__":
+    #  main()
 
 
 ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))

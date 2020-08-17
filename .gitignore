@@ -1,7 +1,7 @@
 .lvimrc
 .pytest_cache
 .cache
-.coverage
+.coverage*
 .python-version
 .tox
 

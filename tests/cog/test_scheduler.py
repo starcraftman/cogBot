@@ -34,6 +34,56 @@ def test_scheduler__str__(f_asheet_fortscanner):
     #  print(scd)
 
 
+@pytest.mark.asyncio
+async def test_scheduler_wait_for(f_asheet_fortscanner):
+    fscan = cogdb.scanners.FortScanner(f_asheet_fortscanner)
+    scd = Scheduler()
+    scd.register('fort', fscan, ['Fort'])
+
+    await scd.wait_for('Fort')
+
+    assert not fscan.lock.read_mut.locked()
+    assert fscan.lock.resource_mut.locked()
+
+
+@pytest.mark.asyncio
+async def test_scheduler_wait_for_no_register(f_asheet_fortscanner):
+    fscan = cogdb.scanners.FortScanner(f_asheet_fortscanner)
+    scd = Scheduler()
+    scd.register('fort', fscan, ['Fort'])
+
+    await scd.wait_for('UM')
+
+    assert not fscan.lock.read_mut.locked()
+    assert not fscan.lock.resource_mut.locked()
+
+
+@pytest.mark.asyncio
+async def test_scheduler_unwait_for(f_asheet_fortscanner):
+    fscan = cogdb.scanners.FortScanner(f_asheet_fortscanner)
+    scd = Scheduler()
+    scd.register('fort', fscan, ['Fort'])
+
+    await scd.wait_for('Fort')
+    await scd.unwait_for('Fort')
+
+    assert not fscan.lock.read_mut.locked()
+    assert not fscan.lock.resource_mut.locked()
+
+
+@pytest.mark.asyncio
+async def test_scheduler_unwait_for_no_register(f_asheet_fortscanner):
+    fscan = cogdb.scanners.FortScanner(f_asheet_fortscanner)
+    scd = Scheduler()
+    scd.register('fort', fscan, ['Fort'])
+
+    await scd.wait_for('UM')
+    await scd.unwait_for('UM')
+
+    assert not fscan.lock.read_mut.locked()
+    assert not fscan.lock.resource_mut.locked()
+
+
 def test_scheduler_register(f_asheet_fortscanner):
     fscan = cogdb.scanners.FortScanner(f_asheet_fortscanner)
     scd = Scheduler()

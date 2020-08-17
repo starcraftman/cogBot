@@ -314,11 +314,13 @@ class CogBot(discord.Client):
 
         try:
             await self.sched.wait_for(args.cmd)
+            logging.getLogger('cog.bot').info('Command %s aquired lock.', msg.content)
             cogdb.query.check_perms(msg, args)
             cls = getattr(cog.actions, args.cmd)
             await cls(**kwargs).execute()
         finally:
             await self.sched.unwait_for(args.cmd)
+            logging.getLogger('cog.bot').info('Command %s released lock.', msg.content)
 
     async def send_long_message(self, destination, content=None, *, tts=False, embed=None):
         """
