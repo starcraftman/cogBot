@@ -607,6 +607,7 @@ class SystemUM(Base):
     security = sqla.Column(sqla.String(LEN_NAME))
     notes = sqla.Column(sqla.String(LEN_NAME))
     close_control = sqla.Column(sqla.String(LEN_NAME))
+    priority = sqla.Column(sqla.String(LEN_NAME))
     progress_us = sqla.Column(sqla.Integer)
     progress_them = sqla.Column(sqla.Float)
     map_offset = sqla.Column(sqla.Integer, default=0)
@@ -625,7 +626,7 @@ class SystemUM(Base):
 
     def __repr__(self):
         keys = ['name', 'type', 'sheet_col', 'goal', 'security', 'notes',
-                'progress_us', 'progress_them', 'close_control', 'map_offset']
+                'progress_us', 'progress_them', 'close_control', 'priority', 'map_offset']
         kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
 
         return "SystemUM({})".format(', '.join(kwargs))
@@ -687,6 +688,7 @@ class SystemUM(Base):
             ['Our Progress ' + str(self.progress_us),
              'Enemy Progress {:.0f}%'.format(self.progress_them * 100)],
             ['Nearest Hudson', self.close_control],
+            ['Priority', self.priority],
         ]
 
         return cog.tbl.wrap_markdown(cog.tbl.format_table(lines))
@@ -774,7 +776,7 @@ def kwargs_um_system(cells, sheet_col):
         5: CMDR Merits (Total merits)
         6: Missing Merits
         7: Security Level | Notes
-        8: Closest Control (string)
+        8: Closest Control (string) | priority (string)
         9: System Name (string)
         10: Our Progress (integer) | Type String (Ignore)
         11: Enemy Progress (percentage) | Type String (Ignore)
@@ -806,6 +808,7 @@ def kwargs_um_system(cells, sheet_col):
             'security': main_col[6].strip().replace('Sec: ', ''),
             'notes': sec_col[6].strip(),
             'close_control': main_col[7].strip(),
+            'priority': sec_col[7].strip(),
             'name': main_col[8].strip(),
             'progress_us': parse_int(main_col[9]),
             'progress_them': parse_percent(main_col[10]),

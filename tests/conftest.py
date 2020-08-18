@@ -230,11 +230,21 @@ def f_systemsum(session):
     Fixture to insert some test Systems.
     """
     systems = [
-        UMControl(id=1, name='Cemplangpa', sheet_col='D', goal=14878, security='Medium', notes='', progress_us=15000, progress_them=1.0, close_control='Sol', map_offset=1380),
-        UMControl(id=2, name='Pequen', sheet_col='F', goal=12500, security='Anarchy', notes='', progress_us=10500, progress_them=0.5, close_control='Atropos', map_offset=0),
-        UMExpand(id=3, name='Burr', sheet_col='H', goal=364298, security='Low', notes='', progress_us=161630, progress_them=35.0, close_control='Dongkum', map_offset=76548),
-        UMOppose(id=4, name='AF Leopris', sheet_col='J', goal=59877, security='Low', notes='', progress_us=47739, progress_them=1.69, close_control='Atropos', map_offset=23960),
-        UMControl(id=5, name='Empty', sheet_col='K', goal=10000, security='Medium', notes='', progress_us=0, progress_them=0.0, close_control='Rana', map_offset=0),
+        UMControl(id=1, name='Cemplangpa', sheet_col='D', goal=14878, security='Medium', notes='',
+                  progress_us=15000, progress_them=1.0, close_control='Sol', priority='Medium',
+                  map_offset=1380),
+        UMControl(id=2, name='Pequen', sheet_col='F', goal=12500, security='Anarchy', notes='',
+                  progress_us=10500, progress_them=0.5, close_control='Atropos', priority='Low',
+                  map_offset=0),
+        UMExpand(id=3, name='Burr', sheet_col='H', goal=364298, security='Low', notes='',
+                 progress_us=161630, progress_them=35.0, close_control='Dongkum', priority='Medium',
+                 map_offset=76548),
+        UMOppose(id=4, name='AF Leopris', sheet_col='J', goal=59877, security='Low', notes='',
+                 progress_us=47739, progress_them=1.69, close_control='Atropos', priority='low',
+                 map_offset=23960),
+        UMControl(id=5, name='Empty', sheet_col='K', goal=10000, security='Medium', notes='',
+                  progress_us=0, progress_them=0.0, close_control='Rana', priority='Low',
+                  map_offset=0),
     ]
     session.add_all(systems)
     session.commit()

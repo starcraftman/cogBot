@@ -413,7 +413,7 @@ def test_systemum__repr__(f_dusers, f_sheets, f_systemsum, f_holds):
     assert repr(system) == "SystemUM(name='Cemplangpa', type='control', sheet_col='D', "\
                            "goal=14878, security='Medium', notes='', "\
                            "progress_us=15000, progress_them=1.0, "\
-                           "close_control='Sol', map_offset=1380)"
+                           "close_control='Sol', priority='Medium', map_offset=1380)"
     assert system == eval(repr(system))
 
 
@@ -424,7 +424,7 @@ def test_systemum__str__(f_dusers, f_sheets, f_systemsum, f_holds):
                           "type='control', sheet_col='D', "\
                           "goal=14878, security='Medium', notes='', "\
                           "progress_us=15000, progress_them=1.0, "\
-                          "close_control='Sol', map_offset=1380)"
+                          "close_control='Sol', priority='Medium', map_offset=1380)"
     assert system == eval(repr(system))
 
 
@@ -434,7 +434,8 @@ def test_systemum_display(f_dusers, f_sheets, f_systemsum, f_holds):
     assert system.display() == """```Control            | [M] Cemplangpa
 101%               | Merits Leading 122
 Our Progress 15000 | Enemy Progress 100%
-Nearest Hudson     | Sol```"""
+Nearest Hudson     | Sol
+Priority           | Medium```"""
 
 
 def test_systemum__eq__(f_dusers, f_sheets, f_systemsum, f_holds):
@@ -511,16 +512,17 @@ def test_umoppose_descriptor(f_dusers, f_sheets, f_systemsum, f_holds):
 def test_kwargs_system_um():
     expect = {
         'close_control': 'Dongkum',
+        'cls': UMExpand,
         'exp_trigger': 0,
         'goal': 364298,
+        'map_offset': 76548,
         'name': 'Burr',
         'notes': '',
-        'progress_us': 161630,
+        'priority': 'Medium',
         'progress_them': 35.0,
+        'progress_us': 161630,
         'security': 'Low',
         'sheet_col': 'D',
-        'cls': UMExpand,
-        'map_offset': 76548,
     }
     sys_cols = copy.deepcopy(SYSTEMUM_EXPAND)
     assert kwargs_um_system(sys_cols, 'D') == expect

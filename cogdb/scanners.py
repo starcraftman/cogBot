@@ -333,7 +333,7 @@ class UMScanner(FortScanner):
         try:
             while True:
                 sys_cells = [x[:self.user_row - 1] for x in
-                            self.cells_col_major[sys_ind:sys_ind + 2]]
+                             self.cells_col_major[sys_ind:sys_ind + 2]]
 
                 if not sys_cells[0][8] or 'Template' in sys_cells[0][8]:
                     break
