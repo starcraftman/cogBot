@@ -1,0 +1,11 @@
+CREATE USER 'bot'@'localhost' IDENTIFIED BY 'bottest';
+CREATE DATABASE IF NOT EXISTS eddb;
+CREATE DATABASE IF NOT EXISTS test;
+CREATE DATABASE IF NOT EXISTS dev;
+CREATE DATABASE IF NOT EXISTS dev2;
+CREATE DATABASE IF NOT EXISTS dev3;
+GRANT ALL PRIVILEGES ON eddb.* To 'bot'@'localhost';
+GRANT ALL PRIVILEGES ON test.* To 'bot'@'localhost';
+GRANT ALL PRIVILEGES ON dev.* To 'bot'@'localhost';
+GRANT ALL PRIVILEGES ON dev2.* To 'bot'@'localhost';
+GRANT ALL PRIVILEGES ON dev3.* To 'bot'@'localhost';
