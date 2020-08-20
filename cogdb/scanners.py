@@ -210,9 +210,13 @@ class FortScanner():
 
             for user in users:
                 try:
-                    amount = int(merit_cells.pop(0).strip())
-                    found.append(Drop(id=cnt, user_id=user.id, system_id=system.id,
-                                      amount=cogdb.schema.parse_int(amount)))
+                    amount = merit_cells.pop(0).strip()
+                    amount = cogdb.schema.parse_int(amount)
+                    if not amount:
+                        continue
+
+                    found += [(Drop(id=cnt, user_id=user.id, system_id=system.id,
+                                    amount=amount))]
                     cnt += 1
 
                 except ValueError:
@@ -370,19 +374,16 @@ class UMScanner(FortScanner):
                          self.cells_col_major[sys_ind:sys_ind + 2]]
 
             for user_ind, row in enumerate(zip(*sys_cells)):
-                held, redeemed = row
-                if held.strip() == '' and redeemed.strip() == '':
-                    continue
-
-                held = cogdb.schema.parse_int(held)
-                redeemed = cogdb.schema.parse_int(redeemed)
                 try:
-                    hold = Hold(id=cnt, user_id=users[user_ind].id, system_id=system.id,
-                                held=held, redeemed=redeemed)
-                    found += [hold]
+                    held = cogdb.schema.parse_int(row[0])
+                    redeemed = cogdb.schema.parse_int(row[1])
+                    if not held and not redeemed:
+                        continue
 
+                    found += [Hold(id=cnt, user_id=users[user_ind].id, system_id=system.id,
+                                   held=held, redeemed=redeemed)]
                     cnt += 1
-                except IndexError:
+                except (IndexError, ValueError):
                     pass
 
         return found

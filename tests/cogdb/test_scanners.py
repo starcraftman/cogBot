@@ -95,7 +95,7 @@ async def test_fortscanner_drops(f_asheet_fortscanner):
     f_systems = fscan.fort_systems()
     f_merits = fscan.drops(f_systems, f_users)
 
-    assert len(f_merits) == 26
+    assert len(f_merits) == 33
     assert f_merits[0].system_id == 1
     assert f_merits[0].user_id == 2
 
@@ -185,7 +185,7 @@ async def test_umscanner_holds(f_asheet_umscanner):
     systems = fscan.systems()
     merits = fscan.holds(systems, users)
 
-    assert len(merits) == 51
+    assert len(merits) == 46
     assert merits[-1].system_id == 5
     assert merits[-1].user_id == 14
     assert merits[-1].redeemed == 900
