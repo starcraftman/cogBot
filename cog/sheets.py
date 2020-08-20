@@ -211,7 +211,8 @@ class AsyncGSheet():
         sclient = await AGCM.authorize()
         self.document = await sclient.open_by_key(self.sheet_id)
         self.worksheet = await self.document.worksheet(self.sheet_page)
-        logging.getLogger('cog.sheets').info("GSHEET Finished setup for %s", await self.title())
+        logging.getLogger('cog.sheets').info("GSHEET Finished init for %s, set to '%s'",
+                                             await self.title(), self.sheet_page)
 
     async def change_worksheet(self, sheet_page):
         """

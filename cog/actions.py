@@ -341,26 +341,25 @@ class Admin(Action):
             RemoteError - The sheet/tab combination could not be resolved. Tab needs creating.
         """
         self.bot.deny_commands = True
-        scanners = cog.util.get_config('scanners')
-        to_update, coros = ['hudson_cattle', 'hudson_undermine'], []
+        scanner_configs = cog.util.get_config('scanners')
+        lines = [['Document', 'Active Page']]
 
         try:
-            for name in to_update:
-                new_page = cog.util.number_increment(scanners[name]['page'])
-                scanners[name]['page'] = new_page
-                coros += SCANNERS[name].asheet.change_worksheet(new_page)
-            cog.util.update_config(scanners, 'scanners')
-
-            await asyncio.gather(*coros)
-            for name in to_update:
+            for name in ['hudson_cattle', 'hudson_undermine']:
+                new_page = cog.util.number_increment(scanner_configs[name]['page'])
+                scanner_configs[name]['page'] = new_page
+                await SCANNERS[name].asheet.change_worksheet(new_page)
                 self.bot.sched.schedule(name, delay=1)
+                lines += [[await SCANNERS[name].asheet.title(), new_page]]
+            cog.util.update_config(scanner_configs, 'scanners')
 
-            return "Cycle has been incremented, bot has scheduled sheets for update."
+            table = cog.tbl.wrap_markdown(cog.tbl.format_table(lines, header=True))
+            return "Cycle incremented. Changed sheets scheduled for update.\n\n" + table
         except ValueError:
             raise cog.exc.InternalException("Impossible to increment scanner: {}".format(name))
         except (AssertionError, googleapiclient.errors.HttpError):
             raise cog.exc.RemoteError("The sheet {} with tab {} does not exist!".format(
-                name, scanners[name]['page']))
+                name, scanner_configs[name]['page']))
         finally:
             self.bot.deny_commands = False
 
