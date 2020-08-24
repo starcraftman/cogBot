@@ -87,10 +87,13 @@ class InstallDeps(Command):
     """
     Install dependencies to run & test.
     """
-    user_options = []
+    description = "Install the depencies for the project."
+    user_options = [
+        ('force=', None, "Bypass prompt."),
+    ]
 
     def initialize_options(self):
-        pass
+        self.force = None
 
     def finalize_options(self):
         pass
@@ -99,7 +102,10 @@ class InstallDeps(Command):
         print('Installing/Upgrading runtime & testing dependencies')
         cmd = 'pip install -U ' + ' '.join(RUN_DEPS + TEST_DEPS)
         print('Executing: ' + cmd)
-        recv = get_input('OK? y/n  ').strip().lower()
+        if self.force:
+            recv = self.force
+        else:
+            recv = get_input('OK? y/n  ').strip().lower()
         if recv.startswith('y'):
             timeout = 150
             try:
