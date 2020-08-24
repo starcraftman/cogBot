@@ -88,7 +88,7 @@ async def test_asheet_init_sheet():
 @SHEET_TEST
 @pytest.mark.asyncio
 async def test_asheet_title(f_fort_ws):
-    assert await f_fort_ws.title() == 'The Battle Cattle Sheet'
+    assert await f_fort_ws.title() in ('The Battle Cattle Sheet', 'FUC Dev Example Sheets')
 
 
 @SHEET_TEST
