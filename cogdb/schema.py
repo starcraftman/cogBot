@@ -464,12 +464,7 @@ class System(Base):
     @property
     def current_status(self):
         """ Simply return max fort status reported. """
-        # FIXME: Hack until import sheet included.
-        supplies = max(self.fort_status, self.cmdr_merits)
-        if self.fort_override > supplies / self.trigger:
-            return int(self.fort_override * self.trigger)
-
-        return supplies
+        return max(self.fort_status, self.cmdr_merits)
 
     @property
     def skip(self):
