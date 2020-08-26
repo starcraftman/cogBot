@@ -85,7 +85,7 @@ class EmojiResolver():
                 emoji = emojis[embed[1:-1]]
                 content = content.replace(embed, str(emoji))
             except KeyError:
-                logging.getLogger('cog.bot').warning(
+                logging.getLogger(__name__).warning(
                     'EMOJI: Could not find emoji %s for guild %s', embed, guild.name)
 
         return content
@@ -138,12 +138,12 @@ class CogBot(discord.Client):
     # Events hooked by bot.
     async def on_member_join(self, member):
         """ Called when member joins guild (login). """
-        log = logging.getLogger('cog.bot')
+        log = logging.getLogger(__name__)
         log.info('Member has joined: %s', member.display_name)
 
     async def on_member_leave(self, member):
         """ Called when member leaves guild (logout). """
-        log = logging.getLogger('cog.bot')
+        log = logging.getLogger(__name__)
         log.info('Member has left: %s', member.display_name)
 
     async def on_guild_emojis_update(self, *_):
@@ -154,7 +154,7 @@ class CogBot(discord.Client):
         """
         Event triggered when connection established to discord and bot ready.
         """
-        log = logging.getLogger('cog.bot')
+        log = logging.getLogger(__name__)
         log.info('Logged in as: %s', self.user.name)
         log.info('Available on following guilds:')
         for guild in self.guilds:
@@ -241,7 +241,7 @@ class CogBot(discord.Client):
         if await self.ignore_message(message):
             return
 
-        log = logging.getLogger('cog.bot')
+        log = logging.getLogger(__name__)
         log.info("guild: '%s' Channel: '%s' User: '%s' | %s",
                  channel.guild, channel.name, author.name, content)
 
@@ -314,13 +314,13 @@ class CogBot(discord.Client):
 
         try:
             await self.sched.wait_for(args.cmd)
-            logging.getLogger('cog.bot').info('Command %s aquired lock.', msg.content)
+            logging.getLogger(__name__).info('Command %s aquired lock.', msg.content)
             cogdb.query.check_perms(msg, args)
             cls = getattr(cog.actions, args.cmd)
             await cls(**kwargs).execute()
         finally:
             await self.sched.unwait_for(args.cmd)
-            logging.getLogger('cog.bot').info('Command %s released lock.', msg.content)
+            logging.getLogger(__name__).info('Command %s released lock.', msg.content)
 
     async def send_long_message(self, destination, content=None, *, tts=False, embed=None):
         """
@@ -339,7 +339,7 @@ class CogBot(discord.Client):
             Allow several retries before failing, raises on last exception.
             If content is too long, truncate it
         """
-        log = logging.getLogger('cog.bot')
+        log = logging.getLogger(__name__)
         if content and len(content) > cog.util.MSG_LIMIT:
             log.warning('Critical problem, content len close to 2000 limit. Truncating.\
                         \n    Len is %d, starts with: %s', len(content), content[:50])

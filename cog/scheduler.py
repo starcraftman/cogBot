@@ -132,7 +132,7 @@ class Scheduler(aiozmq.rpc.AttrHandler):
     def remote_func(self, scanner, timestamp):  # pragma: no cover
         """ Remote function to be executed. """
         self.count = (self.count + 1) % 1000
-        logging.getLogger('cog.scheduler').info(
+        logging.getLogger(__name__).info(
             'POST %d received: %s %s', self.count, scanner, timestamp)
         self.schedule(scanner)
         print('SCHEDULED: ', scanner, timestamp)
@@ -179,8 +179,7 @@ class WrapScanner():
         """
         try:
             self.future.cancel()
-            logging.getLogger("cog.scheduler").warning(
-                "Cancelled delayed call for: %s", self.name)
+            logging.getLogger(__name__).warning("Cancelled delayed call for: %s", self.name)
         except AttributeError:
             pass
 
@@ -196,7 +195,7 @@ async def delayed_update(delay, wrap):
     Delayed update of the scanner.
     After delay seconds initialize a full reimport of the sheet.
     """
-    log = logging.getLogger("cog.scheduler")
+    log = logging.getLogger(__name__)
     log.info(
         "%s | Delaying start by %d seconds\n    Will run at: %s",
         wrap.name, delay, str(datetime.datetime.utcnow() + datetime.timedelta(seconds=delay))
@@ -206,14 +205,14 @@ async def delayed_update(delay, wrap):
     log.info("%s | Starting delayed call", wrap.name)
     try:
         await wrap.scanner.lock.w_aquire()
-        log.info("%s | w lock get", wrap.name)
+        log.debug("%s | w lock get", wrap.name)
         await wrap.scanner.update_cells()
-        log.info("%s | update", wrap.name)
+        log.debug("%s | update", wrap.name)
 
         wrap.job = POOL.submit(wrap.scanner.parse_sheet)
         wrap.job.add_done_callback(functools.partial(done_cb, wrap))
         wrap.future = None
-        log.info("%s | job made", wrap.name)
+        log.debug("%s | job made", wrap.name)
 
         while not wrap.job.done():
             await asyncio.sleep(0.5)
@@ -237,12 +236,12 @@ async def delayed_update(delay, wrap):
                 )
             )
 
-        log.info('Scanner %s has lock %s', wrap.name, wrap.scanner.lock)
+        log.debug('Scanner %s has lock %s', wrap.name, wrap.scanner.lock)
         wrap.job = None
     finally:
         await wrap.scanner.lock.w_release()
+    log.debug("%s | lock %s", wrap.name, wrap.scanner.lock)
     log.info("%s | Finished delayed call", wrap.name)
-    log.info("%s | lock %s", wrap.name, wrap.scanner.lock)
 
 
 def done_cb(wrap, fut):  # pragma: no cover

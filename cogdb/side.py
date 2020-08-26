@@ -524,7 +524,7 @@ def next_bgs_tick(session, now):
         RemoteError - Cannot communicate with remote.
         NoMoreTargets - Ran out of ticks.
     """
-    log = logging.getLogger("cogdb.side")
+    log = logging.getLogger(__name__)
     result = session.query(BGSTick).filter(BGSTick.tick > now).order_by(BGSTick.tick).\
         limit(1).first()
 
@@ -547,7 +547,7 @@ def exploited_systems_by_age(session, control):
     Raises:
         RemoteError - Cannot communicate with remote.
     """
-    log = logging.getLogger("cogdb.side")
+    log = logging.getLogger(__name__)
     result = session.query(SystemAge).\
         filter(SystemAge.control == control).\
         order_by(SystemAge.system).\

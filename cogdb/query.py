@@ -241,7 +241,7 @@ def fort_get_systems_by_state(session):
         undermined: Has been undermined and not fortified.
         cancelled: Has been both fortified and undermined.
     """
-    log = logging.getLogger('cogdb.query')
+    log = logging.getLogger(__name__)
     states = {
         'cancelled': [],
         'fortified': [],
@@ -345,7 +345,7 @@ def fort_add_drop(session, *, user, system, amount):
         drop = Drop(user_id=user.id, system_id=system.id, amount=0)
         session.add(drop)
 
-    log = logging.getLogger('cogdb.query')
+    log = logging.getLogger(__name__)
     log.info('ADD_DROP - Before: Drop %s, System %s', drop, system)
     drop.amount = max(0, drop.amount + amount)
     system.fort_status = system.fort_status + amount

@@ -5,18 +5,9 @@ import os
 import shutil
 import tempfile
 
-import mock
 import pytest
 
 import cog.util
-
-
-def test_modformatter_record():
-    record = mock.Mock()
-    record.__dict__['pathname'] = cog.util.rel_to_abs('cog', 'util.py')
-    with pytest.raises(TypeError):
-        cog.util.ModFormatter().format(record)
-    assert record.__dict__['relmod'] == 'cog/util'
 
 
 def test_dict_to_columns():

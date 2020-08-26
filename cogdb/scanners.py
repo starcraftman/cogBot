@@ -255,9 +255,9 @@ class FortScanner():
         """
         Seend a batch update made up from premade range/value dicts.
         """
-        logging.getLogger("cogdb.query").info("Sending update to Fort Sheet.\n%s", str(dicts))
+        logging.getLogger(__name__).info("Sending update to Fort Sheet.\n%s", str(dicts))
         await self.asheet.batch_update(dicts)
-        logging.getLogger("cogdb.query").info("Finished sending update to Fort Sheet.\n%s", str(dicts))
+        logging.getLogger(__name__).info("Finished sending update to Fort Sheet.\n%s", str(dicts))
 
     @staticmethod
     def update_sheet_user_dict(row, cry, name):

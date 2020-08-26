@@ -1,40 +1,52 @@
 # Reference: https://docs.python.org/3/library/logging.html
 # Tutorial: https://docs.python.org/3/howto/logging.html#logging-basic-tutorial
+---
 version: 1
-disable_existing_loggers: False
+disable_existing_loggers: true
+incremental: false
 
 formatters:
   custom:
-    (): 'cog.util.ModFormatter'
-    format: "%(asctime)s [%(levelname)-8s] %(relmod)s | %(message)s"
+    (): logging.Formatter
+    format: "[%(levelname)-5.5s] %(asctime)s %(name)s.%(funcName)s()::%(lineno)s | %(message)s"
 
 fhandler_template: &default_handler
-    class: logging.handlers.RotatingFileHandler
-    formatter: custom
-    maxBytes: 10485760
-    backupCount: 3
-    encoding: utf8
+  class: logging.handlers.RotatingFileHandler
+  formatter: custom
+  level: DEBUG
+  maxBytes: 10485760
+  backupCount: 3
+  encoding: utf8
 
 handlers:
   aiozmq:
     <<: *default_handler
-    level: DEBUG
     filename: /tmp/cog/aiozmq.log
   asyncio:
     <<: *default_handler
-    level: DEBUG
     filename: /tmp/cog/asyncio.log
   cog:
     <<: *default_handler
-    level: DEBUG
     filename: /tmp/cog/main.log
   cogdb:
     <<: *default_handler
-    level: INFO
     filename: /tmp/cog/db.log
+  discord:
+    <<: *default_handler
+    filename: /tmp/cog/discord.log
   debug_stream:
     class: logging.StreamHandler
     level: DEBUG
+    formatter: custom
+    stream: ext://sys.stdout
+  warn_stream:
+    class: logging.StreamHandler
+    level: WARNING
+    formatter: custom
+    stream: ext://sys.stdout
+  info_stream:
+    class: logging.StreamHandler
+    level: INFO
     formatter: custom
     stream: ext://sys.stdout
   err_stream:
@@ -42,6 +54,8 @@ handlers:
     level: ERROR
     formatter: custom
     stream: ext://sys.stdout
+  nullh:
+    class: logging.NullHandler
 
 loggers:
   aiozmq:
@@ -49,14 +63,18 @@ loggers:
     handlers: [aiozmq, err_stream]
   asyncio:
     level: DEBUG
-    handlers: [asyncio]
+    handlers: [asyncio, warn_stream]
+  discord:
+    level: DEBUG
+    handlers: [discord, warn_stream]
   cog:
     level: DEBUG
-    handlers: [cog, err_stream]
+    handlers: [cog, info_stream]
   cogdb:
     level: DEBUG
-    handlers: [cogdb, err_stream]
+    handlers: [cogdb, info_stream]
 
-#root:
-    #level: ERROR
-    #handlers: [err_stream]
+# Nullify any non-explicit handling of logs
+root:
+  handlers: [nullh]
+  level: DEBUG

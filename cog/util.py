@@ -28,17 +28,10 @@ BOT = None
 MSG_LIMIT = 1950  # Number chars before message truncation
 PASTE_LOGIN = "https://pastebin.com/api/api_login.php"
 PASTE_UPLOAD = "https://pastebin.com/api/api_post.php"
-
-
-class ModFormatter(logging.Formatter):
-    """
-    Add a relmod key to record dict.
-    This key tracks a module relative this project' root.
-    """
-    def format(self, record):
-        relmod = record.__dict__['pathname'].replace(ROOT_DIR + os.path.sep, '')
-        record.__dict__['relmod'] = relmod[:-3]
-        return super().format(record)
+LOG_MSG = """See main.log for general traces.
+Rolling over existing file logs as listed below.
+    module_name -> output_file
+    =========================="""
 
 
 def substr_match(seq, line, *, skip_spaces=True, ignore_case=True):
@@ -144,7 +137,6 @@ def number_increment(line):
     return line.replace(str(old_num), str(old_num + 1))
 
 
-# FIXME: Discord.py now flooding stdout, clean up this and data/log.yml
 def init_logging():  # pragma: no cover
     """
     Initialize project wide logging. See config file for details and reference on module.
@@ -168,28 +160,16 @@ def init_logging():  # pragma: no cover
     with open(log_file) as fin:
         logging.config.dictConfig(yaml.load(fin, Loader=Loader))
 
-    print('See main.log for general traces.')
-    print('Enabled rotating file logs:')
-    for top_log in ('asyncio', 'cog', 'cogdb'):
-        for handler in logging.getLogger(top_log).handlers:
+    print(LOG_MSG)
+    for name in lconf['handlers']:
+        node = lconf['handlers'][name]
+        if 'RotatingFileHandler' not in node['class']:
+            continue
+
+        for handler in logging.getLogger(name).handlers:
             if isinstance(handler, logging.handlers.RotatingFileHandler):
-                print('    ' + handler.baseFilename)
+                print('    %s -> %s' % (name, handler.baseFilename))
                 handler.doRollover()
-
-    # Can't configure discord without cloberring existing, so manually setting
-    cog_rot = logging.getLogger('cog').handlers[0]
-    rhand_file = os.path.join(os.path.dirname(cog_rot.baseFilename), 'discord.log')
-    handler = logging.handlers.RotatingFileHandler(filename=rhand_file, encoding=cog_rot.encoding,
-                                                   backupCount=cog_rot.backupCount,
-                                                   maxBytes=cog_rot.maxBytes)
-    handler.setLevel(logging.DEBUG)
-    handler.setFormatter(cog_rot.formatter)
-    print('    ' + handler.baseFilename)
-
-    dlog = logging.getLogger('discord')
-    dlog.setLevel(logging.DEBUG)
-    dlog.addHandler(handler)
-    dlog.addHandler(logging.getLogger('cog').handlers[-1])
 
 
 def dict_to_columns(data):

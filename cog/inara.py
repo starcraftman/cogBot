@@ -42,7 +42,7 @@ try:
     HEADER_PROTO = cog.util.get_config('inara', 'proto_header')
 except KeyError:
     HEADER_PROTO = None
-    logging.getLogger('cog.inara').\
+    logging.getLogger(__name__).\
         warning("!whois inara search disabled. No inara field or api_key in config.yml")
     print("!whois inara search disabled. No inara field or api_key in config.yml")
 
@@ -175,7 +175,7 @@ class InaraApi():
 
             # handle rejection.
             if r_code == API_RESPONSE_CODES["error"] or r_code not in API_RESPONSE_CODES.values():
-                logging.getLogger('cog.inara').error("INARA Response Failure: \n%s", response_json)
+                logging.getLogger(__name__).error("INARA Response Failure: \n%s", response_json)
                 raise cog.exc.RemoteError("Inara search failed. See log for details. API Response code bad: %s"
                                           % str(r_code))
 

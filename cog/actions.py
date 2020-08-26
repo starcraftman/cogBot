@@ -27,7 +27,7 @@ async def bot_shutdown(bot):  # pragma: no cover
     """
     Shutdown the bot. Gives background jobs grace window to finish  unless empty.
     """
-    logging.getLogger('cog.bot').error('FINAL SHUTDOWN REQUESTED')
+    logging.getLogger(__name__).error('FINAL SHUTDOWN REQUESTED')
     cog.scheduler.POOL.shutdown()
     await bot.logout()
 
@@ -101,7 +101,7 @@ class Action():
         self.args = kwargs['args']
         self.bot = kwargs['bot']
         self.msg = kwargs['msg']
-        self.log = logging.getLogger('cog.actions')
+        self.log = logging.getLogger(__name__)
         self.session = cogdb.Session()
         self.__duser = None
         self.payloads = []
@@ -1348,7 +1348,7 @@ def init_scanner(name):
     Initialize a scanner based on configuration.
     """
     print("Intializing scanner -> ", name)
-    logging.getLogger('cog.actions').info("Initializing the %s scanner.", name)
+    logging.getLogger(__name__).info("Initializing the %s scanner.", name)
     sheet = cog.util.get_config("scanners", name)
     cls = getattr(cogdb.scanners, sheet["cls"])
     scanner = cls(sheet)
