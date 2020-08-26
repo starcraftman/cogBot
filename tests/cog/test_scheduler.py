@@ -21,7 +21,7 @@ def test_scheduler__repr__(f_asheet_fortscanner):
     scd = Scheduler()
     scd.register('fort', fscan, ['Fort'])
 
-    assert "Scheduler(count=-1, delay=20," in repr(scd)
+    assert "Scheduler(count=-1, delay=10," in repr(scd)
     #  print(repr(scd))
 
 
@@ -30,7 +30,7 @@ def test_scheduler__str__(f_asheet_fortscanner):
     scd = Scheduler()
     scd.register('fort', fscan, ['Fort'])
 
-    assert "Delay: 20" in str(scd)
+    assert "Delay: 10" in str(scd)
     #  print(scd)
 
 

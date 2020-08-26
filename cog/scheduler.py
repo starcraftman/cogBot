@@ -31,7 +31,7 @@ class Scheduler(aiozmq.rpc.AttrHandler):
     if new activity detected in the hooked sheet.
     Both the job itself and future that delays start can be cancelled at any stage.
     """
-    def __init__(self, *, delay=20):
+    def __init__(self, *, delay=10):
         self.sub = None
         self.count = -1
         self.delay = delay  # Seconds of timeout before running actual update
@@ -52,14 +52,17 @@ class Scheduler(aiozmq.rpc.AttrHandler):
 
         return msg
 
-    async def wait_for(self, cmd):
+    async def wait_for(self, cmd, wait_cb=None):
         """
         Wait until the scanners for cmd finished.
         If command is not managed by scheduler silently return.
         """
         try:
             for wrap in self.cmd_map[cmd]:
-                await wrap.scanner.lock.r_aquire()
+                await wrap.scanner.lock.r_aquire(wait_cb)
+
+            if wait_cb:
+                await wait_cb.send_resume()
         except KeyError:
             pass
 

@@ -21,6 +21,7 @@ ZeroMQ: Listed mainly as a reference for core concepts.
 """
 import asyncio
 import datetime
+import functools
 import logging
 import os
 import pprint
@@ -50,6 +51,13 @@ import cog.util
 import cogdb
 import cogdb.scanners
 import cogdb.query
+
+
+SYNC_NOTICE = """Synchronizing sheet changes.
+
+Your command will resume after a short delay of about {} seconds. Thank you for waiting."""
+SYNC_RESUME = """{} Resuming your command:
+    **{}**"""
 
 
 class EmojiResolver():
@@ -96,13 +104,14 @@ class CogBot(discord.Client):
     The main bot, hooks onto on_message primarily and waits for commands.
     """
     def __init__(self, prefix, **kwargs):
+        scheduler_delay = kwargs.pop('scheduler_delay')
         super().__init__(**kwargs)
         self.prefix = prefix
         self.deny_commands = True
         self.emoji = EmojiResolver()
         # TODO: Instead of global parser, generate based on channel rules.
         self.parser = cog.parse.make_parser(prefix)
-        self.sched = cog.scheduler.Scheduler()
+        self.sched = cog.scheduler.Scheduler(delay=scheduler_delay)
         self.start_date = datetime.datetime.utcnow().replace(microsecond=0)
 
     @property
@@ -311,9 +320,15 @@ class CogBot(discord.Client):
         Simply inspect class and dispatch command. Guaranteed to be valid.
         """
         args, msg = kwargs.get('args'), kwargs.get('msg')
+        wait_cb = cog.util.WaitCB(
+            notice_cb=functools.partial(self.send_message, msg.channel,
+                                        SYNC_NOTICE.format(self.sched.delay)),
+            resume_cb=functools.partial(self.send_message, msg.channel,
+                                        SYNC_RESUME.format(msg.author.mention, msg.content)),
+        )
 
         try:
-            await self.sched.wait_for(args.cmd)
+            await self.sched.wait_for(args.cmd, wait_cb)
             logging.getLogger(__name__).info('Command %s aquired lock.', msg.content)
             cogdb.query.check_perms(msg, args)
             cls = getattr(cog.actions, args.cmd)
@@ -451,7 +466,7 @@ async def simple_heartbeat(delay=30):
 def main():  # pragma: no cover
     """ Entry here! """
     cog.util.init_logging()
-    cog.util.BOT = CogBot("!")
+    cog.util.BOT = CogBot("!", scheduler_delay=cog.util.get_config("scheduler_delay", default=10))
 
     token = cog.util.get_config('discord', os.environ.get('COG_TOKEN', 'dev'))
     print("Waiting on connection to Discord ...")

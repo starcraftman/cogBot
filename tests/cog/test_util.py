@@ -31,6 +31,15 @@ def test_get_config():
     assert cog.util.get_config('paths', 'log_conf') == 'data/log.yml'
 
 
+def test_get_config_default():
+    assert cog.util.get_config('zzzzzz', default=100) == 100
+
+
+def test_get_config_raises():
+    with pytest.raises(KeyError):
+        cog.util.get_config('zzzzzz')
+
+
 def test_update_config():
     try:
         tfile = tempfile.mktemp()
@@ -132,3 +141,50 @@ def test_transpose_table():
     ]
 
     assert cog.util.transpose_table(input) == expect
+
+
+class TestObj():
+    def __init__(self):
+        self.num = 0
+
+    async def inc(self):
+        self.num += 1
+
+    async def dec(self):
+        self.num -= 1
+
+
+@pytest.mark.asyncio
+async def test_wait_cb_send_notice():
+    obj = TestObj()
+
+    wcb = cog.util.WaitCB(notice_cb=obj.inc, resume_cb=obj.dec)
+    for _ in range(5):
+        await wcb.send_notice()
+
+    assert wcb.notice_sent
+    assert obj.num == 1
+
+
+@pytest.mark.asyncio
+async def test_wait_cb_send_resume():
+    obj = TestObj()
+
+    wcb = cog.util.WaitCB(notice_cb=obj.inc, resume_cb=obj.dec)
+    for _ in range(5):
+        await wcb.send_notice()
+    await wcb.send_resume()
+
+    assert wcb.notice_sent
+    assert obj.num == 0
+
+
+@pytest.mark.asyncio
+async def test_wait_cb_send_resume_no_send():
+    obj = TestObj()
+
+    wcb = cog.util.WaitCB(notice_cb=obj.inc, resume_cb=obj.dec)
+    await wcb.send_resume()
+
+    assert not wcb.notice_sent
+    assert obj.num == 0

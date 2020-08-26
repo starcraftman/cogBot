@@ -84,9 +84,16 @@ def rel_to_abs(*path_parts):
     return os.path.join(ROOT_DIR, *path_parts)
 
 
-def get_config(*keys):
+def get_config(*keys, default=None):
     """
     Return keys straight from yaml config.
+
+    Args:
+        keys: The keys going down the config.
+        default: A default value to return. If not set, will raise KeyError.
+
+    Raises:
+        KeyError: If no default set and keys were not in config.
     """
     try:
         with open(YAML_FILE) as fin:
@@ -94,10 +101,16 @@ def get_config(*keys):
     except FileNotFoundError:
         raise cog.exc.MissingConfigFile("Missing config.yml. Expected at: " + YAML_FILE)
 
-    for key in keys:
-        conf = conf[key]
+    try:
+        for key in keys:
+            conf = conf[key]
 
-    return conf
+        return conf
+    except KeyError:
+        if default:
+            return default
+
+        raise
 
 
 def update_config(new_val, *keys):
@@ -360,14 +373,22 @@ class RWLockWrite():
         async with self.write_mut:
             return self.read_allowed.is_set()
 
-    async def r_aquire(self):
+    async def r_aquire(self, wait_cb=None):
         """
         I wish to START an update TO the sheet.
+
+        Args:
+            wait_cb: A callback coroutine that will notify user of need to wait.
         """
+        if wait_cb and await self.is_read_allowed():
+            await wait_cb.send_notice()
         await self.read_allowed.wait()
+
         async with self.read_mut:
             self.readers += 1
             if self.readers == 1:
+                if wait_cb and self.resource_mut.locked():
+                    await wait_cb.send_notice()
                 await self.resource_mut.acquire()
 
     async def r_release(self):
@@ -398,6 +419,31 @@ class RWLockWrite():
             self.writers -= 1
             if self.writers == 0:
                 self.read_allowed.set()
+
+
+class WaitCB():
+    """
+    Tiny object created to ensure only one of each callback sent to user.
+    """
+    def __init__(self, *, notice_cb, resume_cb):
+        self.notice_sent = False
+        self.notice_cb = notice_cb
+        self.resume_cb = resume_cb
+
+    async def send_notice(self):
+        """
+        Send the notice to the user. Will only ever send once regardless of calls.
+        """
+        if not self.notice_sent:
+            self.notice_sent = True
+            await self.notice_cb()
+
+    async def send_resume(self):
+        """
+        Send resumption message if and only if notice was sent first.
+        """
+        if self.notice_sent:
+            await self.resume_cb()
 
 
 #  # Scenario multiple readers, always allowed
