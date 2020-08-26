@@ -380,7 +380,7 @@ class RWLockWrite():
         Args:
             wait_cb: A callback coroutine that will notify user of need to wait.
         """
-        if wait_cb and await self.is_read_allowed():
+        if wait_cb and not await self.is_read_allowed():
             await wait_cb.send_notice()
         await self.read_allowed.wait()
 
