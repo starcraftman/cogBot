@@ -294,6 +294,7 @@ class InaraApi():
         wing_embed.set_author(name=cmdr["name"] + "'s Wing")
         wing_embed.url = event_data["commanderWing"]["inaraURL"]
         wing_embed.provider.name = SITE
+        wing_embed.set_footer(text=event_data["commanderWing"]["inaraURL"])
 
         wing_embed.add_field(name="Wing Name", value=cmdr["wing"], inline=True)
         wing_embed.add_field(name=cmdr["name"] + "'s Rank", value=cmdr["wing_cmdr_rank"],
@@ -302,7 +303,7 @@ class InaraApi():
 
         return wing_embed
 
-    async def reply_with_api_result(self, req_id, event_data, msg, with_wing_details):
+    async def reply_with_api_result(self, req_id, event_data, msg):
         """
         Reply using event_data from Inara API getCommanderProfile.
 
@@ -347,8 +348,7 @@ class InaraApi():
 
         try:
             cmdr["wing"] = event_data["commanderWing"].get("wingName", cmdr["wing"])
-            if with_wing_details:
-                embeds += [await self.wing_details(event_data, cmdr)]
+            embeds += [await self.wing_details(event_data, cmdr)]
         except KeyError:
             pass
 
@@ -358,6 +358,7 @@ class InaraApi():
         cmdr_embed.set_thumbnail(url=cmdr["profile_picture"])
         cmdr_embed.url = event_data["inaraURL"]
         cmdr_embed.provider.name = SITE
+        cmdr_embed.set_footer(text=event_data['inaraURL'])
 
         cmdr_embed.add_field(name='Wing', value=cmdr["wing"], inline=True)
         cmdr_embed.add_field(name='Allegiance', value=cmdr["allegiance"], inline=True)

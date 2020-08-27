@@ -70,7 +70,7 @@ async def test_reply_with_api_result(f_bot):
     cog.util.BOT = f_bot
     f_msg = fake_msg_gears('!whois gearsandcogs')
     cmdr = await api.search_with_api('gearsandcogs', f_msg)
-    await api.reply_with_api_result(cmdr["req_id"], cmdr["event_data"], f_msg, False)
+    await api.reply_with_api_result(cmdr["req_id"], cmdr["event_data"], f_msg)
 
     # TODO: Very lazy check :/
     assert 'embed=<discord.embeds.Embed' in str(f_bot.send_message.call_args)

@@ -1347,8 +1347,8 @@ class WhoIs(Action):
     async def execute(self):
         cmdr = await cog.inara.api.search_with_api(' '.join(self.args.cmdr), self.msg)
         if cmdr:
-            await cog.inara.api.reply_with_api_result(cmdr["req_id"], cmdr["event_data"], self.msg,
-                                                      self.args.wing)
+            await cog.inara.api.reply_with_api_result(cmdr["req_id"], cmdr["event_data"], self.msg)
+
 
 
 def process_system_args(args):
