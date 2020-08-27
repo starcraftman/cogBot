@@ -333,6 +333,25 @@ def subs_kos(subs, prefix):
 
 
 @register_parser
+def subs_near(subs, prefix):
+    """ Subcommand parsing for bgs """
+    desc = """Near related commands. Examples:
+
+{prefix}near control winters
+        Show the 10 nearest Winters controls to Sol (default system).
+{prefix}near control hudson rana
+        Show the 10 nearest Hudson controls to rana.
+    """.format(prefix=prefix)
+    sub = subs.add_parser(prefix + 'near', description=desc, formatter_class=RawHelp)
+    sub.set_defaults(cmd='Near')
+    bgs_subs = sub.add_subparsers(title='subcommands',
+                                  description='Near subcommands', dest='subcmd')
+    bgs_sub = bgs_subs.add_parser('control', help='Find nearest control of a power.')
+    bgs_sub.add_argument('power', help='A unique substring of power name.')
+    bgs_sub.add_argument('system', nargs='+', help='The system to lookup.')
+
+
+@register_parser
 def subs_pin(subs, prefix):
     """ Subcommand parsing for pin """
     sub = subs.add_parser(prefix + 'pin', description='Make an objectives pin and keep updating.')

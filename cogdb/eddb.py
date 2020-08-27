@@ -7,6 +7,7 @@ This module is for internal use.
 """
 import inspect
 import math
+import string
 import sys
 import ijson.backends.yajl2_cffi as ijson
 
@@ -62,6 +63,23 @@ POWER_IDS = {
     "Zemina Torval": 10,
     "Yuri Grom": 11,
 }
+#  http://elite-dangerous.wikia.com/wiki/Category:Power
+HQS = {
+    "aisling duval": "Cubeo",
+    "archon delaine": "Harma",
+    "arissa lavigny-duval": "Kamadhenu",
+    "denton patreus": "Eotienses",
+    "edmund mahon": "Gateway",
+    "felicia winters": "Rhea",
+    "li yong-rui": "Lembava",
+    "pranav antal": "Polevnic",
+    "yuri grom": "Clayakarma",
+    "zachary hudson": "Nanomam",
+    "zemina torval": "Synteini",
+}
+# These are the faction types strong/weak verse.
+HUDSON_BGS = [['Feudal', 'Patronage'], ["Dictatorship"]]
+WINTERS_BGS = [["Corporate"], ["Communism", "Cooperative", "Feudal", "Patronage"]]
 Base = sqlalchemy.ext.declarative.declarative_base()
 
 
@@ -472,6 +490,20 @@ class System(Base):
                               + (other.y - self.y) * (other.y - self.y)
                               + (other.z - self.z) * (other.z - self.z))
 
+    def calc_upkeep(self, system):
+        """ Approximates the default upkeep. """
+        dist = self.dist_to(system)
+        return round(20 + 0.001 * (dist * dist), 1)
+
+    def calc_fort_trigger(self, system):
+        """ Approximates the default fort trigger. """
+        dist = self.dist_to(system)
+        return round(5000 - 5 * dist + 0.4 * (dist * dist))
+
+    def calc_um_trigger(self, system):
+        """" Aproximates the default undermining trigger. """
+        return round(5000 + (2750000 / math.pow(self.dist_to(system), 1.5)))
+
     def __repr__(self):
         keys = ['id', 'name', 'population',
                 'needs_permit', 'updated_at', 'power_id', 'edsm_id',
@@ -859,6 +891,7 @@ def load_systems(session, fname):
         'item.needs_permit': [('system', 'needs_permit')],
         'item.edsm_id': [('system', 'edsm_id')],
         'item.security_id': [('system', 'security_id')],
+        'item.power': [('system', 'power')],
         'item.power_state_id': [('system', 'power_state_id')],
         'item.controlling_minor_faction_id': [('system', 'controlling_minor_faction_id')],
         'item.control_system_id': [('system', 'control_system_id')],
@@ -872,6 +905,8 @@ def load_systems(session, fname):
         for prefix, the_type, value in ijson.parse(fin):
             #  print(prefix, the_type, value)
             if (prefix, the_type, value) == ('item', 'end_map', None):
+                system['power_id'] = POWER_IDS[system.pop('power')]
+
                 # JSON Item terminated
                 system_db = System(**system)
 
@@ -1078,6 +1113,99 @@ def find_best_route(session, systems):
     return best
 
 
+def get_nearest_controls(session, *, centre_name='sol', power='Hudson'):
+    """
+    Find nearest control systems of a particular power.
+
+    Args:
+        session: The EDDBSession variable.
+    """
+    centre = session.query(System).filter(System.name == centre_name).one()
+    subq = session.query(PowerState.id).\
+        filter(PowerState.text == 'Control').\
+        subquery()
+    subq2 = session.query(Power.id).\
+        filter(Power.text.ilike('%{}%'.format(power))).\
+        subquery()
+
+    return session.query(System).\
+        filter(System.power_state_id == subq,
+               System.power_id.in_(subq2)).\
+        order_by(System.dist_to(centre)).\
+        all()
+
+
+def compute_dists(session, system_names):
+    """
+    Given a list of systems, compute the distance from the first to all others.
+
+    Returns:
+        Dict of {system: distance, ...}
+
+    Raises:
+        InvalidCommandArgs - One or more system could not be matched.
+    """
+    system_names = [name.lower() for name in system_names]
+    try:
+        centre = session.query(System).filter(System.name.ilike(system_names[0])).one()
+    except sqla_orm.exc.NoResultFound:
+        raise cog.exc.InvalidCommandArgs("The start system %s was not found." % system_names[0])
+    systems = session.query(System.name, System.dist_to(centre)).\
+        filter(System.name.in_(system_names[1:])).\
+        order_by(System.name).\
+        all()
+
+    if len(systems) != len(system_names[1:]):
+        for system in systems:
+            system_names.remove(system[0].lower())
+
+        msg = "Some systems were not found:\n%s" % "\n    " + "\n    ".join(system_names)
+        raise cog.exc.InvalidCommandArgs(msg)
+
+    return systems
+
+
+def bgs_funcs(system_name):
+    """
+    Generate strong and weak functions to check gov_type text.
+
+    Returns:
+        strong(gov_type), weak(gov_type)
+    """
+    bgs = HUDSON_BGS
+    if system_name in WINTERS_CONTROLS:
+        bgs = WINTERS_BGS
+
+    def strong(gov_type):
+        """ Strong vs these governments. """
+        return gov_type in bgs[0]
+
+    def weak(gov_type):
+        """ Weak vs these governments. """
+        return gov_type in bgs[1]
+
+    return strong, weak
+
+
+def get_power_hq(substr):
+    """
+    Loose match substr against keys in powers full names.
+
+    Returns:
+        [Full name of power, their HQ system name]
+
+    Raises:
+        InvalidCommandArgs - Unable to identify power from substring.
+    """
+    matches = [key for key in HQS if substr in key]
+    if len(matches) != 1:
+        msg = "Power must be substring of the following:"
+        msg += "\n  " + "\n  ".join(sorted(HQS.keys()))
+        raise cog.exc.InvalidCommandArgs(msg)
+
+    return [string.capwords(matches[0]), HQS[matches[0]]]
+
+
 def dump_db(session, classes):
     """
     Dump db to a file.
@@ -1101,7 +1229,7 @@ def recreate_tables():
     Base.metadata.create_all(cogdb.eddb_engine)
 
 
-def import_eddb():
+def import_eddb(session):
     """ Allows the seeding of db from eddb dumps. """
     try:
         confirm = sys.argv[1].strip().lower()
@@ -1112,15 +1240,16 @@ def import_eddb():
     if confirm == "dump":
         print("Dumping to: /tmp/eddb_dump")
         classes = [x[1] for x in inspect.getmembers(sys.modules[__name__], select_classes)]
-        dump_db(cogdb.EDDBSession(), classes)
+        dump_db(session, classes)
         return
     if not confirm.startswith('y'):
         print("Aborting.")
         return
 
     recreate_tables()
-    session = cogdb.EDDBSession()
+    print('EDDB tables recreated.')
     preload_tables(session)
+    print('EDDB tables preloaded.')
 
     load_commodities(session, cog.util.rel_to_abs("data", "eddb", "commodities.jsonl"))
     load_modules(session, cog.util.rel_to_abs("data", "eddb", "modules.jsonl"))
@@ -1135,11 +1264,22 @@ def import_eddb():
 
 def main():  # pragma: no cover
     """ Main entry. """
-    import_eddb()
-    # session = cogdb.EDDBSession()
+    session = cogdb.EDDBSession()
+    import_eddb(session)
+    #  __import__('pprint').pprint(get_nearest_controls(session, centre_name='rana', power='delain'))
     # stations = get_shipyard_stations(session, input("Please enter a system name ... "))
     # if stations:
         # print(cog.tbl.format_table(stations))
+
+
+try:
+    HUDSON_CONTROLS = sorted([x.name for x in
+                             get_nearest_controls(cogdb.EDDBSession(), power='Hudson')])
+    WINTERS_CONTROLS = sorted([x.name for x in
+                              get_nearest_controls(cogdb.EDDBSession(), power='Winters')])
+except sqla_orm.exc.NoResultFound:
+    HUDSON_CONTROLS = []
+    WINTERS_CONTROLS = []
 
 
 if __name__ == "__main__":  # pragma: no cover

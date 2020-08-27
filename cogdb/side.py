@@ -7,7 +7,6 @@ When querying from async code, await an executor to thread or process.
 import logging
 import datetime
 import math
-import string
 import time
 
 import sqlalchemy as sqla
@@ -22,23 +21,9 @@ import cog.exc
 import cog.tbl
 import cog.util
 import cogdb
-from cogdb.eddb import LEN, TIME_FMT
+from cogdb.eddb import LEN, TIME_FMT, HUDSON_BGS
 
 
-#  http://elite-dangerous.wikia.com/wiki/Category:Power
-HQS = {
-    "aisling duval": "Cubeo",
-    "archon delaine": "Harma",
-    "arissa lavigny-duval": "Kamadhenu",
-    "denton patreus": "Eotienses",
-    "edmund mahon": "Gateway",
-    "felicia winters": "Rhea",
-    "li yong-rui": "Lembava",
-    "pranav antal": "Polevnic",
-    "yuri grom": "Clayakarma",
-    "zachary hudson": "Nanomam",
-    "zemina torval": "Synteini",
-}
 WATCH_BUBBLES = [
     "Abi",
     "Adeo",
@@ -62,8 +47,6 @@ WATCH_FACTIONS = [
     "EG Union",
     "Future of Udegoci",
 ]
-HUDSON_BGS = [['Feudal', 'Patronage'], ["Dictatorship"]]
-WINTERS_BGS = [["Corporate"], ["Communism", "Cooperative", "Feudal", "Patronage"]]
 PILOTS_FED_FACTION_ID = 76748  # N.B. 76748 is Useless pilots federation faction ID
 # They are not useful for any faction related predictions/interactions.
 Base = sqlalchemy.ext.declarative.declarative_base()
@@ -883,31 +866,6 @@ def expansion_candidates(session, centre, faction):
 
 
 @wrap_exceptions
-def get_systems(session, system_names):
-    """
-    Given a list of names, find all exact matching systems.
-
-    Returns:
-        [System, System, ...]
-
-    Raises:
-        InvalidCommandArgs - One or more systems didn't match.
-    """
-    systems = session.query(System).\
-        filter(System.name.in_(system_names)).\
-        all()
-
-    if len(systems) != len(system_names):
-        for system in systems:
-            system_names = [s_name for s_name in system_names
-                            if s_name.lower() != system.name.lower()]
-        msg = "Could not find the following system(s):"
-        msg += "\n\n" + "\n".join(system_names)
-        raise cog.exc.InvalidCommandArgs(msg)
-
-    return systems
-
-
 def get_factions_in_system(session, system_name):
     """
     Get all Factions in the system with name system_name.
@@ -932,7 +890,7 @@ def expand_to_candidates(session, system_name):
     Returns:
         [[system_name, distance, influence, state, faction_name], ...]
     """
-    centre = get_systems(session, [system_name])[0]
+    centre = cogdb.eddb.get_systems(cogdb.EDDBSession(), [system_name])[0]
     blacklist = session.query(Faction.id).\
         join(Influence, Influence.faction_id == Faction.id).\
         join(System, Influence.system_id == System.id).\
@@ -966,79 +924,6 @@ def expand_to_candidates(session, system_name):
         ]]
 
     return lines
-
-
-# TODO: Move to eddb.py, can be done entirely local.
-@wrap_exceptions
-def compute_dists(session, system_names):
-    """
-    Given a list of systems, compute the distance from the first to all others.
-
-    Returns:
-        Dict of {system: distance, ...}
-
-    Raises:
-        InvalidCommandArgs - One or more system could not be matched.
-    """
-    system_names = [name.lower() for name in system_names]
-    try:
-        centre = session.query(System).filter(System.name.ilike(system_names[0])).one()
-    except sqla_orm.exc.NoResultFound:
-        raise cog.exc.InvalidCommandArgs("The start system %s was not found." % system_names[0])
-    systems = session.query(System.name, System.dist_to(centre)).\
-        filter(System.name.in_(system_names[1:])).\
-        order_by(System.name).\
-        all()
-
-    if len(systems) != len(system_names[1:]):
-        for system in systems:
-            system_names.remove(system[0].lower())
-
-        msg = "Some systems were not found:\n%s" % "\n    " + "\n    ".join(system_names)
-        raise cog.exc.InvalidCommandArgs(msg)
-
-    return systems
-
-
-def get_power_hq(substr):
-    """
-    Loose match substr against keys in powers full names.
-
-    Returns:
-        [Full name of power, their HQ system name]
-
-    Raises:
-        InvalidCommandArgs - Unable to identify power from substring.
-    """
-    matches = [key for key in HQS if substr in key]
-    if len(matches) != 1:
-        msg = "Power must be substring of the following:"
-        msg += "\n  " + "\n  ".join(sorted(HQS.keys()))
-        raise cog.exc.InvalidCommandArgs(msg)
-
-    return [string.capwords(matches[0]), HQS[matches[0]]]
-
-
-def bgs_funcs(system):
-    """
-    Generate strong and weak functions to check gov_type text.
-
-    Returns:
-        strong(gov_type), weak(gov_type)
-    """
-    bgs = HUDSON_BGS
-    if system in WINTERS_CONTROLS:
-        bgs = WINTERS_BGS
-
-    def strong(gov_type):
-        """ Strong vs these governments. """
-        return gov_type in bgs[0]
-
-    def weak(gov_type):
-        """ Weak vs these governments. """
-        return gov_type in bgs[1]
-
-    return strong, weak
 
 
 # TODO: Unit test below.
@@ -1339,27 +1224,6 @@ def get_edmc_systems(session, controls):
         filter(SystemAge.control.in_(controls),
                SystemAge.system == System.name).\
         all()
-
-
-@wrap_exceptions
-def get_control_system_names(session, winters=False):
-    """
-    Get the latest names of controls from the bgs database.
-    """
-    power_id = 9
-    if winters:
-        power_id = 6
-
-    systems = session.query(System.name).\
-        filter(System.power_id == power_id,
-               System.power_state_id == 16).\
-        all()
-
-    return [x[0] for x in systems]
-
-
-HUDSON_CONTROLS = get_control_system_names(cogdb.SideSession(), False)
-WINTERS_CONTROLS = get_control_system_names(cogdb.SideSession(), True)
 
 
 def main():

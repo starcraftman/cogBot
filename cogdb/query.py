@@ -12,11 +12,12 @@ import cog.exc
 import cog.sheets
 from cog.util import substr_match
 import cogdb
+import cogdb.eddb
 import cogdb.schema
 from cogdb.schema import (DUser, System, PrepSystem, SystemUM, SheetRow,
                           Drop, Hold, EFaction, ESheetType,
                           Admin, ChannelPerm, RolePerm, FortOrder, KOS)
-from cogdb.side import HUDSON_CONTROLS, WINTERS_CONTROLS
+from cogdb.eddb import HUDSON_CONTROLS, WINTERS_CONTROLS
 
 
 DEFER_MISSING = 750

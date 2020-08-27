@@ -139,44 +139,9 @@ def test_get_factions_in_system(side_session):
     assert not factions
 
 
-def test_get_systems(side_session):
-    systems = cogdb.side.get_systems(side_session, ['Sol', 'Rana'])
-    systems = [x.name for x in systems]
-    assert 'Sol' in systems
-    assert 'Rana' in systems
-
-
 def test_expand_to_candidates(side_session):
     matches = cogdb.side.expand_to_candidates(side_session, 'Rana')
     assert len(matches) > 1
-
-
-def test_compute_dists(side_session):
-    expect = [
-        ('Othime', 83.67581252406517),
-        ('Rana', 46.100296145334035),
-        ('Sol', 28.938141191600405),
-    ]
-    actual = cogdb.side.compute_dists(side_session, ['Nanomam', 'Sol', 'Rana', 'Othime'])
-    assert actual == expect
-
-
-def test_compute_dists_incomplete(side_session):
-    with pytest.raises(cog.exc.InvalidCommandArgs):
-        cogdb.side.compute_dists(side_session, ['Nanomam', 'Sol', 'Rana', 'Othimezzz'])
-
-
-def test_get_power_hq():
-    assert cogdb.side.get_power_hq("hudson") == ["Zachary Hudson", "Nanomam"]
-
-    with pytest.raises(cog.exc.InvalidCommandArgs):
-        cogdb.side.get_power_hq("lyr")
-
-    with pytest.raises(cog.exc.InvalidCommandArgs):
-        cogdb.side.get_power_hq("not valid")
-
-    with pytest.raises(cog.exc.InvalidCommandArgs):
-        cogdb.side.get_power_hq("duval")
 
 
 def test_system_calc_upkeep(side_session):
@@ -201,26 +166,3 @@ def test_system_calc_um_trigger(side_session):
         order_by(System.name).\
         all()
     assert target.calc_um_trigger(pow_hq) == 13786
-
-
-def test_bgs_funcs_hudson():
-    strong, weak = cogdb.side.bgs_funcs('Rana')
-
-    assert strong("Feudal")
-    assert strong("Patronage")
-    assert weak("Dictatorship")
-
-
-def test_bgs_funcs_winters():
-    strong, weak = cogdb.side.bgs_funcs('Rhea')
-
-    assert strong("Corporate")
-    assert weak("Communism")
-    assert weak("Cooperative")
-    assert weak("Feudal")
-    assert weak("Patronage")
-
-
-def test_get_control_system_names(side_session):
-    assert 'Nanomam' in cogdb.side.get_control_system_names(side_session, False)
-    assert 'Rhea' in cogdb.side.get_control_system_names(side_session, True)

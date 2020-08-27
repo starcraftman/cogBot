@@ -15,6 +15,7 @@ import cog.actions
 import cog.bot
 import cog.parse
 import cogdb
+from cogdb.eddb import HUDSON_CONTROLS
 from cogdb.side import SystemAge
 from cogdb.schema import (DUser, SheetCattle, SheetUM,
                           System, SystemUM, Drop, Hold, FortOrder)
@@ -108,9 +109,8 @@ async def test_cmd_invalid_flag(f_bot):
 
 @pytest.mark.asyncio
 async def test_cmd_bgs_age(side_session, f_bot, f_systems):
-    systems = [system.name for system in f_systems]
     row = side_session.query(SystemAge).filter(
-        SystemAge.control.in_(systems)).order_by(SystemAge.system).first()
+        SystemAge.control.in_(HUDSON_CONTROLS)).order_by(SystemAge.system.asc()).first()
     msg = fake_msg_gears("!bgs age " + row.control)
 
     await action_map(msg, f_bot).execute()
@@ -1033,3 +1033,26 @@ async def test_cmd_dist_invalid_args(session, f_bot, f_testbed):
     msg = fake_msg_gears("!dist sol, freyyyyy")
     with pytest.raises(cog.exc.InvalidCommandArgs):
         await action_map(msg, f_bot).execute()
+
+
+@pytest.mark.asyncio
+async def test_cmd_near_control(session, f_bot, f_testbed):
+    msg = fake_msg_gears("!near control winters rana")
+
+    await action_map(msg, f_bot).execute()
+
+    expect = """__Closest 10 Controls__
+
+``` System   | Distance
+--------- | --------
+LHS 235   | 28.12
+LHS 1928  | 40.71
+Fousang   | 43.48
+Carnoeck  | 44.65
+LHS 1887  | 49.15
+LFT 601   | 52.28
+Kaura     | 52.64
+Elli      | 58.88
+LP 906-9  | 65.12
+Momoirent | 65.38```"""
+    f_bot.send_message.assert_called_with(msg.channel, expect)

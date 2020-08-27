@@ -405,7 +405,7 @@ class BGS(Action):
         lines = [['Age', 'System', 'Control Faction', 'Gov', 'Inf', 'Net', 'N', 'Pop']]
         strong_cnt, weak_cnt = 0, 0
 
-        strong, weak = cogdb.side.bgs_funcs(control_name)
+        strong, weak = cogdb.eddb.bgs_funcs(control_name)
         for system, faction, gov, inf, age in systems:
             lines += [[
                 age if age else 0, system.name[-12:], faction.name[:20], gov.text[:3],
@@ -475,9 +475,9 @@ class BGS(Action):
 
     async def exp(self, system_name):
         """ Handle exp subcmd. """
-        side_session = cogdb.SideSession()
-        centre = await self.bot.loop.run_in_executor(None, cogdb.side.get_systems,
-                                                     side_session, [system_name])
+        eddb_session, side_session = cogdb.EDDBSession(), cogdb.SideSession()
+        centre = await self.bot.loop.run_in_executor(None, cogdb.eddb.get_systems,
+                                                     eddb_session, [system_name])
         centre = centre[0]
 
         factions = await self.bot.loop.run_in_executor(None, cogdb.side.get_factions_in_system,
@@ -613,8 +613,8 @@ class Dist(Action):
         if len(system_names) < 2:
             raise cog.exc.InvalidCommandArgs("At least **2** systems required.")
 
-        dists = await self.bot.loop.run_in_executor(None, cogdb.side.compute_dists,
-                                                    cogdb.SideSession(), system_names)
+        dists = await self.bot.loop.run_in_executor(None, cogdb.eddb.compute_dists,
+                                                    cogdb.EDDBSession(), system_names)
 
         response = 'Distances From: **{}**\n\n'.format(system_names[0].capitalize())
         lines = [[name, '{:.2f}ly'.format(dist)] for name, dist in dists]
@@ -850,6 +850,7 @@ class Help(Action):
             ['{prefix}fort', 'Get information about our fort systems'],
             ['{prefix}hold', 'Declare held merits or redeem them'],
             ['{prefix}kos', 'Manage or search kos list'],
+            ['{prefix}near', 'Find things near you.'],
             ['{prefix}repair', 'Show the nearest orbitals with shipyards'],
             ['{prefix}route', 'Plot the shortest route between these systems'],
             ['{prefix}scout', 'Generate a list of systems to scout'],
@@ -962,6 +963,27 @@ class KOS(Action):
                 msg += cog.tbl.wrap_markdown(cog.tbl.format_table(cmdrs, header=True))
             else:
                 msg += "No matches!"
+
+        await self.bot.send_message(self.msg.channel, msg)
+
+
+class Near(Action):
+    """
+    Handle the KOS command.
+    """
+    async def execute(self):
+        msg = 'Invalid near sub command.'
+        eddb_session = cogdb.EDDBSession()
+
+        if self.args.subcmd == 'control':
+            sys_name = ' '.join(self.args.system)
+            centre = cogdb.eddb.get_systems(eddb_session, [sys_name])[0]
+            systems = cogdb.eddb.get_nearest_controls(
+                eddb_session, centre_name=centre.name, power=self.args.power)
+
+            lines = [['System', 'Distance']] + [[x.name, "{:.2f}".format(x.dist_to(centre))] for x in systems[:10]]
+            msg = "__Closest 10 Controls__\n\n" + \
+                cog.tbl.wrap_markdown(cog.tbl.format_table(lines, header=True))
 
         await self.bot.send_message(self.msg.channel, msg)
 
@@ -1162,10 +1184,10 @@ class Trigger(Action):
     Calculate the estimated triggers relative Hudson.
     """
     async def execute(self):
-        side_session = cogdb.SideSession()
+        eddb_session = cogdb.EDDBSession()
         self.args.power = " ".join(self.args.power).lower()
-        power = cogdb.side.get_power_hq(self.args.power)
-        pow_hq = cogdb.side.get_systems(side_session, [power[1]])[0]
+        power = cogdb.eddb.get_power_hq(self.args.power)
+        pow_hq = cogdb.eddb.get_systems(eddb_session, [power[1]])[0]
         lines = [
             "__Predicted Triggers__",
             "Power: {}".format(power[0]),
@@ -1173,7 +1195,7 @@ class Trigger(Action):
         ]
 
         systems = await self.bot.loop.run_in_executor(
-            None, cogdb.side.get_systems, side_session,
+            None, cogdb.eddb.get_systems, eddb_session,
             process_system_args(self.args.system))
         for system in systems:
             lines += [

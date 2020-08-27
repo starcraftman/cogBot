@@ -25,7 +25,7 @@ before_script:
   - service mysql start
   - mysql -u root < "tests/mysql_tables.sql"
   - curl "http://starcraftman.com/elite/eddb.sql" > "eddb.sql"
-  - mysql -u root < "eddb.sql"
+  - mysql -u root -D eddb < "eddb.sql"
   - python setup.py deps --force=yes
 
 test:

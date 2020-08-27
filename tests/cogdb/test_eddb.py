@@ -1,6 +1,9 @@
 """
 Tests for local eddb copy
 """
+import pytest
+
+import cog.exc
 import cogdb.eddb
 
 
@@ -65,3 +68,60 @@ def test_find_best_route(eddb_session):
     result = cogdb.eddb.find_best_route(eddb_session, system_names)
     assert int(result[0]) == 246
     assert [x.name for x in result[1]] == ['Arnemil', 'Nanomam', 'Sol', 'Rana', 'Frey']
+
+
+def test_get_nearest_controls(eddb_session):
+    result = [x.name for x in cogdb.eddb.get_nearest_controls(eddb_session, power='Hudson')[0:3]]
+
+    assert result == ['Sol', 'Lung', 'Groombridge 1618']
+
+    result = [x.name for x in cogdb.eddb.get_nearest_controls(eddb_session, centre_name='cubeo', power='Hudson')[0:3]]
+
+    assert result == ['Caspatsuria', 'Rati Irtii', 'LTT 9795']
+
+
+def test_compute_dists(eddb_session):
+    expect = [
+        ('Othime', 83.67581252406517),
+        ('Rana', 46.100296145334035),
+        ('Sol', 28.938141191600405),
+    ]
+    actual = cogdb.eddb.compute_dists(eddb_session, ['Nanomam', 'Sol', 'Rana', 'Othime'])
+    assert actual == expect
+
+
+def test_compute_dists_incomplete(eddb_session):
+    with pytest.raises(cog.exc.InvalidCommandArgs):
+        cogdb.eddb.compute_dists(eddb_session, ['Nanomam', 'Sol', 'Rana', 'Othimezzz'])
+
+
+def test_bgs_funcs_hudson():
+    strong, weak = cogdb.eddb.bgs_funcs('Rana')
+
+    assert strong("Feudal")
+    assert strong("Patronage")
+    assert weak("Dictatorship")
+
+
+def test_bgs_funcs_winters():
+    strong, weak = cogdb.eddb.bgs_funcs('Rhea')
+
+    assert strong("Corporate")
+    assert weak("Communism")
+    assert weak("Cooperative")
+    assert weak("Feudal")
+    assert weak("Patronage")
+
+
+def test_get_power_hq():
+    assert cogdb.eddb.get_power_hq('hudson') == ['Zachary Hudson', 'Nanomam']
+
+
+def test_get_power_hq_too_many():
+    with pytest.raises(cog.exc.InvalidCommandArgs):
+        assert cogdb.eddb.get_power_hq('duval')
+
+
+def test_get_power_hq_no_match():
+    with pytest.raises(cog.exc.InvalidCommandArgs):
+        assert cogdb.eddb.get_power_hq('zzzzzzz')
