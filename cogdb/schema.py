@@ -677,7 +677,7 @@ class SystemUM(Base):
         Format a simple summary for users.
         """
         lines = [
-            [self.descriptor, '[{}] {}'.format(self.security[0].upper(), self.name)],
+            [self.descriptor, '{} [{} sec]'.format(self.name, self.security[0].upper())],
             [self.completion, 'Merits {} {}'.format('Missing' if self.missing > 0 else 'Leading',
                                                     str(abs(self.missing)))],
             ['Our Progress ' + str(self.progress_us),

@@ -25,7 +25,7 @@ def test_get_shipyard_stations_dist_arrival(eddb_session):
             found = True
 
     assert found
-    assert len(actual) > 20
+    assert len(actual) > 10
 
 
 def test_get_systems(eddb_session):

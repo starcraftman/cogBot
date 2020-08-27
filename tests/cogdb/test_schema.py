@@ -431,7 +431,7 @@ def test_systemum__str__(f_dusers, f_sheets, f_systemsum, f_holds):
 def test_systemum_display(f_dusers, f_sheets, f_systemsum, f_holds):
     system = f_systemsum[0]
 
-    assert system.display() == """```Control            | [M] Cemplangpa
+    assert system.display() == """```Control            | Cemplangpa [M sec]
 101%               | Merits Leading 122
 Our Progress 15000 | Enemy Progress 100%
 Nearest Hudson     | Sol

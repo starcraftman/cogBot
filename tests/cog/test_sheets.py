@@ -171,12 +171,9 @@ async def test_asheet_cells_update(f_fort_reset):
 @SHEET_TEST
 @pytest.mark.asyncio
 async def test_asheet_values_row(f_fort_ws):
-    async with aiofiles.open(FORT_INPUT, 'r') as fin:
-        expect = eval(await fin.read())
+    result = await f_fort_ws.values_row(12)
 
-    result = await f_fort_ws.values_row(10)
-
-    assert result == expect[9]
+    assert result == ['', 'Toliman', 2452, '', '', 2222, 230]
 
 
 @SHEET_TEST

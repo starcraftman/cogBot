@@ -498,7 +498,7 @@ async def test_cmd_hold_simple(f_bot, f_testbed):
 
     await action_map(msg, f_bot).execute()
 
-    expect = """```Control        | [M] Empty
+    expect = """```Control        | Empty [M sec]
 20%            | Merits Missing 8000
 Our Progress 0 | Enemy Progress 0%
 Nearest Hudson | Rana
@@ -527,7 +527,7 @@ async def test_cmd_hold_newuser(f_bot, f_testbed):
 
     expect = 'Will automatically add newuser to undermine sheet. See !user command to change.'
     f_bot.send_message.assert_any_call(msg.channel, expect)
-    expect2 = """```Control        | [M] Empty
+    expect2 = """```Control        | Empty [M sec]
 10%            | Merits Missing 9000
 Our Progress 0 | Enemy Progress 0%
 Nearest Hudson | Rana
@@ -795,22 +795,22 @@ async def test_cmd_um(f_bot, f_testbed):
 
     expect = """__Current UM Targets__
 
-```Control            | [A] Pequen
+```Control            | Pequen [A sec]
 84%                | Merits Missing 2000
 Our Progress 10500 | Enemy Progress 50%
 Nearest Hudson     | Atropos
 Priority           | Low```
-```Expanding           | [L] Burr
+```Expanding           | Burr [L sec]
 Behind by 3500%     | Merits Missing 202668
 Our Progress 161630 | Enemy Progress 3500%
 Nearest Hudson      | Dongkum
 Priority            | Medium```
-```Opposing expansion | [L] AF Leopris
+```Opposing expansion | AF Leopris [L sec]
 Behind by 169%     | Merits Missing 12138
 Our Progress 47739 | Enemy Progress 169%
 Nearest Hudson     | Atropos
 Priority           | low```
-```Control        | [M] Empty
+```Control        | Empty [M sec]
 0%             | Merits Missing 10000
 Our Progress 0 | Enemy Progress 0%
 Nearest Hudson | Rana
@@ -825,7 +825,7 @@ async def test_cmd_um_search(f_bot, f_testbed):
 
     await action_map(msg, f_bot).execute()
 
-    expect = """```Expanding           | [L] Burr
+    expect = """```Expanding           | Burr [L sec]
 Behind by 3500%     | Merits Missing 202668
 Our Progress 161630 | Enemy Progress 3500%
 Nearest Hudson      | Dongkum
@@ -849,7 +849,7 @@ async def test_cmd_um_set_works(session, f_bot, f_testbed):
 
     await action_map(msg, f_bot).execute()
 
-    expect = """```Control            | [A] Pequen
+    expect = """```Control            | Pequen [A sec]
 96%                | Merits Missing 500
 Our Progress 12000 | Enemy Progress 40%
 Nearest Hudson     | Atropos
