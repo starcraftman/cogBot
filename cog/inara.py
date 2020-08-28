@@ -280,28 +280,32 @@ class InaraApi():
         Fill in wing details when requested.
 
         Returns:
-            A Discord Embed for CMDR's wing details.
+            A Discord Embed for CMDR's squadron details.
         """
-        # wing details
-        cmdr["wing_cmdr_rank"] = event_data["commanderWing"].get("wingMemberRank",
-                                                                 cmdr["wing_cmdr_rank"])
-        cmdr["wing_members_count"] = event_data["commanderWing"].get("wingMembersCount",
-                                                                     cmdr["wing_members_count"])
+        squad_data = event_data["commanderSquadron"]
+        cmdr["squad_rank"] = squad_data.get("squadronMemberRank", cmdr["squad_rank"])
+        cmdr["squad_count"] = squad_data.get("squadronMembersCount", cmdr["squad_count"])
 
-        # wing details embed
-        wing_embed = discord.Embed()
-        wing_embed.set_thumbnail(url=EMPTY_IMG)  # just a blank to keep embed full size
-        wing_embed.set_author(name=cmdr["name"] + "'s Wing")
-        wing_embed.url = event_data["commanderWing"]["inaraURL"]
-        wing_embed.provider.name = SITE
-        wing_embed.set_footer(text=event_data["commanderWing"]["inaraURL"])
-
-        wing_embed.add_field(name="Wing Name", value=cmdr["wing"], inline=True)
-        wing_embed.add_field(name=cmdr["name"] + "'s Rank", value=cmdr["wing_cmdr_rank"],
-                             inline=True)
-        wing_embed.add_field(name="Head Count", value=cmdr["wing_members_count"], inline=True)
-
-        return wing_embed
+        return discord.Embed.from_dict({
+            'color': PP_COLORS['default'],
+            'author': {
+                'name': "{}'s Squadron".format(cmdr["name"]),
+                'icon_url': cmdr["profile_picture"],
+            },
+            'provider': {
+                'name': 'Inara',
+                'url': SITE,
+            },
+            'thumbnail': {
+                'url': EMPTY_IMG,
+            },
+            'title': squad_data['squadronName'],
+            'url': squad_data["inaraURL"],
+            "fields": [
+                {'name': 'Squad Rank', 'value': cmdr["squad_rank"], 'inline': True},
+                {'name': 'Squad Count', 'value': cmdr["squad_count"], 'inline': True},
+            ],
+        })
 
     async def reply_with_api_result(self, req_id, event_data, msg):
         """
@@ -318,9 +322,9 @@ class InaraApi():
             'allegiance': 'none',
             'rank': 'unknown',
             'power': 'none',
-            'wing': 'none',
-            'wing_cmdr_rank': 'unknown',
-            'wing_members_count': 'unknown',
+            'squad': 'none',
+            'squad_rank': 'unknown',
+            'squad_count': 'unknown',
         }
 
         map_event = [
@@ -347,32 +351,47 @@ class InaraApi():
         embeds = []
 
         try:
-            cmdr["wing"] = event_data["commanderWing"].get("wingName", cmdr["wing"])
+            cmdr["squad"] = event_data["commanderSquadron"].get("squadronName", cmdr["squad"])
             embeds += [await self.wing_details(event_data, cmdr)]
         except KeyError:
             pass
 
-        # Build Embed
-        cmdr_embed = discord.Embed(colour=PP_COLORS.get(cmdr["allegiance"], PP_COLORS['default']))
-        cmdr_embed.set_author(name=cmdr["name"], icon_url=cmdr["profile_picture"])
-        cmdr_embed.set_thumbnail(url=cmdr["profile_picture"])
-        cmdr_embed.url = event_data["inaraURL"]
-        cmdr_embed.provider.name = SITE
-        cmdr_embed.set_footer(text=event_data['inaraURL'])
-
-        cmdr_embed.add_field(name='Wing', value=cmdr["wing"], inline=True)
-        cmdr_embed.add_field(name='Allegiance', value=cmdr["allegiance"], inline=True)
-        cmdr_embed.add_field(name='Role', value=cmdr["role"], inline=True)
-        cmdr_embed.add_field(name='Power', value=cmdr["power"], inline=True)
-        cmdr_embed.add_field(name='Combat Rank', value=cmdr["rank"], inline=True)
+        cmdr_embed = discord.Embed.from_dict({
+            'color': PP_COLORS.get(cmdr["allegiance"], PP_COLORS['default']),
+            'author': {
+                'name': cmdr["name"],
+                'icon_url': cmdr["profile_picture"],
+            },
+            'provider': {
+                'name': 'Inara',
+                'url': SITE,
+            },
+            'thumbnail': {
+                'url': cmdr['profile_picture']
+            },
+            'title': "Commander Profile",
+            'url': event_data["inaraURL"],
+            "fields": [
+                {'name': 'Allegiance', 'value': cmdr["allegiance"], 'inline': True},
+                {'name': 'Role', 'value': cmdr["role"], 'inline': True},
+                {'name': 'Combat Rank', 'value': cmdr["rank"], 'inline': True},
+                {'name': 'Squadron', 'value': cmdr["squad"], 'inline': True},
+            ],
+        })
         embeds = [cmdr_embed] + embeds
-
-        # TODO: KOS HOOK WILL BE HERE !
-        # crosscheck who-is with KOS list, then append information to embed
-
         futs = [cog.util.BOT.send_message(msg.channel, embed=embed) for embed in embeds]
         futs += [self.delete_waiting_message(req_id)]
-        await asyncio.gather(*futs)
+
+        for fut in futs:
+            await fut
+
+        # TODO: Potential KOS hook, bit ugly and jarring in contrast though
+        #  cmdrs = cogdb.query.kos_search_cmdr(cogdb.Session(), cmdr['name'])
+        #  if cmdrs:
+            #  cmdrs = [[x.cmdr, x.faction, x.friendly] for x in cmdrs]
+            #  cmdrs = [['CMDR Name', 'Faction', 'Is Friendly?']] + cmdrs
+            #  kos_msg = cog.tbl.wrap_markdown(cog.tbl.format_table(cmdrs, header=True))
+            #  futs += [cog.util.BOT.send_message(msg.channel, "__KOS Lookup__\n" + kos_msg)]
 
 
 def check_reply(msg, prefix='!'):
