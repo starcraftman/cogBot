@@ -223,7 +223,6 @@ class CogBot(discord.Client):
         Only process commands that were different from before.
         """
         if before.content != after.content and after.content.startswith(self.prefix):
-            before.edited_at = after.edited_at
             await self.on_message(after)
 
     async def on_message(self, message):
