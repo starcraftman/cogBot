@@ -75,6 +75,7 @@ COMBAT_RANKS = [
     'Elite'
 ]
 EMPTY_IMG = "https://upload.wikimedia.org/wikipedia/commons/5/59/Empty.png"
+EMPTY_INARA = 'unknown'
 
 
 class InaraApiInput():
@@ -324,13 +325,13 @@ class InaraApi():
         cmdr = {
             'name': 'ERROR',
             'profile_picture': 'https://inara.cz/images/userportraitback.png',
-            'role': 'unknown',
-            'allegiance': 'none',
-            'rank': 'unknown',
-            'power': 'none',
-            'squad': 'none',
-            'squad_rank': 'unknown',
-            'squad_count': 'unknown',
+            'role': EMPTY_INARA,
+            'allegiance': EMPTY_INARA,
+            'rank': EMPTY_INARA,
+            'power': EMPTY_INARA,
+            'squad': EMPTY_INARA,
+            'squad_rank': EMPTY_INARA,
+            'squad_count': EMPTY_INARA,
         }
 
         map_event = [
@@ -342,7 +343,9 @@ class InaraApi():
             ["power", "preferredPowerName"],
         ]
         for slot, data_name in map_event:
-            cmdr[slot] = event_data.get(data_name, cmdr[slot])
+            received = event_data.get(data_name, cmdr[slot])
+            if received:
+                cmdr[slot] = received
 
         # rank, ranks are a List of Dictionaries. try to get combat rank
         if "commanderRanksPilot" in event_data:
@@ -445,13 +448,13 @@ async def inara_squad_parse(url):
     Returns: A dict with information that can be added to squad details.
     """
     squad_data = {
-        "allegiance": "unknown",
-        "power": "unknown",
-        "language": "unknown",
-        "age": "unknown",
-        "hq": "unknown",
-        "leader": "unknown",
-        "minor": "unknown",
+        "allegiance": EMPTY_INARA,
+        "power": EMPTY_INARA,
+        "language": EMPTY_INARA,
+        "age": EMPTY_INARA,
+        "hq": EMPTY_INARA,
+        "leader": EMPTY_INARA,
+        "minor": EMPTY_INARA,
     }
     async with aiohttp.ClientSession() as http:
         async with http.get(url) as resp:
