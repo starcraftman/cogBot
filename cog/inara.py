@@ -30,6 +30,7 @@ except ImportError:
     import json
 
 import aiohttp
+import bs4
 import discord
 
 import cog
@@ -275,7 +276,8 @@ class InaraApi():
             finally:
                 asyncio.ensure_future(responses[0].channel.delete_messages(responses))
 
-    async def wing_details(self, event_data, cmdr):
+
+    async def squad_details(self, event_data, cmdr):
         """
         Fill in wing details when requested.
 
@@ -286,8 +288,9 @@ class InaraApi():
         cmdr["squad_rank"] = squad_data.get("squadronMemberRank", cmdr["squad_rank"])
         cmdr["squad_count"] = squad_data.get("squadronMembersCount", cmdr["squad_count"])
 
+        extra = await inara_squad_parse(squad_data['inaraURL'])
         return discord.Embed.from_dict({
-            'color': PP_COLORS['default'],
+            'color': PP_COLORS.get(extra[2]["value"], PP_COLORS['default']),
             'author': {
                 'name': "{}'s Squadron".format(cmdr["name"]),
                 'icon_url': cmdr["profile_picture"],
@@ -301,10 +304,13 @@ class InaraApi():
             },
             'title': squad_data['squadronName'],
             'url': squad_data["inaraURL"],
+            'footer': {
+                'text': "Any unknown fields weren't present or failed to parse. See squad link.",
+            },
             "fields": [
                 {'name': 'Squad Rank', 'value': cmdr["squad_rank"], 'inline': True},
                 {'name': 'Squad Count', 'value': cmdr["squad_count"], 'inline': True},
-            ],
+            ] + extra,
         })
 
     async def reply_with_api_result(self, req_id, event_data, msg):
@@ -352,7 +358,7 @@ class InaraApi():
 
         try:
             cmdr["squad"] = event_data["commanderSquadron"].get("squadronName", cmdr["squad"])
-            embeds += [await self.wing_details(event_data, cmdr)]
+            embeds += [await self.squad_details(event_data, cmdr)]
         except KeyError:
             pass
 
@@ -426,3 +432,71 @@ def wrap_json_loads(string):
 
 
 api = InaraApi()  # use as module, needs "bot" to be set. pylint: disable=C0103
+
+
+async def inara_squad_parse(url):
+    """
+    Fetch information directly from the squadron page to supplement the missing info
+    from the inara api.
+
+    Args:
+        url: The link to a squardron's page.
+
+    Returns: A dict with information that can be added to squad details.
+    """
+    squad_data = {
+        "allegiance": "unknown",
+        "power": "unknown",
+        "language": "unknown",
+        "age": "unknown",
+        "hq": "unknown",
+        "leader": "unknown",
+        "minor": "unknown",
+    }
+    async with aiohttp.ClientSession() as http:
+        async with http.get(url) as resp:
+            soup = bs4.BeautifulSoup(await resp.text(), 'html.parser')
+
+    for ele in soup.find('div', 'sidecontent2').find('div', 'mainblock'):
+        ele_str = str(ele)
+        if not ele_str:
+            continue
+
+        if 'Allegiance:</span>' in ele_str and ele.nextSibling.strip():
+            squad_data['allegiance'] = ele.nextSibling.strip()
+        elif 'Power:</span>' in ele_str and ele.nextSibling.strip():
+            squad_data['power'] = ele.nextSibling.string.strip()
+        elif 'Language:</span>' in ele_str and ele.nextSibling.strip():
+            squad_data['language'] = ele.nextSibling.strip()
+        elif 'Squadron age:</span>' in ele_str and ele.nextSibling.strip():
+            squad_data['age'] = ele.nextSibling.strip()
+        elif 'Headquarters:</span>' in ele_str and ele.nextSibling.nextSibling.string:
+            node = ele.nextSibling.nextSibling
+            squad_data['hq'] = "[{}]({})".format(node.string.strip(), SITE + node['href'])
+        elif 'Squadron commander:</span>' in ele_str and ele.nextSibling.nextSibling.string:
+            node = ele.nextSibling.nextSibling
+            squad_data['leader'] = "[{}]({})".format(node.string.strip(), SITE + node['href'])
+        elif 'Minor faction:</span>' in ele_str and ele.nextSibling.nextSibling.string:
+            node = ele.nextSibling.nextSibling
+            squad_data['minor'] = "[{}]({})".format(node.string.strip(), SITE + node['href'])
+
+    return [
+        {'name': 'Squad Leader', 'value': squad_data["leader"], 'inline': True},
+        {'name': 'Squad Age', 'value': squad_data["age"], 'inline': True},
+        {'name': 'Allegiance', 'value': squad_data["allegiance"], 'inline': True},
+        {'name': 'Power', 'value': squad_data["power"], 'inline': True},
+        {'name': 'Headquarters', 'value': squad_data["hq"], 'inline': True},
+        {'name': 'Minor Faction', 'value': squad_data["minor"], 'inline': True},
+        {'name': 'Language', 'value': squad_data["language"], 'inline': True},
+    ]
+
+
+def main():
+    import sys
+    loop = asyncio.new_event_loop()
+    for n in sys.argv[1:]:
+        loop.run_until_complete(inara_squad_parse('https://inara.cz/squadron/{}/'.format(n)))
+
+
+if __name__ == "__main__":
+    main()

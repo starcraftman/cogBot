@@ -99,6 +99,34 @@ async def test_select_from_multiple_stop(f_bot):
         await api.search_with_api('gears', fake_msg_gears('!whois gears'))
 
 
+@pytest.mark.asyncio
+async def test_inara_squad_details(f_bot):
+    expect = [
+        {
+            'name': 'Squad Leader',
+            'value': '[Extremofire](https://inara.cz/cmdr/12997/)',
+            'inline': True
+        },
+        {'name': 'Allegiance', 'value': 'Empire', 'inline': True},
+        {'name': 'Power', 'value': 'Arissa Lavigny-Duval', 'inline': True},
+        {
+            'name': 'Headquarters',
+            'value': '[Carthage [Marker Depot]](https://inara.cz/galaxy-starsystem/18799/)',
+            'inline': True
+        },
+        {
+            'name': 'Minor Faction',
+            'value': "[Lavigny's Legion](https://inara.cz/galaxy-minorfaction/19129/)",
+            'inline': True
+        },
+        {'name': 'Language', 'value': 'English', 'inline': True}
+    ]
+
+    result = [x for x in await cog.inara.inara_squad_parse('https://inara.cz/squadron/85/') if
+              x['name'] != 'Squad Age']
+    assert result == expect
+
+
 def test_check_reply():
     with pytest.raises(cog.exc.CmdAborted):
         cog.inara.check_reply(None)
