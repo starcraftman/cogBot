@@ -1277,7 +1277,7 @@ try:
                              get_nearest_controls(cogdb.EDDBSession(), power='Hudson')])
     WINTERS_CONTROLS = sorted([x.name for x in
                               get_nearest_controls(cogdb.EDDBSession(), power='Winters')])
-except sqla_orm.exc.NoResultFound:
+except (sqla_orm.exc.NoResultFound, sqlalchemy.exc.ProgrammingError):
     HUDSON_CONTROLS = []
     WINTERS_CONTROLS = []
 
