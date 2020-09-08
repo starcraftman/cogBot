@@ -112,14 +112,14 @@ class CogBot(discord.Client):
         # TODO: Instead of global parser, generate based on channel rules.
         self.parser = cog.parse.make_parser(prefix)
         self.sched = cog.scheduler.Scheduler(delay=scheduler_delay)
-        self.start_date = datetime.datetime.utcnow().replace(microsecond=0)
+        self.start_date = datetime.datetime.now(datetime.timezone.utc).replace(microsecond=0)
 
     @property
     def uptime(self):  # pragma: no cover
         """
         Return the uptime since bot was started.
         """
-        return str(datetime.datetime.utcnow().replace(microsecond=0) - self.start_date)
+        return str(datetime.datetime.now(datetime.timezone.utc).replace(microsecond=0) - self.start_date)
 
     def get_member_by_substr(self, name):
         """
@@ -458,7 +458,7 @@ async def simple_heartbeat(delay=30):
     while True:
         async with aiofiles.open(hfile, 'w') as fout:
             await fout.write('{} {}\n'.format(delay,
-                                              datetime.datetime.utcnow().replace(microsecond=0)))
+                                              datetime.datetime.now(datetime.timezone.utc).replace(microsecond=0)))
         await asyncio.sleep(delay)
 
 

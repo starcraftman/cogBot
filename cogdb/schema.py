@@ -57,7 +57,7 @@ class Admin(Base):
     __tablename__ = 'admins'
 
     id = sqla.Column(sqla.String(LEN_DID), primary_key=True)
-    date = sqla.Column(sqla.DateTime, default=datetime.datetime.utcnow)  # All dates UTC
+    date = sqla.Column(sqla.DateTime, server_default=sqla.func.now)  # All dates UTC
 
     def remove(self, session, other):
         """

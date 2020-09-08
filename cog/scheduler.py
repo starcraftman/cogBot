@@ -201,7 +201,7 @@ async def delayed_update(delay, wrap):
     log = logging.getLogger(__name__)
     log.info(
         "%s | Delaying start by %d seconds\n    Will run at: %s",
-        wrap.name, delay, str(datetime.datetime.utcnow() + datetime.timedelta(seconds=delay))
+        wrap.name, delay, str(datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(seconds=delay))
     )
     await asyncio.sleep(delay)
 
@@ -233,7 +233,7 @@ async def delayed_update(delay, wrap):
             await cog.util.BOT.send_message(
                 chan,
                 msg.format(
-                    wrap.name, datetime.datetime.utcnow(),
+                    wrap.name, datetime.datetime.now(datetime.timezone.utc),
                     cog.util.BOT.get_member_by_substr("gearsandcogs").mention,
                     str(wrap.job.exception()),
                 )

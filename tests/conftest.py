@@ -39,9 +39,9 @@ from tests.data import CELLS_FORT, CELLS_FORT_FMT, CELLS_UM
     #  Can be helpful for tracking bugs, like dirty database after test.
     #  Disabled unless needed. Non-trivial overhead.
     #  """
-    #  start = datetime.datetime.utcnow()
+    #  start = datetime.datetime.now(datetime.timezone.utc)
     #  yield
-    #  print(" Time", datetime.datetime.utcnow() - start, end="")
+    #  print(" Time", datetime.datetime.now(datetime.timezone.utc) - start, end="")
 
     #  classes = [DUser, SheetRow, System, SystemUM, Drop, Hold, KOS]
     #  for cls in classes:
@@ -492,11 +492,11 @@ class Message(FakeObject):
 
     @property
     def created_at(self):
-        return datetime.datetime.utcnow()
+        return datetime.datetime.now(datetime.timezone.utc)
 
     @property
     def edited_at(self):
-        return datetime.datetime.utcnow()
+        return datetime.datetime.now(datetime.timezone.utc)
 
     async def delete(self):
         self.is_deleted = True

@@ -227,7 +227,7 @@ class Admin(Action):
                 if channel.permissions_for(member).read_messages and str(member.id) not in all_members:
                     all_members += [str(member.id)]
 
-        after = datetime.datetime.utcnow() - datetime.timedelta(days=30 * self.args.months)
+        after = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(days=30 * self.args.months)
         report = {}
         for channel in self.msg.channel_mentions:
             report[channel.name] = {}
@@ -558,7 +558,7 @@ class BGS(Action):
                                           cogdb.SideSession(), system_ids))
         report = "\n".join(report)
 
-        title = "BGS Report {}".format(datetime.datetime.utcnow())
+        title = "BGS Report {}".format(datetime.datetime.now(datetime.timezone.utc))
         paste_url = await cog.util.pastebin_new_paste(title, report)
 
         return "Report Generated: <{}>".format(paste_url)
@@ -818,7 +818,7 @@ class Feedback(Action):
             ['Guild', self.msg.guild.name],
             ['Channel', self.msg.channel.name],
             ['Author', self.msg.author.name],
-            ['Date (UTC)', datetime.datetime.utcnow()],
+            ['Date (UTC)', datetime.datetime.now(datetime.timezone.utc)],
         ]
         response = cog.tbl.wrap_markdown(cog.tbl.format_table(lines)) + '\n\n'
         response += '__Bug Report Follows__\n\n' + ' '.join(self.args.content)
@@ -1122,7 +1122,7 @@ class Scout(Action):
             None, cogdb.eddb.find_best_route, session, systems)
         system_list = "\n".join([":Exploration: " + sys.name for sys in result[1]])
 
-        now = datetime.datetime.utcnow()
+        now = datetime.datetime.now(datetime.timezone.utc)
         lines = SCOUT_TEMPLATE.format(
             round(result[0], 2), now.strftime("%B"),
             now.day, now.year + 1286, system_list)
@@ -1157,7 +1157,7 @@ class Time(Action):
     - To weekly tick
     """
     async def execute(self):
-        now = datetime.datetime.utcnow().replace(microsecond=0)
+        now = datetime.datetime.now(datetime.timezone.utc).replace(microsecond=0)
         today = now.replace(hour=0, minute=0, second=0)  # pylint: disable=unexpected-keyword-arg
 
         weekly_tick = today + datetime.timedelta(hours=7)
@@ -1221,7 +1221,7 @@ class UM(Action):
             raise cog.exc.InvalidCommandArgs("You forgot to specify a system to update.")
 
         if self.args.list:
-            now = datetime.datetime.utcnow().replace(microsecond=0)
+            now = datetime.datetime.now(datetime.timezone.utc).replace(microsecond=0)
             today = now.replace(hour=0, minute=0, second=0)  # pylint: disable=unexpected-keyword-arg
             weekly_tick = today + datetime.timedelta(hours=7)
             while weekly_tick < now or weekly_tick.strftime('%A') != 'Thursday':

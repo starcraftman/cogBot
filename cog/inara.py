@@ -90,7 +90,7 @@ class InaraApiInput():
         new_event = {
             "eventName": event_name,
             "eventData": event_data,
-            "eventTimestamp": datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
+            "eventTimestamp": datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
         }
         self.events.append(new_event)
 

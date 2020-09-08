@@ -9,6 +9,7 @@ Utility functions
     pastebin_new_paste - Upload something to pastebin.
 """
 import asyncio
+import datetime
 import logging
 import logging.handlers
 import logging.config
@@ -32,6 +33,118 @@ LOG_MSG = """See main.log for general traces.
 Rolling over existing file logs as listed below.
     module_name -> output_file
     =========================="""
+
+
+class RWLockWrite():
+    """
+    Implement a reader-writer lock. In this case, they are to be used to control sheet updates.
+
+    The "readers" are in this case all requests from users that can update the sheet without issue.
+    The "writers" are the full rescans of sheet that happen by dumping db.
+    Writers will be prioritized as data is drifting out of sync.
+    """
+    def __init__(self):
+        """
+        This is a standard reader-writer lock.
+        All required locks are internal.
+        Lock is not to be pickled.
+        """
+        self.readers = 0
+        self.writers = 0
+
+        self.read_mut = asyncio.Lock()
+        self.write_mut = asyncio.Lock()
+        self.resource_mut = asyncio.Lock()
+
+        self.read_allowed = asyncio.Event()
+        self.read_allowed.set()
+
+    def __repr__(self):
+        keys = ['readers', 'writers', 'read_mut', 'write_mut', 'resource_mut',
+                'read_allowed']
+        kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
+
+        return "RWLockWrite({})".format(', '.join(kwargs))
+
+    def __str__(self):
+        return repr(self)
+
+    async def is_read_allowed(self):
+        """ Simple check if reading is allowed. """
+        async with self.write_mut:
+            return self.read_allowed.is_set()
+
+    async def r_aquire(self, wait_cb=None):
+        """
+        I wish to START an update TO the sheet.
+
+        Args:
+            wait_cb: A callback coroutine that will notify user of need to wait.
+        """
+        if wait_cb and not await self.is_read_allowed():
+            await wait_cb.send_notice()
+        await self.read_allowed.wait()
+
+        async with self.read_mut:
+            self.readers += 1
+            if self.readers == 1:
+                if wait_cb and self.resource_mut.locked():
+                    await wait_cb.send_notice()
+                await self.resource_mut.acquire()
+
+    async def r_release(self):
+        """
+        I wish to FINISH an update TO the sheet.
+        """
+        async with self.read_mut:
+            self.readers -= 1
+            if self.readers == 0:
+                self.resource_mut.release()
+
+    async def w_aquire(self):
+        """
+        I wish to START an update FROM the sheet.
+        """
+        async with self.write_mut:
+            self.writers += 1
+            if self.writers == 1:
+                self.read_allowed.clear()
+            await self.resource_mut.acquire()
+
+    async def w_release(self):
+        """
+        I wish to FINISH an update FROM the sheet.
+        """
+        async with self.write_mut:
+            self.resource_mut.release()
+            self.writers -= 1
+            if self.writers == 0:
+                self.read_allowed.set()
+
+
+class WaitCB():
+    """
+    Tiny object created to ensure only one of each callback sent to user.
+    """
+    def __init__(self, *, notice_cb, resume_cb):
+        self.notice_sent = False
+        self.notice_cb = notice_cb
+        self.resume_cb = resume_cb
+
+    async def send_notice(self):
+        """
+        Send the notice to the user. Will only ever send once regardless of calls.
+        """
+        if not self.notice_sent:
+            self.notice_sent = True
+            await self.notice_cb()
+
+    async def send_resume(self):
+        """
+        Send resumption message if and only if notice was sent first.
+        """
+        if self.notice_sent:
+            await self.resume_cb()
 
 
 def substr_match(seq, line, *, skip_spaces=True, ignore_case=True):
@@ -332,118 +445,6 @@ def transpose_table(table):
             n_table[col_ind] += [table[row_ind][col_ind]]
 
     return n_table
-
-
-class RWLockWrite():
-    """
-    Implement a reader-writer lock. In this case, they are to be used to control sheet updates.
-
-    The "readers" are in this case all requests from users that can update the sheet without issue.
-    The "writers" are the full rescans of sheet that happen by dumping db.
-    Writers will be prioritized as data is drifting out of sync.
-    """
-    def __init__(self):
-        """
-        This is a standard reader-writer lock.
-        All required locks are internal.
-        Lock is not to be pickled.
-        """
-        self.readers = 0
-        self.writers = 0
-
-        self.read_mut = asyncio.Lock()
-        self.write_mut = asyncio.Lock()
-        self.resource_mut = asyncio.Lock()
-
-        self.read_allowed = asyncio.Event()
-        self.read_allowed.set()
-
-    def __repr__(self):
-        keys = ['readers', 'writers', 'read_mut', 'write_mut', 'resource_mut',
-                'read_allowed']
-        kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
-
-        return "RWLockWrite({})".format(', '.join(kwargs))
-
-    def __str__(self):
-        return repr(self)
-
-    async def is_read_allowed(self):
-        """ Simple check if reading is allowed. """
-        async with self.write_mut:
-            return self.read_allowed.is_set()
-
-    async def r_aquire(self, wait_cb=None):
-        """
-        I wish to START an update TO the sheet.
-
-        Args:
-            wait_cb: A callback coroutine that will notify user of need to wait.
-        """
-        if wait_cb and not await self.is_read_allowed():
-            await wait_cb.send_notice()
-        await self.read_allowed.wait()
-
-        async with self.read_mut:
-            self.readers += 1
-            if self.readers == 1:
-                if wait_cb and self.resource_mut.locked():
-                    await wait_cb.send_notice()
-                await self.resource_mut.acquire()
-
-    async def r_release(self):
-        """
-        I wish to FINISH an update TO the sheet.
-        """
-        async with self.read_mut:
-            self.readers -= 1
-            if self.readers == 0:
-                self.resource_mut.release()
-
-    async def w_aquire(self):
-        """
-        I wish to START an update FROM the sheet.
-        """
-        async with self.write_mut:
-            self.writers += 1
-            if self.writers == 1:
-                self.read_allowed.clear()
-            await self.resource_mut.acquire()
-
-    async def w_release(self):
-        """
-        I wish to FINISH an update FROM the sheet.
-        """
-        async with self.write_mut:
-            self.resource_mut.release()
-            self.writers -= 1
-            if self.writers == 0:
-                self.read_allowed.set()
-
-
-class WaitCB():
-    """
-    Tiny object created to ensure only one of each callback sent to user.
-    """
-    def __init__(self, *, notice_cb, resume_cb):
-        self.notice_sent = False
-        self.notice_cb = notice_cb
-        self.resume_cb = resume_cb
-
-    async def send_notice(self):
-        """
-        Send the notice to the user. Will only ever send once regardless of calls.
-        """
-        if not self.notice_sent:
-            self.notice_sent = True
-            await self.notice_cb()
-
-    async def send_resume(self):
-        """
-        Send resumption message if and only if notice was sent first.
-        """
-        if self.notice_sent:
-            await self.resume_cb()
 
 
 #  # Scenario multiple readers, always allowed
