@@ -277,7 +277,6 @@ class InaraApi():
             finally:
                 asyncio.ensure_future(responses[0].channel.delete_messages(responses))
 
-
     async def squad_details(self, event_data, cmdr):
         """
         Fill in wing details when requested.

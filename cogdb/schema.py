@@ -902,6 +902,7 @@ def recreate_tables():
     """
     Recreate all tables in the database, mainly for schema changes and testing.
     """
+    cogdb.Session.close_all()
     Base.metadata.drop_all(cogdb.engine)
     Base.metadata.create_all(cogdb.engine)
 

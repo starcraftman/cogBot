@@ -1350,7 +1350,6 @@ class WhoIs(Action):
             await cog.inara.api.reply_with_api_result(cmdr["req_id"], cmdr["event_data"], self.msg)
 
 
-
 def process_system_args(args):
     """
     Process the system args by:

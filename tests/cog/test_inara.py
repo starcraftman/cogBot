@@ -116,7 +116,7 @@ async def test_inara_squad_details(f_bot):
         },
         {
             'name': 'Minor Faction',
-            'value': "[Lavigny's Legion](https://inara.cz/galaxy-minorfaction/19129/)",
+            'value': "unknown",
             'inline': True
         },
         {'name': 'Language', 'value': 'English', 'inline': True}

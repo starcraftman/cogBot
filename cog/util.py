@@ -9,7 +9,6 @@ Utility functions
     pastebin_new_paste - Upload something to pastebin.
 """
 import asyncio
-import datetime
 import logging
 import logging.handlers
 import logging.config

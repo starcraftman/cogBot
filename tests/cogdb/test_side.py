@@ -26,6 +26,7 @@ def test_next_bgs_tick(side_session, f_bot):
     cog.util.BOT = f_bot
     query = sql_text("SELECT tick FROM bgs_tick ORDER BY tick desc LIMIT 1")
     last_tick = side_session.execute(query).fetchone()[0]
+    last_tick = last_tick.replace(tzinfo=datetime.timezone.utc)
 
     before_last = last_tick - datetime.timedelta(hours=4)
     msg = cogdb.side.next_bgs_tick(side_session, before_last)
@@ -91,7 +92,7 @@ def test_system_overview(side_session):
 def test_count_factions_in_system(side_session):
     sys_ids = side_session.query(System.id).filter(System.name.in_(["Sol", "Rana", "Othime"])).all()
     sys_ids = [x[0] for x in sys_ids]
-    assert cogdb.side.count_factions_in_systems(side_session, sys_ids) == {"Sol": 6, "Othime": 7, "Rana": 7}
+    assert cogdb.side.count_factions_in_systems(side_session, sys_ids) == {"Sol": 6, "Othime": 6, "Rana": 7}
 
 
 def test_inf_history_for_pairs(side_session):

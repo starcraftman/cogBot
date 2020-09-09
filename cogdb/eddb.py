@@ -5,15 +5,16 @@ Note there may be duplication between here and side.py.
 The latter is purely a mapping of sidewinder's remote.
 This module is for internal use.
 """
+import datetime
 import inspect
 import math
 import string
 import sys
-import ijson.backends.yajl2_cffi as ijson
 
+import argparse
+import ijson.backends.yajl2_cffi as ijson
 import sqlalchemy as sqla
 import sqlalchemy.orm as sqla_orm
-import sqlalchemy.exc as sqla_exc
 import sqlalchemy.ext.declarative
 from sqlalchemy.ext.hybrid import hybrid_property, hybrid_method
 
@@ -22,7 +23,6 @@ import cog.tbl
 import cog.util
 import cogdb
 
-PRELOAD = True
 LEN = {  # Lengths for strings stored in the db
     "allegiance": 18,
     "commodity": 34,
@@ -100,6 +100,9 @@ class Allegiance(Base):
         return (isinstance(self, Allegiance) and isinstance(other, Allegiance)
                 and self.id == other.id)
 
+    def __hash__(self):
+        return hash(self.id)
+
 
 class Commodity(Base):
     """ A commodity sold at a station. """
@@ -122,6 +125,9 @@ class Commodity(Base):
         return (isinstance(self, Commodity) and isinstance(other, Commodity)
                 and self.id == other.id)
 
+    def __hash__(self):
+        return hash(self.id)
+
 
 class CommodityCat(Base):
     """ The category for a commodity """
@@ -139,6 +145,9 @@ class CommodityCat(Base):
     def __eq__(self, other):
         return (isinstance(self, CommodityCat) and isinstance(other, CommodityCat)
                 and self.id == other.id)
+
+    def __hash__(self):
+        return hash(self.id)
 
 
 class Faction(Base):
@@ -172,6 +181,9 @@ class Faction(Base):
     def __eq__(self, other):
         return isinstance(self, Faction) and isinstance(other, Faction) and self.id == other.id
 
+    def __hash__(self):
+        return hash(self.id)
+
 
 class FactionHappiness(Base):
     """ The happiness of a faction. """
@@ -190,6 +202,9 @@ class FactionHappiness(Base):
     def __eq__(self, other):
         return (isinstance(self, FactionHappiness) and isinstance(other, FactionHappiness)
                 and self.id == other.id)
+
+    def __hash__(self):
+        return hash(self.id)
 
 
 class FactionState(Base):
@@ -210,6 +225,9 @@ class FactionState(Base):
         return (isinstance(self, FactionState) and isinstance(other, FactionState)
                 and self.id == other.id)
 
+    def __hash__(self):
+        return hash(self.id)
+
 
 class Government(Base):
     """ All faction government types. """
@@ -228,6 +246,9 @@ class Government(Base):
     def __eq__(self, other):
         return (isinstance(self, Government) and isinstance(other, Government)
                 and self.id == other.id)
+
+    def __hash__(self):
+        return hash(self.id)
 
 
 class Module(Base):
@@ -253,6 +274,9 @@ class Module(Base):
     def __eq__(self, other):
         return self.id == other.id
 
+    def __hash__(self):
+        return hash(self.id)
+
 
 class ModuleGroup(Base):
     """ A group for a module. """
@@ -272,6 +296,9 @@ class ModuleGroup(Base):
     def __eq__(self, other):
         return self.id == other.id
 
+    def __hash__(self):
+        return hash(self.id)
+
 
 class Power(Base):
     """ Represents a powerplay leader. """
@@ -290,6 +317,9 @@ class Power(Base):
     def __eq__(self, other):
         return (isinstance(self, Power) and isinstance(other, Power)
                 and self.id == other.id)
+
+    def __hash__(self):
+        return hash(self.id)
 
 
 class PowerState(Base):
@@ -317,6 +347,9 @@ class PowerState(Base):
         return (isinstance(self, PowerState) and isinstance(other, PowerState)
                 and self.id == other.id)
 
+    def __hash__(self):
+        return hash(self.id)
+
 
 class Security(Base):
     """ Security states of a system. """
@@ -336,6 +369,9 @@ class Security(Base):
         return (isinstance(self, Security) and isinstance(other, Security)
                 and self.id == other.id)
 
+    def __hash__(self):
+        return hash(self.id)
+
 
 class SettlementSecurity(Base):
     """ The security of a settlement. """
@@ -354,6 +390,9 @@ class SettlementSecurity(Base):
         return (isinstance(self, SettlementSecurity) and isinstance(other, SettlementSecurity)
                 and self.id == other.id)
 
+    def __hash__(self):
+        return hash(self.id)
+
 
 class SettlementSize(Base):
     """ The size of a settlement. """
@@ -371,6 +410,9 @@ class SettlementSize(Base):
     def __eq__(self, other):
         return (isinstance(self, SettlementSize) and isinstance(other, SettlementSize)
                 and self.id == other.id)
+
+    def __hash__(self):
+        return hash(self.id)
 
 
 class StationFeatures(Base):
@@ -400,6 +442,9 @@ class StationFeatures(Base):
         return (isinstance(self, StationFeatures) and isinstance(other, StationFeatures)
                 and self.id == other.id)
 
+    def __hash__(self):
+        return hash(self.id)
+
 
 class StationType(Base):
     __tablename__ = "station_types"
@@ -416,6 +461,9 @@ class StationType(Base):
     def __eq__(self, other):
         return (isinstance(self, StationType) and isinstance(other, StationType)
                 and self.id == other.id)
+
+    def __hash__(self):
+        return hash(self.id)
 
 
 class Station(Base):
@@ -440,6 +488,9 @@ class Station(Base):
 
     def __eq__(self, other):
         return isinstance(self, Station) and isinstance(other, Station) and self.id == other.id
+
+    def __hash__(self):
+        return hash(self.id)
 
 
 class System(Base):
@@ -515,6 +566,9 @@ class System(Base):
 
     def __eq__(self, other):
         return isinstance(self, System) and isinstance(other, System) and self.id == other.id
+
+    def __hash__(self):
+        return hash(self.id)
 
 
 Commodity.category = sqla_orm.relationship(
@@ -684,6 +738,7 @@ def preload_station_types(session):
         StationType(id=20, text='Asteroid Base'),
         StationType(id=22, text='Unknown Dockable'),
         StationType(id=23, text='Non-Dockable Orbital'),
+        StationType(id=24, text='Fleet Carrier'),
     ])
 
 
@@ -691,9 +746,6 @@ def preload_tables(session):
     """
     Preload all minor linked tables.
     """
-    if not PRELOAD:
-        return
-
     preload_allegiance(session)
     preload_faction_happiness(session)
     preload_faction_state(session)
@@ -710,44 +762,39 @@ def preload_tables(session):
 # TODO: Test these load functions
 def load_commodities(session, fname):
     """ Parse standard eddb dump commodities.json and enter into database. """
-    item = {}
-    item_cat = {}
+    commodity = {}
+    commodity_cat = {}
 
     # High level mapppings direct data flow by path in json
     # Mappings should be mutually exclusive
     # Format prefix, [(target_dictionary, key_in_dict), (target_dictionary, key_in_dict), ...]
     mappings = {
-        'item.id': [('item', 'id')],
-        'item.name': [('item', 'name')],
-        'item.average_price': [('item', 'average_price')],
-        'item.is_rare': [('item', 'is_rare')],
-        'item.category.id': [('item', 'category_id'), ('item_cat', 'id')],
-        'item.category.name': [('item_cat', 'name')],
+        'item.id': [('commodity', 'id')],
+        'item.name': [('commodity', 'name')],
+        'item.average_price': [('commodity', 'average_price')],
+        'item.is_rare': [('commodity', 'is_rare')],
+        'item.category.id': [('commodity', 'category_id'), ('commodity_cat', 'id')],
+        'item.category.name': [('commodity_cat', 'name')],
     }
 
-    print("Parsing commodities ...")
+    print("Parsing commodities ... ", end='', flush=True)
+    categories, commodities = set(), []
     with open(fname, 'rb') as fin:
         for prefix, the_type, value in ijson.parse(fin):
             #  print(prefix, the_type, value)
             if (prefix, the_type, value) == ('item', 'end_map', None):
                 # JSON Item terminated
-                commodity = Commodity(**item)
-                commodity_cat = CommodityCat(**item_cat)
+                commodity_db = Commodity(**commodity)
+                commodity_cat_db = CommodityCat(**commodity_cat)
 
                 #  Debug
-                #  print('Item', commodity)
-                #  print('Item Cat', commodity_cat)
+                #  print('Commodity', commodity_db)
+                #  print('Commodity Category', commodity_cat_db)
 
-                try:
-                    session.add(commodity_cat)
-                    session.commit()
-                except (sqla_exc.IntegrityError, sqla_orm.exc.FlushError):
-                    session.rollback()
-                session.add(commodity)
-                session.commit()
-
-                item.clear()
-                item_cat.clear()
+                categories.add(commodity_cat_db)
+                commodities += [commodity_db]
+                commodity.clear()
+                commodity_cat.clear()
                 continue
 
             try:
@@ -755,56 +802,60 @@ def load_commodities(session, fname):
                     locals()[dic][key] = value
             except KeyError:
                 pass
+
+    #  print("Parsed following categories:")
+    #  __import__('pprint').pprint(categories)
+    print("Finished.")
+    session.add_all(categories)
+    session.commit()
+    session.add_all(commodities)
+    session.commit()
+    print("Flushed to db.")
 
 
 def load_modules(session, fname):
     """ Parse standard eddb dump modules.json and enter into database. """
-    item = {'size': None, 'mass': None}
-    item_group = {}
+    module = {'size': None, 'mass': None}
+    module_group = {}
 
     # High level mapppings direct data flow by path in json
     # Mappings should be mutually exclusive
     # Format prefix, [(target_dictionary, key_in_dict), (target_dictionary, key_in_dict), ...]
     mappings = {
-        'item.id': [('item', 'id')],
-        'item.name': [('item', 'name')],
-        'item.rating': [('item', 'rating')],
-        'item.price': [('item', 'price')],
-        'item.ship': [('item', 'ship')],
-        'item.weapon_mode': [('item', 'weapon_mode')],
-        'item.class': [('item', 'size')],
-        'item.mass': [('item', 'mass')],
-        'item.group.id': [('item', 'group_id'), ('item_group', 'id')],
-        'item.group.name': [('item_group', 'name')],
-        'item.group.category': [('item_group', 'category')],
-        'item.group.category_id': [('item_group', 'category_id')],
+        'item.id': [('module', 'id')],
+        'item.name': [('module', 'name')],
+        'item.rating': [('module', 'rating')],
+        'item.price': [('module', 'price')],
+        'item.ship': [('module', 'ship')],
+        'item.weapon_mode': [('module', 'weapon_mode')],
+        'item.class': [('module', 'size')],
+        'item.mass': [('module', 'mass')],
+        'item.group.id': [('module', 'group_id'), ('module_group', 'id')],
+        'item.group.name': [('module_group', 'name')],
+        'item.group.category': [('module_group', 'category')],
+        'item.group.category_id': [('module_group', 'category_id')],
     }
 
-    print("Parsing modules ...")
+    print("Parsing modules ... ", end='', flush=True)
+    module_groups, modules = set(), []
     with open(fname, 'rb') as fin:
         for prefix, the_type, value in ijson.parse(fin):
             #  print(prefix, the_type, value)
             if (prefix, the_type, value) == ('item', 'end_map', None):
                 # JSON Item terminated
-                module = Module(**item)
-                module_group = ModuleGroup(**item_group)
+                module_group_db = ModuleGroup(**module_group)
+                module_db = Module(**module)
 
                 # Debug
-                #  print('Item', module)
-                #  print('Item mod', module_group)
+                #  print('Module', module_db)
+                #  print('Module Group', module_group_db)
 
-                try:
-                    session.add(module_group)
-                    session.commit()
-                except (sqla_exc.IntegrityError, sqla_orm.exc.FlushError):
-                    session.rollback()
-                session.add(module)
-                session.commit()
-
-                item.clear()
-                item['size'] = None
-                item['mass'] = None
-                item_group.clear()
+                module_groups.add(module_group_db)
+                modules += [module_db]
+                module.clear()
+                module['size'] = None
+                module['mass'] = None
+                module_group.clear()
                 continue
 
             try:
@@ -813,8 +864,17 @@ def load_modules(session, fname):
             except KeyError:
                 pass
 
+    #  print("Parsed following module groups:")
+    #  __import__('pprint').pprint(module_groups)
+    print("Finished")
+    session.add_all(module_groups)
+    session.commit()
+    session.add_all(modules)
+    session.commit()
+    print("Flushed to db.")
 
-def load_factions(session, fname):
+
+def load_factions(session, fname, preload=True):
     """ Parse standard eddb dump modules.json and enter into database. """
     faction = {}
     allegiance = {}
@@ -835,7 +895,8 @@ def load_factions(session, fname):
         'item.allegiance': [('allegiance', 'text')],
     }
 
-    print("Parsing factions, takes a while ...")
+    allegiances, governments, factions = set(), set(), []
+    print("Parsing factions, takes a while ... ", end='', flush=True)
     with open(fname, 'rb') as fin:
         for prefix, the_type, value in ijson.parse(fin):
             #  print(prefix, the_type, value)
@@ -850,19 +911,9 @@ def load_factions(session, fname):
                 #  print('Allegiance', allegiance_db)
                 #  print('Government', government_db)
 
-                if not PRELOAD:
-                    try:
-                        session.add(allegiance_db)
-                        session.commit()
-                    except (sqla_exc.IntegrityError, sqla_orm.exc.FlushError):
-                        session.rollback()
-                    try:
-                        session.add(government_db)
-                        session.commit()
-                    except (sqla_exc.IntegrityError, sqla_orm.exc.FlushError):
-                        session.rollback()
-                session.add(faction_db)
-                session.commit()
+                allegiances.add(allegiance_db)
+                governments.add(government_db)
+                factions += [faction_db]
 
                 faction.clear()
                 allegiance.clear()
@@ -874,6 +925,22 @@ def load_factions(session, fname):
                     locals()[dic][key] = value
             except KeyError:
                 pass
+
+    if not preload:
+        allegiances = [x for x in allegiances if x.id]
+        governments = [x for x in governments if x.id]
+        session.add_all(allegiances)
+        session.add_all(governments)
+        session.commit()
+
+    #  print("Parsed following allegiances:")
+    #  __import__('pprint').pprint(allegiances)
+    #  print("Parsed following governments:")
+    #  __import__('pprint').pprint(governments)
+    print("Finished")
+    session.add_all(factions)
+    session.commit()
+    print("Flushed to db.")
 
 
 def load_systems(session, fname):
@@ -900,7 +967,8 @@ def load_systems(session, fname):
         'item.z': [('system', 'z')],
     }
 
-    print("Parsing systems, takes a while ...")
+    print("Parsing systems, takes a while ... ", end='', flush=True)
+    systems = []
     with open(fname, 'rb') as fin:
         for prefix, the_type, value in ijson.parse(fin):
             #  print(prefix, the_type, value)
@@ -913,9 +981,7 @@ def load_systems(session, fname):
                 # Debug
                 #  print('System', system_db)
 
-                session.add(system_db)
-                session.commit()
-
+                systems += [system_db]
                 system.clear()
                 continue
 
@@ -925,64 +991,64 @@ def load_systems(session, fname):
             except KeyError:
                 pass
 
+    print("Finished")
+    session.add_all(systems)
+    session.commit()
+    print("Flushed to db.")
 
-def load_stations(session, fname):
+
+def load_stations(session, fname, preload=True):
     """ Parse standard eddb dump stations.json and enter into database. """
     station = {}
-    features = {}
-    type = {}
+    st_features = {}
+    st_type = {}
 
     # High level mapppings direct data flow by path in json
     # Mappings should be mutually exclusive
     # Format prefix, [(target_dictionary, key_in_dict), (target_dictionary, key_in_dict), ...]
     mappings = {
-        'item.id': [('station', 'id'), ('features', 'id')],
+        'item.id': [('station', 'id'), ('st_features', 'id')],
         'item.name': [('station', 'name')],
-        'item.type_id': [('station', 'type_id'), ('type', 'id')],
+        'item.type_id': [('station', 'type_id'), ('st_type', 'id')],
         'item.distance_to_star': [('station', 'distance_to_star')],
         'item.max_landing_pad_size': [('station', 'max_landing_pad_size')],
         'item.controlling_minor_faction_id': [('station', 'controlling_minor_faction_id')],
         'item.system_id': [('station', 'system_id')],
         'item.updated_at': [('station', 'updated_at')],
-        'item.has_blackmarket': [('features', 'blackmarket')],
-        'item.has_commodities': [('features', 'commodities')],
-        'item.has_docking': [('features', 'docking')],
-        'item.has_market': [('features', 'market')],
-        'item.has_outfitting': [('features', 'outfitting')],
-        'item.has_refuel': [('features', 'refuel')],
-        'item.has_repair': [('features', 'repair')],
-        'item.has_rearm': [('features', 'rearm')],
-        'item.has_shipyard': [('features', 'shipyard')],
-        'item.type': [('type', 'text')],
+        'item.has_blackmarket': [('st_features', 'blackmarket')],
+        'item.has_commodities': [('st_features', 'commodities')],
+        'item.has_docking': [('st_features', 'docking')],
+        'item.has_market': [('st_features', 'market')],
+        'item.has_outfitting': [('st_features', 'outfitting')],
+        'item.has_refuel': [('st_features', 'refuel')],
+        'item.has_repair': [('st_features', 'repair')],
+        'item.has_rearm': [('st_features', 'rearm')],
+        'item.has_shipyard': [('st_features', 'shipyard')],
+        'item.type': [('st_type', 'text')],
     }
 
-    print("Parsing stations, takes a while ...")
+    print("Parsing stations, takes a while ... ", end='', flush=True)
+    station_features, station_types, stations = set(), set(), []
     with open(fname, 'rb') as fin:
         for prefix, the_type, value in ijson.parse(fin):
             #  print(prefix, the_type, value)
             if (prefix, the_type, value) == ('item', 'end_map', None):
                 # JSON Item terminated
                 station_db = Station(**station)
-                features_db = StationFeatures(**features)
-                type_db = StationType(**type)
+                st_features_db = StationFeatures(**st_features)
+                st_type_db = StationType(**st_type)
 
                 # Debug
                 #  print('Station', station_db)
-                #  print('Station Features', features_db)
-                #  print('Station Type', type_db)
-
-                try:
-                    session.add(type_db)
-                    session.commit()
-                except (sqla_exc.IntegrityError, sqla_orm.exc.FlushError):
-                    session.rollback()
-                session.add(features_db)
-                session.add(station_db)
-                session.commit()
+                #  print('Station Features', st_features_db)
+                #  print('Station Type', st_type_db)
+                station_features.add(st_features_db)
+                station_types.add(st_type_db)
+                stations += [station_db]
 
                 station.clear()
-                features.clear()
-                type.clear()
+                st_features.clear()
+                st_type.clear()
                 continue
 
             try:
@@ -990,6 +1056,16 @@ def load_stations(session, fname):
                     locals()[dic][key] = value
             except KeyError:
                 pass
+
+    print("Finished")
+    if not preload:
+        __import__('pprint').pprint(station_types)
+        session.add_all(station_types)
+        session.commit()
+    session.add_all(station_features)
+    session.add_all(stations)
+    session.commit()
+    print("Flushed to db.")
 
 
 def get_systems(session, system_names):
@@ -1225,47 +1301,68 @@ def recreate_tables():
     """
     Recreate all tables in the database, mainly for schema changes and testing.
     """
+    cogdb.EDDBSession.close_all()
     Base.metadata.drop_all(cogdb.eddb_engine)
     Base.metadata.create_all(cogdb.eddb_engine)
 
 
-def import_eddb(session):
-    """ Allows the seeding of db from eddb dumps. """
-    try:
-        confirm = sys.argv[1].strip().lower()
-    except IndexError:
-        confirm = input("Reimport EDDB Database? (y/n) ")
-    confirm = confirm.strip().lower()
+def parser():
+    parser = argparse.ArgumentParser(description="EDDB Importer")
+    parser.add_argument('--preload', '-p', default=True, action="store_true",
+                        help='Preload required database entries.')
+    parser.add_argument('--dump', '-d', action="store_true",
+                        help='Dump existing database to /tmp/eddb_dump')
+    parser.add_argument('--yes', '-y', action="store_true",
+                        help='Skip confirmation.')
 
-    if confirm == "dump":
+    return parser
+
+
+def import_eddb():
+    """ Allows the seeding of db from eddb dumps. """
+    args = parser().parse_args()
+
+    if not args.yes:
+        confirm = input("Reimport EDDB Database? (y/n) ").strip().lower()
+        if not confirm.startswith('y'):
+            print("Aborting.")
+            return
+
+    if args.dump:
         print("Dumping to: /tmp/eddb_dump")
         classes = [x[1] for x in inspect.getmembers(sys.modules[__name__], select_classes)]
-        dump_db(session, classes)
-        return
-    if not confirm.startswith('y'):
-        print("Aborting.")
+        dump_db(cogdb.EDDBSession(), classes)
         return
 
     recreate_tables()
     print('EDDB tables recreated.')
-    preload_tables(session)
-    print('EDDB tables preloaded.')
+    session = cogdb.EDDBSession()
+    if args.preload:
+        preload_tables(session)
+        print('EDDB tables preloaded.')
 
     load_commodities(session, cog.util.rel_to_abs("data", "eddb", "commodities.jsonl"))
     load_modules(session, cog.util.rel_to_abs("data", "eddb", "modules.jsonl"))
-    load_factions(session, cog.util.rel_to_abs("data", "eddb", "factions.jsonl"))
+    load_factions(session, cog.util.rel_to_abs("data", "eddb", "factions.jsonl"),
+                  preload=args.preload)
     load_systems(session, cog.util.rel_to_abs("data", "eddb", "systems_populated.jsonl"))
-    load_stations(session, cog.util.rel_to_abs("data", "eddb", "stations.jsonl"))
-
-    print("Faction count:", session.query(Faction).count())
-    print("System count (populated):", session.query(System).count())
-    print("Station count:", session.query(Station).count())
+    load_stations(session, cog.util.rel_to_abs("data", "eddb", "stations.jsonl"),
+                  preload=args.preload)
 
 
 def main():  # pragma: no cover
     """ Main entry. """
+    start = datetime.datetime.now()
+
+    import_eddb()
     session = cogdb.EDDBSession()
-    import_eddb(session)
+    print("Module count:", session.query(Module).count())
+    print("Commodity count:", session.query(Commodity).count())
+    print("Faction count:", session.query(Faction).count())
+    print("System count (populated):", session.query(System).count())
+    print("Station count:", session.query(Station).count())
+
+    print("Time taken:", datetime.datetime.now() - start)
     #  __import__('pprint').pprint(get_nearest_controls(session, centre_name='rana', power='delain'))
     # stations = get_shipyard_stations(session, input("Please enter a system name ... "))
     # if stations:
@@ -1273,10 +1370,11 @@ def main():  # pragma: no cover
 
 
 try:
+    session = cogdb.EDDBSession()
     HUDSON_CONTROLS = sorted([x.name for x in
-                             get_nearest_controls(cogdb.EDDBSession(), power='Hudson')])
+                             get_nearest_controls(session, power='Hudson')])
     WINTERS_CONTROLS = sorted([x.name for x in
-                              get_nearest_controls(cogdb.EDDBSession(), power='Winters')])
+                              get_nearest_controls(session, power='Winters')])
 except (sqla_orm.exc.NoResultFound, sqlalchemy.exc.ProgrammingError):
     HUDSON_CONTROLS = []
     WINTERS_CONTROLS = []
