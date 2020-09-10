@@ -5,6 +5,7 @@ Note there may be duplication between here and side.py.
 The latter is purely a mapping of sidewinder's remote.
 This module is for internal use.
 """
+import copy
 import datetime
 import inspect
 import math
@@ -16,6 +17,8 @@ import ijson.backends.yajl2_cffi as ijson
 import sqlalchemy as sqla
 import sqlalchemy.orm as sqla_orm
 import sqlalchemy.ext.declarative
+from sqlalchemy.sql.expression import (and_, or_)
+from sqlalchemy.orm import (foreign, remote)
 from sqlalchemy.ext.hybrid import hybrid_property, hybrid_method
 
 import cog.exc
@@ -27,6 +30,7 @@ LEN = {  # Lengths for strings stored in the db
     "allegiance": 18,
     "commodity": 34,
     "commodity_category": 20,
+    "economy": 12,
     "eddn": 25,
     "faction": 90,
     "faction_happiness": 12,
@@ -80,6 +84,13 @@ HQS = {
 # These are the faction types strong/weak verse.
 HUDSON_BGS = [['Feudal', 'Patronage'], ["Dictatorship"]]
 WINTERS_BGS = [["Corporate"], ["Communism", "Cooperative", "Feudal", "Patronage"]]
+PLANETARY_TYPES = [  # To select planetary stations
+    "Planetary Outpost",
+    "Planetary Port",
+    "Unknown Planetary",
+    "Planetary Settlement",
+    "Planetary Engineer Base",
+]
 Base = sqlalchemy.ext.declarative.declarative_base()
 
 
@@ -150,26 +161,44 @@ class CommodityCat(Base):
         return hash(self.id)
 
 
+class Economy(Base):
+    """ The type of economy """
+    __tablename__ = "economies"
+
+    id = sqla.Column(sqla.Integer, primary_key=True)
+    text = sqla.Column(sqla.String(LEN["economy"]))
+
+    def __repr__(self):
+        keys = ['id', 'name']
+        kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
+
+        return "EconomyType({})".format(', '.join(kwargs))
+
+    def __eq__(self, other):
+        return (isinstance(self, Economy) and isinstance(other, Economy)
+                and self.id == other.id)
+
+    def __hash__(self):
+        return hash(self.id)
+
+
 class Faction(Base):
     """ Information about a faction. """
     __tablename__ = "factions"
 
     id = sqla.Column(sqla.Integer, primary_key=True)
-    updated_at = sqla.Column(sqla.Integer)
     name = sqla.Column(sqla.String(LEN["faction"]))
-    home_system = sqla.Column(sqla.Integer)
-    is_player_faction = sqla.Column(sqla.Integer)
-    state_id = sqla.Column(sqla.Integer, sqla.ForeignKey('faction_state.id'))
-    government_id = sqla.Column(sqla.Integer, sqla.ForeignKey('gov_type.id'))
+    is_player_faction = sqla.Column(sqla.Boolean)
+    home_system_id = sqla.Column(sqla.Integer)  # Make circular.
     allegiance_id = sqla.Column(sqla.Integer, sqla.ForeignKey('allegiance.id'))
+    government_id = sqla.Column(sqla.Integer, sqla.ForeignKey('gov_type.id'))
+    state_id = sqla.Column(sqla.Integer, sqla.ForeignKey('faction_state.id'))
+    updated_at = sqla.Column(sqla.Integer, onupdate=sqla.func.to_seconds(sqla.func.utc_timestamp()))
 
-    @hybrid_property
-    def home_system_id(self):
-        return self.home_system
-
-    @home_system_id.expression
-    def home_system_id(self):
-        return self.home_system
+    # Relationships
+    allegiance = sqla.orm.relationship('Allegiance')
+    government = sqla.orm.relationship('Government')
+    state = sqla.orm.relationship('FactionState')
 
     def __repr__(self):
         keys = ['id', 'name', 'state_id', 'government_id', 'allegiance_id', 'home_system_id',
@@ -229,6 +258,76 @@ class FactionState(Base):
         return hash(self.id)
 
 
+class FactionActiveState(Base):
+    """ Represents the actual or pending states of a faction/system pair."""
+    __tablename__ = "faction_active_states"
+
+    system_id = sqla.Column(sqla.Integer, sqla.ForeignKey('systems.id'), primary_key=True)
+    faction_id = sqla.Column(sqla.Integer, sqla.ForeignKey('factions.id'), primary_key=True)
+    state_id = sqla.Column(sqla.Integer, sqla.ForeignKey('faction_state.id'), primary_key=True)
+    days_won = sqla.Column(sqla.Integer)
+
+    def __repr__(self):
+        keys = ['system_id', 'faction_id', 'state_id', 'days_won']
+        kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
+
+        return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
+
+    def __eq__(self, other):
+        return (isinstance(self, FactionActiveState)
+                and isinstance(other, FactionActiveState)
+                and self.__hash__() == other.__hash__())
+
+    def __hash__(self):
+        return hash("{}_{}_{}".format(self.faction_id, self.system_id, self.state_id))
+
+
+class FactionPendingState(Base):
+    """ Represents the actual or pending states of a faction/system pair."""
+    __tablename__ = "faction_pending_states"
+
+    system_id = sqla.Column(sqla.Integer, sqla.ForeignKey('systems.id'), primary_key=True)
+    faction_id = sqla.Column(sqla.Integer, sqla.ForeignKey('factions.id'), primary_key=True)
+    state_id = sqla.Column(sqla.Integer, sqla.ForeignKey('faction_state.id'), primary_key=True)
+
+    def __repr__(self):
+        keys = ['system_id', 'faction_id', 'state_id']
+        kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
+
+        return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
+
+    def __eq__(self, other):
+        return (isinstance(self, FactionPendingState)
+                and isinstance(other, FactionPendingState)
+                and self.__hash__() == other.__hash__())
+
+    def __hash__(self):
+        return hash("{}_{}_{}".format(self.faction_id, self.system_id, self.state_id))
+
+
+class FactionRecoveringState(Base):
+    """ Represents the actual or pending states of a faction/system pair."""
+    __tablename__ = "faction_recovering_states"
+
+    system_id = sqla.Column(sqla.Integer, sqla.ForeignKey('systems.id'), primary_key=True)
+    faction_id = sqla.Column(sqla.Integer, sqla.ForeignKey('factions.id'), primary_key=True)
+    state_id = sqla.Column(sqla.Integer, sqla.ForeignKey('faction_state.id'), primary_key=True)
+
+    def __repr__(self):
+        keys = ['system_id', 'faction_id', 'state_id']
+        kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
+
+        return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
+
+    def __eq__(self, other):
+        return (isinstance(self, FactionPendingState)
+                and isinstance(other, FactionPendingState)
+                and self.__hash__() == other.__hash__())
+
+    def __hash__(self):
+        return hash("{}_{}_{}".format(self.faction_id, self.system_id, self.state_id))
+
+
 class Government(Base):
     """ All faction government types. """
     __tablename__ = "gov_type"
@@ -249,6 +348,35 @@ class Government(Base):
 
     def __hash__(self):
         return hash(self.id)
+
+
+class Influence(Base):
+    """ Represents influence of a faction in a system. """
+    __tablename__ = "influence"
+
+    id = sqla.Column(sqla.BigInteger, primary_key=True)
+    system_id = sqla.Column(sqla.Integer, sqla.ForeignKey('systems.id'), nullable=False)
+    faction_id = sqla.Column(sqla.Integer, sqla.ForeignKey('factions.id'), nullable=False)
+    happiness_id = sqla.Column(sqla.Integer, sqla.ForeignKey('faction_happiness.id'), nullable=True)
+    influence = sqla.Column(sqla.Numeric(7, 4, None, False))
+    is_controlling_faction = sqla.Column(sqla.Boolean)
+    updated_at = sqla.Column(sqla.Integer, onupdate=sqla.func.to_seconds(sqla.func.utc_timestamp()))
+
+    # Relationships
+    happiness = sqla.orm.relationship('FactionHappiness')
+    system = sqla.orm.relationship('System')
+    faction = sqla.orm.relationship('Faction')
+
+    def __repr__(self):
+        keys = ['system_id', 'faction_id', 'happiness_id', 'influence', 'is_controlling_faction', 'updated_at']
+        kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
+
+        return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
+
+    def __eq__(self, other):
+        return (isinstance(self, Influence) and isinstance(other, Influence)
+                and self.system_id == other.system_id
+                and self.faction_id == other.faction_id)
 
 
 class Module(Base):
@@ -471,17 +599,21 @@ class Station(Base):
     __tablename__ = "stations"
 
     id = sqla.Column(sqla.Integer, sqla.ForeignKey('station_features.id'), primary_key=True)
-    updated_at = sqla.Column(sqla.Integer, default=0)
     name = sqla.Column(sqla.String(LEN["station"]))
     distance_to_star = sqla.Column(sqla.Integer)
     max_landing_pad_size = sqla.Column(sqla.String(LEN["station_pad"]))
     type_id = sqla.Column(sqla.Integer, sqla.ForeignKey('station_types.id'))
     system_id = sqla.Column(sqla.Integer)
     controlling_minor_faction_id = sqla.Column(sqla.Integer, sqla.ForeignKey('factions.id'))
+    updated_at = sqla.Column(sqla.Integer, onupdate=sqla.func.to_seconds(sqla.func.utc_timestamp()))
+
+    # Relationships
+    station_type = sqla.orm.relationship('StationType', uselist=False)
+    faction = sqla.orm.relationship('Faction')
 
     def __repr__(self):
         keys = ['id', 'name', 'distance_to_star', 'max_landing_pad_size',
-                'system_id', 'controlling_minor_faction_id', 'updated_at']
+                'type_id', 'system_id', 'controlling_minor_faction_id', 'updated_at']
         kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
 
         return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
@@ -498,11 +630,11 @@ class System(Base):
     __tablename__ = "systems"
 
     id = sqla.Column(sqla.Integer, primary_key=True)
-    updated_at = sqla.Column(sqla.Integer)
     name = sqla.Column(sqla.String(LEN["system"]))
     population = sqla.Column(sqla.BigInteger)
     needs_permit = sqla.Column(sqla.Integer)
     edsm_id = sqla.Column(sqla.Integer)
+    economy_id = sqla.Column(sqla.Integer, sqla.ForeignKey('economies.id'))
     power_id = sqla.Column(sqla.Integer, sqla.ForeignKey('powers.id'))
     security_id = sqla.Column(sqla.Integer, sqla.ForeignKey('security.id'))
     power_state_id = sqla.Column(sqla.Integer, sqla.ForeignKey('power_state.id'))
@@ -511,14 +643,27 @@ class System(Base):
     x = sqla.Column(sqla.Numeric(10, 5, None, False))
     y = sqla.Column(sqla.Numeric(10, 5, None, False))
     z = sqla.Column(sqla.Numeric(10, 5, None, False))
+    updated_at = sqla.Column(sqla.Integer, onupdate=sqla.func.to_seconds(sqla.func.utc_timestamp()))
+
+    # Relationships
+    economy = sqla.orm.relationship('Economy')
+    power = sqla.orm.relationship('Power')
+    power_state = sqla.orm.relationship('PowerState')
+    security = sqla.orm.relationship('Security')
 
     @hybrid_property
-    def controlling_faction_id(self):
-        return self.controlling_minor_faction_id
+    def is_populated(self):
+        """
+        Is the system populated?
+        """
+        return self.population and self.population > 0
 
-    @controlling_faction_id.expression
-    def controlling_faction_id(self):
-        return self.controlling_minor_faction_id
+    @is_populated.expression
+    def is_populated_expr(cls):
+        """
+        Compute the distance from this system to other.
+        """
+        return cls.population is not None and cls.population > 0
 
     @hybrid_method
     def dist_to(self, other):
@@ -533,13 +678,13 @@ class System(Base):
         return math.sqrt(dist)
 
     @dist_to.expression
-    def dist_to(self, other):
+    def dist_to_expr(cls, other):
         """
         Compute the distance from this system to other.
         """
-        return sqla.func.sqrt((other.x - self.x) * (other.x - self.x)
-                              + (other.y - self.y) * (other.y - self.y)
-                              + (other.z - self.z) * (other.z - self.z))
+        return sqla.func.sqrt((other.x - cls.x) * (other.x - cls.x)
+                              + (other.y - cls.y) * (other.y - cls.y)
+                              + (other.z - cls.z) * (other.z - cls.z))
 
     def calc_upkeep(self, system):
         """ Approximates the default upkeep. """
@@ -558,7 +703,7 @@ class System(Base):
     def __repr__(self):
         keys = ['id', 'name', 'population',
                 'needs_permit', 'updated_at', 'power_id', 'edsm_id',
-                'security_id', 'power_state_id', 'controlling_faction_id',
+                'economy_id', 'security_id', 'power_state_id', 'controlling_minor_faction_id',
                 'control_system_id', 'x', 'y', 'z']
         kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
 
@@ -584,6 +729,58 @@ Station.features = sqla_orm.relationship(
 StationFeatures.station = sqla_orm.relationship(
     'Station', uselist=False, back_populates='features', lazy='select')
 
+Faction.home_system = sqla_orm.relationship(
+    'System', uselist=False, back_populates='controlling_faction', lazy='select',
+    primaryjoin='foreign(Faction.home_system_id) == System.id')
+System.controlling_faction = sqla_orm.relationship(
+    'Faction', uselist=False, lazy='select',
+    primaryjoin='foreign(System.controlling_minor_faction_id) == Faction.id')
+
+Station.system = sqla_orm.relationship(
+    'System', back_populates='stations', lazy='select',
+    primaryjoin='System.id == foreign(Station.system_id)',
+)
+System.stations = sqla_orm.relationship(
+    'Station', back_populates='system', uselist=True, lazy='select',
+    primaryjoin='System.id == foreign(Station.system_id)',
+)
+
+FactionActiveState.influence = sqla_orm.relationship(
+    'Influence', uselist=False, lazy='select',
+    primaryjoin='and_(foreign(Influence.faction_id) == FactionActiveState.faction_id, foreign(Influence.system_id) == FactionActiveState.system_id)')
+Influence.active_states = sqla_orm.relationship(
+    'FactionActiveState', cascade='all, delete, delete-orphan', lazy='select',
+    primaryjoin='and_(foreign(FactionActiveState.faction_id) == Influence.faction_id, foreign(FactionActiveState.system_id) == Influence.system_id)')
+FactionPendingState.influence = sqla_orm.relationship(
+    'Influence', uselist=False, lazy='select',
+    primaryjoin='and_(foreign(Influence.faction_id) == FactionPendingState.faction_id, foreign(Influence.system_id) == FactionPendingState.system_id)')
+Influence.pending_states = sqla_orm.relationship(
+    'FactionPendingState', cascade='all, delete, delete-orphan', lazy='select',
+    primaryjoin='and_(foreign(FactionPendingState.faction_id) == Influence.faction_id, foreign(FactionPendingState.system_id) == Influence.system_id)')
+FactionRecoveringState.influence = sqla_orm.relationship(
+    'Influence', uselist=False, lazy='select',
+    primaryjoin='and_(foreign(Influence.faction_id) == FactionRecoveringState.faction_id, foreign(Influence.system_id) == FactionRecoveringState.system_id)')
+Influence.recovering_states = sqla_orm.relationship(
+    'FactionRecoveringState', cascade='all, delete, delete-orphan', lazy='select',
+    primaryjoin='and_(foreign(FactionRecoveringState.faction_id) == Influence.faction_id, foreign(FactionRecoveringState.system_id) == Influence.system_id)')
+
+System.allegiance = sqla_orm.relationship(
+    'Allegiance', viewonly=True, uselist=False, lazy='select',
+    primaryjoin='and_(System.controlling_minor_faction_id == remote(Faction.id), foreign(Faction.allegiance_id) == foreign(Allegiance.id))',
+)
+System.government = sqla_orm.relationship(
+    'Government', viewonly=True, uselist=False, lazy='select',
+    primaryjoin='and_(System.controlling_minor_faction_id == remote(Faction.id), foreign(Faction.government_id) == foreign(Government.id))',
+)
+System.control_system = sqla_orm.relationship(
+    'System', viewonly=True, uselist=False, lazy='select',
+    primaryjoin='foreign(System.control_system_id) == System.id',
+)
+System.active_states = sqla_orm.relationship(
+    'FactionActiveState', viewonly=True, lazy='select',
+    primaryjoin='and_(remote(FactionActiveState.system_id) == foreign(System.id), remote(FactionActiveState.faction_id) == foreign(System.controlling_minor_faction_id))',
+)
+
 
 def preload_allegiance(session):
     session.add_all([
@@ -593,6 +790,22 @@ def preload_allegiance(session):
         Allegiance(id=4, text="Independent"),
         Allegiance(id=5, text="None"),
         Allegiance(id=7, text="Pilots Federation"),
+    ])
+
+
+def preload_economies(session):
+    session.add_all([
+        Economy(id=1, text="Agriculture"),
+        Economy(id=2, text="Extraction"),
+        Economy(id=3, text="High Tech"),
+        Economy(id=4, text="Industrial"),
+        Economy(id=5, text="Military"),
+        Economy(id=6, text="Refinery"),
+        Economy(id=7, text="Service"),
+        Economy(id=8, text="Terraforming"),
+        Economy(id=9, text="Tourism"),
+        Economy(id=10, text="None"),
+        Economy(id=11, text="Colony"),
     ])
 
 
@@ -615,6 +828,7 @@ def preload_faction_state(session):
         FactionState(id=48, text="Civil Unrest", eddn="CivilUnrest"),
         FactionState(id=64, text="Civil War", eddn="CivilWar"),
         FactionState(id=65, text="Election", eddn="Election"),
+        FactionState(id=66, text="Civil Liberty", eddn="CivilLiberty"),
         FactionState(id=67, text="Expansion", eddn="Expansion"),
         FactionState(id=69, text="Lockdown", eddn="Lockdown"),
         FactionState(id=72, text="Outbreak", eddn="Outbreak"),
@@ -747,6 +961,7 @@ def preload_tables(session):
     Preload all minor linked tables.
     """
     preload_allegiance(session)
+    preload_economies(session)
     preload_faction_happiness(session)
     preload_faction_state(session)
     preload_gov_type(session)
@@ -762,9 +977,6 @@ def preload_tables(session):
 # TODO: Test these load functions
 def load_commodities(session, fname):
     """ Parse standard eddb dump commodities.json and enter into database. """
-    commodity = {}
-    commodity_cat = {}
-
     # High level mapppings direct data flow by path in json
     # Mappings should be mutually exclusive
     # Format prefix, [(target_dictionary, key_in_dict), (target_dictionary, key_in_dict), ...]
@@ -779,6 +991,7 @@ def load_commodities(session, fname):
 
     print("Parsing commodities ... ", end='', flush=True)
     categories, commodities = set(), []
+    commodity, commodity_cat = {}, {}
     with open(fname, 'rb') as fin:
         for prefix, the_type, value in ijson.parse(fin):
             #  print(prefix, the_type, value)
@@ -815,9 +1028,6 @@ def load_commodities(session, fname):
 
 def load_modules(session, fname):
     """ Parse standard eddb dump modules.json and enter into database. """
-    module = {'size': None, 'mass': None}
-    module_group = {}
-
     # High level mapppings direct data flow by path in json
     # Mappings should be mutually exclusive
     # Format prefix, [(target_dictionary, key_in_dict), (target_dictionary, key_in_dict), ...]
@@ -838,6 +1048,8 @@ def load_modules(session, fname):
 
     print("Parsing modules ... ", end='', flush=True)
     module_groups, modules = set(), []
+    module_base = {'size': None, 'mass': None}
+    module_group, module = {}, copy.deepcopy(module_base)
     with open(fname, 'rb') as fin:
         for prefix, the_type, value in ijson.parse(fin):
             #  print(prefix, the_type, value)
@@ -852,9 +1064,7 @@ def load_modules(session, fname):
 
                 module_groups.add(module_group_db)
                 modules += [module_db]
-                module.clear()
-                module['size'] = None
-                module['mass'] = None
+                module = copy.deepcopy(module_base)
                 module_group.clear()
                 continue
 
@@ -876,17 +1086,13 @@ def load_modules(session, fname):
 
 def load_factions(session, fname, preload=True):
     """ Parse standard eddb dump modules.json and enter into database. """
-    faction = {}
-    allegiance = {}
-    government = {}
-
     # High level mapppings direct data flow by path in json
     # Mappings should be mutually exclusive
     # Format prefix, [(target_dictionary, key_in_dict), (target_dictionary, key_in_dict), ...]
     mappings = {
         'item.id': [('faction', 'id')],
         'item.name': [('faction', 'name')],
-        'item.home_system_id': [('faction', 'home_system')],
+        'item.home_system_id': [('faction', 'home_system_id')],
         'item.is_player_faction': [('faction', 'is_player_faction')],
         'item.updated_at': [('faction', 'updated_at')],
         'item.government_id': [('faction', 'government_id'), ('government', 'id')],
@@ -895,8 +1101,9 @@ def load_factions(session, fname, preload=True):
         'item.allegiance': [('allegiance', 'text')],
     }
 
-    allegiances, governments, factions = set(), set(), []
     print("Parsing factions, takes a while ... ", end='', flush=True)
+    allegiances, governments, factions = set(), set(), []
+    faction, allegiance, government = {}, {}, {}
     with open(fname, 'rb') as fin:
         for prefix, the_type, value in ijson.parse(fin):
             #  print(prefix, the_type, value)
@@ -945,8 +1152,6 @@ def load_factions(session, fname, preload=True):
 
 def load_systems(session, fname):
     """ Parse standard eddb dump populated_systems.json and enter into database. """
-    system = {}
-
     # High level mapppings direct data flow by path in json
     # Mappings should be mutually exclusive
     # Format prefix, [(target_dictionary, key_in_dict), (target_dictionary, key_in_dict), ...]
@@ -958,6 +1163,7 @@ def load_systems(session, fname):
         'item.needs_permit': [('system', 'needs_permit')],
         'item.edsm_id': [('system', 'edsm_id')],
         'item.security_id': [('system', 'security_id')],
+        'item.economy_id': [('system', 'economy_id')],
         'item.power': [('system', 'power')],
         'item.power_state_id': [('system', 'power_state_id')],
         'item.controlling_minor_faction_id': [('system', 'controlling_minor_faction_id')],
@@ -965,17 +1171,52 @@ def load_systems(session, fname):
         'item.x': [('system', 'x')],
         'item.y': [('system', 'y')],
         'item.z': [('system', 'z')],
+        'item.minor_faction_presences.item.influence': [('faction', 'influence')],
+        'item.minor_faction_presences.item.minor_faction_id': [('faction', 'faction_id')],
+        'item.minor_faction_presences.item.happiness_id': [('faction', 'happiness_id')],
     }
 
     print("Parsing systems, takes a while ... ", end='', flush=True)
-    systems = []
+    systems, influences, states = [], [], []
+    faction_base = {'active_states': [], 'pending_states': [], 'recovering_states': []}
+    system, factions, faction = {}, [], copy.deepcopy(faction_base)
     with open(fname, 'rb') as fin:
         for prefix, the_type, value in ijson.parse(fin):
             #  print(prefix, the_type, value)
-            if (prefix, the_type, value) == ('item', 'end_map', None):
-                system['power_id'] = POWER_IDS[system.pop('power')]
 
+            if (prefix, the_type, value) == ('item', 'map_key', 'minor_faction_presences'):
+                factions = []
+            elif (prefix, the_type) == ('item.minor_faction_presences.item', 'start_map'):
+                faction = copy.deepcopy(faction_base)
+            elif (prefix, the_type) == ('item.minor_faction_presences.item', 'end_map'):
+                factions += [faction]
+
+            elif (prefix, the_type) == ('item.minor_faction_presences.item.active_states.item.id', 'number'):
+                faction['active_states'] += [value]
+            elif (prefix, the_type) == ('item.minor_faction_presences.item.pending_states.item.id', 'number'):
+                faction['pending_states'] += [value]
+            elif (prefix, the_type) == ('item.minor_faction_presences.item.recovering_states.item.id', 'number'):
+                faction['recovering_states'] += [value]
+
+            elif (prefix, the_type, value) == ('item', 'end_map', None):
                 # JSON Item terminated
+                system['power_id'] = POWER_IDS[system.pop('power')]
+                for faction in factions:
+                    for val in faction['active_states']:
+                        states += [FactionActiveState(system_id=system['id'], faction_id=faction['faction_id'], state_id=val)]
+                    for val in faction['pending_states']:
+                        states += [FactionActiveState(system_id=system['id'], faction_id=faction['faction_id'], state_id=val)]
+                    for val in faction['recovering_states']:
+                        states += [FactionRecoveringState(system_id=system['id'], faction_id=faction['faction_id'], state_id=val)]
+                    del faction['active_states']
+                    del faction['pending_states']
+                    del faction['recovering_states']
+
+                    faction['is_controlling_faction'] = system['controlling_minor_faction_id'] == faction['faction_id']
+                    faction['system_id'] = system['id']
+                    faction['updated_at'] = system['updated_at']
+                    influences += [Influence(**faction)]
+
                 system_db = System(**system)
 
                 # Debug
@@ -994,15 +1235,14 @@ def load_systems(session, fname):
     print("Finished")
     session.add_all(systems)
     session.commit()
+    session.add_all(influences)
+    session.add_all(states)
+    session.commit()
     print("Flushed to db.")
 
 
 def load_stations(session, fname, preload=True):
     """ Parse standard eddb dump stations.json and enter into database. """
-    station = {}
-    st_features = {}
-    st_type = {}
-
     # High level mapppings direct data flow by path in json
     # Mappings should be mutually exclusive
     # Format prefix, [(target_dictionary, key_in_dict), (target_dictionary, key_in_dict), ...]
@@ -1028,7 +1268,8 @@ def load_stations(session, fname, preload=True):
     }
 
     print("Parsing stations, takes a while ... ", end='', flush=True)
-    station_features, station_types, stations = set(), set(), []
+    station_features, station_types, stations = [], set(), []
+    station, st_features, st_type = {}, {}, {}
     with open(fname, 'rb') as fin:
         for prefix, the_type, value in ijson.parse(fin):
             #  print(prefix, the_type, value)
@@ -1042,7 +1283,7 @@ def load_stations(session, fname, preload=True):
                 #  print('Station', station_db)
                 #  print('Station Features', st_features_db)
                 #  print('Station Type', st_type_db)
-                station_features.add(st_features_db)
+                station_features += [st_features_db]
                 station_types.add(st_type_db)
                 stations += [station_db]
 
@@ -1063,6 +1304,7 @@ def load_stations(session, fname, preload=True):
         session.add_all(station_types)
         session.commit()
     session.add_all(station_features)
+    session.commit()
     session.add_all(stations)
     session.commit()
     print("Flushed to db.")
@@ -1332,7 +1574,7 @@ def import_eddb():
         print("Dumping to: /tmp/eddb_dump")
         classes = [x[1] for x in inspect.getmembers(sys.modules[__name__], select_classes)]
         dump_db(cogdb.EDDBSession(), classes)
-        return
+        sys.exit(0)
 
     recreate_tables()
     print('EDDB tables recreated.')
@@ -1359,10 +1601,27 @@ def main():  # pragma: no cover
     print("Module count:", session.query(Module).count())
     print("Commodity count:", session.query(Commodity).count())
     print("Faction count:", session.query(Faction).count())
-    print("System count (populated):", session.query(System).count())
+    print("Faction States count:", session.query(FactionActiveState).count() + session.query(FactionPendingState).count() + session.query(FactionRecoveringState).count())
+    print("Influence count:", session.query(Influence).count())
+    print("Populated System count:", session.query(System).count())
     print("Station count:", session.query(Station).count())
 
     print("Time taken:", datetime.datetime.now() - start)
+
+    # Check relationships
+    #  system = session.query(System).filter(System.name == 'Sol').one()
+    #  print(system.allegiance, system.government, system.power, system.power_state, system.security)
+    #  print('------')
+    #  print(system.control_system, system.controlling_faction)
+    #  print('------')
+    #  print(system.stations)
+    #  print('------')
+    #  print(system.controlling_faction.home_system)
+    #  print('------')
+
+    #  station = session.query(Station).filter(Station.system_id == system.id, Station.name == "Daedalus").one()
+    #  print(station.system, station.station_type, station.features, station.faction)
+
     #  __import__('pprint').pprint(get_nearest_controls(session, centre_name='rana', power='delain'))
     # stations = get_shipyard_stations(session, input("Please enter a system name ... "))
     # if stations:
