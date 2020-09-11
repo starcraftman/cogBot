@@ -30,7 +30,7 @@ LEN = {  # Lengths for strings stored in the db
     "allegiance": 18,
     "commodity": 34,
     "commodity_category": 20,
-    "economy": 12,
+    "economy": 18,
     "eddn": 25,
     "faction": 90,
     "faction_happiness": 12,
@@ -53,20 +53,6 @@ LEN = {  # Lengths for strings stored in the db
     "weapon_mode": 6,
 }
 TIME_FMT = "%d/%m/%y %H:%M:%S"
-POWER_IDS = {
-    None: None,
-    "Aisling Duval": 1,
-    "Archon Delaine": 2,
-    "Arissa Lavigny-Duval": 3,
-    "Denton Patreus": 4,
-    "Edmund Mahon": 5,
-    "Felicia Winters": 6,
-    "Li Yong-Rui": 7,
-    "Pranav Antal": 8,
-    "Zachary Hudson": 9,
-    "Zemina Torval": 10,
-    "Yuri Grom": 11,
-}
 #  http://elite-dangerous.wikia.com/wiki/Category:Power
 HQS = {
     "aisling duval": "Cubeo",
@@ -84,13 +70,7 @@ HQS = {
 # These are the faction types strong/weak verse.
 HUDSON_BGS = [['Feudal', 'Patronage'], ["Dictatorship"]]
 WINTERS_BGS = [["Corporate"], ["Communism", "Cooperative", "Feudal", "Patronage"]]
-PLANETARY_TYPES = [  # To select planetary stations
-    "Planetary Outpost",
-    "Planetary Port",
-    "Unknown Planetary",
-    "Planetary Settlement",
-    "Planetary Engineer Base",
-]
+# To select planetary stations
 Base = sqlalchemy.ext.declarative.declarative_base()
 
 
@@ -130,7 +110,7 @@ class Commodity(Base):
         keys = ['id', 'category_id', "name", "average_price", "is_rare"]
         kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
 
-        return "Commodity({})".format(', '.join(kwargs))
+        return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
 
     def __eq__(self, other):
         return (isinstance(self, Commodity) and isinstance(other, Commodity)
@@ -151,7 +131,7 @@ class CommodityCat(Base):
         keys = ['id', 'name']
         kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
 
-        return "CommodityCat({})".format(', '.join(kwargs))
+        return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
 
     def __eq__(self, other):
         return (isinstance(self, CommodityCat) and isinstance(other, CommodityCat)
@@ -169,10 +149,10 @@ class Economy(Base):
     text = sqla.Column(sqla.String(LEN["economy"]))
 
     def __repr__(self):
-        keys = ['id', 'name']
+        keys = ['id', 'text']
         kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
 
-        return "EconomyType({})".format(', '.join(kwargs))
+        return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
 
     def __eq__(self, other):
         return (isinstance(self, Economy) and isinstance(other, Economy)
@@ -397,7 +377,7 @@ class Module(Base):
         keys = ['id', 'name', 'group_id', 'size', 'rating', 'mass', 'price', 'ship', 'weapon_mode']
         kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
 
-        return "Module({})".format(', '.join(kwargs))
+        return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
 
     def __eq__(self, other):
         return self.id == other.id
@@ -419,7 +399,7 @@ class ModuleGroup(Base):
         keys = ['id', 'name', 'category', 'category_id']
         kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
 
-        return "ModuleGroup({})".format(', '.join(kwargs))
+        return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
 
     def __eq__(self, other):
         return self.id == other.id
@@ -594,6 +574,26 @@ class StationType(Base):
         return hash(self.id)
 
 
+class StationEconomy(Base):
+    __tablename__ = "station_economies"
+
+    id = sqla.Column(sqla.Integer, sqla.ForeignKey('stations.id'), primary_key=True)
+    economy_id = sqla.Column(sqla.Integer, sqla.ForeignKey('economies.id'), primary_key=True)
+
+    def __repr__(self):
+        keys = ['id', 'economy_id']
+        kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
+
+        return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
+
+    def __eq__(self, other):
+        return (isinstance(self, StationEconomy) and isinstance(other, StationEconomy)
+                and self.__hash__() == other.__hash__())
+
+    def __hash__(self):
+        return hash("{}_{}".format(self.id, self.economy_id))
+
+
 class Station(Base):
     """ Repesents a system in the universe. """
     __tablename__ = "stations"
@@ -601,6 +601,7 @@ class Station(Base):
     id = sqla.Column(sqla.Integer, sqla.ForeignKey('station_features.id'), primary_key=True)
     name = sqla.Column(sqla.String(LEN["station"]))
     distance_to_star = sqla.Column(sqla.Integer)
+    is_planetary = sqla.Column(sqla.Boolean)
     max_landing_pad_size = sqla.Column(sqla.String(LEN["station_pad"]))
     type_id = sqla.Column(sqla.Integer, sqla.ForeignKey('station_types.id'))
     system_id = sqla.Column(sqla.Integer)
@@ -608,8 +609,20 @@ class Station(Base):
     updated_at = sqla.Column(sqla.Integer, onupdate=sqla.func.to_seconds(sqla.func.utc_timestamp()))
 
     # Relationships
-    station_type = sqla.orm.relationship('StationType', uselist=False)
+    station_type = sqla.orm.relationship('StationType.text', uselist=False)
     faction = sqla.orm.relationship('Faction')
+    economies = sqla.orm.relationship(
+        'Economy', uselist=True, lazy='select', viewonly=True,
+        primaryjoin='and_(foreign(Station.id) == remote(StationEconomy.id), foreign(StationEconomy.economy_id) == Economy.id)',
+    )
+    allegiance = sqla_orm.relationship(
+        'Allegiance', viewonly=True, uselist=False, lazy='select',
+        primaryjoin='and_(Station.controlling_minor_faction_id == remote(Faction.id), foreign(Faction.allegiance_id) == foreign(Allegiance.id))',
+    )
+    government = sqla_orm.relationship(
+        'Government', viewonly=True, uselist=False, lazy='select',
+        primaryjoin='and_(Station.controlling_minor_faction_id == remote(Faction.id), foreign(Faction.government_id) == foreign(Government.id))',
+    )
 
     def __repr__(self):
         keys = ['id', 'name', 'distance_to_star', 'max_landing_pad_size',
@@ -650,6 +663,22 @@ class System(Base):
     power = sqla.orm.relationship('Power')
     power_state = sqla.orm.relationship('PowerState')
     security = sqla.orm.relationship('Security')
+    active_states = sqla_orm.relationship(
+        'FactionActiveState', viewonly=True, lazy='select',
+        primaryjoin='and_(remote(FactionActiveState.system_id) == foreign(System.id), remote(FactionActiveState.faction_id) == foreign(System.controlling_minor_faction_id))',
+    )
+    allegiance = sqla_orm.relationship(
+        'Allegiance', viewonly=True, uselist=False, lazy='select',
+        primaryjoin='and_(System.controlling_minor_faction_id == remote(Faction.id), foreign(Faction.allegiance_id) == foreign(Allegiance.id))',
+    )
+    control_system = sqla_orm.relationship(
+        'System', viewonly=True, uselist=False, lazy='select',
+        primaryjoin='foreign(System.control_system_id) == System.id',
+    )
+    government = sqla_orm.relationship(
+        'Government', viewonly=True, uselist=False, lazy='select',
+        primaryjoin='and_(System.controlling_minor_faction_id == remote(Faction.id), foreign(Faction.government_id) == foreign(Government.id))',
+    )
 
     @hybrid_property
     def is_populated(self):
@@ -715,7 +744,7 @@ class System(Base):
     def __hash__(self):
         return hash(self.id)
 
-
+# Bidirectional relationships
 Commodity.category = sqla_orm.relationship(
     'CommodityCat', uselist=False, back_populates='commodities', lazy='select')
 CommodityCat.commodities = sqla_orm.relationship(
@@ -724,10 +753,6 @@ Module.group = sqla_orm.relationship(
     'ModuleGroup', uselist=False, back_populates='modules', lazy='select')
 ModuleGroup.modules = sqla_orm.relationship(
     'Module', cascade='all, delete, delete-orphan', back_populates='group', lazy='select')
-Station.features = sqla_orm.relationship(
-    'StationFeatures', uselist=False, back_populates='station', lazy='select')
-StationFeatures.station = sqla_orm.relationship(
-    'Station', uselist=False, back_populates='features', lazy='select')
 
 Faction.home_system = sqla_orm.relationship(
     'System', uselist=False, back_populates='controlling_faction', lazy='select',
@@ -735,16 +760,6 @@ Faction.home_system = sqla_orm.relationship(
 System.controlling_faction = sqla_orm.relationship(
     'Faction', uselist=False, lazy='select',
     primaryjoin='foreign(System.controlling_minor_faction_id) == Faction.id')
-
-Station.system = sqla_orm.relationship(
-    'System', back_populates='stations', lazy='select',
-    primaryjoin='System.id == foreign(Station.system_id)',
-)
-System.stations = sqla_orm.relationship(
-    'Station', back_populates='system', uselist=True, lazy='select',
-    primaryjoin='System.id == foreign(Station.system_id)',
-)
-
 FactionActiveState.influence = sqla_orm.relationship(
     'Influence', uselist=False, lazy='select',
     primaryjoin='and_(foreign(Influence.faction_id) == FactionActiveState.faction_id, foreign(Influence.system_id) == FactionActiveState.system_id)')
@@ -764,22 +779,18 @@ Influence.recovering_states = sqla_orm.relationship(
     'FactionRecoveringState', cascade='all, delete, delete-orphan', lazy='select',
     primaryjoin='and_(foreign(FactionRecoveringState.faction_id) == Influence.faction_id, foreign(FactionRecoveringState.system_id) == Influence.system_id)')
 
-System.allegiance = sqla_orm.relationship(
-    'Allegiance', viewonly=True, uselist=False, lazy='select',
-    primaryjoin='and_(System.controlling_minor_faction_id == remote(Faction.id), foreign(Faction.allegiance_id) == foreign(Allegiance.id))',
+Station.system = sqla_orm.relationship(
+    'System', back_populates='stations', lazy='select',
+    primaryjoin='System.id == foreign(Station.system_id)',
 )
-System.government = sqla_orm.relationship(
-    'Government', viewonly=True, uselist=False, lazy='select',
-    primaryjoin='and_(System.controlling_minor_faction_id == remote(Faction.id), foreign(Faction.government_id) == foreign(Government.id))',
+System.stations = sqla_orm.relationship(
+    'Station', back_populates='system', uselist=True, lazy='select',
+    primaryjoin='System.id == foreign(Station.system_id)',
 )
-System.control_system = sqla_orm.relationship(
-    'System', viewonly=True, uselist=False, lazy='select',
-    primaryjoin='foreign(System.control_system_id) == System.id',
-)
-System.active_states = sqla_orm.relationship(
-    'FactionActiveState', viewonly=True, lazy='select',
-    primaryjoin='and_(remote(FactionActiveState.system_id) == foreign(System.id), remote(FactionActiveState.faction_id) == foreign(System.controlling_minor_faction_id))',
-)
+Station.features = sqla_orm.relationship(
+    'StationFeatures', uselist=False, back_populates='station', lazy='select')
+StationFeatures.station = sqla_orm.relationship(
+    'Station', uselist=False, back_populates='features', lazy='select')
 
 
 def preload_allegiance(session):
@@ -806,6 +817,9 @@ def preload_economies(session):
         Economy(id=9, text="Tourism"),
         Economy(id=10, text="None"),
         Economy(id=11, text="Colony"),
+        Economy(id=12, text="Private Enterprise"),
+        Economy(id=13, text="Rescue"),
+        Economy(id=14, text="Prison"),
     ])
 
 
@@ -874,7 +888,7 @@ def preload_powers(session):
         Power(id=0, text="None", abbrev="NON"),
         Power(id=1, text="Aisling Duval", abbrev="AIS"),
         Power(id=2, text="Archon Delaine", abbrev="ARC"),
-        Power(id=3, text="A. Lavigny-Duval", abbrev="ALD"),
+        Power(id=3, text="Arissa Lavigny-Duval", abbrev="ALD"),
         Power(id=4, text="Denton Patreus", abbrev="PAT"),
         Power(id=5, text="Edmund Mahon", abbrev="MAH"),
         Power(id=6, text="Felicia Winters", abbrev="WIN"),
@@ -1152,6 +1166,10 @@ def load_factions(session, fname, preload=True):
 
 def load_systems(session, fname):
     """ Parse standard eddb dump populated_systems.json and enter into database. """
+    # Reverse mapping to determine id based on text
+    powers_ids = {x.text: x.id for x in session.query(Power).all()}
+    powers_ids[None] = powers_ids["None"]
+
     # High level mapppings direct data flow by path in json
     # Mappings should be mutually exclusive
     # Format prefix, [(target_dictionary, key_in_dict), (target_dictionary, key_in_dict), ...]
@@ -1200,17 +1218,14 @@ def load_systems(session, fname):
 
             elif (prefix, the_type, value) == ('item', 'end_map', None):
                 # JSON Item terminated
-                system['power_id'] = POWER_IDS[system.pop('power')]
+                system['power_id'] = powers_ids[system.pop('power')]
                 for faction in factions:
-                    for val in faction['active_states']:
+                    for val in faction.pop('active_states'):
                         states += [FactionActiveState(system_id=system['id'], faction_id=faction['faction_id'], state_id=val)]
-                    for val in faction['pending_states']:
+                    for val in faction.pop('pending_states'):
                         states += [FactionActiveState(system_id=system['id'], faction_id=faction['faction_id'], state_id=val)]
-                    for val in faction['recovering_states']:
+                    for val in faction.pop('recovering_states'):
                         states += [FactionRecoveringState(system_id=system['id'], faction_id=faction['faction_id'], state_id=val)]
-                    del faction['active_states']
-                    del faction['pending_states']
-                    del faction['recovering_states']
 
                     faction['is_controlling_faction'] = system['controlling_minor_faction_id'] == faction['faction_id']
                     faction['system_id'] = system['id']
@@ -1243,6 +1258,10 @@ def load_systems(session, fname):
 
 def load_stations(session, fname, preload=True):
     """ Parse standard eddb dump stations.json and enter into database. """
+    # Map eceonomies back onto ids
+    economy_ids = {x.text: x.id for x in session.query(Economy).all()}
+    economy_ids[None] = economy_ids['None']
+
     # High level mapppings direct data flow by path in json
     # Mappings should be mutually exclusive
     # Format prefix, [(target_dictionary, key_in_dict), (target_dictionary, key_in_dict), ...]
@@ -1251,6 +1270,7 @@ def load_stations(session, fname, preload=True):
         'item.name': [('station', 'name')],
         'item.type_id': [('station', 'type_id'), ('st_type', 'id')],
         'item.distance_to_star': [('station', 'distance_to_star')],
+        'item.is_planetary': [('station', 'is_planetary')],
         'item.max_landing_pad_size': [('station', 'max_landing_pad_size')],
         'item.controlling_minor_faction_id': [('station', 'controlling_minor_faction_id')],
         'item.system_id': [('station', 'system_id')],
@@ -1268,16 +1288,21 @@ def load_stations(session, fname, preload=True):
     }
 
     print("Parsing stations, takes a while ... ", end='', flush=True)
-    station_features, station_types, stations = [], set(), []
-    station, st_features, st_type = {}, {}, {}
+    station_features, station_types, stations, economies = [], set(), [], []
+    station, st_features, st_type, st_econs = {}, {}, {}, []
     with open(fname, 'rb') as fin:
         for prefix, the_type, value in ijson.parse(fin):
             #  print(prefix, the_type, value)
+            if (prefix, the_type) == ('item.economies.item', 'string'):
+                st_econs += [value]
+
             if (prefix, the_type, value) == ('item', 'end_map', None):
                 # JSON Item terminated
                 station_db = Station(**station)
                 st_features_db = StationFeatures(**st_features)
                 st_type_db = StationType(**st_type)
+                for econ in st_econs:
+                    economies += [StationEconomy(id=station['id'], economy_id=economy_ids[econ])]
 
                 # Debug
                 #  print('Station', station_db)
@@ -1290,6 +1315,7 @@ def load_stations(session, fname, preload=True):
                 station.clear()
                 st_features.clear()
                 st_type.clear()
+                st_econs.clear()
                 continue
 
             try:
@@ -1306,6 +1332,8 @@ def load_stations(session, fname, preload=True):
     session.add_all(station_features)
     session.commit()
     session.add_all(stations)
+    session.commit()
+    session.add_all(economies)
     session.commit()
     print("Flushed to db.")
 
@@ -1608,6 +1636,9 @@ def main():  # pragma: no cover
 
     print("Time taken:", datetime.datetime.now() - start)
 
+    station = session.query(Station).filter(Station.is_planetary).limit(5).all()[0]
+    print(station.name, station.economies)
+
     # Check relationships
     #  system = session.query(System).filter(System.name == 'Sol').one()
     #  print(system.allegiance, system.government, system.power, system.power_state, system.security)
@@ -1634,6 +1665,9 @@ try:
                              get_nearest_controls(session, power='Hudson')])
     WINTERS_CONTROLS = sorted([x.name for x in
                               get_nearest_controls(session, power='Winters')])
+    PLANETARY_TYPE_IDS = [x[0] for x in
+        session.query(StationType.id).filter(StationType.text.ilike('%planetary%')).all()
+    ]
 except (sqla_orm.exc.NoResultFound, sqlalchemy.exc.ProgrammingError):
     HUDSON_CONTROLS = []
     WINTERS_CONTROLS = []
