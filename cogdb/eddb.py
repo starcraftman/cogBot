@@ -609,7 +609,7 @@ class Station(Base):
     updated_at = sqla.Column(sqla.Integer, onupdate=sqla.func.to_seconds(sqla.func.utc_timestamp()))
 
     # Relationships
-    station_type = sqla.orm.relationship('StationType.text', uselist=False)
+    station_type = sqla.orm.relationship('StationType', uselist=False)
     faction = sqla.orm.relationship('Faction')
     economies = sqla.orm.relationship(
         'Economy', uselist=True, lazy='select', viewonly=True,
@@ -1636,8 +1636,8 @@ def main():  # pragma: no cover
 
     print("Time taken:", datetime.datetime.now() - start)
 
-    station = session.query(Station).filter(Station.is_planetary).limit(5).all()[0]
-    print(station.name, station.economies)
+    #  station = session.query(Station).filter(Station.is_planetary).limit(5).all()[0]
+    #  print(station.name, station.economies)
 
     # Check relationships
     #  system = session.query(System).filter(System.name == 'Sol').one()
