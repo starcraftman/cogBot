@@ -266,7 +266,8 @@ MY_EMAIL = 'N/A'
 # Sanic stuck on 0.6.0, 0.7.0 wants websockets >4.0 but discord.py wants <4.0
 RUN_DEPS = ['aiofiles', 'aiozmq', 'argparse', 'beautifulsoup4', 'cffi', 'decorator', 'discord.py',
             'google-api-python-client', 'gspread-asyncio', 'ijson', 'msgpack-python',
-            'oauth2client', 'pymysql', 'pyyaml', 'pyzmq', 'Sanic==0.6.0', 'SQLalchemy', 'uvloop']
+            'oauth2client', 'pymysql', 'pyyaml', 'pyzmq', 'rapidjson',
+            'Sanic==0.6.0', 'SQLalchemy', 'uvloop']
 TEST_DEPS = ['coverage', 'flake8', 'aiomock', 'mock', 'pylint', 'pytest', 'pytest-asyncio',
              'pytest-cov', 'sphinx', 'tox']
 setup(

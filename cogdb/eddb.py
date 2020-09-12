@@ -46,7 +46,7 @@ LEN = {  # Lengths for strings stored in the db
     "settlement_security": 10,
     "settlement_size": 3,
     "ship": 20,
-    "station": 76,
+    "station": 38,
     "station_pad": 4,
     "station_type": 24,
     "system": 30,
@@ -80,9 +80,10 @@ class Allegiance(Base):
 
     id = sqla.Column(sqla.Integer, primary_key=True)
     text = sqla.Column(sqla.String(LEN["allegiance"]))
+    eddn = sqla.Column(sqla.String(LEN["allegiance"]))
 
     def __repr__(self):
-        keys = ['id', 'text']
+        keys = ['id', 'text', 'eddn']
         kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
 
         return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
@@ -147,9 +148,10 @@ class Economy(Base):
 
     id = sqla.Column(sqla.Integer, primary_key=True)
     text = sqla.Column(sqla.String(LEN["economy"]))
+    eddn = sqla.Column(sqla.String(LEN["economy"]))
 
     def __repr__(self):
-        keys = ['id', 'text']
+        keys = ['id', 'text', 'eddn']
         kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
 
         return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
@@ -245,10 +247,9 @@ class FactionActiveState(Base):
     system_id = sqla.Column(sqla.Integer, sqla.ForeignKey('systems.id'), primary_key=True)
     faction_id = sqla.Column(sqla.Integer, sqla.ForeignKey('factions.id'), primary_key=True)
     state_id = sqla.Column(sqla.Integer, sqla.ForeignKey('faction_state.id'), primary_key=True)
-    days_won = sqla.Column(sqla.Integer)
 
     def __repr__(self):
-        keys = ['system_id', 'faction_id', 'state_id', 'days_won']
+        keys = ['system_id', 'faction_id', 'state_id']
         kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
 
         return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
@@ -414,10 +415,12 @@ class Power(Base):
 
     id = sqla.Column(sqla.Integer, primary_key=True, nullable=True, autoincrement=False)
     text = sqla.Column(sqla.String(LEN["power"]))
+    eddn = sqla.Column(sqla.String(LEN["power"]))
     abbrev = sqla.Column(sqla.String(LEN["power_abv"]))
+    home_system_name = sqla.Column(sqla.String(LEN["system"]))
 
     def __repr__(self):
-        keys = ['id', 'text', 'abbrev']
+        keys = ['id', 'text', 'eddn', 'abbrev', 'home_system_name']
         kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
 
         return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
@@ -433,20 +436,15 @@ class Power(Base):
 class PowerState(Base):
     """
     Represents the power state of a system (i.e. control, exploited).
-
-    |  0 | None      |
-    | 16 | Control   |
-    | 32 | Exploited |
-    | 48 | Contested |
-    | 64 | Expansion |
     """
     __tablename__ = "power_state"
 
     id = sqla.Column(sqla.Integer, primary_key=True, nullable=True, autoincrement=False)
     text = sqla.Column(sqla.String(LEN["power_state"]))
+    eddn = sqla.Column(sqla.String(LEN["power_state"]))
 
     def __repr__(self):
-        keys = ['id', 'text']
+        keys = ['id', 'text', 'eddn']
         kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
 
         return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
@@ -559,9 +557,10 @@ class StationType(Base):
 
     id = sqla.Column(sqla.Integer, primary_key=True)
     text = sqla.Column(sqla.String(LEN["station_type"]))
+    eddn = sqla.Column(sqla.String(LEN["station_type"]))
 
     def __repr__(self):
-        keys = ['id', 'text']
+        keys = ['id', 'text', 'eddn']
         kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
 
         return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
@@ -792,34 +791,44 @@ Station.features = sqla_orm.relationship(
 StationFeatures.station = sqla_orm.relationship(
     'Station', uselist=False, back_populates='features', lazy='select')
 
+Power.home_system = sqla.orm.relationship(
+    'System', uselist=False, lazy='select',
+    primaryjoin='foreign(System.name) == Power.home_system_name',
+)
 
+
+# NOTE: Map text '' -> 'None'
 def preload_allegiance(session):
     session.add_all([
-        Allegiance(id=1, text="Alliance"),
-        Allegiance(id=2, text="Empire"),
-        Allegiance(id=3, text="Federation"),
-        Allegiance(id=4, text="Independent"),
-        Allegiance(id=5, text="None"),
-        Allegiance(id=7, text="Pilots Federation"),
+        Allegiance(id=1, text="Alliance", eddn="Alliance"),
+        Allegiance(id=2, text="Empire", eddn="Empire"),
+        Allegiance(id=3, text="Federation", eddn="Federation"),
+        Allegiance(id=4, text="Independent", eddn="Independent"),
+        Allegiance(id=5, text="None", eddn="None"),
+        Allegiance(id=7, text="Pilots Federation", eddn="PilotsFederation"),
+        Allegiance(id=8, text="Thargoid", eddn="Thargoid"),
+        Allegiance(id=9, text="Guardian", eddn="Guardian"),
     ])
 
 
 def preload_economies(session):
     session.add_all([
-        Economy(id=1, text="Agriculture"),
-        Economy(id=2, text="Extraction"),
-        Economy(id=3, text="High Tech"),
-        Economy(id=4, text="Industrial"),
-        Economy(id=5, text="Military"),
-        Economy(id=6, text="Refinery"),
-        Economy(id=7, text="Service"),
-        Economy(id=8, text="Terraforming"),
-        Economy(id=9, text="Tourism"),
-        Economy(id=10, text="None"),
-        Economy(id=11, text="Colony"),
-        Economy(id=12, text="Private Enterprise"),
-        Economy(id=13, text="Rescue"),
-        Economy(id=14, text="Prison"),
+        Economy(id=1, text="Agriculture", eddn="Agri"),
+        Economy(id=2, text="Extraction", eddn="Extraction"),
+        Economy(id=3, text="High Tech", eddn="HighTech"),
+        Economy(id=4, text="Industrial", eddn="Industrial"),
+        Economy(id=5, text="Military", eddn="Military"),
+        Economy(id=6, text="Refinery", eddn="Refinery"),
+        Economy(id=7, text="Service", eddn="Service"),
+        Economy(id=8, text="Terraforming", eddn="Terraforming"),
+        Economy(id=9, text="Tourism", eddn="Tourism"),
+        Economy(id=10, text="None", eddn="None"),
+        Economy(id=11, text="Colony", eddn="Colony"),
+        Economy(id=12, text="Private Enterprise", eddn="PrivateEnterprise"),
+        Economy(id=13, text="Rescue", eddn="Rescue"),
+        Economy(id=14, text="Prison", eddn="Prison"),
+        Economy(id=15, text="Carrier", eddn="Carrier"),
+        Economy(id=16, text="Damaged", eddn="Damaged"),
     ])
 
 
@@ -879,44 +888,50 @@ def preload_gov_type(session):
         Government(id=192, text='Engineer', eddn='Engineer'),
         Government(id=208, text='Prison', eddn='Prison'),
         Government(id=209, text='Private Ownership', eddn='PrivateOwnership'),
+        Government(id=300, text='Carrier', eddn='Carrier'),
     ])
 
 
 def preload_powers(session):
     """ All possible powers in Powerplay. """
     session.add_all([
-        Power(id=0, text="None", abbrev="NON"),
-        Power(id=1, text="Aisling Duval", abbrev="AIS"),
-        Power(id=2, text="Archon Delaine", abbrev="ARC"),
-        Power(id=3, text="Arissa Lavigny-Duval", abbrev="ALD"),
-        Power(id=4, text="Denton Patreus", abbrev="PAT"),
-        Power(id=5, text="Edmund Mahon", abbrev="MAH"),
-        Power(id=6, text="Felicia Winters", abbrev="WIN"),
-        Power(id=7, text="Li Yong-Rui", abbrev="LYR"),
-        Power(id=8, text="Pranav Antal", abbrev="ANT"),
-        Power(id=9, text="Zachary Hudson", abbrev="HUD"),
-        Power(id=10, text="Zemina Torval", abbrev="TOR"),
-        Power(id=11, text="Yuri Grom", abbrev="GRM"),
+        Power(id=0, text="None", eddn='None', abbrev="NON"),
+        Power(id=1, text="Aisling Duval", eddn='Aisling Duval', abbrev="AIS", home_system_name='Cubeo'),
+        Power(id=2, text="Archon Delaine", eddn='Archon Delaine', abbrev="ARC", home_system_name='Harma'),
+        Power(id=3, text="Arissa Lavigny-Duval", eddn='A. Lavigny-Duval', abbrev="ALD", home_system_name='Kamadhenu'),
+        Power(id=4, text="Denton Patreus", eddn='Denton Patreus', abbrev="PAT", home_system_name='Eotienses'),
+        Power(id=5, text="Edmund Mahon", eddn='Edmund Mahon', abbrev="MAH", home_system_name='Gateway'),
+        Power(id=6, text="Felicia Winters", eddn='Felicia Winters', abbrev="WIN", home_system_name='Rhea'),
+        Power(id=7, text="Li Yong-Rui", eddn='Li Yong-Rui', abbrev="LYR", home_system_name='Lembava'),
+        Power(id=8, text="Pranav Antal", eddn='Pranav Antal', abbrev="ANT", home_system_name='Polevnic'),
+        Power(id=9, text="Zachary Hudson", eddn='Zachary Hudson', abbrev="HUD", home_system_name='Clayakarma'),
+        Power(id=10, text="Zemina Torval", eddn='Zemina Torval', abbrev="TOR", home_system_name='Nanomam'),
+        Power(id=11, text="Yuri Grom", eddn='Yuri Grom', abbrev="GRM", home_system_name='Synteini'),
     ])
 
 
 def preload_power_states(session):
     """ All possible powerplay states. """
     session.add_all([
-        PowerState(id=0, text="None"),
-        PowerState(id=16, text="Control"),
-        PowerState(id=32, text="Exploited"),
-        PowerState(id=48, text="Contested"),
-        PowerState(id=64, text="Expansion"),
+        PowerState(id=0, text="None", eddn='None'),
+        PowerState(id=16, text="Control", eddn='Controlled'),
+        PowerState(id=32, text="Exploited", eddn='Exploited'),
+        PowerState(id=48, text="Contested", eddn='Contested'),
+        PowerState(id=64, text="Expansion", eddn='Expansion'),
+        PowerState(id=80, text="Prepared", eddn='Prepared'),
+        PowerState(id=96, text="HomeSystem", eddn='HomeSystem'),
     ])
+    # Note: HomeSystem and Prepared are EDDN only states.
+    #       HomeSystem is redundant as I map Power.home_system
+    #       Prepared can be tracked shouldn't overlap
 
 
 def preload_security(session):
     """ Preload possible System security values. """
     session.add_all([
-        Security(id=16, text="Low", eddn="Low"),
-        Security(id=32, text="Medium", eddn="Medium"),
-        Security(id=48, text="High", eddn="High"),
+        Security(id=16, text="Low", eddn="low"),
+        Security(id=32, text="Medium", eddn="medium"),
+        Security(id=48, text="High", eddn="high"),
         Security(id=64, text="Anarchy", eddn="state_anarchy"),
         Security(id=80, text="Lawless", eddn="state_lawless"),
     ])
@@ -942,31 +957,32 @@ def preload_settlement_size(session):
     ])
 
 
+# Alias: 'Bernal' -> 'Ocellus'
 def preload_station_types(session):
     """ Preload station types table. """
     session.add_all([
-        StationType(id=1, text='Civilian Outpost'),
+        StationType(id=1, text='Civilian Outpost', eddn='Outpost'),
         StationType(id=2, text='Commercial Outpost'),
-        StationType(id=3, text='Coriolis Starport'),
+        StationType(id=3, text='Coriolis Starport', eddn='Coriolis'),
         StationType(id=4, text='Industrial Outpost'),
         StationType(id=5, text='Military Outpost'),
         StationType(id=6, text='Mining Outpost'),
-        StationType(id=7, text='Ocellus Starport'),
-        StationType(id=8, text='Orbis Starport'),
+        StationType(id=7, text='Ocellus Starport', eddn='Ocellus'),
+        StationType(id=8, text='Orbis Starport', eddn='Orbis'),
         StationType(id=9, text='Scientific Outpost'),
         StationType(id=10, text='Unsanctioned Outpost'),
         StationType(id=11, text='Unknown Outpost'),
         StationType(id=12, text='Unknown Starport'),
-        StationType(id=13, text='Planetary Outpost'),
-        StationType(id=14, text='Planetary Port'),
+        StationType(id=13, text='Planetary Outpost', eddn='CraterOutpost'),
+        StationType(id=14, text='Planetary Port', eddn='CraterPort'),
         StationType(id=15, text='Unknown Planetary'),
         StationType(id=16, text='Planetary Settlement'),
         StationType(id=17, text='Planetary Engineer Base'),
-        StationType(id=19, text='Megaship'),
-        StationType(id=20, text='Asteroid Base'),
+        StationType(id=19, text='Megaship', eddn='MegaShip'),
+        StationType(id=20, text='Asteroid Base', eddn='AsteroidBase'),
         StationType(id=22, text='Unknown Dockable'),
         StationType(id=23, text='Non-Dockable Orbital'),
-        StationType(id=24, text='Fleet Carrier'),
+        StationType(id=24, text='Fleet Carrier', eddn='FleetCarrier'),
     ])
 
 
@@ -1626,6 +1642,7 @@ def main():  # pragma: no cover
 
     import_eddb()
     session = cogdb.EDDBSession()
+
     print("Module count:", session.query(Module).count())
     print("Commodity count:", session.query(Commodity).count())
     print("Faction count:", session.query(Faction).count())

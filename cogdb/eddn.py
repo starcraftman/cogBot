@@ -17,6 +17,9 @@ try:
 except ImportError:
     import json
 
+import cogdb
+import cogdb.eddb
+
 EDDN_ADDR = "tcp://eddn.edcd.io:9500"
 TIMEOUT = 600000
 SCHEMA_MAP = {
@@ -26,6 +29,60 @@ SCHEMA_MAP = {
     #  "https://eddn.edcd.io/schemas/shipyard/2": "parse_shipyard",
 }
 TIME_STRP = "%Y-%m-%dT%H:%M:%SZ"
+
+
+def parse_conflicts(msg):
+    pass
+
+#  "Factions": [
+#  {
+#  "Allegiance": "Independent",
+#  "FactionState": "None",
+#  "Government": "Dictatorship",
+#  "Happiness": "$Faction_HappinessBand2;",
+#  "Influence": 0.044732,
+#  "Name": "Natural Ahemakino Defence Party"
+#  }
+#  ],
+def parse_factions(body):
+    """ """
+    factions = {}
+
+    for faction in body['Factions']:
+        for (key, dest) in [("Name", "name"), ("I", "name"), ("StationType", "tpye_id")]:
+            if key in body:
+                factions[dest] = body[key]
+
+    return factions
+
+
+def parse_station(body):
+    """ """
+    station = {}
+    for (key, dest) in [("BodyID", "id"), ("Body", "name"), ("StationType", "tpye_id")]:
+        if key in body:
+            station[dest] = body[key]
+
+    return station
+
+
+def parse_system(body):
+    """
+    Parse the system portion of an EDDN message and return anything present in dictionary.
+
+    Returns: A system dict with parsed info.
+    """
+    system = {}
+
+    for (key, dest) in [("Population", "population"), ("StarSystem", "name")]:
+        if key in body:
+            system[dest] = body[key]
+
+    if "StarPos" in body:
+        for key, dest in [(0, "x"), (1, "y"), (2, "z")]:
+            system[dest] = body["StarPos"][key]
+
+    return system
 
 
 def parse_journal(msg):
@@ -41,13 +98,11 @@ def parse_journal(msg):
     body = msg['message']
     timestamp = datetime.datetime.strptime(body['timestamp'], TIME_STRP)
 
-    if body['bodyType'] != "Station":
-        return "Not a station update"
+    station = parse_station(body)
+    print(station)
 
-    station = {
-        "id": body["bodyID"],
-        "name": body["body"],
-    }
+    system = parse_system(body)
+    print(system)
 
     return timestamp
 

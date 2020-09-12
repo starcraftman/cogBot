@@ -4,7 +4,7 @@ Tests for cog.inara
 import os
 
 try:
-    import simplejson as json
+    import rapidjson as json
 except ImportError:
     import json
 import pytest

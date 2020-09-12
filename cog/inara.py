@@ -25,7 +25,7 @@ import logging
 import math
 import re
 try:
-    import simplejson as json
+    import rapidjson as json
 except ImportError:
     import json
 
