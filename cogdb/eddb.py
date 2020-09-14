@@ -623,6 +623,10 @@ class Station(Base):
         primaryjoin='and_(Station.controlling_minor_faction_id == remote(Faction.id), foreign(Faction.government_id) == foreign(Government.id))',
     )
 
+    def update(self, kwargs):
+        """ Update this object based on a dictionary of kwargs. """
+        self.__dict__.update(kwargs)
+
     def __repr__(self):
         keys = ['id', 'name', 'distance_to_star', 'max_landing_pad_size',
                 'type_id', 'system_id', 'controlling_minor_faction_id', 'updated_at']
@@ -728,6 +732,10 @@ class System(Base):
         """" Aproximates the default undermining trigger. """
         return round(5000 + (2750000 / math.pow(self.dist_to(system), 1.5)))
 
+    def update(self, kwargs):
+        """ Update this object based on a dictionary of kwargs. """
+        self.__dict__.update(kwargs)
+
     def __repr__(self):
         keys = ['id', 'name', 'population',
                 'needs_permit', 'updated_at', 'power_id', 'edsm_id',
@@ -742,6 +750,92 @@ class System(Base):
 
     def __hash__(self):
         return hash(self.id)
+
+
+class ConflictState(Base):
+    __tablename__ = 'conflict_states'
+
+    id = sqla.Column(sqla.Integer, primary_key=True)
+    text = sqla.Column(sqla.String(LEN["faction_state"]))
+    eddn = sqla.Column(sqla.String(LEN["faction_state"]))
+
+    def __repr__(self):
+        keys = ['id', 'text', 'eddn']
+        kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
+
+        return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
+
+    def __eq__(self, other):
+        return (isinstance(self, ConflictState) and isinstance(other, ConflictState)
+                and self.id == other.id)
+
+    def __hash__(self):
+        return hash(self.id)
+
+
+class Conflict(Base):
+    """
+    Defines an in system conflict between two factions.
+    """
+    __tablename__ = 'conflicts'
+
+    system_id = sqla.Column(sqla.Integer, sqla.ForeignKey('systems.id'), primary_key=True)
+    status_id = sqla.Column(sqla.Integer, sqla.ForeignKey('conflict_states.id'))
+    type_id = sqla.Column(sqla.Integer, sqla.ForeignKey('conflict_states.id'))
+    system_id = sqla.Column(sqla.Integer, sqla.ForeignKey('systems.id'))
+    faction1_id = sqla.Column(sqla.Integer, sqla.ForeignKey('factions.id'), primary_key=True)
+    faction1_stake_id = sqla.Column(sqla.Integer, sqla.ForeignKey('stations.id'))
+    faction1_days = sqla.Column(sqla.Integer)
+    faction2_id = sqla.Column(sqla.Integer, sqla.ForeignKey('factions.id'), primary_key=True)
+    faction2_stake_id = sqla.Column(sqla.Integer, sqla.ForeignKey('stations.id'))
+    faction2_days = sqla.Column(sqla.Integer)
+
+    # Relationships
+    system = sqla_orm.relationship('System')
+    status = sqla_orm.relationship(
+        'ConflictState', viewonly=True, lazy='select',
+        primaryjoin='foreign(Conflict.status_id) == ConflictState.id',
+    )
+    type = sqla_orm.relationship(
+        'ConflictState', viewonly=True, lazy='select',
+        primaryjoin='foreign(Conflict.type_id) == ConflictState.id',
+    )
+    faction1 = sqla_orm.relationship(
+        'Faction', viewonly=True, lazy='select',
+        primaryjoin='foreign(Conflict.faction1_id) == Faction.id',
+    )
+    faction2 = sqla_orm.relationship(
+        'Faction', viewonly=True, lazy='select',
+        primaryjoin='foreign(Conflict.faction2_id) == Faction.id',
+    )
+    faction1_stake = sqla_orm.relationship(
+        'Station', viewonly=True, lazy='select',
+        primaryjoin='foreign(Conflict.faction1_stake_id) == Station.id',
+    )
+    faction2_stake = sqla_orm.relationship(
+        'Station', viewonly=True, lazy='select',
+        primaryjoin='foreign(Conflict.faction2_stake_id) == Station.id',
+    )
+
+    def __repr__(self):
+        keys = ['system_id', 'state_id', 'type_id',
+                'faction1_id', 'faction1_stake_id', 'faction1_days',
+                'faction2_id', 'faction2_stake_id', 'faction2_days']
+        kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
+
+        return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
+
+    def __eq__(self, other):
+        return (isinstance(self, Conflict) and isinstance(other, Conflict)
+                and self.__hash__() == other.__hash__())
+
+    def __hash__(self):
+        return hash("{}_{}_{}".format(self.system_id, self.faction1_id, self.faction2_id))
+
+    def update(self, kwargs):
+        """ Update this object based on a dictionary of kwargs. """
+        self.__dict__.update(kwargs)
+
 
 # Bidirectional relationships
 Commodity.category = sqla_orm.relationship(
@@ -808,6 +902,17 @@ def preload_allegiance(session):
         Allegiance(id=7, text="Pilots Federation", eddn="PilotsFederation"),
         Allegiance(id=8, text="Thargoid", eddn="Thargoid"),
         Allegiance(id=9, text="Guardian", eddn="Guardian"),
+    ])
+
+
+def preload_conflict_states(session):
+    session.add_all([
+        ConflictState(id=1, text="Unknown", eddn=""),
+        ConflictState(id=2, text="Active", eddn="active"),
+        ConflictState(id=3, text="Pending", eddn="pending"),
+        ConflictState(id=4, text="Civil War", eddn="civilwar"),
+        ConflictState(id=5, text="Election", eddn="election"),
+        ConflictState(id=6, text="War", eddn="war"),
     ])
 
 
@@ -991,6 +1096,7 @@ def preload_tables(session):
     Preload all minor linked tables.
     """
     preload_allegiance(session)
+    preload_conflict_states(session)
     preload_economies(session)
     preload_faction_happiness(session)
     preload_faction_state(session)
@@ -1685,7 +1791,7 @@ try:
     PLANETARY_TYPE_IDS = [x[0] for x in
         session.query(StationType.id).filter(StationType.text.ilike('%planetary%')).all()
     ]
-except (sqla_orm.exc.NoResultFound, sqlalchemy.exc.ProgrammingError):
+except (sqla_orm.exc.NoResultFound, sqla.exc.ProgrammingError):
     HUDSON_CONTROLS = []
     WINTERS_CONTROLS = []
 

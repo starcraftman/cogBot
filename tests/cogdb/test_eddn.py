@@ -372,7 +372,49 @@ EXAMPLE_JOURNAL_STATION = """{
 """
 
 
-def test_parse_journal():
-    msg = json.loads(EXAMPLE_JOURNAL_STATION)
+def test_camel_to_c():
+    assert cogdb.eddn.camel_to_c("CamelCase") == "camel_case"
 
-    print(cogdb.eddn.parse_journal(msg))
+
+def test_create_id_maps():
+    maps = cogdb.eddn.create_id_maps(cogdb.EDDBSession())
+
+    assert 'Thargoid' in maps['Allegiance']
+
+
+def test_journal_parse_system():
+    msg = json.loads(EXAMPLE_JOURNAL_STATION)
+    session = cogdb.EDDBSession()
+    parser = cogdb.eddn.JournalMsg(msg, session)
+
+    __import__('pprint').pprint(parser.parse_system())
+
+
+def test_journal_parse_station():
+    msg = json.loads(EXAMPLE_JOURNAL_STATION)
+    session = cogdb.EDDBSession()
+    parser = cogdb.eddn.JournalMsg(msg, session)
+
+    parser.parse_system()
+    __import__('pprint').pprint(parser.parse_station())
+
+
+def test_journal_parse_factions():
+    msg = json.loads(EXAMPLE_JOURNAL_STATION)
+    session = cogdb.EDDBSession()
+    parser = cogdb.eddn.JournalMsg(msg, session)
+
+    parser.parse_system()
+    parser.parse_station()
+    __import__('pprint').pprint(parser.parse_factions())
+
+
+def test_journal_parse_conflicts():
+    msg = json.loads(EXAMPLE_JOURNAL_STATION)
+    session = cogdb.EDDBSession()
+    parser = cogdb.eddn.JournalMsg(msg, session)
+
+    parser.parse_system()
+    parser.parse_station()
+    parser.parse_factions()
+    __import__('pprint').pprint(parser.parse_conflicts())
