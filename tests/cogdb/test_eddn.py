@@ -6,12 +6,9 @@ try:
 except ImportError:
     import json
 
-import cog.util
 import cogdb.eddn
 
 
-#  with open(cog.util.rel_to_abs('tests', 'eddn_data', 'journal')) as fin:
-    #  JOURNAL = json.loads(fin.read())
 EXAMPLE_JOURNAL_CARRIER = """{
     "$schemaRef": "https://eddn.edcd.io/schemas/journal/1",
     "header": {
@@ -384,16 +381,14 @@ def test_create_id_maps():
 
 def test_journal_parse_system():
     msg = json.loads(EXAMPLE_JOURNAL_STATION)
-    session = cogdb.EDDBSession()
-    parser = cogdb.eddn.JournalMsg(msg, session)
+    parser = cogdb.eddn.create_parser(msg)
 
     __import__('pprint').pprint(parser.parse_system())
 
 
 def test_journal_parse_station():
     msg = json.loads(EXAMPLE_JOURNAL_STATION)
-    session = cogdb.EDDBSession()
-    parser = cogdb.eddn.JournalMsg(msg, session)
+    parser = cogdb.eddn.create_parser(msg)
 
     parser.parse_system()
     __import__('pprint').pprint(parser.parse_station())
@@ -401,8 +396,7 @@ def test_journal_parse_station():
 
 def test_journal_parse_factions():
     msg = json.loads(EXAMPLE_JOURNAL_STATION)
-    session = cogdb.EDDBSession()
-    parser = cogdb.eddn.JournalMsg(msg, session)
+    parser = cogdb.eddn.create_parser(msg)
 
     parser.parse_system()
     parser.parse_station()
@@ -411,10 +405,10 @@ def test_journal_parse_factions():
 
 def test_journal_parse_conflicts():
     msg = json.loads(EXAMPLE_JOURNAL_STATION)
-    session = cogdb.EDDBSession()
-    parser = cogdb.eddn.JournalMsg(msg, session)
+    parser = cogdb.eddn.create_parser(msg)
 
     parser.parse_system()
     parser.parse_station()
     parser.parse_factions()
     __import__('pprint').pprint(parser.parse_conflicts())
+    parser.parse_conflicts()[0]['faction2_stake_id'] is None

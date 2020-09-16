@@ -35,18 +35,18 @@ if 'pytest' in sys.modules:
 else:
     CREDS['db'] = os.environ.get('COG_TOKEN', 'dev')
 
-engine = sqlalchemy.create_engine(MYSQL_SPEC.format(**CREDS), echo=False, pool_recycle=3600)
+engine = sqlalchemy.create_engine(MYSQL_SPEC.format(**CREDS), echo=False, pool_recycle=3600, pool_size=10)
 Session = sqlalchemy.orm.sessionmaker(bind=engine)
 logging.getLogger(__name__).info('Main Engine Selected: %s', engine)
 
 # Local eddb server
 CREDS['db'] = "eddb"
-eddb_engine = sqlalchemy.create_engine(MYSQL_SPEC.format(**CREDS), echo=False)
+eddb_engine = sqlalchemy.create_engine(MYSQL_SPEC.format(**CREDS), echo=False, pool_recycle=3600, pool_size=20)
 EDDBSession = sqlalchemy.orm.sessionmaker(bind=eddb_engine)
 
 # Remote server tracking bgs
 CREDS = cog.util.get_config('dbs', 'side')
-side_engine = sqlalchemy.create_engine(MYSQL_SPEC.format(**CREDS), echo=False, pool_recycle=3600)
+side_engine = sqlalchemy.create_engine(MYSQL_SPEC.format(**CREDS), echo=False, pool_recycle=3600, pool_size=5)
 SideSession = sqlalchemy.orm.sessionmaker(bind=side_engine)
 
 CREDS = None

@@ -527,19 +527,19 @@ class StationFeatures(Base):
 
     id = sqla.Column(sqla.Integer, primary_key=True)  # Station.id
     blackmarket = sqla.Column(sqla.Boolean)
+    commodities = sqla.Column(sqla.Boolean)
+    dock = sqla.Column(sqla.Boolean)
     market = sqla.Column(sqla.Boolean)
+    outfitting = sqla.Column(sqla.Boolean)
+    rearm = sqla.Column(sqla.Boolean)
     refuel = sqla.Column(sqla.Boolean)
     repair = sqla.Column(sqla.Boolean)
-    rearm = sqla.Column(sqla.Boolean)
-    outfitting = sqla.Column(sqla.Boolean)
     shipyard = sqla.Column(sqla.Boolean)
-    docking = sqla.Column(sqla.Boolean)
-    commodities = sqla.Column(sqla.Boolean)
 
     def __repr__(self):
         keys = ['id', 'blackmarket', 'market', 'refuel',
                 'repair', 'rearm', 'outfitting', 'shipyard',
-                'docking', 'commodities']
+                'dock', 'commodities']
         kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
 
         return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
@@ -578,6 +578,7 @@ class StationEconomy(Base):
 
     id = sqla.Column(sqla.Integer, sqla.ForeignKey('stations.id'), primary_key=True)
     economy_id = sqla.Column(sqla.Integer, sqla.ForeignKey('economies.id'), primary_key=True)
+    primary = sqla.Column(sqla.Boolean, primary_key=True, default=False)
 
     def __repr__(self):
         keys = ['id', 'economy_id']
@@ -835,6 +836,33 @@ class Conflict(Base):
     def update(self, kwargs):
         """ Update this object based on a dictionary of kwargs. """
         self.__dict__.update(kwargs)
+
+
+class ContestedTracker(Base):
+    """
+    Tracks all systems that are conflicting with a given contested system.
+    Multiple controls from a same power are allowed, it only tracks the actual systems.
+    To be clear, a system is only contested if different powers contest it.
+
+    This table is basically a view that is populated on demand.
+    """
+    __tablename__ = 'v_contested_controls'
+
+    id = sqla.Column(sqla.Integer, sqla.ForeignKey('systems.id'), primary_key=True)
+    control_id = sqla.Column(sqla.Integer, primary_key=True)
+
+    def __repr__(self):
+        keys = ['id', 'control_id']
+        kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
+
+        return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
+
+    def __eq__(self, other):
+        return (isinstance(self, ContestedTracker) and isinstance(other, ContestedTracker)
+                and self.__hash__() == other.__hash__())
+
+    def __hash__(self):
+        return hash("{}_{}".format(self.id, self.control_id))
 
 
 # Bidirectional relationships
@@ -1399,7 +1427,7 @@ def load_stations(session, fname, preload=True):
         'item.updated_at': [('station', 'updated_at')],
         'item.has_blackmarket': [('st_features', 'blackmarket')],
         'item.has_commodities': [('st_features', 'commodities')],
-        'item.has_docking': [('st_features', 'docking')],
+        'item.has_docking': [('st_features', 'dock')],
         'item.has_market': [('st_features', 'market')],
         'item.has_outfitting': [('st_features', 'outfitting')],
         'item.has_refuel': [('st_features', 'refuel')],
@@ -1742,12 +1770,40 @@ def import_eddb():
                   preload=args.preload)
 
 
+
+# TODO: Replace below function with view, create in ORM layer?
+#  create or replace view eddb.v_contesteds as select s.id as id, s.name as name, c.id as control_id, c.name as control_name, p.text as power from systems s cross join systems as c inner join powers as p on c.power_id = p.id where s.power_state_id = 48 and c.power_state_id = 16 and sqrt((c.x - s.x) * (c.x - s.x) + (c.y - s.y) * (c.y - s.y) + (c.z - s.z) * (c.z - s.z)) <= 15 order by s.id;
+def populate_contesteds(session):
+    """
+    Populate the list of controls that contest all systems that are in the db.
+    A system is contested if 2 or more controls are within 15 lys of distance to it.
+
+    Args:
+        session: An EDDBSession.
+    """
+    session.query(ContestedTracker).delete()
+
+    subq_contest = session.query(PowerState.id).filter(PowerState.text == 'Contested').subquery()
+    subq_control = session.query(PowerState.id).filter(PowerState.text == 'Control').subquery()
+    for contested in session.query(System).filter(System.power_state_id == subq_contest).all():
+        near_controls = session.query(System).\
+            filter(System.dist_to(contested) <= 15,
+                   System.power_state_id == subq_control).\
+            all()
+
+        for system in near_controls:
+            session.add(ContestedTracker(id=contested.id, control_id=system.id))
+
+    session.commit()
+
+
 def main():  # pragma: no cover
     """ Main entry. """
     start = datetime.datetime.now()
 
     import_eddb()
     session = cogdb.EDDBSession()
+    populate_contesteds(session)
 
     print("Module count:", session.query(Module).count())
     print("Commodity count:", session.query(Commodity).count())
@@ -1756,6 +1812,7 @@ def main():  # pragma: no cover
     print("Influence count:", session.query(Influence).count())
     print("Populated System count:", session.query(System).count())
     print("Station count:", session.query(Station).count())
+    print("Contested count:", session.query(ContestedTracker).count())
 
     print("Time taken:", datetime.datetime.now() - start)
 
