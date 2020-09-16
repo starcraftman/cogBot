@@ -1732,13 +1732,28 @@ def select_classes(obj):
     return inspect.isclass(obj) and obj.__name__ not in ["Base", "hybrid_method", "hybrid_property"]
 
 
+# TODO: Bit messy but works for now.
+#       Core SQLAlchemy lacks proper views, might be in libraries.
 def recreate_tables():
     """
     Recreate all tables in the database, mainly for schema changes and testing.
     """
     cogdb.EDDBSession.close_all()
-    Base.metadata.drop_all(cogdb.eddb_engine)
+
+    try:
+        with cogdb.eddb_engine.connect() as con:
+            con.execute(sqla.sql.text("DROP VIEW eddb.v_contesteds"))
+    except sqla.exc.OperationalError:
+        pass
+    meta = sqlalchemy.MetaData(bind=cogdb.eddb_engine, reflect=True)
+    for tbl in reversed(meta.sorted_tables):
+        try:
+            tbl.drop()
+        except sqla.exc.OperationalError:
+            pass
+
     Base.metadata.create_all(cogdb.eddb_engine)
+    ContestedSystem.__table__.drop(cogdb.eddb_engine)
 
 
 def parser():
