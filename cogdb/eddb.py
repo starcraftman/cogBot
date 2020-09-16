@@ -70,6 +70,21 @@ HQS = {
 # These are the faction types strong/weak verse.
 HUDSON_BGS = [['Feudal', 'Patronage'], ["Dictatorship"]]
 WINTERS_BGS = [["Corporate"], ["Communism", "Cooperative", "Feudal", "Patronage"]]
+VIEW_CONTESTEDS = """
+CREATE or REPLACE VIEW eddb.v_contesteds
+AS
+    SELECT s.id as id, s.name as name,
+           c.id as control_id, c.name as control_name,
+           p.text as power
+    FROM systems s
+    CROSS JOIN systems AS c
+    INNER JOIN powers as p ON c.power_id = p.id
+    WHERE s.power_state_id = 48 AND c.power_state_id = 16 AND
+        sqrt((c.x - s.x) * (c.x - s.x) +
+             (c.y - s.y) * (c.y - s.y) +
+             (c.z - s.z) * (c.z - s.z)) <= 15
+    ORDER BY s.id;
+"""
 # To select planetary stations
 Base = sqlalchemy.ext.declarative.declarative_base()
 
@@ -838,7 +853,7 @@ class Conflict(Base):
         self.__dict__.update(kwargs)
 
 
-class ContestedTracker(Base):
+class ContestedSystem(Base):
     """
     Tracks all systems that are conflicting with a given contested system.
     Multiple controls from a same power are allowed, it only tracks the actual systems.
@@ -846,19 +861,32 @@ class ContestedTracker(Base):
 
     This table is basically a view that is populated on demand.
     """
-    __tablename__ = 'v_contested_controls'
+    __tablename__ = 'v_contesteds'
 
     id = sqla.Column(sqla.Integer, sqla.ForeignKey('systems.id'), primary_key=True)
+    name = sqla.Column(sqla.String(LEN['system']))
     control_id = sqla.Column(sqla.Integer, primary_key=True)
+    control_name = sqla.Column(sqla.String(LEN['system']))
+    power = sqla.Column(sqla.String(LEN['power']))
+
+    # Relationships
+    contested_system = sqla_orm.relationship(
+        'System', viewonly=True, uselist=False, lazy='select',
+        primaryjoin='foreign(ContestedSystem.id) == System.id',
+    )
+    control_system = sqla_orm.relationship(
+        'System', viewonly=True, uselist=False, lazy='select',
+        primaryjoin='foreign(ContestedSystem.control_id) == System.id',
+    )
 
     def __repr__(self):
-        keys = ['id', 'control_id']
+        keys = ['id', 'name', 'control_id', 'control_name', 'power']
         kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
 
         return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
 
     def __eq__(self, other):
-        return (isinstance(self, ContestedTracker) and isinstance(other, ContestedTracker)
+        return (isinstance(self, ContestedSystem) and isinstance(other, ContestedSystem)
                 and self.__hash__() == other.__hash__())
 
     def __hash__(self):
@@ -1770,41 +1798,16 @@ def import_eddb():
                   preload=args.preload)
 
 
-
-# TODO: Replace below function with view, create in ORM layer?
-#  create or replace view eddb.v_contesteds as select s.id as id, s.name as name, c.id as control_id, c.name as control_name, p.text as power from systems s cross join systems as c inner join powers as p on c.power_id = p.id where s.power_state_id = 48 and c.power_state_id = 16 and sqrt((c.x - s.x) * (c.x - s.x) + (c.y - s.y) * (c.y - s.y) + (c.z - s.z) * (c.z - s.z)) <= 15 order by s.id;
-def populate_contesteds(session):
-    """
-    Populate the list of controls that contest all systems that are in the db.
-    A system is contested if 2 or more controls are within 15 lys of distance to it.
-
-    Args:
-        session: An EDDBSession.
-    """
-    session.query(ContestedTracker).delete()
-
-    subq_contest = session.query(PowerState.id).filter(PowerState.text == 'Contested').subquery()
-    subq_control = session.query(PowerState.id).filter(PowerState.text == 'Control').subquery()
-    for contested in session.query(System).filter(System.power_state_id == subq_contest).all():
-        near_controls = session.query(System).\
-            filter(System.dist_to(contested) <= 15,
-                   System.power_state_id == subq_control).\
-            all()
-
-        for system in near_controls:
-            session.add(ContestedTracker(id=contested.id, control_id=system.id))
-
-    session.commit()
-
-
 def main():  # pragma: no cover
     """ Main entry. """
     start = datetime.datetime.now()
 
     import_eddb()
-    session = cogdb.EDDBSession()
-    populate_contesteds(session)
+    # Create views
+    with cogdb.eddb_engine.connect() as con:
+        con.execute(sqla.sql.text(VIEW_CONTESTEDS.strip()))
 
+    session = cogdb.EDDBSession()
     print("Module count:", session.query(Module).count())
     print("Commodity count:", session.query(Commodity).count())
     print("Faction count:", session.query(Faction).count())
@@ -1812,8 +1815,7 @@ def main():  # pragma: no cover
     print("Influence count:", session.query(Influence).count())
     print("Populated System count:", session.query(System).count())
     print("Station count:", session.query(Station).count())
-    print("Contested count:", session.query(ContestedTracker).count())
-
+    print("Contested count:", session.query(ContestedSystem).count())
     print("Time taken:", datetime.datetime.now() - start)
 
     #  station = session.query(Station).filter(Station.is_planetary).limit(5).all()[0]
