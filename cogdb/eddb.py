@@ -53,20 +53,6 @@ LEN = {  # Lengths for strings stored in the db
     "weapon_mode": 6,
 }
 TIME_FMT = "%d/%m/%y %H:%M:%S"
-#  http://elite-dangerous.wikia.com/wiki/Category:Power
-HQS = {
-    "aisling duval": "Cubeo",
-    "archon delaine": "Harma",
-    "arissa lavigny-duval": "Kamadhenu",
-    "denton patreus": "Eotienses",
-    "edmund mahon": "Gateway",
-    "felicia winters": "Rhea",
-    "li yong-rui": "Lembava",
-    "pranav antal": "Polevnic",
-    "yuri grom": "Clayakarma",
-    "zachary hudson": "Nanomam",
-    "zemina torval": "Synteini",
-}
 # These are the faction types strong/weak verse.
 HUDSON_BGS = [['Feudal', 'Patronage'], ["Dictatorship"]]
 WINTERS_BGS = [["Corporate"], ["Communism", "Cooperative", "Feudal", "Patronage"]]
@@ -79,7 +65,9 @@ AS
     FROM systems s
     CROSS JOIN systems AS c
     INNER JOIN powers as p ON c.power_id = p.id
-    WHERE s.power_state_id = 48 AND c.power_state_id = 16 AND
+    WHERE
+        s.power_state_id = (SELECT id FROM power_state WHERE power_state.text = 'Contested') AND
+        c.power_state_id = (SELECT id FROM power_state WHERE power_state.text = 'Control') AND
         sqrt((c.x - s.x) * (c.x - s.x) +
              (c.y - s.y) * (c.y - s.y) +
              (c.z - s.z) * (c.z - s.z)) <= 15
@@ -855,11 +843,10 @@ class Conflict(Base):
 
 class ContestedSystem(Base):
     """
-    Tracks all systems that are conflicting with a given contested system.
-    Multiple controls from a same power are allowed, it only tracks the actual systems.
-    To be clear, a system is only contested if different powers contest it.
+    This table is a __VIEW__. See VIEW_CONTESTEDS.
 
-    This table is basically a view that is populated on demand.
+    Tracks all control systems that are conflicting with a given contested system.
+    A system is contested if two or more different powers have a control system within 15ly.
     """
     __tablename__ = 'v_contesteds'
 
@@ -1850,9 +1837,15 @@ try:
     PLANETARY_TYPE_IDS = [x[0] for x in
         session.query(StationType.id).filter(StationType.text.ilike('%planetary%')).all()
     ]
+    HQS = {
+        p.text.lower(): p.home_system.name for p in
+        session.query(Power).filter(Power.text != 'None').all()
+    }
 except (sqla_orm.exc.NoResultFound, sqla.exc.ProgrammingError):
     HUDSON_CONTROLS = []
     WINTERS_CONTROLS = []
+    PLANETARY_TYPE_IDS = None
+    HQS = None
 
 
 if __name__ == "__main__":  # pragma: no cover
