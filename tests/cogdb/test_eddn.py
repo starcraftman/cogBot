@@ -384,6 +384,7 @@ def test_journal_parse_system():
     parser = cogdb.eddn.create_parser(msg)
 
     __import__('pprint').pprint(parser.parse_system())
+    parser.session.rollback()
 
 
 def test_journal_parse_station():
@@ -392,6 +393,7 @@ def test_journal_parse_station():
 
     parser.parse_system()
     __import__('pprint').pprint(parser.parse_station())
+    parser.session.rollback()
 
 
 def test_journal_parse_factions():
@@ -401,6 +403,7 @@ def test_journal_parse_factions():
     parser.parse_system()
     parser.parse_station()
     __import__('pprint').pprint(parser.parse_factions())
+    parser.session.rollback()
 
 
 def test_journal_parse_conflicts():
@@ -412,3 +415,4 @@ def test_journal_parse_conflicts():
     parser.parse_factions()
     __import__('pprint').pprint(parser.parse_conflicts())
     parser.parse_conflicts()[0]['faction2_stake_id'] is None
+    parser.session.rollback()

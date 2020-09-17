@@ -174,11 +174,11 @@ class Faction(Base):
     id = sqla.Column(sqla.Integer, primary_key=True)
     name = sqla.Column(sqla.String(LEN["faction"]))
     is_player_faction = sqla.Column(sqla.Boolean)
-    home_system_id = sqla.Column(sqla.Integer)  # Make circular.
+    home_system_id = sqla.Column(sqla.Integer)  # Makes circular foreigns.
     allegiance_id = sqla.Column(sqla.Integer, sqla.ForeignKey('allegiance.id'))
     government_id = sqla.Column(sqla.Integer, sqla.ForeignKey('gov_type.id'))
     state_id = sqla.Column(sqla.Integer, sqla.ForeignKey('faction_state.id'))
-    updated_at = sqla.Column(sqla.Integer, onupdate=sqla.func.to_seconds(sqla.func.utc_timestamp()))
+    updated_at = sqla.Column(sqla.Integer, onupdate=sqla.func.unix_timestamp())
 
     # Relationships
     allegiance = sqla.orm.relationship('Allegiance')
@@ -344,7 +344,7 @@ class Influence(Base):
     happiness_id = sqla.Column(sqla.Integer, sqla.ForeignKey('faction_happiness.id'), nullable=True)
     influence = sqla.Column(sqla.Numeric(7, 4, None, False))
     is_controlling_faction = sqla.Column(sqla.Boolean)
-    updated_at = sqla.Column(sqla.Integer, onupdate=sqla.func.to_seconds(sqla.func.utc_timestamp()))
+    updated_at = sqla.Column(sqla.Integer, onupdate=sqla.func.unix_timestamp())
 
     # Relationships
     happiness = sqla.orm.relationship('FactionHappiness')
@@ -361,6 +361,15 @@ class Influence(Base):
         return (isinstance(self, Influence) and isinstance(other, Influence)
                 and self.system_id == other.system_id
                 and self.faction_id == other.faction_id)
+
+    def update(self, kwargs):
+        """
+        Update the object from kwargs.
+        """
+        self.happiness_id = kwargs.get('happiness_id', self.happiness_id)
+        self.influence = kwargs.get('influence', self.influence)
+        self.is_controlling_kwargs = kwargs.get('is_controlling_kwargs', self.is_controlling_faction)
+        self.updated_at = kwargs.get('updated_at', self.updated_at)
 
 
 class Module(Base):
@@ -554,6 +563,10 @@ class StationFeatures(Base):
     def __hash__(self):
         return hash(self.id)
 
+    def update(self, kwargs):
+        """ Update this object based on a dictionary of kwargs. """
+        self.__dict__.update(kwargs)
+
 
 class StationType(Base):
     __tablename__ = "station_types"
@@ -582,9 +595,10 @@ class StationEconomy(Base):
     id = sqla.Column(sqla.Integer, sqla.ForeignKey('stations.id'), primary_key=True)
     economy_id = sqla.Column(sqla.Integer, sqla.ForeignKey('economies.id'), primary_key=True)
     primary = sqla.Column(sqla.Boolean, primary_key=True, default=False)
+    proportion = sqla.Column(sqla.Float)
 
     def __repr__(self):
-        keys = ['id', 'economy_id']
+        keys = ['id', 'economy_id', 'primary', 'proportion']
         kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
 
         return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
@@ -609,7 +623,7 @@ class Station(Base):
     type_id = sqla.Column(sqla.Integer, sqla.ForeignKey('station_types.id'))
     system_id = sqla.Column(sqla.Integer)
     controlling_minor_faction_id = sqla.Column(sqla.Integer, sqla.ForeignKey('factions.id'))
-    updated_at = sqla.Column(sqla.Integer, onupdate=sqla.func.to_seconds(sqla.func.utc_timestamp()))
+    updated_at = sqla.Column(sqla.Integer, onupdate=sqla.func.unix_timestamp())
 
     # Relationships
     station_type = sqla.orm.relationship('StationType', uselist=False)
@@ -654,7 +668,8 @@ class System(Base):
     population = sqla.Column(sqla.BigInteger)
     needs_permit = sqla.Column(sqla.Integer)
     edsm_id = sqla.Column(sqla.Integer)
-    economy_id = sqla.Column(sqla.Integer, sqla.ForeignKey('economies.id'))
+    primary_economy_id = sqla.Column(sqla.Integer, sqla.ForeignKey('economies.id'))
+    secondary_economy_id = sqla.Column(sqla.Integer, sqla.ForeignKey('economies.id'))
     power_id = sqla.Column(sqla.Integer, sqla.ForeignKey('powers.id'))
     security_id = sqla.Column(sqla.Integer, sqla.ForeignKey('security.id'))
     power_state_id = sqla.Column(sqla.Integer, sqla.ForeignKey('power_state.id'))
@@ -663,10 +678,17 @@ class System(Base):
     x = sqla.Column(sqla.Numeric(10, 5, None, False))
     y = sqla.Column(sqla.Numeric(10, 5, None, False))
     z = sqla.Column(sqla.Numeric(10, 5, None, False))
-    updated_at = sqla.Column(sqla.Integer, onupdate=sqla.func.to_seconds(sqla.func.utc_timestamp()))
+    updated_at = sqla.Column(sqla.Integer, onupdate=sqla.func.unix_timestamp())
 
     # Relationships
-    economy = sqla.orm.relationship('Economy')
+    primary_economy = sqla.orm.relationship(
+        'Economy', uselist=False, lazy='select',
+        primaryjoin='foreign(System.primary_economy_id) == Economy.id'
+    )
+    secondary_economy = sqla.orm.relationship(
+        'Economy', uselist=False, lazy='select',
+        primaryjoin='foreign(System.primary_economy_id) == Economy.id'
+    )
     power = sqla.orm.relationship('Power')
     power_state = sqla.orm.relationship('PowerState')
     security = sqla.orm.relationship('Security')
@@ -679,12 +701,16 @@ class System(Base):
         primaryjoin='and_(System.controlling_minor_faction_id == remote(Faction.id), foreign(Faction.allegiance_id) == foreign(Allegiance.id))',
     )
     control_system = sqla_orm.relationship(
-        'System', viewonly=True, uselist=False, lazy='select',
+        'System', uselist=False, lazy='select',
         primaryjoin='foreign(System.control_system_id) == System.id',
     )
     government = sqla_orm.relationship(
         'Government', viewonly=True, uselist=False, lazy='select',
         primaryjoin='and_(System.controlling_minor_faction_id == remote(Faction.id), foreign(Faction.government_id) == foreign(Government.id))',
+    )
+    controls_contesting = sqla_orm.relationship(
+        'System', viewonly=True, uselist=True, lazy='select',
+        primaryjoin='and_(foreign(System.id) == remote(ContestedSystem.id), foreign(ContestedSystem.control_id) == System.id)',
     )
 
     @hybrid_property
@@ -793,31 +819,32 @@ class Conflict(Base):
     faction2_id = sqla.Column(sqla.Integer, sqla.ForeignKey('factions.id'), primary_key=True)
     faction2_stake_id = sqla.Column(sqla.Integer, sqla.ForeignKey('stations.id'))
     faction2_days = sqla.Column(sqla.Integer)
+    updated_at = sqla.Column(sqla.Integer, onupdate=sqla.func.unix_timestamp())
 
     # Relationships
     system = sqla_orm.relationship('System')
     status = sqla_orm.relationship(
-        'ConflictState', viewonly=True, lazy='select',
+        'ConflictState', lazy='select',
         primaryjoin='foreign(Conflict.status_id) == ConflictState.id',
     )
     type = sqla_orm.relationship(
-        'ConflictState', viewonly=True, lazy='select',
+        'ConflictState', lazy='select',
         primaryjoin='foreign(Conflict.type_id) == ConflictState.id',
     )
     faction1 = sqla_orm.relationship(
-        'Faction', viewonly=True, lazy='select',
+        'Faction', lazy='select',
         primaryjoin='foreign(Conflict.faction1_id) == Faction.id',
     )
     faction2 = sqla_orm.relationship(
-        'Faction', viewonly=True, lazy='select',
+        'Faction', lazy='select',
         primaryjoin='foreign(Conflict.faction2_id) == Faction.id',
     )
     faction1_stake = sqla_orm.relationship(
-        'Station', viewonly=True, lazy='select',
+        'Station', lazy='select',
         primaryjoin='foreign(Conflict.faction1_stake_id) == Station.id',
     )
     faction2_stake = sqla_orm.relationship(
-        'Station', viewonly=True, lazy='select',
+        'Station', lazy='select',
         primaryjoin='foreign(Conflict.faction2_stake_id) == Station.id',
     )
 
@@ -858,11 +885,11 @@ class ContestedSystem(Base):
 
     # Relationships
     contested_system = sqla_orm.relationship(
-        'System', viewonly=True, uselist=False, lazy='select',
+        'System', uselist=False, lazy='select',
         primaryjoin='foreign(ContestedSystem.id) == System.id',
     )
     control_system = sqla_orm.relationship(
-        'System', viewonly=True, uselist=False, lazy='select',
+        'System', uselist=False, lazy='select',
         primaryjoin='foreign(ContestedSystem.control_id) == System.id',
     )
 
@@ -1066,8 +1093,8 @@ def preload_power_states(session):
         PowerState(id=32, text="Exploited", eddn='Exploited'),
         PowerState(id=48, text="Contested", eddn='Contested'),
         PowerState(id=64, text="Expansion", eddn='Expansion'),
-        PowerState(id=80, text="Prepared", eddn='Prepared'),
-        PowerState(id=96, text="HomeSystem", eddn='HomeSystem'),
+        PowerState(id=80, text="Prepared", eddn='Prepared'),  # EDDN only, system prepared
+        PowerState(id=96, text="HomeSystem", eddn='HomeSystem'),  # EDDN only, HQ of a power
     ])
     # Note: HomeSystem and Prepared are EDDN only states.
     #       HomeSystem is redundant as I map Power.home_system
@@ -1346,7 +1373,7 @@ def load_systems(session, fname):
         'item.needs_permit': [('system', 'needs_permit')],
         'item.edsm_id': [('system', 'edsm_id')],
         'item.security_id': [('system', 'security_id')],
-        'item.economy_id': [('system', 'economy_id')],
+        'item.economy_id': [('system', 'primary_economy_id')],
         'item.power': [('system', 'power')],
         'item.power_state_id': [('system', 'power_state_id')],
         'item.controlling_minor_faction_id': [('system', 'controlling_minor_faction_id')],
@@ -1466,8 +1493,10 @@ def load_stations(session, fname, preload=True):
                 station_db = Station(**station)
                 st_features_db = StationFeatures(**st_features)
                 st_type_db = StationType(**st_type)
+                primary = True
                 for econ in st_econs:
-                    economies += [StationEconomy(id=station['id'], economy_id=economy_ids[econ])]
+                    economies += [StationEconomy(id=station['id'], economy_id=economy_ids[econ], primary=primary)]
+                    primary= False
 
                 # Debug
                 #  print('Station', station_db)
@@ -1760,6 +1789,8 @@ def parser():
     parser = argparse.ArgumentParser(description="EDDB Importer")
     parser.add_argument('--preload', '-p', default=True, action="store_true",
                         help='Preload required database entries.')
+    parser.add_argument('--no-preload', '-n', dest='preload', action="store_false",
+                        help='Skip preloading required database entries.')
     parser.add_argument('--dump', '-d', action="store_true",
                         help='Dump existing database to /tmp/eddb_dump')
     parser.add_argument('--yes', '-y', action="store_true",

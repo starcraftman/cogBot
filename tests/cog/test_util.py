@@ -143,7 +143,7 @@ def test_transpose_table():
     assert cog.util.transpose_table(input) == expect
 
 
-class TestObj():
+class NumObj():
     def __init__(self):
         self.num = 0
 
@@ -156,7 +156,7 @@ class TestObj():
 
 @pytest.mark.asyncio
 async def test_wait_cb_send_notice():
-    obj = TestObj()
+    obj = NumObj()
 
     wcb = cog.util.WaitCB(notice_cb=obj.inc, resume_cb=obj.dec)
     for _ in range(5):
@@ -168,7 +168,7 @@ async def test_wait_cb_send_notice():
 
 @pytest.mark.asyncio
 async def test_wait_cb_send_resume():
-    obj = TestObj()
+    obj = NumObj()
 
     wcb = cog.util.WaitCB(notice_cb=obj.inc, resume_cb=obj.dec)
     for _ in range(5):
@@ -181,7 +181,7 @@ async def test_wait_cb_send_resume():
 
 @pytest.mark.asyncio
 async def test_wait_cb_send_resume_no_send():
-    obj = TestObj()
+    obj = NumObj()
 
     wcb = cog.util.WaitCB(notice_cb=obj.inc, resume_cb=obj.dec)
     await wcb.send_resume()
