@@ -136,7 +136,7 @@ class EDMCJournal():
         try:
             system_db = self.session.query(System).filter(System.name == system['name']).one()
             system_db.update(system)
-            self.session.flush()
+            self.session.commit()
             system['id'] = system_db.id
             self.db_objs['system'] = system_db
         except sqla_orm.exc.NoResultFound as e:
@@ -172,12 +172,16 @@ class EDMCJournal():
         if "DistanceFromArrivalLS" in body:
             station['distance_to_star'] = round(body['DistanceFromArrivalLS'])
         if "StationEconomy" in body and "StationEconomies" in body:
-            __import__('pprint').pprint(body["StationEconomies"])
-            station['economies'] = [{
-                'economy_id': MAPS['Economy'][ent["Name"].replace("$economy_", "")[:-1]],
-                'proportion': ent["Proportion"],
-                'primary': ent["Name"] == body["StationEconomy"],
-            } for ent in body["StationEconomies"]]
+            station['economies'] = []
+            for ent in body["StationEconomies"]:
+                economy = {
+                    'economy_id': MAPS['Economy'][ent["Name"].replace("$economy_", "")[:-1]],
+                    'proportion': ent["Proportion"],
+                    'primary': ent["Name"] == body["StationEconomy"],
+                }
+                # Seen on EDDN collisions with multiple same IDs and different proportions, keep first seen.
+                if economy['economy_id'] not in [x['economy_id'] for x in station['economies']]:
+                    station['economies'] += [economy]
         if "StationFaction" in body:
             station['controlling_minor_faction_id'] = self.session.query(Faction.id).filter(Faction.name == body['StationFaction']['Name']).scalar()
         if "StationServices" in body:
@@ -290,8 +294,7 @@ class EDMCJournal():
 
         This is called to finalize flushing the parsed information to the database.
         """
-        # FIXME: Sort out some key issues remaining.
-        self.session.flush()
+        self.session.rollback()  # Clear any previous db objects
         system = self.parsed['system']
         station = self.parsed['station']
         station_features = station.pop('features')
@@ -312,21 +315,20 @@ class EDMCJournal():
                 station_features_db.update(station_features)
                 station_features['id'] = station_db.id
         except sqla_orm.exc.NoResultFound:
-            __import__('pprint').pprint(station)
             station_db = Station(**station)
             self.session.add(station_db)
-            __import__('pprint').pprint(station_db)
-            self.session.commit()
+            self.session.flush()
 
-            station_features_db['id'] = station_db.id
+            station_features['id'] = station_db.id
             station_features_db = StationFeatures(**station_features)
             self.session.add(station_features_db)
-            self.session.flush()
+        self.session.flush()
 
         self.session.query(StationEconomy).filter(StationEconomy.id == station_db.id).delete()
         for econ in station_economies:
             econ['id'] = station_db.id
             self.session.add(StationEconomy(**econ))
+        self.session.flush()
 
         for faction in self.parsed['factions'].values():
             self.session.query(FactionActiveState).\
@@ -341,6 +343,7 @@ class EDMCJournal():
                 filter(FactionRecoveringState.system_id == system['id'],
                        FactionRecoveringState.faction_id == faction['id']).\
                 delete()
+            self.session.flush()
             for key in ("active_states", "pending_states", "recovering_states"):
                 if key in faction:
                     self.session.add_all(faction[key])
@@ -372,6 +375,7 @@ class EDMCJournal():
                 conflict_db = Conflict(**conflict)
                 self.session.add(conflict_db)
 
+        self.session.commit()
 
 def camel_to_c(word):
     """
@@ -432,7 +436,7 @@ def create_parser(msg):
     cls_name = SCHEMA_MAP[key]
     cls = getattr(sys.modules[__name__], cls_name)
 
-    return cls(cogdb.EDDBSession(), msg)
+    return cls(cogdb.EDDBSession(autoflush=False), msg)
 
 
 def get_msgs(sub):
@@ -455,7 +459,16 @@ def get_msgs(sub):
         try:
             parser = create_parser(msg)
             parser.parse_msg()
-            parser.update_database()
+
+            # Retry if lock timeout throws
+            cnt = 3
+            while cnt:
+                try:
+                    parser.update_database()
+                    cnt = 0
+                except sqla.exc.OperationalError:
+                    parser.session.rollback()
+                    cnt -= 1
         except KeyError as e:
             logging.getLogger(__name__).info("Exception: %s", str(e))
         except ValueError as e:

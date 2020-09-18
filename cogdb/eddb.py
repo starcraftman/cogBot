@@ -431,6 +431,12 @@ class Power(Base):
     abbrev = sqla.Column(sqla.String(LEN["power_abv"]))
     home_system_name = sqla.Column(sqla.String(LEN["system"]))
 
+    # Relationships
+    home_system = sqla.orm.relationship(
+        'System', uselist=False, lazy='select',
+        primaryjoin='foreign(System.name) == Power.home_system_name',
+    )
+
     def __repr__(self):
         keys = ['id', 'text', 'eddn', 'abbrev', 'home_system_name']
         kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
@@ -537,7 +543,7 @@ class StationFeatures(Base):
     """ The features at a station. """
     __tablename__ = "station_features"
 
-    id = sqla.Column(sqla.Integer, primary_key=True)  # Station.id
+    id = sqla.Column(sqla.Integer, sqla.ForeignKey('stations.id'), primary_key=True)
     blackmarket = sqla.Column(sqla.Boolean)
     commodities = sqla.Column(sqla.Boolean)
     dock = sqla.Column(sqla.Boolean)
@@ -547,6 +553,9 @@ class StationFeatures(Base):
     refuel = sqla.Column(sqla.Boolean)
     repair = sqla.Column(sqla.Boolean)
     shipyard = sqla.Column(sqla.Boolean)
+
+    # Realtionships
+    station = sqla.orm.relationship('Station', uselist=False)
 
     def __repr__(self):
         keys = ['id', 'blackmarket', 'market', 'refuel',
@@ -615,7 +624,7 @@ class Station(Base):
     """ Repesents a system in the universe. """
     __tablename__ = "stations"
 
-    id = sqla.Column(sqla.Integer, sqla.ForeignKey('station_features.id'), primary_key=True)
+    id = sqla.Column(sqla.Integer, primary_key=True)
     name = sqla.Column(sqla.String(LEN["station"]))
     distance_to_star = sqla.Column(sqla.Integer)
     is_planetary = sqla.Column(sqla.Boolean)
@@ -626,7 +635,8 @@ class Station(Base):
     updated_at = sqla.Column(sqla.Integer, onupdate=sqla.func.unix_timestamp())
 
     # Relationships
-    station_type = sqla.orm.relationship('StationType', uselist=False)
+    features = sqla.orm.relationship('StationFeatures', uselist=False)
+    type = sqla.orm.relationship('StationType', uselist=False)
     faction = sqla.orm.relationship('Faction')
     economies = sqla.orm.relationship(
         'Economy', uselist=True, lazy='select', viewonly=True,
@@ -950,15 +960,6 @@ System.stations = sqla_orm.relationship(
     'Station', back_populates='system', uselist=True, lazy='select',
     primaryjoin='System.id == foreign(Station.system_id)',
 )
-Station.features = sqla_orm.relationship(
-    'StationFeatures', uselist=False, back_populates='station', lazy='select')
-StationFeatures.station = sqla_orm.relationship(
-    'Station', uselist=False, back_populates='features', lazy='select')
-
-Power.home_system = sqla.orm.relationship(
-    'System', uselist=False, lazy='select',
-    primaryjoin='foreign(System.name) == Power.home_system_name',
-)
 
 
 # NOTE: Map text '' -> 'None'
@@ -1079,9 +1080,9 @@ def preload_powers(session):
         Power(id=6, text="Felicia Winters", eddn='Felicia Winters', abbrev="WIN", home_system_name='Rhea'),
         Power(id=7, text="Li Yong-Rui", eddn='Li Yong-Rui', abbrev="LYR", home_system_name='Lembava'),
         Power(id=8, text="Pranav Antal", eddn='Pranav Antal', abbrev="ANT", home_system_name='Polevnic'),
-        Power(id=9, text="Zachary Hudson", eddn='Zachary Hudson', abbrev="HUD", home_system_name='Clayakarma'),
-        Power(id=10, text="Zemina Torval", eddn='Zemina Torval', abbrev="TOR", home_system_name='Nanomam'),
-        Power(id=11, text="Yuri Grom", eddn='Yuri Grom', abbrev="GRM", home_system_name='Synteini'),
+        Power(id=9, text="Zachary Hudson", eddn='Zachary Hudson', abbrev="HUD", home_system_name='Nanomam'),
+        Power(id=10, text="Zemina Torval", eddn='Zemina Torval', abbrev="TOR", home_system_name='Synteini'),
+        Power(id=11, text="Yuri Grom", eddn='Yuri Grom', abbrev="GRM", home_system_name='Clayakarma'),
     ])
 
 
@@ -1226,7 +1227,7 @@ def load_commodities(session, fname):
     #  __import__('pprint').pprint(categories)
     print("Finished.")
     session.add_all(categories)
-    session.commit()
+    session.flush()
     session.add_all(commodities)
     session.commit()
     print("Flushed to db.")
@@ -1284,7 +1285,7 @@ def load_modules(session, fname):
     #  __import__('pprint').pprint(module_groups)
     print("Finished")
     session.add_all(module_groups)
-    session.commit()
+    session.flush()
     session.add_all(modules)
     session.commit()
     print("Flushed to db.")
@@ -1344,7 +1345,7 @@ def load_factions(session, fname, preload=True):
         governments = [x for x in governments if x.id]
         session.add_all(allegiances)
         session.add_all(governments)
-        session.commit()
+        session.flush()
 
     #  print("Parsed following allegiances:")
     #  __import__('pprint').pprint(allegiances)
@@ -1441,7 +1442,7 @@ def load_systems(session, fname):
 
     print("Finished")
     session.add_all(systems)
-    session.commit()
+    session.flush()
     session.add_all(influences)
     session.add_all(states)
     session.commit()
@@ -1522,12 +1523,11 @@ def load_stations(session, fname, preload=True):
     if not preload:
         __import__('pprint').pprint(station_types)
         session.add_all(station_types)
-        session.commit()
-    session.add_all(station_features)
-    session.commit()
+        session.flush()
     session.add_all(stations)
-    session.commit()
+    session.flush()
     session.add_all(economies)
+    session.add_all(station_features)
     session.commit()
     print("Flushed to db.")
 
