@@ -188,3 +188,8 @@ async def test_wait_cb_send_resume_no_send():
 
     assert not wcb.notice_sent
     assert obj.num == 0
+
+
+def test_clean_text():
+    assert cog.util.clean_text(r'///---351Test+*;;:,.') == '_351Test_'
+    assert cog.util.clean_text(r'///---351Test+*;;:,.', replace='/') == '/351Test/'

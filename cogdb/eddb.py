@@ -1497,7 +1497,7 @@ def load_stations(session, fname, preload=True):
                 primary = True
                 for econ in st_econs:
                     economies += [StationEconomy(id=station['id'], economy_id=economy_ids[econ], primary=primary)]
-                    primary= False
+                    primary = False
 
                 # Debug
                 #  print('Station', station_db)
@@ -1880,7 +1880,8 @@ try:
                              get_nearest_controls(session, power='Hudson')])
     WINTERS_CONTROLS = sorted([x.name for x in
                               get_nearest_controls(session, power='Winters')])
-    PLANETARY_TYPE_IDS = [x[0] for x in
+    PLANETARY_TYPE_IDS = [
+        x[0] for x in
         session.query(StationType.id).filter(StationType.text.ilike('%planetary%')).all()
     ]
     HQS = {

@@ -446,6 +446,26 @@ def transpose_table(table):
     return n_table
 
 
+def clean_text(text, *, replace='_'):
+    """
+    Ensure input contains ONLY ASCII characters valid in filenames.
+    Any other character will be replaced with 'replace'.
+    Characters added in extras will be whitelisted in addiction to normal ASCII.
+
+    Args:
+        text: The text to clean.
+        replace: The replacement character to use.
+        extras: Additional characters to whitelist.
+
+    Returns:
+        The cleaned text.
+    """
+    text = re.sub(r'[^a-zA-Z0-9]', replace, text)
+    text = re.sub(r'{r}{r}+'.format(r=replace), replace, text)
+
+    return text
+
+
 #  # Scenario multiple readers, always allowed
 #  async def a_run1(lock):
     #  print("Run1 - aquire read")

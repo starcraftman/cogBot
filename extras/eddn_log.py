@@ -67,6 +67,7 @@ def connect_loop(sub, args):
             sub.discconect(EDDN_ADDR)
             time.sleep(5)
 
+
 def parser():
     parser = argparse.ArgumentParser(description="EDDN Logger")
     parser.add_argument('log_d', help='The folder to log files to.')
@@ -74,6 +75,7 @@ def parser():
                         action='store_false', help='Do not print to stdout')
 
     return parser
+
 
 def main():
     args = parser().parse_args()

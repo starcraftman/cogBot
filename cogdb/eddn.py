@@ -5,10 +5,12 @@ Will have the following parts:
     - Pick out messages we want and parse them
     - Update relevant bits of EDDB database.
 """
-import logging
-import sys
 import datetime
+import logging
+import os
 import pprint
+import shutil
+import sys
 import time
 import zlib
 
@@ -20,6 +22,7 @@ try:
 except ImportError:
     import json
 
+import cog.util
 import cogdb
 import cogdb.eddb
 from cogdb.eddb import (Conflict, ConflictState, Faction, Influence, System, Station,
@@ -39,7 +42,7 @@ SCHEMA_MAP = {
 }
 TIME_STRP = "%Y-%m-%dT%H:%M:%SZ"
 ALL_MSGS = '/tmp/msgs'
-EDMC_JOURNAL = '/tmp/msgs_edmc_journal'
+JOURNAL_MSGS = '/tmp/msgs_journal'
 STATION_FEATS = [x for x in StationFeatures.__dict__ if
                  x not in ('id', 'station') and not x.startswith('_')]
 
@@ -77,22 +80,20 @@ class EDMCJournal():
     def parse_msg(self):
         """
         Perform whole message parsing.
-        """
-        with open(EDMC_JOURNAL, 'a') as fout:
-            try:
-                pprint.pprint(self.parse_system(), stream=fout)
-                fout.write('#######################\n')
-                pprint.pprint(self.parse_station(), stream=fout)
-                fout.write('#######################\n')
-                pprint.pprint(self.parse_factions(), stream=fout)
-                fout.write('#######################\n')
-                pprint.pprint(self.parse_conflicts(), stream=fout)
-            except StopParsing:
-                self.session.rollback()
-            finally:
-                fout.write('-----------------------\n')
 
-        return self.parsed
+        Raises:
+            StopParsing - No need to continue parsing.
+        """
+        try:
+            pprint.pprint(self.parse_system())
+            pprint.pprint(self.parse_station())
+            pprint.pprint(self.parse_factions())
+            pprint.pprint(self.parse_conflicts())
+            log_msg(self.msg, JOURNAL_MSGS, log_fname(self.msg))
+            return self.parsed
+        except StopParsing:
+            self.session.rollback()
+            raise
 
     def parse_system(self):
         """
@@ -122,9 +123,9 @@ class EDMCJournal():
         if "PowerplayState" in body:
             system["power_state_id"] = MAPS['PowerplayState'][body["PowerplayState"]]
         if "SystemEconomy" in body and "SystemSecondEconomy" in body:
-            system['primary_economy_id'] =  MAPS['Economy'][body["SystemEconomy"].replace("$economy_", "")[:-1]]
+            system['primary_economy_id'] = MAPS['Economy'][body["SystemEconomy"].replace("$economy_", "")[:-1]]
         if "SystemSecondEconomy" in body:
-            system['secondary_economy_id'] =  MAPS['Economy'][body["SystemSecondEconomy"].replace("$economy_", "")[:-1]]
+            system['secondary_economy_id'] = MAPS['Economy'][body["SystemSecondEconomy"].replace("$economy_", "")[:-1]]
         if "SystemFaction" in body:
             faction_id = self.session.query(Faction.id).filter(Faction.name == body["SystemFaction"]["Name"]).scalar()
             system['controlling_minor_faction_id'] = faction_id
@@ -205,9 +206,9 @@ class EDMCJournal():
         try:
             system = self.parsed['system']
             if 'Factions' not in self.body or 'id' not in system:
-                raise ValueError("No Factions or system not parsed before.")
+                raise StopParsing("No Factions or system not parsed before.")
         except KeyError as e:
-            raise ValueError("No Factions or system not parsed before.") from e
+            raise StopParsing("No Factions or system not parsed before.") from e
 
         influences, factions = [], {}
         faction_names = [x['Name'] for x in self.body['Factions']]
@@ -442,13 +443,31 @@ def create_parser(msg):
     return cls(cogdb.EDDBSession(autoflush=False), msg)
 
 
+def log_fname(msg):
+    """
+    A unique filename for this message.
+    """
+    try:
+        timestamp = msg['message']['timestamp']
+    except KeyError:
+        timestamp = msg['header']['gatewayTimestamp']
+
+    schema = '_'.join(msg["$schemaRef"].split('/')[-2:])
+    fname = "{}_{}_{}".format(schema, timestamp, msg['header']['softwareName'])
+
+    return cog.util.clean_text(fname)
+
+
+def log_msg(obj, path, fname):
+    """
+    Log a msg to the right directory to track later if required.
+    """
+    with open(os.path.join(path, fname), 'w') as fout:
+        pprint.pprint(obj, stream=fout)
+
+
 def get_msgs(sub):
     """ Continuously receive messages and log them. """
-    with open(ALL_MSGS, 'w') as fout:
-        fout.write('')
-    with open(EDMC_JOURNAL, 'w') as fout:
-        fout.write('')
-
     while True:
         msg = sub.recv()
 
@@ -456,9 +475,7 @@ def get_msgs(sub):
             raise zmq.ZMQError("Sub problem.")
 
         msg = json.loads(zlib.decompress(msg).decode())
-        with open(ALL_MSGS, 'a') as fout:
-            pprint.pprint(msg, stream=fout)
-            fout.write('-----------------------\n')
+        log_msg(msg, ALL_MSGS, log_fname(msg))
         try:
             parser = create_parser(msg)
             parser.parse_msg()
@@ -474,8 +491,8 @@ def get_msgs(sub):
                     cnt -= 1
         except KeyError as e:
             logging.getLogger(__name__).info("Exception: %s", str(e))
-        except ValueError as e:
-            logging.getLogger(__name__).info("System was not found: %s", str(e))
+        except StopParsing:
+            pass
 
 
 def connect_loop(sub):
@@ -499,6 +516,17 @@ def main():
         accepting messages and parsing the info
         updating database entries based on new information
     """
+    try:
+        shutil.rmtree(ALL_MSGS)
+    except OSError:
+        pass
+    try:
+        shutil.rmtree(JOURNAL_MSGS)
+    except OSError:
+        pass
+    os.mkdir(ALL_MSGS)
+    os.mkdir(JOURNAL_MSGS)
+
     sub = zmq.Context().socket(zmq.SUB)
     sub.setsockopt(zmq.SUBSCRIBE, b'')
     sub.setsockopt(zmq.RCVTIMEO, TIMEOUT)
@@ -508,6 +536,7 @@ def main():
     except KeyboardInterrupt:
         msg = """Terminating ZMQ connection."""
         print(msg)
+
 
 try:
     MAPS = create_id_maps(cogdb.EDDBSession())
