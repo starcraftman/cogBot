@@ -60,7 +60,6 @@ class EDMCJournal():
         self.msg = msg
         self.session = session
         self.parsed = {}
-        self.db_objs = {}
 
     @property
     def header(self):
@@ -69,6 +68,11 @@ class EDMCJournal():
     @property
     def body(self):
         return self.msg['message']
+
+    @property
+    def timestamp(self):
+        parsed_time = datetime.datetime.strptime(self.body['timestamp'], TIME_STRP)
+        return int(parsed_time.replace(tzinfo=datetime.timezone.utc).timestamp())
 
     def parse_msg(self):
         """
@@ -106,8 +110,7 @@ class EDMCJournal():
 
         system = {
             'name': body['StarSystem'],
-            'updated_at': int(datetime.datetime.strptime(body['timestamp'], TIME_STRP).
-                                                         replace(tzinfo=datetime.timezone.utc).timestamp())
+            'updated_at': self.timestamp
         }
         if "Population" in body:
             system['population'] = body["Population"]
@@ -132,16 +135,15 @@ class EDMCJournal():
             for key, dest in [(0, "x"), (1, "y"), (2, "z")]:
                 system[dest] = body["StarPos"][key]
 
-        self.parsed['system'] = system
         try:
             system_db = self.session.query(System).filter(System.name == system['name']).one()
             system_db.update(system)
             self.session.commit()
             system['id'] = system_db.id
-            self.db_objs['system'] = system_db
         except sqla_orm.exc.NoResultFound as e:
             raise StopParsing() from e  # No interest in systems not in db
 
+        self.parsed['system'] = system
         return system
 
     def parse_station(self):
@@ -376,6 +378,7 @@ class EDMCJournal():
                 self.session.add(conflict_db)
 
         self.session.commit()
+
 
 def camel_to_c(word):
     """

@@ -7,6 +7,7 @@ except ImportError:
     import json
 
 import cogdb.eddn
+from cogdb.eddb import FactionActiveState
 
 
 EXAMPLE_JOURNAL_CARRIER = """{
@@ -375,44 +376,192 @@ def test_camel_to_c():
 
 def test_create_id_maps():
     maps = cogdb.eddn.create_id_maps(cogdb.EDDBSession())
-
     assert 'Thargoid' in maps['Allegiance']
 
 
 def test_journal_parse_system():
+    expected = {
+        'controlling_minor_faction_id': 55925,
+        'id': 569,
+        'name': 'Ahemakino',
+        'population': 9165120,
+        'power_id': 6,
+        'power_state_id': 16,
+        'primary_economy_id': 4,
+        'secondary_economy_id': 6,
+        'security_id': 48,
+        'updated_at': 1596452651,
+        'x': 123.25,
+        'y': -3.21875,
+        'z': -97.4375
+    }
     msg = json.loads(EXAMPLE_JOURNAL_STATION)
     parser = cogdb.eddn.create_parser(msg)
 
-    __import__('pprint').pprint(parser.parse_system())
+    result = parser.parse_system()
+
+    #  __import__('pprint').pprint(result)
+    assert result == expected
     parser.session.rollback()
 
 
 def test_journal_parse_station():
+    expected = {
+        'controlling_minor_faction_id': 55925,
+        'economies': [{'economy_id': 4, 'primary': True, 'proportion': 0.8},
+                      {'economy_id': 6, 'primary': False, 'proportion': 0.2}],
+        'features': {'blackmarket': True,
+                     'commodities': True,
+                     'dock': True,
+                     'market': False,
+                     'outfitting': True,
+                     'rearm': True,
+                     'refuel': True,
+                     'repair': True,
+                     'shipyard': True,
+                     'update': False},
+        'name': 'Mattingly Port',
+        'system_id': 569,
+        'type_id': 3,
+        'updated_at': 1596452651
+    }
     msg = json.loads(EXAMPLE_JOURNAL_STATION)
     parser = cogdb.eddn.create_parser(msg)
 
     parser.parse_system()
-    __import__('pprint').pprint(parser.parse_station())
+    result = parser.parse_station()
+
+    #  __import__('pprint').pprint(result)
+    assert result == expected
     parser.session.rollback()
 
 
 def test_journal_parse_factions():
+    expect = ({
+        'Ahemakino Bridge Organisation': {'allegiance_id': 4,
+                                          'government_id': 64,
+                                          'id': 55927,
+                                          'name': 'Ahemakino Bridge Organisation',
+                                          'state_id': 80,
+                                          'updated_at': 1596452651},
+        'Defence Party of Ahemakino': {'allegiance_id': 4,
+                                       'government_id': 112,
+                                       'id': 55926,
+                                       'name': 'Defence Party of Ahemakino',
+                                       'state_id': 80,
+                                       'updated_at': 1596452651},
+        'Natural Ahemakino Defence Party': {'allegiance_id': 4,
+                                            'government_id': 112,
+                                            'id': 55928,
+                                            'name': 'Natural Ahemakino Defence Party',
+                                            'state_id': 80,
+                                            'updated_at': 1596452651},
+        'Ochosag Federal Company': {'allegiance_id': 3,
+                                    'government_id': 64,
+                                    'id': 26800,
+                                    'name': 'Ochosag Federal Company',
+                                    'state_id': 80,
+                                    'updated_at': 1596452651},
+        'Revolutionary Mpalans Confederation': {'active_states': [FactionActiveState(system_id=569, faction_id=58194, state_id=73)],
+                                                'allegiance_id': 3,
+                                                'government_id': 48,
+                                                'id': 58194,
+                                                'name': 'Revolutionary Mpalans '
+                                                        'Confederation',
+                                                'state_id': 73,
+                                                'updated_at': 1596452651},
+        'Social Ahemakino Green Party': {'active_states': [FactionActiveState(system_id=569, faction_id=55925, state_id=16)],
+                                         'allegiance_id': 3,
+                                         'government_id': 96,
+                                         'id': 55925,
+                                         'name': 'Social Ahemakino Green Party',
+                                         'state_id': 16,
+                                         'updated_at': 1596452651},
+        'Udegobo Silver Power Int': {'active_states': [FactionActiveState(system_id=569, faction_id=68340, state_id=73)],
+                                     'allegiance_id': 3,
+                                     'government_id': 64,
+                                     'id': 68340,
+                                     'name': 'Udegobo Silver Power Int',
+                                     'state_id': 73,
+                                     'updated_at': 1596452651}
+    },
+        [
+        {'faction_id': 26800,
+         'happiness_id': 2,
+         'influence': 0.102386,
+         'is_controlling_faction': False,
+         'system_id': 569,
+         'updated_at': 1596452651},
+        {'faction_id': 55925,
+         'happiness_id': 2,
+         'influence': 0.643141,
+         'is_controlling_faction': True,
+         'system_id': 569,
+         'updated_at': 1596452651},
+        {'faction_id': 68340,
+         'happiness_id': 2,
+         'influence': 0.078529,
+         'is_controlling_faction': False,
+         'system_id': 569,
+         'updated_at': 1596452651},
+        {'faction_id': 55926,
+         'happiness_id': 2,
+         'influence': 0.014911,
+         'is_controlling_faction': False,
+         'system_id': 569,
+         'updated_at': 1596452651},
+        {'faction_id': 58194,
+         'happiness_id': 2,
+         'influence': 0.078529,
+         'is_controlling_faction': False,
+         'system_id': 569,
+         'updated_at': 1596452651},
+        {'faction_id': 55927,
+         'happiness_id': 2,
+         'influence': 0.037773,
+         'is_controlling_faction': False,
+         'system_id': 569,
+         'updated_at': 1596452651},
+        {'faction_id': 55928,
+         'happiness_id': 2,
+         'influence': 0.044732,
+         'is_controlling_faction': False,
+         'system_id': 569,
+         'updated_at': 1596452651}
+    ])
     msg = json.loads(EXAMPLE_JOURNAL_STATION)
     parser = cogdb.eddn.create_parser(msg)
 
     parser.parse_system()
     parser.parse_station()
-    __import__('pprint').pprint(parser.parse_factions())
+    result = parser.parse_factions()
+
+    #  __import__('pprint').pprint(result)
+    assert result == expect
     parser.session.rollback()
 
 
 def test_journal_parse_conflicts():
+    expect = [{
+        'faction1_days': 1,
+        'faction1_id': 68340,
+        'faction1_stake_id': 59829,
+        'faction2_days': 0,
+        'faction2_id': 58194,
+        'faction2_stake_id': None,
+        'status_id': 2,
+        'system_id': 569,
+        'type_id': 6,
+        'updated_at': 1596452651
+    }]
     msg = json.loads(EXAMPLE_JOURNAL_STATION)
     parser = cogdb.eddn.create_parser(msg)
 
     parser.parse_system()
     parser.parse_station()
     parser.parse_factions()
-    __import__('pprint').pprint(parser.parse_conflicts())
-    parser.parse_conflicts()[0]['faction2_stake_id'] is None
+    result = parser.parse_conflicts()
+
+    #  __import__('pprint').pprint(result)
+    assert result == expect
     parser.session.rollback()
