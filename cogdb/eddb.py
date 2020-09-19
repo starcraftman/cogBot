@@ -1388,7 +1388,7 @@ def load_systems(session, fname):
         'item.needs_permit': [('system', 'needs_permit')],
         'item.edsm_id': [('system', 'edsm_id')],
         'item.security_id': [('system', 'security_id')],
-        'item.economy_id': [('system', 'primary_economy_id')],
+        'item.primary_economy_id': [('system', 'primary_economy_id')],
         'item.power': [('system', 'power')],
         'item.power_state_id': [('system', 'power_state_id')],
         'item.controlling_minor_faction_id': [('system', 'controlling_minor_faction_id')],
