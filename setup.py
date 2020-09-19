@@ -5,6 +5,7 @@ import glob
 import os
 import pathlib
 import shlex
+import shutil
 import subprocess as sub
 import sys
 import tempfile
@@ -184,6 +185,11 @@ class Coverage(Command):
         self.check_prereqs()
         old_cwd = os.getcwd()
         cov_dir = os.path.join(tempfile.gettempdir(), 'cogCoverage')
+        try:
+            shutil.rmtree(cov_dir)
+            os.mkdir(cov_dir)
+        except OSError:
+            pass
         report = os.path.join(cov_dir, 'index.html')
         cmds = [
             'python -m pytest --cov=cog --cov=cogdb',

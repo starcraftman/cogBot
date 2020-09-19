@@ -1,6 +1,11 @@
 """
 Tests for cogdb.eddn
 """
+import os
+import pathlib
+import shutil
+import tempfile
+
 try:
     import rapidjson as json
 except ImportError:
@@ -565,3 +570,22 @@ def test_journal_parse_conflicts():
     #  __import__('pprint').pprint(result)
     assert result == expect
     parser.session.rollback()
+
+
+def test_log_fname():
+    msg = json.loads(EXAMPLE_JOURNAL_STATION)
+    expect = "journal_1_2020_08_03T11_04_11Z_E_D_Market_Connector_Windows_"
+
+    assert cogdb.eddn.log_fname(msg) == expect
+
+
+def test_log_msg():
+    try:
+        msg = json.loads(EXAMPLE_JOURNAL_STATION)
+        t_dir = tempfile.mkdtemp()
+        cogdb.eddn.log_msg(msg, t_dir, 'test.txt')
+
+        pat = pathlib.Path(t_dir)
+        assert list(pat.glob('test.*'))
+    finally:
+        shutil.rmtree(t_dir)
