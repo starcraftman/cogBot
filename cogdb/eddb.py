@@ -73,6 +73,20 @@ AS
              (c.z - s.z) * (c.z - s.z)) <= 15
     ORDER BY s.id;
 """
+EVENT_CONFLICTS = """
+CREATE EVENT IF NOT EXISTS clean_conflicts
+ON SCHEDULE
+    EVERY 1 DAY
+COMMENT "Conflicts expire after 4 days + 1 day grace or 3 days no activity"
+DO
+    DELETE FROM eddb.conflicts
+    WHERE
+        (
+            conflicts.faction1_days + conflicts.faction2_days >= 4 AND
+            conflicts.updated_at < utc_timestamp() - (24 * 60 * 60)
+        ) OR
+            conflict.updated_at < utc_timestamp() - (3 * 24 * 60 * 60)
+"""
 # To select planetary stations
 Base = sqlalchemy.ext.declarative.declarative_base()
 
@@ -1772,6 +1786,7 @@ def recreate_tables():
     try:
         with cogdb.eddb_engine.connect() as con:
             con.execute(sqla.sql.text("DROP VIEW eddb.v_contesteds"))
+            con.execute(sqla.sql.text("DROP EVENT clean_conflicts"))
     except sqla.exc.OperationalError:
         pass
     meta = sqlalchemy.MetaData(bind=cogdb.eddb_engine, reflect=True)
@@ -1839,6 +1854,7 @@ def main():  # pragma: no cover
     # Create views
     with cogdb.eddb_engine.connect() as con:
         con.execute(sqla.sql.text(VIEW_CONTESTEDS.strip()))
+        con.execute(sqla.sql.text(EVENT_CONFLICTS.strip()))
 
     session = cogdb.EDDBSession()
     print("Module count:", session.query(Module).count())
