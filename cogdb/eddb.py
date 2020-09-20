@@ -1571,7 +1571,7 @@ def get_systems(session, system_names):
     return systems
 
 
-def get_shipyard_stations(session, centre_name, sys_dist=15, arrival=1000):
+def get_shipyard_stations(session, centre_name, sys_dist=75, arrival=2000):
     """
     Given a reference centre system, find nearby orbitals within:
         < sys_dist ly from original system
@@ -1585,20 +1585,22 @@ def get_shipyard_stations(session, centre_name, sys_dist=15, arrival=1000):
     centre = sqla_orm.aliased(System, centre)
     exclude = session.query(StationType.text).filter(StationType.text.like("%Planet%")).subquery()
 
-    stations = session.query(Station.name, Station.distance_to_star,
-                             System.name, System.dist_to(centre)).\
+    stations = session.query(System.name, System.dist_to(centre),
+                             Station.name, sqla.func.round(Station.distance_to_star, 2)).\
+        join(System, Station.system_id == System.id).\
+        join(StationType, Station.type_id == StationType.id).\
+        join(StationFeatures, Station.id == StationFeatures.id).\
         filter(System.dist_to(centre) < sys_dist,
-               Station.system_id == System.id,
                Station.distance_to_star < arrival,
                Station.max_landing_pad_size == 'L',
                StationType.text.notin_(exclude),
                StationFeatures.shipyard).\
-        join(StationType, StationFeatures).\
         order_by(System.dist_to(centre), Station.distance_to_star).\
+        limit(20).\
         all()
 
     # Slight cleanup for presentation in table
-    return [[c, round(d, 2), a, b] for a, b, c, d in stations]
+    return [[a, round(b, 2), c, d] for [a, b, c, d] in stations]
 
 
 def nearest_system(centre, systems):
@@ -1687,6 +1689,41 @@ def get_nearest_controls(session, *, centre_name='sol', power='Hudson'):
                System.power_id.in_(subq2)).\
         order_by(System.dist_to(centre)).\
         all()
+
+
+def get_nearest_ifactors(session, *, centre_name, sys_dist=75, arrival=2000):
+    """
+    Given a reference centre system, find nearby orbitals within:
+        < sys_dist ly from original system
+        < arrival ls from the entry start
+
+    Returns:
+        List of matches:
+            [system_name, system_dist, station_name, station_arrival_distance]
+    """
+    centre = session.query(System).filter(System.name == centre_name).subquery()
+    centre = sqla_orm.aliased(System, centre)
+    exclude = session.query(StationType.text).\
+        filter(or_(StationType.text.like("%Planet%"),
+                   StationType.text.like("%Fleet%"))).\
+        subquery()
+    sub_security = session.query(Security.id).filter(Security.text == "Low").subquery()
+
+    stations = session.query(System.name, System.dist_to(centre),
+                             Station.name, Station.distance_to_star).\
+        join(System, Station.system_id == System.id).\
+        join(StationType, Station.type_id == StationType.id).\
+        join(StationFeatures, Station.id == StationFeatures.id).\
+        filter(System.dist_to(centre) < sys_dist,
+               Station.distance_to_star < arrival,
+               Station.max_landing_pad_size == 'L',
+               StationType.text.notin_(exclude),
+               System.security_id == sub_security).\
+        order_by(System.dist_to(centre), Station.distance_to_star).\
+        limit(20).\
+        all()
+
+    return [[a, "{:.2f}".format(b), c, d] for [a, b, c, d] in stations]
 
 
 def compute_dists(session, system_names):
@@ -1884,8 +1921,8 @@ def main():  # pragma: no cover
     #  station = session.query(Station).filter(Station.system_id == system.id, Station.name == "Daedalus").one()
     #  print(station.system, station.station_type, station.features, station.faction)
 
-    #  __import__('pprint').pprint(get_nearest_controls(session, centre_name='rana', power='delain'))
-    # stations = get_shipyard_stations(session, input("Please enter a system name ... "))
+    #  __import__('pprint').pprint(get_nearest_ifactors(session, centre_name='rana'))
+    #  stations = get_shipyard_stations(session, input("Please enter a system name ... "))
     # if stations:
         # print(cog.tbl.format_table(stations))
 
@@ -1904,6 +1941,7 @@ try:
         p.text.lower(): p.home_system.name for p in
         session.query(Power).filter(Power.text != 'None').all()
     }
+    del session
 except (sqla_orm.exc.NoResultFound, sqla.exc.ProgrammingError):
     HUDSON_CONTROLS = []
     WINTERS_CONTROLS = []

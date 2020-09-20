@@ -985,6 +985,15 @@ class Near(Action):
             msg = "__Closest 10 Controls__\n\n" + \
                 cog.tbl.wrap_markdown(cog.tbl.format_table(lines, header=True))
 
+        elif self.args.subcmd == 'if':
+            sys_name = ' '.join(self.args.system)
+            centre = cogdb.eddb.get_systems(eddb_session, [sys_name])[0]
+            stations = cogdb.eddb.get_nearest_ifactors(eddb_session, centre_name=centre.name)
+
+            stations = [["System", "Distance", "Station", "Arrival"]] + stations
+            msg = "Nearby Interstellar Factors __with L pads__\n\n"
+            msg += cog.tbl.wrap_markdown(cog.tbl.format_table(stations, header=True))
+
         await self.bot.send_message(self.msg.channel, msg)
 
 
@@ -1027,7 +1036,7 @@ class Repair(Action):
                                                     self.args.distance, self.args.arrival)
 
         if stations:
-            stations = [["System", "Distance", "Station", "Arrival"]] + stations[:25]
+            stations = [["System", "Distance", "Station", "Arrival"]] + stations
             response = "Nearby orbitals __with shipyards__\n\n"
             response += cog.tbl.wrap_markdown(cog.tbl.format_table(stations, header=True))
         else:

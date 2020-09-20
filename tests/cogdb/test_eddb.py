@@ -10,14 +10,14 @@ import cogdb.eddb
 def test_get_shipyard_stations(eddb_session):
     actual = cogdb.eddb.get_shipyard_stations(eddb_session, "Rana")
     assert actual[0][:3] == ['Rana', 0.0, 'Ali Hub']
-    assert len(actual) > 10
+    assert len(actual) == 20
 
 
 def test_get_shipyard_stations_dist(eddb_session):
     actual = cogdb.eddb.get_shipyard_stations(eddb_session, "Rana", 30)
     wolf_124 = [x for x in actual if x[0] == 'Wolf 124'][0]
     assert wolf_124[:3] == ['Wolf 124', 15.08, 'Willis Port']
-    assert len(actual) > 100
+    assert len(actual) == 20
 
 
 def test_get_shipyard_stations_dist_arrival(eddb_session):
@@ -28,7 +28,7 @@ def test_get_shipyard_stations_dist_arrival(eddb_session):
             found = True
 
     assert found
-    assert len(actual) > 10
+    assert len(actual) == 20
 
 
 def test_get_systems(eddb_session):
@@ -125,3 +125,11 @@ def test_get_power_hq_too_many():
 def test_get_power_hq_no_match():
     with pytest.raises(cog.exc.InvalidCommandArgs):
         assert cogdb.eddb.get_power_hq('zzzzzzz')
+
+
+def test_get_nearest_ifactors(eddb_session):
+    result = cogdb.eddb.get_nearest_ifactors(eddb_session, centre_name='Sol')
+
+    system_names = list(set([x[0] for x in result]))
+    assert "Stopover" in system_names
+    assert "LHS 449" in system_names

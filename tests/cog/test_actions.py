@@ -1056,3 +1056,13 @@ Elli      | 58.88
 LP 906-9  | 65.12
 Momoirent | 65.38```"""
     f_bot.send_message.assert_called_with(msg.channel, expect)
+
+
+@pytest.mark.asyncio
+async def test_cmd_near_if(f_bot):
+    msg = fake_msg_gears("!near if sol")
+
+    await action_map(msg, f_bot).execute()
+
+    actual = str(f_bot.send_message.call_args).replace("\\n", "\n")
+    assert "Stopover       | 19.62    | Darkwater Station" in actual
