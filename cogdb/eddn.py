@@ -88,12 +88,12 @@ class EDMCJournal():
             pprint.pprint(self.parse_system())
             pprint.pprint(self.parse_station())
             pprint.pprint(self.parse_factions())
-            pprint.pprint(self.parse_conflicts())
             log_msg(self.msg, JOURNAL_MSGS, log_fname(self.msg))
-            return self.parsed
+            pprint.pprint(self.parse_conflicts())
         except StopParsing:
             self.session.rollback()
-            raise
+
+        return self.parsed
 
     def parse_system(self):
         """
@@ -165,17 +165,16 @@ class EDMCJournal():
             raise StopParsing("No Station or system not parsed before.") from e
 
         station = {
+            'economies': [],
             'features': None,
             'name': body["StationName"],
             'system_id': system['id'],
             'updated_at': system['updated_at'],
         }
-        station_features = None
 
         if "DistanceFromArrivalLS" in body:
             station['distance_to_star'] = round(body['DistanceFromArrivalLS'])
         if "StationEconomy" in body and "StationEconomies" in body:
-            station['economies'] = []
             for ent in body["StationEconomies"]:
                 economy = {
                     'economy_id': MAPS['Economy'][ent["Name"].replace("$economy_", "")[:-1]],
@@ -188,11 +187,10 @@ class EDMCJournal():
         if "StationFaction" in body:
             station['controlling_minor_faction_id'] = self.session.query(Faction.id).filter(Faction.name == body['StationFaction']['Name']).scalar()
         if "StationServices" in body:
-            station_features = {x: True if x in body["StationServices"] else False for x in STATION_FEATS}
+            station['features'] = {x: True if x in body["StationServices"] else False for x in STATION_FEATS}
         if "StationType" in body:
             station['type_id'] = MAPS["StationType"][body['StationType']]
 
-        station['features'] = station_features
         self.parsed['station'] = station
         return station
 
@@ -299,11 +297,11 @@ class EDMCJournal():
         """
         self.session.rollback()  # Clear any previous db objects
         system = self.parsed['system']
-        station = self.parsed['station']
-        station_features = station.pop('features')
-        station_economies = station.pop('economies')
 
         try:
+            station = self.parsed['station']
+            station_features = station.pop('features')
+            station_economies = station.pop('economies')
             station_db = self.session.query(Station).\
                 filter(Station.name == station['name'],
                        Station.system_id == station['system_id']).\
@@ -317,6 +315,7 @@ class EDMCJournal():
                     one()
                 station_features_db.update(station_features)
                 station_features['id'] = station_db.id
+
         except sqla_orm.exc.NoResultFound:
             station_db = Station(**station)
             self.session.add(station_db)
@@ -325,60 +324,57 @@ class EDMCJournal():
             station_features['id'] = station_db.id
             station_features_db = StationFeatures(**station_features)
             self.session.add(station_features_db)
+
+        except KeyError:
+            pass
         self.session.flush()
 
-        self.session.query(StationEconomy).filter(StationEconomy.id == station_db.id).delete()
-        for econ in station_economies:
-            econ['id'] = station_db.id
-            self.session.add(StationEconomy(**econ))
-        self.session.flush()
-
-        for faction in self.parsed['factions'].values():
-            self.session.query(FactionActiveState).\
-                filter(FactionActiveState.system_id == system['id'],
-                       FactionActiveState.faction_id == faction['id']).\
-                delete()
-            self.session.query(FactionPendingState).\
-                filter(FactionPendingState.system_id == system['id'],
-                       FactionPendingState.faction_id == faction['id']).\
-                delete()
-            self.session.query(FactionRecoveringState).\
-                filter(FactionRecoveringState.system_id == system['id'],
-                       FactionRecoveringState.faction_id == faction['id']).\
-                delete()
+        if 'economies' in self.parsed['station'] and station_economies:
+            self.session.query(StationEconomy).filter(StationEconomy.id == station_db.id).delete()
+            for econ in station_economies:
+                econ['id'] = station_db.id
+                self.session.add(StationEconomy(**econ))
             self.session.flush()
-            for key in ("active_states", "pending_states", "recovering_states"):
-                if key in faction:
-                    self.session.add_all(faction[key])
 
-            try:
-                influence_db = self.session.query(Influence).\
-                    filter(Influence.system_id == system['id'],
-                           Influence.faction_id == faction['id']).\
-                    one()
-                influence_db.update(faction)
-            except sqla_orm.exc.NoResultFound:
-                self.session.add(Influence(
-                    system_id=system['id'],
-                    faction_id=faction['id'],
-                    happiness_id=faction['happiness_id'],
-                    influence=faction['influence'],
-                    is_controlling_faction=faction['is_controlling_faction'],
-                ))
+        if 'factions' in self.parsed and self.parsed['factions']:
+            for faction in self.parsed['factions'].values():
+                for cls in (FactionActiveState, FactionPendingState, FactionRecoveringState):
+                    self.session.query(cls).\
+                        filter(cls.system_id == system['id'],
+                               cls.faction_id == faction['id']).\
+                        delete()
+                self.session.flush()
+                for key in ("active_states", "pending_states", "recovering_states"):
+                    if key in faction:
+                        self.session.add_all(faction[key])
 
-        for conflict in self.parsed['conflicts']:
-            try:
-                conflict_db = self.session.query(Conflict).\
-                    filter(Conflict.system_id == conflict['system_id'],
-                           Conflict.faction1_id == conflict['faction1_id'],
-                           Conflict.faction2_id == conflict['faction2_id']).\
-                    one()
-                conflict_db.update(conflict)
-            except sqla_orm.exc.NoResultFound:
-                conflict_db = Conflict(**conflict)
-                self.session.add(conflict_db)
+                try:
+                    influence_db = self.session.query(Influence).\
+                        filter(Influence.system_id == system['id'],
+                               Influence.faction_id == faction['id']).\
+                        one()
+                    influence_db.update(faction)
+                except sqla_orm.exc.NoResultFound:
+                    self.session.add(Influence(
+                        system_id=system['id'],
+                        faction_id=faction['id'],
+                        happiness_id=faction['happiness_id'],
+                        influence=faction['influence'],
+                        is_controlling_faction=faction['is_controlling_faction'],
+                    ))
 
-        self.session.commit()
+        if 'conflicts' in self.parsed and self.parsed['conflicts']:
+            for conflict in self.parsed['conflicts']:
+                try:
+                    conflict_db = self.session.query(Conflict).\
+                        filter(Conflict.system_id == conflict['system_id'],
+                               Conflict.faction1_id == conflict['faction1_id'],
+                               Conflict.faction2_id == conflict['faction2_id']).\
+                        one()
+                    conflict_db.update(conflict)
+                except sqla_orm.exc.NoResultFound:
+                    conflict_db = Conflict(**conflict)
+                    self.session.add(conflict_db)
 
 
 def camel_to_c(word):
@@ -485,6 +481,7 @@ def get_msgs(sub):
             while cnt:
                 try:
                     parser.update_database()
+                    parser.session.commit()
                     cnt = 0
                 except sqla.exc.OperationalError:
                     parser.session.rollback()
