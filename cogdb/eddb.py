@@ -793,8 +793,8 @@ class System(Base):
     def __repr__(self):
         keys = ['id', 'name', 'population',
                 'needs_permit', 'updated_at', 'power_id', 'edsm_id',
-                'economy_id', 'security_id', 'power_state_id', 'controlling_minor_faction_id',
-                'control_system_id', 'x', 'y', 'z']
+                'primary_economy_id', 'secondary_economy_id', 'security_id', 'power_state_id',
+                'controlling_minor_faction_id', 'control_system_id', 'x', 'y', 'z']
         kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
 
         return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
