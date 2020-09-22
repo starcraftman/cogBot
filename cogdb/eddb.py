@@ -1571,7 +1571,7 @@ def get_systems(session, system_names):
     return systems
 
 
-def get_shipyard_stations(session, centre_name, sys_dist=75, arrival=2000):
+def get_shipyard_stations(session, centre_name, *, sys_dist=75, arrival=2000, include_medium=False):
     """
     Given a reference centre system, find nearby orbitals within:
         < sys_dist ly from original system
@@ -1583,24 +1583,32 @@ def get_shipyard_stations(session, centre_name, sys_dist=75, arrival=2000):
     """
     centre = session.query(System).filter(System.name == centre_name).subquery()
     centre = sqla_orm.aliased(System, centre)
-    exclude = session.query(StationType.text).filter(StationType.text.like("%Planet%")).subquery()
+    exclude = session.query(StationType.text).\
+        filter(or_(StationType.text.like("%Planet%"),
+                   StationType.text.like("%Fleet%"))).\
+        subquery()
 
     stations = session.query(System.name, System.dist_to(centre),
-                             Station.name, sqla.func.round(Station.distance_to_star, 2)).\
+                             Station.name, Station.distance_to_star, Station.max_landing_pad_size).\
         join(System, Station.system_id == System.id).\
         join(StationType, Station.type_id == StationType.id).\
         join(StationFeatures, Station.id == StationFeatures.id).\
         filter(System.dist_to(centre) < sys_dist,
                Station.distance_to_star < arrival,
-               Station.max_landing_pad_size == 'L',
-               StationType.text.notin_(exclude),
-               StationFeatures.shipyard).\
-        order_by(System.dist_to(centre), Station.distance_to_star).\
+               StationType.text.notin_(exclude))
+
+    if include_medium:
+        stations = stations.filter(StationFeatures.repair, StationFeatures.rearm,
+                                   StationFeatures.refuel, StationFeatures.outfitting)
+    else:
+        stations = stations.filter(StationFeatures.shipyard)
+
+    stations = stations.order_by(System.dist_to(centre), Station.distance_to_star).\
         limit(20).\
         all()
 
     # Slight cleanup for presentation in table
-    return [[a, round(b, 2), c, d] for [a, b, c, d] in stations]
+    return [[a, round(b, 2), "[{}] {}".format(e, c), d] for [a, b, c, d, e] in stations]
 
 
 def nearest_system(centre, systems):
@@ -1691,7 +1699,7 @@ def get_nearest_controls(session, *, centre_name='sol', power='Hudson'):
         all()
 
 
-def get_nearest_ifactors(session, *, centre_name, sys_dist=75, arrival=2000):
+def get_nearest_ifactors(session, *, centre_name, sys_dist=75, arrival=2000, include_medium=False):
     """
     Given a reference centre system, find nearby orbitals within:
         < sys_dist ly from original system
@@ -1710,20 +1718,23 @@ def get_nearest_ifactors(session, *, centre_name, sys_dist=75, arrival=2000):
     sub_security = session.query(Security.id).filter(Security.text == "Low").subquery()
 
     stations = session.query(System.name, System.dist_to(centre),
-                             Station.name, Station.distance_to_star).\
+                             Station.name, Station.distance_to_star, Station.max_landing_pad_size).\
         join(System, Station.system_id == System.id).\
         join(StationType, Station.type_id == StationType.id).\
         join(StationFeatures, Station.id == StationFeatures.id).\
         filter(System.dist_to(centre) < sys_dist,
                Station.distance_to_star < arrival,
-               Station.max_landing_pad_size == 'L',
                StationType.text.notin_(exclude),
-               System.security_id == sub_security).\
-        order_by(System.dist_to(centre), Station.distance_to_star).\
+               System.security_id == sub_security)
+
+    if not include_medium:
+        stations = stations.filter(Station.max_landing_pad_size == 'L')
+
+    stations = stations.order_by(System.dist_to(centre), Station.distance_to_star).\
         limit(20).\
         all()
 
-    return [[a, "{:.2f}".format(b), c, d] for [a, b, c, d] in stations]
+    return [[a, round(b, 2), "[{}] {}".format(e, c), d] for [a, b, c, d, e] in stations]
 
 
 def compute_dists(session, system_names):

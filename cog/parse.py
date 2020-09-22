@@ -355,6 +355,7 @@ def subs_near(subs, prefix):
 
     bgs_sub = bgs_subs.add_parser('if', help='Find interstellar factorsr.')
     bgs_sub.add_argument('system', nargs='+', help='The system to lookup.')
+    bgs_sub.add_argument('-m', '--medium', action='store_true', default=False, help='The include mpad only stations.')
 
 
 @register_parser
@@ -383,6 +384,7 @@ def subs_repair(subs, prefix):
     sub.add_argument('system', nargs="+", help='The reference system.')
     sub.add_argument('-a', '--arrival', type=int, default=1000, help='Station must be within arrival ls.')
     sub.add_argument('-d', '--distance', type=int, default=15, help='Max system distance')
+    sub.add_argument('-m', '--medium', action='store_true', default=False, help='The include mpad only stations.')
 
 
 @register_parser

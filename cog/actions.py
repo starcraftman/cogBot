@@ -988,7 +988,8 @@ class Near(Action):
         elif self.args.subcmd == 'if':
             sys_name = ' '.join(self.args.system)
             centre = cogdb.eddb.get_systems(eddb_session, [sys_name])[0]
-            stations = cogdb.eddb.get_nearest_ifactors(eddb_session, centre_name=centre.name)
+            stations = cogdb.eddb.get_nearest_ifactors(eddb_session, centre_name=centre.name,
+                                                       include_medium=self.args.medium)
 
             stations = [["System", "Distance", "Station", "Arrival"]] + stations
             msg = "Nearby Interstellar Factors __with L pads__\n\n"
@@ -1033,7 +1034,8 @@ class Repair(Action):
             raise cog.exc.InvalidCommandArgs("Searching beyond **30**ly would produce too long a list.")
 
         stations = cogdb.eddb.get_shipyard_stations(cogdb.EDDBSession(), ' '.join(self.args.system),
-                                                    self.args.distance, self.args.arrival)
+                                                    sys_dist=self.args.distance, arrival=self.args.arrival,
+                                                    include_medium=self.args.medium)
 
         if stations:
             stations = [["System", "Distance", "Station", "Arrival"]] + stations

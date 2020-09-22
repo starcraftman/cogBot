@@ -9,26 +9,37 @@ import cogdb.eddb
 
 def test_get_shipyard_stations(eddb_session):
     actual = cogdb.eddb.get_shipyard_stations(eddb_session, "Rana")
-    assert actual[0][:3] == ['Rana', 0.0, 'Ali Hub']
-    assert len(actual) == 20
+    assert actual[0][:3] == ['Rana', 0.0, '[L] Ali Hub']
+    assert len(actual) >= 10
 
 
 def test_get_shipyard_stations_dist(eddb_session):
-    actual = cogdb.eddb.get_shipyard_stations(eddb_session, "Rana", 30)
+    actual = cogdb.eddb.get_shipyard_stations(eddb_session, "Rana", sys_dist=30)
     wolf_124 = [x for x in actual if x[0] == 'Wolf 124'][0]
-    assert wolf_124[:3] == ['Wolf 124', 15.08, 'Willis Port']
-    assert len(actual) == 20
+    assert wolf_124[:3] == ['Wolf 124', 15.08, '[L] Willis Port']
+    assert len(actual) >= 10
 
 
 def test_get_shipyard_stations_dist_arrival(eddb_session):
-    actual = cogdb.eddb.get_shipyard_stations(eddb_session, "Rana", 15, 50000)
+    actual = cogdb.eddb.get_shipyard_stations(eddb_session, "Rana", sys_dist=15, arrival=50000)
     found = False
     for row in actual:
         if row[0] == "LTT 2151":
             found = True
 
     assert found
-    assert len(actual) == 20
+    assert len(actual) >= 10
+
+
+def test_get_shipyard_stations_include_medium(eddb_session):
+    actual = cogdb.eddb.get_shipyard_stations(eddb_session, "Rana", include_medium=True)
+    found = False
+    for row in actual:
+        if row[2] == "[M] Virchow Orbital":
+            found = True
+
+    assert found
+    assert len(actual) >= 10
 
 
 def test_get_systems(eddb_session):
