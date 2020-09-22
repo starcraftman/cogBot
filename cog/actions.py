@@ -992,8 +992,9 @@ class Near(Action):
                                                        include_medium=self.args.medium)
 
             stations = [["System", "Distance", "Station", "Arrival"]] + stations
-            msg = "Nearby Interstellar Factors __with L pads__\n\n"
+            msg = "__Nearby Interstellar Factors__\n"
             msg += cog.tbl.wrap_markdown(cog.tbl.format_table(stations, header=True))
+            msg += "[L] Large pads.\n[M] M pads only."
 
         await self.bot.send_message(self.msg.channel, msg)
 
@@ -1039,8 +1040,11 @@ class Repair(Action):
 
         if stations:
             stations = [["System", "Distance", "Station", "Arrival"]] + stations
-            response = "Nearby orbitals __with shipyards__\n\n"
+            response = "__Nearby orbitals__\n"
             response += cog.tbl.wrap_markdown(cog.tbl.format_table(stations, header=True))
+            response += "[L] Large pads.\n[M] M pads only.\n"
+            response += "All stations: Repair, Rearm, Refuel, Outfitting\n"
+            response += "L stations: Shipyard"
         else:
             response = "No results. Please check system name. Otherwise not near populations."
 
