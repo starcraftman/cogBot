@@ -82,10 +82,11 @@ DO
     DELETE FROM eddb.conflicts
     WHERE
         (
-            conflicts.faction1_days + conflicts.faction2_days >= 4 AND
-            conflicts.updated_at < utc_timestamp() - (24 * 60 * 60)
-        ) OR
-            conflict.updated_at < utc_timestamp() - (3 * 24 * 60 * 60)
+            (conflicts.faction1_days + conflicts.faction2_days) >= 4 AND
+             conflicts.updated_at < (unix_timestamp() - (24 * 60 * 60))
+        ) OR (
+            conflicts.updated_at < (unix_timestamp() - (3 * 24 * 60 * 60))
+        )
 """
 # To select planetary stations
 Base = sqlalchemy.ext.declarative.declarative_base()
