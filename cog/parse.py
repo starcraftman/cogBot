@@ -343,6 +343,8 @@ def subs_near(subs, prefix):
         Show the 10 nearest Hudson controls to rana.
 {prefix}near if sol
         Show the nearest interstellar factors to sol.
+{prefix}near if sol -m
+        Show the nearest interstellar factors to sol. Include medium pads.
     """.format(prefix=prefix)
     sub = subs.add_parser(prefix + 'near', description=desc, formatter_class=RawHelp)
     sub.set_defaults(cmd='Near')
@@ -378,6 +380,9 @@ def subs_repair(subs, prefix):
 {prefix}repair arnemil --distance 30
 {prefix}repair arnemil -d 30
         Show suitable stations <= 30ly from Arnemil with arrival <= 1000ls
+{prefix}repair arnemil -m
+        Show suitable stations to repair at. Include medium pads.
+        Note: M pad stations won't have shipyards, will have outfitting though.
     """.format(prefix=prefix)
     sub = subs.add_parser(prefix + 'repair', description=desc, formatter_class=RawHelp)
     sub.set_defaults(cmd='Repair')
