@@ -466,6 +466,25 @@ def clean_text(text, *, replace='_'):
     return text
 
 
+def shorten_text(text, len):
+    """
+    Shorten text to a particular len.
+    Indicate text was cut out with a period if we end on middle of word.
+
+    Args:
+        text: The text to shorten.
+        len: The length desired.
+
+    Returns: Text guaranteed to be at most len.
+    """
+    if text[:len] != text:
+        text = text[:len]
+        if not text[-1].isspace():
+            text = text[:-1] + '.'
+
+    return text
+
+
 #  # Scenario multiple readers, always allowed
 #  async def a_run1(lock):
     #  print("Run1 - aquire read")

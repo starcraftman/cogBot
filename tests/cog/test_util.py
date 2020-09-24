@@ -193,3 +193,8 @@ async def test_wait_cb_send_resume_no_send():
 def test_clean_text():
     assert cog.util.clean_text(r'///---351Test+*;;:,.') == '_351Test_'
     assert cog.util.clean_text(r'///---351Test+*;;:,.', replace='/') == '/351Test/'
+
+
+def test_shorten_text():
+    assert cog.util.shorten_text("Dobrovolskiy Enterprise", 20) == "Dobrovolskiy Enterp."
+    assert cog.util.shorten_text("Galileo", 20) == "Galileo"

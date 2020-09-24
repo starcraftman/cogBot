@@ -1608,7 +1608,8 @@ def get_shipyard_stations(session, centre_name, *, sys_dist=75, arrival=2000, in
         all()
 
     # Slight cleanup for presentation in table
-    return [[a, round(b, 2), "[{}] {}".format(e, c), d] for [a, b, c, d, e] in stations]
+    return [[a, round(b, 2), "[{}] {}".format(e, cog.util.shorten_text(c, 16)), d]
+            for [a, b, c, d, e] in stations]
 
 
 def nearest_system(centre, systems):
@@ -1734,7 +1735,8 @@ def get_nearest_ifactors(session, *, centre_name, sys_dist=75, arrival=2000, inc
         limit(20).\
         all()
 
-    return [[a, round(b, 2), "[{}] {}".format(e, c), d] for [a, b, c, d, e] in stations]
+    return [[a, round(b, 2), "[{}] {}".format(e, cog.util.shorten_text(c, 16)), d]
+            for [a, b, c, d, e] in stations]
 
 
 def compute_dists(session, system_names):
