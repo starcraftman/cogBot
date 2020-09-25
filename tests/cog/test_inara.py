@@ -140,3 +140,46 @@ def test_check_reply():
     assert cog.inara.check_reply(Message('2', None, None, None, None)) == 2
 
     assert cog.inara.check_reply(Message('cmdr 5', None, None, None, None)) == 5
+
+
+def test_extract_inara_systems():
+    msg = """
+CRITICAL Systems
+:CombatMission: :CombatBond: :Bounties: (keep killing the enemy ships in the Conflict Zones until the battle is won)
+Bragpura :Small-1: :Planetary: fight for Lords of Totjob'al (Control War, Day 1 -*Close Victory* 1-0)
+V590 Lyrae :Small-1: :Planetary: fight for Tai Qing Alliance Bond (Control War, Day 1 -*Close Victory* 1-0) :FC:
+
+:Mission: :Exploration: :Bounties: :Commodity:
+Tamba :Small-1: for HR 7012 Noblement :FC:
+
+Priority Systems
+:Mission: :Exploration: :Bounties: :Commodity:
+Juma :Small-1: Moseley Settlement for Juma Aristocrats
+Slavanibo :Small-1: :Planetary: for Marquis du Slavanibo
+Ticushpakhi :Small-1: :Planetary: Any Station for Dukes of Biaris
+Wardal :Small-1: Any Station for Noblemen of Nohock Ek
+    """
+    expect = ([
+        ('Bragpura', 'https://inara.cz/galaxy-starsystem/?search=Bragpura'),
+        ('V590 Lyrae', 'https://inara.cz/galaxy-starsystem/?search=V590%20Lyrae'),
+        ('Tamba', 'https://inara.cz/galaxy-starsystem/?search=Tamba'),
+        ('Juma', 'https://inara.cz/galaxy-starsystem/?search=Juma'),
+        ('Slavanibo', 'https://inara.cz/galaxy-starsystem/?search=Slavanibo'),
+        ('Ticushpakhi', 'https://inara.cz/galaxy-starsystem/?search=Ticushpakhi'),
+        ('Wardal', 'https://inara.cz/galaxy-starsystem/?search=Wardal')
+    ], [
+        ("Lords of Totjob'al ",
+            "https://inara.cz/galaxy-minorfaction/?search=Lords%20of%20Totjob'al"),
+        ('Tai Qing Alliance Bond ',
+            'https://inara.cz/galaxy-minorfaction/?search=Tai%20Qing%20Alliance%20Bond'),
+        ('Juma Aristocrats',
+            'https://inara.cz/galaxy-minorfaction/?search=Juma%20Aristocrats'),
+        ('Marquis du Slavanibo',
+            'https://inara.cz/galaxy-minorfaction/?search=Marquis%20du%20Slavanibo'),
+        ('Dukes of Biaris',
+            'https://inara.cz/galaxy-minorfaction/?search=Dukes%20of%20Biaris'),
+        ('Noblemen of Nohock Ek',
+            'https://inara.cz/galaxy-minorfaction/?search=Noblemen%20of%20Nohock%20Ek')
+    ])
+
+    assert cog.inara.extract_inara_systems(msg) == expect

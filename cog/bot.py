@@ -226,10 +226,9 @@ class CogBot(discord.Client):
             await self.on_message(after)
 
     async def message_hooks(self, message):
-        hooks = {
-            ">is(sol)": "https://inara.cz/galaxy-starsystem/?search={}",
-            ">ist(sol, daedalus)": "https://inara.cz/galaxy-station/?search={} [{}]"
-        }
+        if "BGS Priorities" in message.content:
+            embed = cog.inara.generate_bgs_embed(*cog.inara.extract_inara_systems(message))
+            await message.channel.send(embed=embed)
 
     async def on_message(self, message):
         """
@@ -256,7 +255,7 @@ class CogBot(discord.Client):
             return
 
         if not message.content.startswith(self.prefix):
-            self.message_hooks(message)
+            await self.message_hooks(message)
             return
 
         log = logging.getLogger(__name__)

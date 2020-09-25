@@ -76,6 +76,9 @@ COMBAT_RANKS = [
 ]
 EMPTY_IMG = "https://upload.wikimedia.org/wikipedia/commons/5/59/Empty.png"
 EMPTY_INARA = 'unknown'
+INARA_SYSTEM_SEARCH = "https://inara.cz/galaxy-starsystem/?search={}"
+INARA_STATION_SEARCH = "https://inara.cz/galaxy-station/?search={}%20[{}]"  # system, station_name
+INARA_FACTION_SEARCH = "https://inara.cz/galaxy-minorfaction/?search={}"
 
 
 class InaraApiInput():
@@ -493,21 +496,63 @@ async def inara_squad_parse(url):
     ]
 
 
-def extract_inara_anchors(message):
+def extract_inara_systems(message):
     """
-    Take a message (str or discord.Message object) and replace the content with
-    expanded inara anchors that are links.
+    Take a message (str or discord.Message object) and extract all possible Inara systems references.
+    Format expected is dependent on existing BGS Objectives format.
 
-    Returns: the message with text replaced
+    Returns: (sys_list, faction_list)
+        sys_list: A list of form: ((system_name, inara_url), ...)
+        faction_list: A list of form: ((faction_name, inara_url), ...)
     """
     text = message
     if isinstance(message, discord.Message):
         text = message.content
 
-    hooks = {
-        ">ins(sol)": "https://inara.cz/galaxy-starsystem/?search={}",
-        ">ist(sol, daedalus)": "https://inara.cz/galaxy-station/?search={} [{}]"
-    }
+    sys_list = []
+    for mat in re.finditer(r'(.+) (:Small|:Large)', text):
+        link = INARA_SYSTEM_SEARCH.format(mat.group(1)).strip().replace(' ', '%20')
+        sys_list += [(mat.group(1), link)]
+
+    faction_list = []
+    for mat in re.finditer(r':.*for ([a-zA-z0-9\' -]+)', text):
+        link = INARA_FACTION_SEARCH.format(mat.group(1)).strip().replace(' ', '%20')
+        faction_list += [(mat.group(1), link)]
+
+    return sys_list, faction_list
+
+
+def generate_bgs_embed(sys_list, faction_list):
+    """
+    Generate an embed with links required based on input lists.
+
+    Returns: A discord Embed.
+    """
+    fields = []
+    for sys, sys_link in sys_list:
+        fields += [{'name': "System", 'value': "[{}]({})".format(sys, sys_link), "inline": True}]
+    for fact, fact_link in faction_list:
+        fields += [{'name': "Faction", 'value': "[{}]({})".format(fact, fact_link), "inline": True}]
+
+    return discord.Embed.from_dict({
+        'color': PP_COLORS.get("Federation"),
+        'author': {
+            'name': "Cog"
+        },
+        'provider': {
+            'name': 'Inara',
+            'url': SITE,
+        },
+        'thumbnail': {
+            'url': EMPTY_IMG,
+        },
+        'title': "Inara System & Faction Links",
+        'url': SITE,
+        'footer': {
+            'text': "Please report any broken or missing links."
+        },
+        "fields": fields
+    })
 
 
 def main():
