@@ -5,6 +5,7 @@ All actions have async execute methods.
 """
 import asyncio
 import datetime
+import functools
 import logging
 import re
 import string
@@ -978,8 +979,13 @@ class Near(Action):
         if self.args.subcmd == 'control':
             sys_name = ' '.join(self.args.system)
             centre = cogdb.eddb.get_systems(eddb_session, [sys_name])[0]
-            systems = cogdb.eddb.get_nearest_controls(
-                eddb_session, centre_name=centre.name, power=self.args.power)
+            systems = await self.bot.loop.run_in_executor(
+                None,
+                functools.partial(
+                    cogdb.eddb.get_nearest_controls, eddb_session,
+                    centre_name=centre.name, power=self.args.power
+                )
+            )
 
             lines = [['System', 'Distance']] + [[x.name, "{:.2f}".format(x.dist_to(centre))] for x in systems[:10]]
             msg = "__Closest 10 Controls__\n\n" + \
@@ -988,8 +994,13 @@ class Near(Action):
         elif self.args.subcmd == 'if':
             sys_name = ' '.join(self.args.system)
             centre = cogdb.eddb.get_systems(eddb_session, [sys_name])[0]
-            stations = cogdb.eddb.get_nearest_ifactors(eddb_session, centre_name=centre.name,
-                                                       include_medium=self.args.medium)
+            stations = await self.bot.loop.run_in_executor(
+                None,
+                functools.partial(
+                    cogdb.eddb.get_nearest_ifactors, eddb_session,
+                    centre_name=centre.name, include_medium=self.args.medium
+                )
+            )
 
             stations = [["System", "Distance", "Station", "Arrival"]] + stations
             msg = "__Nearby Interstellar Factors__\n"
@@ -1034,9 +1045,15 @@ class Repair(Action):
         if self.args.distance > 30:
             raise cog.exc.InvalidCommandArgs("Searching beyond **30**ly would produce too long a list.")
 
-        stations = cogdb.eddb.get_shipyard_stations(cogdb.EDDBSession(), ' '.join(self.args.system),
-                                                    sys_dist=self.args.distance, arrival=self.args.arrival,
-                                                    include_medium=self.args.medium)
+        stations = await self.bot.loop.run_in_executor(
+            None,
+            functools.partial(
+                cogdb.eddb.get_shipyard_stations,
+                cogdb.EDDBSession(), ' '.join(self.args.system),
+                sys_dist=self.args.distance, arrival=self.args.arrival,
+                include_medium=self.args.medium
+            )
+        )
 
         if stations:
             stations = [["System", "Distance", "Station", "Arrival"]] + stations
