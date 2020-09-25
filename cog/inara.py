@@ -493,6 +493,23 @@ async def inara_squad_parse(url):
     ]
 
 
+def extract_inara_anchors(message):
+    """
+    Take a message (str or discord.Message object) and replace the content with
+    expanded inara anchors that are links.
+
+    Returns: the message with text replaced
+    """
+    text = message
+    if isinstance(message, discord.Message):
+        text = message.content
+
+    hooks = {
+        ">ins(sol)": "https://inara.cz/galaxy-starsystem/?search={}",
+        ">ist(sol, daedalus)": "https://inara.cz/galaxy-station/?search={} [{}]"
+    }
+
+
 def main():
     import sys
     loop = asyncio.new_event_loop()

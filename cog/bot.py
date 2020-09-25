@@ -203,8 +203,8 @@ class CogBot(discord.Client):
         Ignore messages not directed at bot and any commands that aren't
         from an admin during deny_commands == True.
         """
-        # Ignore lines not directed at bot
-        if message.author.bot or not message.content.startswith(self.prefix):
+        # Ignore lines by bot
+        if message.author.bot:
             return True
 
         # Accept only admin commands if denying
@@ -224,6 +224,12 @@ class CogBot(discord.Client):
         """
         if before.content != after.content and after.content.startswith(self.prefix):
             await self.on_message(after)
+
+    async def message_hooks(self, message):
+        hooks = {
+            ">is(sol)": "https://inara.cz/galaxy-starsystem/?search={}",
+            ">ist(sol, daedalus)": "https://inara.cz/galaxy-station/?search={} [{}]"
+        }
 
     async def on_message(self, message):
         """
@@ -247,6 +253,10 @@ class CogBot(discord.Client):
 
         # TODO: Better filtering, use a loop and filter funcs.
         if await self.ignore_message(message):
+            return
+
+        if not message.content.startswith(self.prefix):
+            self.message_hooks(message)
             return
 
         log = logging.getLogger(__name__)
