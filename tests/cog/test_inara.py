@@ -158,6 +158,7 @@ Juma :Small-1: Moseley Settlement for Juma Aristocrats
 Slavanibo :Small-1: :Planetary: for Marquis du Slavanibo
 Ticushpakhi :Small-1: :Planetary: Any Station for Dukes of Biaris
 Wardal :Small-1: Any Station for Noblemen of Nohock Ek
+Alone :Small-1: Any Station
     """
     expect = ([
         ('Bragpura', 'https://inara.cz/galaxy-starsystem/?search=Bragpura'),
@@ -166,12 +167,15 @@ Wardal :Small-1: Any Station for Noblemen of Nohock Ek
         ('Juma', 'https://inara.cz/galaxy-starsystem/?search=Juma'),
         ('Slavanibo', 'https://inara.cz/galaxy-starsystem/?search=Slavanibo'),
         ('Ticushpakhi', 'https://inara.cz/galaxy-starsystem/?search=Ticushpakhi'),
-        ('Wardal', 'https://inara.cz/galaxy-starsystem/?search=Wardal')
+        ('Wardal', 'https://inara.cz/galaxy-starsystem/?search=Wardal'),
+        ('Alone', 'https://inara.cz/galaxy-starsystem/?search=Alone'),
     ], [
-        ("Lords of Totjob'al ",
+        ("Lords of Totjob'al",
             "https://inara.cz/galaxy-minorfaction/?search=Lords%20of%20Totjob'al"),
-        ('Tai Qing Alliance Bond ',
+        ('Tai Qing Alliance Bond',
             'https://inara.cz/galaxy-minorfaction/?search=Tai%20Qing%20Alliance%20Bond'),
+        ('HR 7012 Noblement',
+            'https://inara.cz/galaxy-minorfaction/?search=HR%207012%20Noblement'),
         ('Juma Aristocrats',
             'https://inara.cz/galaxy-minorfaction/?search=Juma%20Aristocrats'),
         ('Marquis du Slavanibo',
@@ -179,7 +183,7 @@ Wardal :Small-1: Any Station for Noblemen of Nohock Ek
         ('Dukes of Biaris',
             'https://inara.cz/galaxy-minorfaction/?search=Dukes%20of%20Biaris'),
         ('Noblemen of Nohock Ek',
-            'https://inara.cz/galaxy-minorfaction/?search=Noblemen%20of%20Nohock%20Ek')
+            'https://inara.cz/galaxy-minorfaction/?search=Noblemen%20of%20Nohock%20Ek'),
     ])
 
     assert cog.inara.extract_inara_systems(msg) == expect

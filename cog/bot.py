@@ -226,7 +226,10 @@ class CogBot(discord.Client):
             await self.on_message(after)
 
     async def message_hooks(self, message):
-        if "BGS Priorities" in message.content:
+        """
+        Any hooks to respond automatically to certain messages with no prefixes go here.
+        """
+        if "BGS Priorities for" in message.content or "spec_ops Priorities for" in message.content:
             embed = cog.inara.generate_bgs_embed(*cog.inara.extract_inara_systems(message))
             await message.channel.send(embed=embed)
 

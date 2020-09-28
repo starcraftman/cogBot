@@ -498,8 +498,8 @@ async def inara_squad_parse(url):
 
 def extract_inara_systems(message):
     """
-    Take a message (str or discord.Message object) and extract all possible Inara systems references.
-    Format expected is dependent on existing BGS Objectives format.
+    Take a message (str or discord.Message object) and extract all possible
+    Inara systems references based on an expected format.
 
     Returns: (sys_list, faction_list)
         sys_list: A list of form: ((system_name, inara_url), ...)
@@ -509,15 +509,16 @@ def extract_inara_systems(message):
     if isinstance(message, discord.Message):
         text = message.content
 
-    sys_list = []
-    for mat in re.finditer(r'(.+) (:Small|:Large)', text):
-        link = INARA_SYSTEM_SEARCH.format(mat.group(1)).strip().replace(' ', '%20')
-        sys_list += [(mat.group(1), link)]
+    faction_list, sys_list = [], []
+    for mat in re.finditer(r'(.+) (:Small.*?:|:Large.*?:)(.*for ([a-zA-z0-9\' -]+))?', text):
+        sys_name = mat.group(1).strip()
+        link = INARA_SYSTEM_SEARCH.format(sys_name.replace(' ', '%20'))
+        sys_list += [(sys_name, link)]
 
-    faction_list = []
-    for mat in re.finditer(r':.*for ([a-zA-z0-9\' -]+)', text):
-        link = INARA_FACTION_SEARCH.format(mat.group(1)).strip().replace(' ', '%20')
-        faction_list += [(mat.group(1), link)]
+        if mat.group(4):
+            fact_name = mat.group(4).strip()
+            link = INARA_FACTION_SEARCH.format(fact_name.replace(' ', '%20'))
+            faction_list += [(fact_name, link)]
 
     return sys_list, faction_list
 
