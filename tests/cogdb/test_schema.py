@@ -8,17 +8,16 @@ import pytest
 import cog.exc
 import cogdb
 import cogdb.schema
-from cogdb.schema import (DUser, System, Drop, Hold,
-                          SheetRow, SheetCattle, SheetUM,
-                          SystemUM, UMControl, UMExpand, UMOppose,
-                          EFaction, ESheetType, kwargs_um_system, kwargs_fort_system,
-                          Admin, ChannelPerm, RolePerm, FortOrder)
+from cogdb.schema import (DiscordUser, FortSystem, FortDrop, FortUser, FortOrder,
+                          UMSystem, UMExpand, UMOppose, UMUser, UMHold,
+                          EFortType, EUMType, PermAdmin, PermChannel, PermRole,
+                          kwargs_um_system, kwargs_fort_system)
 
 from tests.data import SYSTEMS_DATA, SYSTEMSUM_DATA, SYSTEMUM_EXPAND
 
 
 def test_empty_tables_all(session, f_dusers, f_sheets, f_systems, f_drops, f_systemsum, f_holds):
-    classes = [DUser, SheetRow, System, SystemUM, Drop, Hold]
+    classes = [DiscordUser, SheetRow, FortSystem, UMSystem, FortDrop, UMHold]
     for cls in classes:
         assert session.query(cls).all()
 
@@ -30,16 +29,16 @@ def test_empty_tables_all(session, f_dusers, f_sheets, f_systems, f_drops, f_sys
 
 
 def test_empty_tables_not_all(session, f_dusers, f_sheets, f_systems, f_drops, f_systemsum, f_holds):
-    classes = [DUser, SheetRow, System, SystemUM, Drop, Hold]
+    classes = [DiscordUser, SheetRow, FortSystem, UMSystem, FortDrop, UMHold]
     for cls in classes:
         assert session.query(cls).all()
 
     cogdb.schema.empty_tables(session, perm=False)
 
-    classes.remove(DUser)
+    classes.remove(DiscordUser)
     for cls in classes:
         assert session.query(cls).all() == []
-    assert session.query(DUser).all()
+    assert session.query(DiscordUser).all()
 
 
 def test_admin_remove(session, f_dusers, f_admins):
@@ -68,12 +67,12 @@ def test_admin__eq__(session, f_dusers, f_admins):
 
 def test_channelperm__repr__(session, f_cperms):
     perm = f_cperms[0]
-    assert repr(perm) == "ChannelPerm(cmd='Drop', server='Gears Hideout', channel='operations')"
+    assert repr(perm) == "ChannelPerm(cmd='FortDrop', server='Gears Hideout', channel='operations')"
 
 
 def test_channelperm__str__(session, f_cperms):
     perm = f_cperms[0]
-    assert str(perm) == "ChannelPerm(cmd='Drop', server='Gears Hideout', channel='operations')"
+    assert str(perm) == "ChannelPerm(cmd='FortDrop', server='Gears Hideout', channel='operations')"
 
 
 def test_channelperm__eq__(session, f_cperms):
@@ -84,12 +83,12 @@ def test_channelperm__eq__(session, f_cperms):
 
 def test_roleperm__repr__(session, f_rperms):
     perm = f_rperms[0]
-    assert repr(perm) == "RolePerm(cmd='Drop', server='Gears Hideout', role='FRC Member')"
+    assert repr(perm) == "RolePerm(cmd='FortDrop', server='Gears Hideout', role='FRC Member')"
 
 
 def test_roleperm__str__(session, f_rperms):
     perm = f_rperms[0]
-    assert str(perm) == "RolePerm(cmd='Drop', server='Gears Hideout', role='FRC Member')"
+    assert str(perm) == "RolePerm(cmd='FortDrop', server='Gears Hideout', role='FRC Member')"
 
 
 def test_roleperm__eq__(session, f_rperms):
@@ -116,22 +115,22 @@ def test_fortorder__eq__(session, f_fortorders):
 
 def test_duser__eq__(f_dusers, f_sheets):
     duser = f_dusers[0]
-    assert duser != DUser(id='1111', display_name='test user',
+    assert duser != DiscordUser(id='1111', display_name='test user',
                           pref_name='test user')
-    assert duser == DUser(id=duser.id, display_name='test user',
+    assert duser == DiscordUser(id=duser.id, display_name='test user',
                           pref_name='test user')
 
 
 def test_duser__repr__(f_dusers, f_sheets):
     duser = f_dusers[0]
-    assert repr(duser) == "DUser(id='1000', display_name='GearsandCogs', "\
+    assert repr(duser) == "DiscordUser(id='1000', display_name='GearsandCogs', "\
                           "pref_name='GearsandCogs', pref_cry='', faction='hudson')"
     assert duser == eval(repr(duser))
 
 
 def test_duser__str__(f_dusers, f_sheets):
     duser = f_dusers[0]
-    assert str(duser) == "DUser(id='1000', display_name='GearsandCogs', "\
+    assert str(duser) == "DiscordUser(id='1000', display_name='GearsandCogs', "\
                          "pref_name='GearsandCogs', pref_cry='', faction='hudson')"
 
 
@@ -198,32 +197,32 @@ def test_sheetrow__str__(f_dusers, f_sheets):
 def test_sheetcattle_merit_summary(session, f_dusers, f_sheets, f_systems, f_drops):
     sheet = f_sheets[0]
     total = 0
-    for drop in session.query(Drop).filter_by(user_id=sheet.id).all():
+    for drop in session.query(FortDrop).filter_by(user_id=sheet.id).all():
         total += drop.amount
-    assert sheet.merit_summary() == 'Dropped {}'.format(total)
+    assert sheet.merit_summary() == 'FortDropped {}'.format(total)
 
 
 def test_sheetum_merit_summary(session, f_dusers, f_sheets, f_systemsum, f_holds):
     sheet = [sheet for sheet in f_sheets if sheet.name == 'GearsandCogs'
              and sheet.type == ESheetType.undermine][0]
     held, redeemed = 0, 0
-    for hold in session.query(Hold).filter_by(user_id=sheet.id).all():
+    for hold in session.query(UMHold).filter_by(user_id=sheet.id).all():
         held += hold.held
         redeemed += hold.redeemed
-    assert sheet.merit_summary() == 'Holding {}, Redeemed {}'.format(held, redeemed)
+    assert sheet.merit_summary() == 'UMHolding {}, Redeemed {}'.format(held, redeemed)
 
 
 def test_system__eq__(f_systems):
     system = f_systems[0]
 
-    assert system == System(name='Frey')
-    assert system != System(name='Sol')
+    assert system == FortSystem(name='Frey')
+    assert system != FortSystem(name='Sol')
 
 
 def test_system__repr__(f_systems):
     system = f_systems[0]
 
-    assert repr(system) == "System(name='Frey', fort_status=4910, trigger=4910, "\
+    assert repr(system) == "FortSystem(name='Frey', fort_status=4910, trigger=4910, "\
                            "fort_override=0.7, um_status=0, undermine=0.0, distance=116.99, "\
                            "notes='', sheet_col='G', sheet_order=1)"
     assert system == eval(repr(system))
@@ -232,7 +231,7 @@ def test_system__repr__(f_systems):
 def test_system__str__(f_systems):
     system = f_systems[0]
 
-    assert str(system) == "id=1, cmdr_merits=0, System(name='Frey', fort_status=4910, "\
+    assert str(system) == "id=1, cmdr_merits=0, FortSystem(name='Frey', fort_status=4910, "\
                           "trigger=4910, fort_override=0.7, um_status=0, undermine=0.0, distance=116.99, "\
                           "notes='', sheet_col='G', sheet_order=1)"
 
@@ -350,21 +349,21 @@ def test_drop__eq__(f_dusers, f_sheets, f_systems, f_drops):
     user = f_sheets[0]
     system = f_systems[0]
     drop = f_drops[0]
-    assert drop == Drop(amount=700, user_id=user.id, system_id=system.id)
+    assert drop == FortDrop(amount=700, user_id=user.id, system_id=system.id)
     assert drop.user == user
     assert drop.system == system
 
 
 def test_drop__repr__(f_dusers, f_sheets, f_systems, f_drops):
     drop = f_drops[0]
-    assert repr(drop) == "Drop(system_id=1, user_id=1, amount=700)"
+    assert repr(drop) == "FortDrop(system_id=1, user_id=1, amount=700)"
     assert drop == eval(repr(drop))
 
 
 def test_drop__str__(f_dusers, f_sheets, f_systems, f_drops):
     drop = f_drops[0]
     assert str(drop) == "id=1, system='Frey', user='GearsandCogs', "\
-                        "Drop(system_id=1, user_id=1, amount=700)"
+                        "FortDrop(system_id=1, user_id=1, amount=700)"
 
 
 def test_hold__eq__(f_dusers, f_sheets, f_systemsum, f_holds):
@@ -372,21 +371,21 @@ def test_hold__eq__(f_dusers, f_sheets, f_systemsum, f_holds):
     system = f_systemsum[0]
     hold = f_holds[0]
 
-    assert hold == Hold(held=0, redeemed=4000, user_id=user.id, system_id=system.id)
+    assert hold == UMHold(held=0, redeemed=4000, user_id=user.id, system_id=system.id)
     assert hold.user == user
     assert hold.system == system
 
 
 def test_hold__repr__(f_dusers, f_sheets, f_systemsum, f_holds):
     hold = f_holds[0]
-    assert repr(hold) == "Hold(system_id=1, user_id=2, held=0, redeemed=4000)"
+    assert repr(hold) == "UMHold(system_id=1, user_id=2, held=0, redeemed=4000)"
     assert hold == eval(repr(hold))
 
 
 def test_hold__str__(f_dusers, f_sheets, f_systemsum, f_holds):
     hold = f_holds[0]
     assert str(hold) == "id=1, system='Cemplangpa', user='GearsandCogs', "\
-                        "Hold(system_id=1, user_id=2, held=0, redeemed=4000)"
+                        "UMHold(system_id=1, user_id=2, held=0, redeemed=4000)"
 
 
 def test_kos__repr__(f_kos):
@@ -410,7 +409,7 @@ def test_kos_friendly(f_kos):
 def test_systemum__repr__(f_dusers, f_sheets, f_systemsum, f_holds):
     system = f_systemsum[0]
 
-    assert repr(system) == "SystemUM(name='Cemplangpa', type='control', sheet_col='D', "\
+    assert repr(system) == "UMSystem(name='Cemplangpa', type='control', sheet_col='D', "\
                            "goal=14878, security='Medium', notes='', "\
                            "progress_us=15000, progress_them=1.0, "\
                            "close_control='Sol', priority='Medium', map_offset=1380)"
@@ -420,7 +419,7 @@ def test_systemum__repr__(f_dusers, f_sheets, f_systemsum, f_holds):
 def test_systemum__str__(f_dusers, f_sheets, f_systemsum, f_holds):
     system = f_systemsum[0]
 
-    assert str(system) == "id=1, cmdr_merits=6450, SystemUM(name='Cemplangpa', "\
+    assert str(system) == "id=1, cmdr_merits=6450, UMSystem(name='Cemplangpa', "\
                           "type='control', sheet_col='D', "\
                           "goal=14878, security='Medium', notes='', "\
                           "progress_us=15000, progress_them=1.0, "\
@@ -440,7 +439,7 @@ Priority           | Medium```"""
 
 def test_systemum__eq__(f_dusers, f_sheets, f_systemsum, f_holds):
 
-    expect = SystemUM.factory(kwargs_um_system(SYSTEMSUM_DATA[0], 'F'))
+    expect = UMSystem.factory(kwargs_um_system(SYSTEMSUM_DATA[0], 'F'))
     system = f_systemsum[0]
 
     assert system == expect

@@ -24,10 +24,10 @@ except ImportError:
 import cog.util
 import cogdb
 import cogdb.query
-from cogdb.schema import (DUser, PrepSystem, System, SystemUM, Drop, Hold,
-                          UMExpand, UMOppose, UMControl,
-                          SheetRow, SheetCattle, SheetUM,
-                          EFaction, Admin, ChannelPerm, RolePerm, FortOrder, KOS)
+from cogdb.schema import (DiscordUser, FortSystem, FortDrop, FortUser, FortOrder,
+                          UMSystem, UMExpand, UMOppose, UMUser, UMHold, KOS,
+                          EFortType, EUMType, PermAdmin, PermChannel, PermRole,
+                          kwargs_um_system, kwargs_fort_system)
 from tests.data import CELLS_FORT, CELLS_FORT_FMT, CELLS_UM
 
 
@@ -100,7 +100,7 @@ def db_cleanup(session):
 
     cogdb.schema.empty_tables(session, perm=True)
 
-    classes = [DUser, SheetRow, System, SystemUM, Drop, Hold, KOS]
+    classes = [DiscordUser, FortUser, FortSystem, FortDrop, UMUser, UMSystem, UMHold, KOS]
     for cls in classes:
         assert session.query(cls).all() == []
 
