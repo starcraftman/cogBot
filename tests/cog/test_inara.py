@@ -146,19 +146,19 @@ def test_extract_inara_systems():
     msg = """
 CRITICAL Systems
 :CombatMission: :CombatBond: :Bounties: (keep killing the enemy ships in the Conflict Zones until the battle is won)
-Bragpura :Small-1: :Planetary: fight for Lords of Totjob'al (Control War, Day 1 -*Close Victory* 1-0)
-V590 Lyrae :Small-1: :Planetary: fight for Tai Qing Alliance Bond (Control War, Day 1 -*Close Victory* 1-0) :FC:
+Bragpura <:Small-1:3210582> :Planetary: fight for Lords of Totjob'al (Control War, Day 1 -*Close Victory* 1-0)
+V590 Lyrae <:Small-1:3210582> :Planetary: fight for Tai Qing Alliance Bond (Control War, Day 1 -*Close Victory* 1-0) :FC:
 
 :Mission: :Exploration: :Bounties: :Commodity:
-Tamba :Small-1: for HR 7012 Noblement :FC:
+Tamba <:Large-1:3521029> for HR 7012 Noblement :FC:
 
 Priority Systems
 :Mission: :Exploration: :Bounties: :Commodity:
-Juma :Small-1: Moseley Settlement for Juma Aristocrats
-Slavanibo :Small-1: :Planetary: for Marquis du Slavanibo
-Ticushpakhi :Small-1: :Planetary: Any Station for Dukes of Biaris
-Wardal :Small-1: Any Station for Noblemen of Nohock Ek
-Alone :Small-1: Any Station
+Juma <:Small-1:3210582> Moseley Settlement for Juma Aristocrats
+Slavanibo <:Large-1:3521029> :Planetary: for Marquis du Slavanibo
+Ticushpakhi <:Small-1:3210582> :Planetary: Any Station for Dukes of Biaris
+Wardal <:Small-1:3210582> Any Station for Noblemen of Nohock Ek
+Alone <:Small-1:3210582> Any Station
     """
     expect = ([
         ('Bragpura', 'https://inara.cz/galaxy-starsystem/?search=Bragpura'),

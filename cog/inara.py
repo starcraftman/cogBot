@@ -510,13 +510,13 @@ def extract_inara_systems(message):
         text = message.content
 
     faction_list, sys_list = [], []
-    for mat in re.finditer(r'(.+) (:Small.*?:|:Large.*?:)(.*for ([a-zA-z0-9\' -]+))?', text):
-        sys_name = mat.group(1).strip()
+    for mat in re.finditer(r'(?P<sys>.+) (<:(Small|Large).*?:[0-9]*>)(.*for (?P<fact>[a-zA-z0-9\' -]+))?', text):
+        sys_name = mat.group('sys').strip()
         link = INARA_SYSTEM_SEARCH.format(sys_name.replace(' ', '%20'))
         sys_list += [(sys_name, link)]
 
-        if mat.group(4):
-            fact_name = mat.group(4).strip()
+        if mat.group('fact'):
+            fact_name = mat.group('fact').strip()
             link = INARA_FACTION_SEARCH.format(fact_name.replace(' ', '%20'))
             faction_list += [(fact_name, link)]
 
