@@ -8,6 +8,7 @@ import enum
 import sqlalchemy as sqla
 import sqlalchemy.orm as sqla_orm
 import sqlalchemy.ext.declarative
+from sqlalchemy.ext.hybrid import hybrid_property, hybrid_method
 
 import cog.exc
 import cog.tbl
@@ -71,8 +72,8 @@ class FortUser(Base):
     __tablename__ = 'hudson_fort_users'
 
     id = sqla.Column(sqla.BigInteger, sqla.ForeignKey('discord_users.id'),
-                     primary_key=True,)  # Discord id
-    name = sqla.Column(sqla.String(LEN_NAME), unique=True)
+                     nullable=True,)  # Discord id
+    name = sqla.Column(sqla.String(LEN_NAME), primary_key=True)
     row = sqla.Column(sqla.Integer, unique=True)
     cry = sqla.Column(sqla.String(LEN_NAME), default='')
 
@@ -102,60 +103,14 @@ class FortUser(Base):
         return "dropped={!r}, {!r}".format(self.dropped, self)
 
     def __eq__(self, other):
-        return isinstance(other, FortUser) and self.id == other.id
+        return isinstance(other, FortUser) and self.name == other.name
 
     def __hash__(self):
-        return hash(self.id)
+        return hash(self.name)
 
     def merit_summary(self):
         """ Summarize user merits. """
         return 'Dropped {}'.format(self.dropped)
-
-
-class FortDrop(Base):
-    """
-    Every drop made by a user creates a fort entry here.
-    User maintains a sub collection of these for easy access.
-    """
-    __tablename__ = 'hudson_fort_merits'
-
-    id = sqla.Column(sqla.Integer, primary_key=True)
-    amount = sqla.Column(sqla.Integer)
-    system_id = sqla.Column(sqla.Integer, sqla.ForeignKey('hudson_fort_systems.id'), nullable=False)
-    user_id = sqla.Column(sqla.BigInteger, sqla.ForeignKey('hudson_fort_users.id'), nullable=False)
-
-    # Relationships
-    user = sqla_orm.relationship('FortUser', uselist=False, back_populates='merits',
-                                 lazy='select')
-    system = sqla_orm.relationship('FortSystem', uselist=False, back_populates='merits',
-                                   lazy='select')
-
-    def __repr__(self):
-        keys = ['id', 'system_id', 'user_id', 'amount']
-        kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
-
-        return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
-
-    def __str__(self):
-        system = ''
-        if getattr(self, 'system'):
-            system = "system={!r}, ".format(self.system.name)
-
-        suser = ''
-        if getattr(self, 'user'):
-            suser = "user={!r}, ".format(self.user.name)
-
-        return "{}{}{!r}".format(system, suser, self)
-
-    def __eq__(self, other):
-        return isinstance(other, FortDrop) and (self.user_id, self.system_id) == (
-            other.user_id, other.system_id)
-
-    def __lt__(self, other):
-        return self.amount < other.amount
-
-    def __hash__(self):
-        return hash(self.id)
 
 
 class EFortType(enum.Enum):
@@ -188,15 +143,15 @@ class FortSystem(Base):
 
     id = sqla.Column(sqla.Integer, primary_key=True)
     name = sqla.Column(sqla.String(LEN_NAME), unique=True)
-    type = sqla.Column(sqla.Enum(EFortType))
-    fort_status = sqla.Column(sqla.Integer)
-    trigger = sqla.Column(sqla.Integer)
+    type = sqla.Column(sqla.Enum(EFortType), default=EFortType.fort)
+    fort_status = sqla.Column(sqla.Integer, default=0)
+    trigger = sqla.Column(sqla.Integer, default=1)
     fort_override = sqla.Column(sqla.Float, default=0.0)
     um_status = sqla.Column(sqla.Integer, default=0)
     undermine = sqla.Column(sqla.Float, default=0.0)
-    distance = sqla.Column(sqla.Float)
+    distance = sqla.Column(sqla.Float, default=0.0)
     notes = sqla.Column(sqla.String(LEN_NAME), default='')
-    sheet_col = sqla.Column(sqla.String(LEN_SHEET_COL))
+    sheet_col = sqla.Column(sqla.String(LEN_SHEET_COL), default='')
     sheet_order = sqla.Column(sqla.Integer)
 
     __mapper_args__ = {
@@ -211,7 +166,7 @@ class FortSystem(Base):
                                    lazy='select')
 
     def __repr__(self):
-        keys = ['id', 'name', 'type', 'fort_status', 'trigger', 'fort_override', 'um_status',
+        keys = ['id', 'name', 'fort_status', 'trigger', 'fort_override', 'um_status',
                 'undermine', 'distance', 'notes', 'sheet_col', 'sheet_order']
         kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
 
@@ -228,7 +183,7 @@ class FortSystem(Base):
         return isinstance(other, self.__class__) and self.missing < other.missing
 
     def __hash__(self):
-        return hash(self.id)
+        return hash(self.name)
 
     @property
     def cmdr_merits(self):
@@ -289,9 +244,9 @@ class FortSystem(Base):
         """
         status = '{:>4}/{} ({}%/{}%)'.format(self.current_status, self.trigger,
                                              self.completion, self.ump)
+        type = str(self.type).split('.')[-1].capitalize()
 
-        return (self.type.capitalize(), self.name,
-                '{:>4}'.format(self.missing), status, self.notes)
+        return (type, self.name, '{:>4}'.format(self.missing), status, self.notes)
 
     def set_status(self, new_status):
         """
@@ -370,6 +325,52 @@ class FortPrep(FortSystem):
         return 'Prep: ' + super().display(miss=miss)
 
 
+class FortDrop(Base):
+    """
+    Every drop made by a user creates a fort entry here.
+    User maintains a sub collection of these for easy access.
+    """
+    __tablename__ = 'hudson_fort_merits'
+
+    id = sqla.Column(sqla.Integer, primary_key=True)
+    amount = sqla.Column(sqla.Integer)
+    system_id = sqla.Column(sqla.Integer, sqla.ForeignKey('hudson_fort_systems.id'), nullable=False)
+    user_id = sqla.Column(sqla.BigInteger, sqla.ForeignKey('hudson_fort_users.id'), nullable=False)
+
+    # Relationships
+    user = sqla_orm.relationship('FortUser', uselist=False, back_populates='merits',
+                                 lazy='select')
+    system = sqla_orm.relationship('FortSystem', uselist=False, back_populates='merits',
+                                   lazy='select')
+
+    def __repr__(self):
+        keys = ['id', 'system_id', 'user_id', 'amount']
+        kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
+
+        return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
+
+    def __str__(self):
+        system = ''
+        if getattr(self, 'system'):
+            system = "system={!r}, ".format(self.system.name)
+
+        suser = ''
+        if getattr(self, 'user'):
+            suser = "user={!r}, ".format(self.user.name)
+
+        return "{}{}{!r}".format(system, suser, self)
+
+    def __eq__(self, other):
+        return isinstance(other, FortDrop) and (self.system_id, self.user_id) == (
+            other.system_id, other.user_id)
+
+    def __lt__(self, other):
+        return self.amount < other.amount
+
+    def __hash__(self):
+        return hash("{}_{}".format(self.system_id, self.user_id))
+
+
 class FortOrder(Base):
     """
     Simply store a list of Control systems in the order they should be forted.
@@ -386,8 +387,10 @@ class FortOrder(Base):
         return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
 
     def __eq__(self, other):
-        return isinstance(self, FortOrder) and isinstance(other, FortOrder) and (
-            str(self) == str(other))
+        return isinstance(other, FortOrder) and self.system_name == other.system_name
+
+    def __hash__(self):
+        return hash(self.system_name)
 
 
 class UMUser(Base):
@@ -397,8 +400,8 @@ class UMUser(Base):
     __tablename__ = 'hudson_um_users'
 
     id = sqla.Column(sqla.BigInteger, sqla.ForeignKey('discord_users.id'),
-                     primary_key=True,)  # Discord id
-    name = sqla.Column(sqla.String(LEN_NAME), unique=True)
+                     nullable=True,)  # Discord id
+    name = sqla.Column(sqla.String(LEN_NAME), primary_key=True)
     row = sqla.Column(sqla.Integer, unique=True)
     cry = sqla.Column(sqla.String(LEN_NAME), default='')
 
@@ -437,57 +440,14 @@ class UMUser(Base):
         return "held={!r}, redeemed={!r}, {!r}".format(self.held, self.redeemed, self)
 
     def __eq__(self, other):
-        return isinstance(other, UMUser) and self.id == other.id
+        return isinstance(other, UMUser) and self.name == other.name
+
+    def __hash__(self):
+        return hash(self.name)
 
     def merit_summary(self):
         """ Summarize user merits. """
         return 'Holding {}, Redeemed {}'.format(self.held, self.redeemed)
-
-
-class UMHold(Base):
-    """
-    Represents a user's held and redeemed merits within an undermining system.
-    """
-    __tablename__ = 'hudson_um_merits'
-
-    id = sqla.Column(sqla.Integer, primary_key=True)
-    system_id = sqla.Column(sqla.Integer, sqla.ForeignKey('hudson_um_systems.id'), nullable=False)
-    user_id = sqla.Column(sqla.BigInteger, sqla.ForeignKey('hudson_um_users.id'), nullable=False)
-    held = sqla.Column(sqla.Integer)
-    redeemed = sqla.Column(sqla.Integer)
-
-    # Relationships
-    user = sqla_orm.relationship('UMUser', uselist=False, back_populates='merits',
-                                 lazy='select')
-    system = sqla_orm.relationship('UMSystem', uselist=False, back_populates='merits',
-                                   lazy='select')
-
-    def __repr__(self):
-        keys = ['id', 'system_id', 'user_id', 'held', 'redeemed']
-        kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
-
-        return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
-
-    def __str__(self):
-        system = ''
-        if getattr(self, 'system', None):
-            system = "system={!r}, ".format(self.system.name)
-
-        suser = ''
-        if getattr(self, 'user', None):
-            suser = "user={!r}, ".format(self.user.name)
-
-        return "{}{}{!r}".format(system, suser, self)
-
-    def __eq__(self, other):
-        return isinstance(other, UMHold) and (self.user_id, self.system_id) == (
-            other.user_id, other.system_id)
-
-    def __lt__(self, other):
-        return self.held + self.redeemed < other.held + other.redeemed
-
-    def __hash__(self):
-        return hash(self.id)
 
 
 class EUMType(enum.Enum):
@@ -508,9 +468,9 @@ class UMSystem(Base):
     type = sqla.Column(sqla.Enum(EUMType))
     sheet_col = sqla.Column(sqla.String(LEN_SHEET_COL))
     goal = sqla.Column(sqla.Integer)
-    security = sqla.Column(sqla.String(LEN_NAME))
-    notes = sqla.Column(sqla.String(LEN_NAME))
-    close_control = sqla.Column(sqla.String(LEN_NAME))
+    security = sqla.Column(sqla.String(LEN_NAME), default='')
+    notes = sqla.Column(sqla.String(LEN_NAME), default='')
+    close_control = sqla.Column(sqla.String(LEN_NAME), default='')
     priority = sqla.Column(sqla.String(LEN_NAME))
     progress_us = sqla.Column(sqla.Integer)
     progress_them = sqla.Column(sqla.Float)
@@ -535,7 +495,7 @@ class UMSystem(Base):
         return cls(**kwargs)
 
     def __repr__(self):
-        keys = ['id', 'name', 'type', 'sheet_col', 'goal', 'security', 'notes',
+        keys = ['id', 'name', 'sheet_col', 'goal', 'security', 'notes',
                 'progress_us', 'progress_them', 'close_control', 'priority', 'map_offset']
         kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
 
@@ -551,7 +511,7 @@ class UMSystem(Base):
         return isinstance(other, UMSystem) and self.name == other.name
 
     def __hash__(self):
-        return hash(self.id)
+        return hash(self.name)
 
     @property
     def completion(self):
@@ -581,7 +541,7 @@ class UMSystem(Base):
     @property
     def descriptor(self):
         """ Descriptive prefix for string. """
-        return self.type.capitalize()
+        return str(self.type).split('.')[-1].capitalize()
 
     @property
     def is_undermined(self):
@@ -670,6 +630,52 @@ class UMOppose(UMExpand):
         return 'Opposing ' + suffix
 
 
+class UMHold(Base):
+    """
+    Represents a user's held and redeemed merits within an undermining system.
+    """
+    __tablename__ = 'hudson_um_merits'
+
+    id = sqla.Column(sqla.Integer, primary_key=True)
+    system_id = sqla.Column(sqla.Integer, sqla.ForeignKey('hudson_um_systems.id'), nullable=False)
+    user_id = sqla.Column(sqla.BigInteger, sqla.ForeignKey('hudson_um_users.id'), nullable=False)
+    held = sqla.Column(sqla.Integer)
+    redeemed = sqla.Column(sqla.Integer)
+
+    # Relationships
+    user = sqla_orm.relationship('UMUser', uselist=False, back_populates='merits',
+                                 lazy='select')
+    system = sqla_orm.relationship('UMSystem', uselist=False, back_populates='merits',
+                                   lazy='select')
+
+    def __repr__(self):
+        keys = ['id', 'system_id', 'user_id', 'held', 'redeemed']
+        kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
+
+        return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
+
+    def __str__(self):
+        system = ''
+        if getattr(self, 'system', None):
+            system = "system={!r}, ".format(self.system.name)
+
+        suser = ''
+        if getattr(self, 'user', None):
+            suser = "user={!r}, ".format(self.user.name)
+
+        return "{}{}{!r}".format(system, suser, self)
+
+    def __eq__(self, other):
+        return isinstance(other, UMHold) and (self.system_id, self.user_id) == (
+            other.system_id, other.user_id)
+
+    def __lt__(self, other):
+        return self.held + self.redeemed < other.held + other.redeemed
+
+    def __hash__(self):
+        return hash("{}_{}".format(self.system_id, self.user_id))
+
+
 class KOS(Base):
     """
     Represents a the kos list.
@@ -698,7 +704,7 @@ class KOS(Base):
         return 'FRIENDLY' if self.is_friendly else 'KILL'
 
 
-class PermAdmin(Base):
+class AdminPerm(Base):
     """
     Table that lists admins. Essentially just a boolean.
     All admins are equal, except for removing other admins, then seniority is considered by date.
@@ -725,13 +731,13 @@ class PermAdmin(Base):
         return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
 
     def __eq__(self, other):
-        return self.id == other.id
+        return isinstance(other, AdminPerm) and self.id == other.id
 
     def __hash__(self):
         return hash(self.id)
 
 
-class PermChannel(Base):
+class ChannelPerm(Base):
     """
     A channel permission to restrict cmd to listed channels.
     """
@@ -748,13 +754,13 @@ class PermChannel(Base):
         return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
 
     def __eq__(self, other):
-        return isinstance(other, PermChannel) and hash(self) == hash(other)
+        return isinstance(other, ChannelPerm) and hash(self) == hash(other)
 
     def __hash__(self):
         return hash("{}_{}_{}".format(self.cmd, self.server_id, self.channel_id))
 
 
-class PermRole(Base):
+class RolePerm(Base):
     """
     A role permission to restrict cmd to listed roles.
     """
@@ -771,7 +777,7 @@ class PermRole(Base):
         return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
 
     def __eq__(self, other):
-        return isinstance(other, PermRole) and hash(self) == hash(other)
+        return isinstance(other, RolePerm) and hash(self) == hash(other)
 
     def __hash__(self):
         return hash("{}_{}_{}".format(self.cmd, self.server_id, self.role_id))

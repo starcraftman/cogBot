@@ -746,11 +746,11 @@ class System(Base):
         return self.population and self.population > 0
 
     @is_populated.expression
-    def is_populated_expr(cls):
+    def is_populated(self):
         """
         Compute the distance from this system to other.
         """
-        return cls.population is not None and cls.population > 0
+        return self.population is not None and self.population > 0
 
     @hybrid_method
     def dist_to(self, other):
@@ -765,13 +765,13 @@ class System(Base):
         return math.sqrt(dist)
 
     @dist_to.expression
-    def dist_to_expr(cls, other):
+    def dist_to(self, other):
         """
         Compute the distance from this system to other.
         """
-        return sqla.func.sqrt((other.x - cls.x) * (other.x - cls.x)
-                              + (other.y - cls.y) * (other.y - cls.y)
-                              + (other.z - cls.z) * (other.z - cls.z))
+        return sqla.func.sqrt((other.x - self.x) * (other.x - self.x)
+                              + (other.y - self.y) * (other.y - self.y)
+                              + (other.z - self.z) * (other.z - self.z))
 
     def calc_upkeep(self, system):
         """ Approximates the default upkeep. """

@@ -11,9 +11,9 @@ import cog.exc
 import cog.sheets
 import cog.util
 import cogdb
-from cogdb.schema import (System, PrepSystem, SystemUM, SheetCattle, SheetUM,
-                          EFaction, Drop, Hold, kwargs_fort_system, kwargs_um_system,
-                          KOS)
+from cogdb.schema import (FortSystem, FortPrep, FortDrop, FortUser,
+                          UMSystem, UMUser, UMHold, KOS,
+                          kwargs_fort_system, kwargs_um_system)
 
 
 class FortScanner():
@@ -27,8 +27,7 @@ class FortScanner():
     """
     def __init__(self, asheet, users_args=None, db_classes=None):
         self.asheet = asheet
-        self.db_classes = db_classes if db_classes else [Drop, System, SheetCattle]
-        self.users_args = users_args if users_args else [SheetCattle, EFaction.hudson]
+        self.db_classes = db_classes if db_classes else [FortDrop, FortSystem, FortUser]
         self.lock = cog.util.RWLockWrite()
 
         self.cells_row_major = None
@@ -121,7 +120,6 @@ class FortScanner():
             first_id: The id to start for the users.
         """
         found = []
-        cls, faction = self.users_args
 
         if not row_cnt:
             row_cnt = self.user_row - 1
@@ -132,7 +130,7 @@ class FortScanner():
             if name.strip() == '':
                 continue
 
-            sheet_user = cls(id=first_id, cry=cry, name=name, faction=faction, row=row_cnt)
+            sheet_user = FortUser(id=first_id, cry=cry, name=name, row=row_cnt)
             first_id += 1
             if sheet_user in found:
                 rows = [other.row for other in found if other == sheet_user] + [row_cnt]
@@ -156,7 +154,7 @@ class FortScanner():
             for col in self.cells_col_major[ind:]:
                 kwargs = kwargs_fort_system(col[0:10], order, str(cell_column))
                 kwargs['id'] = order
-                found += [System(**kwargs)]
+                found += [FortSystem(**kwargs)]
 
                 order += 1
                 cell_column.fwd()
@@ -187,7 +185,7 @@ class FortScanner():
                 kwargs = kwargs_fort_system(col, order, str(cell_column))
                 kwargs['id'] = 1000 + order
 
-                found += [PrepSystem(**kwargs)]
+                found += [FortPrep(**kwargs)]
         except cog.exc.SheetParsingError:
             pass
 
@@ -215,7 +213,7 @@ class FortScanner():
                     if not amount:
                         continue
 
-                    found += [(Drop(id=cnt, user_id=user.id, system_id=system.id,
+                    found += [(FortDrop(id=cnt, user_id=user.id, system_id=system.id,
                                     amount=amount))]
                     cnt += 1
 
@@ -298,7 +296,7 @@ class UMScanner(FortScanner):
         asheet: The AsyncGSheet that connects to the sheet.
     """
     def __init__(self, asheet):
-        super().__init__(asheet, [SheetUM, EFaction.hudson], [Hold, SystemUM, SheetUM])
+        super().__init__(asheet, [UMHold, UMSystem, UMUser])
 
         # These are fixed based on current format
         self.system_col = 'D'
@@ -380,7 +378,7 @@ class UMScanner(FortScanner):
                     if not held and not redeemed:
                         continue
 
-                    found += [Hold(id=cnt, user_id=users[user_ind].id, system_id=system.id,
+                    found += [UMHold(id=cnt, user_id=users[user_ind].id, system_id=system.id,
                                    held=held, redeemed=redeemed)]
                     cnt += 1
                 except (IndexError, ValueError):

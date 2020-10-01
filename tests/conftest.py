@@ -24,9 +24,9 @@ except ImportError:
 import cog.util
 import cogdb
 import cogdb.query
-from cogdb.schema import (DiscordUser, FortSystem, FortDrop, FortUser, FortOrder,
+from cogdb.schema import (DiscordUser, FortSystem, FortPrep, FortDrop, FortUser, FortOrder,
                           UMSystem, UMExpand, UMOppose, UMUser, UMHold, KOS,
-                          EFortType, EUMType, PermAdmin, PermChannel, PermRole,
+                          EFortType, EUMType, AdminPerm, ChannelPerm, RolePerm,
                           kwargs_um_system, kwargs_fort_system)
 from tests.data import CELLS_FORT, CELLS_FORT_FMT, CELLS_UM
 
@@ -108,179 +108,120 @@ def db_cleanup(session):
 @pytest.fixture
 def f_dusers(session):
     """
-    Fixture to insert some test DUsers.
+    Fixture to insert some test DiscordUsers.
     """
     dusers = (
-        DUser(id='1000', display_name='GearsandCogs',
-              pref_name='GearsandCogs', faction=EFaction.hudson),
-        DUser(id='1001', display_name='rjwhite',
-              pref_name='rjwhite', faction=EFaction.hudson),
-        DUser(id='1002', display_name='vampyregtx',
-              pref_name='not_vamp', faction=EFaction.hudson),
+        DiscordUser(id=1, display_name='User1', pref_name='User1'),
+        DiscordUser(id=2, display_name='User2', pref_name='User2'),
+        DiscordUser(id=3, display_name='User3', pref_name='User3'),
     )
     session.add_all(dusers)
     session.commit()
 
     yield dusers
 
-    for matched in session.query(DUser):
-        session.delete(matched)
+    session.rollback()
+    session.query(DiscordUser).delete()
     session.commit()
 
 
 @pytest.fixture
-def f_sheets(session):
+def f_fort_testbed(session):
     """
     Fixture to insert some test SheetRows.
 
-    Depends on: f_dusers
+    Returns: (users, systems, drops)
     """
-    dusers = session.query(DUser).all()
+    dusers = session.query(DiscordUser).all()
     assert dusers
 
-    sheets = (
-        SheetCattle(id=1, name=dusers[0].pref_name, row=15, cry='Gears are forting late!'),
-        SheetUM(id=2, name=dusers[0].pref_name, row=18, cry='Gears are pew pew!'),
-        SheetCattle(id=3, name=dusers[1].pref_name, row=16, cry=''),
-        SheetUM(id=4, name=dusers[1].pref_name, row=19, cry='Shooting time'),
-        SheetCattle(id=5, name=dusers[2].pref_name, row=17, cry='Vamp the boss'),
+    users = (
+        FortUser(id=dusers[0].id, name=dusers[0].pref_name, row=15, cry='User1 are forting late!'),
+        FortUser(id=dusers[1].id, name=dusers[1].pref_name, row=16, cry=''),
+        FortUser(id=dusers[2].id, name=dusers[2].pref_name, row=17, cry='User3 is the boss'),
     )
-    session.add_all(sheets)
-    session.commit()
-
-    yield sheets
-
-    for matched in session.query(SheetRow):
-        session.delete(matched)
-    session.commit()
-
-
-@pytest.fixture
-def f_systems(session):
-    """
-    Fixture to insert some test Systems.
-    """
-    systems = [
-        System(id=1, name='Frey', fort_status=4910, trigger=4910, fort_override=0.7, um_status=0, undermine=0.0, distance=116.99, notes='', sheet_col='G', sheet_order=1),
-        System(id=2, name='Nurundere', fort_status=5422, trigger=8425, fort_override=0.6, um_status=0, undermine=0.0, distance=99.51, notes='', sheet_col='H', sheet_order=2),
-        System(id=3, name='LHS 3749', fort_status=1850, trigger=5974, um_status=0, undermine=0.0, distance=55.72, notes='', sheet_col='I', sheet_order=3),
-        System(id=4, name='Sol', fort_status=2500, trigger=5211, um_status=2250, undermine=0.0, distance=28.94, notes='Leave For Grinders', sheet_col='J', sheet_order=4),
-        System(id=5, name='Dongkum', fort_status=7000, trigger=7239, um_status=0, undermine=0.0, distance=81.54, notes='', sheet_col='K', sheet_order=5),
-        System(id=6, name='Alpha Fornacis', fort_status=0, trigger=6476, um_status=0, undermine=0.0, distance=67.27, notes='', sheet_col='L', sheet_order=6),
-        System(id=7, name='Phra Mool', fort_status=0, trigger=7968, um_status=0, undermine=0.0, distance=93.02, notes='', sheet_col='M', sheet_order=7),
-        System(id=26, name='Othime', fort_status=0, trigger=7367, um_status=0, undermine=0.0, distance=83.68, notes='Priority for S/M ships (no L pads)', sheet_col='AF', sheet_order=26),
-        System(id=57, name='WW Piscis Austrini', fort_status=0, trigger=8563, um_status=0, undermine=0.0, distance=101.38, notes='', sheet_col='BK', sheet_order=57),
-        System(id=58, name='LPM 229', fort_status=0, trigger=9479, um_status=0, undermine=0.0, distance=112.98, notes='', sheet_col='BL', sheet_order=58),
-    ]
-    session.add_all(systems)
-    session.commit()
-
-    yield systems
-
-    for matched in session.query(System):
-        session.delete(matched)
-    session.commit()
-
-
-@pytest.fixture
-def f_prepsystem(session):
-    prep = PrepSystem(id=100, name='Rhea', trigger=10000, fort_status=5100, um_status=0,
-                      undermine=0.0, distance=65.55, notes='Atropos', sheet_col='D',
-                      sheet_order=0)
-    session.add(prep)
-    session.commit()
-
-    yield prep
-
-    for matched in session.query(PrepSystem):
-        session.delete(matched)
-    session.commit()
-
-
-@pytest.fixture
-def f_drops(session):
-    """
-    Fixture to insert some test Drops.
-
-    Depends on: f_sheets, f_systems
-    """
-    users = session.query(SheetCattle).all()
-    systems = session.query(System).all()
-
+    systems = (
+        FortSystem(id=1, name='Frey', fort_status=4910, trigger=4910, fort_override=0.7, um_status=0, undermine=0.0, distance=116.99, notes='', sheet_col='G', sheet_order=1),
+        FortSystem(id=2, name='Nurundere', fort_status=5422, trigger=8425, fort_override=0.6, um_status=0, undermine=0.0, distance=99.51, notes='', sheet_col='H', sheet_order=2),
+        FortSystem(id=3, name='LHS 3749', fort_status=1850, trigger=5974, um_status=0, undermine=0.0, distance=55.72, notes='', sheet_col='I', sheet_order=3),
+        FortSystem(id=4, name='Sol', fort_status=2500, trigger=5211, um_status=2250, undermine=0.0, distance=28.94, notes='Leave For Grinders', sheet_col='J', sheet_order=4),
+        FortSystem(id=5, name='Dongkum', fort_status=7000, trigger=7239, um_status=0, undermine=0.0, distance=81.54, notes='', sheet_col='K', sheet_order=5),
+        FortSystem(id=6, name='Alpha Fornacis', fort_status=0, trigger=6476, um_status=0, undermine=0.0, distance=67.27, notes='', sheet_col='L', sheet_order=6),
+        FortSystem(id=7, name='Phra Mool', fort_status=0, trigger=7968, um_status=0, undermine=0.0, distance=93.02, notes='', sheet_col='M', sheet_order=7),
+        FortSystem(id=8, name='Othime', fort_status=0, trigger=7367, um_status=0, undermine=0.0, distance=83.68, notes='Priority for S/M ships (no L pads)', sheet_col='AF', sheet_order=26),
+        FortSystem(id=9, name='WW Piscis Austrini', fort_status=0, trigger=8563, um_status=0, undermine=0.0, distance=101.38, notes='', sheet_col='BK', sheet_order=57),
+        FortSystem(id=10, name='LPM 229', fort_status=0, trigger=9479, um_status=0, undermine=0.0, distance=112.98, notes='', sheet_col='BL', sheet_order=58),
+        FortPrep(id=1000, name='Rhea', trigger=10000, fort_status=5100, um_status=0, undermine=0.0, distance=65.55, notes='Atropos', sheet_col='D', sheet_order=0)
+    )
     drops = (
-        Drop(id=1, amount=700, user_id=users[0].id, system_id=systems[0].id),
-        Drop(id=2, amount=400, user_id=users[0].id, system_id=systems[1].id),
-        Drop(id=3, amount=1200, user_id=users[1].id, system_id=systems[0].id),
-        Drop(id=4, amount=1800, user_id=users[2].id, system_id=systems[0].id),
-        Drop(id=5, amount=800, user_id=users[1].id, system_id=systems[1].id),
+        FortDrop(id=1, amount=700, user_id=users[0].id, system_id=systems[0].id),
+        FortDrop(id=2, amount=400, user_id=users[0].id, system_id=systems[1].id),
+        FortDrop(id=3, amount=1200, user_id=users[1].id, system_id=systems[0].id),
+        FortDrop(id=4, amount=1800, user_id=users[2].id, system_id=systems[0].id),
+        FortDrop(id=5, amount=800, user_id=users[1].id, system_id=systems[1].id),
     )
+    session.add_all(users + systems)
+    session.flush()
     session.add_all(drops)
     session.commit()
 
-    yield drops
+    yield users, systems, drops
 
-    for matched in session.query(Drop):
-        session.delete(matched)
+    session.rollback()
+    for cls in (FortDrop, FortSystem, FortUser):
+        session.query(cls).delete()
     session.commit()
 
 
 @pytest.fixture
-def f_systemsum(session):
+def f_um_testbed(session):
     """
     Fixture to insert some test Systems.
+
+    Returns: (users, systems, holds)
     """
-    systems = [
-        UMControl(id=1, name='Cemplangpa', sheet_col='D', goal=14878, security='Medium', notes='',
-                  progress_us=15000, progress_them=1.0, close_control='Sol', priority='Medium',
-                  map_offset=1380),
-        UMControl(id=2, name='Pequen', sheet_col='F', goal=12500, security='Anarchy', notes='',
-                  progress_us=10500, progress_them=0.5, close_control='Atropos', priority='Low',
-                  map_offset=0),
+    dusers = session.query(DiscordUser).all()
+    assert dusers
+
+    users = (
+        UMUser(id=dusers[0].id, name=dusers[0].pref_name, row=18, cry='We go pew pew!'),
+        UMUser(id=dusers[1].id, name=dusers[1].pref_name, row=19, cry='Shooting time'),
+    )
+    systems = (
+        UMSystem(id=1, name='Cemplangpa', sheet_col='D', goal=14878, security='Medium', notes='',
+                 progress_us=15000, progress_them=1.0, close_control='Sol', priority='Medium',
+                 map_offset=1380),
+        UMSystem(id=2, name='Pequen', sheet_col='F', goal=12500, security='Anarchy', notes='',
+                 progress_us=10500, progress_them=0.5, close_control='Atropos', priority='Low',
+                 map_offset=0),
         UMExpand(id=3, name='Burr', sheet_col='H', goal=364298, security='Low', notes='',
                  progress_us=161630, progress_them=35.0, close_control='Dongkum', priority='Medium',
                  map_offset=76548),
         UMOppose(id=4, name='AF Leopris', sheet_col='J', goal=59877, security='Low', notes='',
                  progress_us=47739, progress_them=1.69, close_control='Atropos', priority='low',
                  map_offset=23960),
-        UMControl(id=5, name='Empty', sheet_col='K', goal=10000, security='Medium', notes='',
-                  progress_us=0, progress_them=0.0, close_control='Rana', priority='Low',
-                  map_offset=0),
-    ]
-    session.add_all(systems)
-    session.commit()
-
-    yield systems
-
-    for matched in session.query(SystemUM):
-        session.delete(matched)
-    session.commit()
-
-
-@pytest.fixture
-def f_holds(session):
-    """
-    Fixture to insert some test Holds.
-
-    Depends on: f_sheets, f_systemsum
-    """
-    users = session.query(SheetUM).all()
-    systems = session.query(SystemUM).all()
-
-    holds = (
-        Hold(id=1, held=0, redeemed=4000, user_id=users[0].id, system_id=systems[0].id),
-        Hold(id=2, held=400, redeemed=1550, user_id=users[0].id, system_id=systems[1].id),
-        Hold(id=3, held=2200, redeemed=5800, user_id=users[0].id, system_id=systems[2].id),
-        Hold(id=4, held=450, redeemed=2000, user_id=users[1].id, system_id=systems[0].id),
-        Hold(id=5, held=2400, redeemed=0, user_id=users[1].id, system_id=systems[1].id),
-        Hold(id=6, held=0, redeemed=1200, user_id=users[1].id, system_id=systems[2].id),
+        UMSystem(id=5, name='Empty', sheet_col='K', goal=10000, security='Medium', notes='',
+                 progress_us=0, progress_them=0.0, close_control='Rana', priority='Low',
+                 map_offset=0),
     )
+    holds = (
+        UMHold(id=1, held=0, redeemed=4000, user_id=dusers[0].id, system_id=systems[0].id),
+        UMHold(id=2, held=400, redeemed=1550, user_id=dusers[0].id, system_id=systems[1].id),
+        UMHold(id=3, held=2200, redeemed=5800, user_id=dusers[0].id, system_id=systems[2].id),
+        UMHold(id=4, held=450, redeemed=2000, user_id=dusers[1].id, system_id=systems[0].id),
+        UMHold(id=5, held=2400, redeemed=0, user_id=dusers[1].id, system_id=systems[1].id),
+        UMHold(id=6, held=0, redeemed=1200, user_id=dusers[1].id, system_id=systems[2].id),
+    )
+    session.add_all(users + systems)
+    session.flush()
     session.add_all(holds)
     session.commit()
 
-    yield holds
+    yield users, systems, holds
 
-    for matched in session.query(Hold):
-        session.delete(matched)
+    session.rollback()
+    for cls in (UMHold, UMSystem, UMUser):
+        session.query(cls).delete()
     session.commit()
 
 
@@ -292,16 +233,15 @@ def f_admins(session):
     Depends on: f_dusers
     """
     admins = (
-        Admin(id="1000", date=datetime.datetime(2017, 9, 26, 13, 34, 39, 721018)),
-        Admin(id="1001", date=datetime.datetime(2017, 9, 26, 13, 34, 48, 327031)),
+        AdminPerm(id=1, date=datetime.datetime(2017, 9, 26, 13, 34, 39, 721018)),
+        AdminPerm(id=2, date=datetime.datetime(2017, 9, 26, 13, 34, 48, 327031)),
     )
     session.add_all(admins)
     session.commit()
 
     yield admins
 
-    for matched in session.query(Admin):
-        session.delete(matched)
+    session.query(AdminPerm).delete()
     session.commit()
 
 
@@ -309,15 +249,14 @@ def f_admins(session):
 def f_cperms(session):
     """ Channel perms fixture. """
     perms = (
-        ChannelPerm(cmd="Drop", server="Gears Hideout", channel="operations"),
+        ChannelPerm(cmd="FortDrop", server_id=1, channel_id=2001),
     )
     session.add_all(perms)
     session.commit()
 
     yield perms
 
-    for matched in session.query(ChannelPerm):
-        session.delete(matched)
+    session.query(ChannelPerm).delete()
     session.commit()
 
 
@@ -325,15 +264,14 @@ def f_cperms(session):
 def f_rperms(session):
     """ Role perms fixture. """
     perms = (
-        RolePerm(cmd="Drop", server="Gears Hideout", role="FRC Member"),
+        RolePerm(cmd="FortDrop", server_id=1, role_id=3001),
     )
     session.add_all(perms)
     session.commit()
 
     yield perms
 
-    for matched in session.query(RolePerm):
-        session.delete(matched)
+    session.query(RolePerm).delete()
     session.commit()
 
 
@@ -350,8 +288,7 @@ def f_fortorders(session):
 
     yield systems
 
-    for matched in session.query(FortOrder):
-        session.delete(matched)
+    session.query(FortOrder).delete()
     session.commit()
 
 
@@ -361,24 +298,23 @@ def f_kos(session):
     Fixture to insert some test SheetRows.
     """
     kos_rows = (
-        KOS(id=1, cmdr='good_guy', faction="Hudson", danger=1, is_friendly=1),
-        KOS(id=2, cmdr='good_guy_pvp', faction="Hudson", danger=10, is_friendly=1),
-        KOS(id=3, cmdr='bad_guy', faction="Hudson", danger=8, is_friendly=0),
+        KOS(cmdr='good_guy', faction="Hudson", danger=1, is_friendly=1),
+        KOS(cmdr='good_guy_pvp', faction="Hudson", danger=10, is_friendly=1),
+        KOS(cmdr='bad_guy', faction="Hudson", danger=8, is_friendly=0),
     )
     session.add_all(kos_rows)
     session.commit()
 
     yield kos_rows
 
-    for matched in session.query(KOS):
-        session.delete(matched)
+    session.query(KOS).delete()
     session.commit()
 
 
 @pytest.fixture
-def f_testbed(f_dusers, f_sheets, f_systems, f_prepsystem, f_systemsum, f_drops, f_holds):
+def f_testbed(f_dusers, f_fort_testbed, f_um_testbed):
 
-    yield [f_dusers, f_sheets, f_systems, f_prepsystem, f_systemsum, f_drops, f_holds]
+    yield [f_dusers, f_fort_testbed, f_um_testbed]
 
 
 @pytest.fixture()

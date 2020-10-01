@@ -14,9 +14,9 @@ from cog.util import substr_match
 import cogdb
 import cogdb.eddb
 import cogdb.schema
-from cogdb.schema import (DUser, System, PrepSystem, SystemUM, SheetRow,
-                          Drop, Hold, EFaction, ESheetType,
-                          Admin, ChannelPerm, RolePerm, FortOrder, KOS)
+from cogdb.schema import (DiscordUser, FortSystem, FortPrep, FortDrop, FortUser, FortOrder,
+                          UMSystem, UMExpand, UMOppose, UMUser, UMHold, KOS,
+                          EFortType, EUMType, AdminPerm, ChannelPerm, RolePerm)
 from cogdb.eddb import HUDSON_CONTROLS, WINTERS_CONTROLS
 
 
@@ -56,8 +56,8 @@ def dump_db():  # pragma: no cover
     fname = os.path.join(tempfile.gettempdir(), 'dbdump_' + os.environ.get('COG_TOKEN', 'dev'))
     print("Dumping db contents to:", fname)
     with open(fname, 'w') as fout:
-        for cls in [DUser, SheetRow, System, SystemUM, Drop, Hold,
-                    FortOrder, Admin, RolePerm, ChannelPerm]:
+        for cls in [DiscordUser, FortUser, FortSystem, FortDrop, FortOrder,
+                    UMUser, UMSystem, UMHold, KOS, AdminPerm, RolePerm, ChannelPerm]:
             fout.write('---- ' + str(cls) + ' ----\n')
             fout.writelines([str(obj) + "\n" for obj in session.query(cls)])
 
@@ -70,9 +70,9 @@ def get_duser(session, discord_id):
         NoMatch - No possible match found.
     """
     try:
-        return session.query(DUser).filter_by(id=discord_id).one()
+        return session.query(DiscordUser).filter_by(id=discord_id).one()
     except sqla_oexc.NoResultFound:
-        raise cog.exc.NoMatch(discord_id, 'DUser')
+        raise cog.exc.NoMatch(discord_id, 'DiscordUser')
 
 
 def ensure_duser(session, member):
@@ -90,13 +90,12 @@ def ensure_duser(session, member):
     return duser
 
 
-def add_duser(session, member, *, faction=EFaction.hudson):
+def add_duser(session, member):
     """
     Add a discord user to the database.
     """
-    name = member.display_name
-    new_duser = DUser(id=member.id, display_name=name,
-                      pref_name=name, faction=faction)
+    new_duser = DiscordUser(id=member.id, display_name=member.display_name,
+                            pref_name=member.display_name)
     session.add(new_duser)
     session.commit()
 
@@ -110,68 +109,59 @@ def check_pref_name(session, duser, new_name):
     Raises:
         InvalidCommandArgs - DUser.pref_name taken by another DUser.
     """
-    others = session.query(DUser).filter(DUser.id != duser.id, DUser.pref_name == new_name).all()
-    if others:
+    try:
+        existing = session.query(DiscordUser).filter(DiscordUser.pref_name == new_name).one()
         raise cog.exc.InvalidCommandArgs(
             "Sheet name {}, taken by {}.\n\nPlease choose another.".format(
-                new_name, others[0].display_name))
-
-    # Note: Unlikely needed, should be caught above. However, no fixed relationship guaranteeing.
-    # for sheet in session.query(SheetRow).filter(SheetRow.name == new_name).all():
-        # if sheet.duser(session).id != duser.id:
-            # raise cog.exc.InvalidCommandArgs("Sheet name {}, taken by {}.\n\nPlease choose another.".format(new_name, sheet.duser(session).display_name))
+                new_name, existing.display_name))
+    except sqla_oexc.NoResultFound:
+        pass
 
 
-def next_sheet_row(session, *, cls, faction, start_row):
+def next_sheet_row(session, *, cls, start_row):
     """
-    Find the next available row to add a SheetRow for.
-
-    Must scan all users, gaps may exist in sheet.
+    Find the next available row to add in the sheet based on entries.
     """
-    try:
-        users = session.query(cls).filter_by(faction=faction).order_by(cls.row).all()
-        last_user = users[0]
-        next_row = users[-1].row + 1
-        for user in users[1:]:
-            if last_user.row + 1 != user.row:
-                next_row = last_user.row + 1
-                break
-            last_user = user
-    except IndexError:
-        next_row = start_row
+    next_row = start_row
+    rows = [x[0] for x in session.query(cls.row).order_by(cls.row).all()]
+    if rows:
+        complete_list = list(range(rows[0], rows[-1] + 2))
+        next_row = sorted(list(set(complete_list) - set(rows)))[0]
 
     return next_row
 
 
-def add_sheet(session, name, **kwargs):
-    """
-    Simply add user past last user in sheet.
+#  def add_sheet(session, name, **kwargs):
+    #  """
+    #  Simply add user past last user in sheet.
 
-    Kwargs:
-        cry: The cry to use.
-        faction: By default Hudson. Any of EFaction.
-        type: By default cattle sheet. Any of SheetRow subclasses.
-        start_row: Starting row if none inserted.
-    """
-    faction = kwargs.get('faction', EFaction.hudson)
-    cls = getattr(cogdb.schema, kwargs.get('type', ESheetType.cattle))
-    cry = kwargs.get('cry', '')
+    #  Kwargs:
+        #  cry: The cry to use.
+        #  faction: By default Hudson. Any of EFaction.
+        #  type: By default cattle sheet. Any of SheetRow subclasses.
+        #  start_row: Starting row if none inserted.
+    #  """
+    #  faction = kwargs.get('faction', EFaction.hudson)
+    #  cls = getattr(cogdb.schema, kwargs.get('type', ESheetType.cattle))
+    #  cry = kwargs.get('cry', '')
 
-    next_row = next_sheet_row(session, cls=cls, faction=faction,
-                              start_row=kwargs['start_row'])
-    sheet = cls(name=name, cry=cry, row=next_row, faction=faction)
-    session.add(sheet)
-    session.commit()
+    #  next_row = next_sheet_row(session, cls=cls, faction=faction,
+                              #  start_row=kwargs['start_row'])
+    #  sheet = cls(name=name, cry=cry, row=next_row, faction=faction)
+    #  session.add(sheet)
+    #  session.commit()
 
-    return sheet
+    #  return sheet
 
 
 def fort_get_medium_systems(session):
     """
     Return unfortified systems designated for small/medium ships.
     """
-    mediums = session.query(System).all()
-    unforted = [med for med in mediums if "S/M" in med.notes and not med.is_fortified and not
+    mediums = session.query(FortSystem).\
+        filter(FortSystem.notes.ilike("%s/m%")).\
+        all()
+    unforted = [med for med in mediums if med.is_fortified and not
                 med.skip and not med.missing < DEFER_MISSING]
     return unforted
 
@@ -184,10 +174,10 @@ def fort_get_systems(session, mediums=True):
         mediums: If false, exclude all systems designated for j
                  Determined by "S/M" being in notes.
     """
-    query = session.query(System).filter(System.type != 'prep')
+    query = session.query(FortSystem).filter(FortSystem.type != 'prep')
     if not mediums:
         med_names = [med.name for med in fort_get_medium_systems(session)]
-        query = query.filter(System.name.notin_(med_names))
+        query = query.filter(FortSystem.name.notin_(med_names))
 
     return query.all()
 
@@ -196,7 +186,7 @@ def fort_get_preps(session):
     """
     Return a list of all PrepSystems.
     """
-    return session.query(PrepSystem).all()
+    return session.query(FortPrep).all()
 
 
 def fort_find_current_index(session):
@@ -226,7 +216,7 @@ def fort_find_system(session, system_name, search_all=True):
         MoreThanOneMatch - Too many matches possible, ask user to resubmit.
     """
     try:
-        return session.query(System).filter_by(name=system_name).one()
+        return session.query(FortSystem).filter_by(name=system_name).one()
     except (sqla_oexc.NoResultFound, sqla_oexc.MultipleResultsFound):
         index = 0 if search_all else fort_find_current_index(session)
         systems = fort_get_systems(session)[index:] + fort_get_preps(session)
@@ -341,9 +331,9 @@ def fort_add_drop(session, *, user, system, amount):
         raise cog.exc.InvalidCommandArgs('Drop amount must be in range [-800, 800]')
 
     try:
-        drop = session.query(Drop).filter_by(user_id=user.id, system_id=system.id).one()
+        drop = session.query(FortDrop).filter_by(user_id=user.id, system_id=system.id).one()
     except sqla_oexc.NoResultFound:
-        drop = Drop(user_id=user.id, system_id=system.id, amount=0)
+        drop = FortDrop(user_id=user.id, system_id=system.id, amount=0)
         session.add(drop)
 
     log = logging.getLogger(__name__)
@@ -367,7 +357,7 @@ def fort_order_get(_):
     systems = []
     dsession = cogdb.Session()  # Isolate deletions, feels a bit off though
     for fort_order in dsession.query(FortOrder).order_by(FortOrder.order):
-        system = dsession.query(System).filter_by(name=fort_order.system_name).one()
+        system = dsession.query(FortSystem).filter_by(name=fort_order.system_name).one()
         if system.is_fortified or system.missing < DEFER_MISSING:
             dsession.delete(fort_order)
         else:
@@ -385,7 +375,7 @@ def fort_order_set(session, system_names):
     """
     try:
         for ind, system_name in enumerate(system_names):
-            if not isinstance(system_name, System):
+            if not isinstance(system_name, FortSystem):
                 system_name = fort_find_system(session, system_name).name
             session.add(FortOrder(order=ind, system_name=system_name))
         session.commit()
@@ -394,7 +384,7 @@ def fort_order_set(session, system_names):
         raise cog.exc.InvalidCommandArgs("Duplicate system specified, check your command!")
     except cog.exc.NoMatch:
         session.rollback()
-        raise cog.exc.InvalidCommandArgs("System '{}' not found in fort systems.".format(system_name))
+        raise cog.exc.InvalidCommandArgs("FortSystem '{}' not found in fort systems.".format(system_name))
 
 
 def fort_order_drop(session, systems):
@@ -403,7 +393,7 @@ def fort_order_drop(session, systems):
     """
     for system_name in systems:
         try:
-            if isinstance(system_name, System):
+            if isinstance(system_name, FortSystem):
                 system_name = system_name.name
             session.delete(session.query(FortOrder).filter_by(system_name=system_name).one())
         except sqla_oexc.NoResultFound:
@@ -414,20 +404,20 @@ def fort_order_drop(session, systems):
 
 def um_find_system(session, system_name):
     """
-    Find the SystemUM with system_name
+    Find the UMSystem with system_name
     """
     try:
-        return session.query(SystemUM).filter_by(name=system_name).one()
+        return session.query(UMSystem).filter_by(name=system_name).one()
     except (sqla_oexc.NoResultFound, sqla_oexc.MultipleResultsFound):
-        systems = session.query(SystemUM).\
-            filter(SystemUM.name.ilike('%{}%'.format(system_name))).\
+        systems = session.query(UMSystem).\
+            filter(UMSystem.name.ilike('%{}%'.format(system_name))).\
             all()
 
         if len(systems) > 1:
-            raise cog.exc.MoreThanOneMatch(system_name, systems, SystemUM)
+            raise cog.exc.MoreThanOneMatch(system_name, systems, UMSystem)
 
         if len(systems) == 0:
-            raise cog.exc.NoMatch(system_name, SystemUM)
+            raise cog.exc.NoMatch(system_name, UMSystem)
 
         return systems[0]
 
@@ -439,7 +429,7 @@ def um_get_systems(session, exclude_finished=True):
     kwargs:
         finished: Return just the finished targets.
     """
-    systems = session.query(SystemUM).all()
+    systems = session.query(UMSystem).all()
     if exclude_finished:
         systems = [system for system in systems if not system.is_undermined]
 
@@ -450,7 +440,7 @@ def um_reset_held(session, user):
     """
     Reset all held merits to 0.
     """
-    holds = session.query(Hold).filter_by(user_id=user.id).all()
+    holds = session.query(UMHold).filter_by(user_id=user.id).all()
     for hold in holds:
         hold.held = 0
 
@@ -463,7 +453,7 @@ def um_redeem_merits(session, user):
     Redeem all held merits for user.
     """
     total = 0
-    holds = session.query(Hold).filter_by(user_id=user.id).all()
+    holds = session.query(UMHold).filter_by(user_id=user.id).all()
     for hold in holds:
         total += hold.held
         hold.redeemed = hold.redeemed + hold.held
@@ -492,10 +482,10 @@ def um_add_hold(session, **kwargs):
         raise cog.exc.InvalidCommandArgs('Hold amount must be in range [0, \u221E]')
 
     try:
-        hold = session.query(Hold).filter_by(user_id=user.id,
-                                             system_id=system.id).one()
+        hold = session.query(UMHold).filter_by(user_id=user.id,
+                                               system_id=system.id).one()
     except sqla_oexc.NoResultFound:
-        hold = Hold(user_id=user.id, system_id=system.id, held=0, redeemed=0)
+        hold = UMHold(user_id=user.id, system_id=system.id, held=0, redeemed=0)
         session.add(hold)
 
     hold.held = held
@@ -516,13 +506,13 @@ def um_all_held_merits(session):
     ]
     """
     c_dict = {}
-    for merit in session.query(Hold).filter(Hold.held > 0).order_by(Hold.system_id).all():
+    for merit in session.query(UMHold).filter(UMHold.held > 0).order_by(UMHold.system_id).all():
         try:
             c_dict[merit.user.name][merit.system.name] = merit
         except KeyError:
             c_dict[merit.user.name] = {merit.system.name: merit}
 
-    systems = session.query(SystemUM).order_by(SystemUM.id).all()
+    systems = session.query(UMSystem).order_by(UMSystem.id).all()
     system_names = [sys.name for sys in systems]
     rows = []
     for cmdr in c_dict:
@@ -544,7 +534,7 @@ def get_admin(session, member):
     Otherwise, raise NoMatch.
     """
     try:
-        return session.query(Admin).filter_by(id=member.id).one()
+        return session.query(AdminPerm).filter_by(id=member.id).one()
     except sqla_oexc.NoResultFound:
         raise cog.exc.NoMatch(member.display_name, 'Admin')
 
@@ -554,7 +544,7 @@ def add_admin(session, member):
     Add a new admin.
     """
     try:
-        session.add(Admin(id=member.id))
+        session.add(AdminPerm(id=member.id))
         session.commit()
     except (sqla_exc.IntegrityError, sqla_oexc.FlushError):
         raise cog.exc.InvalidCommandArgs("Member {} is already an admin.".format(member.display_name))
