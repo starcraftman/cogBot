@@ -12,7 +12,7 @@ import cog.sheets
 import cog.util
 import cogdb
 from cogdb.schema import (FortSystem, FortPrep, FortDrop, FortUser,
-                          UMSystem, UmUser, UMHold, KOS,
+                          UMSystem, UMUser, UMHold, KOS,
                           kwargs_fort_system, kwargs_um_system)
 
 
@@ -296,7 +296,7 @@ class UMScanner(FortScanner):
         asheet: The AsyncGSheet that connects to the sheet.
     """
     def __init__(self, asheet):
-        super().__init__(asheet, [UMHold, UMSystem, UmUser])
+        super().__init__(asheet, [UMHold, UMSystem, UMUser])
 
         # These are fixed based on current format
         self.system_col = 'D'
@@ -314,7 +314,7 @@ class UMScanner(FortScanner):
             [systems, users, holds]
         """
         systems = self.systems()
-        users = self.users(cls=UmUser)
+        users = self.users(cls=UMUser)
         holds = self.holds(systems, users)
 
         if not session:

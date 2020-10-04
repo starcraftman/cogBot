@@ -41,7 +41,7 @@ class DiscordUser(Base):
     fort_merits = sqla_orm.relationship(
         'FortDrop', lazy='select', uselist=True,
         primaryjoin='foreign(DiscordUser.id) == FortDrop.user_id')
-    um_user = sqla.orm.relationship('UmUser', uselist=False)
+    um_user = sqla.orm.relationship('UMUser', uselist=False)
     um_merits = sqla_orm.relationship(
         'UMHold', lazy='select', uselist=True,
         primaryjoin='foreign(DiscordUser.id) == UMHold.user_id')
@@ -394,7 +394,7 @@ class FortOrder(Base):
         return hash(self.system_name)
 
 
-class UmUser(Base):
+class UMUser(Base):
     """
     Track all infomration about the user in a row of the cattle sheet.
     """
@@ -441,7 +441,7 @@ class UmUser(Base):
         return "held={!r}, redeemed={!r}, {!r}".format(self.held, self.redeemed, self)
 
     def __eq__(self, other):
-        return isinstance(other, UmUser) and self.name == other.name
+        return isinstance(other, UMUser) and self.name == other.name
 
     def __hash__(self):
         return hash(self.name)
@@ -644,7 +644,7 @@ class UMHold(Base):
     redeemed = sqla.Column(sqla.Integer)
 
     # Relationships
-    user = sqla_orm.relationship('UmUser', uselist=False, back_populates='merits',
+    user = sqla_orm.relationship('UMUser', uselist=False, back_populates='merits',
                                  lazy='select')
     system = sqla_orm.relationship('UMSystem', uselist=False, back_populates='merits',
                                    lazy='select')
@@ -914,7 +914,7 @@ def empty_tables(session, *, perm=False):
     """
     Drop all tables.
     """
-    classes = [FortDrop, UMHold, FortSystem, UMSystem, FortUser, UmUser, KOS]
+    classes = [FortDrop, UMHold, FortSystem, UMSystem, FortUser, UMUser, KOS]
     if perm:
         classes += [DiscordUser]
 

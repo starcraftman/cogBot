@@ -15,7 +15,7 @@ import cogdb
 import cogdb.eddb
 import cogdb.schema
 from cogdb.schema import (DiscordUser, FortSystem, FortPrep, FortDrop, FortUser, FortOrder,
-                          UMSystem, UMExpand, UMOppose, UmUser, UMHold, KOS,
+                          UMSystem, UMExpand, UMOppose, UMUser, UMHold, KOS,
                           EFortType, EUMType, AdminPerm, ChannelPerm, RolePerm)
 from cogdb.eddb import HUDSON_CONTROLS, WINTERS_CONTROLS
 
@@ -57,7 +57,7 @@ def dump_db():  # pragma: no cover
     print("Dumping db contents to:", fname)
     with open(fname, 'w') as fout:
         for cls in [DiscordUser, FortUser, FortSystem, FortDrop, FortOrder,
-                    UmUser, UMSystem, UMHold, KOS, AdminPerm, RolePerm, ChannelPerm]:
+                    UMUser, UMSystem, UMHold, KOS, AdminPerm, RolePerm, ChannelPerm]:
             fout.write('---- ' + str(cls) + ' ----\n')
             fout.writelines([str(obj) + "\n" for obj in session.query(cls)])
 

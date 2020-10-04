@@ -22,7 +22,7 @@ import cogdb.side
 import cog.inara
 import cog.tbl
 import cog.util
-from cogdb.schema import FortUser, UmUser
+from cogdb.schema import FortUser, UMUser
 
 
 async def bot_shutdown(bot):  # pragma: no cover
@@ -68,14 +68,13 @@ async def check_mentions(coro, *args, **kwargs):
         await coro(*args, **kwargs)
 
 
-def check_sheet(scanner_name, user_cls):
+def check_sheet(scanner_name, attr, user_cls):
     """ Check if user present in sheet. """
     @decorator.decorator
     async def inner(coro, *args, **kwargs):
         """ The actual decorator. """
         self = args[0]
-        user = getattr(self.duser, cog.util.camel_to_c(user_cls.__name__))
-        if not user:
+        if not getattr(self.duser, attr):
             self.log.info('USERS %s - Adding to %s as %s.',
                           self.duser.display_name, user_cls.__name__, self.duser.pref_name)
             sheet = cogdb.query.add_sheet_user(
@@ -660,7 +659,7 @@ class Drop(Action):
         return response
 
     @check_mentions
-    @check_sheet('hudson_cattle', FortUser)
+    @check_sheet('hudson_cattle', 'fort_user', FortUser)
     async def execute(self):
         """
         Drop forts at the fortification target.
@@ -903,7 +902,7 @@ class Hold(Action):
         return ([hold], response)
 
     @check_mentions
-    @check_sheet('hudson_undermine', UmUser)
+    @check_sheet('hudson_undermine', 'um_user', UMUser)
     async def execute(self):
         self.log.info('HOLD %s - Matched self.duser with id %s and sheet name %s.',
                       self.duser.display_name, self.duser.id, self.undermine)

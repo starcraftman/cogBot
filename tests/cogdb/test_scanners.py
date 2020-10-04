@@ -7,7 +7,7 @@ import pytest
 import cog.exc
 import cogdb.scanners
 from cogdb.schema import (FortSystem, FortPrep, FortDrop, FortUser,
-                          UMSystem, UmUser, UMHold, KOS)
+                          UMSystem, UMUser, UMHold, KOS)
 from cogdb.scanners import (FortScanner, UMScanner, KOSScanner)
 
 
@@ -197,14 +197,14 @@ async def test_umscanner_holds(f_asheet_umscanner):
 async def test_umscanner_parse_sheet(f_asheet_umscanner, f_dusers_many, session, db_cleanup):
     fscan = UMScanner(f_asheet_umscanner)
 
-    assert not session.query(UmUser).all()
+    assert not session.query(UMUser).all()
     assert not session.query(UMSystem).all()
     assert not session.query(UMHold).all()
 
     await fscan.update_cells()
     fscan.parse_sheet(session)
 
-    assert session.query(UmUser).all()
+    assert session.query(UMUser).all()
     assert session.query(UMSystem).all()
     assert session.query(UMHold).all()
 

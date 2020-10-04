@@ -18,7 +18,7 @@ import cogdb
 from cogdb.eddb import HUDSON_CONTROLS
 from cogdb.side import SystemAge
 from cogdb.schema import (DiscordUser, FortSystem, FortPrep, FortDrop, FortUser,
-                          FortOrder, UMSystem, UmUser, UMHold, KOS)
+                          FortOrder, UMSystem, UMUser, UMHold, KOS)
 
 from tests.conftest import fake_msg_gears, fake_msg_newuser
 
@@ -510,7 +510,7 @@ Priority       | Low```"""
     f_bot.send_message.assert_called_with(msg.channel, expect)
     session = cogdb.Session()
     duser = session.query(DiscordUser).filter_by(id=msg.author.id).one()
-    um = session.query(UmUser).filter_by(name=duser.pref_name).one()
+    um = session.query(UMUser).filter_by(name=duser.pref_name).one()
     system = session.query(UMSystem).filter_by(name='Empty').one()
     assert system.missing == 8000
     hold = session.query(UMHold).filter_by(user_id=um.id, system_id=system.id).one()
@@ -542,7 +542,7 @@ Priority       | Low```"""
     system = session.query(UMSystem).filter_by(name='empty').one()
     assert system.missing == 9000
     duser = session.query(DiscordUser).filter_by(id=msg.author.id).one()
-    sheet = session.query(UmUser).filter_by(name=duser.pref_name).one()
+    sheet = session.query(UMUser).filter_by(name=duser.pref_name).one()
     hold = session.query(UMHold).filter_by(user_id=sheet.id, system_id=system.id).one()
     assert hold.held == 1000
 
@@ -570,7 +570,7 @@ Burr       | 0    | 8000```"""
     f_bot.send_message.assert_called_with(msg.channel, expect)
     session = cogdb.Session()
     duser = session.query(DiscordUser).filter_by(id=msg.author.id).one()
-    um = session.query(UmUser).filter_by(name=duser.pref_name).one()
+    um = session.query(UMUser).filter_by(name=duser.pref_name).one()
     system = session.query(UMSystem).filter_by(name='Pequen').one()
     hold = session.query(UMHold).filter_by(user_id=um.id, system_id=system.id).one()
     assert hold.held == 0
@@ -593,7 +593,7 @@ async def test_cmd_hold_died(f_bot, f_dusers, f_um_testbed):
     f_bot.send_message.assert_called_with(msg.channel, 'Sorry you died :(. Held merits reset.')
     session = cogdb.Session()
     duser = session.query(DiscordUser).filter_by(id=msg.author.id).one()
-    um = session.query(UmUser).filter_by(name=duser.pref_name).one()
+    um = session.query(UMUser).filter_by(name=duser.pref_name).one()
     system = session.query(UMSystem).filter_by(name='Pequen').one()
     hold = session.query(UMHold).filter_by(user_id=um.id, system_id=system.id).one()
     assert hold.held == 0

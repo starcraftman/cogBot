@@ -8,7 +8,7 @@ import pytest
 import cog.exc
 import cogdb
 from cogdb.schema import (DiscordUser, FortSystem, FortDrop, FortUser, FortOrder,
-                          UMSystem, UmUser, UMHold, KOS,
+                          UMSystem, UMUser, UMHold, KOS,
                           EFortType, EUMType, AdminPerm, ChannelPerm, RolePerm)
 import cogdb.query
 
@@ -94,18 +94,18 @@ def test_next_sheet_row_fort(session, f_dusers, f_fort_testbed):
     assert row == 17
 
     # Use opposite class to ensure empty testbed
-    row = cogdb.query.next_sheet_row(session, cls=UmUser, start_row=11)
+    row = cogdb.query.next_sheet_row(session, cls=UMUser, start_row=11)
     assert row == 11
 
 
 def test_next_sheet_row_um(session, f_dusers, f_um_testbed):
-    row = cogdb.query.next_sheet_row(session, cls=UmUser, start_row=11)
+    row = cogdb.query.next_sheet_row(session, cls=UMUser, start_row=11)
     assert row == 20
 
-    last = session.query(UmUser).order_by(UmUser.row.desc()).limit(1).one()
+    last = session.query(UMUser).order_by(UMUser.row.desc()).limit(1).one()
     last.row = 22
     session.commit()
-    row = cogdb.query.next_sheet_row(session, cls=UmUser, start_row=11)
+    row = cogdb.query.next_sheet_row(session, cls=UMUser, start_row=11)
     assert row == 19
 
     # Use opposite class to ensure empty testbed
@@ -126,9 +126,9 @@ def test_add_sheet_user_fort(session, f_dusers, db_cleanup):
 def test_add_sheet_user_um(session, f_dusers, db_cleanup):
     duser = mock.Mock(id=1, pref_name='UM User1', pref_cry='No cry')
 
-    cogdb.query.add_sheet_user(session, cls=UmUser, discord_user=duser, start_row=5)
+    cogdb.query.add_sheet_user(session, cls=UMUser, discord_user=duser, start_row=5)
 
-    latest = session.query(UmUser).all()[-1]
+    latest = session.query(UMUser).all()[-1]
     assert latest.name == duser.pref_name
     assert latest.row == 5
 
