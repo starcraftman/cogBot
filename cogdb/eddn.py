@@ -240,7 +240,7 @@ class EDMCJournal():
                              ("PendingStates", FactionPendingState),
                              ("RecoveringStates", FactionRecoveringState)]:
                 if key in body_faction:
-                    faction[camel_to_c(key)] = [cls(**{
+                    faction[cog.util.camel_to_c(key)] = [cls(**{
                         'system_id': system['id'],
                         'faction_id': faction['id'],
                         'state_id': MAPS['FactionState'][x['State']]
@@ -375,27 +375,6 @@ class EDMCJournal():
                 except sqla_orm.exc.NoResultFound:
                     conflict_db = Conflict(**conflict)
                     self.session.add(conflict_db)
-
-
-def camel_to_c(word):
-    """
-    Convert camel case to c case.
-
-    Args:
-        word: A string.
-
-    Returns:
-        A c case string.
-    """
-    n_word = word[0]
-
-    for chara in word[1:]:
-        if chara.isupper():
-            n_word += '_'
-
-        n_word += chara
-
-    return n_word.lower()
 
 
 def create_id_maps(session):

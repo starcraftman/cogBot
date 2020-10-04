@@ -8,7 +8,8 @@ import enum
 import sqlalchemy as sqla
 import sqlalchemy.orm as sqla_orm
 import sqlalchemy.ext.declarative
-from sqlalchemy.ext.hybrid import hybrid_property, hybrid_method
+# TODO: Use these later.
+#  from sqlalchemy.ext.hybrid import hybrid_property, hybrid_method
 
 import cog.exc
 import cog.tbl

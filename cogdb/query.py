@@ -131,27 +131,22 @@ def next_sheet_row(session, *, cls, start_row):
     return next_row
 
 
-#  def add_sheet(session, name, **kwargs):
-    #  """
-    #  Simply add user past last user in sheet.
+def add_sheet_user(session, *, cls, discord_user, start_row):
+    """
+    Add a fort sheet user to system based on a Member.
 
-    #  Kwargs:
-        #  cry: The cry to use.
-        #  faction: By default Hudson. Any of EFaction.
-        #  type: By default cattle sheet. Any of SheetRow subclasses.
-        #  start_row: Starting row if none inserted.
-    #  """
-    #  faction = kwargs.get('faction', EFaction.hudson)
-    #  cls = getattr(cogdb.schema, kwargs.get('type', ESheetType.cattle))
-    #  cry = kwargs.get('cry', '')
+    Kwargs:
+        cls: The class of the sheet user like FortUser.
+        duser: The DiscordUser object of the requesting user.
+        start_row: Starting row if none inserted.
+    """
+    next_row = next_sheet_row(session, cls=cls, start_row=start_row)
+    duser = discord_user
+    user = cls(id=duser.id, name=duser.pref_name, cry=duser.pref_cry, row=next_row)
+    session.add(user)
+    session.commit()
 
-    #  next_row = next_sheet_row(session, cls=cls, faction=faction,
-                              #  start_row=kwargs['start_row'])
-    #  sheet = cls(name=name, cry=cry, row=next_row, faction=faction)
-    #  session.add(sheet)
-    #  session.commit()
-
-    #  return sheet
+    return user
 
 
 def fort_get_medium_systems(session):
@@ -161,7 +156,7 @@ def fort_get_medium_systems(session):
     mediums = session.query(FortSystem).\
         filter(FortSystem.notes.ilike("%s/m%")).\
         all()
-    unforted = [med for med in mediums if med.is_fortified and not
+    unforted = [med for med in mediums if not med.is_fortified and not
                 med.skip and not med.missing < DEFER_MISSING]
     return unforted
 
@@ -374,7 +369,7 @@ def fort_order_set(session, system_names):
     Ensure systems are actually valid before.
     """
     try:
-        for ind, system_name in enumerate(system_names):
+        for ind, system_name in enumerate(system_names, start=1):
             if not isinstance(system_name, FortSystem):
                 system_name = fort_find_system(session, system_name).name
             session.add(FortOrder(order=ind, system_name=system_name))
@@ -550,35 +545,35 @@ def add_admin(session, member):
         raise cog.exc.InvalidCommandArgs("Member {} is already an admin.".format(member.display_name))
 
 
-def add_channel_perm(session, cmd, server_name, channel_name):
+def add_channel_perm(session, cmd, server, channel):
     try:
-        session.add(ChannelPerm(cmd=cmd, server=server_name, channel=channel_name))
+        session.add(ChannelPerm(cmd=cmd, server_id=server.id, channel_id=channel.id))
         session.commit()
     except (sqla_exc.IntegrityError, sqla_oexc.FlushError):
         raise cog.exc.InvalidCommandArgs("Channel permission already exists.")
 
 
-def add_role_perm(session, cmd, server_name, role_name):
+def add_role_perm(session, cmd, server, role):
     try:
-        session.add(RolePerm(cmd=cmd, server=server_name, role=role_name))
+        session.add(RolePerm(cmd=cmd, server_id=server.id, role_id=role.id))
         session.commit()
     except (sqla_exc.IntegrityError, sqla_oexc.FlushError):
         raise cog.exc.InvalidCommandArgs("Role permission already exists.")
 
 
-def remove_channel_perm(session, cmd, server_name, channel_name):
+def remove_channel_perm(session, cmd, server, channel):
     try:
         session.delete(session.query(ChannelPerm).
-                       filter_by(cmd=cmd, server=server_name, channel=channel_name).one())
+                       filter_by(cmd=cmd, server_id=server.id, channel_id=channel.id).one())
         session.commit()
     except sqla_oexc.NoResultFound:
         raise cog.exc.InvalidCommandArgs("Channel permission does not exist.")
 
 
-def remove_role_perm(session, cmd, server_name, role_name):
+def remove_role_perm(session, cmd, server, role):
     try:
         session.delete(session.query(RolePerm).
-                       filter_by(cmd=cmd, server=server_name, role=role_name).one())
+                       filter_by(cmd=cmd, server_id=server.id, role_id=role.id).one())
         session.commit()
     except sqla_oexc.NoResultFound:
         raise cog.exc.InvalidCommandArgs("Role permission does not exist.")
@@ -592,11 +587,11 @@ def check_perms(msg, args):
     Raises InvalidPerms if any permission issue.
     """
     session = cogdb.Session()
-    check_channel_perms(session, args.cmd, msg.channel.guild.name, msg.channel.name)
-    check_role_perms(session, args.cmd, msg.channel.guild.name, msg.author.roles)
+    check_channel_perms(session, args.cmd, msg.channel.guild, msg.channel)
+    check_role_perms(session, args.cmd, msg.channel.guild, msg.author.roles)
 
 
-def check_channel_perms(session, cmd, server_name, channel_name):
+def check_channel_perms(session, cmd, server, channel):
     """
     A user is allowed to issue a command if:
         a) no restrictions for the cmd
@@ -604,14 +599,14 @@ def check_channel_perms(session, cmd, server_name, channel_name):
 
     Raises InvalidPerms if fails permission check.
     """
-    channels = [perm.channel for perm in session.query(ChannelPerm).
-                filter_by(cmd=cmd, server=server_name)]
-    if channels and channel_name not in channels:
+    channels = [perm.channel_id for perm in session.query(ChannelPerm).
+                filter_by(cmd=cmd, server_id=server.id)]
+    if channels and channel.id not in channels:
         raise cog.exc.InvalidPerms("The '{}' command is not permitted on this channel.".format(
             cmd.lower()))
 
 
-def check_role_perms(session, cmd, server_name, member_roles):
+def check_role_perms(session, cmd, server, member_roles):
     """
     A user is allowed to issue a command if:
         a) no roles set for the cmd
@@ -619,9 +614,9 @@ def check_role_perms(session, cmd, server_name, member_roles):
 
     Raises InvalidPerms if fails permission check.
     """
-    perm_roles = {perm.role for perm in session.query(RolePerm).
-                  filter_by(cmd=cmd, server=server_name)}
-    member_roles = {role.name for role in member_roles}
+    perm_roles = {perm.role_id for perm in session.query(RolePerm).
+                  filter_by(cmd=cmd, server_id=server.id)}
+    member_roles = {role.id for role in member_roles}
     if perm_roles and len(member_roles - perm_roles) == len(member_roles):
         raise cog.exc.InvalidPerms("You do not have the roles for the command.")
 

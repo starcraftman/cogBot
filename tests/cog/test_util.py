@@ -198,3 +198,7 @@ def test_clean_text():
 def test_shorten_text():
     assert cog.util.shorten_text("Dobrovolskiy Enterprise", 20) == "Dobrovolskiy Enterp."
     assert cog.util.shorten_text("Galileo", 20) == "Galileo"
+
+
+def test_camel_to_c():
+    assert cog.util.camel_to_c("CamelCase") == "camel_case"

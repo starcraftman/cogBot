@@ -485,6 +485,27 @@ def shorten_text(text, len):
     return text
 
 
+def camel_to_c(word):
+    """
+    Convert camel case to c case.
+
+    Args:
+        word: A string.
+
+    Returns:
+        A c case string.
+    """
+    n_word = word[0]
+
+    for chara in word[1:]:
+        if chara.isupper():
+            n_word += '_'
+
+        n_word += chara
+
+    return n_word.lower()
+
+
 #  # Scenario multiple readers, always allowed
 #  async def a_run1(lock):
     #  print("Run1 - aquire read")

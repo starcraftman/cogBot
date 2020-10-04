@@ -22,6 +22,7 @@ import cogdb.side
 import cog.inara
 import cog.tbl
 import cog.util
+from cogdb.schema import FortUser, UMUser
 
 
 async def bot_shutdown(bot):  # pragma: no cover
@@ -67,26 +68,26 @@ async def check_mentions(coro, *args, **kwargs):
         await coro(*args, **kwargs)
 
 
-def check_sheet(scanner_name, stype):
+def check_sheet(scanner_name, user_cls):
     """ Check if user present in sheet. """
     @decorator.decorator
     async def inner(coro, *args, **kwargs):
         """ The actual decorator. """
         self = args[0]
-        sheet = getattr(self, stype)
-        if not sheet:
-            self.log.info('DROP %s - Adding to %s as %s.',
-                          self.duser.display_name, stype, self.duser.pref_name)
-            sheet = cogdb.query.add_sheet(self.session, self.duser.pref_name,
-                                          cry=self.duser.pref_cry,
-                                          type=getattr(cogdb.schema.ESheetType, stype),
-                                          start_row=get_scanner(scanner_name).user_row)
+        user = getattr(self, cog.util.camel_to_c(user_cls.__name__))
+        if not user:
+            self.log.info('USERS %s - Adding to %s as %s.',
+                          self.duser.display_name, user_cls.__name__, self.duser.pref_name)
+            sheet = cogdb.query.add_sheet_user(
+                self.session, cls=user_cls, discord_user=self.duser,
+                start_row=get_scanner(scanner_name).user_row
+            )
 
             self.payloads += get_scanner(scanner_name).__class__.update_sheet_user_dict(
                 sheet.row, sheet.cry, sheet.name)
 
             notice = 'Will automatically add {} to {} sheet. See !user command to change.'.format(
-                self.duser.pref_name, stype)
+                self.duser.pref_name, user_cls.__name__)
             asyncio.ensure_future(self.bot.send_message(self.msg.channel, notice))
 
         await coro(*args, **kwargs)
@@ -659,7 +660,7 @@ class Drop(Action):
         return response
 
     @check_mentions
-    @check_sheet('hudson_cattle', 'cattle')
+    @check_sheet('hudson_cattle', FortUser)
     async def execute(self):
         """
         Drop forts at the fortification target.
@@ -902,7 +903,7 @@ class Hold(Action):
         return ([hold], response)
 
     @check_mentions
-    @check_sheet('hudson_undermine', 'undermine')
+    @check_sheet('hudson_undermine', UMUser)
     async def execute(self):
         self.log.info('HOLD %s - Matched self.duser with id %s and sheet name %s.',
                       self.duser.display_name, self.duser.id[:6], self.undermine)

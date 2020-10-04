@@ -25,7 +25,7 @@ class FortScanner():
         user_args: The arguements to use for users parsing.
         db_classes: The database classes that should be purged on replacement.
     """
-    def __init__(self, asheet, users_args=None, db_classes=None):
+    def __init__(self, asheet, db_classes=None):
         self.asheet = asheet
         self.db_classes = db_classes if db_classes else [FortDrop, FortSystem, FortUser]
         self.lock = cog.util.RWLockWrite()
@@ -37,7 +37,7 @@ class FortScanner():
         self.user_row = 11
 
     def __repr__(self):
-        keys = ['asheet', 'users_args', 'db_classes', 'lock',
+        keys = ['asheet', 'db_classes', 'lock',
                 'system_col', 'user_col', 'user_row']
         kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
 
@@ -214,7 +214,7 @@ class FortScanner():
                         continue
 
                     found += [(FortDrop(id=cnt, user_id=user.id, system_id=system.id,
-                                    amount=amount))]
+                               amount=amount))]
                     cnt += 1
 
                 except ValueError:
@@ -379,7 +379,7 @@ class UMScanner(FortScanner):
                         continue
 
                     found += [UMHold(id=cnt, user_id=users[user_ind].id, system_id=system.id,
-                                   held=held, redeemed=redeemed)]
+                                     held=held, redeemed=redeemed)]
                     cnt += 1
                 except (IndexError, ValueError):
                     pass

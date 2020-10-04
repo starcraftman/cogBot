@@ -249,7 +249,7 @@ def f_admins(session):
 def f_cperms(session):
     """ Channel perms fixture. """
     perms = (
-        ChannelPerm(cmd="FortDrop", server_id=1, channel_id=2001),
+        ChannelPerm(cmd="Drop", server_id=10, channel_id=2001),
     )
     session.add_all(perms)
     session.commit()
@@ -264,7 +264,7 @@ def f_cperms(session):
 def f_rperms(session):
     """ Role perms fixture. """
     perms = (
-        RolePerm(cmd="FortDrop", server_id=1, role_id=3001),
+        RolePerm(cmd="Drop", server_id=10, role_id=3001),
     )
     session.add_all(perms)
     session.commit()

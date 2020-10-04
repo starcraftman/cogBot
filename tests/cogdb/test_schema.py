@@ -68,12 +68,12 @@ def test_admin__eq__(session, f_dusers, f_admins):
 
 def test_channelperm__repr__(session, f_cperms):
     perm = f_cperms[0]
-    assert repr(perm) == "ChannelPerm(cmd='FortDrop', server_id=1, channel_id=2001)"
+    assert repr(perm) == "ChannelPerm(cmd='Drop', server_id=10, channel_id=2001)"
 
 
 def test_channelperm__str__(session, f_cperms):
     perm = f_cperms[0]
-    assert str(perm) == "ChannelPerm(cmd='FortDrop', server_id=1, channel_id=2001)"
+    assert str(perm) == "ChannelPerm(cmd='Drop', server_id=10, channel_id=2001)"
 
 
 def test_channelperm__eq__(session, f_cperms):
@@ -84,12 +84,12 @@ def test_channelperm__eq__(session, f_cperms):
 
 def test_roleperm__repr__(session, f_rperms):
     perm = f_rperms[0]
-    assert repr(perm) == "RolePerm(cmd='FortDrop', server_id=1, role_id=3001)"
+    assert repr(perm) == "RolePerm(cmd='Drop', server_id=10, role_id=3001)"
 
 
 def test_roleperm__str__(session, f_rperms):
     perm = f_rperms[0]
-    assert str(perm) == "RolePerm(cmd='FortDrop', server_id=1, role_id=3001)"
+    assert str(perm) == "RolePerm(cmd='Drop', server_id=10, role_id=3001)"
 
 
 def test_roleperm__eq__(session, f_rperms):
@@ -308,8 +308,7 @@ def test_fortsystem_table_row(f_dusers, f_fort_testbed):
 
 def test_prepsystem_dispay(f_dusers, f_fort_testbed):
     f_prep = f_fort_testbed[1][-1]
-    assert f_prep.display() == "Prep: **Rhea** 5100/10000 :Fortifying: "\
-                                     "Atropos"
+    assert f_prep.display() == "Prep: **Rhea** 5100/10000 :Fortifying: Atropos"
 
 
 def test_prepsystem_is_fortified(f_dusers, f_fort_testbed):

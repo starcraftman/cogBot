@@ -375,10 +375,6 @@ EXAMPLE_JOURNAL_STATION = """{
 """
 
 
-def test_camel_to_c():
-    assert cogdb.eddn.camel_to_c("CamelCase") == "camel_case"
-
-
 def test_create_id_maps():
     maps = cogdb.eddn.create_id_maps(cogdb.EDDBSession())
     assert 'Thargoid' in maps['Allegiance']

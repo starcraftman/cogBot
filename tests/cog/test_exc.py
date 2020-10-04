@@ -52,8 +52,8 @@ Too many matches for 'Channel' in Channels:
 
 
 def test_no_match():
-    error = cog.exc.NoMatch('Cubeo', cogdb.schema.System.__name__)
-    assert str(error) == "No matches for 'Cubeo' in Systems."
+    error = cog.exc.NoMatch('Cubeo', cogdb.schema.FortSystem.__name__)
+    assert str(error) == "No matches for 'Cubeo' in FortSystems."
     error = cog.exc.NoMatch('Person1', 'person')
     assert str(error) == "No matches for 'Person1' in persons."
 
