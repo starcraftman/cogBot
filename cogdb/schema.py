@@ -41,7 +41,7 @@ class DiscordUser(Base):
     fort_merits = sqla_orm.relationship(
         'FortDrop', lazy='select', uselist=True,
         primaryjoin='foreign(DiscordUser.id) == FortDrop.user_id')
-    um_user = sqla.orm.relationship('UMUser', uselist=False)
+    um_user = sqla.orm.relationship('UmUser', uselist=False)
     um_merits = sqla_orm.relationship(
         'UMHold', lazy='select', uselist=True,
         primaryjoin='foreign(DiscordUser.id) == UMHold.user_id')
@@ -394,14 +394,14 @@ class FortOrder(Base):
         return hash(self.system_name)
 
 
-class UMUser(Base):
+class UmUser(Base):
     """
     Track all infomration about the user in a row of the cattle sheet.
     """
     __tablename__ = 'hudson_um_users'
 
     id = sqla.Column(sqla.BigInteger, sqla.ForeignKey('discord_users.id'),
-                     nullable=True,)  # Discord id
+                     nullable=True)  # Discord id
     name = sqla.Column(sqla.String(LEN_NAME), primary_key=True)
     row = sqla.Column(sqla.Integer, unique=True)
     cry = sqla.Column(sqla.String(LEN_NAME), default='')
@@ -441,7 +441,7 @@ class UMUser(Base):
         return "held={!r}, redeemed={!r}, {!r}".format(self.held, self.redeemed, self)
 
     def __eq__(self, other):
-        return isinstance(other, UMUser) and self.name == other.name
+        return isinstance(other, UmUser) and self.name == other.name
 
     def __hash__(self):
         return hash(self.name)
@@ -644,7 +644,7 @@ class UMHold(Base):
     redeemed = sqla.Column(sqla.Integer)
 
     # Relationships
-    user = sqla_orm.relationship('UMUser', uselist=False, back_populates='merits',
+    user = sqla_orm.relationship('UmUser', uselist=False, back_populates='merits',
                                  lazy='select')
     system = sqla_orm.relationship('UMSystem', uselist=False, back_populates='merits',
                                    lazy='select')
@@ -683,13 +683,14 @@ class KOS(Base):
     """
     __tablename__ = 'kos'
 
-    cmdr = sqla.Column(sqla.String(LEN_NAME), primary_key=True, nullable=False)
+    id = sqla.Column(sqla.Integer, primary_key=True)
+    cmdr = sqla.Column(sqla.String(LEN_NAME), unique=True, nullable=False)
     faction = sqla.Column(sqla.String(LEN_NAME), nullable=False)
     danger = sqla.Column(sqla.Integer)
     is_friendly = sqla.Column(sqla.Boolean)
 
     def __repr__(self):
-        keys = ['cmdr', 'faction', 'danger', 'is_friendly']
+        keys = ['id', 'cmdr', 'faction', 'danger', 'is_friendly']
         kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
 
         return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
@@ -913,7 +914,7 @@ def empty_tables(session, *, perm=False):
     """
     Drop all tables.
     """
-    classes = [FortDrop, UMHold, FortSystem, UMSystem, FortUser, UMUser, KOS]
+    classes = [FortDrop, UMHold, FortSystem, UMSystem, FortUser, UmUser, KOS]
     if perm:
         classes += [DiscordUser]
 

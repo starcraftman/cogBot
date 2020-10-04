@@ -22,7 +22,7 @@ import cogdb.side
 import cog.inara
 import cog.tbl
 import cog.util
-from cogdb.schema import FortUser, UMUser
+from cogdb.schema import FortUser, UmUser
 
 
 async def bot_shutdown(bot):  # pragma: no cover
@@ -74,7 +74,7 @@ def check_sheet(scanner_name, user_cls):
     async def inner(coro, *args, **kwargs):
         """ The actual decorator. """
         self = args[0]
-        user = getattr(self, cog.util.camel_to_c(user_cls.__name__))
+        user = getattr(self.duser, cog.util.camel_to_c(user_cls.__name__))
         if not user:
             self.log.info('USERS %s - Adding to %s as %s.',
                           self.duser.display_name, user_cls.__name__, self.duser.pref_name)
@@ -86,8 +86,8 @@ def check_sheet(scanner_name, user_cls):
             self.payloads += get_scanner(scanner_name).__class__.update_sheet_user_dict(
                 sheet.row, sheet.cry, sheet.name)
 
-            notice = 'Will automatically add {} to {} sheet. See !user command to change.'.format(
-                self.duser.pref_name, user_cls.__name__)
+            notice = 'Will automatically add {} to sheet. See !user command to change.'.format(
+                self.duser.pref_name)
             asyncio.ensure_future(self.bot.send_message(self.msg.channel, notice))
 
         await coro(*args, **kwargs)
@@ -123,12 +123,12 @@ class Action():
     @property
     def cattle(self):
         """ User's current cattle sheet. """
-        return self.duser.cattle(self.session)
+        return self.duser.fort_user
 
     @property
     def undermine(self):
         """ User's current undermining sheet. """
-        return self.duser.undermine(self.session)
+        return self.duser.um_user
 
     async def execute(self):
         """
@@ -666,7 +666,7 @@ class Drop(Action):
         Drop forts at the fortification target.
         """
         self.log.info('DROP %s - Matched duser with id %s and sheet name %s.',
-                      self.duser.display_name, self.duser.id[:6], self.cattle)
+                      self.duser.display_name, self.duser.id, self.cattle)
 
         system = cogdb.query.fort_find_system(self.session, ' '.join(self.args.system))
         self.log.info('DROP %s - Matched system %s from: \n%s.',
@@ -903,10 +903,10 @@ class Hold(Action):
         return ([hold], response)
 
     @check_mentions
-    @check_sheet('hudson_undermine', UMUser)
+    @check_sheet('hudson_undermine', UmUser)
     async def execute(self):
         self.log.info('HOLD %s - Matched self.duser with id %s and sheet name %s.',
-                      self.duser.display_name, self.duser.id[:6], self.undermine)
+                      self.duser.display_name, self.duser.id, self.undermine)
 
         if self.args.died:
             holds = cogdb.query.um_reset_held(self.session, self.undermine)

@@ -11,60 +11,60 @@ import re
 import aiomock
 import pytest
 
-#  import cog.actions
-#  import cog.bot
-#  import cog.parse
-#  import cogdb
-#  from cogdb.eddb import HUDSON_CONTROLS
-#  from cogdb.side import SystemAge
-#  from cogdb.schema import (DUser, SheetCattle, SheetUM,
-                          #  System, SystemUM, Drop, Hold, FortOrder)
+import cog.actions
+import cog.bot
+import cog.parse
+import cogdb
+from cogdb.eddb import HUDSON_CONTROLS
+from cogdb.side import SystemAge
+from cogdb.schema import (DiscordUser, FortSystem, FortPrep, FortDrop, FortUser,
+                          FortOrder, UMSystem, UmUser, UMHold, KOS)
 
-#  from tests.conftest import fake_msg_gears, fake_msg_newuser
-
-
-#  # Important, any fictures in here get auto run
-#  pytestmark = pytest.mark.usefixtures("patch_scanners")
+from tests.conftest import fake_msg_gears, fake_msg_newuser
 
 
-#  @pytest.fixture
-#  def patch_scanners():
-    #  """ Patch the scanners. """
-    #  old_scanners = cog.actions.SCANNERS
-    #  scanner = aiomock.Mock()
-
-    #  async def send_batch_(payloads):
-        #  scanner.payloads = payloads
-
-    #  mock_cls = aiomock.Mock()
-    #  mock_cls.update_sheet_user_dict.return_value = [
-        #  {'range': 'A20:B20', 'values': [['test cry', 'test name']]},
-    #  ]
-    #  scanner.__class__ = mock_cls
-    #  scanner.send_batch = send_batch_
-    #  cog.actions.SCANNERS = {
-        #  'hudson_cattle': scanner,
-        #  'hudson_kos': scanner,
-        #  'hudson_undermine': scanner,
-    #  }
-
-    #  yield
-
-    #  cog.actions.SCANNERS = old_scanners
+# Important, any fictures in here get auto run
+pytestmark = pytest.mark.usefixtures("patch_scanners")
 
 
-#  def action_map(fake_message, fake_bot):
-    #  """
-    #  Test stub of part of CogBot.on_message dispatch.
-    #  Notably, parses commands and returns Action based on parser cmd/subcmd.
+@pytest.fixture
+def patch_scanners():
+    """ Patch the scanners. """
+    old_scanners = cog.actions.SCANNERS
+    scanner = aiomock.Mock(user_row=5)
 
-    #  Exceute with Action.execute() coro or schedule on loop
-    #  """
-    #  parser = cog.parse.make_parser("!")
-    #  args = parser.parse_args(fake_message.content.split(" "))
-    #  cls = getattr(cog.actions, args.cmd)
+    async def send_batch_(payloads):
+        scanner.payloads = payloads
 
-    #  return cls(args=args, bot=fake_bot, msg=fake_message)
+    mock_cls = aiomock.Mock()
+    mock_cls.update_sheet_user_dict.return_value = [
+        {'range': 'A20:B20', 'values': [['test cry', 'test name']]},
+    ]
+    scanner.__class__ = mock_cls
+    scanner.send_batch = send_batch_
+    cog.actions.SCANNERS = {
+        'hudson_cattle': scanner,
+        'hudson_kos': scanner,
+        'hudson_undermine': scanner,
+    }
+
+    yield
+
+    cog.actions.SCANNERS = old_scanners
+
+
+def action_map(fake_message, fake_bot):
+    """
+    Test stub of part of CogBot.on_message dispatch.
+    Notably, parses commands and returns Action based on parser cmd/subcmd.
+
+    Exceute with Action.execute() coro or schedule on loop
+    """
+    parser = cog.parse.make_parser("!")
+    args = parser.parse_args(fake_message.content.split(" "))
+    cls = getattr(cog.actions, args.cmd)
+
+    return cls(args=args, bot=fake_bot, msg=fake_message)
 
 
 ##################################################################
@@ -73,718 +73,722 @@ import pytest
 # TODO: Admin, some useless subcommands though.
 
 
-# @pytest.mark.asyncio
-# async def test_template(f_bot):
-    # msg = fake_msg_gears("!cmd")
-
-    # await action_map(msg, f_bot).execute()
-
-    # print(str(f_bot.send_message.call_args).replace("\\n", "\n"))
-
-
-#  # General Parse Fails
 #  @pytest.mark.asyncio
-#  async def test_cmd_fail(f_bot):
+#  async def test_template(f_bot):
     #  msg = fake_msg_gears("!cmd")
 
-    #  with pytest.raises(cog.exc.ArgumentParseError):
-        #  await action_map(msg, f_bot).execute()
-
-
-#  @pytest.mark.asyncio
-#  async def test_cmd_req_help(f_bot):
-    #  msg = fake_msg_gears("!fort -h")
-
-    #  with pytest.raises(cog.exc.ArgumentHelpError):
-        #  await action_map(msg, f_bot).execute()
-
-
-#  @pytest.mark.asyncio
-#  async def test_cmd_invalid_flag(f_bot):
-    #  msg = fake_msg_gears("!fort --not_there")
-
-    #  with pytest.raises(cog.exc.ArgumentParseError):
-        #  await action_map(msg, f_bot).execute()
-
-
-#  @pytest.mark.asyncio
-#  async def test_cmd_bgs_age(side_session, f_bot, f_systems):
-    #  row = side_session.query(SystemAge).filter(
-        #  SystemAge.control.in_(HUDSON_CONTROLS)).order_by(SystemAge.system.asc()).first()
-    #  msg = fake_msg_gears("!bgs age " + row.control)
-
     #  await action_map(msg, f_bot).execute()
 
-    #  line = [word.strip().replace("```')", '') for word in
-            #  str(f_bot.send_long_message.call_args).split('\\n')[2].split('|')]
-    #  assert line == [row.control, row.system, str(row.age)]
+    #  print(str(f_bot.send_message.call_args).replace("\\n", "\n"))
 
 
-#  @pytest.mark.asyncio
-#  async def test_cmd_bgs_dash(side_session, f_systems, f_bot):
-    #  msg = fake_msg_gears("!bgs dash Othime")
+# General Parse Fails
+@pytest.mark.asyncio
+async def test_cmd_fail(f_bot):
+    msg = fake_msg_gears("!cmd")
 
-    #  await action_map(msg, f_bot).execute()
+    with pytest.raises(cog.exc.ArgumentParseError):
+        await action_map(msg, f_bot).execute()
 
-    #  assert 'Chelgit' in str(f_bot.send_long_message.call_args).replace("\\n", "\n")
 
+@pytest.mark.asyncio
+async def test_cmd_req_help(f_bot):
+    msg = fake_msg_gears("!fort -h")
 
-#  @pytest.mark.asyncio
-#  async def test_cmd_bgs_exp(f_bot):
-    #  msg = fake_msg_gears("!bgs exp rana")
+    with pytest.raises(cog.exc.ArgumentHelpError):
+        await action_map(msg, f_bot).execute()
 
-    #  f_bot.wait_for.async_return_value = fake_msg_gears('0')
-    #  await action_map(msg, f_bot).execute()
 
-    #  actual = str(f_bot.send_long_message.call_args).replace("\\n", "\n")[:-2]
-    #  actual = re.sub(r'.*live_hudson, ["\']', '', actual)
-    #  actual = actual.split('\n')
-    #  for line in actual[6:]:
-        #  parts = re.split(r'\s+\|\s+', line)
-        #  assert float(parts[1]) <= 20
+@pytest.mark.asyncio
+async def test_cmd_invalid_flag(f_bot):
+    msg = fake_msg_gears("!fort --not_there")
 
+    with pytest.raises(cog.exc.ArgumentParseError):
+        await action_map(msg, f_bot).execute()
 
-#  @pytest.mark.asyncio
-#  async def test_cmd_bgs_expto(f_bot):
-    #  msg = fake_msg_gears("!bgs expto rana")
 
-    #  await action_map(msg, f_bot).execute()
+@pytest.mark.asyncio
+async def test_cmd_bgs_age(side_session, f_bot, f_dusers, f_fort_testbed):
+    row = side_session.query(SystemAge).filter(
+        SystemAge.control.in_(HUDSON_CONTROLS)).order_by(SystemAge.system.asc()).first()
+    msg = fake_msg_gears("!bgs age " + row.control)
 
-    #  actual = str(f_bot.send_long_message.call_args).replace("\\n", "\n")[:-2]
-    #  actual = re.sub(r'.*live_hudson, ["\']', '', actual)
-    #  actual = actual.split('\n')
-    #  for line in actual[4:]:
-        #  parts = re.split(r'\s+\|\s+', line)
-        #  assert float(parts[1]) <= 20
+    await action_map(msg, f_bot).execute()
 
+    line = [word.strip().replace("```')", '') for word in
+            str(f_bot.send_long_message.call_args).split('\\n')[2].split('|')]
+    assert line == [row.control, row.system, str(row.age)]
 
-#  @pytest.mark.asyncio
-#  async def test_cmd_bgs_find(f_bot):
-    #  msg = fake_msg_gears("!bgs find nurundere")
 
-    #  await action_map(msg, f_bot).execute()
+@pytest.mark.asyncio
+async def test_cmd_bgs_dash(f_bot, f_dusers, f_fort_testbed):
+    msg = fake_msg_gears("!bgs dash Othime")
 
-    #  actual = str(f_bot.send_long_message.call_args).replace("\\n", "\n")[:-2]
-    #  actual = re.sub(r'.*live_hudson, ["\']', '', actual)
-    #  assert actual.split('\n')[4].index("Monarchy of Orisala") != -1
+    await action_map(msg, f_bot).execute()
 
+    assert 'Chelgit' in str(f_bot.send_long_message.call_args).replace("\\n", "\n")
 
-#  @pytest.mark.asyncio
-#  async def test_cmd_bgs_inf(side_session, f_bot):
-    #  msg = fake_msg_gears("!bgs inf Sol")
 
-    #  await action_map(msg, f_bot).execute()
+@pytest.mark.asyncio
+async def test_cmd_bgs_exp(f_bot):
+    msg = fake_msg_gears("!bgs exp rana")
 
-    #  assert "Mother Gaia" in str(f_bot.send_long_message.call_args).replace("\\n", "\n")
+    f_bot.wait_for.async_return_value = fake_msg_gears('0')
+    await action_map(msg, f_bot).execute()
 
+    actual = str(f_bot.send_long_message.call_args).replace("\\n", "\n")[:-2]
+    actual = re.sub(r'.*live_hudson, ["\']', '', actual)
+    actual = actual.split('\n')
+    for line in actual[6:]:
+        parts = re.split(r'\s+\|\s+', line)
+        assert float(parts[1]) <= 20
 
-#  @pytest.mark.asyncio
-#  async def test_cmd_bgs_sys(side_session, f_bot):
-    #  msg = fake_msg_gears("!bgs sys Sol")
 
-    #  await action_map(msg, f_bot).execute()
-    #  reply = str(f_bot.send_long_message.call_args).replace("\\n", "\n")
+@pytest.mark.asyncio
+async def test_cmd_bgs_expto(f_bot):
+    msg = fake_msg_gears("!bgs expto rana")
 
-    #  assert '**Sol**: ' in reply
-    #  assert r'```autohotkey' in reply
-    #  assert '-> Demo | Mother Gaia:' in reply
-    #  assert 'Owns: Abraham Lincoln (L)' in reply
+    await action_map(msg, f_bot).execute()
 
+    actual = str(f_bot.send_long_message.call_args).replace("\\n", "\n")[:-2]
+    actual = re.sub(r'.*live_hudson, ["\']', '', actual)
+    actual = actual.split('\n')
+    for line in actual[4:]:
+        parts = re.split(r'\s+\|\s+', line)
+        assert float(parts[1]) <= 20
 
-#  @pytest.mark.asyncio
-#  async def test_cmd_feedback(f_bot):
-    #  msg = fake_msg_gears("!feedback Sample bug report.")
 
-    #  await action_map(msg, f_bot).execute()
+@pytest.mark.asyncio
+async def test_cmd_bgs_find(f_bot):
+    msg = fake_msg_gears("!bgs find nurundere")
 
-    #  assert str(f_bot.send_message.call_args).split("\\n")[-1][:-2] == 'Sample bug report.'
+    await action_map(msg, f_bot).execute()
 
+    actual = str(f_bot.send_long_message.call_args).replace("\\n", "\n")[:-2]
+    actual = re.sub(r'.*live_hudson, ["\']', '', actual)
+    assert actual.split('\n')[4].index("Monarchy of Orisala") != -1
 
-#  @pytest.mark.asyncio
-#  async def test_cmd_fort(f_bot, f_systems):
-    #  msg = fake_msg_gears("!fort")
 
-    #  await action_map(msg, f_bot).execute()
+@pytest.mark.asyncio
+async def test_cmd_bgs_inf(side_session, f_bot):
+    msg = fake_msg_gears("!bgs inf Sol")
 
-    #  expect = """__Active Targets__
-#  **Nurundere** 5422/8425 :Fortifying:
-#  **Othime**    0/7367 :Fortifying: Priority for S/M ships (no L pads)
+    await action_map(msg, f_bot).execute()
 
-#  __Next Targets__
-#  **LHS 3749** 1850/5974 :Fortifying:
-#  **Alpha Fornacis**    0/6476 :Fortifying:
-#  **Phra Mool**    0/7968 :Fortifying:
+    assert "Mother Gaia" in str(f_bot.send_long_message.call_args).replace("\\n", "\n")
 
-#  __Almost Done__
-#  **Dongkum** 7000/7239 :Fortifying: (239 left)"""
-    #  f_bot.send_message.assert_called_with(msg.channel, expect)
 
+@pytest.mark.asyncio
+async def test_cmd_bgs_sys(side_session, f_bot):
+    msg = fake_msg_gears("!bgs sys Sol")
 
-#  @pytest.mark.asyncio
-#  async def test_cmd_fort_summary(f_bot, f_systems):
-    #  msg = fake_msg_gears("!fort --summary")
+    await action_map(msg, f_bot).execute()
+    reply = str(f_bot.send_long_message.call_args).replace("\\n", "\n")
 
-    #  await action_map(msg, f_bot).execute()
+    assert '**Sol**: ' in reply
+    assert r'```autohotkey' in reply
+    assert '-> Demo | Mother Gaia:' in reply
+    assert 'Owns: Abraham Lincoln (L)' in reply
 
-    #  expect = """```Cancelled|Fortified|Undermined|Skipped|Left
-#  ---------|---------|----------|-------|----
-#  0/10     |1/10     |0/10      |1/10   |8/10```"""
-    #  f_bot.send_message.assert_called_with(msg.channel, expect)
 
+@pytest.mark.asyncio
+async def test_cmd_feedback(f_bot):
+    msg = fake_msg_gears("!feedback Sample bug report.")
 
-#  @pytest.mark.asyncio
-#  async def test_cmd_fort_next(f_bot, f_systems):
-    #  msg = fake_msg_gears("!fort --next 2")
+    await action_map(msg, f_bot).execute()
 
-    #  await action_map(msg, f_bot).execute()
+    assert str(f_bot.send_message.call_args).split("\\n")[-1][:-2] == 'Sample bug report.'
 
-    #  expect = """__Next Targets__
-#  **LHS 3749** 1850/5974 :Fortifying:
-#  **Alpha Fornacis**    0/6476 :Fortifying:"""
-    #  f_bot.send_message.assert_called_with(msg.channel, expect)
 
+@pytest.mark.asyncio
+async def test_cmd_fort(f_bot, f_dusers, f_fort_testbed):
+    msg = fake_msg_gears("!fort")
 
-#  @pytest.mark.asyncio
-#  async def test_cmd_fort_miss(f_bot, f_systems):
-    #  msg = fake_msg_gears("!fort --miss 1000")
+    await action_map(msg, f_bot).execute()
 
-    #  await action_map(msg, f_bot).execute()
+    expect = """__Active Targets__
+**Nurundere** 5422/8425 :Fortifying:
+**Othime**    0/7367 :Fortifying: Priority for S/M ships (no L pads)
+Prep: **Rhea** 5100/10000 :Fortifying: Atropos
 
-    #  expect = """__Systems Missing 1000 Supplies__
-#  **Dongkum** 7000/7239 :Fortifying: (239 left)"""
-    #  f_bot.send_message.assert_called_with(msg.channel, expect)
+__Next Targets__
+**LHS 3749** 1850/5974 :Fortifying:
+**Alpha Fornacis**    0/6476 :Fortifying:
+**Phra Mool**    0/7968 :Fortifying:
 
+__Almost Done__
+**Dongkum** 7000/7239 :Fortifying: (239 left)"""
+    f_bot.send_message.assert_called_with(msg.channel, expect)
 
-#  @pytest.mark.asyncio
-#  async def test_cmd_fort_search(f_bot, f_systems):
-    #  msg = fake_msg_gears("!fort nuru, othime")
 
-    #  await action_map(msg, f_bot).execute()
+@pytest.mark.asyncio
+async def test_cmd_fort_summary(f_bot, f_dusers, f_fort_testbed):
+    msg = fake_msg_gears("!fort --summary")
 
-    #  expect = """__Search Results__
-#  **Nurundere** 5422/8425 :Fortifying:
-#  **Othime**    0/7367 :Fortifying: Priority for S/M ships (no L pads)"""
-    #  f_bot.send_message.assert_called_with(msg.channel, expect)
+    await action_map(msg, f_bot).execute()
 
+    expect = """```Cancelled|Fortified|Undermined|Skipped|Left
+---------|---------|----------|-------|----
+0/10     |1/10     |0/10      |1/10   |8/10```"""
+    f_bot.send_message.assert_called_with(msg.channel, expect)
 
-#  @pytest.mark.asyncio
-#  async def test_cmd_fort_set(f_bot, f_systems):
-    #  msg = fake_msg_gears("!fort --set 7000:222 nuru")
 
-    #  await action_map(msg, f_bot).execute()
+@pytest.mark.asyncio
+async def test_cmd_fort_next(f_bot, f_dusers, f_fort_testbed):
+    msg = fake_msg_gears("!fort --next 2")
 
-    #  expect = """**Nurundere** 7000/8425 :Fortifying:, 222 :Undermining: (1425 left)"""
-    #  f_bot.send_message.assert_called_with(msg.channel, expect)
-    #  system = cogdb.Session().query(System).filter_by(name='Nurundere').one()
-    #  assert system.fort_status == 7000
-    #  assert system.um_status == 222
+    await action_map(msg, f_bot).execute()
 
-    #  expect = [
-        #  {'range': 'H6:H7', 'values': [[7000], [222]]},
-    #  ]
-    #  assert cog.actions.SCANNERS['hudson_cattle'].payloads == expect
+    expect = """__Next Targets__
+**LHS 3749** 1850/5974 :Fortifying:
+**Alpha Fornacis**    0/6476 :Fortifying:"""
+    f_bot.send_message.assert_called_with(msg.channel, expect)
 
 
-#  @pytest.mark.asyncio
-#  async def test_cmd_fort_details(f_bot, f_systems):
-    #  msg = fake_msg_gears("!fort -d frey")
+@pytest.mark.asyncio
+async def test_cmd_fort_miss(f_bot, f_dusers, f_fort_testbed):
+    msg = fake_msg_gears("!fort --miss 1000")
 
-    #  await action_map(msg, f_bot).execute()
+    await action_map(msg, f_bot).execute()
 
-    #  expect = """**Frey**
-#  ```Completion  | 100.0%
-#  CMDR Merits | 0/4910
-#  Fort Status | 4910/4910
-#  UM Status   | 0 (0.00%)
-#  Notes       |```
-#  ```CMDR Name | Merits
-#  --------- | ------```"""
-    #  f_bot.send_message.assert_called_with(msg.channel, expect)
+    expect = """__Systems Missing 1000 Supplies__
+**Dongkum** 7000/7239 :Fortifying: (239 left)"""
+    f_bot.send_message.assert_called_with(msg.channel, expect)
 
 
-#  @pytest.mark.asyncio
-#  async def test_cmd_fort_details_invalid(f_bot, f_systems):
-    #  msg = fake_msg_gears("!fort -d")
+@pytest.mark.asyncio
+async def test_cmd_fort_search(f_bot, f_dusers, f_fort_testbed):
+    msg = fake_msg_gears("!fort nuru, othime")
 
-    #  with pytest.raises(cog.exc.InvalidCommandArgs):
-        #  await action_map(msg, f_bot).execute()
+    await action_map(msg, f_bot).execute()
 
+    expect = """__Search Results__
+**Nurundere** 5422/8425 :Fortifying:
+**Othime**    0/7367 :Fortifying: Priority for S/M ships (no L pads)"""
+    f_bot.send_message.assert_called_with(msg.channel, expect)
 
-#  @pytest.mark.asyncio
-#  async def test_cmd_fort_set_invalid(f_bot, f_systems):
-    #  msg = fake_msg_gears("!fort --set 7000:222 nuru, othime")
 
-    #  with pytest.raises(cog.exc.InvalidCommandArgs):
-        #  await action_map(msg, f_bot).execute()
+@pytest.mark.asyncio
+async def test_cmd_fort_set(f_bot, f_dusers, f_fort_testbed):
+    msg = fake_msg_gears("!fort --set 7000:222 nuru")
 
+    await action_map(msg, f_bot).execute()
 
-#  @pytest.mark.asyncio
-#  async def test_cmd_fort_order(session, f_bot, f_systems):
-    #  try:
-        #  msg = fake_msg_gears("!fort --order sol, nuru, frey")
-        #  await action_map(msg, f_bot).execute()
+    expect = """**Nurundere** 7000/8425 :Fortifying:, 222 :Undermining: (1425 left)"""
+    f_bot.send_message.assert_called_with(msg.channel, expect)
+    system = cogdb.Session().query(FortSystem).filter_by(name='Nurundere').one()
+    assert system.fort_status == 7000
+    assert system.um_status == 222
 
-        #  systems = [sys.system_name for sys in session.query(FortOrder).order_by(FortOrder.order)]
-        #  assert systems == ['Sol', 'Nurundere', 'Frey']
+    expect = [
+        {'range': 'H6:H7', 'values': [[7000], [222]]},
+    ]
+    assert cog.actions.SCANNERS['hudson_cattle'].payloads == expect
 
-        #  msg2 = fake_msg_gears("!fort")
-        #  await action_map(msg2, f_bot).execute()
 
-        #  expect = """__Active Targets (Manual Order)__
-#  **Sol** 2500/5211 :Fortifying:, 2250 :Undermining: Leave For Grinders
+@pytest.mark.asyncio
+async def test_cmd_fort_details(f_bot, f_dusers, f_fort_testbed):
+    msg = fake_msg_gears("!fort -d frey")
 
-#  __Next Targets__
-#  **Nurundere** 5422/8425 :Fortifying:
+    await action_map(msg, f_bot).execute()
 
-#  __Almost Done__
-#  **Dongkum** 7000/7239 :Fortifying: (239 left)"""
-        #  f_bot.send_message.assert_called_with(msg2.channel, expect)
-    #  finally:
-        #  dsession = cogdb.Session()
-        #  for order in dsession.query(FortOrder):
-            #  dsession.delete(order)
-        #  dsession.commit()
+    expect = """**Frey**
+```Completion  | 100.0%
+CMDR Merits | 3700/4910
+Fort Status | 4910/4910
+UM Status   | 0 (0.00%)
+Notes       |```
+```CMDR Name | Merits
+--------- | ------
+User3     | 1800
+User2     | 1200
+User1     | 700```"""
+    f_bot.send_message.assert_called_with(msg.channel, expect)
 
 
-#  @pytest.mark.asyncio
-#  async def test_cmd_fort_order_next(session, f_bot, f_systems):
-    #  try:
-        #  msg = fake_msg_gears("!fort --order sol, nuru, frey")
-        #  await action_map(msg, f_bot).execute()
+@pytest.mark.asyncio
+async def test_cmd_fort_details_invalid(f_bot, f_dusers, f_fort_testbed):
+    msg = fake_msg_gears("!fort -d")
 
-        #  systems = [sys.system_name for sys in session.query(FortOrder).order_by(FortOrder.order)]
-        #  assert systems == ['Sol', 'Nurundere', 'Frey']
+    with pytest.raises(cog.exc.InvalidCommandArgs):
+        await action_map(msg, f_bot).execute()
 
-        #  msg2 = fake_msg_gears("!fort --next 2")
-        #  await action_map(msg2, f_bot).execute()
 
-        #  expect = """__Next Targets (Manual Order)__
-#  **Nurundere** 5422/8425 :Fortifying:"""
-        #  f_bot.send_message.assert_called_with(msg2.channel, expect)
-    #  finally:
-        #  dsession = cogdb.Session()
-        #  for order in dsession.query(FortOrder):
-            #  dsession.delete(order)
-        #  dsession.commit()
+@pytest.mark.asyncio
+async def test_cmd_fort_set_invalid(f_bot, f_dusers, f_fort_testbed):
+    msg = fake_msg_gears("!fort --set 7000:222 nuru, othime")
 
+    with pytest.raises(cog.exc.InvalidCommandArgs):
+        await action_map(msg, f_bot).execute()
 
-#  @pytest.mark.asyncio
-#  async def test_cmd_fort_unset(session, f_bot, f_systems):
-    #  try:
-        #  msg = fake_msg_gears("!fort --order sol, nuru, frey")
-        #  await action_map(msg, f_bot).execute()
 
-        #  systems = [sys.system_name for sys in session.query(FortOrder).order_by(FortOrder.order)]
-        #  assert systems == ['Sol', 'Nurundere', 'Frey']
+@pytest.mark.asyncio
+async def test_cmd_fort_order(session, f_bot, f_dusers, f_fort_testbed):
+    try:
+        msg = fake_msg_gears("!fort --order sol, nuru, frey")
+        await action_map(msg, f_bot).execute()
 
-        #  msg2 = fake_msg_gears("!fort --order")
-        #  await action_map(msg2, f_bot).execute()
+        systems = [sys.system_name for sys in session.query(FortOrder).order_by(FortOrder.order)]
+        assert systems == ['Sol', 'Nurundere', 'Frey']
 
-        #  session = cogdb.Session()
-        #  systems = [sys.system_name for sys in session.query(FortOrder).order_by(FortOrder.order)]
-        #  assert systems == []
-    #  finally:
-        #  dsession = cogdb.Session()
-        #  for order in dsession.query(FortOrder):
-            #  dsession.delete(order)
-        #  dsession.commit()
+        msg2 = fake_msg_gears("!fort")
+        await action_map(msg2, f_bot).execute()
 
+        expect = """__Active Targets (Manual Order)__
+**Sol** 2500/5211 :Fortifying:, 2250 :Undermining: Leave For Grinders
 
-#  @pytest.mark.asyncio
-#  async def test_cmd_help(f_bot):
-    #  msg = fake_msg_gears("!help")
+__Next Targets__
+**Nurundere** 5422/8425 :Fortifying:
 
-    #  await action_map(msg, f_bot).execute()
+__Almost Done__
+**Dongkum** 7000/7239 :Fortifying: (239 left)"""
+        f_bot.send_message.assert_called_with(msg2.channel, expect)
+    finally:
+        dsession = cogdb.Session()
+        for order in dsession.query(FortOrder):
+            dsession.delete(order)
+        dsession.commit()
 
-    #  assert "Here is an overview of my commands." in str(f_bot.send_ttl_message.call_args)
-    #  assert msg.is_deleted
 
+@pytest.mark.asyncio
+async def test_cmd_fort_order_next(session, f_bot, f_dusers, f_fort_testbed):
+    try:
+        msg = fake_msg_gears("!fort --order sol, nuru, frey")
+        await action_map(msg, f_bot).execute()
 
-#  @pytest.mark.asyncio
-#  async def test_cmd_drop_simple(f_bot, f_testbed):
-    #  msg = fake_msg_gears("!drop 578 nuru")
+        systems = [sys.system_name for sys in session.query(FortOrder).order_by(FortOrder.order)]
+        assert systems == ['Sol', 'Nurundere', 'Frey']
 
-    #  await action_map(msg, f_bot).execute()
+        msg2 = fake_msg_gears("!fort --next 2")
+        await action_map(msg2, f_bot).execute()
 
-    #  f_bot.send_message.assert_called_with(msg.channel, '**Nurundere** 6000/8425 :Fortifying:')
-    #  session = cogdb.Session()
-    #  system = session.query(System).filter_by(name='Nurundere').one()
-    #  assert system.current_status == 6000
-    #  duser = session.query(DUser).filter_by(id=msg.author.id).one()
-    #  cattle = session.query(SheetCattle).filter_by(name=duser.pref_name).one()
-    #  drop = session.query(Drop).filter_by(user_id=cattle.id, system_id=system.id).one()
-    #  assert drop.amount == 978
+        expect = """__Next Targets (Manual Order)__
+**Nurundere** 5422/8425 :Fortifying:"""
+        f_bot.send_message.assert_called_with(msg2.channel, expect)
+    finally:
+        dsession = cogdb.Session()
+        for order in dsession.query(FortOrder):
+            dsession.delete(order)
+        dsession.commit()
 
-    #  expect = [
-        #  {'range': 'H6:H7', 'values': [[6000], [0]]},
-        #  {'range': 'H15:H15', 'values': [[978]]},
-    #  ]
-    #  assert cog.actions.SCANNERS['hudson_cattle'].payloads == expect
 
+@pytest.mark.asyncio
+async def test_cmd_fort_unset(session, f_bot, f_dusers, f_fort_testbed):
+    try:
+        msg = fake_msg_gears("!fort --order sol, nuru, frey")
+        await action_map(msg, f_bot).execute()
 
-#  @pytest.mark.asyncio
-#  async def test_cmd_drop_negative(f_bot, f_testbed):
-    #  msg = fake_msg_gears("!drop -100 nuru")
+        systems = [sys.system_name for sys in session.query(FortOrder).order_by(FortOrder.order)]
+        assert systems == ['Sol', 'Nurundere', 'Frey']
 
-    #  await action_map(msg, f_bot).execute()
+        msg2 = fake_msg_gears("!fort --order")
+        await action_map(msg2, f_bot).execute()
 
-    #  f_bot.send_message.assert_called_with(msg.channel, '**Nurundere** 5322/8425 :Fortifying:')
-    #  session = cogdb.Session()
-    #  system = session.query(System).filter_by(name='Nurundere').one()
-    #  assert system.current_status == 5322
-    #  duser = session.query(DUser).filter_by(id=msg.author.id).one()
-    #  cattle = session.query(SheetCattle).filter_by(name=duser.pref_name).one()
-    #  drop = session.query(Drop).filter_by(user_id=cattle.id, system_id=system.id).one()
-    #  assert drop.amount == 300
+        session = cogdb.Session()
+        systems = [sys.system_name for sys in session.query(FortOrder).order_by(FortOrder.order)]
+        assert systems == []
+    finally:
+        dsession = cogdb.Session()
+        for order in dsession.query(FortOrder):
+            dsession.delete(order)
+        dsession.commit()
 
-    #  expect = [
-        #  {'range': 'H6:H7', 'values': [[5322], [0]]},
-        #  {'range': 'H15:H15', 'values': [[300]]},
-    #  ]
-    #  assert cog.actions.SCANNERS['hudson_cattle'].payloads == expect
 
+@pytest.mark.asyncio
+async def test_cmd_help(f_bot):
+    msg = fake_msg_gears("!help")
 
-#  @pytest.mark.asyncio
-#  async def test_cmd_drop_newuser(f_bot, f_testbed):
-    #  msg = fake_msg_newuser("!drop 500 nuru")
+    await action_map(msg, f_bot).execute()
 
-    #  await action_map(msg, f_bot).execute()
+    assert "Here is an overview of my commands." in str(f_bot.send_ttl_message.call_args)
+    assert msg.is_deleted
 
-    #  expect = 'Will automatically add newuser to cattle sheet. See !user command to change.'
-    #  f_bot.send_message.assert_any_call(msg.channel, expect)
-    #  f_bot.send_message.assert_any_call(msg.channel, '**Nurundere** 5922/8425 :Fortifying:')
 
-    #  session = cogdb.Session()
-    #  system = session.query(System).filter_by(name='Nurundere').one()
-    #  assert system.current_status == 5922
-    #  duser = session.query(DUser).filter_by(id=msg.author.id).one()
-    #  sheet = session.query(SheetCattle).filter_by(name=duser.pref_name).one()
-    #  drop = session.query(Drop).filter_by(user_id=sheet.id, system_id=system.id).one()
-    #  assert drop.amount == 500
+@pytest.mark.asyncio
+async def test_cmd_drop_simple(f_bot, f_dusers, f_fort_testbed):
+    msg = fake_msg_gears("!drop 578 nuru")
 
-    #  expect = [
-        #  {'range': 'A20:B20', 'values': [['test cry', 'test name']]},
-        #  {'range': 'H6:H7', 'values': [[5922], [0]]},
-        #  {'range': 'H18:H18', 'values': [[500]]},
-    #  ]
-    #  assert cog.actions.SCANNERS['hudson_cattle'].payloads == expect
+    await action_map(msg, f_bot).execute()
 
+    f_bot.send_message.assert_called_with(msg.channel, '**Nurundere** 6000/8425 :Fortifying:')
+    session = cogdb.Session()
+    system = session.query(FortSystem).filter_by(name='Nurundere').one()
+    assert system.current_status == 6000
+    duser = session.query(DiscordUser).filter_by(id=msg.author.id).one()
+    cattle = session.query(FortUser).filter_by(name=duser.pref_name).one()
+    drop = session.query(FortDrop).filter_by(user_id=cattle.id, system_id=system.id).one()
+    assert drop.amount == 978
 
-#  @pytest.mark.asyncio
-#  async def test_cmd_drop_set(f_bot, f_testbed):
-    #  msg = fake_msg_gears("!drop 578 nuru --set 6500")
+    expect = [
+        {'range': 'H6:H7', 'values': [[6000], [0]]},
+        {'range': 'H15:H15', 'values': [[978]]},
+    ]
+    assert cog.actions.SCANNERS['hudson_cattle'].payloads == expect
 
-    #  await action_map(msg, f_bot).execute()
 
-    #  f_bot.send_message.assert_called_with(msg.channel, '**Nurundere** 6500/8425 :Fortifying:')
-    #  session = cogdb.Session()
-    #  system = session.query(System).filter_by(name='Nurundere').one()
-    #  assert system.current_status == 6500
-    #  duser = session.query(DUser).filter_by(id=msg.author.id).one()
-    #  cattle = session.query(SheetCattle).filter_by(name=duser.pref_name).one()
-    #  drop = session.query(Drop).filter_by(user_id=cattle.id, system_id=system.id).one()
-    #  assert drop.amount == 978
+@pytest.mark.asyncio
+async def test_cmd_drop_negative(f_bot, f_dusers, f_fort_testbed):
+    msg = fake_msg_gears("!drop -100 nuru")
 
-    #  expect = [
-        #  {'range': 'H6:H7', 'values': [[6500], [0]]},
-        #  {'range': 'H15:H15', 'values': [[978]]},
-    #  ]
-    #  assert cog.actions.SCANNERS['hudson_cattle'].payloads == expect
+    await action_map(msg, f_bot).execute()
 
+    f_bot.send_message.assert_called_with(msg.channel, '**Nurundere** 5322/8425 :Fortifying:')
+    session = cogdb.Session()
+    system = session.query(FortSystem).filter_by(name='Nurundere').one()
+    assert system.current_status == 5322
+    duser = session.query(DiscordUser).filter_by(id=msg.author.id).one()
+    cattle = session.query(FortUser).filter_by(name=duser.pref_name).one()
+    drop = session.query(FortDrop).filter_by(user_id=cattle.id, system_id=system.id).one()
+    assert drop.amount == 300
 
-#  @pytest.mark.asyncio
-#  async def test_cmd_hold_simple(f_bot, f_testbed):
-    #  msg = fake_msg_gears("!hold 2000 empt")
+    expect = [
+        {'range': 'H6:H7', 'values': [[5322], [0]]},
+        {'range': 'H15:H15', 'values': [[300]]},
+    ]
+    assert cog.actions.SCANNERS['hudson_cattle'].payloads == expect
 
-    #  await action_map(msg, f_bot).execute()
-
-    #  expect = """```Control        | Empty [M sec]
-#  20%            | Merits Missing 8000
-#  Our Progress 0 | Enemy Progress 0%
-#  Nearest Hudson | Rana
-#  Priority       | Low```"""
-    #  f_bot.send_message.assert_called_with(msg.channel, expect)
-    #  session = cogdb.Session()
-    #  duser = session.query(DUser).filter_by(id=msg.author.id).one()
-    #  um = session.query(SheetUM).filter_by(name=duser.pref_name).one()
-    #  system = session.query(SystemUM).filter_by(name='Empty').one()
-    #  assert system.missing == 8000
-    #  hold = session.query(Hold).filter_by(user_id=um.id, system_id=system.id).one()
-    #  assert hold.held == 2000
-    #  assert hold.redeemed == 0
-
-    #  expect = [
-        #  {'range': 'K18:L18', 'values': [[2000, 0]]},
-    #  ]
-    #  assert cog.actions.SCANNERS['hudson_undermine'].payloads == expect
 
+@pytest.mark.asyncio
+async def test_cmd_drop_newuser(f_bot, f_dusers, f_fort_testbed):
+    msg = fake_msg_newuser("!drop 500 nuru")
 
-#  @pytest.mark.asyncio
-#  async def test_cmd_hold_newuser(f_bot, f_testbed):
-    #  msg = fake_msg_newuser("!hold 1000 empty")
+    await action_map(msg, f_bot).execute()
 
-    #  await action_map(msg, f_bot).execute()
+    expect = 'Will automatically add NewUser to sheet. See !user command to change.'
+    f_bot.send_message.assert_any_call(msg.channel, expect)
+    f_bot.send_message.assert_any_call(msg.channel, '**Nurundere** 5922/8425 :Fortifying:')
 
-    #  expect = 'Will automatically add newuser to undermine sheet. See !user command to change.'
-    #  f_bot.send_message.assert_any_call(msg.channel, expect)
-    #  expect2 = """```Control        | Empty [M sec]
-#  10%            | Merits Missing 9000
-#  Our Progress 0 | Enemy Progress 0%
-#  Nearest Hudson | Rana
-#  Priority       | Low```"""
-    #  f_bot.send_message.assert_any_call(msg.channel, expect2)
+    session = cogdb.Session()
+    system = session.query(FortSystem).filter_by(name='Nurundere').one()
+    assert system.current_status == 5922
+    duser = session.query(DiscordUser).filter_by(id=msg.author.id).one()
+    sheet = session.query(FortUser).filter_by(name=duser.pref_name).one()
+    drop = session.query(FortDrop).filter_by(user_id=sheet.id, system_id=system.id).one()
+    assert drop.amount == 500
 
-    #  session = cogdb.Session()
-    #  system = session.query(SystemUM).filter_by(name='empty').one()
-    #  assert system.missing == 9000
-    #  duser = session.query(DUser).filter_by(id=msg.author.id).one()
-    #  sheet = session.query(SheetUM).filter_by(name=duser.pref_name).one()
-    #  hold = session.query(Hold).filter_by(user_id=sheet.id, system_id=system.id).one()
-    #  assert hold.held == 1000
+    expect = [
+        {'range': 'A20:B20', 'values': [['test cry', 'test name']]},
+        {'range': 'H6:H7', 'values': [[5922], [0]]},
+        {'range': 'H18:H18', 'values': [[500]]},
+    ]
+    assert cog.actions.SCANNERS['hudson_cattle'].payloads == expect
 
-    #  expect = [
-        #  {'range': 'A20:B20', 'values': [['test cry', 'test name']]},
-        #  {'range': 'K20:L20', 'values': [[1000, 0]]},
-    #  ]
-    #  assert cog.actions.SCANNERS['hudson_undermine'].payloads == expect
 
+@pytest.mark.asyncio
+async def test_cmd_drop_set(f_bot, f_dusers, f_fort_testbed):
+    msg = fake_msg_gears("!drop 578 nuru --set 6500")
 
-#  @pytest.mark.asyncio
-#  async def test_cmd_hold_redeem(f_bot, f_testbed):
-    #  msg = fake_msg_gears("!hold --redeem")
+    await action_map(msg, f_bot).execute()
 
-    #  await action_map(msg, f_bot).execute()
+    f_bot.send_message.assert_called_with(msg.channel, '**Nurundere** 6500/8425 :Fortifying:')
+    session = cogdb.Session()
+    system = session.query(FortSystem).filter_by(name='Nurundere').one()
+    assert system.current_status == 6500
+    duser = session.query(DiscordUser).filter_by(id=msg.author.id).one()
+    cattle = session.query(FortUser).filter_by(name=duser.pref_name).one()
+    drop = session.query(FortDrop).filter_by(user_id=cattle.id, system_id=system.id).one()
+    assert drop.amount == 978
 
-    #  expect = """**Redeemed Now** 2600
+    expect = [
+        {'range': 'H6:H7', 'values': [[6500], [0]]},
+        {'range': 'H15:H15', 'values': [[978]]},
+    ]
+    assert cog.actions.SCANNERS['hudson_cattle'].payloads == expect
 
-#  __Cycle Summary__
-#  ```  System   | Hold | Redeemed
-#  ---------- | ---- | --------
-#  Cemplangpa | 0    | 4000
-#  Pequen     | 0    | 1950
-#  Burr       | 0    | 8000```"""
-    #  f_bot.send_message.assert_called_with(msg.channel, expect)
-    #  session = cogdb.Session()
-    #  duser = session.query(DUser).filter_by(id=msg.author.id).one()
-    #  um = session.query(SheetUM).filter_by(name=duser.pref_name).one()
-    #  system = session.query(SystemUM).filter_by(name='Pequen').one()
-    #  hold = session.query(Hold).filter_by(user_id=um.id, system_id=system.id).one()
-    #  assert hold.held == 0
-    #  assert hold.redeemed == 1950
 
-    #  expect = [
-        #  {'range': 'D18:E18', 'values': [[0, 4000]]},
-        #  {'range': 'F18:G18', 'values': [[0, 1950]]},
-        #  {'range': 'H18:I18', 'values': [[0, 8000]]},
-    #  ]
-    #  assert cog.actions.SCANNERS['hudson_undermine'].payloads == expect
+@pytest.mark.asyncio
+async def test_cmd_hold_simple(f_bot, f_dusers, f_um_testbed):
+    msg = fake_msg_gears("!hold 2000 empt")
 
+    await action_map(msg, f_bot).execute()
 
-#  @pytest.mark.asyncio
-#  async def test_cmd_hold_died(f_bot, f_testbed):
-    #  msg = fake_msg_gears("!hold --died")
+    expect = """```Control        | Empty [M sec]
+20%            | Merits Missing 8000
+Our Progress 0 | Enemy Progress 0%
+Nearest Hudson | Rana
+Priority       | Low```"""
+    f_bot.send_message.assert_called_with(msg.channel, expect)
+    session = cogdb.Session()
+    duser = session.query(DiscordUser).filter_by(id=msg.author.id).one()
+    um = session.query(UmUser).filter_by(name=duser.pref_name).one()
+    system = session.query(UMSystem).filter_by(name='Empty').one()
+    assert system.missing == 8000
+    hold = session.query(UMHold).filter_by(user_id=um.id, system_id=system.id).one()
+    assert hold.held == 2000
+    assert hold.redeemed == 0
 
-    #  await action_map(msg, f_bot).execute()
+    expect = [
+        {'range': 'K18:L18', 'values': [[2000, 0]]},
+    ]
+    assert cog.actions.SCANNERS['hudson_undermine'].payloads == expect
 
-    #  f_bot.send_message.assert_called_with(msg.channel, 'Sorry you died :(. Held merits reset.')
-    #  session = cogdb.Session()
-    #  duser = session.query(DUser).filter_by(id=msg.author.id).one()
-    #  um = session.query(SheetUM).filter_by(name=duser.pref_name).one()
-    #  system = session.query(SystemUM).filter_by(name='Pequen').one()
-    #  hold = session.query(Hold).filter_by(user_id=um.id, system_id=system.id).one()
-    #  assert hold.held == 0
-    #  assert hold.redeemed == 1550
 
-    #  expect = [
-        #  {'range': 'D18:E18', 'values': [[0, 4000]]},
-        #  {'range': 'F18:G18', 'values': [[0, 1550]]},
-        #  {'range': 'H18:I18', 'values': [[0, 5800]]},
-    #  ]
-    #  assert cog.actions.SCANNERS['hudson_undermine'].payloads == expect
+@pytest.mark.asyncio
+async def test_cmd_hold_newuser(f_bot, f_dusers, f_um_testbed):
+    msg = fake_msg_newuser("!hold 1000 empty")
 
+    await action_map(msg, f_bot).execute()
 
-#  @pytest.mark.asyncio
-#  async def test_cmd_repair(f_bot):
-    #  msg = fake_msg_gears("!repair rana")
+    expect = 'Will automatically add NewUser to sheet. See !user command to change.'
+    f_bot.send_message.assert_any_call(msg.channel, expect)
+    expect2 = """```Control        | Empty [M sec]
+10%            | Merits Missing 9000
+Our Progress 0 | Enemy Progress 0%
+Nearest Hudson | Rana
+Priority       | Low```"""
+    f_bot.send_message.assert_any_call(msg.channel, expect2)
 
-    #  await action_map(msg, f_bot).execute()
+    session = cogdb.Session()
+    system = session.query(UMSystem).filter_by(name='empty').one()
+    assert system.missing == 9000
+    duser = session.query(DiscordUser).filter_by(id=msg.author.id).one()
+    sheet = session.query(UmUser).filter_by(name=duser.pref_name).one()
+    hold = session.query(UMHold).filter_by(user_id=sheet.id, system_id=system.id).one()
+    assert hold.held == 1000
 
-    #  actual = str(f_bot.send_long_message.call_args).replace("\\n", "\n")
-    #  assert "Ali Hub" in actual
-    #  assert "Meucci Port" in actual
+    expect = [
+        {'range': 'A20:B20', 'values': [['test cry', 'test name']]},
+        {'range': 'K20:L20', 'values': [[1000, 0]]},
+    ]
+    assert cog.actions.SCANNERS['hudson_undermine'].payloads == expect
 
 
-#  @pytest.mark.asyncio
-#  async def test_cmd_route(f_bot):
-    #  msg = fake_msg_gears("!route nanomam, rana, sol, frey, arnemil")
+@pytest.mark.asyncio
+async def test_cmd_hold_redeem(f_bot, f_dusers, f_um_testbed):
+    msg = fake_msg_gears("!hold --redeem")
 
-    #  await action_map(msg, f_bot).execute()
+    await action_map(msg, f_bot).execute()
 
-    #  expect = """__Route Plotted__
-#  Total Distance: **277**ly
+    expect = """**Redeemed Now** 2600
 
-#  Nanomam
-#  Sol
-#  Rana
-#  Arnemil
-#  Frey"""
-    #  f_bot.send_message.assert_called_with(msg.channel, expect)
+__Cycle Summary__
+```  System   | Hold | Redeemed
+---------- | ---- | --------
+Cemplangpa | 0    | 4000
+Pequen     | 0    | 1950
+Burr       | 0    | 8000```"""
+    f_bot.send_message.assert_called_with(msg.channel, expect)
+    session = cogdb.Session()
+    duser = session.query(DiscordUser).filter_by(id=msg.author.id).one()
+    um = session.query(UmUser).filter_by(name=duser.pref_name).one()
+    system = session.query(UMSystem).filter_by(name='Pequen').one()
+    hold = session.query(UMHold).filter_by(user_id=um.id, system_id=system.id).one()
+    assert hold.held == 0
+    assert hold.redeemed == 1950
 
+    expect = [
+        {'range': 'D18:E18', 'values': [[0, 4000]]},
+        {'range': 'F18:G18', 'values': [[0, 1950]]},
+        {'range': 'H18:I18', 'values': [[0, 8000]]},
+    ]
+    assert cog.actions.SCANNERS['hudson_undermine'].payloads == expect
 
-#  @pytest.mark.asyncio
-#  async def test_cmd_route_start(f_bot):
-    #  msg = fake_msg_gears("!route nanomam, rana, sol, frey, arnemil --optimum")
 
-    #  await action_map(msg, f_bot).execute()
+@pytest.mark.asyncio
+async def test_cmd_hold_died(f_bot, f_dusers, f_um_testbed):
+    msg = fake_msg_gears("!hold --died")
 
-    #  expect = """__Route Plotted__
-#  Total Distance: **246**ly
+    await action_map(msg, f_bot).execute()
 
-#  Arnemil
-#  Nanomam
-#  Sol
-#  Rana
-#  Frey"""
-    #  f_bot.send_message.assert_called_with(msg.channel, expect)
+    f_bot.send_message.assert_called_with(msg.channel, 'Sorry you died :(. Held merits reset.')
+    session = cogdb.Session()
+    duser = session.query(DiscordUser).filter_by(id=msg.author.id).one()
+    um = session.query(UmUser).filter_by(name=duser.pref_name).one()
+    system = session.query(UMSystem).filter_by(name='Pequen').one()
+    hold = session.query(UMHold).filter_by(user_id=um.id, system_id=system.id).one()
+    assert hold.held == 0
+    assert hold.redeemed == 1550
 
+    expect = [
+        {'range': 'D18:E18', 'values': [[0, 4000]]},
+        {'range': 'F18:G18', 'values': [[0, 1550]]},
+        {'range': 'H18:I18', 'values': [[0, 5800]]},
+    ]
+    assert cog.actions.SCANNERS['hudson_undermine'].payloads == expect
 
-#  @pytest.mark.asyncio
-#  async def test_cmd_route_too_few(f_bot):
-    #  msg = fake_msg_gears("!route rana")
 
-    #  with pytest.raises(cog.exc.InvalidCommandArgs):
-        #  await action_map(msg, f_bot).execute()
+@pytest.mark.asyncio
+async def test_cmd_repair(f_bot):
+    msg = fake_msg_gears("!repair rana")
 
+    await action_map(msg, f_bot).execute()
 
-#  @pytest.mark.asyncio
-#  async def test_cmd_route_bad_system(f_bot):
-    #  msg = fake_msg_gears("!route ranaaaaa")
+    actual = str(f_bot.send_long_message.call_args).replace("\\n", "\n")
+    assert "Ali Hub" in actual
+    assert "Meucci Port" in actual
 
-    #  with pytest.raises(cog.exc.InvalidCommandArgs):
-        #  await action_map(msg, f_bot).execute()
 
+@pytest.mark.asyncio
+async def test_cmd_route(f_bot):
+    msg = fake_msg_gears("!route nanomam, rana, sol, frey, arnemil")
 
-#  @pytest.mark.asyncio
-#  async def test_cmd_scout_rnd(f_bot):
-    #  msg = fake_msg_gears("!scout -r 1")
+    await action_map(msg, f_bot).execute()
 
-    #  f_bot.wait_for_message.async_return_value = fake_msg_gears('stop')
-    #  await action_map(msg, f_bot).execute()
+    expect = """__Route Plotted__
+Total Distance: **277**ly
 
-    #  expect = """
-#  If you are running more than one system, do them in this order and you'll not ricochet the whole galaxy. Also let us know if you want to be a member of the FRC Scout Squad!
-#  @here @FRC Scout
+Nanomam
+Sol
+Rana
+Arnemil
+Frey"""
+    f_bot.send_message.assert_called_with(msg.channel, expect)
 
-#  :Exploration: Epsilon Scorpii
-#  :Exploration: Mulachi
-#  :Exploration: Parutis
-#  :Exploration: 39 Serpentis
-#  :Exploration: Venetic
-#  :Exploration: BD+42 3917
-#  :Exploration: LHS 6427
-#  :Exploration: LP 580-33
-#  :Exploration: WW Piscis Austrini
-#  :Exploration: Aornum
-#  :Exploration: LHS 142
-#  :Exploration: Kaushpoos
 
-#  :o7:```"""
-    #  assert expect in str(f_bot.send_message.call_args).replace("\\n", "\n")
+@pytest.mark.asyncio
+async def test_cmd_route_start(f_bot):
+    msg = fake_msg_gears("!route nanomam, rana, sol, frey, arnemil --optimum")
 
+    await action_map(msg, f_bot).execute()
 
-#  @pytest.mark.asyncio
-#  async def test_cmd_scout_custom(f_bot):
-    #  msg = fake_msg_gears("!scout -c rana, nurundere, frey")
+    expect = """__Route Plotted__
+Total Distance: **246**ly
 
-    #  await action_map(msg, f_bot).execute()
+Arnemil
+Nanomam
+Sol
+Rana
+Frey"""
+    f_bot.send_message.assert_called_with(msg.channel, expect)
 
-    #  expect = """
-#  If you are running more than one system, do them in this order and you'll not ricochet the whole galaxy. Also let us know if you want to be a member of the FRC Scout Squad!
-#  @here @FRC Scout
 
-#  :Exploration: Nurundere
-#  :Exploration: Rana
-#  :Exploration: Frey
+@pytest.mark.asyncio
+async def test_cmd_route_too_few(f_bot):
+    msg = fake_msg_gears("!route rana")
 
-#  :o7:```"""
-    #  assert expect in str(f_bot.send_message.call_args).replace("\\n", "\n")
+    with pytest.raises(cog.exc.InvalidCommandArgs):
+        await action_map(msg, f_bot).execute()
 
 
-#  @pytest.mark.asyncio
-#  async def test_cmd_scout_bad_args(f_bot):
-    #  msg = fake_msg_gears("!scout -c raaaaaaaaaa, zzzzzzzzz")
+@pytest.mark.asyncio
+async def test_cmd_route_bad_system(f_bot):
+    msg = fake_msg_gears("!route ranaaaaa")
 
-    #  with pytest.raises(cog.exc.InvalidCommandArgs):
-        #  await action_map(msg, f_bot).execute()
+    with pytest.raises(cog.exc.InvalidCommandArgs):
+        await action_map(msg, f_bot).execute()
 
 
-#  @pytest.mark.asyncio
-#  async def test_cmd_scout_no_args(f_bot):
-    #  msg = fake_msg_gears("!scout")
+@pytest.mark.asyncio
+async def test_cmd_scout_rnd(f_bot):
+    msg = fake_msg_gears("!scout -r 1")
 
-    #  with pytest.raises(cog.exc.InvalidCommandArgs):
-        #  await action_map(msg, f_bot).execute()
+    f_bot.wait_for_message.async_return_value = fake_msg_gears('stop')
+    await action_map(msg, f_bot).execute()
 
+    expect = """
+If you are running more than one system, do them in this order and you'll not ricochet the whole galaxy. Also let us know if you want to be a member of the FRC Scout Squad!
+@here @FRC Scout
 
-#  @pytest.mark.asyncio
-#  async def test_cmd_status(f_bot):
-    #  msg = fake_msg_gears("!status")
+:Exploration: Epsilon Scorpii
+:Exploration: Mulachi
+:Exploration: Parutis
+:Exploration: 39 Serpentis
+:Exploration: Venetic
+:Exploration: BD+42 3917
+:Exploration: LHS 6427
+:Exploration: LP 580-33
+:Exploration: WW Piscis Austrini
+:Exploration: Aornum
+:Exploration: LHS 142
+:Exploration: Kaushpoos
 
-    #  await action_map(msg, f_bot).execute()
+:o7:```"""
+    assert expect in str(f_bot.send_message.call_args).replace("\\n", "\n")
 
-    #  expect = cog.tbl.wrap_markdown(cog.tbl.format_table([
-        #  ['Created By', 'GearsandCogs'],
-        #  ['Uptime', '5'],
-        #  ['Version', '{}'.format(cog.__version__)],
-        #  ['Contributors:', ''],
-        #  ['    Shotwn', 'Inara search'],
-    #  ]))
-    #  f_bot.send_message.assert_called_with(msg.channel, expect)
 
+@pytest.mark.asyncio
+async def test_cmd_scout_custom(f_bot):
+    msg = fake_msg_gears("!scout -c rana, nurundere, frey")
 
-#  @pytest.mark.asyncio
-#  async def test_cmd_time(f_bot):
-    #  msg = fake_msg_gears("!time")
+    await action_map(msg, f_bot).execute()
 
-    #  await action_map(msg, f_bot).execute()
+    expect = """
+If you are running more than one system, do them in this order and you'll not ricochet the whole galaxy. Also let us know if you want to be a member of the FRC Scout Squad!
+@here @FRC Scout
 
-    #  assert "Game Time:" in str(f_bot.send_message.call_args)
+:Exploration: Nurundere
+:Exploration: Rana
+:Exploration: Frey
 
+:o7:```"""
+    assert expect in str(f_bot.send_message.call_args).replace("\\n", "\n")
 
-#  @pytest.mark.asyncio
-#  async def test_cmd_trigger(f_bot):
-    #  msg = fake_msg_gears("!trigger rana")
 
-    #  await action_map(msg, f_bot).execute()
+@pytest.mark.asyncio
+async def test_cmd_scout_bad_args(f_bot):
+    msg = fake_msg_gears("!scout -c raaaaaaaaaa, zzzzzzzzz")
 
-    #  expect = """__Predicted Triggers__
-#  Power: Zachary Hudson
-#  Power HQ: Nanomam
+    with pytest.raises(cog.exc.InvalidCommandArgs):
+        await action_map(msg, f_bot).execute()
 
-#  ```System       | Rana
-#  Distance     | 46.1
-#  Upkeep       | 22.1
-#  Fort Trigger | 5620
-#  UM Trigger   | 13786```"""
-    #  f_bot.send_message.assert_called_with(msg.channel, expect)
 
+@pytest.mark.asyncio
+async def test_cmd_scout_no_args(f_bot):
+    msg = fake_msg_gears("!scout")
 
-#  @pytest.mark.asyncio
-#  async def test_cmd_trigger_as_power(f_bot):
-    #  msg = fake_msg_gears("!trigger rana -p grom")
+    with pytest.raises(cog.exc.InvalidCommandArgs):
+        await action_map(msg, f_bot).execute()
 
-    #  await action_map(msg, f_bot).execute()
 
-    #  expect = """__Predicted Triggers__
-#  Power: Yuri Grom
-#  Power HQ: Clayakarma
+@pytest.mark.asyncio
+async def test_cmd_status(f_bot):
+    msg = fake_msg_gears("!status")
 
-#  ```System       | Rana
-#  Distance     | 86.3
-#  Upkeep       | 27.4
-#  Fort Trigger | 7545
-#  UM Trigger   | 8432```"""
-    #  f_bot.send_message.assert_called_with(msg.channel, expect)
+    await action_map(msg, f_bot).execute()
+
+    expect = cog.tbl.wrap_markdown(cog.tbl.format_table([
+        ['Created By', 'GearsandCogs'],
+        ['Uptime', '5'],
+        ['Version', '{}'.format(cog.__version__)],
+        ['Contributors:', ''],
+        ['    Shotwn', 'Inara search'],
+    ]))
+    f_bot.send_message.assert_called_with(msg.channel, expect)
+
+
+@pytest.mark.asyncio
+async def test_cmd_time(f_bot):
+    msg = fake_msg_gears("!time")
+
+    await action_map(msg, f_bot).execute()
+
+    assert "Game Time:" in str(f_bot.send_message.call_args)
+
+
+@pytest.mark.asyncio
+async def test_cmd_trigger(f_bot):
+    msg = fake_msg_gears("!trigger rana")
+
+    await action_map(msg, f_bot).execute()
+
+    expect = """__Predicted Triggers__
+Power: Zachary Hudson
+Power HQ: Nanomam
+
+```System       | Rana
+Distance     | 46.1
+Upkeep       | 22.1
+Fort Trigger | 5620
+UM Trigger   | 13786```"""
+    f_bot.send_message.assert_called_with(msg.channel, expect)
+
+
+@pytest.mark.asyncio
+async def test_cmd_trigger_as_power(f_bot):
+    msg = fake_msg_gears("!trigger rana -p grom")
+
+    await action_map(msg, f_bot).execute()
+
+    expect = """__Predicted Triggers__
+Power: Yuri Grom
+Power HQ: Clayakarma
+
+```System       | Rana
+Distance     | 86.3
+Upkeep       | 27.4
+Fort Trigger | 7545
+UM Trigger   | 8432```"""
+    f_bot.send_message.assert_called_with(msg.channel, expect)
 
 
 #  @pytest.mark.asyncio
@@ -844,7 +848,7 @@ import pytest
 
 #  @pytest.mark.asyncio
 #  async def test_cmd_um_set_works(session, f_bot, f_testbed):
-    #  before = session.query(SystemUM).filter_by(name='Pequen').one()
+    #  before = session.query(UMSystem).filter_by(name='Pequen').one()
     #  msg = fake_msg_gears("!um --set {}:40 {} --offset 600".format(before.progress_us + 1500, before.name))
 
     #  await action_map(msg, f_bot).execute()
@@ -856,7 +860,7 @@ import pytest
 #  Priority           | Low```"""
 
     #  f_bot.send_message.assert_called_with(msg.channel, expect)
-    #  after = cogdb.Session().query(SystemUM).filter_by(name='Pequen').one()
+    #  after = cogdb.Session().query(UMSystem).filter_by(name='Pequen').one()
     #  assert after.progress_us == before.progress_us + 1500
     #  assert after.progress_them == 0.4
     #  assert after.map_offset == 600
@@ -995,74 +999,74 @@ import pytest
     #  assert cog.actions.SCANNERS['hudson_cattle'].payloads == expect
 
 
-#  @pytest.mark.asyncio
-#  async def test_cmd_dist(session, f_bot, f_testbed):
-    #  msg = fake_msg_gears("!dist sol, frey, adeo")
+@pytest.mark.asyncio
+async def test_cmd_dist(f_bot):
+    msg = fake_msg_gears("!dist sol, frey, adeo")
 
-    #  await action_map(msg, f_bot).execute()
+    await action_map(msg, f_bot).execute()
 
-    #  expect = """Distances From: **Sol**
+    expect = """Distances From: **Sol**
 
-#  ```Adeo | 91.59ly
-#  Frey | 108.97ly```"""
-    #  f_bot.send_message.assert_called_with(msg.channel, expect)
-
-
-#  @pytest.mark.asyncio
-#  async def test_cmd_dist_partial(session, f_bot, f_testbed):
-    #  msg = fake_msg_gears("!dist sol, adeo")
-
-    #  await action_map(msg, f_bot).execute()
-
-    #  expect = """Distances From: **Sol**
-
-#  ```Adeo | 91.59ly```"""
-    #  f_bot.send_message.assert_called_with(msg.channel, expect)
+```Adeo | 91.59ly
+Frey | 108.97ly```"""
+    f_bot.send_message.assert_called_with(msg.channel, expect)
 
 
-#  @pytest.mark.asyncio
-#  async def test_cmd_dist_invalid_args(session, f_bot, f_testbed):
-    #  msg = fake_msg_gears("!dist sol")
-    #  with pytest.raises(cog.exc.InvalidCommandArgs):
-        #  await action_map(msg, f_bot).execute()
+@pytest.mark.asyncio
+async def test_cmd_dist_partial(f_bot):
+    msg = fake_msg_gears("!dist sol, adeo")
 
-    #  msg = fake_msg_gears("!dist solllll, frey")
-    #  with pytest.raises(cog.exc.InvalidCommandArgs):
-        #  await action_map(msg, f_bot).execute()
+    await action_map(msg, f_bot).execute()
 
-    #  msg = fake_msg_gears("!dist sol, freyyyyy")
-    #  with pytest.raises(cog.exc.InvalidCommandArgs):
-        #  await action_map(msg, f_bot).execute()
+    expect = """Distances From: **Sol**
+
+```Adeo | 91.59ly```"""
+    f_bot.send_message.assert_called_with(msg.channel, expect)
 
 
-#  @pytest.mark.asyncio
-#  async def test_cmd_near_control(session, f_bot, f_testbed):
-    #  msg = fake_msg_gears("!near control winters rana")
+@pytest.mark.asyncio
+async def test_cmd_dist_invalid_args(f_bot):
+    msg = fake_msg_gears("!dist sol")
+    with pytest.raises(cog.exc.InvalidCommandArgs):
+        await action_map(msg, f_bot).execute()
 
-    #  await action_map(msg, f_bot).execute()
+    msg = fake_msg_gears("!dist solllll, frey")
+    with pytest.raises(cog.exc.InvalidCommandArgs):
+        await action_map(msg, f_bot).execute()
 
-    #  expect = """__Closest 10 Controls__
-
-#  ``` System   | Distance
-#  --------- | --------
-#  LHS 235   | 28.12
-#  LHS 1928  | 40.71
-#  Fousang   | 43.48
-#  Carnoeck  | 44.65
-#  LHS 1887  | 49.15
-#  LFT 601   | 52.28
-#  Kaura     | 52.64
-#  Elli      | 58.88
-#  LP 906-9  | 65.12
-#  Momoirent | 65.38```"""
-    #  f_bot.send_message.assert_called_with(msg.channel, expect)
+    msg = fake_msg_gears("!dist sol, freyyyyy")
+    with pytest.raises(cog.exc.InvalidCommandArgs):
+        await action_map(msg, f_bot).execute()
 
 
-#  @pytest.mark.asyncio
-#  async def test_cmd_near_if(f_bot):
-    #  msg = fake_msg_gears("!near if sol")
+@pytest.mark.asyncio
+async def test_cmd_near_control(f_bot):
+    msg = fake_msg_gears("!near control winters rana")
 
-    #  await action_map(msg, f_bot).execute()
+    await action_map(msg, f_bot).execute()
 
-    #  actual = str(f_bot.send_message.call_args).replace("\\n", "\n")
-    #  assert "LHS 397        | 19.32    | [L] Zillig Depot" in actual
+    expect = """__Closest 10 Controls__
+
+``` System   | Distance
+--------- | --------
+LHS 235   | 28.12
+LHS 1928  | 40.71
+Fousang   | 43.48
+Carnoeck  | 44.65
+LHS 1887  | 49.15
+LFT 601   | 52.28
+Kaura     | 52.64
+Elli      | 58.88
+LP 906-9  | 65.12
+Momoirent | 65.38```"""
+    f_bot.send_message.assert_called_with(msg.channel, expect)
+
+
+@pytest.mark.asyncio
+async def test_cmd_near_if(f_bot):
+    msg = fake_msg_gears("!near if sol")
+
+    await action_map(msg, f_bot).execute()
+
+    actual = str(f_bot.send_message.call_args).replace("\\n", "\n")
+    assert "LHS 397        | 19.32    | [L] Zillig Depot" in actual

@@ -24,9 +24,9 @@ def test_cog_exception_write_log():
     expect = """
 CogException: An exception happened :(
 ====================
-GearsandCogs sent I don't like exceptions from Channel: live_hudson/Server: Gears' Hideout
-    Discord ID: 1000
-    Username: GearsandCogs#12345
+User1 sent I don't like exceptions from Channel: live_hudson/Server: Gears' Hideout
+    Discord ID: 1
+    Username: User1#12345
     Hudson on Gears' Hideout"""
     log.info.assert_called_with(expect)
 
@@ -78,9 +78,9 @@ def test_emphasize_match():
 
 def test_log_format():
     msg = fake_msg_gears('Hello world!')
-    expect = """GearsandCogs sent Hello world! from Channel: live_hudson/Server: Gears' Hideout
-    Discord ID: 1000
-    Username: GearsandCogs#12345
+    expect = """User1 sent Hello world! from Channel: live_hudson/Server: Gears' Hideout
+    Discord ID: 1
+    Username: User1#12345
     Hudson on Gears' Hideout"""
 
     log_msg = cog.exc.log_format(content=msg.content, author=msg.author, channel=msg.channel)

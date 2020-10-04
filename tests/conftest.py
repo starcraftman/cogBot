@@ -25,7 +25,7 @@ import cog.util
 import cogdb
 import cogdb.query
 from cogdb.schema import (DiscordUser, FortSystem, FortPrep, FortDrop, FortUser, FortOrder,
-                          UMSystem, UMExpand, UMOppose, UMUser, UMHold, KOS,
+                          UMSystem, UMExpand, UMOppose, UmUser, UMHold, KOS,
                           EFortType, EUMType, AdminPerm, ChannelPerm, RolePerm,
                           kwargs_um_system, kwargs_fort_system)
 from tests.data import CELLS_FORT, CELLS_FORT_FMT, CELLS_UM
@@ -100,7 +100,7 @@ def db_cleanup(session):
 
     cogdb.schema.empty_tables(session, perm=True)
 
-    classes = [DiscordUser, FortUser, FortSystem, FortDrop, UMUser, UMSystem, UMHold, KOS]
+    classes = [DiscordUser, FortUser, FortSystem, FortDrop, UmUser, UMSystem, UMHold, KOS]
     for cls in classes:
         assert session.query(cls).all() == []
 
@@ -115,6 +115,25 @@ def f_dusers(session):
         DiscordUser(id=2, display_name='User2', pref_name='User2'),
         DiscordUser(id=3, display_name='User3', pref_name='User3'),
     )
+    session.add_all(dusers)
+    session.commit()
+
+    yield dusers
+
+    session.rollback()
+    session.query(DiscordUser).delete()
+    session.commit()
+
+
+@pytest.fixture
+def f_dusers_many(session):
+    """
+    Fixture to insert many DiscordUsers to cover key constraints with scanners.
+    """
+    dusers = []
+    for ind in range(1, 201):
+        name = "User{}".format(ind)
+        dusers += [DiscordUser(id=ind, display_name=name, pref_name=name)]
     session.add_all(dusers)
     session.commit()
 
@@ -184,8 +203,8 @@ def f_um_testbed(session):
     assert dusers
 
     users = (
-        UMUser(id=dusers[0].id, name=dusers[0].pref_name, row=18, cry='We go pew pew!'),
-        UMUser(id=dusers[1].id, name=dusers[1].pref_name, row=19, cry='Shooting time'),
+        UmUser(id=dusers[0].id, name=dusers[0].pref_name, row=18, cry='We go pew pew!'),
+        UmUser(id=dusers[1].id, name=dusers[1].pref_name, row=19, cry='Shooting time'),
     )
     systems = (
         UMSystem(id=1, name='Cemplangpa', sheet_col='D', goal=14878, security='Medium', notes='',
@@ -220,7 +239,7 @@ def f_um_testbed(session):
     yield users, systems, holds
 
     session.rollback()
-    for cls in (UMHold, UMSystem, UMUser):
+    for cls in (UMHold, UMSystem, UmUser):
         session.query(cls).delete()
     session.commit()
 
@@ -298,9 +317,9 @@ def f_kos(session):
     Fixture to insert some test SheetRows.
     """
     kos_rows = (
-        KOS(cmdr='good_guy', faction="Hudson", danger=1, is_friendly=1),
-        KOS(cmdr='good_guy_pvp', faction="Hudson", danger=10, is_friendly=1),
-        KOS(cmdr='bad_guy', faction="Hudson", danger=8, is_friendly=0),
+        KOS(id=1, cmdr='good_guy', faction="Hudson", danger=1, is_friendly=1),
+        KOS(id=2, cmdr='good_guy_pvp', faction="Hudson", danger=10, is_friendly=1),
+        KOS(id=3, cmdr='bad_guy', faction="Hudson", danger=8, is_friendly=0),
     )
     session.add_all(kos_rows)
     session.commit()
@@ -453,18 +472,18 @@ def fake_servers():
 
 
 def fake_msg_gears(content):
-    """ Generate fake message with GearsandCogs as author. """
+    """ Generate fake message with User1 as author. """
     srv = fake_servers()[0]
-    roles = [Role('Cookie Lord', srv), Role('Hudson', srv)]
-    aut = Member("GearsandCogs", roles, id="1000")
+    roles = [Role('Cookie Lord', srv), Role('Hudson', srv, id=3001)]
+    aut = Member("User1", roles, id=1)
     return Message(content, aut, srv, srv.channels[1], None)
 
 
 def fake_msg_newuser(content):
-    """ Generate fake message with GearsandCogs as author. """
+    """ Generate fake message with NewUser as author. """
     srv = fake_servers()[0]
     roles = [Role('Hudson', srv)]
-    aut = Member("newuser", roles, id="1003")
+    aut = Member("NewUser", roles, id=4)
     return Message(content, aut, srv, srv.channels[1], None)
 
 

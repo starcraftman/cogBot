@@ -12,7 +12,7 @@ import cog.sheets
 import cog.util
 import cogdb
 from cogdb.schema import (FortSystem, FortPrep, FortDrop, FortUser,
-                          UMSystem, UMUser, UMHold, KOS,
+                          UMSystem, UmUser, UMHold, KOS,
                           kwargs_fort_system, kwargs_um_system)
 
 
@@ -85,7 +85,7 @@ class FortScanner():
         """
         self.update_system_column()
         systems = self.fort_systems() + self.prep_systems()
-        users = self.users(first_id=1)
+        users = self.users()
         drops = self.drops(systems, users)
 
         if not session:
@@ -111,7 +111,7 @@ class FortScanner():
             session.add_all(objs)
             session.commit()
 
-    def users(self, *, row_cnt=None, first_id=1):
+    def users(self, *, row_cnt=None, first_id=1, cls=FortUser):
         """
         Scan the users in the sheet and return sheet user objects.
 
@@ -130,7 +130,7 @@ class FortScanner():
             if name.strip() == '':
                 continue
 
-            sheet_user = FortUser(id=first_id, cry=cry, name=name, row=row_cnt)
+            sheet_user = cls(id=first_id, cry=cry, name=name, row=row_cnt)
             first_id += 1
             if sheet_user in found:
                 rows = [other.row for other in found if other == sheet_user] + [row_cnt]
@@ -296,7 +296,7 @@ class UMScanner(FortScanner):
         asheet: The AsyncGSheet that connects to the sheet.
     """
     def __init__(self, asheet):
-        super().__init__(asheet, [UMHold, UMSystem, UMUser])
+        super().__init__(asheet, [UMHold, UMSystem, UmUser])
 
         # These are fixed based on current format
         self.system_col = 'D'
@@ -314,7 +314,7 @@ class UMScanner(FortScanner):
             [systems, users, holds]
         """
         systems = self.systems()
-        users = self.users(first_id=1001)
+        users = self.users(cls=UmUser)
         holds = self.holds(systems, users)
 
         if not session:
@@ -418,7 +418,7 @@ class KOSScanner(FortScanner):
         asheet: The AsyncGSheet that connects to the sheet.
     """
     def __init__(self, asheet):
-        super().__init__(asheet, None, [KOS])
+        super().__init__(asheet, [KOS])
 
     def __repr__(self):
         return super().__repr__().replace('FortScanner', 'KOSScanner')

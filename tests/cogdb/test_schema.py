@@ -10,12 +10,12 @@ import cog.exc
 import cogdb
 import cogdb.schema
 from cogdb.schema import (DiscordUser, FortSystem, FortPrep, FortDrop, FortUser, FortOrder,
-                          UMSystem, UMExpand, UMOppose, UMUser, UMHold, KOS,
+                          UMSystem, UMExpand, UMOppose, UmUser, UMHold, KOS,
                           EFortType, EUMType, AdminPerm, ChannelPerm, RolePerm,
                           kwargs_um_system, kwargs_fort_system)
 
 from tests.data import SYSTEMS_DATA, SYSTEMSUM_DATA, SYSTEMUM_EXPAND
-DB_CLASSES = [DiscordUser, FortUser, FortSystem, FortDrop, UMUser, UMSystem, UMHold]
+DB_CLASSES = [DiscordUser, FortUser, FortSystem, FortDrop, UmUser, UMSystem, UMHold]
 
 
 def test_empty_tables_all(session, f_dusers, f_fort_testbed, f_um_testbed):
@@ -139,7 +139,7 @@ def test_duser_fort_relationships(f_dusers, f_fort_testbed):
 
 def test_duser_um_relationships(f_dusers, f_um_testbed):
     duser = f_dusers[0]
-    assert duser.um_user == UMUser(id=1, name='User1', row=18, cry='We go pew pew!')
+    assert duser.um_user == UmUser(id=1, name='User1', row=18, cry='We go pew pew!')
     assert duser.um_merits == [UMHold(id=1, system_id=1, user_id=1, held=0, redeemed=4000), UMHold(id=2, system_id=2, user_id=1, held=400, redeemed=1550), UMHold(id=3, system_id=3, user_id=1, held=2200, redeemed=5800)]
 
 
@@ -340,7 +340,7 @@ def test_drop__str__(f_dusers, f_fort_testbed):
 
 def test_umuser__eq__(f_dusers, f_um_testbed):
     f_user = f_um_testbed[0][0]
-    equal = UMUser(id=1, name='User1', row=22, cry='')
+    equal = UmUser(id=1, name='User1', row=22, cry='')
     assert f_user == equal
     equal.name = 'notUser1'
     assert f_user != equal
@@ -348,12 +348,12 @@ def test_umuser__eq__(f_dusers, f_um_testbed):
 
 def test_umuser__repr__(f_dusers, f_um_testbed):
     f_user = f_um_testbed[0][0]
-    assert repr(f_user) == "UMUser(id=1, name='User1', row=18, cry='We go pew pew!')"
+    assert repr(f_user) == "UmUser(id=1, name='User1', row=18, cry='We go pew pew!')"
 
 
 def test_umuser__str__(f_dusers, f_um_testbed):
     f_user = f_um_testbed[0][0]
-    assert str(f_user) == "held=2600, redeemed=11350, UMUser(id=1, name='User1', row=18, cry='We go pew pew!')"
+    assert str(f_user) == "held=2600, redeemed=11350, UmUser(id=1, name='User1', row=18, cry='We go pew pew!')"
 
 
 def test_umuser_held(f_dusers, f_um_testbed):
@@ -506,11 +506,11 @@ def test_hold__str__(f_dusers, f_um_testbed):
 
 
 def test_kos__repr__(f_kos):
-    assert repr(f_kos[0]) == "KOS(cmdr='good_guy', faction='Hudson', danger=1, is_friendly=True)"
+    assert repr(f_kos[0]) == "KOS(id=1, cmdr='good_guy', faction='Hudson', danger=1, is_friendly=True)"
 
 
 def test_kos__str__(f_kos):
-    assert str(f_kos[0]) == "KOS(cmdr='good_guy', faction='Hudson', danger=1, is_friendly=True)"
+    assert str(f_kos[0]) == "KOS(id=1, cmdr='good_guy', faction='Hudson', danger=1, is_friendly=True)"
 
 
 def test_kos__eq__(f_kos):

@@ -15,7 +15,7 @@ import cogdb
 import cogdb.eddb
 import cogdb.schema
 from cogdb.schema import (DiscordUser, FortSystem, FortPrep, FortDrop, FortUser, FortOrder,
-                          UMSystem, UMExpand, UMOppose, UMUser, UMHold, KOS,
+                          UMSystem, UMExpand, UMOppose, UmUser, UMHold, KOS,
                           EFortType, EUMType, AdminPerm, ChannelPerm, RolePerm)
 from cogdb.eddb import HUDSON_CONTROLS, WINTERS_CONTROLS
 
@@ -57,7 +57,7 @@ def dump_db():  # pragma: no cover
     print("Dumping db contents to:", fname)
     with open(fname, 'w') as fout:
         for cls in [DiscordUser, FortUser, FortSystem, FortDrop, FortOrder,
-                    UMUser, UMSystem, UMHold, KOS, AdminPerm, RolePerm, ChannelPerm]:
+                    UmUser, UMSystem, UMHold, KOS, AdminPerm, RolePerm, ChannelPerm]:
             fout.write('---- ' + str(cls) + ' ----\n')
             fout.writelines([str(obj) + "\n" for obj in session.query(cls)])
 
@@ -257,7 +257,7 @@ def fort_get_targets(session):
     Returns a list of Systems that should be fortified.
 
     - First System is not Othime and is unfortified.
-    - Second System if prsent is Othime, only when not fortified.
+    - Second System if present is a medium only system, if one remains unfortified.
     - All Systems after are prep targets.
     """
     targets = fort_order_get(session)
@@ -269,7 +269,7 @@ def fort_get_targets(session):
     targets = [systems[current]]
 
     mediums = fort_get_medium_systems(session)
-    if mediums and mediums[0].name != targets[0].name:
+    if mediums and mediums[0].name != systems[current].name:
         targets.append(mediums[0])
 
     targets += fort_get_preps(session)
