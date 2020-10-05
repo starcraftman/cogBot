@@ -157,7 +157,7 @@ Priority Systems
 Juma <:Small-1:3210582> Moseley Settlement for Juma Aristocrats
 Slavanibo <:Large-1:3521029> :Planetary: for Marquis du Slavanibo
 Ticushpakhi <:Small-1:3210582> :Planetary: Any Station for Dukes of Biaris
-Wardal <:Small-1:3210582> Any Station for Noblemen of Nohock Ek
+1. Wardal <:Small-1:3210582> Any Station for Noblemen of Nohock Ek
 Alone <:Small-1:3210582> Any Station
     """
     expect = ([
