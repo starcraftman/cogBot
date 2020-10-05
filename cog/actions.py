@@ -1356,8 +1356,10 @@ class User(Action):
                       self.duser.display_name, self.duser.pref_name, new_name)
         cogdb.query.check_pref_name(self.session, self.duser, new_name)
 
-        for sheet in self.duser.sheets(self.session):
-            sheet.name = new_name
+        if self.duser.fort_user:
+            self.duser.fort_user.name = new_name
+        if self.duser.um_user:
+            self.duser.um_user.name = new_name
         self.duser.pref_name = new_name
 
     def update_cry(self):
@@ -1366,8 +1368,10 @@ class User(Action):
         self.log.info('USER %s - DUser.pref_cry from %s -> %s',
                       self.duser.display_name, self.duser.pref_cry, new_cry)
 
-        for sheet in self.duser.sheets(self.session):
-            sheet.cry = new_cry
+        if self.duser.fort_user:
+            self.duser.fort_user.cry = new_cry
+        if self.duser.um_user:
+            self.duser.um_user.cry = new_cry
         self.duser.pref_cry = new_cry
 
 

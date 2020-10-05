@@ -8,8 +8,8 @@ import enum
 import sqlalchemy as sqla
 import sqlalchemy.orm as sqla_orm
 import sqlalchemy.ext.declarative
-# TODO: Use these later.
-#  from sqlalchemy.ext.hybrid import hybrid_property, hybrid_method
+from sqlalchemy.sql.expression import or_, and_, not_
+from sqlalchemy.ext.hybrid import hybrid_property, hybrid_method
 
 import cog.exc
 import cog.tbl
@@ -85,7 +85,7 @@ class FortUser(Base):
                                    back_populates='user',
                                    lazy='select')
 
-    @property
+    @hybrid_property
     def dropped(self):
         """ Total merits dropped by cmdrs """
         total = 0
@@ -154,6 +154,7 @@ class FortSystem(Base):
     notes = sqla.Column(sqla.String(LEN_NAME), default='')
     sheet_col = sqla.Column(sqla.String(LEN_SHEET_COL), default='')
     sheet_order = sqla.Column(sqla.Integer)
+    manual_order = sqla.Column(sqla.Integer, nullable=True)
 
     __mapper_args__ = {
         'polymorphic_identity': EFortType.fort,
@@ -204,19 +205,33 @@ class FortSystem(Base):
         """ Simply return max fort status reported. """
         return max(self.fort_status, self.cmdr_merits)
 
-    @property
+    @hybrid_property
     def skip(self):
         """ The system should be skipped. """
         notes = self.notes.lower()
         return 'leave' in notes or 'skip' in notes
+
+    @skip.expression
+    def skip(cls):
+        """ The system should be skipped. """
+        return or_(cls.notes.ilike("%leave%"), cls.notes.ilike("%skip%"))
+
+    @hybrid_property
+    def is_medium(self):
+        """ The system should be skipped. """
+        return 's/m' in self.notes.lower()
+
+    @is_medium.expression
+    def is_medium(cls):
+        """ The system should be skipped. """
+        return cls.notes.ilike("%s/m%")
 
     @property
     def is_fortified(self):
         """ The remaining supplies to fortify """
         return self.fort_override >= 1.0 or self.current_status >= self.trigger
 
-    # TODO: Make this useful in queries to db.
-    @property
+    @hybrid_property
     def is_undermined(self):
         """ The system has been undermined """
         return self.undermine >= 1.00
@@ -380,6 +395,12 @@ class FortOrder(Base):
 
     order = sqla.Column(sqla.Integer, primary_key=True)
     system_name = sqla.Column(sqla.String(LEN_NAME), unique=True)
+
+    # Relationships
+    system = sqla.orm.relationship(
+        'FortSystem', uselist=False,
+        primaryjoin="foreign(FortOrder.system_name) == FortSystem.name"
+    )
 
     def __repr__(self):
         keys = ['order', 'system_name']
@@ -971,6 +992,10 @@ def main():  # pragma: no cover
                    trigger=5400, undermine=0),
         FortSystem(name='Sol', sheet_col='H', sheet_order=3, fort_status=0,
                    trigger=6000, undermine=0),
+        FortSystem(name='Othime', sheet_col='I', sheet_order=4, fort_status=0,
+                   trigger=6000, undermine=0, notes="S/M Priority, Skip"),
+        FortSystem(name='Rana', sheet_col='J', sheet_order=5, fort_status=0,
+                   trigger=6000, undermine=1.2, notes="Aattacked"),
     )
     session.add_all(systems)
     session.flush()
@@ -983,6 +1008,13 @@ def main():  # pragma: no cover
         FortDrop(user_id=sheets[2].id, system_id=systems[0].id, amount=300),
     )
     session.add_all(drops)
+    session.commit()
+
+    orders = (
+        FortOrder(order=1, system_name='Sol'),
+        FortOrder(order=2, system_name='Othime'),
+    )
+    session.add_all(orders)
     session.commit()
 
     def mprint(*args):
@@ -1014,6 +1046,11 @@ def main():  # pragma: no cover
         mprint(drop)
         mprint(pad, drop.user)
         mprint(pad, drop.system)
+
+    print('FortOrders----------')
+    for order in session.query(FortOrder):
+        mprint(order)
+        mprint(pad, order.system)
 
     print(dusers[2].fort_merits)
     print(dusers[2].um_merits)

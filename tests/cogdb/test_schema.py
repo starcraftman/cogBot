@@ -261,6 +261,26 @@ def test_fortsystem_skip(f_dusers, f_fort_testbed):
     assert system.skip is True
 
 
+def test_fortsystem_skip_expression(session, f_dusers, f_fort_testbed):
+    skips = session.query(FortSystem.name).filter(FortSystem.skip).all()
+
+    assert [x[0] for x in skips] == ["Sol", "Phra Mool"]
+
+
+def test_fortsystem_is_medium(session, f_dusers, f_fort_testbed):
+    first = f_fort_testbed[1][0]
+    assert not first.is_medium
+
+    system = session.query(FortSystem).filter(FortSystem.name == "Othime").one()
+    assert system.is_medium
+
+
+def test_fortsystem_is_medium_expression(session, f_dusers, f_fort_testbed):
+    mediums = session.query(FortSystem.name).filter(FortSystem.is_medium).all()
+
+    assert [x[0] for x in mediums] == ["Othime"]
+
+
 def test_fortsystem_is_fortified(f_dusers, f_fort_testbed):
     system = f_fort_testbed[1][0]
     system.fort_status = system.trigger
@@ -278,6 +298,12 @@ def test_fortsystem_is_undermined(f_dusers, f_fort_testbed):
 
     system.undermine = 0.4
     assert system.is_undermined is False
+
+
+def test_fortsystem_is_undermined_expression(session, f_dusers, f_fort_testbed):
+    umed = session.query(FortSystem.name).filter(FortSystem.is_undermined).all()
+
+    assert [x[0] for x in umed] == ["WW Piscis Austrini", "LPM 229"]
 
 
 def test_fortsystem_missing(f_dusers, f_fort_testbed):

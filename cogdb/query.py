@@ -154,10 +154,10 @@ def fort_get_medium_systems(session):
     Return unfortified systems designated for small/medium ships.
     """
     mediums = session.query(FortSystem).\
-        filter(FortSystem.notes.ilike("%s/m%")).\
+        filter(FortSystem.is_medium, FortSystem.skip == 0).\
         all()
-    unforted = [med for med in mediums if not med.is_fortified and not
-                med.skip and not med.missing < DEFER_MISSING]
+    unforted = [med for med in mediums if not med.is_fortified
+                and not med.missing < DEFER_MISSING]
     return unforted
 
 

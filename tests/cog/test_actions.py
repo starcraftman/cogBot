@@ -214,7 +214,7 @@ Prep: **Rhea** 5100/10000 :Fortifying: Atropos
 __Next Targets__
 **LHS 3749** 1850/5974 :Fortifying:
 **Alpha Fornacis**    0/6476 :Fortifying:
-**Phra Mool**    0/7968 :Fortifying:
+**Othime**    0/7367 :Fortifying: Priority for S/M ships (no L pads)
 
 __Almost Done__
 **Dongkum** 7000/7239 :Fortifying: (239 left)"""
@@ -229,7 +229,7 @@ async def test_cmd_fort_summary(f_bot, f_dusers, f_fort_testbed):
 
     expect = """```Cancelled|Fortified|Undermined|Skipped|Left
 ---------|---------|----------|-------|----
-0/10     |1/10     |0/10      |1/10   |8/10```"""
+0/10     |1/10     |2/10      |2/10   |7/10```"""
     f_bot.send_message.assert_called_with(msg.channel, expect)
 
 
