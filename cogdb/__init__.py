@@ -37,7 +37,7 @@ else:
 
 engine = sqlalchemy.create_engine(MYSQL_SPEC.format(**CREDS), echo=False, pool_recycle=3600, pool_size=10)
 Session = sqlalchemy.orm.sessionmaker(bind=engine)
-logging.getLogger(__name__).info('Main Engine Selected: %s', engine)
+logging.getLogger(__name__).error('Main Engine Selected: %s', engine)
 
 # Local eddb server
 CREDS['db'] = "eddb"

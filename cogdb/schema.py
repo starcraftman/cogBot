@@ -37,14 +37,22 @@ class DiscordUser(Base):
     pref_cry = sqla.Column(sqla.String(LEN_NAME), default='')
 
     # Relationships
-    fort_user = sqla.orm.relationship('FortUser', uselist=False)
+    fort_user = sqla.orm.relationship(
+        'FortUser', uselist=False,
+        primaryjoin='foreign(DiscordUser.pref_name) == FortUser.name'
+    )
     fort_merits = sqla_orm.relationship(
-        'FortDrop', lazy='select', uselist=True,
-        primaryjoin='foreign(DiscordUser.id) == FortDrop.user_id')
-    um_user = sqla.orm.relationship('UMUser', uselist=False)
+        'FortDrop', lazy='select', uselist=True, viewonly=True,
+        primaryjoin='and_(foreign(DiscordUser.pref_name) == remote(FortUser.name), foreign(FortUser.id) == FortDrop.user_id)'
+    )
+    um_user = sqla.orm.relationship(
+        'UMUser', uselist=False,
+        primaryjoin='foreign(DiscordUser.pref_name) == UMUser.name'
+    )
     um_merits = sqla_orm.relationship(
-        'UMHold', lazy='select', uselist=True,
-        primaryjoin='foreign(DiscordUser.id) == UMHold.user_id')
+        'UMHold', lazy='select', uselist=True, viewonly=True,
+        primaryjoin='and_(foreign(DiscordUser.pref_name) == remote(UMUser.name), foreign(UMUser.id) == UMHold.user_id)'
+    )
 
     def __repr__(self):
         keys = ['id', 'display_name', 'pref_name', 'pref_cry']
@@ -72,14 +80,16 @@ class FortUser(Base):
     """
     __tablename__ = 'hudson_fort_users'
 
-    id = sqla.Column(sqla.BigInteger, sqla.ForeignKey('discord_users.id'),
-                     nullable=True,)  # Discord id
-    name = sqla.Column(sqla.String(LEN_NAME), primary_key=True)
+    id = sqla.Column(sqla.Integer, primary_key=True)
+    name = sqla.Column(sqla.String(LEN_NAME), unique=True)  # Undeclared FK to discord_users
     row = sqla.Column(sqla.Integer, unique=True)
     cry = sqla.Column(sqla.String(LEN_NAME), default='')
 
     # Relationships
-    discord_user = sqla.orm.relationship('DiscordUser', uselist=False)
+    discord_user = sqla.orm.relationship(
+        'DiscordUser', uselist=False,
+        primaryjoin='foreign(FortUser.name) == DiscordUser.pref_name'
+    )
     merits = sqla_orm.relationship('FortDrop', uselist=True,
                                    cascade='all, delete, delete-orphan',
                                    back_populates='user',
@@ -351,7 +361,7 @@ class FortDrop(Base):
     id = sqla.Column(sqla.Integer, primary_key=True)
     amount = sqla.Column(sqla.Integer)
     system_id = sqla.Column(sqla.Integer, sqla.ForeignKey('hudson_fort_systems.id'), nullable=False)
-    user_id = sqla.Column(sqla.BigInteger, sqla.ForeignKey('hudson_fort_users.id'), nullable=False)
+    user_id = sqla.Column(sqla.Integer, sqla.ForeignKey('hudson_fort_users.id'), nullable=False)
 
     # Relationships
     user = sqla_orm.relationship('FortUser', uselist=False, back_populates='merits',
@@ -421,14 +431,16 @@ class UMUser(Base):
     """
     __tablename__ = 'hudson_um_users'
 
-    id = sqla.Column(sqla.BigInteger, sqla.ForeignKey('discord_users.id'),
-                     nullable=True)  # Discord id
-    name = sqla.Column(sqla.String(LEN_NAME), primary_key=True)
+    id = sqla.Column(sqla.Integer, primary_key=True)
+    name = sqla.Column(sqla.String(LEN_NAME), unique=True)  # Undeclared FK to discord_users
     row = sqla.Column(sqla.Integer, unique=True)
     cry = sqla.Column(sqla.String(LEN_NAME), default='')
 
     # Relationships
-    discord_user = sqla.orm.relationship('DiscordUser', uselist=False)
+    discord_user = sqla.orm.relationship(
+        'DiscordUser', uselist=False,
+        primaryjoin='foreign(UMUser.name) == DiscordUser.pref_name'
+    )
     merits = sqla_orm.relationship('UMHold', uselist=True,
                                    cascade='all, delete, delete-orphan',
                                    back_populates='user',
@@ -660,7 +672,7 @@ class UMHold(Base):
 
     id = sqla.Column(sqla.Integer, primary_key=True)
     system_id = sqla.Column(sqla.Integer, sqla.ForeignKey('hudson_um_systems.id'), nullable=False)
-    user_id = sqla.Column(sqla.BigInteger, sqla.ForeignKey('hudson_um_users.id'), nullable=False)
+    user_id = sqla.Column(sqla.Integer, sqla.ForeignKey('hudson_um_users.id'), nullable=False)
     held = sqla.Column(sqla.Integer)
     redeemed = sqla.Column(sqla.Integer)
 

@@ -90,26 +90,25 @@ class FortScanner():
 
         if not session:
             session = cogdb.fresh_sessionmaker()()
-        self.flush_to_db(session, (systems + users, drops))
+        self.flush_to_db(session, (users, systems, drops))
 
-    def flush_to_db(self, session, pending):
+    def flush_to_db(self, session, new_objs):
         """
         Flush the parsed values directly into the database.
         This method will purge old entries first.
 
         Args:
             session: A valid session for db.
-            pending: A list of list of db objects to put in database.
+            new_objs: A list of list of db objects to put in database.
         """
         for cls in self.db_classes:
-            # TODO: Polymorphic sheet forces select, maybe drop polymorphism?
-            for obj in session.query(cls).all():
-                session.delete(obj)
+            session.query(cls).delete()
             session.commit()
 
-        for objs in pending:
+        for objs in new_objs:
             session.add_all(objs)
-            session.commit()
+            session.flush()
+        session.commit()
 
     def users(self, *, row_cnt=None, first_id=1, cls=FortUser):
         """
@@ -118,6 +117,7 @@ class FortScanner():
         Args:
             row_cnt: The starting row for users, zero indexed. Default is user_row.
             first_id: The id to start for the users.
+            cls: The class to create for each user found.
         """
         found = []
 
@@ -134,7 +134,7 @@ class FortScanner():
             first_id += 1
             if sheet_user in found:
                 rows = [other.row for other in found if other == sheet_user] + [row_cnt]
-                raise cog.exc.NameCollisionError("Fort", sheet_user.name, rows)
+                raise cog.exc.NameCollisionError(cls.__name__, sheet_user.name, rows)
 
             found += [sheet_user]
 
@@ -319,7 +319,7 @@ class UMScanner(FortScanner):
 
         if not session:
             session = cogdb.fresh_sessionmaker()()
-        self.flush_to_db(session, (systems + users, holds))
+        self.flush_to_db(session, (users, systems, holds))
 
     def systems(self):
         """
