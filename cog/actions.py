@@ -7,9 +7,12 @@ import asyncio
 import datetime
 import functools
 import logging
+import os
 import re
 import string
+import tempfile
 
+import aiofiles
 import decorator
 import discord
 import googleapiclient.errors
@@ -141,11 +144,6 @@ class Admin(Action):
     """
     Admin command console. For knowledgeable users only.
     """
-    def check_role(self, role):
-        """ Sanity check that role exists. """
-        if role not in [role.name for role in self.msg.channel.guild.roles]:
-            raise cog.exc.InvalidCommandArgs("Role does not exist!")
-
     def check_cmd(self):
         """ Sanity check that cmd exists. """
         cmd_set = sorted([cls.__name__ for cls in cog.actions.Action.__subclasses__()])
@@ -171,16 +169,14 @@ class Admin(Action):
 
             if self.msg.channel_mentions:
                 cogdb.query.add_channel_perm(self.session, self.args.rule_cmd,
-                                             self.msg.channel.guild.name,
-                                             self.msg.channel_mentions[0].name)
+                                             self.msg.channel.guild,
+                                             self.msg.channel_mentions[0])
                 response = "Channel permission added."
 
             elif self.args.role:
-                role = ' '.join(self.args.role)
-                self.check_role(role)
                 cogdb.query.add_role_perm(self.session, self.args.rule_cmd,
-                                          self.msg.channel.guild.name,
-                                          ' '.join(self.args.role))
+                                          self.msg.channel.guild,
+                                          self.msg.role_mentions[0])
                 response = "Role permission added."
 
         return response
@@ -202,93 +198,64 @@ class Admin(Action):
 
             if self.msg.channel_mentions:
                 cogdb.query.remove_channel_perm(self.session, self.args.rule_cmd,
-                                                self.msg.channel.guild.name,
-                                                self.msg.channel_mentions[0].name)
+                                                self.msg.channel.guild,
+                                                self.msg.channel_mentions[0])
                 response = "Channel permission removed."
 
             elif self.args.role:
-                role = ' '.join(self.args.role)
-                self.check_role(role)
                 cogdb.query.remove_role_perm(self.session, self.args.rule_cmd,
-                                             self.msg.channel.guild.name, role)
+                                             self.msg.channel.guild,
+                                             self.msg.role_mentions[0])
                 response = "Role permission removed."
 
         return response
 
-    # No tests due to data being connected to discord and variable.
     async def active(self):  # pragma: no cover
         """
         Analyze the activity of users going back months for the mentioned channels.
-
-        No storage, just requests info on demand.
+        Upload a report directly to channel requesting the information in a text file.
         """
+        if self.args.days < 1 or self.args.days > 365:
+            raise cog.exc.InvalidCommandArgs("Please choose a range of days in [1, 365].")
+
         all_members = []
         for member in self.msg.guild.members:
             for channel in self.msg.channel_mentions:
-                if channel.permissions_for(member).read_messages and str(member.id) not in all_members:
-                    all_members += [str(member.id)]
+                if channel.permissions_for(member).read_messages and member not in all_members:
+                    all_members += [member]
 
-        after = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(days=30 * self.args.months)
-        report = {}
+        after = datetime.datetime.utcnow() - datetime.timedelta(days=self.args.days)
+        last_msgs = {}
         for channel in self.msg.channel_mentions:
-            report[channel.name] = {}
             try:
-                async for msg in self.bot.logs_from(channel, after=after, limit=100000):
-                    try:
-                        report[channel.name][str(msg.author.id)]
-                    except KeyError:
-                        report[channel.name][str(msg.author.id)] = msg.created_at
+                async for msg in channel.history(limit=100000, after=after, oldest_first=True):
+                    last_msgs[msg.author.id] = msg
             except discord.errors.Forbidden:
                 raise cog.exc.InvalidCommandArgs("Bot has no permissions for channel: " + channel.name)
 
-        flat = {}
-        for chan in report:
-            for cmdr in report[chan]:
-                try:
-                    flat[cmdr]
-                except KeyError:
-                    flat[cmdr] = {}
-                flat[cmdr][chan] = report[chan][cmdr]
+        for msg in last_msgs.values():
+            all_members.remove(msg.author)
 
-                try:
-                    if flat[cmdr]['last'] < flat[cmdr][chan]:
-                        flat[cmdr]['last'] = flat[cmdr][chan]
-                except KeyError:
-                    flat[cmdr]['last'] = flat[cmdr][chan]
+        all_members = sorted(all_members, key=lambda x: x.name.lower())
+        all_members = sorted(all_members, key=lambda x: x.top_role.name)
+        try:
+            tfile = tempfile.NamedTemporaryFile(mode='r')
+            async with aiofiles.open(tfile.name, 'w') as fout:
+                await fout.write("__Members With No Activity in Last {} Day{}__\n".format(self.args.days, "" if self.args.days == 1 else "s"))
+                for member in all_members:
+                    await fout.write("{}, Top Role: {}\n".format(member.name, member.top_role))
 
-                try:
-                    all_members.remove(cmdr)
-                except ValueError:
-                    pass
+                await fout.write("\n\n__Members With Activity__\n")
+                for msg in sorted(last_msgs.values(), key=lambda x: x.created_at):
+                    await fout.write("{}, Top Role: {}, Last Msg Sent on {} in {}\n".format(
+                        msg.author.name, msg.author.top_role, msg.created_at, msg.channel.name))
 
-        guild = self.msg.guild
-        header = "ID,Name,Top Role,Created At,Joined At\n"
-        inactive_recruits = "**Inactive Recruits**\n" + header
-        inactive_members = "**Inactive Members or Above**\n" + header
-        for member_id in all_members:
-            member = guild.get_member(member_id)
-            if not member:
-                continue
-
-            line = "{},{},{},{},{}\n".format(member.id, member.name, member.top_role.name,
-                                             member.created_at, member.joined_at)
-            if member.top_role.name in ["FRC Recruit", "FLC Recruit"]:
-                inactive_recruits += line
-            else:
-                inactive_members += line
-
-        actives = "**Active Membership (last 90 days)**\n" + header[:-1] + ",Last Message\n"
-        for member_id in flat:
-            member = guild.get_member(member_id)
-            if not member:
-                continue
-            line = "{},{},{},{},{},{}\n".format(member.id, member.name, member.top_role.name,
-                                                member.created_at, member.joined_at,
-                                                str(flat[member_id]['last']))
-            actives += line
-
-        response = "\n".join([inactive_recruits, inactive_members, actives])
-        return await cog.util.pastebin_new_paste("Activity Summary", response)
+            fname = 'activity_report_{}_{}.txt'.format(
+                self.msg.guild.name, datetime.datetime.now(datetime.timezone.utc).replace(microsecond=0))
+            await self.msg.channel.send("Report generated in this file.", file=discord.File(fp=tfile.name, filename=fname))
+            await asyncio.sleep(5)
+        finally:
+            tfile.close()
 
     async def cast(self):
         """ Broacast a message accross a server. """
@@ -376,7 +343,8 @@ class Admin(Action):
                 response = await func(admin)
             else:
                 response = await func()
-            await self.bot.send_long_message(self.msg.channel, response)
+            if response:
+                await self.bot.send_long_message(self.msg.channel, response)
         except AttributeError:
             raise cog.exc.InvalidCommandArgs("Bad subcommand of `!admin`, see `!admin -h` for help.")
 

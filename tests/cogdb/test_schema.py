@@ -166,6 +166,12 @@ def test_fortuser_dropped(f_dusers, f_fort_testbed):
     assert f_user.dropped == 1100
 
 
+def test_fortuser_dropped_expression(session, f_dusers, f_fort_testbed):
+    users = [x[0] for x in session.query(FortUser.name).filter(FortUser.dropped > 1500)]
+
+    assert users == ['User2', 'User3']
+
+
 def test_fortuser_merit_summary(f_dusers, f_fort_testbed):
     f_user = f_fort_testbed[0][0]
     assert f_user.merit_summary() == "Dropped 1100"
@@ -205,6 +211,16 @@ def test_fortsystem__str__(f_dusers, f_fort_testbed):
         "trigger=4910, fort_override=0.7, um_status=0, undermine=0.0, distance=116.99, "\
         "notes='', sheet_col='G', sheet_order=1)"
     assert str(system) == expect
+
+
+def test_fortsystem_cmdr_merits(f_dusers, f_fort_testbed):
+    system = f_fort_testbed[1][0]
+    assert system.cmdr_merits == 3700
+
+
+def test_fortsystem_cmdr_merits_expression(session, f_dusers, f_fort_testbed):
+    result = [x[0] for x in session.query(FortSystem.name).filter(FortSystem.cmdr_merits > 3000).all()]
+    assert result == ['Frey']
 
 
 def test_fortsystem_display(f_dusers, f_fort_testbed):
@@ -387,9 +403,19 @@ def test_umuser_held(f_dusers, f_um_testbed):
     assert f_user.held == 2600
 
 
+def test_umuser_held_expression(session, f_dusers, f_um_testbed):
+    users = [x[0] for x in session.query(UMUser.name).filter(UMUser.held > 2800)]
+    assert users == ['User2']
+
+
 def test_umuser_redeemed(f_dusers, f_um_testbed):
     f_user = f_um_testbed[0][0]
     assert f_user.redeemed == 11350
+
+
+def test_umuser_redeemed_expression(session, f_dusers, f_um_testbed):
+    users = [x[0] for x in session.query(UMUser.name).filter(UMUser.redeemed > 10000)]
+    assert users == ['User1']
 
 
 def test_umuser_merit_summary(f_dusers, f_um_testbed):
@@ -450,6 +476,11 @@ def test_umsystem_cmdr_merits(session, f_dusers, f_um_testbed):
     system = f_um_testbed[1][0]
 
     assert system.cmdr_merits == 6450
+
+
+def test_umsystem_cmdr_merits_expression(session, f_dusers, f_um_testbed):
+    result = [x[0] for x in session.query(UMSystem.name).filter(UMSystem.cmdr_merits > 5000).all()]
+    assert result == ['Burr', 'Cemplangpa']
 
 
 def test_umsystem_missing(f_dusers, f_um_testbed):

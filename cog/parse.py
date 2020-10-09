@@ -65,12 +65,13 @@ def subs_admin(subs, prefix):
         Whitelist bgs command for hudson_bgs channel.
 {prefix}admin remove BGS #hudson_bgs
         Remove whitelist for bgs command in hudson_bgs.
-{prefix}admin add Drop FRC Member
-        Whitelist bgs command for members with role "FRC Member".
+{prefix}admin add Drop @FRC Member
+        Whitelist bgs command for members with role mentioned FRC Member.
 {prefix}admin remove Drop FRC Member
         Remove whitelist for bgs command of users with role "FRC Member".
-{prefix}admin active -m 3 #hudson_operations #hudson_bgs
-        Generate an activity report on cmdrs in listed channels, look back about 3 months.
+{prefix}admin active -d 90 #hudson_operations #hudson_bgs
+        Generate an activity report on cmdrs in listed channels,
+        look back over last 90 days of messages.
 {prefix}admin cast A message here
         Broadcast a message to all channels.
 {prefix}admin cycle
@@ -106,8 +107,8 @@ def subs_admin(subs, prefix):
     admin_sub = admin_subs.add_parser('info', help='Get info about discord users.')
     admin_sub.add_argument('user', nargs='?', help='The user to get info on.')
     admin_sub = admin_subs.add_parser('active', help='Get a report on user activity.')
-    admin_sub.add_argument('-m', '--months', type=int, default=3, nargs='?',
-                           help='The number of months to look back.')
+    admin_sub.add_argument('-d', '--days', type=int, default=90, nargs='?',
+                           help='The number of days to look back.')
 
 
 @register_parser

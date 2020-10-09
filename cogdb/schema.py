@@ -104,6 +104,13 @@ class FortUser(Base):
 
         return total
 
+    @dropped.expression
+    def dropped(self):
+        """ Total merits dropped by cmdrs """
+        return sqla.select([sqla.func.sum(FortDrop.amount)]).\
+            where(FortDrop.user_id == self.id).\
+            label('dropped')
+
     def __repr__(self):
         keys = ['id', 'name', 'row', 'cry']
         kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
@@ -443,7 +450,7 @@ class UMUser(Base):
                                    back_populates='user',
                                    lazy='select')
 
-    @property
+    @hybrid_property
     def held(self):
         """ Total merits held by this cmdr. """
         total = 0
@@ -452,7 +459,14 @@ class UMUser(Base):
 
         return total
 
-    @property
+    @held.expression
+    def held(self):
+        """ Total merits held by this cmdr. """
+        return sqla.select([sqla.func.sum(UMHold.held)]).\
+            where(UMHold.user_id == self.id).\
+            label('held')
+
+    @hybrid_property
     def redeemed(self):
         """ Total merits redeemed by this cmdr. """
         total = 0
@@ -460,6 +474,13 @@ class UMUser(Base):
             total += hold.redeemed
 
         return total
+
+    @redeemed.expression
+    def redeemed(self):
+        """ Total merits redeemed by this cmdr. """
+        return sqla.select([sqla.func.sum(UMHold.redeemed)]).\
+            where(UMHold.user_id == self.id).\
+            label('redeemed')
 
     def __repr__(self):
         keys = ['id', 'name', 'row', 'cry']
@@ -1011,7 +1032,7 @@ def main():  # pragma: no cover
         FortSystem(name='Othime', sheet_col='I', sheet_order=4, fort_status=0,
                    trigger=6000, undermine=0, notes="S/M Priority, Skip"),
         FortSystem(name='Rana', sheet_col='J', sheet_order=5, fort_status=0,
-                   trigger=6000, undermine=1.2, notes="Aattacked"),
+                   trigger=6000, undermine=1.2, notes="Attacked"),
     )
     session.add_all(systems)
     session.flush()
@@ -1071,7 +1092,8 @@ def main():  # pragma: no cover
     print(dusers[2].fort_merits)
     print(dusers[2].um_merits)
 
-    print(session.query(FortSystem).filter(FortSystem.cmdr_merits > 100).all())
+    #  print(session.query(FortSystem).filter(FortSystem.cmdr_merits > 100).all())
+    print(session.query(FortUser).filter(FortUser.dropped > 100).all())
 
 
 if __name__ == "__main__":  # pragma: no cover
