@@ -132,21 +132,11 @@ class EFortType(enum.Enum):
 
 class FortSystem(Base):
     """
-    Represent a single system for fortification.
+    Represent a single system for fortification in the sheet.
     Object can be flushed and queried from the database.
 
-    data: List to be unpacked: ump, trigger, status, notes):
-    Data tuple is to be used to make a table, with header
-
-    args:
-        id: Set by the database, unique id.
-        name: Name of the system. (string)
-        fort_status: Current reported status from galmap/users. (int)
-        trigger: Total trigger of merits required. (int)
-        undermine: Percentage of undermining of the system. (float)
-        notes: Any notes attached to the system. (string)
-        sheet_col: The name of the column in the excel. (string)
-        sheet_order: Order systems should be ordered. (int)
+    Carefully examine all methods to understanda, it centralizes a lot of logic.
+    When representing the system use display methods and see header tuple.
     """
     __tablename__ = 'hudson_fort_systems'
 
@@ -197,13 +187,20 @@ class FortSystem(Base):
     def __hash__(self):
         return hash(self.name)
 
-    @property
+    @hybrid_property
     def cmdr_merits(self):
         """ Total merits dropped by cmdrs """
         total = 0
         for drop in self.merits:
             total += drop.amount
         return total
+
+    @cmdr_merits.expression
+    def cmdr_merits(self):
+        """ Total merits dropped by cmdrs """
+        return sqla.select([sqla.func.sum(FortDrop.amount)]).\
+            where(FortDrop.system_id == self.id).\
+            label('cmdr_merits')
 
     @property
     def ump(self):
@@ -354,7 +351,7 @@ class FortPrep(FortSystem):
 class FortDrop(Base):
     """
     Every drop made by a user creates a fort entry here.
-    User maintains a sub collection of these for easy access.
+    A drop represents the value at the intersection of a FortUser and a FortSystem.
     """
     __tablename__ = 'hudson_fort_merits'
 
@@ -559,13 +556,20 @@ class UMSystem(Base):
 
         return completion
 
-    @property
+    @hybrid_property
     def cmdr_merits(self):
         """ Total merits held and redeemed by cmdrs """
         total = 0
         for hold in self.merits:
             total += hold.held + hold.redeemed
         return total
+
+    @cmdr_merits.expression
+    def cmdr_merits(self):
+        """ Total merits dropped by cmdrs """
+        return sqla.select([sqla.func.sum(UMHold.held + UMHold.redeemed)]).\
+            where(UMHold.system_id == self.id).\
+            label('cmdr_merits')
 
     @property
     def missing(self):
@@ -1066,6 +1070,8 @@ def main():  # pragma: no cover
 
     print(dusers[2].fort_merits)
     print(dusers[2].um_merits)
+
+    print(session.query(FortSystem).filter(FortSystem.cmdr_merits > 100).all())
 
 
 if __name__ == "__main__":  # pragma: no cover
