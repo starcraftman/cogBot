@@ -6,7 +6,7 @@ import pytest
 
 import cog.exc
 import cogdb.scanners
-from cogdb.schema import (FortSystem, FortPrep, FortDrop, FortUser,
+from cogdb.schema import (FortSystem, FortDrop, FortUser,
                           UMSystem, UMUser, UMHold, KOS)
 from cogdb.scanners import (FortScanner, UMScanner, KOSScanner)
 

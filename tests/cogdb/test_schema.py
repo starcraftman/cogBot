@@ -9,9 +9,9 @@ import pytest
 import cog.exc
 import cogdb
 import cogdb.schema
-from cogdb.schema import (DiscordUser, FortSystem, FortPrep, FortDrop, FortUser, FortOrder,
-                          UMSystem, UMExpand, UMOppose, UMUser, UMHold, KOS,
-                          EFortType, EUMType, AdminPerm, ChannelPerm, RolePerm,
+from cogdb.schema import (DiscordUser, FortSystem, FortDrop, FortUser, FortOrder,
+                          UMSystem, UMExpand, UMOppose, UMUser, UMHold,
+                          AdminPerm, ChannelPerm, RolePerm,
                           kwargs_um_system, kwargs_fort_system)
 
 from tests.data import SYSTEMS_DATA, SYSTEMSUM_DATA, SYSTEMUM_EXPAND

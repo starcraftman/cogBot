@@ -17,8 +17,8 @@ import cog.parse
 import cogdb
 from cogdb.eddb import HUDSON_CONTROLS
 from cogdb.side import SystemAge
-from cogdb.schema import (DiscordUser, FortSystem, FortPrep, FortDrop, FortUser,
-                          FortOrder, UMSystem, UMUser, UMHold, KOS)
+from cogdb.schema import (DiscordUser, FortSystem, FortDrop, FortUser,
+                          FortOrder, UMSystem, UMUser, UMHold)
 
 from tests.conftest import fake_msg_gears, fake_msg_newuser
 

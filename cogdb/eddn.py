@@ -25,7 +25,7 @@ except ImportError:
 import cog.util
 import cogdb
 import cogdb.eddb
-from cogdb.eddb import (Conflict, ConflictState, Faction, Influence, System, Station,
+from cogdb.eddb import (Conflict, Faction, Influence, System, Station,
                         StationEconomy, StationFeatures, FactionActiveState, FactionPendingState,
                         FactionRecoveringState)
 

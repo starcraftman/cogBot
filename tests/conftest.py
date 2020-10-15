@@ -26,8 +26,7 @@ import cogdb
 import cogdb.query
 from cogdb.schema import (DiscordUser, FortSystem, FortPrep, FortDrop, FortUser, FortOrder,
                           UMSystem, UMExpand, UMOppose, UMUser, UMHold, KOS,
-                          EFortType, EUMType, AdminPerm, ChannelPerm, RolePerm,
-                          kwargs_um_system, kwargs_fort_system)
+                          AdminPerm, ChannelPerm, RolePerm)
 from tests.data import CELLS_FORT, CELLS_FORT_FMT, CELLS_UM
 
 

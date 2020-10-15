@@ -7,9 +7,8 @@ import pytest
 
 import cog.exc
 import cogdb
-from cogdb.schema import (DiscordUser, FortSystem, FortDrop, FortUser, FortOrder,
-                          UMSystem, UMUser, UMHold, KOS,
-                          EFortType, EUMType, AdminPerm, ChannelPerm, RolePerm)
+from cogdb.schema import (DiscordUser, FortSystem, FortUser, FortOrder,
+                          UMUser, UMHold, AdminPerm, ChannelPerm, RolePerm)
 import cogdb.query
 
 from tests.data import SYSTEMS, USERS

@@ -1,7 +1,6 @@
 """
 Tests for cogdb.eddn
 """
-import os
 import pathlib
 import shutil
 import tempfile

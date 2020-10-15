@@ -7,7 +7,6 @@ import asyncio
 import datetime
 import functools
 import logging
-import os
 import re
 import string
 import tempfile

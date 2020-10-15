@@ -71,6 +71,11 @@ class DiscordUser(Base):
         """ Mention this user in a response. """
         return "<@{}>".format(self.id)
 
+    @property
+    def total_merits(self):
+        """ The total merits a user has done this cycle. """
+        return self.fort_user.dropped + self.um_user.held + self.um_user.redeemed
+
 
 class FortUser(Base):
     """
@@ -986,8 +991,16 @@ def recreate_tables():
     """
     Recreate all tables in the database, mainly for schema changes and testing.
     """
+    exclude = [DiscordUser.__tablename__]
     cogdb.Session.close_all()
-    Base.metadata.drop_all(cogdb.engine)
+
+    meta = sqlalchemy.MetaData(bind=cogdb.engine, reflect=True)
+    for tbl in reversed(meta.sorted_tables):
+        try:
+            if not (str(tbl) in exclude):
+                tbl.drop()
+        except sqla.exc.OperationalError:
+            pass
     Base.metadata.create_all(cogdb.engine)
 
 
@@ -1001,17 +1014,19 @@ def main():  # pragma: no cover
     """
     This continues to exist only as a sanity test for schema and relations.
     """
-    Base.metadata.drop_all(cogdb.engine)
-    Base.metadata.create_all(cogdb.engine)
+    recreate_tables()
     session = cogdb.Session()
 
-    dusers = (
-        DiscordUser(id=1, pref_name='User1'),
-        DiscordUser(id=2, pref_name='User2'),
-        DiscordUser(id=3, pref_name='User3'),
-    )
-    session.add_all(dusers)
-    session.flush()
+    try:
+        dusers = (
+            DiscordUser(id=1, pref_name='User1'),
+            DiscordUser(id=2, pref_name='User2'),
+            DiscordUser(id=3, pref_name='User3'),
+        )
+        session.add_all(dusers)
+        session.flush()
+    except sqlalchemy.exc.IntegrityError:
+        session.rollback()
 
     sheets = (
         FortUser(id=dusers[0].id, name=dusers[0].pref_name, row=15),
@@ -1062,7 +1077,7 @@ def main():  # pragma: no cover
     pad = ' ' * 3
 
     print('DiscordUsers----------')
-    for user in session.query(DiscordUser):
+    for user in session.query(DiscordUser).filter(DiscordUser.pref_name.like("User%")).limit(10):
         mprint(user)
         mprint(pad, user.fort_user)
         mprint(pad, user.fort_merits)

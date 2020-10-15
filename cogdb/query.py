@@ -15,8 +15,7 @@ import cogdb
 import cogdb.eddb
 import cogdb.schema
 from cogdb.schema import (DiscordUser, FortSystem, FortPrep, FortDrop, FortUser, FortOrder,
-                          UMSystem, UMExpand, UMOppose, UMUser, UMHold, KOS,
-                          EFortType, EUMType, AdminPerm, ChannelPerm, RolePerm)
+                          UMSystem, UMUser, UMHold, KOS, AdminPerm, ChannelPerm, RolePerm)
 from cogdb.eddb import HUDSON_CONTROLS, WINTERS_CONTROLS
 
 
