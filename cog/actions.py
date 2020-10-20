@@ -1262,28 +1262,28 @@ class User(Action):
     Manage your user settings.
     """
     async def execute(self):
-        args = self.args
-        if args.name:
+        if self.args.name:
             self.update_name()
-
-        if args.cry:
+        if self.args.cry:
             self.update_cry()
 
-        self.session.commit()
-        if args.name or args.cry:
+        coros = []
+        if self.args.name or self.args.cry:
             if self.cattle:
                 sheet = self.cattle
                 self.payloads += cogdb.scanners.FortScanner.update_sheet_user_dict(
                     sheet.row, sheet.cry, sheet.name)
                 scanner = get_scanner("hudson_cattle")
+                coros += [scanner.send_batch(self.payloads)]
 
             if self.undermine:
                 sheet = self.undermine
                 self.payloads += cogdb.scanners.UMScanner.update_sheet_user_dict(
                     sheet.row, sheet.cry, sheet.name)
                 scanner = get_scanner("hudson_undermine")
+                coros += [scanner.send_batch(self.payloads)]
 
-            await scanner.send_batch(self.payloads)
+            await asyncio.gather(*coros)
 
         lines = [
             '__{}__'.format(self.msg.author.display_name),
@@ -1293,8 +1293,7 @@ class User(Action):
         ]
         if self.cattle:
             lines += [
-                '__{} {}__'.format(self.cattle.faction.capitalize(),
-                                   self.cattle.type.replace('Sheet', '')),
+                '__Fortification__',
                 '    Cry: {}'.format(self.cattle.cry),
                 '    Total: {}'.format(self.cattle.merit_summary()),
             ]
@@ -1304,8 +1303,7 @@ class User(Action):
             lines += cog.tbl.wrap_markdown(cog.tbl.format_table(mlines, header=True)).split('\n')
         if self.undermine:
             lines += [
-                '__{} {}__'.format(self.undermine.faction.capitalize(),
-                                   self.undermine.type.replace('Sheet', '')),
+                '__Undermining__',
                 '    Cry: {}'.format(self.undermine.cry),
                 '    Total: {}'.format(self.undermine.merit_summary()),
             ]
@@ -1323,11 +1321,15 @@ class User(Action):
                       self.duser.display_name, self.duser.pref_name, new_name)
         cogdb.query.check_pref_name(self.session, self.duser, new_name)
 
-        if self.duser.fort_user:
-            self.duser.fort_user.name = new_name
-        if self.duser.um_user:
-            self.duser.um_user.name = new_name
-        self.duser.pref_name = new_name
+        if self.cattle:
+            self.cattle.name = new_name
+        if self.undermine:
+            self.undermine.name = new_name
+        self.session.commit()
+
+        nduser = cogdb.query.get_duser(self.session, self.duser.id)
+        nduser.pref_name = new_name
+        self.session.commit()
 
     def update_cry(self):
         """ Update the user's cry in the sheets. """
@@ -1335,11 +1337,15 @@ class User(Action):
         self.log.info('USER %s - DUser.pref_cry from %s -> %s',
                       self.duser.display_name, self.duser.pref_cry, new_cry)
 
-        if self.duser.fort_user:
-            self.duser.fort_user.cry = new_cry
-        if self.duser.um_user:
-            self.duser.um_user.cry = new_cry
-        self.duser.pref_cry = new_cry
+        if self.cattle:
+            self.cattle.cry = new_cry
+        if self.undermine:
+            self.undermine.cry = new_cry
+        self.session.commit()
+
+        nduser = cogdb.query.get_duser(self.session, self.duser.id)
+        nduser.pref_cry = new_cry
+        self.session.commit()
 
 
 class WhoIs(Action):

@@ -791,212 +791,215 @@ UM Trigger   | 8432```"""
     f_bot.send_message.assert_called_with(msg.channel, expect)
 
 
-#  @pytest.mark.asyncio
-#  async def test_cmd_um(f_bot, f_testbed):
-    #  msg = fake_msg_gears("!um")
+@pytest.mark.asyncio
+async def test_cmd_um(f_bot, f_testbed):
+    msg = fake_msg_gears("!um")
 
-    #  await action_map(msg, f_bot).execute()
+    await action_map(msg, f_bot).execute()
 
-    #  expect = """__Current UM Targets__
+    expect = """__Current UM Targets__
 
-#  ```Control            | Pequen [A sec]
-#  84%                | Merits Missing 2000
-#  Our Progress 10500 | Enemy Progress 50%
-#  Nearest Hudson     | Atropos
-#  Priority           | Low```
-#  ```Expanding           | Burr [L sec]
-#  Behind by 3500%     | Merits Missing 202668
-#  Our Progress 161630 | Enemy Progress 3500%
-#  Nearest Hudson      | Dongkum
-#  Priority            | Medium```
-#  ```Opposing expansion | AF Leopris [L sec]
-#  Behind by 169%     | Merits Missing 12138
-#  Our Progress 47739 | Enemy Progress 169%
-#  Nearest Hudson     | Atropos
-#  Priority           | low```
-#  ```Control        | Empty [M sec]
-#  0%             | Merits Missing 10000
-#  Our Progress 0 | Enemy Progress 0%
-#  Nearest Hudson | Rana
-#  Priority       | Low```"""
+```Control            | Pequen [A sec]
+84%                | Merits Missing 2000
+Our Progress 10500 | Enemy Progress 50%
+Nearest Hudson     | Atropos
+Priority           | Low```
+```Expand              | Burr [L sec]
+Behind by 3500%     | Merits Missing 202668
+Our Progress 161630 | Enemy Progress 3500%
+Nearest Hudson      | Dongkum
+Priority            | Medium```
+```Opposing expansion | AF Leopris [L sec]
+Behind by 169%     | Merits Missing 12138
+Our Progress 47739 | Enemy Progress 169%
+Nearest Hudson     | Atropos
+Priority           | low```
+```Control        | Empty [M sec]
+0%             | Merits Missing 10000
+Our Progress 0 | Enemy Progress 0%
+Nearest Hudson | Rana
+Priority       | Low```"""
 
-    #  f_bot.send_message.assert_called_with(msg.channel, expect)
-
-
-#  @pytest.mark.asyncio
-#  async def test_cmd_um_search(f_bot, f_testbed):
-    #  msg = fake_msg_gears("!um burr")
-
-    #  await action_map(msg, f_bot).execute()
-
-    #  expect = """```Expanding           | Burr [L sec]
-#  Behind by 3500%     | Merits Missing 202668
-#  Our Progress 161630 | Enemy Progress 3500%
-#  Nearest Hudson      | Dongkum
-#  Priority            | Medium```"""
-
-    #  f_bot.send_message.assert_called_with(msg.channel, expect)
+    f_bot.send_message.assert_called_with(msg.channel, expect)
 
 
-#  @pytest.mark.asyncio
-#  async def test_cmd_um_set_fail(f_bot, f_testbed):
-    #  msg = fake_msg_gears("!um --set 5500")
+@pytest.mark.asyncio
+async def test_cmd_um_search(f_bot, f_testbed):
+    msg = fake_msg_gears("!um burr")
 
-    #  with pytest.raises(cog.exc.InvalidCommandArgs):
-        #  await action_map(msg, f_bot).execute()
+    await action_map(msg, f_bot).execute()
 
+    expect = """```Expand              | Burr [L sec]
+Behind by 3500%     | Merits Missing 202668
+Our Progress 161630 | Enemy Progress 3500%
+Nearest Hudson      | Dongkum
+Priority            | Medium```"""
 
-#  @pytest.mark.asyncio
-#  async def test_cmd_um_set_works(session, f_bot, f_testbed):
-    #  before = session.query(UMSystem).filter_by(name='Pequen').one()
-    #  msg = fake_msg_gears("!um --set {}:40 {} --offset 600".format(before.progress_us + 1500, before.name))
-
-    #  await action_map(msg, f_bot).execute()
-
-    #  expect = """```Control            | Pequen [A sec]
-#  96%                | Merits Missing 500
-#  Our Progress 12000 | Enemy Progress 40%
-#  Nearest Hudson     | Atropos
-#  Priority           | Low```"""
-
-    #  f_bot.send_message.assert_called_with(msg.channel, expect)
-    #  after = cogdb.Session().query(UMSystem).filter_by(name='Pequen').one()
-    #  assert after.progress_us == before.progress_us + 1500
-    #  assert after.progress_them == 0.4
-    #  assert after.map_offset == 600
-
-    #  expect = [
-        #  {'range': 'F10:F13', 'values': [[12000], [0.4], ['Hold Merits'], [600]]}
-    #  ]
-    #  assert cog.actions.SCANNERS['hudson_undermine'].payloads == expect
+    f_bot.send_message.assert_called_with(msg.channel, expect)
 
 
-#  @pytest.mark.asyncio
-#  async def test_cmd_um_list_held(f_bot, f_testbed):
-    #  msg = fake_msg_gears("!um --list")
+@pytest.mark.asyncio
+async def test_cmd_um_set_fail(f_bot, f_testbed):
+    msg = fake_msg_gears("!um --set 5500")
 
-    #  await action_map(msg, f_bot).execute()
-
-    #  expect = """**Held Merits**
-
-#  ```    CMDR     | Cemplangpa | Pequen | Burr | AF Leopris | Empty
-#  ------------ | ---------- | ------ | ---- | ---------- | -----
-#  rjwhite      | 450        | 2400   | 0    | 0          | 0
-#  GearsandCogs | 0          | 400    | 2200 | 0          | 0```"""
-    #  actual = str(f_bot.send_message.call_args).replace("\\n", "\n")[:-2]
-    #  actual = re.sub(r'.*live_hudson, ["\']', '', actual)
-    #  actual = actual.split("\n")
-    #  actual = "\n".join(actual[:2] + actual[3:])
-    #  assert actual == expect
+    with pytest.raises(cog.exc.InvalidCommandArgs):
+        await action_map(msg, f_bot).execute()
 
 
-#  @pytest.mark.asyncio
-#  async def test_cmd_user(f_bot, f_testbed):
-    #  msg = fake_msg_gears("!user")
+@pytest.mark.asyncio
+async def test_cmd_um_set_works(session, f_bot, f_testbed):
+    before = session.query(UMSystem).filter_by(name='Pequen').one()
+    msg = fake_msg_gears("!um --set {}:40 {} --offset 600".format(before.progress_us + 1500, before.name))
 
-    #  await action_map(msg, f_bot).execute()
+    await action_map(msg, f_bot).execute()
 
-    #  expect = """__GearsandCogs__
-#  Sheet Name: GearsandCogs
-#  Default Cry:
+    expect = """```Control            | Pequen [A sec]
+96%                | Merits Missing 500
+Our Progress 12000 | Enemy Progress 40%
+Nearest Hudson     | Atropos
+Priority           | Low```"""
 
-#  __Hudson Cattle__
-    #  Cry: Gears are forting late!
-    #  Total: Dropped 1100
-#  ``` System   | Amount
-#  --------- | ------
-#  Frey      | 700
-#  Nurundere | 400```
-#  __Hudson UM__
-    #  Cry: Gears are pew pew!
-    #  Total: Holding 2600, Redeemed 11350
-#  ```  System   | Hold | Redeemed
-#  ---------- | ---- | --------
-#  Cemplangpa | 0    | 4000
-#  Pequen     | 400  | 1550
-#  Burr       | 2200 | 5800```"""
-    #  f_bot.send_message.assert_called_with(msg.channel, expect)
+    f_bot.send_message.assert_called_with(msg.channel, expect)
+    after = cogdb.Session().query(UMSystem).filter_by(name='Pequen').one()
+    assert after.progress_us == before.progress_us + 1500
+    assert after.progress_them == 0.4
+    assert after.map_offset == 600
+
+    expect = [
+        {'range': 'F10:F13', 'values': [[12000], [0.4], ['Hold Merits'], [600]]}
+    ]
+    assert cog.actions.SCANNERS['hudson_undermine'].payloads == expect
 
 
-#  @pytest.mark.asyncio
-#  async def test_cmd_user_set_name(session, f_bot, f_testbed):
-    #  new_name = "NotGears"
-    #  msg = fake_msg_gears("!user --name " + new_name)
+@pytest.mark.asyncio
+async def test_cmd_um_list_held(f_bot, f_testbed):
+    msg = fake_msg_gears("!um --list")
 
-    #  await action_map(msg, f_bot).execute()
+    await action_map(msg, f_bot).execute()
 
-    #  expect = """__GearsandCogs__
-#  Sheet Name: NotGears
-#  Default Cry:
+    expect = """**Held Merits**
 
-#  __Hudson Cattle__
-    #  Cry: Gears are forting late!
-    #  Total: Dropped 1100
-#  ``` System   | Amount
-#  --------- | ------
-#  Frey      | 700
-#  Nurundere | 400```
-#  __Hudson UM__
-    #  Cry: Gears are pew pew!
-    #  Total: Holding 2600, Redeemed 11350
-#  ```  System   | Hold | Redeemed
-#  ---------- | ---- | --------
-#  Cemplangpa | 0    | 4000
-#  Pequen     | 400  | 1550
-#  Burr       | 2200 | 5800```"""
-    #  f_bot.send_message.assert_called_with(msg.channel, expect)
+```CMDR  | Cemplangpa | Pequen | Burr | AF Leopris | Empty
+----- | ---------- | ------ | ---- | ---------- | -----
+User2 | 450        | 2400   | 0    | 0          | 0
+User1 | 0          | 400    | 2200 | 0          | 0```"""
 
-    #  duser = session.query(DUser).filter_by(id=msg.author.id).one()
-    #  assert duser.pref_name == new_name
-    #  for sheet in duser.sheets(session):
-        #  assert sheet.name == new_name
-
-    #  expect = [
-        #  {'range': 'A15:B15', 'values': [['Gears are forting late!', 'NotGears']]},
-        #  {'range': 'A18:B18', 'values': [['Gears are pew pew!', 'NotGears']]}
-    #  ]
-    #  assert cog.actions.SCANNERS['hudson_cattle'].payloads == expect
+    actual = str(f_bot.send_message.call_args).replace("\\n", "\n")[:-2]
+    actual = re.sub(r'.*live_hudson, ["\']', '', actual)
+    actual = actual.split("\n")
+    actual = "\n".join(actual[:2] + actual[3:])
+    assert actual == expect
 
 
-#  @pytest.mark.asyncio
-#  async def test_cmd_user_set_cry(session, f_bot, f_testbed):
-    #  new_cry = "A new cry"
-    #  msg = fake_msg_gears("!user --cry " + new_cry)
+@pytest.mark.asyncio
+async def test_cmd_user(f_bot, f_testbed):
+    msg = fake_msg_gears("!user")
 
-    #  await action_map(msg, f_bot).execute()
+    await action_map(msg, f_bot).execute()
 
-    #  expect = """__GearsandCogs__
-#  Sheet Name: GearsandCogs
-#  Default Cry: A new cry
+    expect = """__User1__
+Sheet Name: User1
+Default Cry:
 
-#  __Hudson Cattle__
-    #  Cry: A new cry
-    #  Total: Dropped 1100
-#  ``` System   | Amount
-#  --------- | ------
-#  Frey      | 700
-#  Nurundere | 400```
-#  __Hudson UM__
-    #  Cry: A new cry
-    #  Total: Holding 2600, Redeemed 11350
-#  ```  System   | Hold | Redeemed
-#  ---------- | ---- | --------
-#  Cemplangpa | 0    | 4000
-#  Pequen     | 400  | 1550
-#  Burr       | 2200 | 5800```"""
+__Fortification__
+    Cry: User1 are forting late!
+    Total: Dropped 1100
+``` System   | Amount
+--------- | ------
+Frey      | 700
+Nurundere | 400```
+__Undermining__
+    Cry: We go pew pew!
+    Total: Holding 2600, Redeemed 11350
+```  System   | Hold | Redeemed
+---------- | ---- | --------
+Cemplangpa | 0    | 4000
+Pequen     | 400  | 1550
+Burr       | 2200 | 5800```"""
 
-    #  f_bot.send_message.assert_called_with(msg.channel, expect)
+    f_bot.send_message.assert_called_with(msg.channel, expect)
 
-    #  duser = session.query(DUser).filter_by(id=msg.author.id).one()
-    #  assert duser.pref_cry == new_cry
-    #  for sheet in duser.sheets(session):
-        #  assert sheet.cry == new_cry
 
-    #  expect = [
-        #  {'range': 'A15:B15', 'values': [['A new cry', 'GearsandCogs']]},
-        #  {'range': 'A18:B18', 'values': [['A new cry', 'GearsandCogs']]}
-    #  ]
-    #  assert cog.actions.SCANNERS['hudson_cattle'].payloads == expect
+@pytest.mark.asyncio
+async def test_cmd_user_set_name(session, f_bot, f_testbed):
+    new_name = "NotUser1"
+    msg = fake_msg_gears("!user --name " + new_name)
+
+    await action_map(msg, f_bot).execute()
+
+    expect = """__User1__
+Sheet Name: NotUser1
+Default Cry:
+
+__Fortification__
+    Cry: User1 are forting late!
+    Total: Dropped 1100
+``` System   | Amount
+--------- | ------
+Frey      | 700
+Nurundere | 400```
+__Undermining__
+    Cry: We go pew pew!
+    Total: Holding 2600, Redeemed 11350
+```  System   | Hold | Redeemed
+---------- | ---- | --------
+Cemplangpa | 0    | 4000
+Pequen     | 400  | 1550
+Burr       | 2200 | 5800```"""
+
+    f_bot.send_message.assert_called_with(msg.channel, expect)
+
+    duser = session.query(DiscordUser).filter_by(id=msg.author.id).one()
+    assert duser.pref_name == new_name
+    assert duser.fort_user.name == new_name
+    assert duser.um_user.name == new_name
+
+    expect = [
+        {'range': 'A15:B15', 'values': [['User1 are forting late!', 'NotUser1']]},
+        {'range': 'A18:B18', 'values': [['We go pew pew!', 'NotUser1']]}
+    ]
+    assert cog.actions.SCANNERS['hudson_cattle'].payloads == expect
+
+
+@pytest.mark.asyncio
+async def test_cmd_user_set_cry(session, f_bot, f_testbed):
+    new_cry = "A new cry"
+    msg = fake_msg_gears("!user --cry " + new_cry)
+
+    await action_map(msg, f_bot).execute()
+
+    expect = """__User1__
+Sheet Name: User1
+Default Cry: A new cry
+
+__Fortification__
+    Cry: A new cry
+    Total: Dropped 1100
+``` System   | Amount
+--------- | ------
+Frey      | 700
+Nurundere | 400```
+__Undermining__
+    Cry: A new cry
+    Total: Holding 2600, Redeemed 11350
+```  System   | Hold | Redeemed
+---------- | ---- | --------
+Cemplangpa | 0    | 4000
+Pequen     | 400  | 1550
+Burr       | 2200 | 5800```"""
+
+    f_bot.send_message.assert_called_with(msg.channel, expect)
+
+    duser = session.query(DiscordUser).filter_by(id=msg.author.id).one()
+    assert duser.pref_cry == new_cry
+    assert duser.fort_user.cry == new_cry
+    assert duser.um_user.cry == new_cry
+
+    expect = [
+        {'range': 'A15:B15', 'values': [['A new cry', 'User1']]},
+        {'range': 'A18:B18', 'values': [['A new cry', 'User1']]}
+    ]
+    assert cog.actions.SCANNERS['hudson_cattle'].payloads == expect
 
 
 @pytest.mark.asyncio
