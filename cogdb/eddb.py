@@ -16,6 +16,7 @@ import argparse
 import ijson.backends.yajl2_cffi as ijson
 import sqlalchemy as sqla
 import sqlalchemy.orm as sqla_orm
+import sqlalchemy.orm.session
 import sqlalchemy.ext.declarative
 from sqlalchemy.sql.expression import (and_, or_)
 from sqlalchemy.orm import (foreign, remote)
@@ -1832,7 +1833,7 @@ def recreate_tables():
     """
     Recreate all tables in the database, mainly for schema changes and testing.
     """
-    cogdb.EDDBSession.close_all()
+    sqlalchemy.orm.session.close_all_sessions()
 
     try:
         with cogdb.eddb_engine.connect() as con:
@@ -1840,7 +1841,8 @@ def recreate_tables():
             con.execute(sqla.sql.text("DROP EVENT clean_conflicts"))
     except sqla.exc.OperationalError:
         pass
-    meta = sqlalchemy.MetaData(bind=cogdb.eddb_engine, reflect=True)
+    meta = sqlalchemy.MetaData(bind=cogdb.eddb_engine)
+    meta.reflect()
     for tbl in reversed(meta.sorted_tables):
         try:
             tbl.drop()

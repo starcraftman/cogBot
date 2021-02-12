@@ -7,6 +7,7 @@ import enum
 
 import sqlalchemy as sqla
 import sqlalchemy.orm as sqla_orm
+import sqlalchemy.orm.session
 import sqlalchemy.ext.declarative
 from sqlalchemy.sql.expression import or_, and_, not_
 from sqlalchemy.ext.hybrid import hybrid_property, hybrid_method
@@ -992,9 +993,10 @@ def recreate_tables():
     Recreate all tables in the database, mainly for schema changes and testing.
     """
     exclude = [DiscordUser.__tablename__]
-    cogdb.Session.close_all()
+    sqlalchemy.orm.session.close_all_sessions()
 
-    meta = sqlalchemy.MetaData(bind=cogdb.engine, reflect=True)
+    meta = sqlalchemy.MetaData(bind=cogdb.engine)
+    meta.reflect()
     for tbl in reversed(meta.sorted_tables):
         try:
             if not (str(tbl) in exclude):

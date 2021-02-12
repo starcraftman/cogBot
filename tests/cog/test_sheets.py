@@ -25,7 +25,7 @@ async def f_fort_ws():
     """
     Yield fixture returns fort sheet.
     """
-    agcm = cog.sheets.init_agcm(PATHS['json'], PATHS['token'])
+    agcm = cog.sheets.init_agcm(PATHS['service_json'])
     cog.sheets.AGCM = agcm
     await agcm.authorize()
 
@@ -41,7 +41,7 @@ async def f_um_ws():
     """
     Yield fixture returns fort sheet.
     """
-    agcm = cog.sheets.init_agcm(PATHS['json'], PATHS['token'])
+    agcm = cog.sheets.init_agcm(PATHS['service_json'])
     cog.sheets.AGCM = agcm
     await agcm.authorize()
 
@@ -74,7 +74,7 @@ async def f_fort_reset(f_fort_ws):
 @SHEET_TEST
 @pytest.mark.asyncio
 async def test_asheet_init_sheet():
-    agcm = cog.sheets.init_agcm(PATHS['json'], PATHS['token'])
+    agcm = cog.sheets.init_agcm(PATHS['service_json'])
     cog.sheets.AGCM = agcm
     await agcm.authorize()
 
@@ -95,7 +95,7 @@ async def test_asheet_title(f_fort_ws):
 @pytest.mark.asyncio
 async def test_asheet_change_worksheet(f_fort_ws):
     ranges = ['B11:C12']
-    new_sheet = 'Cycle 240'
+    new_sheet = 'Cycle 280'
     old_vals = await f_fort_ws.batch_get(ranges)
     old_ws = f_fort_ws.worksheet
 

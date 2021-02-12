@@ -12,17 +12,13 @@ Note on value_render_option to explain difference:
     https://developers.google.com/sheets/api/reference/rest/v4/ValueRenderOption
 """
 import asyncio
-import functools
 import logging
-import os
 
-import argparse
 try:
     import gspread_asyncio
-    import oauth2client as o2c
-    import oauth2client.file as o2cf
+    from google.oauth2.service_account import Credentials
 except ImportError:
-    print('Please run: pip install google-api-python-client oauth2client')
+    print('Please run: pip install google-api-python-client gspread gspread_asyncio')
 
 import cog.exc
 import cog.util
@@ -321,53 +317,31 @@ class AsyncGSheet():
         #                                  value_render=value_render)
 
 
-# TODO: This credential flow can be updated to remove oauth2client dependence I think
-def get_credentials(json_secret, sheets_token):  # pragma: no cover
-    """
-    Get credentials from OAuth process.
-
-    Args:
-        json_secret: The json secret file downloaded from Google Api.
-        sheets_token: Store the authorization in this file.
-
-    Returns: Credentials obtained from oauth process.
-    """
-    if not os.path.exists(json_secret):
-        raise cog.exc.MissingConfigFile('Missing JSON Secret for OAUTH. Expected at: %s'
-                                        % json_secret)
-
-    store = o2cf.Storage(sheets_token)
-    credentials = store.get()
-    if not credentials or credentials.invalid:
-        flow = o2c.client.flow_from_clientsecrets(json_secret, REQ_SCOPE)
-        flow.user_agent = APPLICATION_NAME
-
-        parser = argparse.ArgumentParser(parents=[o2c.tools.argparser])
-        flags = parser.parse_args(['--noauth_local_webserver'])
-        credentials = o2c.tools.run_flow(flow, store, flags)
-
-        print('Storing credentials to ' + sheets_token)
-
-    return credentials
-
-
-def init_agcm(json_secret, sheet_token, loop=None):
+def init_agcm(json_secret, loop=None):
     """
     Initialize the global AGCM, share with all sheets.
     Has internal rate limitting but we should do batch updates still to prevent hitting them.
 
     Args:
-        json_secret: The *absolute* path to the secret json file
-        sheet_token: The *absolute* path to the cached token authorization
+        json_secret: The *absolute* path to the secret json file for a service account.
         loop: The loop to attach the agcm to, by default with get_event_loop()
     """
+    def get_creds():
+        # To obtain a service account JSON file, follow these steps:
+        # https://gspread.readthedocs.io/en/latest/oauth2.html#for-bots-using-service-account
+        creds = Credentials.from_service_account_file(json_secret)
+        scoped = creds.with_scopes([
+            "https://spreadsheets.google.com/feeds",
+            "https://www.googleapis.com/auth/spreadsheets",
+            "https://www.googleapis.com/auth/drive",
+        ])
+
+        return scoped
+
     if not loop:
         loop = asyncio.get_event_loop()
 
-    return gspread_asyncio.AsyncioGspreadClientManager(
-        functools.partial(get_credentials, json_secret, sheet_token),
-        loop=loop
-    )
+    return gspread_asyncio.AsyncioGspreadClientManager(get_creds, loop=loop)
 
 
 def column_to_index(col_str, zero_index=False):
