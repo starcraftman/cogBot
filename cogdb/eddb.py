@@ -1073,6 +1073,7 @@ def preload_gov_type(session):
         Government(id=96, text='Democracy', eddn='Democracy'),
         Government(id=112, text='Dictatorship', eddn='Dictatorship'),
         Government(id=128, text='Feudal', eddn='Feudal'),
+        Government(id=133, text='Imperial', eddn='Imperial'),
         Government(id=144, text='Patronage', eddn='Patronage'),
         Government(id=150, text='Prison Colony', eddn='PrisonColony'),
         Government(id=160, text='Theocracy', eddn='Theocracy'),
