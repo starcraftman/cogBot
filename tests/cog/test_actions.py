@@ -1050,18 +1050,18 @@ async def test_cmd_near_control(f_bot):
 
     expect = """__Closest 10 Controls__
 
-``` System   | Distance
---------- | --------
-LHS 235   | 28.12
-LHS 1928  | 40.71
-Fousang   | 43.48
-Carnoeck  | 44.65
-LHS 1887  | 49.15
-LFT 601   | 52.28
-Kaura     | 52.64
-Elli      | 58.88
-LP 906-9  | 65.12
-Momoirent | 65.38```"""
+```  System   | Distance
+---------- | --------
+LHS 1928   | 40.71
+Fousang    | 43.48
+LHS 1887   | 49.15
+LFT 601    | 52.28
+Kaura      | 52.64
+Elli       | 58.88
+LP 906-9   | 65.12
+Momoirent  | 65.38
+18 Puppis  | 66.37
+NLTT 19808 | 66.56```"""
     f_bot.send_message.assert_called_with(msg.channel, expect)
 
 
