@@ -113,17 +113,17 @@ def test_next_sheet_row_um(session, f_dusers, f_um_testbed):
 
 
 def test_add_sheet_user_fort(session, f_dusers, db_cleanup):
-    duser = mock.Mock(id=1, pref_name='Fort User1', pref_cry='No cry')
+    duser = mock.Mock(id=999999999999999999999999, pref_name='Fort User1', pref_cry='No cry')
 
     cogdb.query.add_sheet_user(session, cls=FortUser, discord_user=duser, start_row=5)
 
-    latest = session.query(FortUser).filter(FortUser.id == 1).one()
+    latest = session.query(FortUser).all()[-1]
     assert latest.name == duser.pref_name
     assert latest.row == 5
 
 
 def test_add_sheet_user_um(session, f_dusers, db_cleanup):
-    duser = mock.Mock(id=1, pref_name='UM User1', pref_cry='No cry')
+    duser = mock.Mock(id=999999999999999999999999, pref_name='UM User1', pref_cry='No cry')
 
     cogdb.query.add_sheet_user(session, cls=UMUser, discord_user=duser, start_row=5)
 

@@ -72,9 +72,9 @@ def event_loop():
 
 @pytest.fixture
 def session():
-    session = cogdb.Session()
+    session = cogdb.Session(expire_on_commit=False)
 
-    yield cogdb.Session()
+    yield session
 
     session.close()
 

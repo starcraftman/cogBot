@@ -140,8 +140,7 @@ def add_sheet_user(session, *, cls, discord_user, start_row):
         start_row: Starting row if none inserted.
     """
     next_row = next_sheet_row(session, cls=cls, start_row=start_row)
-    duser = discord_user
-    user = cls(id=duser.id, name=duser.pref_name, cry=duser.pref_cry, row=next_row)
+    user = cls(name=discord_user.pref_name, cry=discord_user.pref_cry, row=next_row)
     session.add(user)
     session.commit()
 

@@ -355,8 +355,8 @@ class InaraApi():
                           if rank["rankName"] == "combat"), None)
             if match:
                 try:
-                    cmdr["rank"] = COMBAT_RANKS[match["rankValue"]]
-                except KeyError:
+                    cmdr["rank"] = COMBAT_RANKS[int(match["rankValue"])]
+                except (ValueError, KeyError):
                     cmdr["rank"] = 'Unknown Rank'
 
         embeds = []

@@ -111,7 +111,7 @@ async def test_inara_squad_details(f_bot):
         {'name': 'Power', 'value': 'Arissa Lavigny-Duval', 'inline': True},
         {
             'name': 'Headquarters',
-            'value': '[Carthage [Marker Depot]](https://inara.cz/galaxy-starsystem/18799/)',
+            'value': '[Carthage [Marker Depot]](https://inara.cz/starsystem/18799/)',
             'inline': True
         },
         {
@@ -124,6 +124,7 @@ async def test_inara_squad_details(f_bot):
 
     result = [x for x in await cog.inara.inara_squad_parse('https://inara.cz/squadron/85/') if
               x['name'] != 'Squad Age']
+
     assert result == expect
 
 
