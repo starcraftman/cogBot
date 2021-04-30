@@ -364,8 +364,8 @@ class Influence(Base):
 
     # Relationships
     happiness = sqla.orm.relationship('FactionHappiness')
-    system = sqla.orm.relationship('System')
-    faction = sqla.orm.relationship('Faction')
+    system = sqla.orm.relationship('System', viewonly=True)
+    faction = sqla.orm.relationship('Faction', viewonly=True)
 
     def __repr__(self):
         keys = ['system_id', 'faction_id', 'happiness_id', 'influence', 'is_controlling_faction', 'updated_at']
@@ -651,7 +651,7 @@ class Station(Base):
     updated_at = sqla.Column(sqla.Integer, onupdate=sqla.func.unix_timestamp())
 
     # Relationships
-    features = sqla.orm.relationship('StationFeatures', uselist=False)
+    features = sqla.orm.relationship('StationFeatures', uselist=False, viewonly=True)
     type = sqla.orm.relationship('StationType', uselist=False)
     faction = sqla.orm.relationship('Faction')
     economies = sqla.orm.relationship(
@@ -712,7 +712,7 @@ class System(Base):
         primaryjoin='foreign(System.primary_economy_id) == Economy.id'
     )
     secondary_economy = sqla.orm.relationship(
-        'Economy', uselist=False, lazy='select',
+        'Economy', uselist=False, lazy='select', viewonly=True,
         primaryjoin='foreign(System.primary_economy_id) == Economy.id'
     )
     power = sqla.orm.relationship('Power')
@@ -956,13 +956,13 @@ Influence.active_states = sqla_orm.relationship(
     'FactionActiveState', cascade='all, delete, delete-orphan', lazy='select',
     primaryjoin='and_(foreign(FactionActiveState.faction_id) == Influence.faction_id, foreign(FactionActiveState.system_id) == Influence.system_id)')
 FactionPendingState.influence = sqla_orm.relationship(
-    'Influence', uselist=False, lazy='select',
+    'Influence', uselist=False, lazy='select', viewonly=True,
     primaryjoin='and_(foreign(Influence.faction_id) == FactionPendingState.faction_id, foreign(Influence.system_id) == FactionPendingState.system_id)')
 Influence.pending_states = sqla_orm.relationship(
     'FactionPendingState', cascade='all, delete, delete-orphan', lazy='select',
     primaryjoin='and_(foreign(FactionPendingState.faction_id) == Influence.faction_id, foreign(FactionPendingState.system_id) == Influence.system_id)')
 FactionRecoveringState.influence = sqla_orm.relationship(
-    'Influence', uselist=False, lazy='select',
+    'Influence', uselist=False, lazy='select', viewonly=True,
     primaryjoin='and_(foreign(Influence.faction_id) == FactionRecoveringState.faction_id, foreign(Influence.system_id) == FactionRecoveringState.system_id)')
 Influence.recovering_states = sqla_orm.relationship(
     'FactionRecoveringState', cascade='all, delete, delete-orphan', lazy='select',
