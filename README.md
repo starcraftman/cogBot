@@ -1,7 +1,5 @@
 ## Federal Discord Bot
 
-[![Stories in Ready][WaffleShield]][WaffleDash]
-
 ### Overview
 
 This bot is designed to facilitate Powerplay for the federal forces.
