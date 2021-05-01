@@ -1050,7 +1050,7 @@ async def test_cmd_near_control(f_bot):
 
     await action_map(msg, f_bot).execute()
 
-    expect = "LHS 1928  | 40.71"
+    expect = "Momoirent  | 65.38"
     assert expect in str(f_bot.send_message.call_args).replace("\\n", "\n")
 
 

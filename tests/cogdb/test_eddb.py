@@ -88,7 +88,7 @@ def test_get_nearest_controls(eddb_session):
 
     result = [x.name for x in cogdb.eddb.get_nearest_controls(eddb_session, centre_name='cubeo', power='Hudson')[0:3]]
 
-    assert result == ['Caspatsuria', 'Clayahu', 'Epsilon Pavonis']
+    assert result == ['Caspatsuria', 'LTT 9472', 'Clayahu']
 
 
 def test_compute_dists(eddb_session):
