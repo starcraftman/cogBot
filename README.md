@@ -10,6 +10,12 @@ Invite bot to server and grant following permissions to it in a channel:
 - Manage messages (will cleanup bad inocations)
 - Embed Links (embeds are used for `!whois` command)
 
+### Github vs Gitlab
+
+There is a [github repo] and a [gitlab repo]. While the project started on github it
+will continue on gitlab at present and github will remain a mirror.
+If people want to make forks and discuss issues that's fine but PRs are likely to be done on gitlab.
+
 ### Install
 
 This bot requires python >= 3.5. I suggest using pyenv to provide python and isolate from system.
@@ -120,5 +126,5 @@ tox -e flake8
 ```
 
 <!-- Links -->
-[WaffleShield]: https://badge.waffle.io/starcraftman/cogBot.svg?label=ready&title=Ready
-[WaffleDash]: http://waffle.io/starcraftman/cogBot
+[gitlab repo]: https://gitlab.com/FUC/cogBot
+[github repo]: https://github.com/starcraftman/cogBot/
