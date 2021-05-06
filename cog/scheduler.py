@@ -9,6 +9,7 @@ import asyncio
 import atexit
 import concurrent.futures as cfut
 import datetime
+import discord
 import functools
 import logging
 import os
@@ -220,26 +221,7 @@ async def delayed_update(delay, wrap):
         while not wrap.job.done():
             await asyncio.sleep(0.5)
 
-        env = os.environ.get('COG_TOKEN', 'dev')
-        if env in ['dev', 'prod', 'live']:
-            chan_name = 'private_{}'.format(env)
-        else:
-            chan_name = 'private_dev'
-        chan = cog.util.BOT.get_channel_by_name(chan_name)
-
-        if wrap.job.exception():
-            msg = "Sheet update for `{}` failed at {}. {} have a look!\n\n{}"
-
-            await cog.util.BOT.send_message(
-                chan,
-                msg.format(
-                    wrap.name, datetime.datetime.now(datetime.timezone.utc),
-                    cog.util.BOT.get_member_by_substr("gearsandcogs").mention,
-                    str(wrap.job.exception()),
-                )
-            )
-
-        log.debug('Scanner %s has lock %s', wrap.name, wrap.scanner.lock)
+        log.debug('Scanner %s has finished', wrap.name)
         wrap.job = None
     finally:
         await wrap.scanner.lock.w_release()
@@ -251,9 +233,30 @@ def done_cb(wrap, fut):  # pragma: no cover
     """
     Callback for the future that runs the scan.
     Partial the wrap in.
+    Generally only exceptional case needs handling.
     """
-    if fut.exception():
-        msg = "A scheduled sheet update failed. {} may have to look at me."
-        asyncio.ensure_future(cog.util.BOT.send_message(
-            cog.util.BOT.get_channel_by_name('private_dev'),
-            msg.format(cog.util.BOT.get_member_by_substr("gearsandcogs"))))
+    if not wrap.job.exception():
+        return
+
+    log = logging.getLogger(__name__)
+    env = os.environ.get('COG_TOKEN', 'dev')
+    chan_name = 'private_dev'
+    if env in ['prod', 'live']:
+        chan_name = 'private_{}'.format(env)
+    chan = cog.util.BOT.get_channel_by_name(chan_name)
+    try:
+        to_mention = cog.util.BOT.get_member_by_substr('gears').mention
+    except AttributeError:
+        to_mention = "Gears"
+
+    msg = "Sheet update for `{}` failed at {}. {} have a look!\n\n{}".format(
+        wrap.name, datetime.datetime.now(datetime.timezone.utc),
+        to_mention, str(wrap.job.exception()),
+    )
+    log.error("Critical Worker Error: %s", msg)
+    try:
+        await cog.util.BOT.send_message(
+            chan, msg
+        )
+    except discord.errors.Forbidden:
+        pass
