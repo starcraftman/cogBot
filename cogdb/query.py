@@ -457,6 +457,25 @@ def um_redeem_merits(session, user):
     return (holds, total)
 
 
+def um_redeem_systems(session, user, systems):
+    """
+    Redeem merits only for the specified user and the systems that matched exactly.
+    """
+    total = 0
+    subq = session.query(UMSystem.id).\
+        filter(UMSystem.name.in_(systems)).\
+        subquery()
+    holds = session.query(UMHold).filter(UMHold.user_id == user.id,
+                                         UMHold.system_id.in_(subq)).all()
+    for hold in holds:
+        total += hold.held
+        hold.redeemed = hold.redeemed + hold.held
+        hold.held = 0
+
+    session.commit()
+    return (holds, total)
+
+
 def um_add_hold(session, **kwargs):
     """
     Add or update the user's Hold, that is their UM merits held or redeemed.

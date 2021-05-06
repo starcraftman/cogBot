@@ -889,6 +889,17 @@ class Hold(Action):
                       in self.undermine.merits if merit.held + merit.redeemed > 0]
             response += cog.tbl.wrap_markdown(cog.tbl.format_table(lines, header=True))
 
+        elif self.args.redeem_systems:
+            system_strs = " ".join(self.args.redeem_systems).split(",")
+            holds, redeemed = cogdb.query.um_redeem_systems(self.session, self.undermine, system_strs)
+
+            response = '**Redeemed Now** {}\n\n__Cycle Summary__\n'.format(redeemed)
+            lines = [['System', 'Hold', 'Redeemed']]
+            lines += [[merit.system.name, merit.held, merit.redeemed] for merit
+                      in self.undermine.merits if merit.held + merit.redeemed > 0]
+            response += cog.tbl.wrap_markdown(cog.tbl.format_table(lines, header=True))
+
+
         else:  # Default case, update the hold for a system
             holds, response = await self.set_hold()
 

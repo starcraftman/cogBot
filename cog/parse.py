@@ -294,6 +294,8 @@ def subs_hold(subs, prefix):
 {prefix}hold --redeem
 {prefix}hold -r
         Move all held merits to redeemed column.
+{prefix}hold --redeem-systems Burr, Rana
+        Redeem only merits for systems listed.
 {prefix}hold 720 burr --set 60000:130
 {prefix}hold 720 burr -s 60000:130
         Update held merits to 720 at Burr expansion and set progress to 60000 merits for us
@@ -304,6 +306,7 @@ and 130% opposition.
     sub.add_argument('amount', nargs='?', type=int, help='The amount of merits held.')
     sub.add_argument('system', nargs='*', help='The system merits are held in.')
     sub.add_argument('-r', '--redeem', action='store_true', help='Redeem all held merits.')
+    sub.add_argument('--redeem-systems', nargs='+', help='Redeem all held merits.')
     sub.add_argument('-d', '--died', action='store_true', help='Zero out held merits.')
     sub.add_argument('-s', '--set',
                      help='Update the galmap progress us:them. Example: --set 3500:200')
