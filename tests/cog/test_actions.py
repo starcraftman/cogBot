@@ -608,6 +608,42 @@ async def test_cmd_hold_died(f_bot, f_dusers, f_um_testbed):
 
 
 @pytest.mark.asyncio
+async def test_cmd_hold_system(f_bot, f_dusers, f_um_testbed):
+    msg = fake_msg_gears("!hold --redeem-systems Pequen")
+
+    await action_map(msg, f_bot).execute()
+
+    expect = """**Redeemed Now** 400
+
+__Cycle Summary__
+```  System   | Hold | Redeemed
+---------- | ---- | --------
+Cemplangpa | 0    | 4000
+Pequen     | 0    | 1950
+Burr       | 2200 | 5800```"""
+
+    f_bot.send_message.assert_called_with(msg.channel, expect)
+
+    session = cogdb.Session()
+    duser = session.query(DiscordUser).filter_by(id=msg.author.id).one()
+    um_user = session.query(UMUser).filter_by(name=duser.pref_name).one()
+    p_system = session.query(UMSystem).filter_by(name='Pequen').one()
+    b_system = session.query(UMSystem).filter_by(name='Burr').one()
+
+    hold = session.query(UMHold).filter_by(user_id=um_user.id, system_id=p_system.id).one()
+    assert hold.held == 0
+    assert hold.redeemed == 1950
+    hold2 = session.query(UMHold).filter_by(user_id=um_user.id, system_id=b_system.id).one()
+    assert hold2.held == 2200
+    assert hold2.redeemed == 5800
+
+    expect = [
+        {'range': 'F18:G18', 'values': [[0, 1950]]}
+    ]
+    assert cog.actions.SCANNERS['hudson_undermine'].payloads == expect
+
+
+@pytest.mark.asyncio
 async def test_cmd_repair(f_bot):
     msg = fake_msg_gears("!repair rana")
 
