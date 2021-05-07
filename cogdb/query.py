@@ -10,7 +10,7 @@ import sqlalchemy.orm.exc as sqla_oexc
 
 import cog.exc
 import cog.sheets
-from cog.util import substr_match
+from cog.util import substr_match, get_config
 import cogdb
 import cogdb.eddb
 import cogdb.schema
@@ -18,8 +18,8 @@ from cogdb.schema import (DiscordUser, FortSystem, FortPrep, FortDrop, FortUser,
                           UMSystem, UMUser, UMHold, KOS, AdminPerm, ChannelPerm, RolePerm)
 from cogdb.eddb import HUDSON_CONTROLS, WINTERS_CONTROLS
 
-
-DEFER_MISSING = 750
+DEFER_MISSING = get_config("limits", "defer_missing", default=750)
+MAX_DROP = get_config("limits", "max_drop", default=1000)
 
 
 def fuzzy_find(needle, stack, obj_attr='zzzz', ignore_case=True):
@@ -318,10 +318,10 @@ def fort_add_drop(session, *, user, system, amount):
     Returns: The Drop object.
 
     Raises:
-        InvalidCommandArgs: User requested an amount outside bounds [-800, 800]
+        InvalidCommandArgs: User requested an amount outside bounds [-MAX_DROP, MAX_DROP]
     """
-    if amount not in range(-800, 801):
-        raise cog.exc.InvalidCommandArgs('Drop amount must be in range [-800, 800]')
+    if amount not in range(-1 * MAX_DROP, MAX_DROP + 1):
+        raise cog.exc.InvalidCommandArgs('Drop amount must be in range [-{num}, {num}]'.format(num=MAX_DROP))
 
     try:
         drop = session.query(FortDrop).filter_by(user_id=user.id, system_id=system.id).one()

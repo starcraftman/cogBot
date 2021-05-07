@@ -218,6 +218,15 @@ def test_fort_add_drop(session, f_dusers, f_fort_testbed, db_cleanup):
     assert session.query(cogdb.schema.FortDrop).filter_by(user_id=user.id, system_id=system.id).one()
 
 
+def test_fort_add_drop_max(session, f_dusers, f_fort_testbed, db_cleanup):
+    system = session.query(FortSystem).filter(FortSystem.name == 'Sol').one()
+    user = f_fort_testbed[0][-1]
+    to_drop= cogdb.query.MAX_DROP + 1
+
+    with pytest.raises(cog.exc.InvalidCommandArgs):
+        cogdb.query.fort_add_drop(session, system=system, user=user, amount=to_drop)
+
+
 def test_fort_order_get(session, f_dusers, f_fort_testbed, f_fortorders):
     names = []
     for system in cogdb.query.fort_order_get(session):
