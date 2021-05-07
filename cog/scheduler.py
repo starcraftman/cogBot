@@ -254,9 +254,6 @@ def done_cb(wrap, fut):  # pragma: no cover
         to_mention, str(wrap.job.exception()),
     )
     log.error("Critical Worker Error: %s", msg)
-    try:
-        await cog.util.BOT.send_message(
-            chan, msg
-        )
-    except discord.errors.Forbidden:
-        pass
+    asyncio.create_task(cog.util.BOT.send_message(
+        chan, msg
+    ))
