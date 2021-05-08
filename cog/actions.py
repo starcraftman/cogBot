@@ -865,6 +865,8 @@ class Hold(Action):
         response = hold.system.display()
         if hold.system.is_undermined:
             response += '\n\nSystem is finished with held merits. Type `!um` for more targets.'
+            response += '\n\n**{}** Have a :skull: for completing {}. Don\'t forget to redeem.'.format(
+                self.duser.display_name, system.name)
 
         return ([hold], response)
 

@@ -585,6 +585,35 @@ Burr       | 0    | 8000```"""
 
 
 @pytest.mark.asyncio
+async def test_cmd_hold_redeem_finished(f_bot, f_dusers, f_um_testbed):
+    msg = fake_msg_gears("!hold 10000 empty")
+
+    await action_map(msg, f_bot).execute()
+
+    expect = """```Control        | Empty [M sec]
+100%           | Merits Leading 0
+Our Progress 0 | Enemy Progress 0%
+Nearest Hudson | Rana
+Priority       | Low```
+\nSystem is finished with held merits. Type `!um` for more targets.
+\n**User1** Have a :skull: for completing Empty. Don\'t forget to redeem."""
+    f_bot.send_message.assert_any_call(msg.channel, expect)
+    session = cogdb.Session()
+    duser = session.query(DiscordUser).filter_by(id=msg.author.id).one()
+    um = session.query(UMUser).filter_by(name=duser.pref_name).one()
+    system = session.query(UMSystem).filter_by(name='Empty').one()
+    assert system.missing == 0
+    hold = session.query(UMHold).filter_by(user_id=um.id, system_id=system.id).one()
+    assert hold.held == 10000
+    assert hold.redeemed == 0
+
+    expect = [
+        {'range': 'K18:L18', 'values': [[10000, 0]]},
+    ]
+    assert cog.actions.SCANNERS['hudson_undermine'].payloads == expect
+
+
+@pytest.mark.asyncio
 async def test_cmd_hold_died(f_bot, f_dusers, f_um_testbed):
     msg = fake_msg_gears("!hold --died")
 
