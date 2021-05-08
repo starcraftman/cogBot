@@ -344,7 +344,7 @@ class Admin(Action):
                 response = await func()
             if response:
                 await self.bot.send_long_message(self.msg.channel, response)
-        except AttributeError:
+        except (AttributeError, TypeError):
             raise cog.exc.InvalidCommandArgs("Bad subcommand of `!admin`, see `!admin -h` for help.")
 
 
