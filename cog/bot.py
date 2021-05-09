@@ -108,6 +108,7 @@ class CogBot(discord.Client):
         super().__init__(**kwargs)
         self.prefix = prefix
         self.deny_commands = True
+        self.scanners_not_ready = True
         self.emoji = EmojiResolver()
         # TODO: Instead of global parser, generate based on channel rules.
         self.parser = cog.parse.make_parser(prefix)
@@ -173,20 +174,25 @@ class CogBot(discord.Client):
 
         # This block is effectively a one time setup.
         if not cog.actions.SCANNERS:
-            scanners = await cogdb.scanners.init_scanners()
-            cog.actions.SCANNERS = scanners
+            async def scanner_startup_task():
+                scanners = await cogdb.scanners.init_scanners()
+                cog.actions.SCANNERS = scanners
 
-            self.sched.register('hudson_cattle', scanners['hudson_cattle'],
-                                ('Drop', 'Fort', 'User'))
-            self.sched.register('hudson_undermine', scanners['hudson_undermine'],
-                                ('Hold', 'UM', 'User'))
-            self.sched.register('hudson_kos', scanners['hudson_kos'], ('KOS'))
+                self.sched.register('hudson_cattle', scanners['hudson_cattle'],
+                                    ('Drop', 'Fort', 'User'))
+                self.sched.register('hudson_undermine', scanners['hudson_undermine'],
+                                    ('Hold', 'UM', 'User'))
+                self.sched.register('hudson_kos', scanners['hudson_kos'], ('KOS'))
+                self.sched.schedule_all(delay=1)
+                self.scanners_not_ready = False
+
+            # Run this task in background to prevent blocking on scanners
+            asyncio.create_task(scanner_startup_task())
 
             # separate to force crash if port busy, essential connection for scheduler
             await self.sched.connect_sub()
             await asyncio.sleep(0.2)
 
-            self.sched.schedule_all(delay=1)
             asyncio.ensure_future(asyncio.gather(
                 presence_task(self),
                 simple_heartbeat(),
@@ -337,6 +343,9 @@ class CogBot(discord.Client):
             resume_cb=functools.partial(self.send_message, msg.channel,
                                         SYNC_RESUME.format(msg.author.mention, msg.content)),
         )
+
+        if self.scanners_not_ready and args.cmd in ["Fort", "Drop", "UM", "Hold", "User"]:
+            await self.send_ttl_message(msg.channel, "The command you requested is temporarily unavailable. Try again in a short while.")
 
         try:
             await self.sched.wait_for(args.cmd, wait_cb)

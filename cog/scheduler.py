@@ -9,7 +9,6 @@ import asyncio
 import atexit
 import concurrent.futures as cfut
 import datetime
-import discord
 import functools
 import logging
 import os
@@ -110,14 +109,16 @@ class Scheduler(aiozmq.rpc.AttrHandler):
         Args:
             delay: Override the default delay for this scheduling.
         """
-        wrap = self.wrap_map[name]
-        if not delay:
-            delay = self.delay
+        try:
+            wrap = self.wrap_map[name]
+            if wrap.future:
+                wrap.cancel()
 
-        if wrap.future:
-            wrap.cancel()
-
-        wrap.schedule(delay)
+            if not delay:
+                delay = self.delay
+            wrap.schedule(delay)
+        except KeyError:
+            pass
 
     def schedule_all(self, delay=None):
         """

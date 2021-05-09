@@ -901,7 +901,6 @@ class Hold(Action):
                       in self.undermine.merits if merit.held + merit.redeemed > 0]
             response += cog.tbl.wrap_markdown(cog.tbl.format_table(lines, header=True))
 
-
         else:  # Default case, update the hold for a system
             holds, response = await self.set_hold()
 
