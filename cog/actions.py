@@ -15,6 +15,7 @@ import aiofiles
 import decorator
 import discord
 import googleapiclient.errors
+import sqlalchemy.exc
 
 import cogdb
 import cogdb.eddb
@@ -1333,11 +1334,14 @@ class User(Action):
                       self.duser.display_name, self.duser.pref_name, new_name)
         cogdb.query.check_pref_name(self.session, self.duser, new_name)
 
-        if self.cattle:
-            self.cattle.name = new_name
-        if self.undermine:
-            self.undermine.name = new_name
-        self.session.commit()
+        try:
+            if self.cattle:
+                self.cattle.name = new_name
+            if self.undermine:
+                self.undermine.name = new_name
+            self.session.commit()
+        except sqlalchemy.exc.IntegrityError:
+            raise cog.exc.InvalidCommandArgs("Please try another name, a possible name collision was detected.")
 
         nduser = cogdb.query.get_duser(self.session, self.duser.id)
         nduser.pref_name = new_name

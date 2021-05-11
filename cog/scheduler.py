@@ -250,7 +250,7 @@ def done_cb(wrap, fut):  # pragma: no cover
     except AttributeError:
         to_mention = "Gears"
 
-    msg = "Sheet update for `{}` failed at {}. {} have a look!\n\n{}".format(
+    msg = "Sheet update for `{}` failed at {}. {} have a look!\nMost likely seeing this due to duplicate username in row 'B' of this sheet.\n\n{}".format(
         wrap.name, datetime.datetime.now(datetime.timezone.utc),
         to_mention, str(wrap.job.exception()),
     )
