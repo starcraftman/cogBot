@@ -1262,6 +1262,37 @@ class UM(Action):
 
             response = system.display()
 
+        elif self.args.npcs:
+            # Send embed tables of undermining targets, then end the coroutine
+            #
+            # Note: This needs to send as two embed messages which requires a
+            #       different call syntax than other cases.
+            #       So we hijack the the control flow, ending the couroutine
+            #       before the shared ending send_message
+
+            # Index of the first power to display in the 2nd embed.
+            # A single embed can display up to 6 powers
+            # therefore, with 9 powers the valid values are 4-7 inclusive.
+            SPLIT_POS = 5
+
+            embed1=discord.Embed(title="Undermining Ships")
+            for power in UM_NPC_TABLE[1:SPLIT_POS]:
+                embed1.add_field(name=power[0], value="Power", inline=False)
+                embed1.add_field(name=power[1], value="Fighter", inline=True)
+                embed1.add_field(name=power[2], value="Transport", inline=True)
+                embed1.add_field(name=power[3], value="Expansion", inline=True)
+            await self.bot.send_message(self.msg.channel, embed=embed1)
+
+            embed2=discord.Embed(title="Undermining Ships (cont.)")
+            for power in UM_NPC_TABLE[SPLIT_POS:]:
+                embed2.add_field(name=power[0], value="Power", inline=False)
+                embed2.add_field(name=power[1], value="Fighter", inline=True)
+                embed2.add_field(name=power[2], value="Transport", inline=True)
+                embed2.add_field(name=power[3], value="Expansion", inline=True)
+            await self.bot.send_message(self.msg.channel, embed=embed2)
+
+            return
+
         else:
             systems = cogdb.query.um_get_systems(self.session)
             response = '__Current UM Targets__\n\n' + '\n'.join(
@@ -1480,3 +1511,15 @@ To remove system: type system name in list
 To generate list: reply with **stop**
 
 __This message will delete itself on success or 30s timeout.__"""
+UM_NPC_TABLE = [
+    ['Power', 'UM Fighter', 'UM Transprort', 'Expansion'],
+    ['A.Lavigny-Duval', 'Shield of Justice', 'Imperial Supply', 'Imperial Enforcers'],
+    ['Aisling Duval', 'Aislings Guardian', 'Campaign Ship', 'Aisling\'s Angels'],
+    ['Denton Patreus', 'Patreus Sentinel', 'Imperial Support', 'Imperial Warships'],
+    ['Zemina Torval', 'Torvals Shield', 'Private Security', 'Torval\'s Brokers'],
+    ['Yuri Grom', 'EGP Operative', 'EGP Agents', 'Enforcer Warships'],
+    ['Edmund Mahon', 'Alliance Enforcer', 'Alliance Diplomat', 'Alliance Diplomats'],
+    ['Li Yong-Rui', 'Sirius Security', 'Sirius Transport', 'Corporation ships'],
+    ['Pranav Antal', 'Utopian Overseer', 'Reform Ships', 'Utopian Agitators'],
+    ['Archon Delaine', 'Kumo Crew Watch', 'Kumo Crew Transport', 'Kumo Crew Strike Ships']
+]

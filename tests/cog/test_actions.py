@@ -955,6 +955,19 @@ User1 | 0          | 400    | 2200 | 0          | 0```"""
     actual = "\n".join(actual[:2] + actual[3:])
     assert actual == expect
 
+@pytest.mark.asyncio
+async def test_cmd_um_npcs(f_bot):
+    msg = fake_msg_gears("!um --npcs")
+
+    await action_map(msg, f_bot).execute()
+
+    call_args_list = f_bot.send_message.call_args_list
+    assert(len(call_args_list) == 2) # Only two messages were sent
+    for call_args in call_args_list: # Each sends an embed to the right channel
+        assert(call_args[0][0] == msg.channel)
+        assert(call_args[1]['embed'].__module__ == 'discord.embeds')
+    # And the content is different
+    assert(call_args_list[0][1]['embed'] is not call_args_list[1][1]['embed'])
 
 @pytest.mark.asyncio
 async def test_cmd_user(f_bot, f_testbed):

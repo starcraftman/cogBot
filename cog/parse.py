@@ -481,6 +481,8 @@ def subs_um(subs, prefix):
         Set the offset difference of cmdr merits and galmap.
 {prefix}um --list
         Show all outstanding merits by users and system.
+{prefix}um --npcs
+        List powerplay NPC ships by alligence.
     """.format(prefix=prefix)
     sub = subs.add_parser(prefix + 'um', description=desc, formatter_class=RawHelp)
     sub.set_defaults(cmd='UM')
@@ -489,6 +491,7 @@ def subs_um(subs, prefix):
                      help='Set the status of the system, us:them. Example-> --set 3500:200')
     sub.add_argument('-o', '--offset', type=int, help='Set the system galmap offset.')
     sub.add_argument('-l', '--list', action='store_true', help='Show all outstanding merits on sheet.')
+    sub.add_argument('--npcs', action='store_true', help='List powerplay NPC ships by alligence.')
 
 
 @register_parser
