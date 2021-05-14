@@ -486,7 +486,11 @@ async def simple_heartbeat(delay=30):
 def main():  # pragma: no cover
     """ Entry here! """
     cog.util.init_logging()
-    cog.util.BOT = CogBot("!", scheduler_delay=cog.util.get_config("scheduler_delay", default=10))
+
+    intents = discord.Intents.default()
+    intents.members = True
+    cog.util.BOT = CogBot("!", scheduler_delay=cog.util.get_config("scheduler_delay",
+                          default=10), intents=intents)
 
     token = cog.util.get_config('discord', os.environ.get('COG_TOKEN', 'dev'))
     print("Waiting on connection to Discord ...")
