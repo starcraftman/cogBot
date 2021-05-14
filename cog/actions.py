@@ -313,7 +313,8 @@ class Admin(Action):
             if len(top_recruits) == limit and len(top_members) == limit:
                 break
 
-        response = "__Summary of Top Merits__\n\n"
+        cycle = cog.util.get_config('scanners', 'hudson_cattle', 'page', default='Cycle Unknown')
+        response = "__Top Merits for {}__\n\n".format(cycle)
 
         lines = [['Top {} Recruits'.format(limit), 'Merits']]
         lines += [[x.display_name, x.total_merits] for x in top_recruits]
