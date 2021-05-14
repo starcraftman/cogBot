@@ -85,6 +85,8 @@ def subs_admin(subs, prefix):
         Shutdown this bot after short delay.
 {prefix}admin scan
         Pull and parse the latest sheet information.
+{prefix}admin top n
+        Generate a top n summary for the current cycle. Default n = 5.
 {prefix}admin info @User
         Information about the mentioned User, DMed to admin.
     """.format(prefix=prefix)
@@ -105,6 +107,8 @@ def subs_admin(subs, prefix):
     admin_subs.add_parser('dump', help='Dump the db to console.')
     admin_subs.add_parser('halt', help='Stop accepting commands and halt bot.')
     admin_subs.add_parser('scan', help='Scan the sheets for updates.')
+    admin_sub = admin_subs.add_parser('top', help='Generate the top cmdrs of cycle.')
+    admin_sub.add_argument('limit', nargs='?', type=int, default=5, help='The limit of users per top list.')
     admin_sub = admin_subs.add_parser('info', help='Get info about discord users.')
     admin_sub.add_argument('user', nargs='?', help='The user to get info on.')
     admin_sub = admin_subs.add_parser('active', help='Get a report on user activity.')

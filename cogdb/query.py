@@ -101,6 +101,13 @@ def add_duser(session, member):
     return new_duser
 
 
+def all_discord_users(session):
+    """
+    Return the list of all current discord users.
+    """
+    return session.query(DiscordUser).all()
+
+
 def check_pref_name(session, duser, new_name):
     """
     Check that new name is not taken by another DUser or present as a stray in SheetRows.

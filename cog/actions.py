@@ -295,6 +295,36 @@ class Admin(Action):
         self.bot.sched.schedule_all()
         return 'All sheets scheduled for update.'
 
+    async def top(self, limit=5):
+        """ Schedule all sheets for update. """
+        all_dusers = cogdb.query.all_discord_users(self.session)
+
+        top_recruits, top_members = [], []
+        for duser in sorted(all_dusers, key=lambda x: x.total_merits):
+            member = self.msg.guild.get_member(duser.id)
+            role_names = [x.name for x in member.roles]
+
+            if 'FRC Leadership' in role_names or 'Special Agent' in role_names:
+                continue
+            if 'FRC Member' in role_names and len(top_members) != limit:
+                top_members += [duser]
+            elif 'FRC Recruit' in role_names and len(top_recruits) != limit:
+                top_recruits += [duser]
+            if len(top_recruits) == limit and len(top_members) == limit:
+                break
+
+        response = "__Summary of Top Merits__\n\n"
+
+        lines = [['Top {} Recruits'.format(limit), 'Merits']]
+        lines += [[x.display_name, x.total_merits] for x in top_recruits]
+        response += cog.tbl.wrap_markdown(cog.tbl.format_table(lines, header=True))
+
+        lines = [['Top {} Members'.format(limit), 'Merits']]
+        lines += [[x.display_name, x.total_merits] for x in top_members]
+        response += '\n\n' + cog.tbl.wrap_markdown(cog.tbl.format_table(lines, header=True))
+
+        return response
+
     # TODO: Increase level of automation:
     #   - Actually MAKE the new sheets, copy from templates.
     #   - Turn on import in new sheet, turn off import in older sheet.
