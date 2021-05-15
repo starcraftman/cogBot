@@ -297,11 +297,15 @@ class Admin(Action):
 
     async def top(self, limit=5):
         """ Schedule all sheets for update. """
-        all_dusers = cogdb.query.all_discord_users(self.session)
+        all_dusers = cogdb.query.all_discord_with_merits(self.session)
+        cycle = cog.util.get_config('scanners', 'hudson_cattle', 'page', default='Cycle Unknown')
+        response = "__Top Merits for {}__\n\n".format(cycle)
 
         top_recruits, top_members = [], []
-        for duser in sorted(all_dusers, key=lambda x: x.total_merits):
+        for duser in reversed(sorted(all_dusers, key=lambda x: x.total_merits)):
             member = self.msg.guild.get_member(duser.id)
+            if not member:
+                continue  # User left or wrong discord id
             role_names = [x.name for x in member.roles]
 
             if 'FRC Leadership' in role_names or 'Special Agent' in role_names:
@@ -312,9 +316,6 @@ class Admin(Action):
                 top_recruits += [duser]
             if len(top_recruits) == limit and len(top_members) == limit:
                 break
-
-        cycle = cog.util.get_config('scanners', 'hudson_cattle', 'page', default='Cycle Unknown')
-        response = "__Top Merits for {}__\n\n".format(cycle)
 
         lines = [['Top {} Recruits'.format(limit), 'Merits']]
         lines += [[x.display_name, x.total_merits] for x in top_recruits]

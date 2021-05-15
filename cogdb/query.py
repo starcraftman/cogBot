@@ -101,11 +101,11 @@ def add_duser(session, member):
     return new_duser
 
 
-def all_discord_users(session):
+def all_discord_with_merits(session):
     """
-    Return the list of all current discord users.
+    Return the list of all current discord users that have this cycle merits.
     """
-    return session.query(DiscordUser).all()
+    return [x for x in session.query(DiscordUser).all() if x.total_merits]
 
 
 def check_pref_name(session, duser, new_name):
