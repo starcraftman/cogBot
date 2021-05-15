@@ -1307,7 +1307,7 @@ class UM(Action):
             # therefore, with 9 powers the valid values are 4-7 inclusive.
             SPLIT_POS = 5
 
-            embed1=discord.Embed(title="Undermining Ships")
+            embed1 = discord.Embed(title="Undermining Ships")
             for power in UM_NPC_TABLE[1:SPLIT_POS]:
                 embed1.add_field(name=power[0], value="Power", inline=False)
                 embed1.add_field(name=power[1], value="Fighter", inline=True)
@@ -1315,7 +1315,7 @@ class UM(Action):
                 embed1.add_field(name=power[3], value="Expansion", inline=True)
             await self.bot.send_message(self.msg.channel, embed=embed1)
 
-            embed2=discord.Embed(title="Undermining Ships (cont.)")
+            embed2 = discord.Embed(title="Undermining Ships (cont.)")
             for power in UM_NPC_TABLE[SPLIT_POS:]:
                 embed2.add_field(name=power[0], value="Power", inline=False)
                 embed2.add_field(name=power[1], value="Fighter", inline=True)

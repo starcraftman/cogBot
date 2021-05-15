@@ -1589,7 +1589,7 @@ def get_shipyard_stations(session, centre_name, *, sys_dist=75, arrival=2000, in
     exclude = session.query(StationType.text).\
         filter(or_(StationType.text.like("%Planet%"),
                    StationType.text.like("%Fleet%"))).\
-        subquery()
+        scalar_subquery()
 
     stations = session.query(System.name, System.dist_to(centre),
                              Station.name, Station.distance_to_star, Station.max_landing_pad_size).\
@@ -1691,10 +1691,10 @@ def get_nearest_controls(session, *, centre_name='sol', power='Hudson'):
     centre = session.query(System).filter(System.name == centre_name).one()
     subq = session.query(PowerState.id).\
         filter(PowerState.text == 'Control').\
-        subquery()
+        scalar_subquery()
     subq2 = session.query(Power.id).\
         filter(Power.text.ilike('%{}%'.format(power))).\
-        subquery()
+        scalar_subquery()
 
     return session.query(System).\
         filter(System.power_state_id == subq,
@@ -1718,8 +1718,8 @@ def get_nearest_ifactors(session, *, centre_name, sys_dist=75, arrival=2000, inc
     exclude = session.query(StationType.text).\
         filter(or_(StationType.text.like("%Planet%"),
                    StationType.text.like("%Fleet%"))).\
-        subquery()
-    sub_security = session.query(Security.id).filter(Security.text == "Low").subquery()
+        scalar_subquery()
+    sub_security = session.query(Security.id).filter(Security.text == "Low").scalar_subquery()
 
     stations = session.query(System.name, System.dist_to(centre),
                              Station.name, Station.distance_to_star, Station.max_landing_pad_size).\

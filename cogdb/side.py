@@ -551,7 +551,7 @@ def influence_in_system(session, system):
     Returns a list of lists with the following:
         faction name, influence, is_player_faction, government_type, influence timestamp
     """
-    subq = session.query(System.id).filter(System.name == system).subquery()
+    subq = session.query(System.id).filter(System.name == system).scalar_subquery()
     infs = session.query(Influence.influence, Influence.updated_at,
                          Faction.name, Faction.is_player_faction, Government.text).\
         filter(Influence.system_id == subq,
@@ -808,7 +808,7 @@ def find_favorable(session, centre_name, max_dist=None, inc=20):
     keep_looking = True
     subq = session.query(Government.id).\
         filter(Government.text.in_(HUDSON_BGS[0])).\
-        subquery()
+        scalar_subquery()
 
     while keep_looking:
         matches = session.query(System.name, System.dist_to(centre),
@@ -898,7 +898,7 @@ def expand_to_candidates(session, system_name):
         filter(System.name == system_name,
                Influence.system_id == System.id,
                Faction.id == Influence.faction_id).\
-        subquery()
+        scalar_subquery()
     matches = session.query(System.name, System.dist_to(centre), System.population, Influence,
                             Faction, FactionState.text, Government.text).\
         join(Influence, Influence.system_id == System.id).\

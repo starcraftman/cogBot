@@ -39,7 +39,7 @@ class DiscordUser(Base):
 
     # Relationships
     fort_user = sqla.orm.relationship(
-        'FortUser', uselist=False,
+        'FortUser', uselist=False, viewonly=True,
         primaryjoin='foreign(DiscordUser.pref_name) == FortUser.name'
     )
     fort_merits = sqla_orm.relationship(
@@ -47,7 +47,7 @@ class DiscordUser(Base):
         primaryjoin='and_(foreign(DiscordUser.pref_name) == remote(FortUser.name), foreign(FortUser.id) == FortDrop.user_id)'
     )
     um_user = sqla.orm.relationship(
-        'UMUser', uselist=False,
+        'UMUser', uselist=False, viewonly=True,
         primaryjoin='foreign(DiscordUser.pref_name) == UMUser.name'
     )
     um_merits = sqla_orm.relationship(

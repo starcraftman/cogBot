@@ -471,7 +471,7 @@ def um_redeem_systems(session, user, systems):
     total = 0
     subq = session.query(UMSystem.id).\
         filter(UMSystem.name.in_(systems)).\
-        subquery()
+        scalar_subquery()
     holds = session.query(UMHold).filter(UMHold.user_id == user.id,
                                          UMHold.system_id.in_(subq)).all()
     for hold in holds:
