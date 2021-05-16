@@ -346,7 +346,6 @@ def fort_add_drop(session, *, user, system, amount):
     return drop
 
 
-# FIXME: Is there a better means?
 def fort_order_get(session):
     """
     Get the order of systems to fort.
@@ -357,8 +356,9 @@ def fort_order_get(session):
     """
     systems = []
     dsession = cogdb.Session(expire_on_commit=False)  # Isolate deletions, feels a bit off though
+
     for fort_order in dsession.query(FortOrder).order_by(FortOrder.order):
-        system = dsession.query(FortSystem).filter_by(name=fort_order.system_name).one()
+        system = fort_order.system
         if system.is_fortified or system.missing < DEFER_MISSING:
             dsession.delete(fort_order)
         else:
