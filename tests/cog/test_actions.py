@@ -772,6 +772,14 @@ async def test_cmd_repair(f_bot):
 
 
 @pytest.mark.asyncio
+async def test_cmd_recruits_not_admin(f_bot, db_cleanup):
+    msg = fake_msg_gears("!recruits")
+
+    with pytest.raises(cog.exc.InvalidPerms):
+        await action_map(msg, f_bot).execute()
+
+
+@pytest.mark.asyncio
 async def test_cmd_route(f_bot):
     msg = fake_msg_gears("!route nanomam, rana, sol, frey, arnemil")
 

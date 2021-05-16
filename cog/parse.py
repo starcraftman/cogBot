@@ -387,6 +387,27 @@ def subs_pin(subs, prefix):
 
 
 @register_parser
+def subs_recruits(subs, prefix):
+    """ Subcommand parsing for recruits """
+    desc = """Manipulate your user settings. Examples:
+
+{prefix}recruits add @mention_user CMDR_Name, PC/Xbox/PS4, PMF, Notes
+        Add a recruit to the last free entry in the sheet.
+    """.format(prefix=prefix)
+    sub = subs.add_parser(prefix + 'recruits', description=desc, formatter_class=RawHelp)
+    sub.set_defaults(cmd='Recruits')
+    subcmd = sub.add_subparsers(title='subcommands',
+                                description='Recruits subcommands', dest='subcmd')
+    subcmd = subcmd.add_parser('add', help='Report user to KOS.')
+    subcmd.add_argument('cmdr', nargs='+', help='The CMDR name and all other arguments that are optional.')
+    subcmd.add_argument('-d', '--discord-name', nargs='+', help='The discord name differs from name.')
+    subcmd.add_argument('-r', '--rank', default='R', choices=['R', 'M', 'V'], help='Rank to add as, R M or V.')
+    subcmd.add_argument('-p', '--platform', choices=['1', '2', '3', '1+2', '1+3', '2+3', '1+2+3'], help='The platform, PC=1, Xbox=2, PS4=3. Combine with +')
+    subcmd.add_argument('--pmf', nargs='+', default=[''], help='The player minor faction.')
+    subcmd.add_argument('--notes', nargs='+', default=[''], help='The notes field.')
+
+
+@register_parser
 def subs_repair(subs, prefix):
     """ Subcommand parsing for repair """
     desc = """Find a station with both L pad and shipyard near you.

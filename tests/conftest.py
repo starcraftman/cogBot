@@ -42,7 +42,8 @@ from tests.data import CELLS_FORT, CELLS_FORT_FMT, CELLS_UM
     #  yield
     #  print(" Time", datetime.datetime.now(datetime.timezone.utc) - start, end="")
 
-    #  classes = [DUser, SheetRow, System, SystemUM, Drop, Hold, KOS]
+    #  classes = [DiscordUser, FortUser, FortSystem, FortDrop, UMSystem, UMUser, UMHold,
+               #  KOS, AdminPerm, ChannelPerm, RolePerm]
     #  for cls in classes:
         #  assert not session.query(cls).all()
 

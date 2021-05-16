@@ -1003,7 +1003,9 @@ def recreate_tables():
     """
     Recreate all tables in the database, mainly for schema changes and testing.
     """
-    exclude = [DiscordUser.__tablename__]
+    exclude = []
+    if not cogdb.TEST_DB:
+        exclude = [DiscordUser.__tablename__, AdminPerm.__tablename__]
     sqlalchemy.orm.session.close_all_sessions()
 
     meta = sqlalchemy.MetaData(bind=cogdb.engine)

@@ -948,6 +948,7 @@ class Help(Action):
             ['{prefix}hold', 'Declare held merits or redeem them'],
             ['{prefix}kos', 'Manage or search kos list'],
             ['{prefix}near', 'Find things near you.'],
+            ['{prefix}recruits', 'Manage recruits on the recruit sheet.'],
             ['{prefix}repair', 'Show the nearest orbitals with shipyards'],
             ['{prefix}route', 'Plot the shortest route between these systems'],
             ['{prefix}scout', 'Generate a list of systems to scout'],
@@ -1143,6 +1144,35 @@ class Pin(Action):
         # if not message.content or message.content == "!pin":
         # to_delete += [message]
         # await to_delete.delete()
+
+
+class Recruits(Action):
+    """
+    Manage recruits in the recruit sheet.
+    """
+    async def execute(self):
+        try:
+            cogdb.query.get_admin(self.session, self.duser)
+        except cog.exc.NoMatch:
+            raise cog.exc.InvalidPerms("{} You are not an admin!".format(self.msg.author.mention))
+
+        r_scanner = get_scanner('hudson_recruits')
+        await r_scanner.update_cells()
+        r_scanner.update_first_free()
+
+        cmdr = " ".join(self.args.cmdr)
+        discord_name = " ".join(self.args.discord_name) if self.args.discord_name else cmdr
+        await r_scanner.send_batch(r_scanner.add_recruit_dict(
+            cmdr=cmdr,
+            discord_name=discord_name,
+            rank=self.args.rank,
+            platform=self.args.platform,
+            pmf=" ".join(self.args.pmf),
+            notes=" ".join(self.args.notes)
+        ))
+
+        response = "CMDR {} has been added to row: {}".format(cmdr, r_scanner.first_free - 1)
+        await self.bot.send_message(self.msg.channel, response)
 
 
 class Repair(Action):
@@ -1563,7 +1593,10 @@ def get_scanner(name):
     """
     Store scanners in this module for shared use.
     """
-    return SCANNERS[name]
+    try:
+        return SCANNERS[name]
+    except KeyError:
+        raise cog.exc.InvalidCommandArgs("The scanners are not ready. Please try again in 15 seconds.")
 
 
 SCANNERS = {}

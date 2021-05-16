@@ -4,6 +4,7 @@ All sheet scanners are stored here for now
 Sheet scanners make heavy use of cog.sheets.AsyncGSheet
 """
 import asyncio
+import datetime
 import logging
 import sys
 from copy import deepcopy
@@ -638,6 +639,56 @@ class KOSScanner(FortScanner):
         """
         cell_range = 'A{row}:D{row}'.format(row=row)
         return [{'range': cell_range, 'values': [list(values)]}]
+
+
+class RecruitsScanner(FortScanner):
+    """
+    Scanner for the Hudson recruits sheet.
+
+    args:
+        asheet: The AsyncGSheet that connects to the sheet.
+    """
+    def __init__(self, asheet):
+        super().__init__(asheet, [])
+
+        self.first_free = 1
+
+    def __repr__(self):
+        return super().__repr__().replace('FortScanner', 'RecruitsScanner')
+
+    def parse_sheet(self, session=None):
+        """
+        Unused, remains for consistency of interface.
+        """
+        raise NotImplementedError
+
+    def update_first_free(self):
+        """
+        Simple go through existing cells to determine last used row.
+        """
+        for ind, row in enumerate(self.cells_col_major[0], 1):
+            self.first_free = ind
+            if row.strip() == "":  # Overshot by 1
+                self.first_free -= 1
+                break
+
+        self.first_free += 1
+        return self.first_free
+
+    def add_recruit_dict(self, *, cmdr, discord_name, rank, platform, pmf, notes):
+        """
+        Create an update hold dict. See AsyncGSheet.batch_update
+
+        Returns: A list of update dicts to pass to batch_update.
+        """
+        values = [[cmdr, discord_name, str(datetime.date.today())]]
+        payload = [{'range': 'A{row}:C{row}'.format(row=self.first_free), 'values': values},
+                   {'range': 'E{row}:E{row}'.format(row=self.first_free), 'values': [[rank]]},
+                   {'range': 'H{row}:H{row}'.format(row=self.first_free), 'values': [[platform]]},
+                   {'range': 'N{row}:O{row}'.format(row=self.first_free), 'values': [[pmf, notes]]}]
+        self.first_free += 1  # Increment next row
+
+        return payload
 
 
 async def init_scanners():

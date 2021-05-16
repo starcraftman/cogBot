@@ -1,14 +1,17 @@
 """
 Tests for cogdb.scanners
 """
+import datetime
 import os
+
+import aiomock
 import pytest
 
 import cog.exc
 import cogdb.scanners
 from cogdb.schema import (FortSystem, FortDrop, FortUser,
                           UMSystem, UMUser, UMHold, KOS)
-from cogdb.scanners import (FortScanner, UMScanner, KOSScanner)
+from cogdb.scanners import (FortScanner, UMScanner, KOSScanner, RecruitsScanner)
 
 
 @pytest.mark.asyncio
@@ -350,9 +353,35 @@ async def test_kosscanner_parse_sheet_dupes(f_asheet_kos, session, db_cleanup):
         fscan.parse_sheet(session)
 
 
-def test_kosscanner_kos_report_dict():
-    data = KOSScanner.kos_report_dict(75, "Gears", "Cookies", 0, "KILL")
-    assert data == [{"range": "A75:D75", "values": [["Gears", "Cookies", 0, "KILL"]]}]
+@pytest.mark.asyncio
+async def test_recruitsscanner_update_first_free():
+    fake_sheet = aiomock.AIOMock()
+    fake_sheet.whole_sheet.async_return_value = [['1'], ['2'], ['3'], ['4'], ['5'], ['6'], ['7']]
+    r_scanner = RecruitsScanner(fake_sheet)
+    await r_scanner.update_cells()
+    assert r_scanner.update_first_free() == 8
+
+
+def test_recruitsscanner_add_recruit_dict():
+    r_scanner = RecruitsScanner(None)
+    r_scanner.first_free = 10
+    today = datetime.date.today()
+
+    expect = [
+        {'range': 'A10:C10', 'values': [['Default', 'Default', str(today)]]},
+        {'range': 'E10:E10', 'values': [['R']]},
+        {'range': 'H10:H10', 'values': [['1']]},
+        {'range': 'N10:O10', 'values': [['A PMF', 'A note here']]}
+    ]
+    data = r_scanner.add_recruit_dict(
+            cmdr="Default",
+            discord_name="Default",
+            rank="R",
+            platform="1",
+            pmf="A PMF",
+            notes="A note here",
+    )
+    assert data == expect
 
 
 @pytest.mark.skipif(not os.environ.get('ALL_TESTS'), reason="Slow scanner testing all scanners.")
