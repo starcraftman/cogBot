@@ -89,6 +89,8 @@ def subs_admin(subs, prefix):
         Generate a top n summary for the current cycle. Default n = 5.
 {prefix}admin info @User
         Information about the mentioned User, DMed to admin.
+{prefix}admin addum Cubeo, Nauo -p Normal -r 50
+        Will add Cubeo and Nauo with 50% reinforced trigger and Normal priority in UM sheet.
     """.format(prefix=prefix)
     sub = subs.add_parser(prefix + 'admin', description=desc, formatter_class=RawHelp)
     sub.set_defaults(cmd='Admin')
@@ -114,6 +116,12 @@ def subs_admin(subs, prefix):
     admin_sub = admin_subs.add_parser('active', help='Get a report on user activity.')
     admin_sub.add_argument('-d', '--days', type=int, default=90, nargs='?',
                            help='The number of days to look back.')
+    admin_sub = admin_subs.add_parser('addum', help='Add systems to Undermining sheet.')
+    admin_sub.add_argument('system', nargs='+', help='System name to add.')
+    admin_sub.add_argument('-p', '--priority', nargs='?', default='Normal', help='Priority of the new systems.',
+                           choices=["Normal", "High", "Low", "Leave for now"])
+    admin_sub.add_argument('-r', '--reinforced', type=int, default=50, nargs='?',
+                           help='Reinforcement %age of the new systems.')
 
 
 @register_parser

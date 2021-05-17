@@ -344,7 +344,7 @@ class CogBot(discord.Client):
                                         SYNC_RESUME.format(msg.author.mention, msg.content)),
         )
 
-        if self.scanners_not_ready and args.cmd in ["Fort", "Drop", "UM", "Hold", "User"]:
+        if self.scanners_not_ready and args.cmd in ["Fort", "Drop", "UM", "Hold", "User", "Admin"]:
             await self.send_ttl_message(msg.channel, "The command you requested is temporarily unavailable. Try again in a short while.")
 
         try:

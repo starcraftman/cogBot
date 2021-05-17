@@ -128,6 +128,17 @@ async def test_fortscanner_send_batch(f_asheet_fortscanner):
     assert fscan.asheet.batch_update_sent == data
 
 
+@pytest.mark.asyncio
+async def test_fortscanner_get_batch(f_asheet_fortscanner):
+    fscan = FortScanner(f_asheet_fortscanner)
+    f_asheet_fortscanner.batch_get.async_return_value = ['This is a test', 'Message']
+
+    returned_data = await fscan.get_batch(['A1:B2'])
+    expected_returned_data = ['This is a test', 'Message']
+
+    assert returned_data == expected_returned_data
+
+
 def test_fortscanner_update_sheet_user_dict():
     data = FortScanner.update_sheet_user_dict(22, "cog is great", "gears")
     assert data == [{"range": "A22:B22", "values": [["cog is great", "gears"]]}]
@@ -217,6 +228,42 @@ def test_umscanner_update_systemsum_dict():
 def test_umscanner_update_hold_dict():
     data = UMScanner.update_hold_dict("G", 22, 750, 3000)
     assert data == [{"range": "G22:H22", "values": [[750, 3000]]}]
+
+
+@pytest.mark.asyncio
+async def test_umscanner_slide_templates(f_asheet_umscanner):
+    systems = []
+    value_to_add = [{"sys_name": "Frey", "power": "Yuri Grom", "trigger": "12345", "priority": "Normal"}]
+    [systems.append(await f_asheet_umscanner.values_col(i)) for i in range(17)]
+    systems = [systems[i][:13] for i in range(len(systems))]
+    returned_data = UMScanner.slide_templates([systems[3:]], value_to_add)
+    expected_return = [{'range': 'N1:13', 'values': [
+        ['', '', '', '', 'Opp. trigger', '% safety margin'],
+        ['', '', '', '', '', '50%'], ['0', '', '0', '', '#DIV/0!', ''],
+        ['12345', '', '1,000', '', '0', ''], ['0', '', '0', '', '0', ''],
+        ['1,000', '', '1,000', '', '0', ''], ['Sec: N/A', 'Yuri Grom', 'Sec: N/A', '', 'Sec: N/A', ''],
+        ['', 'Normal', '', '', '', ''], ['Frey', '', 'Control System Template', '', 'Expansion Template', ''],
+        [0, '', '', '', '', ''], [0, '', '', '', '', ''],
+        ['Held merits', 'Redeemed merits', 'Held merits', 'Redeemed merits', 'Held merits', 'Redeemed merits'],
+        ['', '', '', '', '', '']]}]
+    assert returned_data == expected_return
+
+
+def test_umscanner_slide_formula_to_right():
+    raw_data = [[['', '', '=IF(N$10 > N$5+N$13, N$10 / N$4 * 100, ROUNDDOWN((N$5+N$13) / N$4 * 100))',
+                  1000, '=SUM(N$14:O)', '=IF(N$10 > N$5+N$13, N$4 - N$10, N$4 - N$5-N$13)',
+                  '=CONCATENATE("Sec: ",IF(ISBLANK(VLOOKUP(N$9,Import!$A$2:$C,2,FALSE)),"N/A",VLOOKUP(N$9,Import!$A$2:$C,2,FALSE)))',
+                  '=VLOOKUP(N$9,Import!$A$2:$C,3,FALSE)', 'Control System Template', '', '', 'Held merits',
+                  '=max(SUM(O$14:O),N$10)-SUM(O$14:O)']]]
+
+    returned_data = UMScanner.slide_formula_to_right(raw_data, 11)
+
+    expected_returned_data = [[['', '', '=IF(P$10 > P$5+P$13, P$10 / P$4 * 100, ROUNDDOWN((P$5+P$13) / P$4 * 100))',
+                                '1000', '=SUM(P$14:Q)', '=IF(P$10 > P$5+P$13, P$4 - P$10, P$4 - P$5-P$13)',
+                                '=CONCATENATE("Sec: ",IF(ISBLANK(VLOOKUP(P$9,Import!$A$2:$C,2,FALSE)),"N/A",VLOOKUP(P$9,Import!$A$2:$C,2,FALSE)))',
+                                '=VLOOKUP(P$9,Import!$A$2:$C,3,FALSE)', 'Control System Template', '', '', 'Held merits',
+                                '=max(SUM(Q$14:Q),P$10)-SUM(Q$14:Q)']]]
+    assert returned_data == expected_returned_data
 
 
 # Sanity check for fixture, I know not needed.

@@ -6,6 +6,7 @@ Sheet scanners make heavy use of cog.sheets.AsyncGSheet
 import asyncio
 import logging
 import sys
+from copy import deepcopy
 
 import cog.exc
 import cog.sheets
@@ -249,13 +250,22 @@ class FortScanner():
 
         raise cog.exc.SheetParsingError("Unable to determine system column.")
 
-    async def send_batch(self, dicts):
+    async def send_batch(self, dicts, input_opt='RAW'):
         """
-        Seend a batch update made up from premade range/value dicts.
+        Send a batch update made up from premade range/value dicts.
         """
         logging.getLogger(__name__).info("Sending update to Fort Sheet.\n%s", str(dicts))
-        await self.asheet.batch_update(dicts)
+        await self.asheet.batch_update(dicts, input_opt)
         logging.getLogger(__name__).info("Finished sending update to Fort Sheet.\n%s", str(dicts))
+
+    async def get_batch(self, range, dim='ROWS', value_format='UNFORMATTED_VALUE'):
+        """
+        Get a batch update made up from premade range dicts.
+        """
+        logging.getLogger(__name__).info("Get intel from Fort Sheet.\n%s", str(range))
+        data = await self.asheet.batch_get(range, dim=dim, value_render=value_format)
+        logging.getLogger(__name__).info("Finished import from Fort Sheet.\n%s", str(range))
+        return data
 
     @staticmethod
     def update_sheet_user_dict(row, cry, name):
@@ -408,6 +418,84 @@ class UMScanner(FortScanner):
         cell_range = '{col1}{row}:{col2}{row}'.format(col1=system_col, col2=col2,
                                                       row=user_row)
         return [{'range': cell_range, 'values': [[held, redeemed]]}]
+
+    @staticmethod
+    def slide_templates(sheet_values, values):
+        """ Add columns to the left of Templates. Slide the template to the right. """
+        index = 1
+        for column in sheet_values[0]:
+            if 'Template' in column[8]:
+                break
+            index += 1
+
+        # Deleting columns before / after templates
+        del sheet_values[0][:index - 1]
+        del sheet_values[0][4:]
+
+        # Adding value to the row 13 when it's empty to pivot the table
+        sheet_values[0][1].append('')
+        sheet_values[0][3].append('')
+
+        # Saving Control template to edit later
+        um_sheet_temp = deepcopy(sheet_values)
+        new_um_sheet = deepcopy(sheet_values)
+        new_um_sheet_temp = None
+
+        for item in values:
+            columns_left_to_update = deepcopy(um_sheet_temp[0][0])
+            columns_right_to_update = deepcopy(um_sheet_temp[0][1])
+            for i in [3, 6, 7, 8, 9, 10]:
+                if i == 3:
+                    columns_left_to_update[i] = item['trigger']
+                elif i == 6:
+                    columns_right_to_update[i] = item['power']
+                elif i == 7:
+                    columns_right_to_update[i] = item['priority']
+                elif i == 8:
+                    columns_left_to_update[i] = item['sys_name']
+                elif i == 9 or i == 10:
+                    columns_left_to_update[i] = 0
+            if new_um_sheet_temp:
+                new_um_sheet_temp = UMScanner.slide_formula_to_right(new_um_sheet_temp, index)
+            else:
+                new_um_sheet_temp = UMScanner.slide_formula_to_right(new_um_sheet, index)
+            new_um_sheet_temp[0].insert(0, columns_right_to_update)
+            new_um_sheet_temp[0].insert(0, columns_left_to_update)
+            new_um_sheet[0].insert(0, columns_right_to_update)
+            new_um_sheet[0].insert(0, columns_left_to_update)
+
+        # Pivot the table
+        new_um_sheet_temp[0] = [[row[i] for row in new_um_sheet_temp[0]] for i in range(13)]
+
+        # Mapping data and sending them to the sheet
+        return [{'range': '{}1:13'.format(cog.sheets.Column().offset(index + 2)), 'values': new_um_sheet_temp[0]}]
+
+    @staticmethod
+    def slide_formula_to_right(raw_um_sheet, sheet_index):
+        """
+        Local function that return a List of List with slided cells formula to the right by 2 columns.
+        Args:
+                raw_um_sheet: List of List returned by get_batch.
+                sheet_index: Int, Which column is the first one of the slide. Start counting at column D.
+        """
+        temp_index = sheet_index
+        temp = deepcopy(raw_um_sheet)
+        for columns in temp[0]:
+            column_init = cog.sheets.Column()
+            column_name_2 = column_init.offset(temp_index + 2)
+            column_name_3 = column_init.offset(1)
+            column_name_4 = column_init.offset(1)
+            column_name_5 = column_init.offset(1)
+            for j in range(len(columns)):
+                columns[j] = str(columns[j]) \
+                    .replace("{}$".format(column_name_2),
+                             "{}$".format(column_name_4)) \
+                    .replace(":{}".format(column_name_3),
+                             ":{}".format(column_name_5)) \
+                    .replace("{}$".format(column_name_3),
+                             "{}$".format(column_name_5))
+            temp_index += 1
+        return temp
 
 
 class KOSScanner(FortScanner):

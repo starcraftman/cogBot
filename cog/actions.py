@@ -56,7 +56,6 @@ def user_info(user):  # pragma: no cover
 async def check_mentions(coro, *args, **kwargs):
     """ If a single member mentioned, resubmit message on their behalf. """
     self = args[0]
-
     if self.msg.mentions:
         if len(self.msg.mentions) != 1:
             raise cog.exc.InvalidCommandArgs('Mention only 1 member per command.')
@@ -241,7 +240,8 @@ class Admin(Action):
         try:
             tfile = tempfile.NamedTemporaryFile(mode='r')
             async with aiofiles.open(tfile.name, 'w') as fout:
-                await fout.write("__Members With No Activity in Last {} Day{}__\n".format(self.args.days, "" if self.args.days == 1 else "s"))
+                await fout.write("__Members With No Activity in Last {} Day{}__\n".format(self.args.days,
+                                                                                          "" if self.args.days == 1 else "s"))
                 for member in all_members:
                     await fout.write("{}, Top Role: {}\n".format(member.name, member.top_role))
 
@@ -252,7 +252,8 @@ class Admin(Action):
 
             fname = 'activity_report_{}_{}.txt'.format(
                 self.msg.guild.name, datetime.datetime.now(datetime.timezone.utc).replace(microsecond=0))
-            await self.msg.channel.send("Report generated in this file.", file=discord.File(fp=tfile.name, filename=fname))
+            await self.msg.channel.send("Report generated in this file.",
+                                        file=discord.File(fp=tfile.name, filename=fname))
             await asyncio.sleep(5)
         finally:
             tfile.close()
@@ -363,6 +364,69 @@ class Admin(Action):
         finally:
             self.bot.deny_commands = False
 
+    async def addum(self):
+        """Add a system(s) to the um sheet"""
+        lines = []
+        values = []
+
+        reinforcement_value = self.args.reinforced
+        priority = self.args.priority
+        if 50 < reinforcement_value or reinforcement_value < 0:
+            raise cog.exc.InvalidCommandArgs("Wrong reinforcement value, min 0 max 50")
+
+        eddb_session = cogdb.EDDBSession()
+        systems = await self.bot.loop.run_in_executor(
+            None, cogdb.eddb.get_systems, eddb_session,
+            process_system_args(self.args.system))
+
+        um_scanner = get_scanner("hudson_undermine")
+        systems_in_sheet = cogdb.query.um_get_systems(self.session, exclude_finished=False)
+        # TODO Using set() to avoid many looping
+        # systems_to_add = list(set([x.name for x in systems]) - set([x.name for x in systems_in_sheet]))
+        # systems_in_both = list(set([x.name for x in systems_in_sheet]).intersection(set([x.name for x in systems])))
+        # systems_to_add = await self.bot.loop.run_in_executor(
+        #     None, cogdb.eddb.get_systems, eddb_session, systems_to_add)
+
+        found_list = []
+        for system in systems:
+            found = False
+            for system_in_sheet in systems_in_sheet:
+                if system_in_sheet.name == system.name:
+                    found = True
+                    found_list.append(system.name)
+            if not found:
+                power = cogdb.eddb.get_power_hq(system.power.text.lower())
+                pow_hq = cogdb.eddb.get_systems(eddb_session, [power[1]])[0]
+                if system.name != pow_hq.name:
+                    reinforced_trigger = system.calc_um_trigger(pow_hq, reinforcement_value)
+                    lines += [
+                        cog.tbl.wrap_markdown(cog.tbl.format_table([
+                            ["System", system.name],
+                            ["Power", power[0]],
+                            ["UM Trigger", system.calc_um_trigger(pow_hq)],
+                            ["UM Trigger {}%".format(reinforcement_value), reinforced_trigger],
+                            ["Priority", priority]
+                        ]))
+                    ]
+                    values.append({"sys_name": system.name, "power": power[0], "trigger": reinforced_trigger,
+                                   "priority": priority})
+                else:
+                    found_list.append(system.name)
+
+        if values:
+            um_sheet = await um_scanner.get_batch(['D1:13'], 'COLUMNS', 'FORMULA')
+            data = cogdb.scanners.UMScanner.slide_templates(um_sheet, values)
+            await um_scanner.send_batch(data, input_opt='USER_ENTERED')
+            self.bot.sched.schedule("hudson_undermine")
+            await self.bot.send_message(self.msg.channel, '\n'.join(lines))
+            await asyncio.sleep(1)
+            if found_list:
+                return "Systems added to the UM sheet.\n\nThe following systems were ignored : {}"\
+                    .format(", ".join(found_list))
+            return 'Systems added to the UM sheet.'
+        else:
+            return 'All systems asked are already in the sheet or are invalid'
+
     async def execute(self):
         try:
             admin = cogdb.query.get_admin(self.session, self.duser)
@@ -442,7 +506,6 @@ class BGS(Action):
          This is the exponent that would carry 10 to the population of the system.
          Example: Pop = 4.0 then actual population is: 10 ^ 4.0 = 10000
         """
-
         return header + table + explain
 
     async def edmc(self, system_name):
@@ -1001,7 +1064,7 @@ class Near(Action):
 
             lines = [['System', 'Distance']] + [[x.name, "{:.2f}".format(x.dist_to(centre))] for x in systems[:10]]
             msg = "__Closest 10 Controls__\n\n" + \
-                cog.tbl.wrap_markdown(cog.tbl.format_table(lines, header=True))
+                  cog.tbl.wrap_markdown(cog.tbl.format_table(lines, header=True))
 
         elif self.args.subcmd == 'if':
             sys_name = ' '.join(self.args.system)
@@ -1044,8 +1107,8 @@ class Pin(Action):
         # TODO: Use later in proper pin manager
         # to_delete = [msg]
         # async for message in self.bot.logs_from(msg.channel, 10):
-            # if not message.content or message.content == "!pin":
-                # to_delete += [message]
+        # if not message.content or message.content == "!pin":
+        # to_delete += [message]
         # await to_delete.delete()
 
 
@@ -1430,7 +1493,6 @@ class User(Action):
 class WhoIs(Action):
     """
     Who is request to Inara for CMDR info.
-
     """
     async def execute(self):
         cmdr = await cog.inara.api.search_with_api(' '.join(self.args.cmdr), self.msg)
