@@ -23,7 +23,6 @@ except ImportError:
 import cog.exc
 import cog.util
 
-
 APPLICATION_NAME = 'CogBot'
 # Requires read and write access to user's account
 REQ_SCOPE = 'https://www.googleapis.com/auth/spreadsheets'
@@ -225,7 +224,7 @@ class AsyncGSheet():
         Args:
             cells: List of A1 format like [A1:B2, C12, C4:D8, ...]
             dim: Major dimension is ROWS by default. Possible choices: ROWS or COLUMNS
-            resp_value_render: The rendering option to format the data in.
+            value_render: The rendering option to format the data in.
                                By default, unformatted will only return the data.
         """
         await AGCM.authorize()
@@ -243,7 +242,7 @@ class AsyncGSheet():
             ]
             input_opt: Default is 'RAW', store data as it exists.
                        'USER_ENTERED' would parse data as if entered in sheet.
-            value_render: The rendering option to format the data in.
+            resp_value_render: The rendering option to format the data in.
                           By default, unformatted will only return the data.
         """
         await AGCM.authorize()
@@ -255,7 +254,7 @@ class AsyncGSheet():
         Return all values in a column.
 
         Args:
-            col: The integer of the column to fetch, starts with 1.
+            col_index: The integer of the column to fetch, starts with 1.
             value_render: The rendering option to format the data in.
                           By default, unformatted will only return the data.
         """
@@ -267,7 +266,7 @@ class AsyncGSheet():
         Return all values in a row.
 
         Args:
-            row: The integer of the row to fetch, starts with 1.
+            row_index: The integer of the row to fetch, starts with 1.
             value_render: The rendering option to format the data in.
                           By default, unformatted will only return the data.
         """
@@ -279,7 +278,7 @@ class AsyncGSheet():
         Fetch a series of cells in an A1 range.
 
         Args:
-            range: A1 range to fetch from the worksheet.
+            a1_range: A1 range to fetch from the worksheet.
 
         Returns: A list of cells.
         """

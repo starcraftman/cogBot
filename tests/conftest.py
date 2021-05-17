@@ -541,8 +541,11 @@ def f_asheet():
     asheet.worksheet = aiomock.Mock()
     asheet.filename = None
 
-    async def batch_update_send_(dicts):
+    async def batch_update_send_(dicts, value):
         asheet.batch_update_sent = dicts
+
+    async def batch_update_get_(*args, dim='', value_render=''):
+        return asheet.batch_get.async_return_value
 
     async def init_():
         asheet.init_called = True
@@ -563,6 +566,7 @@ def f_asheet():
 
     asheet.batch_get.async_return_value = None
     asheet.batch_update = batch_update_send_
+    asheet.batch_get = batch_update_get_
     asheet.init_sheet = init_
     asheet.cells_get_range.async_return_value = None
     asheet.cells_updatea.async_return_value = None

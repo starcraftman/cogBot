@@ -784,9 +784,10 @@ class System(Base):
         dist = self.dist_to(system)
         return round(5000 - 5 * dist + 0.4 * (dist * dist))
 
-    def calc_um_trigger(self, system):
+    def calc_um_trigger(self, system, reinforced=0):
         """" Aproximates the default undermining trigger. """
-        return round(5000 + (2750000 / math.pow(self.dist_to(system), 1.5)))
+        normal_trigger = round(5000 + (2750000 / math.pow(self.dist_to(system), 1.5)))
+        return round(normal_trigger * (1 + (reinforced / 100)))
 
     def update(self, kwargs):
         """ Update this object based on a dictionary of kwargs. """

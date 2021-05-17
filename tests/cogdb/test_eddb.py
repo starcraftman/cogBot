@@ -144,3 +144,11 @@ def test_get_nearest_ifactors(eddb_session):
     system_names = list(set([x[0] for x in result]))
     assert "Stopover" in system_names
     assert "LHS 449" in system_names
+
+
+def test_um_trigger(eddb_session):
+    system_names = ["Arnemil", "Nanomam"]
+    systems = eddb_session.query(cogdb.eddb.System). \
+        filter(cogdb.eddb.System.name.in_(system_names)). \
+        all()
+    assert cogdb.eddb.System.calc_um_trigger(systems[0], systems[1], 25) == 13306

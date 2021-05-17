@@ -23,7 +23,7 @@ from cogdb.schema import (DiscordUser, FortSystem, FortDrop, FortUser,
 from tests.conftest import fake_msg_gears, fake_msg_newuser
 
 
-# Important, any fictures in here get auto run
+# Important, any fixtures in here get auto run
 pytestmark = pytest.mark.usefixtures("patch_scanners")
 
 
@@ -33,8 +33,11 @@ def patch_scanners():
     old_scanners = cog.actions.SCANNERS
     scanner = aiomock.Mock(user_row=5)
 
-    async def send_batch_(payloads):
+    async def send_batch_(payloads, input_opt='', *args):
         scanner.payloads = payloads
+
+    async def get_batch_(*args):
+        return scanner._values
 
     mock_cls = aiomock.Mock()
     mock_cls.update_sheet_user_dict.return_value = [
@@ -42,6 +45,7 @@ def patch_scanners():
     ]
     scanner.__class__ = mock_cls
     scanner.send_batch = send_batch_
+    scanner.get_batch = get_batch_
     cog.actions.SCANNERS = {
         'hudson_cattle': scanner,
         'hudson_kos': scanner,
@@ -105,6 +109,48 @@ async def test_cmd_invalid_flag(f_bot):
 
     with pytest.raises(cog.exc.ArgumentParseError):
         await action_map(msg, f_bot).execute()
+
+
+@pytest.mark.asyncio
+async def test_cmd_admin_addum_fail(f_admins, f_bot, db_cleanup):
+    msg = fake_msg_gears("!admin addum Cubeo")
+
+    await action_map(msg, f_bot).execute()
+
+    expect = 'All systems asked are already in the sheet or are invalid'
+    f_bot.send_long_message.assert_called_with(msg.channel, expect)
+
+
+@pytest.mark.asyncio
+async def test_cmd_admin_addum(f_admins, f_bot, f_asheet_umscanner, patch_scanners, db_cleanup):
+    fake_um = cog.actions.SCANNERS['hudson_undermine']
+    fake_cols = await f_asheet_umscanner.whole_sheet()
+    fake_cols = fake_cols[:13]
+    fake_cols = [[columns[i] for columns in fake_cols] for i in range(17)]
+    fake_cols = [fake_cols[3:]]
+    fake_um._values = fake_cols
+
+    msg = fake_msg_gears("!admin addum Kappa")
+
+    await action_map(msg, f_bot).execute()
+
+    expected_payloads = [{'range': 'N1:13', 'values': [
+        ['', '', '', '', 'Opp. trigger', '% safety margin'],
+        ['', '', '', '', '', '50%'],
+        ['0', '', '0', '', '#DIV/0!', ''],
+        [9790, '', '1,000', '', '0', ''],
+        ['0', '', '0', '', '0', ''],
+        ['1,000', '', '1,000', '', '0', ''],
+        ['Sec: N/A', 'Zemina Torval', 'Sec: N/A', '', 'Sec: N/A', ''],
+        ['', 'Normal', '', '', '', ''],
+        ['Kappa', '', 'Control System Template', '', 'Expansion Template', ''],
+        [0, '', '', '', '', ''], [0, '', '', '', '', ''],
+        ['Held merits', 'Redeemed merits', 'Held merits', 'Redeemed merits', 'Held merits', 'Redeemed merits'],
+        ['', '', '', '', '', '']]}]
+    assert fake_um.payloads == expected_payloads
+
+    expect = 'Systems added to the UM sheet.'
+    f_bot.send_long_message.assert_called_with(msg.channel, expect)
 
 
 @pytest.mark.asyncio
