@@ -58,36 +58,36 @@ def subs_admin(subs, prefix):
     """ Subcommand parsing for admin """
     desc = """Admin only commands. Examples:
 
-{prefix}admin add @GearsandCogs
+**{prefix}admin add @GearsandCogs  **
         Add GearsandCogs to the admin group.
-{prefix}admin remove @GearsandCogs
+**{prefix}admin remove @GearsandCogs**
         Remove GearsandCogs from the admin group.
-{prefix}admin add BGS #hudson_bgs
+**{prefix}admin add BGS #hudson_bgs**
         Whitelist bgs command for hudson_bgs channel.
-{prefix}admin remove BGS #hudson_bgs
+**{prefix}admin remove BGS #hudson_bgs**
         Remove whitelist for bgs command in hudson_bgs.
-{prefix}admin add Drop @FRC Member
+**{prefix}admin add Drop @FRC Member**
         Whitelist bgs command for members with role mentioned FRC Member.
-{prefix}admin remove Drop FRC Member
+**{prefix}admin remove Drop FRC Member**
         Remove whitelist for bgs command of users with role "FRC Member".
-{prefix}admin active -d 90 #hudson_operations #hudson_bgs
+**{prefix}admin active -d 90 #hudson_operations #hudson_bgs**
         Generate an activity report on cmdrs in listed channels,
         look back over last 90 days of messages.
-{prefix}admin cast A message here
+**{prefix}admin cast A message here**
         Broadcast a message to all channels.
-{prefix}admin cycle
+**{prefix}admin cycle**
         Point bot to new cycle's sheets.
-{prefix}admin deny
+**{prefix}admin deny**
         Toggle command processing.
-{prefix}admin dump
+**{prefix}admin dump**
         Dump the database to console to inspect.
-{prefix}admin halt
+**{prefix}admin halt**
         Shutdown this bot after short delay.
-{prefix}admin scan
+**{prefix}admin scan**
         Pull and parse the latest sheet information.
-{prefix}admin top n
+**{prefix}admin top n**
         Generate a top n summary for the current cycle. Default n = 5.
-{prefix}admin info @User
+**{prefix}admin info @User**
         Information about the mentioned User, DMed to admin.
 {prefix}admin addum Cubeo, Nauo -p Normal -r 50
         Will add Cubeo and Nauo with 50% reinforced trigger and Normal priority in UM sheet.
@@ -131,31 +131,31 @@ def subs_bgs(subs, prefix):
     """ Subcommand parsing for bgs """
     desc = """BGS related commands. Examples:
 
-{prefix}bgs age 16 cygni
+**{prefix}bgs age 16 cygni**
         Show exploiteds in 16 Cygni bubble by age.
-{prefix}bgs dash othime
+**{prefix}bgs dash othime**
         Show the bgs state of a bubble's exploited systems.
-{prefix}bgs edmc
+**{prefix}bgs edmc**
         Present the optimized route to jump and update EDMC for default systems.
-{prefix}bgs edmc Rana, Frey
+**{prefix}bgs edmc Rana, Frey**
         Present the optimized route to jump and update EDMC for Rana, Frey.
-{prefix}bgs exp Rana
+**{prefix}bgs exp Rana**
         Show all factions in Rana, select one, then show all expansion candidates.
-{prefix}bgs expto Rana
+**{prefix}bgs expto Rana**
         Show all factions that could possibly expand to Rana.
-{prefix}bgs faction
+**{prefix}bgs faction**
         Show a report for all systems where default factions present.
-{prefix}bgs faction Democrats of Muncheim
+**{prefix}bgs faction Democrats of Muncheim**
         Show a report for all systems where Democrats of Muncheim present.
-{prefix}bgs find Frey
+**{prefix}bgs find Frey**
         Show all Feudal/Patronage factions near Frey, expanding in 15ly increments.
-{prefix}bgs find Frey --max 50
+**{prefix}bgs find Frey --max 50**
         Show all Feudal/Patronage factions near Frey within 50ly.
-{prefix}bgs inf Sol
+**{prefix}bgs inf Sol**
         Show the factions and their influence in Sol.
-{prefix}bgs report Sol
+**{prefix}bgs report Sol**
         Show an overall report for one or more bubbles.
-{prefix}bgs sys Frey
+**{prefix}bgs sys Frey**
         Show a system overview and all factions.
     """.format(prefix=prefix)
     sub = subs.add_parser(prefix + 'bgs', description=desc, formatter_class=RawHelp)
@@ -192,7 +192,7 @@ def subs_dist(subs, prefix):
     The system names must match __exactly__. Match is not case sensitive.
     Examples:
 
-{prefix}dist sol, frey, Rana
+**{prefix}dist sol, frey, Rana**
         Display the distance from Sol to Frey and Rana.
     """.format(prefix=prefix)
     sub = subs.add_parser(prefix + 'dist', description=desc, formatter_class=RawHelp)
@@ -207,16 +207,16 @@ def subs_drop(subs, prefix):
     Amount dropped must be in range [-{num}, num]
     Examples:
 
-{prefix}drop 600 Rana
+**{prefix}drop 600 Rana**
         Drop 600 supplies for yourself at Rana.
-{prefix}drop -50 Rana
+**{prefix}drop -50 Rana**
         Made a mistake? Subract 50 forts from your drops at Rana.
-{prefix}drop 600 Rana @rjwhite
+**{prefix}drop 600 Rana @rjwhite**
         Drop 600 supplies for rjwhite Rana.
-{prefix}drop 600 lala
+**{prefix}drop 600 lala**
         Drop 600 supplies for yourself at Lalande 39866, search used when name is not exact.
-{prefix}drop 600 Rana --set 4560:2000
-{prefix}drop 600 Rana -s 4560:2000
+**{prefix}drop 600 Rana --set 4560:2000**
+**{prefix}drop 600 Rana -s 4560:2000**
         Drop 600 supplies at Rana for yourself, set fort status to 4500 and UM status to 2000.
     """.format(prefix=prefix, num=cog.util.get_config("limits", "max_drop", default=750))
     sub = subs.add_parser(prefix + 'drop', description=desc, formatter_class=RawHelp)
@@ -232,7 +232,7 @@ def subs_feedback(subs, prefix):
     """ Subcommand parsing for feedback """
     desc = """Give feedback or report a bug. Example:
 
-{prefix}bug Explain what went wrong ...
+**{prefix}bug Explain what went wrong ...**
         File a bug report or give feedback.
     """.format(prefix=prefix)
     sub = subs.add_parser(prefix + 'feedback', description=desc, formatter_class=RawHelp)
@@ -245,28 +245,28 @@ def subs_fort(subs, prefix):
     """ Subcommand parsing for fort """
     desc = """Show fortification status and targets. Examples:
 
-{prefix}fort
+**{prefix}fort**
         Show current fort objectives.
-{prefix}fort --details Sol
-{prefix}fort -d Sol
+**{prefix}fort --details Sol**
+**{prefix}fort -d Sol**
         Show a detailed view of Sol, including all CMDR merits.
-{prefix}fort --miss 1000
+**{prefix}fort --miss 1000**
         Show all systems missing <= 1000 supplies.
-{prefix}fort --next 5
-{prefix}fort -n 5
+**{prefix}fort --next 5**
+**{prefix}fort -n 5**
         Show the next 5 fortification targets (excluding Othime and skipped).
-{prefix}fort --order Sol, Adeo, Frey
+**{prefix}fort --order Sol, Adeo, Frey**
         Set the fort order to: Sol -> Adeo -> Frey, then fallback to default.
-{prefix}fort --order
+**{prefix}fort --order**
         Return the fort order to default sheet order.
-{prefix}fort --summary
+**{prefix}fort --summary**
         Show a breakdown by states of our systems.
-{prefix}fort alpha
+**{prefix}fort alpha**
         Show the fortification status of Alpha Fornacis.
-{prefix}fort alpha, sol, ran
+**{prefix}fort alpha, sol, ran**
         Show the fortification status of Alpha Fornacis, Sol and Rana.
-{prefix}fort Othime --set 7500:2000
-{prefix}fort Othime -s 7500:2000
+**{prefix}fort Othime --set 7500:2000**
+**{prefix}fort Othime -s 7500:2000**
         Set othime to 7500 fort status and 2000 um status.
     """.format(prefix=prefix)
     sub = subs.add_parser(prefix + 'fort', description=desc, formatter_class=RawHelp)
@@ -299,20 +299,20 @@ def subs_hold(subs, prefix):
     """ Subcommand parsing for hold """
     desc = """Update a user's held or redeemed merits. Examples:
 
-{prefix}hold 1200 burr
+**{prefix}hold 1200 burr**
         Set your held merits at Burr to 1200.
-{prefix}hold 900 af leopris @Memau
+**{prefix}hold 900 af leopris @Memau**
         Set held merits at System AF Leopris to 900 held for Memau.
-{prefix}hold --died
-{prefix}hold -d
+**{prefix}hold --died**
+**{prefix}hold -d**
         Reset your held merits to 0 due to dying.
-{prefix}hold --redeem
-{prefix}hold -r
+**{prefix}hold --redeem**
+**{prefix}hold -r**
         Move all held merits to redeemed column.
-{prefix}hold --redeem-systems Burr, Rana
+**{prefix}hold --redeem-systems Burr, Rana**
         Redeem only merits for systems listed.
-{prefix}hold 720 burr --set 60000:130
-{prefix}hold 720 burr -s 60000:130
+**{prefix}hold 720 burr --set 60000:130**
+**{prefix}hold 720 burr -s 60000:130**
         Update held merits to 720 at Burr expansion and set progress to 60000 merits for us
 and 130% opposition.
     """.format(prefix=prefix)
@@ -332,11 +332,11 @@ def subs_kos(subs, prefix):
     """ Subcommand parsing for kos """
     desc = """KOS related commands. Examples:
 
-{prefix}kos report user_name Explain why he is reported after name.
+**{prefix}kos report user_name Explain why he is reported after name.**
         Report an enemy PP user for KOS addition.
-{prefix}kos search user_name
+**{prefix}kos search user_name**
         Search for a user, list all possible matching users.
-{prefix}kos pull
+**{prefix}kos pull**
         Pull all changes from sheet. Mainly to be used after modifying list.
     """.format(prefix=prefix)
     sub = subs.add_parser(prefix + 'kos', description=desc, formatter_class=RawHelp)
@@ -356,13 +356,13 @@ def subs_near(subs, prefix):
     """ Subcommand parsing for bgs """
     desc = """Near related commands. Examples:
 
-{prefix}near control winters
+**{prefix}near control winters**
         Show the 10 nearest Winters controls to Sol (default system).
-{prefix}near control hudson rana
+**{prefix}near control hudson rana**
         Show the 10 nearest Hudson controls to rana.
-{prefix}near if sol
+**{prefix}near if sol**
         Show the nearest interstellar factors to sol.
-{prefix}near if sol -m
+**{prefix}near if sol -m**
         Show the nearest interstellar factors to sol. Include medium pads.
     """.format(prefix=prefix)
     sub = subs.add_parser(prefix + 'near', description=desc, formatter_class=RawHelp)
@@ -391,15 +391,15 @@ def subs_repair(subs, prefix):
     """ Subcommand parsing for repair """
     desc = """Find a station with both L pad and shipyard near you.
 
-{prefix}repair arnemil
+**{prefix}repair arnemil**
         Show suitable stations <= 15ly from Arnemil with arrival <= 1000ls
-{prefix}repair arnemil --arrival 4000
-{prefix}repair arnemil -a 4000
+**{prefix}repair arnemil --arrival 4000**
+**{prefix}repair arnemil -a 4000**
         Show suitable stations <= 15ly from Arnemil with arrival <= 4000ls
-{prefix}repair arnemil --distance 30
-{prefix}repair arnemil -d 30
+**{prefix}repair arnemil --distance 30**
+**{prefix}repair arnemil -d 30**
         Show suitable stations <= 30ly from Arnemil with arrival <= 1000ls
-{prefix}repair arnemil -m
+**{prefix}repair arnemil -m**
         Show suitable stations to repair at. Include medium pads.
         Note: M pad stations won't have shipyards, will have outfitting though.
     """.format(prefix=prefix)
@@ -416,10 +416,10 @@ def subs_route(subs, prefix):
     """ Subcommand parsing for route """
     desc = """Plot the shortest route between the listed systems.
 
-{prefix}route rana, sol, nanomam, frey
+**{prefix}route rana, sol, nanomam, frey**
         Show the route that minimizes jumps to visit all systems, starting at Rana
-{prefix}route rana, sol, nanomam, frey --optimum
-{prefix}route rana, sol, nanomam, frey -o
+**{prefix}route rana, sol, nanomam, frey --optimum**
+**{prefix}route rana, sol, nanomam, frey -o**
         Show the route that minimizes jumps to visit all systems, start is not fixed
     """.format(prefix=prefix)
     sub = subs.add_parser(prefix + 'route', description=desc, formatter_class=RawHelp)
@@ -434,9 +434,9 @@ def subs_scout(subs, prefix):
     desc = """Generate a scouting list. Control output with flags.
     Examples:
 
-{prefix}scout -r 1
+**{prefix}scout -r 1**
         Generate a scouting list, use first round. Choices are 1, 2 or 3.
-{prefix}scout --custom Atropos, Alpha Fornacis, Rana, Anlave, NLTT 46621, 16 Cygni
+**{prefix}scout --custom Atropos, Alpha Fornacis, Rana, Anlave, NLTT 46621, 16 Cygni**
         Generate a scouting list, round the specified systems.
     """.format(prefix=prefix)
     sub = subs.add_parser(prefix + 'scout', description=desc, formatter_class=RawHelp)
@@ -464,10 +464,10 @@ def subs_trigger(subs, prefix):
     """ Subcommand parsing for trigger """
     desc = """Predict the expected triggers for the requested systems.
 
-{prefix}trigger Rana, Arnemil
+**{prefix}trigger Rana, Arnemil**
         Calculate triggers for requested systems from Hudson HQ.
-{prefix}trigger Rana, Arnemil --power winters
-{prefix}trigger Rana, Arnemil -p winters
+**{prefix}trigger Rana, Arnemil --power winters**
+**{prefix}trigger Rana, Arnemil -p winters**
         Calculate triggers for requested systems from Winters HQ.
     """.format(prefix=prefix)
     sub = subs.add_parser(prefix + 'trigger', description=desc, formatter_class=RawHelp)
@@ -481,21 +481,21 @@ def subs_um(subs, prefix):
     """ Subcommand parsing for um """
     desc = """Get undermining targets and update their galmap status. Examples:
 
-{prefix}um
+**{prefix}um**
         Show current active undermining targets.
-{prefix}um burr
+**{prefix}um burr**
         Show the current status and information on Burr.
-{prefix}um afl
+**{prefix}um afl**
         Show the current status and information on AF Leopris, matched search.
-{prefix}um burr --set 60000:130
-{prefix}um burr -s 60000:130
+**{prefix}um burr --set 60000:130**
+**{prefix}um burr -s 60000:130**
         Set the galmap status of Burr to 60000 and opposition to 130%.
-{prefix}um burr --offset 4000
-{prefix}um burr -o 4000
+**{prefix}um burr --offset 4000**
+**{prefix}um burr -o 4000**
         Set the offset difference of cmdr merits and galmap.
-{prefix}um --list
+**{prefix}um --list**
         Show all outstanding merits by users and system.
-{prefix}um --npcs
+**{prefix}um --npcs**
         List powerplay NPC ships by alligence.
     """.format(prefix=prefix)
     sub = subs.add_parser(prefix + 'um', description=desc, formatter_class=RawHelp)
@@ -513,11 +513,11 @@ def subs_user(subs, prefix):
     """ Subcommand parsing for user """
     desc = """Manipulate your user settings. Examples:
 
-{prefix}user
+**{prefix}user**
         Show your sheet name, crys and merits per sheet.
-{prefix}user --name Not Gears
+**{prefix}user --name Not Gears**
         Set your name to 'Not Gears'.
-{prefix}user --cry The bots are invading!
+**{prefix}user --cry The bots are invading!**
         Set your battle cry to "The bots are invading!".
     """.format(prefix=prefix)
     sub = subs.add_parser(prefix + 'user', description=desc, formatter_class=RawHelp)
@@ -531,9 +531,9 @@ def subs_whois(subs, prefix):
     """ Subcommand parsing for whois """
     desc = """Lookup information for a commander on Inara.cz
 
-{prefix}whois GearsandCogs
+**{prefix}whois GearsandCogs**
         Find out who this GearsandCogs fellow is ...
-{prefix}whois gears
+**{prefix}whois gears**
         Search for all CMDRs with 'gears' in their name
     """.format(prefix=prefix)
     sub = subs.add_parser(prefix + 'whois', description=desc, formatter_class=RawHelp)
