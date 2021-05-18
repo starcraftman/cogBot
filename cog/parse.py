@@ -393,8 +393,29 @@ def subs_recruits(subs, prefix):
     """ Subcommand parsing for recruits """
     desc = """Manipulate your user settings. Examples:
 
-{prefix}recruits add @mention_user CMDR_Name, PC/Xbox/PS4, PMF, Notes
-        Add a recruit to the last free entry in the sheet.
+**{prefix}recruits add CMDR Name Here -r R -p 1 --pmf Some PMF Group --notes Any notes go here**
+        Add a single recruit to the sheet complete example. The following will be true:
+            Name and discord name will be set to CMDR Name.
+            Rank will be R (Recruit). Other values possible: M (Member) or V (Veteran)
+            Platform will be 1 (PC). Other values possible: 2 (XBox), 3 (PS4), 1+2, 1+3, 1+2+3
+            PMF field will be set to: Some PMF Group
+            Notes will have: Any notes go here
+**{prefix}recruits add CMDR Name Here**
+        Add a single recruit to the sheet. Discord name assumed to be same. Rank will default to 'R', all other fields empty.
+        Below optional flags can be added.
+**{prefix}recruits add CMDR Name Here -d Discord name is different**
+**{prefix}recruits add CMDR Name Here --discord Discord name is different**
+        When discord name is different than in game name, use this flag to specify.
+**{prefix}recruits add CMDR Name Here -p 1**
+**{prefix}recruits add CMDR Name Here --platform 1**
+        Will add the commander with platform 1 (PC). Other values possible: 2 (XBox), 3 (PS4), 1+2, 1+3, 1+2+3
+**{prefix}recruits add CMDR Name Here -r R**
+**{prefix}recruits add CMDR Name Here --rank R**
+        Will add the commander with rank R (Recruit). Other values possible: M (Member) or V (Veteran)
+**{prefix}recruits add CMDR Name Here --pmf Some PMF Group**
+        Will add the commander with PMF field to: Some PMF Group
+**{prefix}recruits add CMDR Name Here --notes Any notes go here**
+        Will add the commander with notes field to: Any notes go here
     """.format(prefix=prefix)
     sub = subs.add_parser(prefix + 'recruits', description=desc, formatter_class=RawHelp)
     sub.set_defaults(cmd='Recruits')
