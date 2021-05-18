@@ -903,6 +903,7 @@ async def test_cmd_status(f_bot):
         ['Version', '{}'.format(cog.__version__)],
         ['Contributors:', ''],
         ['    Shotwn', 'Inara search'],
+        ['    Prozer', 'Various Contributions'],
     ]))
     f_bot.send_message.assert_called_with(msg.channel, expect)
 
