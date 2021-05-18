@@ -476,7 +476,7 @@ class UMScanner(FortScanner):
         Local function that return a List of List with slided cells formula to the right by 2 columns.
         Args:
                 raw_um_sheet: List of List returned by get_batch.
-                sheet_index: Int, Which column is the first one of the slide. Start counting at column D.
+                sheet_index: Int, Which column is the first one of the slide. One-base index starting at column D.
         """
         temp_index = sheet_index
         temp = deepcopy(raw_um_sheet)
@@ -496,6 +496,75 @@ class UMScanner(FortScanner):
                              "{}$".format(column_name_5))
             temp_index += 1
         return temp
+
+    @staticmethod
+    def slide_formula_to_left(raw_um_sheet, sheet_index):
+        """
+        Local function that return a List of List with slided cells formula to the left by 2 columns.
+        Args:
+                raw_um_sheet: List of List returned by get_batch.
+                sheet_index: Int, Which column is the first one of the slide. One-base index starting at column D.
+        """
+        temp_index = sheet_index
+        temp = deepcopy(raw_um_sheet)
+        for columns in temp[0]:
+            column_init = cog.sheets.Column()
+            column_name_2 = column_init.offset(temp_index + 3)
+            column_name_3 = column_init.offset(1)
+            column_name_4 = column_init.offset(1)
+            column_name_5 = column_init.offset(1)
+            for j in range(len(columns)):
+                columns[j] = str(columns[j])\
+                    .replace("{}$".format(column_name_4),
+                             "{}$".format(column_name_2))\
+                    .replace(":{}".format(column_name_5),
+                             ":{}".format(column_name_3)) \
+                    .replace("{}$".format(column_name_5),
+                             "{}$".format(column_name_3))
+
+            temp_index += 1
+        return temp
+
+    @staticmethod
+    def remove_um(sheet_values, systems_names):
+        index = 0
+        first_system_found = None
+        # Find the first iteration of a system to delete
+        for column in sheet_values[0]:
+            if column[8] in systems_names:
+                first_system_found = index
+                del sheet_values[0][:index]
+                break
+            index += 1
+
+        # reset index and adding 13th value to pivot later
+        index = 0
+        [cell.append('') for cell in sheet_values[0][1::2]]
+
+        # Setup the temporary sheet needed for later computation
+        new_um_sheet = deepcopy(sheet_values)
+        new_um_sheet_temp = None
+        new_um_index = None
+
+        for column in sheet_values[0]:
+            if column[8] in systems_names:
+                if new_um_sheet_temp:
+                    del new_um_sheet_temp[0][new_um_index:new_um_index + 2]
+                    new_um_index -= 2
+                    index -= 2
+                    new_um_sheet_temp = UMScanner.slide_formula_to_left(new_um_sheet_temp, first_system_found + index)
+                else:
+                    del new_um_sheet[0][:2]
+                    new_um_sheet_temp = UMScanner.slide_formula_to_left(new_um_sheet, first_system_found)
+                    new_um_index = index - 2
+                # Adding 2 empty columns to overwrite the right columns
+                [new_um_sheet_temp[0].append(['', '', '', '', '', '', '', '', '', '', '', '', '']) for _ in range(2)]
+            if new_um_index:
+                new_um_index += 1
+            index += 1
+        new_um_sheet_temp[0] = [[row[i] for row in new_um_sheet_temp[0]] for i in range(13)]
+        return [{'range': '{}1:13'.format(cog.sheets.Column().offset(first_system_found + 3)),
+                 'values': new_um_sheet_temp[0]}]
 
 
 class KOSScanner(FortScanner):

@@ -249,6 +249,25 @@ async def test_umscanner_slide_templates(f_asheet_umscanner):
     assert returned_data == expected_return
 
 
+@pytest.mark.asyncio
+async def test_umscanner_remove_um(f_asheet_umscanner):
+    systems = []
+    system_to_remove = ['Albisiyatae']
+    [systems.append(await f_asheet_umscanner.values_col(i)) for i in range(17)]
+    systems = [systems[i][:13] for i in range(len(systems))]
+    returned_data = UMScanner.remove_um([systems[3:]], system_to_remove)
+    expected_return = [{'range': 'L1:13', 'values': [
+        ['', '', 'Opp. trigger', '% safety margin', '', ''],
+        ['', '', '', '50%', '', ''], ['0', '', '#DIV/0!', '', '', ''],
+        ['1,000', '', '0', '', '', ''], ['0', '', '0', '', '', ''],
+        ['1,000', '', '0', '', '', ''], ['Sec: N/A', '', 'Sec: N/A', '', '', ''],
+        ['', '', '', '', '', ''], ['Control System Template', '', 'Expansion Template', '', '', ''],
+        ['', '', '', '', '', ''], ['', '', '', '', '', ''],
+        ['Held merits', 'Redeemed merits', 'Held merits', 'Redeemed merits', '', ''],
+        ['', '', '', '', '', '']]}]
+    assert returned_data == expected_return
+
+
 def test_umscanner_slide_formula_to_right():
     raw_data = [[['', '', '=IF(N$10 > N$5+N$13, N$10 / N$4 * 100, ROUNDDOWN((N$5+N$13) / N$4 * 100))',
                   1000, '=SUM(N$14:O)', '=IF(N$10 > N$5+N$13, N$4 - N$10, N$4 - N$5-N$13)',
@@ -263,6 +282,23 @@ def test_umscanner_slide_formula_to_right():
                                 '=CONCATENATE("Sec: ",IF(ISBLANK(VLOOKUP(P$9,Import!$A$2:$C,2,FALSE)),"N/A",VLOOKUP(P$9,Import!$A$2:$C,2,FALSE)))',
                                 '=VLOOKUP(P$9,Import!$A$2:$C,3,FALSE)', 'Control System Template', '', '', 'Held merits',
                                 '=max(SUM(Q$14:Q),P$10)-SUM(Q$14:Q)']]]
+    assert returned_data == expected_returned_data
+
+
+def test_umscanner_slide_formula_to_left():
+    raw_data = [[['', '', '=IF(N$10 > N$5+N$13, N$10 / N$4 * 100, ROUNDDOWN((N$5+N$13) / N$4 * 100))',
+                  1000, '=SUM(N$14:O)', '=IF(N$10 > N$5+N$13, N$4 - N$10, N$4 - N$5-N$13)',
+                  '=CONCATENATE("Sec: ",IF(ISBLANK(VLOOKUP(N$9,Import!$A$2:$C,2,FALSE)),"N/A",VLOOKUP(N$9,Import!$A$2:$C,2,FALSE)))',
+                  '=VLOOKUP(N$9,Import!$A$2:$C,3,FALSE)', 'Control System Template', '', '', 'Held merits',
+                  '=max(SUM(O$14:O),N$10)-SUM(O$14:O)']]]
+
+    returned_data = UMScanner.slide_formula_to_left(raw_data, 8)
+
+    expected_returned_data = [[['', '', '=IF(L$10 > L$5+L$13, L$10 / L$4 * 100, ROUNDDOWN((L$5+L$13) / L$4 * 100))',
+                                '1000', '=SUM(L$14:M)', '=IF(L$10 > L$5+L$13, L$4 - L$10, L$4 - L$5-L$13)',
+                                '=CONCATENATE("Sec: ",IF(ISBLANK(VLOOKUP(L$9,Import!$A$2:$C,2,FALSE)),"N/A",VLOOKUP(L$9,Import!$A$2:$C,2,FALSE)))',
+                                '=VLOOKUP(L$9,Import!$A$2:$C,3,FALSE)', 'Control System Template', '', '', 'Held merits',
+                                '=max(SUM(M$14:M),L$10)-SUM(M$14:M)']]]
     assert returned_data == expected_returned_data
 
 

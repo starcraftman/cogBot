@@ -117,11 +117,13 @@ def subs_admin(subs, prefix):
     admin_sub.add_argument('-d', '--days', type=int, default=90, nargs='?',
                            help='The number of days to look back.')
     admin_sub = admin_subs.add_parser('addum', help='Add systems to Undermining sheet.')
-    admin_sub.add_argument('system', nargs='+', help='System name to add.')
+    admin_sub.add_argument('system', nargs='+', help='System(s) to add to sheet.')
     admin_sub.add_argument('-p', '--priority', nargs='?', default='Normal', help='Priority of the new systems.',
                            choices=["Normal", "High", "Low", "Leave for now"])
     admin_sub.add_argument('-r', '--reinforced', type=int, default=50, nargs='?',
                            help='Reinforcement %age of the new systems.')
+    admin_sub = admin_subs.add_parser('removeum', help='Remove systems from the Undermining sheet.')
+    admin_sub.add_argument('system', nargs='+', help='Systems(s) to remove from sheet.')
 
 
 @register_parser
