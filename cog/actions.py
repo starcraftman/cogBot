@@ -1162,13 +1162,17 @@ class Recruits(Action):
 
         cmdr = " ".join(self.args.cmdr)
         discord_name = " ".join(self.args.discord_name) if self.args.discord_name else cmdr
+        notes = " ".join(self.args.notes)
+        if not re.match(r'.*-\s*\S+$', notes):
+            notes += " -{}".format(self.msg.author.name)
+
         await r_scanner.send_batch(r_scanner.add_recruit_dict(
             cmdr=cmdr,
             discord_name=discord_name,
             rank=self.args.rank,
             platform=self.args.platform,
             pmf=" ".join(self.args.pmf),
-            notes=" ".join(self.args.notes)
+            notes=notes,
         ))
 
         response = "CMDR {} has been added to row: {}".format(cmdr, r_scanner.first_free - 1)
