@@ -1311,6 +1311,7 @@ class Status(Action):
             ['Version', '{}'.format(cog.__version__)],
             ['Contributors:', ''],
             ['    Shotwn', 'Inara search'],
+            ['    Prozer', 'Various Contributions'],
         ]
 
         await self.bot.send_message(self.msg.channel,
