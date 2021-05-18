@@ -36,6 +36,7 @@ import discord
 import cog
 import cog.exc
 import cog.util
+import cogdb
 
 # Disable line too long, pylint: disable=C0301
 
@@ -63,6 +64,13 @@ PP_COLORS = {
     'Federation': 0xB20000,
     'default': 0xDEADBF,
 }
+
+KOS_COLORS = {
+    'KILL': 0x3232FF,
+    'FRIENDLY': 0xB20000,
+    'default': 0xDEADBF,
+}
+
 COMBAT_RANKS = [
     'Harmless',
     'Mostly Harmless',
@@ -389,20 +397,28 @@ class InaraApi():
                 {'name': 'Squadron', 'value': cmdr["squad"], 'inline': True},
             ],
         })
+
         embeds = [cmdr_embed] + embeds
+
+        kos_cmdrs = cogdb.query.kos_search_cmdr(cogdb.Session(), cmdr['name'])
+        for kos in kos_cmdrs[:3]:
+            embeds += [discord.Embed.from_dict({
+                'color': KOS_COLORS.get(kos.friendly, KOS_COLORS['default']),
+                'author': {
+                    'name': "KOS Finder",
+                    'icon_url': cmdr["profile_picture"],
+                },
+                "fields": [
+                    {'name': 'Name', 'value': kos.cmdr, 'inline': True},
+                    {'name': 'Reg Squadron', 'value': kos.faction, 'inline': True},
+                    {'name': 'Is Friendly ?', 'value': kos.friendly, 'inline': True},
+                ],
+            })]
+
         futs = [cog.util.BOT.send_message(msg.channel, embed=embed) for embed in embeds]
         futs += [self.delete_waiting_message(req_id)]
-
         for fut in futs:
             await fut
-
-        # TODO: Potential KOS hook, bit ugly and jarring in contrast though
-        #  cmdrs = cogdb.query.kos_search_cmdr(cogdb.Session(), cmdr['name'])
-        #  if cmdrs:
-            #  cmdrs = [[x.cmdr, x.faction, x.friendly] for x in cmdrs]
-            #  cmdrs = [['CMDR Name', 'Faction', 'Is Friendly?']] + cmdrs
-            #  kos_msg = cog.tbl.wrap_markdown(cog.tbl.format_table(cmdrs, header=True))
-            #  futs += [cog.util.BOT.send_message(msg.channel, "__KOS Lookup__\n" + kos_msg)]
 
 
 def check_reply(msg, prefix='!'):
