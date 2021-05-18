@@ -417,7 +417,7 @@ class Admin(Action):
             um_sheet = await um_scanner.get_batch(['D1:13'], 'COLUMNS', 'FORMULA')
             data = cogdb.scanners.UMScanner.slide_templates(um_sheet, values)
             await um_scanner.send_batch(data, input_opt='USER_ENTERED')
-            self.bot.sched.schedule("hudson_undermine")
+            self.bot.sched.schedule("hudson_undermine", 1)
             await self.bot.send_message(self.msg.channel, '\n'.join(lines))
             await asyncio.sleep(1)
             if found_list:
@@ -426,6 +426,39 @@ class Admin(Action):
             return 'Systems added to the UM sheet.'
         else:
             return 'All systems asked are already in the sheet or are invalid'
+
+    async def removeum(self):
+        """Remove a system(s) from the um sheet"""
+        eddb_session = cogdb.EDDBSession()
+        systems = await self.bot.loop.run_in_executor(
+            None, cogdb.eddb.get_systems, eddb_session,
+            process_system_args(self.args.system))
+
+        um_scanner = get_scanner("hudson_undermine")
+        systems_in_sheet = cogdb.query.um_get_systems(self.session, exclude_finished=False)
+        found_list = []
+        unlisted_system = []
+        for system in systems:
+            found = False
+            for system_in_sheet in systems_in_sheet:
+                if system_in_sheet.name == system.name:
+                    found = True
+                    found_list.append(system.name)
+            if not found:
+                unlisted_system.append(system.name)
+
+        if found_list:
+            um_sheet = await um_scanner.get_batch(['D1:13'], 'COLUMNS', 'FORMULA')
+            data = cogdb.scanners.UMScanner.remove_um(um_sheet, found_list)
+            await um_scanner.send_batch(data, input_opt='USER_ENTERED')
+            self.bot.sched.schedule("hudson_undermine", 1)
+            await asyncio.sleep(1)
+            if unlisted_system:
+                return "Systems removed from the UM sheet.\n\nThe following systems were not found : {}" \
+                    .format(", ".join(unlisted_system))
+            return 'Systems removed from the UM sheet.'
+        else:
+            return 'All systems asked are not on the sheet'
 
     async def execute(self):
         try:
