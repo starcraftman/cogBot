@@ -18,7 +18,8 @@ import cogdb
 from cogdb.eddb import HUDSON_CONTROLS
 from cogdb.side import SystemAge
 from cogdb.schema import (DiscordUser, FortSystem, FortDrop, FortUser,
-                          FortOrder, UMSystem, UMUser, UMHold)
+                          FortOrder, UMSystem, UMUser, UMHold,
+                          TrackSystem, TrackSystemCached, TrackByID)
 
 from tests.conftest import fake_msg_gears, fake_msg_newuser
 
@@ -918,6 +919,96 @@ async def test_cmd_time(f_bot):
     await action_map(msg, f_bot).execute()
 
     assert "Game Time:" in str(f_bot.send_message.call_args)
+
+
+@pytest.mark.asyncio
+async def test_cmd_track_add(f_bot, f_dusers, f_admins, f_track_testbed):
+    msg = fake_msg_gears("!track add -d 10 Kappa")
+
+    await action_map(msg, f_bot).execute()
+
+    expected = """__Systems Added To Tracking__
+
+Systems added: 9 First few follow ...
+
+HIP 33799, Hyades Sector IC-K b9-4, Kappa, Ocshongzi, Pang, Suttora, Tjiwang, Tyerremon, Udegobo"""
+    f_bot.send_message.assert_called_with(msg.channel, expected)
+
+    session = cogdb.Session()
+    assert session.query(TrackSystem).filter(TrackSystem.system == "Kappa").one().distance == 10
+    assert session.query(TrackSystemCached).filter(TrackSystemCached.system == "Pang").one()
+
+
+@pytest.mark.asyncio
+async def test_cmd_track_remove(f_bot, f_dusers, f_admins, f_track_testbed):
+    msg = fake_msg_gears("!track remove Rhea")
+
+    await action_map(msg, f_bot).execute()
+
+    expected = """__Systems Removed From Tracking__
+
+Systems added: 8 First few follow ...
+
+Amun, BD-13 2439, LP 726-6, LQ Hydrae, Masans, Orishpucho, Rhea, Santal"""
+    f_bot.send_message.assert_called_with(msg.channel, expected)
+
+    session = cogdb.Session()
+    assert session.query(TrackSystem).filter(TrackSystem.system == "Rhea").all() == []
+    assert session.query(TrackSystemCached).filter(TrackSystemCached.system == "Santal").all() == []
+
+
+@pytest.mark.asyncio
+async def test_cmd_track_show(f_bot, f_dusers, f_admins, f_track_testbed):
+    msg = fake_msg_gears("!track show")
+
+    await action_map(msg, f_bot).execute()
+
+    expected = """__Tracking System Rules__
+
+    Tracking systems <= 15ly from Nanomam
+    Tracking systems <= 15ly from Rhea"""
+    f_bot.send_message.assert_called_with(msg.channel, expected)
+
+
+@pytest.mark.asyncio
+async def test_cmd_track_ids_add(f_bot, f_dusers, f_admins, f_track_testbed):
+    msg = fake_msg_gears("!track ids -a ZZZ-111")
+
+    await action_map(msg, f_bot).execute()
+
+    expected = "Carrier IDs added successfully to tracking."
+    f_bot.send_message.assert_called_with(msg.channel, expected)
+
+    session = cogdb.Session()
+    assert session.query(TrackByID).filter(TrackByID.id == "ZZZ-111").one().override
+
+
+@pytest.mark.asyncio
+async def test_cmd_track_ids_remove(f_bot, f_dusers, f_admins, f_track_testbed):
+    msg = fake_msg_gears("!track ids -r J3N-53B")
+
+    await action_map(msg, f_bot).execute()
+
+    expected = "Carrier IDs removed successfully from tracking."
+    f_bot.send_message.assert_called_with(msg.channel, expected)
+
+    session = cogdb.Session()
+    assert session.query(TrackByID).filter(TrackByID.id == "J3N-53B").all() == []
+
+
+@pytest.mark.asyncio
+async def test_cmd_track_ids_show(f_bot, f_dusers, f_admins, f_track_testbed):
+    msg = fake_msg_gears("!track ids -s")
+
+    await action_map(msg, f_bot).execute()
+
+    expected = """__Tracking IDs__
+
+J3J-WVT [CLBF] seen in **No Info** at 2000-01-10 00:00:00.
+J3N-53B [CLBF] seen in **No Info** at 2000-01-12 00:00:00.
+OVE-111 [Manual] seen in **No Info** at 2000-01-12 00:00:00.
+XNL-3XQ [CLBF] seen in **No Info** at 2000-01-10 00:00:00."""
+    f_bot.send_message.assert_called_with(msg.channel, expected)
 
 
 @pytest.mark.asyncio

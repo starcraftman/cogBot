@@ -26,26 +26,28 @@ import cogdb
 import cogdb.query
 from cogdb.schema import (DiscordUser, FortSystem, FortPrep, FortDrop, FortUser, FortOrder,
                           UMSystem, UMExpand, UMOppose, UMUser, UMHold, KOS,
-                          AdminPerm, ChannelPerm, RolePerm)
+                          AdminPerm, ChannelPerm, RolePerm,
+                          TrackSystem, TrackSystemCached, TrackByID)
 from tests.data import CELLS_FORT, CELLS_FORT_FMT, CELLS_UM
 
 
-#  @pytest.yield_fixture(scope='function', autouse=True)
-#  def around_all_tests(session):
-    #  """
-    #  Executes before and after EVERY test.
+@pytest.yield_fixture(scope='function', autouse=True)
+def around_all_tests(session):
+    """
+    Executes before and after EVERY test.
 
-    #  Can be helpful for tracking bugs, like dirty database after test.
-    #  Disabled unless needed. Non-trivial overhead.
-    #  """
-    #  start = datetime.datetime.now(datetime.timezone.utc)
-    #  yield
-    #  print(" Time", datetime.datetime.now(datetime.timezone.utc) - start, end="")
+    Can be helpful for tracking bugs, like dirty database after test.
+    Disabled unless needed. Non-trivial overhead.
+    """
+    start = datetime.datetime.now(datetime.timezone.utc)
+    yield
+    print(" Time", datetime.datetime.now(datetime.timezone.utc) - start, end="")
 
-    #  classes = [DiscordUser, FortUser, FortSystem, FortDrop, UMSystem, UMUser, UMHold,
-               #  KOS, AdminPerm, ChannelPerm, RolePerm]
-    #  for cls in classes:
-        #  assert not session.query(cls).all()
+    classes = [DiscordUser, FortUser, FortSystem, FortDrop, UMSystem, UMUser, UMHold,
+               KOS, AdminPerm, ChannelPerm, RolePerm,
+               TrackSystem, TrackSystemCached, TrackByID]
+    for cls in classes:
+        assert not session.query(cls).all()
 
 
 REASON_SLOW = 'Slow as blocking to sheet. To enable, ensure os.environ ALL_TESTS=True'
@@ -100,7 +102,8 @@ def db_cleanup(session):
 
     cogdb.schema.empty_tables(session, perm=True)
 
-    classes = [DiscordUser, FortUser, FortSystem, FortDrop, UMUser, UMSystem, UMHold, KOS]
+    classes = [DiscordUser, FortUser, FortSystem, FortDrop, UMUser, UMSystem, UMHold,
+               KOS, TrackSystem, TrackSystemCached, TrackByID]
     for cls in classes:
         assert session.query(cls).all() == []
 
@@ -606,3 +609,60 @@ def f_asheet_kos(f_asheet):
     f_asheet.filename = cog.util.rel_to_abs('tests', 'test_input.kos.txt')
 
     yield f_asheet
+
+
+@pytest.fixture
+def f_track_testbed(session):
+    """
+    Setup the database with dummy data for track tests.
+    """
+    track_systems = (
+        TrackSystem(system="Rhea", distance=15),
+        TrackSystem(system="Nanomam", distance=15),
+    )
+    track_systems_cached = (
+        TrackSystemCached(system="44 chi Draconis"),
+        TrackSystemCached(system="Acihaut"),
+        TrackSystemCached(system="Bodedi"),
+        TrackSystemCached(system="DX 799"),
+        TrackSystemCached(system="G 239-25"),
+        TrackSystemCached(system="Lalande 18115"),
+        TrackSystemCached(system="LFT 880"),
+        TrackSystemCached(system="LHS 1885"),
+        TrackSystemCached(system="LHS 215"),
+        TrackSystemCached(system="LHS 221"),
+        TrackSystemCached(system="LHS 2459"),
+        TrackSystemCached(system="LHS 246"),
+        TrackSystemCached(system="LHS 262"),
+        TrackSystemCached(system="LHS 283"),
+        TrackSystemCached(system="LHS 6128"),
+        TrackSystemCached(system="LP 5-88"),
+        TrackSystemCached(system="LP 64-194"),
+        TrackSystemCached(system="Nang Ta-khian"),
+        TrackSystemCached(system="Nanomam"),
+        TrackSystemCached(system="Tollan"),
+        TrackSystemCached(system="Amun"),
+        TrackSystemCached(system="BD-13 2439"),
+        TrackSystemCached(system="LP 726-6"),
+        TrackSystemCached(system="LQ Hydrae"),
+        TrackSystemCached(system="Masans"),
+        TrackSystemCached(system="Orishpucho"),
+        TrackSystemCached(system="Rhea"),
+        TrackSystemCached(system="Santal"),
+    )
+    date = datetime.datetime(year=2000, month=1, day=10, hour=0, minute=0, second=0, microsecond=0)
+    track_ids = (
+        TrackByID(id="J3J-WVT", squad="CLBF", updated_at=date),
+        TrackByID(id="XNL-3XQ", squad="CLBF", updated_at=date),
+        TrackByID(id="J3N-53B", squad="CLBF", updated_at=date.replace(day=date.day + 2)),
+        TrackByID(id="OVE-111", squad="Manual", override=True, updated_at=date.replace(day=date.day + 2)),
+    )
+    session.add_all(track_systems + track_systems_cached + track_ids)
+    session.commit()
+
+    yield track_systems, track_systems_cached, track_ids
+
+    session.rollback()
+    for cls in (TrackSystem, TrackSystemCached, TrackByID):
+        session.query(cls).delete()
+    session.commit()

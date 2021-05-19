@@ -20,6 +20,19 @@ import cogdb
 LEN_CMD = 25  # Max length of a subclass of cog.actions
 LEN_NAME = 100
 LEN_SHEET_COL = 5
+LEN_CARRIER = 7
+EVENT_CARRIER = """
+CREATE EVENT IF NOT EXISTS clean_carriers
+ON SCHEDULE
+    EVERY 1 DAY
+COMMENT "If no updates in 4 days drop"
+DO
+    DELETE FROM {}.carriers_ids
+    WHERE
+        (DATEDIFF(NOW(), carriers_ids.updated_at) > 4)
+            and
+        (carriers_ids.override = 0)
+"""
 Base = sqlalchemy.ext.declarative.declarative_base()
 
 
@@ -861,6 +874,92 @@ class RolePerm(Base):
         return hash("{}_{}_{}".format(self.cmd, self.server_id, self.role_id))
 
 
+class TrackSystem(Base):
+    """
+    Track a system for carriers.
+    """
+    __tablename__ = 'carriers_systems'
+
+    system = sqla.Column(sqla.String(LEN_NAME), primary_key=True)
+    distance = sqla.Column(sqla.Integer)
+
+    def __repr__(self):
+        keys = ['system', 'distance']
+        kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
+
+        return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
+
+    def __str__(self):
+        return "Tracking systems <= {}ly from {}".format(self.distance, self.system)
+
+    def __eq__(self, other):
+        return isinstance(other, TrackSystem) and hash(self) == hash(other)
+
+    def __hash__(self):
+        return hash("{}".format(self.system))
+
+
+class TrackSystemCached(Base):
+    """
+    Computed systems that are the total coverage of TrackSystem directives.
+    This set of system names is recomputed on every addition or removal.
+    """
+    __tablename__ = 'carriers_systems_cached'
+
+    system = sqla.Column(sqla.String(LEN_NAME), primary_key=True)
+
+    def __repr__(self):
+        keys = ['system']
+        kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
+
+        return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
+
+    def __eq__(self, other):
+        return isinstance(other, TrackSystemCached) and hash(self) == hash(other)
+
+    def __hash__(self):
+        return hash("{}".format(self.system))
+
+
+class TrackByID(Base):
+    """
+    Track where a carrier is by storing id and last known system.
+    """
+    __tablename__ = 'carriers_ids'
+
+    header = ["ID", "Squad", "System"]
+
+    id = sqla.Column(sqla.String(LEN_CARRIER), primary_key=True)
+    squad = sqla.Column(sqla.String(LEN_NAME), default="")
+    system = sqla.Column(sqla.String(LEN_NAME), default="")
+    override = sqla.Column(sqla.Boolean, default=False)
+    updated_at = sqla.Column(sqla.DateTime, default=datetime.datetime.now(datetime.timezone.utc))  # All dates UTC
+    # This flag indicates user requested this ID ALWAYS be tracked, regardless of location.
+
+    def __repr__(self):
+        keys = ['id', 'squad', 'system', 'override', 'updated_at']
+        kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
+
+        return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
+
+    def __str__(self):
+        """ A pretty one line to give all information. """
+        return "{id} [{squad}] seen in **{system}** at {date}.".format(
+            id=self.id, squad=self.squad if self.squad else "No Group",
+            system=self.system if self.system else "No Info", date=self.updated_at
+        )
+
+    def __eq__(self, other):
+        return isinstance(other, TrackByID) and hash(self) == hash(other)
+
+    def __hash__(self):
+        return hash("{}".format(self.id))
+
+    def table_line(self):
+        """ Returns a line for table formatting. """
+        return ("{}{}".format(self.id, " (O)" if self.override else ""), self.squad, self.system)
+
+
 def kwargs_um_system(cells, sheet_col):
     """
     Return keyword args parsed from cell frame.
@@ -1018,6 +1117,9 @@ def recreate_tables():
         except sqla.exc.OperationalError:
             pass
     Base.metadata.create_all(cogdb.engine)
+
+    with cogdb.engine.connect() as con:
+        con.execute(sqla.sql.text(EVENT_CARRIER.format(cogdb.CUR_DB).strip()))
 
 
 if cogdb.TEST_DB:

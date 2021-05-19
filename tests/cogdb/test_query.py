@@ -1,6 +1,7 @@
 """
 Test cogdb.query module.
 """
+import datetime
 import sqlalchemy.orm.exc
 import mock
 import pytest
@@ -8,7 +9,8 @@ import pytest
 import cog.exc
 import cogdb
 from cogdb.schema import (DiscordUser, FortSystem, FortUser, FortOrder,
-                          UMUser, UMHold, AdminPerm, ChannelPerm, RolePerm)
+                          UMUser, UMHold, AdminPerm, ChannelPerm, RolePerm,
+                          TrackSystem, TrackSystemCached, TrackByID)
 import cogdb.query
 
 from tests.data import SYSTEMS, USERS
@@ -450,3 +452,174 @@ def test_kos_search_cmdr(session, f_kos):
     results = cogdb.query.kos_search_cmdr(session, 'good_guy')
     assert len(results) == 2
     assert sorted([x.cmdr for x in results]) == sorted(['good_guy', 'good_guy_pvp'])
+
+
+def test_track_add_systems(session, f_track_testbed):
+    system_name = "Kappa"
+    cogdb.query.track_add_systems(session, [system_name], distance=20)
+    session.commit()
+
+    new_session = cogdb.Session()
+    result = new_session.query(TrackSystem).filter(TrackSystem.system == system_name).one()
+    assert result.system == system_name
+    assert result.distance == 20
+
+
+def test_track_add_systems_exists(session, f_track_testbed):
+    system_name = "Rhea"
+    cap = cogdb.query.track_add_systems(session, [system_name], distance=20)
+    assert cap == []
+
+
+def test_track_remove_systems(session, f_track_testbed):
+    system_names = ["Rhea", "Rana"]
+    captured = cogdb.query.track_remove_systems(session, system_names)
+    session.commit()
+
+    new_session = cogdb.Session()
+    found = new_session.query(TrackSystem).all()
+    assert captured == ["Rhea"]
+    assert len(found) == 1
+    assert found[0].system == "Nanomam"
+
+
+def test_track_get_all_systems(session, f_track_testbed):
+    captured = cogdb.query.track_get_all_systems(session)
+
+    assert list(sorted([x.system for x in captured])) == ["Nanomam", "Rhea"]
+
+
+def test_track_show_systems(session, f_track_testbed):
+    expected = """__Tracking System Rules__
+
+    Tracking systems <= 15ly from Nanomam
+    Tracking systems <= 15ly from Rhea"""
+
+    captured = cogdb.query.track_show_systems(session)
+    assert captured == [expected]
+
+
+def test_track_systems_computed_update(session, f_track_testbed):
+    system_names = ["Rana", "Rhea"]
+
+    cap = cogdb.query.track_systems_computed_update(session, system_names)
+    session.commit()
+
+    assert len(cap) == 1
+    new_session = cogdb.Session()
+    found = new_session.query(TrackSystemCached).filter(TrackSystemCached.system.in_(system_names)).all()
+    assert len(found) == 2
+
+
+def test_track_systems_computed_remove(session, f_track_testbed):
+    system_names = ["Rana", "Rhea"]
+    expected = [
+        '44 chi Draconis',
+        'Acihaut',
+        'Amun',
+        'BD-13 2439',
+        'Bodedi',
+        'DX 799',
+        'G 239-25',
+        'Lalande 18115',
+        'LFT 880',
+        'LHS 1885',
+        'LHS 215',
+        'LHS 221',
+        'LHS 2459',
+        'LHS 246',
+        'LHS 262',
+        'LHS 283',
+        'LHS 6128',
+        'LP 5-88',
+        'LP 64-194',
+        'LP 726-6',
+        'LQ Hydrae',
+        'Masans',
+        'Nang Ta-khian',
+        'Nanomam',
+        'Orishpucho',
+        'Santal',
+        'Tollan'
+    ]
+
+    cap = cogdb.query.track_systems_computed_remove(session, system_names)
+    session.commit()
+
+    assert cap == expected
+    new_session = cogdb.Session()
+    found = new_session.query(TrackSystemCached).filter(TrackSystemCached.system.in_(system_names)).all()
+    assert len(found) == 1
+
+
+def test_track_systems_computed_check(session, f_track_testbed):
+    assert not cogdb.query.track_systems_computed_check(session, "Kappa")
+    assert cogdb.query.track_systems_computed_check(session, "Rhea")
+
+
+def test_track_ids_update(session, f_track_testbed):
+    id_dict = {
+        "J3J-WVT": {"id": "J3J-WVT", "squad": "default", "system": "Rhea", "override": True},
+        "ZZZ-111": {"id": "ZZZ-111", "squad": "new", "system": "News", "override": True},
+    }
+
+    cogdb.query.track_ids_update(session, id_dict)
+    session.commit()
+
+    new_session = cogdb.Session()
+    updated = new_session.query(TrackByID).filter(TrackByID.id == "J3J-WVT").one()
+    added = new_session.query(TrackByID).filter(TrackByID.id == "ZZZ-111").one()
+
+    assert updated.squad == "default"
+    assert updated.system == "Rhea"
+    assert added.squad == "new"
+    assert added.system == "News"
+
+
+def test_track_ids_update_timestamp(session, f_track_testbed):
+    id_dict = {
+        "J3J-WVT": {"id": "J3J-WVT", "squad": "default", "system": "Rhea", "override": True},
+        "ZZZ-111": {"id": "ZZZ-111", "squad": "new", "system": "News", "override": True},
+    }
+    years_ago = datetime.datetime.now().replace(year=1000)
+
+    cogdb.query.track_ids_update(session, id_dict, years_ago)
+    session.commit()
+
+    new_session = cogdb.Session()
+    updated = new_session.query(TrackByID).filter(TrackByID.id == "J3J-WVT").one()
+    added = new_session.query(TrackByID).filter(TrackByID.id == "ZZZ-111").one()
+
+    assert updated.squad != "default"
+    assert updated.system != "Rhea"
+    assert added.squad == "new"
+    assert added.system == "News"
+
+
+def test_track_ids_remove(session, f_track_testbed):
+    ids = ["J3J-WVT", "ZZZ-111"]
+    cogdb.query.track_ids_remove(session, ids)
+    session.commit()
+
+    new_session = cogdb.Session()
+    with pytest.raises(sqlalchemy.exc.NoResultFound):
+        new_session.query(TrackByID).filter(TrackByID.id == "J3J-WVT").one()
+    with pytest.raises(sqlalchemy.exc.NoResultFound):
+        new_session.query(TrackByID).filter(TrackByID.id == "ZZZ-111").one()
+
+
+def test_track_ids_show(session, f_track_testbed):
+    cap = cogdb.query.track_ids_show(session)
+    expected_1 = ["""__Tracking IDs__
+
+J3J-WVT [CLBF] seen in **No Info** at 2000-01-10 00:00:00.
+J3N-53B [CLBF] seen in **No Info** at 2000-01-12 00:00:00.
+OVE-111 [Manual] seen in **No Info** at 2000-01-12 00:00:00.
+XNL-3XQ [CLBF] seen in **No Info** at 2000-01-10 00:00:00."""]
+    assert cap == expected_1
+
+
+def test_track_ids_newer_than(session, f_track_testbed):
+    date = datetime.datetime(year=2000, month=1, day=10, hour=0, minute=0, second=0, microsecond=0)
+    objs = cogdb.query.track_ids_newer_than(session, date)
+    assert sorted([x.id for x in objs]) == ["J3N-53B", "OVE-111"]

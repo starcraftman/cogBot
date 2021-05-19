@@ -506,6 +506,40 @@ def camel_to_c(word):
     return n_word.lower()
 
 
+def generative_split(objs, formatter, *, header=""):
+    """
+    Take a group of objects and a formatter that
+    carries an object onto a string.
+    Then iterate the list and create the series of messages
+    that can be sent.
+
+    Args:
+        objs: A series of objects to iterated and format.
+        formatter: A function that formats an object to a string.
+        header: An optional top of the text line.
+
+    Returns: A series of messages that can be sent and are under limit.
+    """
+    msgs = []
+    cur_msg = header
+    cur_msg_len = len(cur_msg)
+    for obj in objs:
+        formatted = formatter(obj)
+        new_len = len(formatted) + 1
+        if cur_msg_len + new_len > MSG_LIMIT:
+            msgs += [cur_msg]
+            cur_msg = ""
+            cur_msg_len = 0
+
+        cur_msg += "\n" + formatted
+        cur_msg_len += new_len
+
+    if cur_msg:
+        msgs += [cur_msg]
+
+    return msgs
+
+
 #  # Scenario multiple readers, always allowed
 #  async def a_run1(lock):
     #  print("Run1 - aquire read")

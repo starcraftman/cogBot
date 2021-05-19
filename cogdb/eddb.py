@@ -1575,6 +1575,23 @@ def get_systems(session, system_names):
     return systems
 
 
+def get_systems_around(session, centre_name, distance):
+    """
+    Given a central system and a distance, return all systems around it.
+    Includes the centre system.
+
+    Returns:
+        [System, System, ...]
+
+    Raises:
+        centre_name was not found then exception.
+    """
+    centre = session.query(System).filter(System.name == centre_name).one()
+    return session.query(System).\
+        filter(System.dist_to(centre) <= distance).\
+        all()
+
+
 def get_shipyard_stations(session, centre_name, *, sys_dist=75, arrival=2000, include_medium=False):
     """
     Given a reference centre system, find nearby orbitals within:

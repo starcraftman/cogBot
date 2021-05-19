@@ -202,3 +202,115 @@ def test_shorten_text():
 
 def test_camel_to_c():
     assert cog.util.camel_to_c("CamelCase") == "camel_case"
+
+
+def test_generative_split():
+    expected = [
+        """This is the header
+This is the 0th line of text to print.
+This is the 1th line of text to print.
+This is the 2th line of text to print.
+This is the 3th line of text to print.
+This is the 4th line of text to print.
+This is the 5th line of text to print.
+This is the 6th line of text to print.
+This is the 7th line of text to print.
+This is the 8th line of text to print.
+This is the 9th line of text to print.
+This is the 10th line of text to print.
+This is the 11th line of text to print.
+This is the 12th line of text to print.
+This is the 13th line of text to print.
+This is the 14th line of text to print.
+This is the 15th line of text to print.
+This is the 16th line of text to print.
+This is the 17th line of text to print.
+This is the 18th line of text to print.
+This is the 19th line of text to print.
+This is the 20th line of text to print.
+This is the 21th line of text to print.
+This is the 22th line of text to print.
+This is the 23th line of text to print.
+This is the 24th line of text to print.
+This is the 25th line of text to print.
+This is the 26th line of text to print.
+This is the 27th line of text to print.
+This is the 28th line of text to print.
+This is the 29th line of text to print.
+This is the 30th line of text to print.
+This is the 31th line of text to print.
+This is the 32th line of text to print.
+This is the 33th line of text to print.
+This is the 34th line of text to print.
+This is the 35th line of text to print.
+This is the 36th line of text to print.
+This is the 37th line of text to print.
+This is the 38th line of text to print.
+This is the 39th line of text to print.
+This is the 40th line of text to print.
+This is the 41th line of text to print.
+This is the 42th line of text to print.
+This is the 43th line of text to print.
+This is the 44th line of text to print.
+This is the 45th line of text to print.
+This is the 46th line of text to print.
+This is the 47th line of text to print.""",
+        """
+This is the 48th line of text to print.
+This is the 49th line of text to print.
+This is the 50th line of text to print.
+This is the 51th line of text to print.
+This is the 52th line of text to print.
+This is the 53th line of text to print.
+This is the 54th line of text to print.
+This is the 55th line of text to print.
+This is the 56th line of text to print.
+This is the 57th line of text to print.
+This is the 58th line of text to print.
+This is the 59th line of text to print.
+This is the 60th line of text to print.
+This is the 61th line of text to print.
+This is the 62th line of text to print.
+This is the 63th line of text to print.
+This is the 64th line of text to print.
+This is the 65th line of text to print.
+This is the 66th line of text to print.
+This is the 67th line of text to print.
+This is the 68th line of text to print.
+This is the 69th line of text to print.
+This is the 70th line of text to print.
+This is the 71th line of text to print.
+This is the 72th line of text to print.
+This is the 73th line of text to print.
+This is the 74th line of text to print.
+This is the 75th line of text to print.
+This is the 76th line of text to print.
+This is the 77th line of text to print.
+This is the 78th line of text to print.
+This is the 79th line of text to print.
+This is the 80th line of text to print.
+This is the 81th line of text to print.
+This is the 82th line of text to print.
+This is the 83th line of text to print.
+This is the 84th line of text to print.
+This is the 85th line of text to print.
+This is the 86th line of text to print.
+This is the 87th line of text to print.
+This is the 88th line of text to print.
+This is the 89th line of text to print.
+This is the 90th line of text to print.
+This is the 91th line of text to print.
+This is the 92th line of text to print.
+This is the 93th line of text to print.
+This is the 94th line of text to print.
+This is the 95th line of text to print.""",
+        """
+This is the 96th line of text to print.
+This is the 97th line of text to print.
+This is the 98th line of text to print.
+This is the 99th line of text to print.""",
+    ]
+    msgs = cog.util.generative_split(list(range(0, 100)), lambda x: "This is the {}th line of text to print.".format(x), header="This is the header")
+    assert msgs == expected
+    for msg in msgs:
+        assert len(msg) < cog.util.MSG_LIMIT

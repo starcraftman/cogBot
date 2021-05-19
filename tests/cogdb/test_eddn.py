@@ -11,6 +11,8 @@ except ImportError:
     import json
 
 import cogdb.eddn
+import cogdb.schema
+from cogdb.schema import TrackByID, TrackSystemCached
 from cogdb.eddb import FactionActiveState
 
 
@@ -372,11 +374,197 @@ EXAMPLE_JOURNAL_STATION = """{
     }
 }
 """
+EXAMPLE_CARRIER_DISC = """{
+  "$schemaRef": "https://eddn.edcd.io/schemas/journal/1",
+  "header": {
+    "gatewayTimestamp": "2021-05-18T00:34:39.006381Z",
+    "softwareName": "EDDiscovery",
+    "softwareVersion": "12.0.2.0",
+    "uploaderID": "e2e46eabd77f4eea0f8cd655183b4d980fb08338"
+  },
+  "message": {
+    "Body": "Cha Eohm XN-X a69-1",
+    "BodyID": 0,
+    "BodyType": "Star",
+    "Docked": true,
+    "MarketID": 3703705600,
+    "Population": 0,
+    "StarPos": [
+      -9207.15625,
+      -39.9375,
+      58557.125
+    ],
+    "StarSystem": "Nanomam",
+    "StationEconomies": [
+      {
+        "Name": "$economy_Carrier;",
+        "Proportion": 1.0
+      }
+    ],
+    "StationEconomy": "$economy_Carrier;",
+    "StationFaction": {
+      "Name": "FleetCarrier"
+    },
+    "StationGovernment": "$government_Carrier;",
+    "StationName": "KLG-9TL",
+    "StationServices": [
+      "dock",
+      "autodock",
+      "commodities",
+      "contacts",
+      "exploration",
+      "outfitting",
+      "crewlounge",
+      "rearm",
+      "refuel",
+      "repair",
+      "shipyard",
+      "engineer",
+      "flightcontroller",
+      "stationoperations",
+      "stationMenu",
+      "carriermanagement",
+      "carrierfuel"
+    ],
+    "StationType": "FleetCarrier",
+    "SystemAddress": 21970368135760,
+    "SystemAllegiance": "",
+    "SystemEconomy": "$economy_None;",
+    "SystemGovernment": "$government_None;",
+    "SystemSecondEconomy": "$economy_None;",
+    "SystemSecurity": "$GAlAXY_MAP_INFO_state_anarchy;",
+    "event": "Location",
+    "timestamp": "2021-05-20T19:03:20.11111Z"
+  }
+}"""
+EXAMPLE_CARRIER_EDMC = """{
+  "$schemaRef": "https://eddn.edcd.io/schemas/journal/1",
+  "header": {
+    "gatewayTimestamp": "2021-05-18T00:34:42.526845Z",
+    "softwareName": "E:D Market Connector [Windows]",
+    "softwareVersion": "5.0.1",
+    "uploaderID": "70787c46bbd4497e1af3c5f04609be60f09d0835"
+  },
+  "message": {
+    "Body": "Prua Phoe EQ-Z b45-7 A",
+    "BodyID": 1,
+    "BodyType": "Star",
+    "Docked": true,
+    "MarketID": 3701618176,
+    "Population": 0,
+    "StarPos": [
+      -5497.5625,
+      -462.3125,
+      11445.25
+    ],
+    "StarSystem": "Prua Phoe EQ-Z b45-7",
+    "StationEconomies": [
+      {
+        "Name": "$economy_Carrier;",
+        "Proportion": 1.0
+      }
+    ],
+    "StationEconomy": "$economy_Carrier;",
+    "StationFaction": {
+      "Name": "FleetCarrier"
+    },
+    "StationGovernment": "$government_Carrier;",
+    "StationName": "OVE-111",
+    "StationServices": [
+      "dock",
+      "autodock",
+      "blackmarket",
+      "commodities",
+      "contacts",
+      "exploration",
+      "outfitting",
+      "crewlounge",
+      "rearm",
+      "refuel",
+      "repair",
+      "shipyard",
+      "engineer",
+      "flightcontroller",
+      "stationoperations",
+      "stationMenu",
+      "carriermanagement",
+      "carrierfuel",
+      "voucherredemption"
+    ],
+    "StationType": "FleetCarrier",
+    "SystemAddress": 15990296033161,
+    "SystemAllegiance": "",
+    "SystemEconomy": "$economy_None;",
+    "SystemGovernment": "$government_None;",
+    "SystemSecondEconomy": "$economy_None;",
+    "SystemSecurity": "$GAlAXY_MAP_INFO_state_anarchy;",
+    "event": "Location",
+    "odyssey": false,
+    "timestamp": "2021-05-20T19:03:20.11111Z"
+    }
+}"""
 
 
 def test_create_id_maps():
     maps = cogdb.eddn.create_id_maps(cogdb.EDDBSession())
     assert 'Thargoid' in maps['Allegiance']
+
+
+def test_journal_parse_carrier_edmc_id(session, f_track_testbed):
+    msg = json.loads(EXAMPLE_CARRIER_EDMC)
+    parser = cogdb.eddn.create_parser(msg)
+    parser.parsed['system'] = {
+        "name": "Rana",
+        "updated_at": "2021-05-20T19:03:20.11111Z",
+    }
+
+    result = parser.parse_carrier()
+
+    id = 'OVE-111'
+    expected = {
+        id: {
+            'id': id,
+            'system': 'Rana',
+            'updated_at': parser.date_obj,
+        }
+    }
+    assert result == expected
+
+    new_session = cogdb.Session()
+    tracked = new_session.query(TrackByID).filter(TrackByID.id == id).one()
+    assert tracked.system == "Rana"
+
+    parser.session.rollback()
+    parser.eddb_session.rollback()
+
+
+def test_journal_parse_carrier_disc_system(session, f_track_testbed):
+    msg = json.loads(EXAMPLE_CARRIER_DISC)
+    parser = cogdb.eddn.create_parser(msg)
+    parser.parsed['system'] = {
+        "name": "Nanomam",
+        "updated_at": "2021-05-20 19:03:20",
+    }
+
+    result = parser.parse_carrier()
+
+    id = 'KLG-9TL'
+    expected = {
+        id: {
+            'id': 'KLG-9TL',
+            'override': False,
+            'system': 'Nanomam',
+            'updated_at': parser.date_obj,
+        }
+    }
+    assert result == expected
+
+    new_session = cogdb.Session()
+    tracked = new_session.query(TrackByID).filter(TrackByID.id == id).one()
+    assert tracked.system == "Nanomam"
+
+    parser.session.rollback()
+    parser.eddb_session.rollback()
 
 
 def test_journal_parse_system():
@@ -402,7 +590,7 @@ def test_journal_parse_system():
 
     #  __import__('pprint').pprint(result)
     assert result == expected
-    parser.session.rollback()
+    parser.eddb_session.rollback()
 
 
 def test_journal_parse_station():
@@ -433,7 +621,7 @@ def test_journal_parse_station():
 
     #  __import__('pprint').pprint(result)
     assert result == expected
-    parser.session.rollback()
+    parser.eddb_session.rollback()
 
 
 def test_journal_parse_factions():
@@ -538,7 +726,7 @@ def test_journal_parse_factions():
 
     #  __import__('pprint').pprint(result)
     assert result == expect
-    parser.session.rollback()
+    parser.eddb_session.rollback()
 
 
 def test_journal_parse_conflicts():
@@ -564,7 +752,7 @@ def test_journal_parse_conflicts():
 
     #  __import__('pprint').pprint(result)
     assert result == expect
-    parser.session.rollback()
+    parser.eddb_session.rollback()
 
 
 def test_log_fname():
@@ -578,7 +766,7 @@ def test_log_msg():
     try:
         msg = json.loads(EXAMPLE_JOURNAL_STATION)
         t_dir = tempfile.mkdtemp()
-        cogdb.eddn.log_msg(msg, t_dir, 'test.txt')
+        cogdb.eddn.log_msg(msg, path=t_dir, fname='test.txt')
 
         pat = pathlib.Path(t_dir)
         assert list(pat.glob('test.*'))

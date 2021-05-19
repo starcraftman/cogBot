@@ -691,6 +691,56 @@ class RecruitsScanner(FortScanner):
         return payload
 
 
+class CarrierScanner(FortScanner):
+    """
+    Scanner for the Hudson recruits sheet.
+
+    args:
+        asheet: The AsyncGSheet that connects to the sheet.
+    """
+    def __init__(self, asheet):
+        super().__init__(asheet, [])
+
+    def __repr__(self):
+        return super().__repr__().replace('FortScanner', 'CarrierScanner')
+
+    def parse_sheet(self, session=None):
+        """
+        Push the update of carriers to the database.
+        """
+        if not session:
+            session = cogdb.fresh_sessionmaker()()
+
+        cogdb.query.track_ids_update(session, self.carriers())
+        session.commit()
+
+    def carriers(self, *, row_cnt=1):
+        """
+        Scan the carriers in the sheet.
+        Expected format:
+            Carrier ID | Squadron
+
+        Args:
+            row_cnt: The starting row for data, zero-based.
+
+        Returns: A dictionary ready to update db.
+        """
+        found = {}
+
+        users = [x[row_cnt:] for x in self.cells_col_major[:2]]
+        for carrier_id, squad in list(zip(*users)):
+            if carrier_id.strip() == '':
+                continue
+
+            found[carrier_id] = {
+                "id": carrier_id,
+                "squad": squad,
+                "override": True,
+            }
+
+        return found
+
+
 async def init_scanners():
     """
     Initialized all parts related to google sheet scanners.

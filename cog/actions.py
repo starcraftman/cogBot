@@ -954,6 +954,7 @@ class Help(Action):
             ['{prefix}scout', 'Generate a list of systems to scout'],
             ['{prefix}status', 'Info about this bot'],
             ['{prefix}time', 'Show game time and time to ticks'],
+            ['{prefix}track', 'Track carrier movement by system or id.'],
             ['{prefix}trigger', 'Calculate fort and um triggers for systems'],
             ['{prefix}um', 'Get information about undermining targets'],
             ['{prefix}user', 'Manage your user, set sheet name and tag'],
@@ -1354,6 +1355,94 @@ class Time(Action):
         await self.bot.send_message(self.msg.channel, '\n'.join(lines))
 
 
+class Track(Action):
+    """
+    Manage the ability to track what carriers are doing.
+    """
+    async def add(self):
+        """ Subcmd add for track command. """
+        system_names = process_system_args(self.args.systems)
+        cogdb.query.track_add_systems(self.session, system_names, self.args.distance)
+
+        to_add = []
+        eddb_session = cogdb.EDDBSession()
+        for sys_name in system_names:
+            to_add += cogdb.eddb.get_systems_around(eddb_session, sys_name, self.args.distance)
+        to_add = {x.name for x in to_add}
+
+        new_systems = sorted([x.system for x in cogdb.query.track_systems_computed_update(self.session, to_add)])
+        response = "__Systems Added To Tracking__\n\nSystems added: {} First few follow ...\n\n".format(len(new_systems))
+        return response + ", ".join(new_systems[:TRACK_LIMIT])
+
+    async def remove(self):
+        """ Subcmd remove for track command. """
+        system_names = process_system_args(self.args.systems)
+        cogdb.query.track_remove_systems(self.session, system_names)
+        remaining = cogdb.query.track_get_all_systems(self.session)
+
+        eddb_session = cogdb.EDDBSession()
+        computed = []
+        for remain in remaining:
+            computed += cogdb.eddb.get_systems_around(eddb_session, remain.system, remain.distance)
+        to_keep = {x.name for x in computed}
+
+        removed = sorted(cogdb.query.track_systems_computed_remove(self.session, to_keep))
+        response = "__Systems Removed From Tracking__\n\nSystems added: {} First few follow ...\n\n".format(len(removed))
+        return response + ", ".join(removed[:TRACK_LIMIT])
+
+    async def ids(self):
+        """ Subcmd ids for track command. """
+        response = ""
+
+        if self.args.add:
+            ids = process_system_args(self.args.add)
+            ids_dict = {x: {'id': x, 'squad': " ".join(self.args.squad), 'override': True} for x in ids}
+            cogdb.query.track_ids_update(self.session, ids_dict)
+            response = "Carrier IDs added successfully to tracking."
+        elif self.args.remove:
+            cogdb.query.track_ids_remove(self.session, process_system_args(self.args.remove))
+            response = "Carrier IDs removed successfully from tracking."
+        else:
+            for msg in cogdb.query.track_ids_show(self.session):
+                await self.bot.send_message(self.msg.channel, msg)
+
+        return response
+
+    async def show(self):
+        """ Subcmd show for track command. """
+        for msg in cogdb.query.track_show_systems(self.session):
+            await self.bot.send_message(self.msg.channel, msg)
+
+    async def channel(self):
+        """ Subcmd channel for track command. """
+        cog.util.update_config(self.msg.channel.id, "carrier_channel")
+        return "Channel set to: {}".format(self.msg.channel.name)
+
+    async def scan(self):
+        """ Subcmd scan for track command. """
+        scanner = get_scanner("hudson_carriers")
+        await scanner.update_cells()
+        await self.bot.loop.run_in_executor(None, scanner.parse_sheet)
+
+        return "Scan finished."
+
+    async def execute(self):
+        try:
+            cogdb.query.get_admin(self.session, self.duser)
+        except cog.exc.NoMatch:
+            raise cog.exc.InvalidPerms("{} You are not an admin!".format(self.msg.author.mention))
+
+        try:
+            func = getattr(self, self.args.subcmd)
+            response = await func()
+            self.session.commit()
+            if response:
+                await self.bot.send_message(self.msg.channel, response)
+        except (AttributeError, TypeError) as exc:
+            self.log.warn("Error for Track: %s", exc)
+            raise cog.exc.InvalidCommandArgs("Bad subcommand of `!admin`, see `!admin -h` for help.")
+
+
 class Trigger(Action):
     """
     Calculate the estimated triggers relative Hudson.
@@ -1604,6 +1693,55 @@ def get_scanner(name):
         raise cog.exc.InvalidCommandArgs("The scanners are not ready. Please try again in 15 seconds.")
 
 
+async def monitor_carrier_events(client, *, next_summary, last_timestamp=None, delay=60):
+    """
+    Simple async task that just checks for new events every delay.
+
+    Args:
+        client: The bot.
+        next_summary: Datetime object representing next time to do daily summary.
+        last_seen_time: Last known timestamp for a TrackByID.
+        delay: The short delay between normal summaries, in seconds.
+    """
+    start = datetime.datetime.utcnow()
+    if not last_timestamp:
+        last_timestamp = start
+
+    await asyncio.sleep(delay)
+
+    session = cogdb.Session()
+    if datetime.datetime.utcnow() < next_summary:
+        header = "__Fleet Carriers Detected Last {} Seconds__\n".format(delay)
+        tracks = await client.loop.run_in_executor(
+            None, cogdb.query.track_ids_newer_than, session, last_timestamp
+        )
+    else:
+        header = "__Daily Fleet Carrier Summary For {}__\n".format(next_summary)
+        yesterday = next_summary - datetime.timedelta(days=1)
+        next_summary = next_summary + datetime.timedelta(days=1)
+        tracks = await client.loop.run_in_executor(
+            None, cogdb.query.track_ids_newer_than, session, yesterday
+        )
+    if tracks:
+        last_timestamp = tracks[-1].updated_at
+
+    msgs = cog.util.generative_split(tracks, str, header=header)
+
+    # Only send messages if generated and channel set
+    chan_id = cog.util.get_config("carrier_channel", default=None)
+    if msgs and chan_id and msgs != [header]:
+        chan = client.get_channel(chan_id)
+        for msg in msgs:
+            await client.send_message(chan, msg)
+
+    asyncio.ensure_future(
+        monitor_carrier_events(
+            client, next_summary=next_summary,
+            last_timestamp=last_timestamp, delay=delay
+        )
+    )
+
+
 SCANNERS = {}
 SCOUT_RND = {  # TODO: Extract to data config or tables.
     1: [
@@ -1688,3 +1826,4 @@ UM_NPC_TABLE = [
     ['Pranav Antal', 'Utopian Overseer', 'Reform Ships', 'Utopian Agitators'],
     ['Archon Delaine', 'Kumo Crew Watch', 'Kumo Crew Transport', 'Kumo Crew Strike Ships']
 ]
+TRACK_LIMIT = 20

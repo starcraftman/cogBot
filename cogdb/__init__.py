@@ -30,10 +30,12 @@ CREDS = cog.util.get_config('dbs', 'main')
 
 TEST_DB = False
 if 'pytest' in sys.modules:
-    CREDS['db'] = 'test'
+    CUR_DB = 'test'
+    CREDS['db'] = CUR_DB
     TEST_DB = True
 else:
-    CREDS['db'] = os.environ.get('COG_TOKEN', 'dev')
+    CUR_DB = os.environ.get('COG_TOKEN', 'dev')
+    CREDS['db'] = CUR_DB
 
 engine = sqlalchemy.create_engine(MYSQL_SPEC.format(**CREDS), echo=False, pool_recycle=3600, pool_size=10)
 Session = sqlalchemy.orm.sessionmaker(bind=engine)
