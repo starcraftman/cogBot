@@ -408,7 +408,7 @@ def subs_recruits(subs, prefix):
         When discord name is different than in game name, use this flag to specify.
 **{prefix}recruits add CMDR Name Here -p 1**
 **{prefix}recruits add CMDR Name Here --platform 1**
-        Will add the commander with platform 1 (PC). Other values possible: 2 (XBox), 3 (PS4), 1+2, 1+3, 1+2+3
+        Will add the commander with platform 1 (PC) by default. Other values possible: 2 (XBox), 3 (PS4), 1+2, 1+3, 1+2+3
 **{prefix}recruits add CMDR Name Here -r R**
 **{prefix}recruits add CMDR Name Here --rank R**
         Will add the commander with rank R (Recruit). Other values possible: M (Member) or V (Veteran)
@@ -425,7 +425,7 @@ def subs_recruits(subs, prefix):
     subcmd.add_argument('cmdr', nargs='+', help='The CMDR name and all other arguments that are optional.')
     subcmd.add_argument('-d', '--discord-name', nargs='+', help='The discord name differs from name.')
     subcmd.add_argument('-r', '--rank', default='R', choices=['R', 'M', 'V'], help='Rank to add as, R M or V.')
-    subcmd.add_argument('-p', '--platform', choices=['1', '2', '3', '1+2', '1+3', '2+3', '1+2+3'], help='The platform, PC=1, Xbox=2, PS4=3. Combine with +')
+    subcmd.add_argument('-p', '--platform', default='1', choices=['1', '2', '3', '1+2', '1+3', '2+3', '1+2+3'], help='The platform, PC=1, Xbox=2, PS4=3. Combine with +')
     subcmd.add_argument('--pmf', nargs='+', default=[''], help='The player minor faction.')
     subcmd.add_argument('--notes', nargs='+', default=[''], help='The notes field.')
 
