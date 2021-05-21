@@ -22,6 +22,7 @@ from cogdb.schema import (DiscordUser, FortSystem, FortDrop, FortUser,
                           TrackSystem, TrackSystemCached, TrackByID)
 
 from tests.conftest import fake_msg_gears, fake_msg_newuser
+import tests.conftest as tc
 
 
 # Important, any fixtures in here get auto run
@@ -1339,3 +1340,25 @@ async def test_cmd_near_if(f_bot):
 
     actual = str(f_bot.send_message.call_args).replace("\\n", "\n")
     assert "LHS 397        | 19.32    | [L] Zillig Depot" in actual
+
+
+@pytest.mark.asyncio
+async def test_dusers_topn(f_dusers, f_um_testbed, f_fort_testbed):
+    recruit_role = tc.Role("FRC Recruit")
+    member_role = tc.Role("FRC Member")
+    ignore_role = tc.Role("Nothing")
+    role_map = {
+        1: tc.Member("Test1", [recruit_role, ignore_role]),
+        2: tc.Member("Test2", [member_role, ignore_role]),
+        3: tc.Member("Test3", [recruit_role]),
+    }
+
+    def get_member_(id):
+        return role_map[id]
+
+    fguild = aiomock.Mock()
+    fguild.get_member = get_member_
+
+    rec, mem = cog.actions.dusers_topn(fguild, f_dusers, [], limit=5)
+    assert rec[1].id == 3
+    assert mem[0].id == 2

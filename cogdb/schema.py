@@ -88,16 +88,25 @@ class DiscordUser(Base):
     @property
     def total_merits(self):
         """ The total merits a user has done this cycle. """
-        total = 0
+        return self.total_fort_merits + self.total_um_merits
 
+    @property
+    def total_fort_merits(self):
+        """ The total merits a user has done forting this cycle. """
         try:
-            total += self.fort_user.dropped
+            total = self.fort_user.dropped
         except AttributeError:
-            pass
+            total = 0
+
+        return total
+
+    @property
+    def total_um_merits(self):
+        """ The total merits a user has done undermining cycle. """
         try:
-            total += self.um_user.held + self.um_user.redeemed
+            total = self.um_user.held + self.um_user.redeemed
         except AttributeError:
-            pass
+            total = 0
 
         return total
 
