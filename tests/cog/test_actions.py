@@ -594,7 +594,8 @@ async def test_cmd_hold_simple(f_bot, f_dusers, f_um_testbed):
 20%            | Merits Missing 8000
 Our Progress 0 | Enemy Progress 0%
 Nearest Hudson | Rana
-Priority       | Low```"""
+Priority       | Low
+Power          |```"""
     f_bot.send_message.assert_called_with(msg.channel, expect)
     session = cogdb.Session()
     duser = session.query(DiscordUser).filter_by(id=msg.author.id).one()
@@ -623,7 +624,8 @@ async def test_cmd_hold_newuser(f_bot, f_dusers, f_um_testbed):
 10%            | Merits Missing 9000
 Our Progress 0 | Enemy Progress 0%
 Nearest Hudson | Rana
-Priority       | Low```"""
+Priority       | Low
+Power          |```"""
     f_bot.send_message.assert_any_call(msg.channel, expect2)
 
     session = cogdb.Session()
@@ -682,7 +684,8 @@ async def test_cmd_hold_redeem_finished(f_bot, f_dusers, f_um_testbed):
 100%           | Merits Leading 0
 Our Progress 0 | Enemy Progress 0%
 Nearest Hudson | Rana
-Priority       | Low```
+Priority       | Low
+Power          |```
 \nSystem is finished with held merits. Type `!um` for more targets.
 \n**User1** Have a :skull: for completing Empty. Don\'t forget to redeem."""
     f_bot.send_message.assert_any_call(msg.channel, expect)
@@ -965,22 +968,26 @@ async def test_cmd_um(f_bot, f_testbed):
 84%                | Merits Missing 2000
 Our Progress 10500 | Enemy Progress 50%
 Nearest Hudson     | Atropos
-Priority           | Low```
+Priority           | Low
+Power              |```
 ```Expand              | Burr [L sec]
 Behind by 3500%     | Merits Missing 202668
 Our Progress 161630 | Enemy Progress 3500%
 Nearest Hudson      | Dongkum
-Priority            | Medium```
+Priority            | Medium
+Power               |```
 ```Opposing expansion | AF Leopris [L sec]
 Behind by 169%     | Merits Missing 12138
 Our Progress 47739 | Enemy Progress 169%
 Nearest Hudson     | Atropos
-Priority           | low```
+Priority           | low
+Power              |```
 ```Control        | Empty [M sec]
 0%             | Merits Missing 10000
 Our Progress 0 | Enemy Progress 0%
 Nearest Hudson | Rana
-Priority       | Low```"""
+Priority       | Low
+Power          |```"""
 
     f_bot.send_message.assert_called_with(msg.channel, expect)
 
@@ -995,7 +1002,8 @@ async def test_cmd_um_search(f_bot, f_testbed):
 Behind by 3500%     | Merits Missing 202668
 Our Progress 161630 | Enemy Progress 3500%
 Nearest Hudson      | Dongkum
-Priority            | Medium```"""
+Priority            | Medium
+Power               |```"""
 
     f_bot.send_message.assert_called_with(msg.channel, expect)
 
@@ -1019,7 +1027,8 @@ async def test_cmd_um_set_works(session, f_bot, f_testbed):
 96%                | Merits Missing 500
 Our Progress 12000 | Enemy Progress 40%
 Nearest Hudson     | Atropos
-Priority           | Low```"""
+Priority           | Low
+Power              |```"""
 
     f_bot.send_message.assert_called_with(msg.channel, expect)
     after = cogdb.Session().query(UMSystem).filter_by(name='Pequen').one()

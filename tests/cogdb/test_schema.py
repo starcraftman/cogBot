@@ -461,7 +461,8 @@ def test_umsystem_display(f_dusers, f_um_testbed):
 101%               | Merits Leading 122
 Our Progress 15000 | Enemy Progress 100%
 Nearest Hudson     | Sol
-Priority           | Medium```"""
+Priority           | Medium
+Power              |```"""
 
 
 def test_umsystem__eq__(f_dusers, f_um_testbed):
