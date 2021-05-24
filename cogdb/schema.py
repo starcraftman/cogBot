@@ -638,6 +638,7 @@ class UMSystem(Base):
              'Enemy Progress {:.0f}%'.format(self.progress_them * 100)],
             ['Nearest Hudson', self.close_control],
             ['Priority', self.priority],
+            ['Power', self.notes],
         ]
 
         return cog.tbl.wrap_markdown(cog.tbl.format_table(lines))
