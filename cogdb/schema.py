@@ -933,7 +933,7 @@ class TrackByID(Base):
     squad = sqla.Column(sqla.String(LEN_NAME), default="")
     system = sqla.Column(sqla.String(LEN_NAME), default="")
     override = sqla.Column(sqla.Boolean, default=False)
-    updated_at = sqla.Column(sqla.DateTime, default=datetime.datetime.now(datetime.timezone.utc))  # All dates UTC
+    updated_at = sqla.Column(sqla.DateTime(timezone=True), default=datetime.datetime.now(datetime.timezone.utc))  # All dates UTC
     # This flag indicates user requested this ID ALWAYS be tracked, regardless of location.
 
     def __repr__(self):

@@ -650,7 +650,7 @@ def f_track_testbed(session):
         TrackSystemCached(system="Rhea"),
         TrackSystemCached(system="Santal"),
     )
-    date = datetime.datetime(year=2000, month=1, day=10, hour=0, minute=0, second=0, microsecond=0)
+    date = datetime.datetime(year=2000, month=1, day=10, hour=0, minute=0, second=0, microsecond=0, tzinfo=datetime.timezone.utc)
     track_ids = (
         TrackByID(id="J3J-WVT", squad="CLBF", updated_at=date),
         TrackByID(id="XNL-3XQ", squad="CLBF", updated_at=date),

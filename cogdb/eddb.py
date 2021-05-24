@@ -1920,7 +1920,7 @@ def import_eddb():
 
 def main():  # pragma: no cover
     """ Main entry. """
-    start = datetime.datetime.now()
+    start = datetime.datetime.now(datetime.timezone.utc)
 
     import_eddb()
     # Create views
@@ -1937,7 +1937,7 @@ def main():  # pragma: no cover
     print("Populated System count:", session.query(System).count())
     print("Station count:", session.query(Station).count())
     print("Contested count:", session.query(ContestedSystem).count())
-    print("Time taken:", datetime.datetime.now() - start)
+    print("Time taken:", datetime.datetime.now(datetime.timezone.utc) - start)
 
     #  station = session.query(Station).filter(Station.is_planetary).limit(5).all()[0]
     #  print(station.name, station.economies)

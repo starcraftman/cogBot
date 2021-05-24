@@ -223,7 +223,7 @@ class Admin(Action):
                 if channel.permissions_for(member).read_messages and member not in all_members:
                     all_members += [member]
 
-        after = datetime.datetime.utcnow() - datetime.timedelta(days=self.args.days)
+        after = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(days=self.args.days)
         last_msgs = {}
         for channel in self.msg.channel_mentions:
             try:
@@ -1703,14 +1703,14 @@ async def monitor_carrier_events(client, *, next_summary, last_timestamp=None, d
         last_seen_time: Last known timestamp for a TrackByID.
         delay: The short delay between normal summaries, in seconds.
     """
-    start = datetime.datetime.utcnow()
+    start = datetime.datetime.now(datetime.timezone.utc)
     if not last_timestamp:
         last_timestamp = start
 
     await asyncio.sleep(delay)
 
     session = cogdb.Session()
-    if datetime.datetime.utcnow() < next_summary:
+    if datetime.datetime.now(datetime.timezone.utc) < next_summary:
         header = "__Fleet Carriers Detected Last {} Seconds__\n".format(delay)
         tracks = await client.loop.run_in_executor(
             None, cogdb.query.track_ids_newer_than, session, last_timestamp

@@ -491,7 +491,7 @@ def timestamp_is_recent(msg, window=30):
         parsed_time = datetime.datetime.strptime(msg['header']['gatewayTimestamp'], TIME_STRP_MICRO)
     except ValueError:
         parsed_time = datetime.datetime.strptime(msg['header']['gatewayTimestamp'], TIME_STRP)
-    return (datetime.datetime.utcnow() - parsed_time) < datetime.timedelta(minutes=window)
+    return (datetime.datetime.now(datetime.timezone.utc) - parsed_time) < datetime.timedelta(minutes=window)
 
 
 def get_msgs(sub):
