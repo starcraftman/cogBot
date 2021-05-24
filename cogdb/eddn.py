@@ -6,6 +6,7 @@ Will have the following parts:
     - Update relevant bits of EDDB database.
 """
 import datetime
+import functools
 import logging
 import os
 import pprint
@@ -25,6 +26,7 @@ except ImportError:
 import cog.util
 import cogdb
 import cogdb.eddb
+import cogdb.query
 from cogdb.eddb import (Conflict, Faction, Influence, System, Station,
                         StationEconomy, StationFeatures, FactionActiveState, FactionPendingState,
                         FactionRecoveringState)
@@ -35,14 +37,18 @@ TIMEOUT = 600000
 SCHEMA_MAP = {
     #  "https://eddn.edcd.io/schemas/blackmarket/1": "BlackmarketMsg",
     #  "https://eddn.edcd.io/schemas/commodity/3": "CommodityMsg",
+    "EDDiscovery https://eddn.edcd.io/schemas/journal/1": "EDMCJournal",
     "E:D Market Connector [Linux] https://eddn.edcd.io/schemas/journal/1": "EDMCJournal",
     "E:D Market Connector [Windows] https://eddn.edcd.io/schemas/journal/1": "EDMCJournal",
     #  "https://eddn.edcd.io/schemas/outfitting/2": "OutfitMsg",
     #  "https://eddn.edcd.io/schemas/shipyard/2": "ShipyardMsg",
 }
 TIME_STRP = "%Y-%m-%dT%H:%M:%SZ"
+TIME_STRP_MICRO = "%Y-%m-%dT%H:%M:%S.%fZ"
+LOG_OUT = "/tmp/cogdb_eddn"
 ALL_MSGS = '/tmp/msgs'
 JOURNAL_MSGS = '/tmp/msgs_journal'
+JOURNAL_CARS = '/tmp/msgs_journal_cars'
 STATION_FEATS = [x for x in StationFeatures.__dict__ if
                  x not in ('id', 'station') and not x.startswith('_')]
 
@@ -59,9 +65,10 @@ class EDMCJournal():
     Parse an EDMC Journal message for pertinent information and update
     the database as possible. Not all elements are guaranteed so parse as possible.
     """
-    def __init__(self, session, msg):
+    def __init__(self, session, eddb_session, msg):
         self.msg = msg
         self.session = session
+        self.eddb_session = eddb_session
         self.parsed = {}
 
     @property
@@ -73,9 +80,16 @@ class EDMCJournal():
         return self.msg['message']
 
     @property
+    def date_obj(self):
+        try:
+            parsed_time = datetime.datetime.strptime(self.body['timestamp'], TIME_STRP_MICRO)
+        except ValueError:
+            parsed_time = datetime.datetime.strptime(self.body['timestamp'], TIME_STRP)
+        return parsed_time.replace(tzinfo=datetime.timezone.utc)
+
+    @property
     def timestamp(self):
-        parsed_time = datetime.datetime.strptime(self.body['timestamp'], TIME_STRP)
-        return int(parsed_time.replace(tzinfo=datetime.timezone.utc).timestamp())
+        return int(self.date_obj.timestamp())
 
     def parse_msg(self):
         """
@@ -85,15 +99,45 @@ class EDMCJournal():
             StopParsing - No need to continue parsing.
         """
         try:
-            pprint.pprint(self.parse_system())
-            pprint.pprint(self.parse_station())
-            pprint.pprint(self.parse_factions())
-            log_msg(self.msg, JOURNAL_MSGS, log_fname(self.msg))
-            pprint.pprint(self.parse_conflicts())
+            PPRINT(self.parse_system())
+
+            parsed = self.parse_carrier()
+            if parsed:
+                log_msg(self.msg, path=JOURNAL_CARS, fname=log_fname(self.msg))
+                PPRINT(parsed)
+
+            PPRINT(self.parse_station())
+            PPRINT(self.parse_factions())
+            log_msg(self.msg, path=JOURNAL_MSGS, fname=log_fname(self.msg))
+            PPRINT(self.parse_conflicts())
         except StopParsing:
-            self.session.rollback()
+            self.eddb_session.rollback()
 
         return self.parsed
+
+    def parse_carrier(self):
+        """
+        Parse carrier information if it is available.
+        """
+        body = self.body
+        if not ("StationType" in body and body["StationType"] == "FleetCarrier"):
+            return None
+
+        id = body["StationName"]
+        system = self.parsed["system"]["name"]
+        date = self.date_obj
+        ids_dict = {id: {'id': id, 'system': system, 'updated_at': date}}
+
+        if cogdb.query.track_ids_check(self.session, id):
+            cogdb.query.track_ids_update(self.session, ids_dict)
+        elif cogdb.query.track_systems_computed_check(self.session, system):
+            ids_dict[id]['override'] = False
+            cogdb.query.track_ids_update(self.session, ids_dict)
+        self.session.commit()
+
+        self.parsed["carriers"] = ids_dict[id]
+        PPRINT("Matched carrier: {}".format(id))
+        return ids_dict
 
     def parse_system(self):
         """
@@ -127,7 +171,7 @@ class EDMCJournal():
         if "SystemSecondEconomy" in body:
             system['secondary_economy_id'] = MAPS['Economy'][body["SystemSecondEconomy"].replace("$economy_", "")[:-1]]
         if "SystemFaction" in body:
-            faction_id = self.session.query(Faction.id).filter(Faction.name == body["SystemFaction"]["Name"]).scalar()
+            faction_id = self.eddb_session.query(Faction.id).filter(Faction.name == body["SystemFaction"]["Name"]).scalar()
             system['controlling_minor_faction_id'] = faction_id
         if "SystemSecurity" in body:
             security = body['SystemSecurity'].replace("$SYSTEM_SECURITY_", "").replace("$GAlAXY_MAP_INFO_", "")[:-1]
@@ -137,9 +181,9 @@ class EDMCJournal():
                 system[dest] = body["StarPos"][key]
 
         try:
-            system_db = self.session.query(System).filter(System.name == system['name']).one()
+            system_db = self.eddb_session.query(System).filter(System.name == system['name']).one()
             system_db.update(system)
-            self.session.commit()
+            self.eddb_session.commit()
             system['id'] = system_db.id
         except sqla_orm.exc.NoResultFound as e:
             raise StopParsing() from e  # No interest in systems not in db
@@ -185,7 +229,7 @@ class EDMCJournal():
                 if economy['economy_id'] not in [x['economy_id'] for x in station['economies']]:
                     station['economies'] += [economy]
         if "StationFaction" in body:
-            station['controlling_minor_faction_id'] = self.session.query(Faction.id).filter(Faction.name == body['StationFaction']['Name']).scalar()
+            station['controlling_minor_faction_id'] = self.eddb_session.query(Faction.id).filter(Faction.name == body['StationFaction']['Name']).scalar()
         if "StationServices" in body:
             station['features'] = {x: True if x in body["StationServices"] else False for x in STATION_FEATS}
         if "StationType" in body:
@@ -210,7 +254,7 @@ class EDMCJournal():
 
         influences, factions = [], {}
         faction_names = [x['Name'] for x in self.body['Factions']]
-        faction_dbs = {x.name: x for x in self.session.query(Faction).filter(Faction.name.in_(faction_names)).all()}
+        faction_dbs = {x.name: x for x in self.eddb_session.query(Faction).filter(Faction.name.in_(faction_names)).all()}
         for body_faction in self.body['Factions']:
             faction = {
                 'id': faction_dbs[body_faction['Name']].id,
@@ -278,7 +322,7 @@ class EDMCJournal():
 
             for key in ('faction1_stake_id', 'faction2_stake_id'):
                 if tracker[key]:
-                    tracker[key] = self.session.query(Station.id).\
+                    tracker[key] = self.eddb_session.query(Station.id).\
                         filter(Station.system_id == system['id'], Station.name == tracker[key]).\
                         scalar()
                 else:
@@ -295,14 +339,14 @@ class EDMCJournal():
 
         This is called to finalize flushing the parsed information to the database.
         """
-        self.session.rollback()  # Clear any previous db objects
+        self.eddb_session.rollback()  # Clear any previous db objects
         system = self.parsed['system']
 
         try:
             station = self.parsed['station']
             station_features = station.pop('features')
             station_economies = station.pop('economies')
-            station_db = self.session.query(Station).\
+            station_db = self.eddb_session.query(Station).\
                 filter(Station.name == station['name'],
                        Station.system_id == station['system_id']).\
                 one()
@@ -310,7 +354,7 @@ class EDMCJournal():
             station['id'] = station_db.id
 
             if station_features:
-                station_features_db = self.session.query(StationFeatures).\
+                station_features_db = self.eddb_session.query(StationFeatures).\
                     filter(StationFeatures.id == station_db.id).\
                     one()
                 station_features_db.update(station_features)
@@ -318,44 +362,44 @@ class EDMCJournal():
 
         except sqla_orm.exc.NoResultFound:
             station_db = Station(**station)
-            self.session.add(station_db)
-            self.session.flush()
+            self.eddb_session.add(station_db)
+            self.eddb_session.flush()
 
             station_features['id'] = station_db.id
             station_features_db = StationFeatures(**station_features)
-            self.session.add(station_features_db)
+            self.eddb_session.add(station_features_db)
 
         except KeyError:
             pass
-        self.session.flush()
+        self.eddb_session.flush()
 
         if 'economies' in self.parsed['station'] and station_economies:
-            self.session.query(StationEconomy).filter(StationEconomy.id == station_db.id).delete()
+            self.eddb_session.query(StationEconomy).filter(StationEconomy.id == station_db.id).delete()
             for econ in station_economies:
                 econ['id'] = station_db.id
-                self.session.add(StationEconomy(**econ))
-            self.session.flush()
+                self.eddb_session.add(StationEconomy(**econ))
+            self.eddb_session.flush()
 
         if 'factions' in self.parsed and self.parsed['factions']:
             for faction in self.parsed['factions'].values():
                 for cls in (FactionActiveState, FactionPendingState, FactionRecoveringState):
-                    self.session.query(cls).\
+                    self.eddb_session.query(cls).\
                         filter(cls.system_id == system['id'],
                                cls.faction_id == faction['id']).\
                         delete()
-                self.session.flush()
+                self.eddb_session.flush()
                 for key in ("active_states", "pending_states", "recovering_states"):
                     if key in faction:
-                        self.session.add_all(faction[key])
+                        self.eddb_session.add_all(faction[key])
 
                 try:
-                    influence_db = self.session.query(Influence).\
+                    influence_db = self.eddb_session.query(Influence).\
                         filter(Influence.system_id == system['id'],
                                Influence.faction_id == faction['id']).\
                         one()
                     influence_db.update(faction)
                 except sqla_orm.exc.NoResultFound:
-                    self.session.add(Influence(
+                    self.eddb_session.add(Influence(
                         system_id=system['id'],
                         faction_id=faction['id'],
                         happiness_id=faction['happiness_id'],
@@ -366,7 +410,7 @@ class EDMCJournal():
         if 'conflicts' in self.parsed and self.parsed['conflicts']:
             for conflict in self.parsed['conflicts']:
                 try:
-                    conflict_db = self.session.query(Conflict).\
+                    conflict_db = self.eddb_session.query(Conflict).\
                         filter(Conflict.system_id == conflict['system_id'],
                                Conflict.faction1_id == conflict['faction1_id'],
                                Conflict.faction2_id == conflict['faction2_id']).\
@@ -374,7 +418,7 @@ class EDMCJournal():
                     conflict_db.update(conflict)
                 except sqla_orm.exc.NoResultFound:
                     conflict_db = Conflict(**conflict)
-                    self.session.add(conflict_db)
+                    self.eddb_session.add(conflict_db)
 
 
 def create_id_maps(session):
@@ -415,7 +459,7 @@ def create_parser(msg):
     cls_name = SCHEMA_MAP[key]
     cls = getattr(sys.modules[__name__], cls_name)
 
-    return cls(cogdb.EDDBSession(autoflush=False), msg)
+    return cls(cogdb.Session(), cogdb.EDDBSession(autoflush=False), msg)
 
 
 def log_fname(msg):
@@ -433,12 +477,21 @@ def log_fname(msg):
     return cog.util.clean_text(fname)
 
 
-def log_msg(obj, path, fname):
+def log_msg(obj, *, path, fname):
     """
     Log a msg to the right directory to track later if required.
     """
-    with open(os.path.join(path, fname), 'w') as fout:
+    with open(os.path.join(path, fname), 'a') as fout:
         pprint.pprint(obj, stream=fout)
+
+
+def timestamp_is_recent(msg, window=30):
+    """ Returns true iff the timestamp is less than window minutes old."""
+    try:
+        parsed_time = datetime.datetime.strptime(msg['header']['gatewayTimestamp'], TIME_STRP_MICRO)
+    except ValueError:
+        parsed_time = datetime.datetime.strptime(msg['header']['gatewayTimestamp'], TIME_STRP)
+    return (datetime.datetime.utcnow() - parsed_time) < datetime.timedelta(minutes=window)
 
 
 def get_msgs(sub):
@@ -450,8 +503,12 @@ def get_msgs(sub):
             raise zmq.ZMQError("Sub problem.")
 
         msg = json.loads(zlib.decompress(msg).decode())
-        log_msg(msg, ALL_MSGS, log_fname(msg))
+        log_msg(msg, path=ALL_MSGS, fname=log_fname(msg))
         try:
+            # Drop messages with old timestamps
+            if not timestamp_is_recent(msg):
+                raise StopParsing
+
             parser = create_parser(msg)
             parser.parse_msg()
 
@@ -500,14 +557,24 @@ def main():
         shutil.rmtree(JOURNAL_MSGS)
     except OSError:
         pass
+    try:
+        shutil.rmtree(JOURNAL_CARS)
+    except OSError:
+        pass
+    try:
+        os.remove(LOG_OUT)
+    except OSError:
+        pass
     os.mkdir(ALL_MSGS)
     os.mkdir(JOURNAL_MSGS)
+    os.mkdir(JOURNAL_CARS)
 
     sub = zmq.Context().socket(zmq.SUB)
     sub.setsockopt(zmq.SUBSCRIBE, b'')
     sub.setsockopt(zmq.RCVTIMEO, TIMEOUT)
 
     try:
+        print("connection established, reading messages.\nOutput at: {}".format(LOG_OUT))
         connect_loop(sub)
     except KeyboardInterrupt:
         msg = """Terminating ZMQ connection."""
@@ -518,6 +585,8 @@ try:
     MAPS = create_id_maps(cogdb.EDDBSession())
 except (sqla_orm.exc.NoResultFound, sqla.exc.ProgrammingError):
     MAPS = None
+PPRINT = functools.partial(log_msg, path='/tmp', fname="cogdb_eddn")
+
 
 if __name__ == "__main__":
     main()

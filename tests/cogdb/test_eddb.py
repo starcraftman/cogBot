@@ -52,6 +52,33 @@ def test_get_systems(eddb_session):
     assert not system_names
 
 
+def test_get_systems_around(eddb_session):
+    expected = [
+        '44 chi Draconis',
+        'Acihaut',
+        'Bodedi',
+        'DX 799',
+        'G 239-25',
+        'Lalande 18115',
+        'LFT 880',
+        'LHS 1885',
+        'LHS 215',
+        'LHS 221',
+        'LHS 2459',
+        'LHS 246',
+        'LHS 262',
+        'LHS 283',
+        'LHS 6128',
+        'LP 5-88',
+        'LP 64-194',
+        'Nang Ta-khian',
+        'Nanomam',
+        'Tollan'
+    ]
+    results = [x.name for x in cogdb.eddb.get_systems_around(eddb_session, "Nanomam", 15)]
+    assert results == expected
+
+
 def test_nearest_system(eddb_session):
     system_names = ["Arnemil", "Rana", "Sol", "Frey", "Nanomam"]
     systems = eddb_session.query(cogdb.eddb.System).\

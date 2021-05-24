@@ -10,8 +10,8 @@ import pytest
 import cog.exc
 import cogdb.scanners
 from cogdb.schema import (FortSystem, FortDrop, FortUser,
-                          UMSystem, UMUser, UMHold, KOS)
-from cogdb.scanners import (FortScanner, UMScanner, KOSScanner, RecruitsScanner)
+                          UMSystem, UMUser, UMHold, KOS, TrackByID)
+from cogdb.scanners import (FortScanner, UMScanner, KOSScanner, RecruitsScanner, CarrierScanner)
 
 
 @pytest.mark.asyncio
@@ -374,14 +374,49 @@ def test_recruitsscanner_add_recruit_dict():
         {'range': 'N10:O10', 'values': [['A PMF', 'A note here']]}
     ]
     data = r_scanner.add_recruit_dict(
-            cmdr="Default",
-            discord_name="Default",
-            rank="R",
-            platform="1",
-            pmf="A PMF",
-            notes="A note here",
+        cmdr="Default",
+        discord_name="Default",
+        rank="R",
+        platform="1",
+        pmf="A PMF",
+        notes="A note here",
     )
     assert data == expect
+
+
+@pytest.mark.asyncio
+async def test_carrierscanner_parse_carriers():
+    fake_sheet = aiomock.AIOMock()
+    fake_sheet.whole_sheet.async_return_value = [["Carrier ID", "Squadron"], ['XJ1-222', "Baddies"], ['FX3-42A', "Baddies"]]
+    r_scanner = CarrierScanner(fake_sheet)
+    await r_scanner.update_cells()
+
+    expected = {
+        'XJ1-222': {
+            'id': 'XJ1-222',
+            'squad': 'Baddies',
+            'override': True
+        },
+        'FX3-42A': {
+            'id': 'FX3-42A',
+            'squad': 'Baddies',
+            'override': True
+        }
+    }
+    assert r_scanner.carriers() == expected
+
+
+@pytest.mark.asyncio
+async def test_carrierscanner_parse_sheet(session, f_track_testbed):
+    fake_sheet = aiomock.AIOMock()
+    fake_sheet.whole_sheet.async_return_value = [["Carrier ID", "Squadron"], ['XJ1-222', "Baddies"], ['FX3-42A', "Baddies"]]
+    r_scanner = CarrierScanner(fake_sheet)
+    await r_scanner.update_cells()
+
+    r_scanner.parse_sheet(session)
+
+    found = session.query(TrackByID).filter(TrackByID.id.in_(['XJ1-222', 'FX3-42A'])).all()
+    assert len(found) == 2
 
 
 @pytest.mark.skipif(not os.environ.get('ALL_TESTS'), reason="Slow scanner testing all scanners.")

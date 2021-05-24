@@ -1,6 +1,7 @@
 """
 Module should handle logic related to querying/manipulating tables from a high level.
 """
+import copy
 import logging
 import os
 import tempfile
@@ -15,7 +16,8 @@ import cogdb
 import cogdb.eddb
 import cogdb.schema
 from cogdb.schema import (DiscordUser, FortSystem, FortPrep, FortDrop, FortUser, FortOrder,
-                          UMSystem, UMUser, UMHold, KOS, AdminPerm, ChannelPerm, RolePerm)
+                          UMSystem, UMUser, UMHold, KOS, AdminPerm, ChannelPerm, RolePerm,
+                          TrackSystem, TrackSystemCached, TrackByID)
 from cogdb.eddb import HUDSON_CONTROLS, WINTERS_CONTROLS
 
 DEFER_MISSING = get_config("limits", "defer_missing", default=750)
@@ -663,3 +665,224 @@ def kos_search_cmdr(session, term):
     """
     term = '%' + str(term) + '%'
     return session.query(KOS).filter(KOS.cmdr.ilike(term)).all()
+
+
+def track_add_systems(session, systems, distance):
+    """
+    Add all systems specified to tracking with distance specified.
+
+    Returns: List of added system names.
+    """
+    track_systems = track_get_all_systems(session)
+    track_systems = [x.system for x in track_systems]
+    to_add = set(systems) - set(track_systems)
+    added = [TrackSystem(system=x, distance=distance) for x in to_add]
+    session.add_all(added)
+
+    return added
+
+
+def track_remove_systems(session, systems):
+    """
+    Remove all systems specified to tracking with distance specified.
+
+    Returns: [system_name, system_name, ...]
+    """
+    track_systems = session.query(TrackSystem).\
+        filter(TrackSystem.system.in_(systems)).\
+        all()
+
+    removed = []
+    for sys in track_systems:
+        session.delete(sys)
+        removed += [sys.system]
+
+    return removed
+
+
+def track_get_all_systems(session):
+    """
+    Provide a complete list of all systems under tracking.
+
+    Returns: [TrackSystem, TrackSystem, ...]
+    """
+    return session.query(TrackSystem).all()
+
+
+def track_show_systems(session):
+    """
+    Format into the smallest number of messages possible the list of current IDs.
+    """
+    track_systems = session.query(TrackSystem).\
+        order_by(TrackSystem.system).\
+        all()
+
+    msgs = []
+    cur_msg = "__Tracking System Rules__\n"
+    pad = " " * 4
+    for track in track_systems:
+        cur_msg += "\n{}{}".format(pad, str(track))
+        if len(cur_msg) > cog.util.MSG_LIMIT:
+            msgs += [cur_msg]
+            cur_msg = ""
+
+    if cur_msg:
+        msgs += [cur_msg]
+
+    return msgs
+
+
+def track_systems_computed_update(session, systems):
+    """
+    Update the computed systems database area, merge in new systems.
+    Ensure no dupes added.
+
+    Returns: [system_name, system_name, ...]
+    """
+    track_systems = session.query(TrackSystemCached.system).\
+        filter(TrackSystemCached.system.in_(systems)).\
+        all()
+    existing = [x[0] for x in track_systems]
+    to_add = set(systems) - set(existing)
+    added = [TrackSystemCached(system=x) for x in to_add]
+    session.add_all(added)
+
+    return added
+
+
+def track_systems_computed_remove(session, to_keep):
+    """
+    Update the computed systems database area, remove all systems not in
+    to_keep array.
+
+    Returns: [system_name, system_name, ...]
+    """
+    track_systems = session.query(TrackSystemCached).\
+        filter(TrackSystemCached.system.notin_(to_keep)).\
+        all()
+
+    removed = []
+    for sys in track_systems:
+        session.delete(sys)
+        removed += [sys.system]
+
+    return removed
+
+
+def track_systems_computed_check(session, system_name):
+    """
+    Check if a system is under tracking.
+
+    Returns: True iff the system is to track.
+    """
+    try:
+        return session.query(TrackSystemCached).filter(TrackSystemCached.system == system_name).one()
+    except sqla_exc.NoResultFound:
+        return None
+
+
+def track_ids_update(session, ids_dict, date_obj=None):
+    """
+    Update the tracked IDs into the database.
+    ids_dict is a dict of form:
+        {
+            {ID: {'id': ID, 'group': GROUP, 'system': SYSTEM, 'override': False, 'updated_at': datetime obj},
+            ...
+        }
+
+    ID, GROUP, SYSTEM and OVERRIDE are the respective data to store for an ID in schema:
+    If the information exists it will be updated, else inserted.
+
+    Args:
+        session: The session to db.
+        ids_dict: See above dictionary.
+        date_obj: Optional, if provided data will be accepted only if timestamp is newer. Expecting datetime object.
+
+    Returns: (list_updated, list_removed) - both lists are lists of IDs
+    """
+    added, updated = [], []
+    track_ids = session.query(TrackByID).\
+        filter(TrackByID.id.in_(ids_dict.keys())).\
+        all()
+
+    copy_ids_dict = copy.deepcopy(ids_dict)
+    for track in track_ids:
+        # Reject possible data that is older than current
+        if date_obj and track.updated_at > date_obj:
+            del copy_ids_dict[track.id]
+            continue
+
+        data = copy_ids_dict[track.id]
+        if data.get("squad", ""):
+            track.squad = data['squad']
+        if data.get("override", None):
+            track.override = data['override']
+        track.system = data.get('system', None)
+        updated += [track.id]
+
+        del copy_ids_dict[track.id]
+
+    for data in copy_ids_dict.values():
+        session.add(TrackByID(**data))
+        added += [data['id']]
+
+    return (updated, added)
+
+
+def track_ids_remove(session, ids):
+    """
+    Remove from tracking the current
+
+    Returns: [id_removed, id_removed, ...]
+    """
+    track_ids = session.query(TrackByID).\
+        filter(TrackByID.id.in_(ids)).\
+        all()
+    for tid in track_ids:
+        session.delete(tid)
+
+    return [x.id for x in track_ids]
+
+
+def track_ids_check(session, id):
+    """
+    Return True iff the id is set to be manually tracked via override.
+    """
+    try:
+        return session.query(TrackByID).filter(TrackByID.id == id, TrackByID.override).one()
+    except sqla_exc.NoResultFound:
+        return None
+
+
+def track_ids_show(session):
+    """
+    Format into the smallest number of messages possible the list of current IDs.
+
+    Args: ids - select only these ids. If not provided, show all.
+
+    Returns: Series of messages < 1900 that can be sent.
+    """
+    track_ids = session.query(TrackByID).all()
+
+    msgs = []
+    cur_msg = "__Tracking IDs__\n"
+    for track in track_ids:
+        cur_msg += "\n" + str(track)
+        if len(cur_msg) > cog.util.MSG_LIMIT:
+            msgs += [cur_msg]
+            cur_msg = ""
+
+    if cur_msg:
+        msgs += [cur_msg]
+
+    return msgs
+
+
+def track_ids_newer_than(session, date):
+    """
+    Query the database for all TrackByIDs that occured after a date.
+    """
+    return session.query(TrackByID).\
+        filter(TrackByID.updated_at > date).\
+        order_by(TrackByID.updated_at).\
+        all()
