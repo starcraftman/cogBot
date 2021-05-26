@@ -624,8 +624,11 @@ class KOSScanner(FortScanner):
 
         return found
 
-    @staticmethod
-    def kos_report_dict(row, *values):
+    def next_free_row(self):
+        """ Return the next free kos row. """
+        return len(self.cells_col_major[0]) + 1
+
+    def add_report_dict(self, *values, is_friendly=False):
         """
         Create an update system dict. See AsyncGSheet.batch_update
 
@@ -633,12 +636,15 @@ class KOSScanner(FortScanner):
             cmdr: The cmdr name.
             faction: The faction of the cmdr.
             danger: The danger rating of cmdr.
-            friend_or_kill: If the cmdr is to be killed or not.
+
+        Kwargs:
+            is_friendly: If the cmdr is friendly or not.
 
         Returns: A list of update dicts to pass to batch_update.
         """
-        cell_range = 'A{row}:D{row}'.format(row=row)
-        return [{'range': cell_range, 'values': [list(values)]}]
+        values = list(values) + ["FRIENDLY" if is_friendly else "KILL"]
+        cell_range = 'A{row}:D{row}'.format(row=self.next_free_row())
+        return [{'range': cell_range, 'values': [values]}]
 
 
 class RecruitsScanner(FortScanner):

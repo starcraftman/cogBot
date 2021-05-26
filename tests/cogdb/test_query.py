@@ -10,7 +10,7 @@ import cog.exc
 import cogdb
 from cogdb.schema import (DiscordUser, FortSystem, FortUser, FortOrder,
                           UMUser, UMHold, AdminPerm, ChannelPerm, RolePerm,
-                          TrackSystem, TrackSystemCached, TrackByID)
+                          KOS, TrackSystem, TrackSystemCached, TrackByID)
 import cogdb.query
 
 from tests.data import SYSTEMS, USERS
@@ -452,6 +452,15 @@ def test_kos_search_cmdr(session, f_kos):
     results = cogdb.query.kos_search_cmdr(session, 'good_guy')
     assert len(results) == 2
     assert sorted([x.cmdr for x in results]) == sorted(['good_guy', 'good_guy_pvp'])
+
+
+def test_kos_add_cmdr(session, f_kos):
+    cogdb.query.kos_add_cmdr(session, 'cmdr', 'faction', False)
+    session.commit()
+
+    nsession = cogdb.Session()
+    all = nsession.query(KOS).all()
+    assert all[-1].cmdr == 'cmdr'
 
 
 def test_track_add_systems(session, f_track_testbed):

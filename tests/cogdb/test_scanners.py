@@ -354,6 +354,27 @@ async def test_kosscanner_parse_sheet_dupes(f_asheet_kos, session, db_cleanup):
 
 
 @pytest.mark.asyncio
+async def test_kosscanner_next_free_row(f_asheet_kos, session, db_cleanup):
+    fscan = KOSScanner(f_asheet_kos)
+
+    assert not session.query(KOS).all()
+
+    await fscan.update_cells()
+    assert fscan.next_free_row() == 1469
+
+
+@pytest.mark.asyncio
+async def test_kosscanner_add_report_dict(f_asheet_kos, session, db_cleanup):
+    fscan = KOSScanner(f_asheet_kos)
+
+    assert not session.query(KOS).all()
+
+    await fscan.update_cells()
+    payload = fscan.add_report_dict("cmdr", "faction", 0, is_friendly=False)
+    assert payload == [{'range': 'A1469:D1469', 'values': [['cmdr', 'faction', 0, 'KILL']]}]
+
+
+@pytest.mark.asyncio
 async def test_recruitsscanner_update_first_free():
     fake_sheet = aiomock.AIOMock()
     fake_sheet.whole_sheet.async_return_value = [['1'], ['2'], ['3'], ['4'], ['5'], ['6'], ['7']]

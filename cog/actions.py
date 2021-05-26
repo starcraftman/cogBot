@@ -1047,16 +1047,61 @@ class KOS(Action):
     """
     Handle the KOS command.
     """
+    async def report(self):
+        """
+        Handle the reporting of a new cmdr.
+        First ask for approval of addition, then add to kos list.
+        """
+        cmdr = ' '.join(self.args.cmdr)
+        faction = ' '.join(self.args.faction)
+        reason = ' '.join(self.args.reason)
+        is_friendly = self.args.is_friendly
+        await self.msg.channel.send('CMDR {} has been reported for moderation.'.format(cmdr))
+
+        # Request approval
+        chan = self.msg.guild.get_channel(cog.util.get_config("carrier_channel"))
+        sent = await chan.send(
+            embed=cog.inara.kos_report_cmdr_embed(
+                self.msg.author.name, cmdr, faction, reason, is_friendly,
+            )
+        )
+        yes_emoji = cog.util.get_config('emojis', '_yes')
+        await sent.add_reaction(yes_emoji)
+        await sent.add_reaction(cog.util.get_config('emojis', '_no'))
+
+        def check(_, user):
+            try:
+                return cogdb.query.get_admin(self.session, user)
+            except cog.exc.NoMatch:
+                return False
+        react, _ = await self.bot.wait_for('reaction_add', check=check)
+
+        # Approved update
+        response = "No change to KOS made."
+        if str(react) == yes_emoji:
+            scanner = get_scanner('hudson_kos')
+            await scanner.update_cells()
+            payload = scanner.add_report_dict(
+                cmdr, faction, 0, is_friendly=is_friendly
+            )
+            await scanner.send_batch(payload)
+            cogdb.query.kos_add_cmdr(self.session, cmdr, faction, is_friendly)
+            self.session.commit()
+            response = "CMDR has been added to KOS."
+
+        await chan.send(response)
+
     async def execute(self):
         msg = 'KOS: Invalid subcommand'
 
         if self.args.subcmd == 'report':
-            get_scanner('hudson_kos').add_report(self.msg.author.name, self.args.cmdr,
-                                                 ' '.join(self.args.reason))
-            msg = 'CMDR {} has been reported for moderation.'.format(self.args.cmdr)
+            await self.report()
+            msg = None
 
         elif self.args.subcmd == 'pull':
-            get_scanner('hudson_kos').scan()
+            await self.bot.loop.run_in_executor(
+                get_scanner('hudson_kos').parse_sheet
+            )
             msg = 'KOS list refreshed from sheet.'
 
         elif self.args.subcmd == 'search':
@@ -1071,7 +1116,8 @@ class KOS(Action):
             else:
                 msg += "No matches!"
 
-        await self.bot.send_message(self.msg.channel, msg)
+        if msg:
+            await self.bot.send_message(self.msg.channel, msg)
 
 
 class Near(Action):

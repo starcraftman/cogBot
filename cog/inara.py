@@ -572,6 +572,38 @@ def generate_bgs_embed(sys_list, faction_list):
     })
 
 
+def kos_report_cmdr_embed(reporter, cmdr, faction, reason, is_friendly=False):
+    """
+    Return an embed that be used to inform of a report.
+
+    Returns: A discord embed.
+    """
+    kill = "FRIENDLY" if is_friendly else "KILL"
+
+    return discord.Embed.from_dict({
+        'color': KOS_COLORS[kill],
+        'author': {
+            'name': reporter,
+        },
+        'provider': {
+            'name': 'Cog',
+        },
+        'thumbnail': {
+            'url': EMPTY_IMG,
+        },
+        'title': "KOS Report",
+        'footer': {
+            'text': "Review this information and use thumbs to decide if allowed.",
+        },
+        "fields": [
+            {'name': 'cmdr', 'value': cmdr, 'inline': True},
+            {'name': 'faction', 'value': faction, 'inline': True},
+            {'name': 'kill', 'value': kill, 'inline': True},
+            {'name': 'reason', 'value': reason, 'inline': False},
+        ],
+    })
+
+
 def main():
     import sys
     loop = asyncio.new_event_loop()

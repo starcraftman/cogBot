@@ -667,6 +667,13 @@ def kos_search_cmdr(session, term):
     return session.query(KOS).filter(KOS.cmdr.ilike(term)).all()
 
 
+def kos_add_cmdr(session, cmdr, faction, is_friendly=False):
+    """
+    Search for a kos entry for cmdr.
+    """
+    return session.add(KOS(cmdr=cmdr, faction=faction, is_friendly=is_friendly))
+
+
 def track_add_systems(session, systems, distance):
     """
     Add all systems specified to tracking with distance specified.
