@@ -1054,7 +1054,7 @@ class KOS(Action):
         """
         cmdr = ' '.join(self.args.cmdr)
         faction = ' '.join(self.args.faction)
-        reason = ' '.join(self.args.reason)
+        reason = ' '.join(self.args.reason) + " -{}".format(self.msg.author.name)
         is_friendly = self.args.is_friendly
         await self.msg.channel.send('CMDR {} has been reported for moderation.'.format(cmdr))
 
@@ -1082,10 +1082,10 @@ class KOS(Action):
             scanner = get_scanner('hudson_kos')
             await scanner.update_cells()
             payload = scanner.add_report_dict(
-                cmdr, faction, 0, is_friendly=is_friendly
+                cmdr, faction, reason, is_friendly
             )
             await scanner.send_batch(payload)
-            cogdb.query.kos_add_cmdr(self.session, cmdr, faction, is_friendly)
+            cogdb.query.kos_add_cmdr(self.session, cmdr, faction, reason, is_friendly)
             self.session.commit()
             response = "CMDR has been added to KOS."
 
@@ -1100,7 +1100,7 @@ class KOS(Action):
 
         elif self.args.subcmd == 'pull':
             await self.bot.loop.run_in_executor(
-                get_scanner('hudson_kos').parse_sheet
+                None, get_scanner('hudson_kos').parse_sheet
             )
             msg = 'KOS list refreshed from sheet.'
 
@@ -1109,10 +1109,9 @@ class KOS(Action):
             msg = 'Searching for "{}" against known CMDRs\n\n'.format(self.args.term)
             cmdrs = cogdb.query.kos_search_cmdr(session, self.args.term)
             if cmdrs:
-                cmdrs = [[x.cmdr, x.faction, x.danger, x.friendly]
-                         for x in cmdrs]
-                cmdrs = [['CMDR Name', 'Faction', 'Danger', 'Is Friendly?']] + cmdrs
-                msg += cog.tbl.wrap_markdown(cog.tbl.format_table(cmdrs, header=True))
+                lines = [['CMDR Name', 'Faction', 'Is Friendly?', 'Reason']]
+                lines += [[x.cmdr, x.faction, x.friendly, x.reason] for x in cmdrs]
+                msg += cog.tbl.wrap_markdown(cog.tbl.format_table(lines, header=True))
             else:
                 msg += "No matches!"
 

@@ -410,8 +410,9 @@ class InaraApi():
                 },
                 "fields": [
                     {'name': 'Name', 'value': kos.cmdr, 'inline': True},
-                    {'name': 'Reg Squadron', 'value': kos.faction, 'inline': True},
+                    {'name': 'Reg Squadron', 'value': kos.faction if kos.faction else "Indy", 'inline': True},
                     {'name': 'Is Friendly ?', 'value': kos.friendly, 'inline': True},
+                    {'name': 'Reason', 'value': kos.reason if kos.reason else "No reason.", 'inline': False},
                 ],
             })]
 

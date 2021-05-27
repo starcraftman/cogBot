@@ -19,6 +19,7 @@ import cogdb
 
 LEN_CMD = 25  # Max length of a subclass of cog.actions
 LEN_NAME = 100
+LEN_REASON = 400
 LEN_SHEET_COL = 5
 LEN_CARRIER = 7
 EVENT_CARRIER = """
@@ -784,11 +785,11 @@ class KOS(Base):
     id = sqla.Column(sqla.Integer, primary_key=True)
     cmdr = sqla.Column(sqla.String(LEN_NAME), unique=True, nullable=False)
     faction = sqla.Column(sqla.String(LEN_NAME), nullable=False)
-    danger = sqla.Column(sqla.Integer)
+    reason = sqla.Column(sqla.String(LEN_REASON), nullable=False)
     is_friendly = sqla.Column(sqla.Boolean)
 
     def __repr__(self):
-        keys = ['id', 'cmdr', 'faction', 'danger', 'is_friendly']
+        keys = ['id', 'cmdr', 'faction', 'reason', 'is_friendly']
         kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
 
         return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))

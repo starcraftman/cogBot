@@ -455,12 +455,13 @@ def test_kos_search_cmdr(session, f_kos):
 
 
 def test_kos_add_cmdr(session, f_kos):
-    cogdb.query.kos_add_cmdr(session, 'cmdr', 'faction', False)
+    cogdb.query.kos_add_cmdr(session, 'cmdr', 'faction', 'A reason', False)
     session.commit()
 
     nsession = cogdb.Session()
     all = nsession.query(KOS).all()
     assert all[-1].cmdr == 'cmdr'
+    assert all[-1].reason == 'A reason'
 
 
 def test_track_add_systems(session, f_track_testbed):

@@ -370,8 +370,8 @@ async def test_kosscanner_add_report_dict(f_asheet_kos, session, db_cleanup):
     assert not session.query(KOS).all()
 
     await fscan.update_cells()
-    payload = fscan.add_report_dict("cmdr", "faction", 0, is_friendly=False)
-    assert payload == [{'range': 'A1469:D1469', 'values': [['cmdr', 'faction', 0, 'KILL']]}]
+    payload = fscan.add_report_dict("cmdr", "faction", 'reason', is_friendly=False)
+    assert payload == [{'range': 'A1469:D1469', 'values': [['cmdr', 'faction', 'KILL', 'reason']]}]
 
 
 @pytest.mark.asyncio
