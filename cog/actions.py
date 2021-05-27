@@ -49,7 +49,7 @@ def user_info(user):  # pragma: no cover
         ['All Roles:', str([str(role) for role in user.roles[1:]])],
         ['Top Role:', str(user.top_role).replace('@', '@ ')],
     ]
-    return '**' + user.display_name + '**\n' + cog.tbl.wrap_markdown(cog.tbl.format_table(lines))
+    return cog.tbl.format_table(lines, prefix='**{}**\n'.format(user.display_name))
 
 
 @decorator.decorator
@@ -299,7 +299,8 @@ class Admin(Action):
     async def top(self, limit=5):
         """ Schedule all sheets for update. """
         cycle = cog.util.get_config("scanners", "hudson_cattle", "page", default="Cycle Unknown")
-        response = "__Top Merits for {}__\n\n".format(cycle)
+        prefix = "__Top Merits for {}__\n\n".format(cycle)
+        parts = []
 
         all_dusers = cogdb.query.all_discord_with_merits(self.session)
         exclude_roles = ["FRC Leadership", "Special Agent"]
@@ -308,21 +309,22 @@ class Admin(Action):
         top_recruits, top_members = dusers_topn(self.msg.guild, dusers, exclude_roles, limit=self.args.limit)
         lines = [["Top {} Recruits".format(limit), "Merits", "Top {} Members".format(limit), "Merits"]]
         lines += [[rec.display_name, rec.total_merits, mem.display_name, mem.total_merits] for rec, mem in zip(top_recruits, top_members)]
-        response += cog.tbl.wrap_markdown(cog.tbl.format_table(lines, header=True)) + "\n\n"
+        parts += cog.tbl.format_table(lines, header=True, prefix=prefix, suffix="\n\n")
 
         dusers = reversed(sorted(all_dusers, key=lambda x: x.total_fort_merits))
         top_recruits, top_members = dusers_topn(self.msg.guild, dusers, exclude_roles, limit=self.args.limit)
         lines = [["Top {} Fort Recruits".format(limit), "Merits", "Top Fort {} Members".format(limit), "Merits"]]
         lines += [[rec.display_name, rec.total_fort_merits, mem.display_name, mem.total_fort_merits] for rec, mem in zip(top_recruits, top_members)]
-        response += cog.tbl.wrap_markdown(cog.tbl.format_table(lines, header=True)) + "\n\n"
+        parts += cog.tbl.format_table(lines, header=True, suffix="\n\n")
 
         dusers = reversed(sorted(all_dusers, key=lambda x: x.total_um_merits))
         top_recruits, top_members = dusers_topn(self.msg.guild, dusers, exclude_roles, limit=self.args.limit)
         lines = [["Top {} UM Recruits".format(limit), "Merits", "Top UM {} Members".format(limit), "Merits"]]
         lines += [[rec.display_name, rec.total_um_merits, mem.display_name, mem.total_um_merits] for rec, mem in zip(top_recruits, top_members)]
-        response += cog.tbl.wrap_markdown(cog.tbl.format_table(lines, header=True)) + "\n\n"
+        parts += cog.tbl.format_table(lines, header=True, suffix="\n\n")
 
-        return response
+        for part in cog.util.merge_msgs_to_least(parts):
+            await self.bot.send_message(self.msg.channel, part)
 
     # TODO: Increase level of automation:
     #   - Actually MAKE the new sheets, copy from templates.
@@ -350,8 +352,8 @@ class Admin(Action):
                 lines += [[await SCANNERS[name].asheet.title(), new_page]]
             cog.util.update_config(scanner_configs, 'scanners')
 
-            table = cog.tbl.wrap_markdown(cog.tbl.format_table(lines, header=True))
-            return "Cycle incremented. Changed sheets scheduled for update.\n\n" + table
+            prefix = "Cycle incremented. Changed sheets scheduled for update.\n\n"
+            return cog.tbl.format_table(lines, header=True, prefix=prefix)[0]
         except ValueError as exc:
             raise cog.exc.InternalException("Impossible to increment scanner: {}".format(name)) from exc
         except (AssertionError, googleapiclient.errors.HttpError) as exc:
@@ -362,7 +364,6 @@ class Admin(Action):
 
     async def addum(self):
         """Add a system(s) to the um sheet"""
-        lines = []
         values = []
 
         reinforcement_value = self.args.reinforced
@@ -384,6 +385,7 @@ class Admin(Action):
                 process_system_args(self.args.system))
 
             found_list = []
+            msgs = []
             for system in systems:
                 found = False
                 for system_in_sheet in systems_in_sheet:
@@ -395,15 +397,14 @@ class Admin(Action):
                     pow_hq = cogdb.eddb.get_systems(eddb_session, [power[1]])[0]
                     if system.name != pow_hq.name:
                         reinforced_trigger = system.calc_um_trigger(pow_hq, reinforcement_value)
-                        lines += [
-                            cog.tbl.wrap_markdown(cog.tbl.format_table([
-                                ["System", system.name],
-                                ["Power", power[0]],
-                                ["UM Trigger", system.calc_um_trigger(pow_hq)],
-                                ["UM Trigger {}%".format(reinforcement_value), reinforced_trigger],
-                                ["Priority", priority]
-                            ]))
-                        ]
+
+                        msgs += cog.tbl.format_table([
+                            ["System", system.name],
+                            ["Power", power[0]],
+                            ["UM Trigger", system.calc_um_trigger(pow_hq)],
+                            ["UM Trigger {}%".format(reinforcement_value), reinforced_trigger],
+                            ["Priority", priority]
+                        ])
                         values.append({"sys_name": system.name, "power": power[0], "trigger": reinforced_trigger,
                                       "priority": priority})
                     else:
@@ -414,7 +415,9 @@ class Admin(Action):
             data = cogdb.scanners.UMScanner.slide_templates(um_sheet, values)
             await um_scanner.send_batch(data, input_opt='USER_ENTERED')
             self.bot.sched.schedule("hudson_undermine", 1)
-            await self.bot.send_message(self.msg.channel, '\n'.join(lines))
+            msgs = cog.util.merge_msgs_to_least(msgs)
+            for msg in msgs:
+                await self.bot.send_message(self.msg.channel, msg)
             await asyncio.sleep(1)
             if found_list:
                 return "Systems added to the UM sheet.\n\nThe following systems were ignored : {}"\
@@ -469,7 +472,7 @@ class Admin(Action):
             else:
                 response = await func()
             if response:
-                await self.bot.send_long_message(self.msg.channel, response)
+                await self.bot.send_message(self.msg.channel, response)
         except (AttributeError, TypeError) as exc:
             raise cog.exc.InvalidCommandArgs("Bad subcommand of `!admin`, see `!admin -h` for help.") from exc
 
@@ -488,7 +491,7 @@ class BGS(Action):
                                                       kwargs['side_session'], control_name)
         lines = [['Control', 'System', 'Age']]
         lines += [[system.control, system.system, system.age] for system in systems]
-        return cog.tbl.wrap_markdown(cog.tbl.format_table(lines, header=True))
+        return cog.tbl.format_table(lines, header=True)[0]
 
     async def dash(self, system_name, **kwargs):
         """ Handle dash subcmd. """
@@ -515,18 +518,12 @@ class BGS(Action):
             elif strong(gov.text):
                 strong_cnt += 1
 
-        table = cog.tbl.wrap_markdown(cog.tbl.format_table(lines, sep=' | ', center=False,
-                                                           header=True))
-
-        header = "**{}**".format(control.name)
         tot_systems = len(systems) - 1
         hlines = [
             ["Strong", "{}/{}".format(strong_cnt, tot_systems)],
             ["Weak", "{}/{}".format(weak_cnt, tot_systems)],
             ["Neutral", "{}/{}".format(tot_systems - strong_cnt - weak_cnt, tot_systems)],
         ]
-        header += cog.tbl.wrap_markdown(cog.tbl.format_table(hlines))
-
         explain = """
 **Net**: Net change in influence over last 5 days. There may not be 5 days of data.
          If Net == Inf, they just took control.
@@ -535,7 +532,11 @@ class BGS(Action):
          This is the exponent that would carry 10 to the population of the system.
          Example: Pop = 4.0 then actual population is: 10 ^ 4.0 = 10000
         """
-        return header + table + explain
+        msgs = []
+        msgs += cog.tbl.format_table(hlines, prefix="**{}**".format(control.name))
+        msgs += cog.tbl.format_table(lines, header=True, suffix=explain)
+
+        return cog.util.merge_msgs_to_least(msgs)
 
     async def edmc(self, system_name, **kwargs):
         """ Handle edmc subcmd. """
@@ -589,8 +590,8 @@ class BGS(Action):
 
             cands = await self.bot.loop.run_in_executor(None, cogdb.side.expansion_candidates,
                                                         side_session, centre, factions[ind])
-            resp = "**Would Expand To**\n\n{}, {}\n\n".format(centre.name, factions[ind].name)
-            return resp + cog.tbl.wrap_markdown(cog.tbl.format_table(cands, header=True))
+            prefix = "**Would Expand To**\n\n{}, {}\n\n".format(centre.name, factions[ind].name)
+            return cog.tbl.format_table(cands, header=True, prefix=prefix)[0]
         except ValueError as exc:
             raise cog.exc.InvalidCommandArgs("Selection was invalid, try command again.") from exc
         finally:
@@ -603,8 +604,7 @@ class BGS(Action):
         """ Handle expto subcmd. """
         matches = await self.bot.loop.run_in_executor(None, cogdb.side.expand_to_candidates,
                                                       kwargs['side_session'], system_name)
-        header = "**Nearby Expansion Candidates**\n\n"
-        return header + cog.tbl.wrap_markdown(cog.tbl.format_table(matches, header=True))
+        return cog.tbl.format_table(matches, header=True, prefix="**Nearby Expansion Candidates**\n\n")[0].rstrip()
 
     async def faction(self, _, **kwargs):
         """ Handle faction subcmd. """
@@ -619,8 +619,7 @@ class BGS(Action):
         matches = await self.bot.loop.run_in_executor(None, cogdb.side.find_favorable,
                                                       kwargs['side_session'], system_name,
                                                       self.args.max)
-        header = "**Favorable Factions**\n\n"
-        return header + cog.tbl.wrap_markdown(cog.tbl.format_table(matches, header=True))
+        return cog.tbl.format_table(matches, header=True, prefix="**Favorable Factions**\n\n")[0]
 
     async def inf(self, system_name, **kwargs):
         """ Handle influence subcmd. """
@@ -631,9 +630,9 @@ class BGS(Action):
         if not infs:
             raise cog.exc.InvalidCommandArgs("Invalid system name or system is not tracked in db.")
 
-        header = "**{}**\n{} (UTC)\n\n".format(system_name, infs[0][-1])
+        prefix = "**{}**\n{} (UTC)\n\n".format(system_name, infs[0][-1])
         lines = [['Faction Name', 'Inf', 'Gov', 'PMF?']] + [inf[:-1] for inf in infs]
-        return header + cog.tbl.wrap_markdown(cog.tbl.format_table(lines, header=True))
+        return cog.tbl.format_table(lines, header=True, prefix=prefix)[0]
 
     async def report(self, _, **kwargs):
         """ Handle influence subcmd. """
@@ -691,7 +690,7 @@ If we should contact Gears or Sidewinder""".format(system_name)
                  cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
                 response = await func(' '.join(self.args.system),
                                       side_session=side_session, eddb_session=eddb_session)
-                await self.bot.send_long_message(self.msg.channel, response)
+                await self.bot.send_message(self.msg.channel, response)
         except AttributeError as exc:
             raise cog.exc.InvalidCommandArgs("Bad subcommand of `!bgs`, see `!bgs -h` for help.") from exc
         except (cog.exc.NoMoreTargets, cog.exc.RemoteError) as exc:
@@ -711,11 +710,10 @@ class Dist(Action):
             dists = await self.bot.loop.run_in_executor(None, cogdb.eddb.compute_dists,
                                                         eddb_session, system_names)
 
-        response = 'Distances From: **{}**\n\n'.format(system_names[0].capitalize())
+        prefix = 'Distances From: **{}**\n\n'.format(system_names[0].capitalize())
         lines = [[name, '{:.2f}ly'.format(dist)] for name, dist in dists]
-        response += cog.tbl.wrap_markdown(cog.tbl.format_table(lines))
-
-        await self.bot.send_message(self.msg.channel, response)
+        for msg in cog.tbl.format_table(lines, prefix=prefix):
+            await self.bot.send_message(self.msg.channel, msg)
 
 
 class Drop(Action):
@@ -816,7 +814,7 @@ class Fort(Action):
             ['{}/{}'.format(len(states[key]), total) for key in keys],
         ]
 
-        return cog.tbl.wrap_markdown(cog.tbl.format_table(lines, sep='|', header=True))
+        return cog.tbl.format_table(lines, sep='|', header=True)[0]
 
     def system_details(self):
         """
@@ -830,8 +828,8 @@ class Fort(Action):
 
         merits = [['CMDR Name', 'Merits']]
         merits += [[merit.user.name, merit.amount] for merit in reversed(sorted(system.merits))]
-        merit_table = '\n' + cog.tbl.wrap_markdown(cog.tbl.format_table(merits, header=True))
-        return system.display_details() + merit_table
+        merit_table = cog.tbl.format_table(merits, header=True)[0]
+        return system.display_details() + "\n" + merit_table
 
     async def execute(self):
         manual = ' (Manual Order)' if cogdb.query.fort_order_get(self.session) else ''
@@ -915,7 +913,7 @@ class Feedback(Action):
             ['Author', self.msg.author.name],
             ['Date (UTC)', datetime.datetime.now(datetime.timezone.utc)],
         ]
-        response = cog.tbl.wrap_markdown(cog.tbl.format_table(lines)) + '\n\n'
+        response = cog.tbl.format_table(lines)[0] + '\n\n'
         response += '__Bug Report Follows__\n\n' + ' '.join(self.args.content)
 
         self.log.info('FEEDBACK %s - Left a bug report.', self.msg.author.name)
@@ -928,13 +926,13 @@ class Help(Action):
     """
     async def execute(self):
         prefix = self.bot.prefix
-        over = [
+        overview = '\n'.join([
             'Here is an overview of my commands.',
             '',
             'For more information do: `{}Command -h`'.format(prefix),
             '       Example: `{}drop -h`'.format(prefix),
             '',
-        ]
+        ])
         lines = [
             ['Command', 'Effect'],
             ['{prefix}admin', 'Admin commands'],
@@ -961,7 +959,7 @@ class Help(Action):
         ]
         lines = [[line[0].format(prefix=prefix), line[1]] for line in lines]
 
-        response = '\n'.join(over) + cog.tbl.wrap_markdown(cog.tbl.format_table(lines, header=True))
+        response = overview + cog.tbl.format_table(lines, header=True)[0]
         await self.bot.send_ttl_message(self.msg.channel, response)
         await self.msg.delete()
 
@@ -1018,7 +1016,7 @@ class Hold(Action):
             lines = [['System', 'Hold', 'Redeemed']]
             lines += [[merit.system.name, merit.held, merit.redeemed] for merit
                       in self.undermine.merits if merit.held + merit.redeemed > 0]
-            response += cog.tbl.wrap_markdown(cog.tbl.format_table(lines, header=True))
+            response += cog.tbl.format_table(lines, header=True)[0]
 
         elif self.args.redeem_systems:
             system_strs = " ".join(self.args.redeem_systems).split(",")
@@ -1028,7 +1026,7 @@ class Hold(Action):
             lines = [['System', 'Hold', 'Redeemed']]
             lines += [[merit.system.name, merit.held, merit.redeemed] for merit
                       in self.undermine.merits if merit.held + merit.redeemed > 0]
-            response += cog.tbl.wrap_markdown(cog.tbl.format_table(lines, header=True))
+            response += cog.tbl.format_table(lines, header=True)[0]
 
         else:  # Default case, update the hold for a system
             holds, response = await self.set_hold()
@@ -1112,7 +1110,7 @@ class KOS(Action):
             if cmdrs:
                 lines = [['CMDR Name', 'Faction', 'Is Friendly?', 'Reason']]
                 lines += [[x.cmdr, x.faction, x.friendly, x.reason] for x in cmdrs]
-                msg += cog.tbl.wrap_markdown(cog.tbl.format_table(lines, header=True))
+                msg += cog.tbl.format_table(lines, header=True)[0]
             else:
                 msg += "No matches!"
 
@@ -1140,7 +1138,7 @@ class Near(Action):
 
         lines = [['System', 'Distance']] + [[x.name, "{:.2f}".format(x.dist_to(centre))] for x in systems[:10]]
         return "__Closest 10 Controls__\n\n" + \
-            cog.tbl.wrap_markdown(cog.tbl.format_table(lines, header=True))
+            cog.tbl.format_table(lines, header=True)[0]
 
     async def ifactors(self, eddb_session):
         """
@@ -1157,11 +1155,10 @@ class Near(Action):
         )
 
         stations = [["System", "Distance", "Station", "Arrival"]] + stations
-        msg = "__Nearby Interstellar Factors__\n"
-        msg += cog.tbl.wrap_markdown(cog.tbl.format_table(stations, header=True))
-        msg += "[L] Large pads.\n[M] M pads only."
-
-        return msg
+        return cog.tbl.format_table(
+            stations, header=True, prefix="__Nearby Interstellar Factors__\n",
+            suffix="[L] Large pads.\n[M] M pads only."
+        )[0]
 
     async def execute(self):
         msg = 'Invalid near sub command.'
@@ -1253,17 +1250,19 @@ class Repair(Action):
                 )
             )
 
-            if stations:
-                stations = [["System", "Distance", "Station", "Arrival"]] + stations
-                response = "__Nearby orbitals__\n"
-                response += cog.tbl.wrap_markdown(cog.tbl.format_table(stations, header=True))
-                response += "[L] Large pads.\n[M] M pads only.\n"
-                response += "All stations: Repair, Rearm, Refuel, Outfitting\n"
-                response += "L stations: Shipyard"
-            else:
-                response = "No results. Please check system name. Otherwise not near populations."
+        parts = ["No results. Please check system name. Otherwise not near populations."]
+        if stations:
+            stations = [["System", "Distance", "Station", "Arrival"]] + stations
+            parts = cog.tbl.format_table(stations, header=True)
+            parts[0] = "__Nearby orbitals__\n" + parts[0]
+            suffix = """[L] Large pads.
+[M] M pads only.
+All stations: Repair, Rearm, Refuel, Outfitting
+L stations: Shipyard"""
+            parts[-1] += suffix
 
-        await self.bot.send_long_message(self.msg.channel, response)
+        for part in parts:
+            await self.bot.send_message(self.msg.channel, part)
 
 
 class Route(Action):
@@ -1373,8 +1372,7 @@ class Status(Action):
             ['    Prozer', 'Various Contributions'],
         ]
 
-        await self.bot.send_message(self.msg.channel,
-                                    cog.tbl.wrap_markdown(cog.tbl.format_table(lines)))
+        await self.bot.send_message(self.msg.channel, cog.tbl.format_table(lines)[0])
 
 
 class Time(Action):
@@ -1518,13 +1516,13 @@ class Trigger(Action):
                 process_system_args(self.args.system))
             for system in systems:
                 lines += [
-                    cog.tbl.wrap_markdown(cog.tbl.format_table([
+                    cog.tbl.format_table([
                         ["System", system.name],
                         ["Distance", round(system.dist_to(pow_hq), 1)],
                         ["Upkeep", system.calc_upkeep(pow_hq)],
                         ["Fort Trigger", system.calc_fort_trigger(pow_hq)],
                         ["UM Trigger", system.calc_um_trigger(pow_hq)],
-                    ]))
+                    ])[0]
                 ]
 
         await self.bot.send_message(self.msg.channel, '\n'.join(lines))
@@ -1546,9 +1544,8 @@ class UM(Action):
             while weekly_tick < now or weekly_tick.strftime('%A') != 'Thursday':
                 weekly_tick += datetime.timedelta(days=1)
 
-            response = "**Held Merits**\n\n{}\n".format('DEADLINE **{}**'.format(weekly_tick - now))
-            response += cog.tbl.wrap_markdown(cog.tbl.format_table(
-                cogdb.query.um_all_held_merits(self.session), header=True))
+            prefix = "**Held Merits**\n\n{}\n".format('DEADLINE **{}**'.format(weekly_tick - now))
+            response = cog.tbl.format_table(cogdb.query.um_all_held_merits(self.session), header=True, prefix=prefix)[0]
 
         elif self.args.system:
             system = cogdb.query.um_find_system(self.session, ' '.join(self.args.system))
@@ -1636,34 +1633,35 @@ class User(Action):
 
             await asyncio.gather(*coros)
 
-        lines = [
+        msgs = ['\n'.join([
             '__{}__'.format(self.msg.author.display_name),
             'Sheet Name: ' + self.duser.pref_name,
-            'Default Cry:{}'.format(' ' + self.duser.pref_cry if self.duser.pref_cry else ''),
+            'Default Cry:{}\n'.format(' ' + self.duser.pref_cry if self.duser.pref_cry else ''),
             '',
-        ]
+        ])]
         if self.cattle:
-            lines += [
+            prefix = "\n".join([
                 '__Fortification__',
                 '    Cry: {}'.format(self.cattle.cry),
-                '    Total: {}'.format(self.cattle.merit_summary()),
-            ]
-            mlines = [['System', 'Amount']]
-            mlines += [[merit.system.name, merit.amount] for merit in self.cattle.merits
-                       if merit.amount > 0]
-            lines += cog.tbl.wrap_markdown(cog.tbl.format_table(mlines, header=True)).split('\n')
+                '    Total: {}\n'.format(self.cattle.merit_summary()),
+            ])
+            lines = [['System', 'Amount']]
+            lines += [[merit.system.name, merit.amount] for merit in self.cattle.merits
+                      if merit.amount > 0]
+            msgs += cog.tbl.format_table(lines, header=True, prefix=prefix)
         if self.undermine:
-            lines += [
-                '__Undermining__',
+            prefix = "\n".join([
+                '\n__Undermining__',
                 '    Cry: {}'.format(self.undermine.cry),
-                '    Total: {}'.format(self.undermine.merit_summary()),
-            ]
-            mlines = [['System', 'Hold', 'Redeemed']]
-            mlines += [[merit.system.name, merit.held, merit.redeemed] for merit
-                       in self.undermine.merits if merit.held + merit.redeemed > 0]
-            lines += cog.tbl.wrap_markdown(cog.tbl.format_table(mlines, header=True)).split('\n')
+                '    Total: {}\n'.format(self.undermine.merit_summary()),
+            ])
+            lines = [['System', 'Hold', 'Redeemed']]
+            lines += [[merit.system.name, merit.held, merit.redeemed] for merit
+                      in self.undermine.merits if merit.held + merit.redeemed > 0]
+            msgs += cog.tbl.format_table(lines, header=True, prefix=prefix)
 
-        await self.bot.send_message(self.msg.channel, '\n'.join(lines))
+        for msg in cog.util.merge_msgs_to_least(msgs):
+            await self.bot.send_message(self.msg.channel, msg)
 
     def update_name(self):
         """ Update the user's cmdr name in the sheets. """

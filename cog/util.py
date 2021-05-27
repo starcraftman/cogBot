@@ -323,61 +323,6 @@ def dict_to_columns(data):
     return [header] + lines
 
 
-def complete_blocks(parts):
-    """
-    Take a list of message parts, complete code blocks as needed to
-    preserve intended formatting.
-
-    Returns:
-        List of messages that have been modified.
-    """
-    new_parts = []
-    incomplete = False
-    block = "```"
-
-    for part in parts:
-        num_blocks = part.count(block) % 2
-        if incomplete and not num_blocks:
-            part = block + part + block
-
-        elif incomplete and num_blocks:
-            part = block + part
-            incomplete = not incomplete
-
-        elif num_blocks:
-            part = part + block
-            incomplete = not incomplete
-
-        new_parts += [part]
-
-    return new_parts
-
-
-def msg_splitter(msg):
-    """
-    Take a msg of arbitrary length and split it into parts that respect discord 2k char limit.
-
-    Returns:
-        List of messages to send in order.
-    """
-    parts = []
-    part_line = ''
-
-    for line in msg.split("\n"):
-        line = line + "\n"
-
-        if len(part_line) + len(line) > MSG_LIMIT:
-            parts += [part_line.rstrip("\n")]
-            part_line = line
-        else:
-            part_line += line
-
-    if part_line:
-        parts += [part_line.rstrip("\n")]
-
-    return parts
-
-
 # N.B. Intentionally untested, don't want to spam pastebin
 #      I don't see a dummy flag in api.
 async def pastebin_login(dev_key, user, pword):
@@ -542,6 +487,38 @@ def generative_split(objs, formatter, *, header=""):
         msgs += [cur_msg]
 
     return msgs
+
+
+def merge_msgs_to_least(parts, limit=MSG_LIMIT):
+    """
+    Take a group of separately generated messages and concatenate them
+    together until limit is reached.
+
+    Args:
+        parts: A list of strings to merge.
+        limit: The maximum number of chars to have per message.
+
+    Returns: A new list of parts to send.
+    """
+    if len(parts) <= 0:  # Nothing to merge
+        return parts[:1]
+
+    new_parts = []
+    cur_part = parts[0]
+    cur_len = len(cur_part)
+    for part in parts[1:]:
+        temp_len = len(part)
+        if cur_len + temp_len > MSG_LIMIT:
+            new_parts += [cur_part]
+            cur_part = ""
+
+        cur_part += part
+        cur_len += temp_len
+
+    if cur_part:
+        new_parts += [cur_part]
+
+    return new_parts
 
 
 #  # Scenario multiple readers, always allowed

@@ -98,35 +98,6 @@ def test_substr_match():
     assert cog.util.substr_ind('16 cyg', '16 c y  gni') == [0, 9]
 
 
-def test_complete_block():
-    test1 = ["```Test```"]
-    assert cog.util.complete_blocks(test1) == test1
-
-    test1 = ["```Test"]
-    assert cog.util.complete_blocks(test1) == [test1[0] + "```"]
-
-    test1 = ["```Test", "Test```"]
-    assert cog.util.complete_blocks(test1) == [test1[0] + "```", "```" + test1[1]]
-
-    test1 = ["```Test", "Test", "Test```"]
-    assert cog.util.complete_blocks(test1) == ["```Test```", "```Test```", "```Test```"]
-
-
-def test_msg_splitter():
-    try:
-        old_limit = cog.util.MSG_LIMIT
-        cog.util.MSG_LIMIT = 50
-
-        line = "A short message to"  # 19 char line, 20 with \n
-        test1 = line + "\n" + line + "\n"
-        assert cog.util.msg_splitter(test1) == [test1[:-1]]
-
-        test2 = test1 + "stop here\n" + test1
-        assert cog.util.msg_splitter(test2) == [test1 + "stop here", test1[:-1]]
-    finally:
-        cog.util.MSG_LIMIT = old_limit
-
-
 def test_transpose_table():
     input_table = [
         [0, 1, 2, 3],
@@ -314,3 +285,10 @@ This is the 99th line of text to print.""",
     assert msgs == expected
     for msg in msgs:
         assert len(msg) < cog.util.MSG_LIMIT
+
+
+def test_merge_msgs_to_least():
+    parts = ["1" * 50, "*" * 100, "$" * 750, "B" * 2000]
+    results = cog.util.merge_msgs_to_least(parts, limit=900)
+    assert len(results) == 2
+    assert len(results[0]) == 900

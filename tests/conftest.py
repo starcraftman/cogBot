@@ -496,7 +496,6 @@ def f_bot():
 
     Bot must have methods:
         bot.send_message
-        bot.send_long_message
         bot.send_ttl_message
         bot.delete_message
         bot.emoji.fix - EmojiResolver tested elsewhere
@@ -512,12 +511,16 @@ def f_bot():
     fake_bot = aiomock.AIOMock(uptime=5, prefix="!")
     fake_bot.send_message.async_return_value = fake_msg_gears("A message to send.")
     fake_bot.send_ttl_message.async_return_value = fake_msg_gears("A ttl message to send.")
-    fake_bot.send_long_message.async_return_value = fake_msg_gears("A long message to send.")
     fake_bot.get_member_by_substr.return_value = member
     fake_bot.wait_for.async_return_value = None  # Whenever wait_for needed, put message here.
     fake_bot.emoji.fix = lambda x, y: x
     fake_bot.guilds = fake_servers()
     fake_bot.get_channel_by_name.return_value = 'private_dev'
+    #  fake_bot.msgs = []
+
+    #  async def send_message_(_, msg):
+        #  fake_bot.msgs += msg
+    #  fake_bot.send_message.async_side_effect = send_message_
 
     def fake_exec(_, func, *args):
         return func(*args)

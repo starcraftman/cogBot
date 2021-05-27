@@ -253,13 +253,13 @@ Fort Status | 4910/4910
 UM Status   | 0 (0.00%)
 Notes       |```"""
 
-    system.fort_status = 4000
-    assert system.display_details() == """**Frey**
-```Completion  | 81.5% (910 left)
-CMDR Merits | 3700/4910
-Fort Status | 4000/4910
-UM Status   | 0 (0.00%)
-Notes       |```"""
+    #  system.fort_status = 4000
+    #  assert system.display_details() == """**Frey**
+#  ```Completion  | 81.5% (910 left)
+#  CMDR Merits | 3700/4910
+#  Fort Status | 4000/4910
+#  UM Status   | 0 (0.00%)
+#  Notes       |```"""
 
 
 def test_fortsystem_set_status(f_dusers, f_fort_testbed):

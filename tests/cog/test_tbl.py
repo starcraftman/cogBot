@@ -64,26 +64,24 @@ def test_format_table():
         ['Fareed', 23752, 322, 'Likes smoking.'],
         ['Rosalie', 34, 7320, 'Bit lazy.'],
     ]
-    expect = """Name    | Number 1 | Num2 | Notes
+    expect = ["""```Name    | Number 1 | Num2 | Notes
 John    | 5831     | 5    | He is good.
 Fareed  | 23752    | 322  | Likes smoking.
-Rosalie | 34       | 7320 | Bit lazy."""
+Rosalie | 34       | 7320 | Bit lazy.```"""]
+
     assert cog.tbl.format_table(lines) == expect
 
 
-def test_format_table_header():
+def test_format_table_ragged():
     lines = [
         ['Name', 'Number 1', 'Num2', 'Notes'],
         ['John', 5831, 5, 'He is good.'],
-        ['Fareed', 23752, 322, 'Likes smoking.'],
-        ['Rosalie', 34, 7320, 'Bit lazy.'],
+        ['Fareed', 23752]
     ]
-    expect = """ Name   | Number 1 | Num2 |     Notes
-------- | -------- | ---- | --------------
-John    | 5831     | 5    | He is good.
-Fareed  | 23752    | 322  | Likes smoking.
-Rosalie | 34       | 7320 | Bit lazy."""
-    assert cog.tbl.format_table(lines, header=True) == expect
+    expect = ["""```Name   | Number 1 | Num2 | Notes
+John   | 5831     | 5    | He is good.
+Fareed | 23752```"""]
+    assert cog.tbl.format_table(lines) == expect
 
 
 def test_format_table_separator():
@@ -93,20 +91,84 @@ def test_format_table_separator():
         ['Fareed', 23752, 322, 'Likes smoking.'],
         ['Rosalie', 34, 7320, 'Bit lazy.'],
     ]
-    expect = """Name   !Number 1!Num2!Notes
+    expect = ["""```Name   !Number 1!Num2!Notes
 John   !5831    !5   !He is good.
 Fareed !23752   !322 !Likes smoking.
-Rosalie!34      !7320!Bit lazy."""
+Rosalie!34      !7320!Bit lazy.```"""]
     assert cog.tbl.format_table(lines, sep='!') == expect
 
 
-def test_format_table_ragged():
+def test_format_table_center():
     lines = [
         ['Name', 'Number 1', 'Num2', 'Notes'],
         ['John', 5831, 5, 'He is good.'],
-        ['Fareed', 23752]
+        ['Fareed', 23752, 322, 'Likes smoking.'],
+        ['Rosalie', 34, 7320, 'Bit lazy.'],
     ]
-    expect = """Name   | Number 1 | Num2 | Notes
-John   | 5831     | 5    | He is good.
-Fareed | 23752"""
-    assert cog.tbl.format_table(lines) == expect
+    expect = ["""``` Name   | Number 1 | Num2 |     Notes
+ John   |   5831   |  5   |  He is good.
+Fareed  |  23752   | 322  | Likes smoking.
+Rosalie |    34    | 7320 |   Bit lazy.```"""]
+
+    assert cog.tbl.format_table(lines, center=True) == expect
+
+
+def test_format_table_header():
+    lines = [
+        ['Name', 'Number 1', 'Num2', 'Notes'],
+        ['John', 5831, 5, 'He is good.'],
+        ['Fareed', 23752, 322, 'Likes smoking.'],
+        ['Rosalie', 34, 7320, 'Bit lazy.'],
+    ]
+    expect = ["""``` Name   | Number 1 | Num2 |     Notes
+------- | -------- | ---- | --------------
+John    | 5831     | 5    | He is good.
+Fareed  | 23752    | 322  | Likes smoking.
+Rosalie | 34       | 7320 | Bit lazy.```"""]
+
+    assert cog.tbl.format_table(lines, header=True) == expect
+
+
+def test_format_table_limit():
+    lines = [
+        ['Name', 'Number 1', 'Num2', 'Notes'],
+        ['John', 5831, 5, 'He is good.'],
+        ['Fareed', 23752, 322, 'Likes smoking.'],
+        ['Rosalie', 34, 7320, 'Bit lazy.'],
+    ]
+
+    assert len(cog.tbl.format_table(lines, header=True, limit=200)) == 2
+
+
+def test_format_table_prefix():
+    lines = [
+        ['Name', 'Number 1', 'Num2', 'Notes'],
+        ['John', 5831, 5, 'He is good.'],
+        ['Fareed', 23752, 322, 'Likes smoking.'],
+        ['Rosalie', 34, 7320, 'Bit lazy.'],
+    ]
+    expect = ["""A prefix line.
+``` Name   | Number 1 | Num2 |     Notes
+------- | -------- | ---- | --------------
+John    | 5831     | 5    | He is good.
+Fareed  | 23752    | 322  | Likes smoking.
+Rosalie | 34       | 7320 | Bit lazy.```"""]
+
+    assert cog.tbl.format_table(lines, header=True, prefix='A prefix line.\n') == expect
+
+
+def test_format_table_suffix():
+    lines = [
+        ['Name', 'Number 1', 'Num2', 'Notes'],
+        ['John', 5831, 5, 'He is good.'],
+        ['Fareed', 23752, 322, 'Likes smoking.'],
+        ['Rosalie', 34, 7320, 'Bit lazy.'],
+    ]
+    expect = ["""``` Name   | Number 1 | Num2 |     Notes
+------- | -------- | ---- | --------------
+John    | 5831     | 5    | He is good.
+Fareed  | 23752    | 322  | Likes smoking.
+Rosalie | 34       | 7320 | Bit lazy.```
+A line at the end."""]
+
+    assert cog.tbl.format_table(lines, header=True, suffix="\nA line at the end.") == expect

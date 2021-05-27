@@ -365,15 +365,6 @@ class CogBot(discord.Client):
             await self.sched.unwait_for(args.cmd)
             logging.getLogger(__name__).info('Command %s released lock.', msg.content)
 
-    async def send_long_message(self, destination, content=None, *, tts=False, embed=None):
-        """
-        Behaves excactly like Client.send_message except it:
-
-            Splits messages > 2k limit into smaller messages and transmits.
-        """
-        for part in cog.util.complete_blocks(cog.util.msg_splitter(content)):
-            await self.send_message(destination, part, tts=tts, embed=embed)
-
     # TODO: Signature changed in library, update later.
     async def send_message(self, destination, content=None, *, tts=False, embed=None):
         """

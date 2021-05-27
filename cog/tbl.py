@@ -6,6 +6,8 @@ Any logic having to do with formatting an ASCII table.
 String formatting reference:
   https://pyformat.info/#string_pad_align
 """
+from cog.util import MSG_LIMIT
+TABLE_LIMIT = MSG_LIMIT - 150  # Allow room for text around tables
 
 
 def wrap_markdown(text):
@@ -40,32 +42,57 @@ def format_header(line, sep=' | ', pads=None, center=True):
     return header + '\n' + divider + '\n'
 
 
-def format_table(lines, sep=' | ', center=False, header=False):
+def format_table(lines, *, sep=' | ', center=False, header=False, limit=TABLE_LIMIT,
+                 prefix=None, suffix=None, wrap_msgs=True):
     """
     This function formats a table that fits all data evenly.
     It will go down columns and choose spacing that fits largest data.
+    The table will automatically be wrapped in markdown to force code block.
 
     args:
         lines: Each top level element is a line composed of data in a list.
         sep: String to separate data with.
         center: Center the entry, otherwise left aligned.
         header: If true, format first line as pretty header.
+        limit: A limit to split the table into parts
+        prefix: Text before the first table.
+        suffix: Text to follow the last table.
+
+    Returns: A list of tables formatted in markdown for easy viewing, will be under limit.
     """
     # Guarantee all strings
     lines = [[str(data) for data in line] for line in lines]
-
     pads = max_col_width(lines)
+    wrap_part = wrap_markdown if wrap_msgs else lambda x: x
 
+    cur_part = ''
+    header_str = ''
     if header:
-        header, lines = lines[0], lines[1:]
-        ret_line = format_header(header, sep=sep, pads=pads, center=True)
-    else:
-        ret_line = ''
+        header_str = format_header(lines[0], sep=sep, pads=pads, center=True)
+        lines = lines[1:]
+        cur_part += header_str
 
+    cur_len = len(cur_part)
+    parts = []
     for line in lines:
-        ret_line += format_line(line, sep=sep, pads=pads, center=center) + '\n'
+        temp = format_line(line, sep=sep, pads=pads, center=center) + '\n'
 
-    return ret_line[:-1]
+        if cur_len + len(temp) > limit:
+            parts += [wrap_part(cur_part)]
+            cur_part = header_str
+            cur_len = len(cur_part)
+
+        cur_part += temp
+        cur_len += len(temp)
+    if cur_part:
+        parts += [wrap_part(cur_part.rstrip())]
+
+    if prefix and parts:
+        parts[0] = prefix + parts[0]
+    if suffix:
+        parts[-1] = parts[-1] + suffix
+
+    return parts
 
 
 def format_line(entries, sep=' | ', pads=None, center=False):

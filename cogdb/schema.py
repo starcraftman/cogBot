@@ -372,7 +372,7 @@ class FortSystem(Base):
             ['Notes', self.notes],
         ]
 
-        return '**{}**\n'.format(self.name) + cog.tbl.wrap_markdown(cog.tbl.format_table(lines))
+        return cog.tbl.format_table(lines, prefix='**{}**\n'.format(self.name))[0]
 
 
 class FortPrep(FortSystem):
@@ -664,7 +664,7 @@ class UMSystem(Base):
             ['Power', self.notes],
         ]
 
-        return cog.tbl.wrap_markdown(cog.tbl.format_table(lines))
+        return cog.tbl.format_table(lines)[0]
 
     def set_status(self, new_status):
         """

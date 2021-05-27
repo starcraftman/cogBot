@@ -118,7 +118,7 @@ async def test_cmd_admin_removeum_fail(f_admins, f_bot, db_cleanup):
     await action_map(msg, f_bot).execute()
 
     expect = 'All systems asked are not on the sheet'
-    f_bot.send_long_message.assert_called_with(msg.channel, expect)
+    f_bot.send_message.assert_called_with(msg.channel, expect)
 
 
 @pytest.mark.asyncio
@@ -150,7 +150,7 @@ async def test_cmd_admin_removeum(f_admins, f_dusers, f_bot, f_asheet_umscanner,
     assert fake_um.payloads == expected_payloads
 
     expect = 'Systems removed from the UM sheet.'
-    f_bot.send_long_message.assert_called_with(msg.channel, expect)
+    f_bot.send_message.assert_called_with(msg.channel, expect)
 
 
 @pytest.mark.asyncio
@@ -160,7 +160,7 @@ async def test_cmd_admin_addum_fail(f_admins, f_bot, db_cleanup):
     await action_map(msg, f_bot).execute()
 
     expect = 'All systems asked are already in the sheet or are invalid'
-    f_bot.send_long_message.assert_called_with(msg.channel, expect)
+    f_bot.send_message.assert_called_with(msg.channel, expect)
 
 
 @pytest.mark.asyncio
@@ -192,7 +192,7 @@ async def test_cmd_admin_addum(f_admins, f_bot, f_asheet_umscanner, patch_scanne
     assert fake_um.payloads == expected_payloads
 
     expect = 'Systems added to the UM sheet.'
-    f_bot.send_long_message.assert_called_with(msg.channel, expect)
+    f_bot.send_message.assert_called_with(msg.channel, expect)
 
 
 @pytest.mark.asyncio
@@ -204,7 +204,7 @@ async def test_cmd_bgs_age(side_session, f_bot, f_dusers, f_fort_testbed):
     await action_map(msg, f_bot).execute()
 
     line = [word.strip().replace("```')", '') for word in
-            str(f_bot.send_long_message.call_args).split('\\n')[2].split('|')]
+            str(f_bot.send_message.call_args).split('\\n')[2].split('|')]
     assert line == [row.control, row.system, str(row.age)]
 
 
@@ -214,7 +214,7 @@ async def test_cmd_bgs_dash(f_bot, f_dusers, f_fort_testbed):
 
     await action_map(msg, f_bot).execute()
 
-    assert 'Chelgit' in str(f_bot.send_long_message.call_args).replace("\\n", "\n")
+    assert 'Chelgit' in str(f_bot.send_message.call_args).replace("\\n", "\n")
 
 
 @pytest.mark.asyncio
@@ -224,7 +224,7 @@ async def test_cmd_bgs_exp(f_bot):
     f_bot.wait_for.async_return_value = fake_msg_gears('0')
     await action_map(msg, f_bot).execute()
 
-    actual = str(f_bot.send_long_message.call_args).replace("\\n", "\n")[:-2]
+    actual = str(f_bot.send_message.call_args).replace("\\n", "\n")[:-2]
     actual = re.sub(r'.*live_hudson, ["\']', '', actual)
     actual = actual.split('\n')
     for line in actual[6:]:
@@ -238,10 +238,14 @@ async def test_cmd_bgs_expto(f_bot):
 
     await action_map(msg, f_bot).execute()
 
-    actual = str(f_bot.send_long_message.call_args).replace("\\n", "\n")[:-2]
+    actual = str(f_bot.send_message.call_args).replace("\\n", "\n")[:-2]
     actual = re.sub(r'.*live_hudson, ["\']', '', actual)
     actual = actual.split('\n')
+
     for line in actual[4:]:
+        if line == "```":
+            continue
+
         parts = re.split(r'\s+\|\s+', line)
         assert float(parts[1]) <= 20
 
@@ -252,7 +256,7 @@ async def test_cmd_bgs_find(f_bot):
 
     await action_map(msg, f_bot).execute()
 
-    actual = str(f_bot.send_long_message.call_args).replace("\\n", "\n")[:-2]
+    actual = str(f_bot.send_message.call_args).replace("\\n", "\n")[:-2]
     actual = re.sub(r'.*live_hudson, ["\']', '', actual)
     assert actual.split('\n')[4].index("Monarchy of Orisala") != -1
 
@@ -263,7 +267,7 @@ async def test_cmd_bgs_inf(side_session, f_bot):
 
     await action_map(msg, f_bot).execute()
 
-    assert "Mother Gaia" in str(f_bot.send_long_message.call_args).replace("\\n", "\n")
+    assert "Mother Gaia" in str(f_bot.send_message.call_args).replace("\\n", "\n")
 
 
 @pytest.mark.asyncio
@@ -271,7 +275,7 @@ async def test_cmd_bgs_sys(side_session, f_bot):
     msg = fake_msg_gears("!bgs sys Sol")
 
     await action_map(msg, f_bot).execute()
-    reply = str(f_bot.send_long_message.call_args).replace("\\n", "\n")
+    reply = str(f_bot.send_message.call_args).replace("\\n", "\n")
 
     assert '**Sol**: ' in reply
     assert r'```autohotkey' in reply
@@ -751,7 +755,7 @@ async def test_cmd_repair(f_bot):
 
     await action_map(msg, f_bot).execute()
 
-    actual = str(f_bot.send_long_message.call_args).replace("\\n", "\n")
+    actual = str(f_bot.send_message.call_args).replace("\\n", "\n")
     assert "Ali Hub" in actual
     assert "Meucci Port" in actual
 
@@ -882,14 +886,14 @@ async def test_cmd_status(f_bot):
 
     await action_map(msg, f_bot).execute()
 
-    expect = cog.tbl.wrap_markdown(cog.tbl.format_table([
+    expect = cog.tbl.format_table([
         ['Created By', 'GearsandCogs'],
         ['Uptime', '5'],
         ['Version', '{}'.format(cog.__version__)],
         ['Contributors:', ''],
         ['    Shotwn', 'Inara search'],
         ['    Prozer', 'Various Contributions'],
-    ]))
+    ])[0]
     f_bot.send_message.assert_called_with(msg.channel, expect)
 
 

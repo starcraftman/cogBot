@@ -966,6 +966,8 @@ def monitor_events(session, system_ids):
     Monitor a number of controls for special events within them.
 
     Subqueries galore, you've been warned.
+
+    Returns: A list of messages to send.
     """
     current = sqla_orm.aliased(FactionState)
     pending = sqla_orm.aliased(FactionState)
@@ -1016,13 +1018,14 @@ def monitor_events(session, system_ids):
         if "Retreat" in states:
             retreats += line
 
-    response = "**__Events in Monitored Systems__**\nMonitoring: {}".format(", ".join(WATCH_BUBBLES))
-    response += "\n\n**Elections**\n" + cog.tbl.format_table(elections, header=True)
-    response += "\n\n**Wars**\n" + cog.tbl.format_table(wars, header=True)
-    response += "\n\n**Expansions**\n" + cog.tbl.format_table(expansions, header=True)
-    response += "\n\n**Retreats**\n" + cog.tbl.format_table(retreats, header=True)
+    msgs = []
+    header = "**__Events in Monitored Systems__**\nMonitoring: {}\n\n**Elections**\n".format(", ".join(WATCH_BUBBLES))
+    msgs += cog.tbl.format_table(elections, header=True, prefix=header)
+    msgs += cog.tbl.format_table(wars, header=True, prefix="\n\n**Wars**\n")
+    msgs += cog.tbl.format_table(expansions, header=True, prefix="\n\n**Expansions**\n")
+    msgs += cog.tbl.format_table(retreats, header=True, prefix="\n\n**Retreats**\n")
 
-    return response
+    return cog.util.merge_msgs_to_least(msgs)
 
 
 @wrap_exceptions
@@ -1032,6 +1035,8 @@ def control_dictators(session, system_ids):
     Show all controlling dictators in monitored systems.
 
     Subqueries galore, you've been warned.
+
+    Returns: A list of messages to send.
     """
     current = sqla_orm.aliased(FactionState)
     pending = sqla_orm.aliased(FactionState)
@@ -1104,10 +1109,10 @@ def control_dictators(session, system_ids):
         con_lines += [[dic[-3].name, dic[1].name[:16], dic[2].name[:16], dic[3],
                        "{:5.2f}".format(round(dic[0].influence, 2)), dic[-2], dic[-1]]]
 
-    response = "**\n\nNew Controlling Anarchies/Dictators** (last 7 days)\n" + cog.tbl.format_table(lines, header=True)
-    response += "\n\n**Current Controlling Anarchies/Dictators**\n" + cog.tbl.format_table(con_lines, header=True)
+    msgs = cog.tbl.format_table(lines, header=True, prefix="**\n\nNew Controlling Anarchies/Dictators** (last 7 days)\n")
+    msgs += cog.tbl.format_table(con_lines, header=True, prefix="\n\n**Current Controlling Anarchies/Dictators**\n")
 
-    return response
+    return msgs
 
 
 @wrap_exceptions
@@ -1117,6 +1122,8 @@ def moving_dictators(session, system_ids):
     Show all controlling dictators in monitored systems.
 
     Subqueries galore, you've been warned.
+
+    Returns: A list of messages to send.
     """
     current = sqla_orm.aliased(FactionState)
     pending = sqla_orm.aliased(FactionState)
@@ -1171,18 +1178,18 @@ def moving_dictators(session, system_ids):
             lines += [[dic[-3].name, dic[1].name[:16], dic[2].name[:16], dic[3][:3],
                        dic[0].short_date, "{:5.2f}".format(round(dic[0].influence, 2)), "N/A", dic[-2], dic[-1]]]
 
-    header = "**\n\nInf Movement Anarchies/Dictators**)\n"
-    header += "N/A: Means no previous information, either newly expanded to system or not tracking.\n"
-    header += "Criteria: 5% movement in last 2 days or N/A\n\n"
-    response = header + cog.tbl.format_table(lines, header=True)
-
-    return response
+    prefix = "**\n\nInf Movement Anarchies/Dictators**)\n"
+    prefix += "N/A: Means no previous information, either newly expanded to system or not tracking.\n"
+    prefix += "Criteria: 5% movement in last 2 days or N/A\n\n"
+    return cog.tbl.format_table(lines, header=True, prefix=prefix)
 
 
 @wrap_exceptions
 def monitor_factions(session, faction_names=None):
     """
     Get all information on the provided factions. By default use set list.
+
+    Returns: A list of messages to send.
     """
     current = sqla_orm.aliased(FactionState)
     pending = sqla_orm.aliased(FactionState)
@@ -1215,7 +1222,7 @@ def monitor_factions(session, faction_names=None):
         lines += [[match[-3], match[1][:16], match[2][:16], match[3][:3],
                    "{:5.2f}".format(round(match[0], 2)), match[-2], match[-1]]]
 
-    return "\n\n**Monitored Factions**\n" + cog.tbl.wrap_markdown(cog.tbl.format_table(lines, header=True))
+    return cog.tbl.format_table(lines, header=True, prefix="\n\n**Monitored Factions**\n")
 
 
 @wrap_exceptions
