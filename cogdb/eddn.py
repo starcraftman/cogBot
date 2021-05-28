@@ -6,7 +6,6 @@ Will have the following parts:
     - Update relevant bits of EDDB database.
 """
 import datetime
-import functools
 import logging
 import os
 import pprint
@@ -45,7 +44,7 @@ SCHEMA_MAP = {
 }
 TIME_STRP = "%Y-%m-%dT%H:%M:%SZ"
 TIME_STRP_MICRO = "%Y-%m-%dT%H:%M:%S.%fZ"
-LOG_OUT = "/tmp/cogdb_eddn"
+LOG_FILE = "/tmp/eddn_log"
 ALL_MSGS = '/tmp/msgs'
 JOURNAL_MSGS = '/tmp/msgs_journal'
 JOURNAL_CARS = '/tmp/msgs_journal_cars'
@@ -98,18 +97,19 @@ class EDMCJournal():
         Raises:
             StopParsing - No need to continue parsing.
         """
+        log = logging.getLogger(__name__)
         try:
-            PPRINT(self.parse_system())
+            log.info(pprint.pformat(self.parse_system()))
 
             parsed = self.parse_carrier()
             if parsed:
                 log_msg(self.msg, path=JOURNAL_CARS, fname=log_fname(self.msg))
-                PPRINT(parsed)
+                log.info(pprint.pformat(parsed))
 
-            PPRINT(self.parse_station())
-            PPRINT(self.parse_factions())
+            log.debug(pprint.pformat(self.parse_station()))
+            log.debug(pprint.pformat(self.parse_factions()))
             log_msg(self.msg, path=JOURNAL_MSGS, fname=log_fname(self.msg))
-            PPRINT(self.parse_conflicts())
+            log.debug(pprint.pformat(self.parse_conflicts()))
         except StopParsing:
             self.eddb_session.rollback()
 
@@ -136,7 +136,7 @@ class EDMCJournal():
         self.session.commit()
 
         self.parsed["carriers"] = ids_dict[id]
-        PPRINT("Matched carrier: {}".format(id))
+        logging.getLogger(__name__).info("Matched carrier: %s", id)
         return ids_dict
 
     def parse_system(self):
@@ -456,6 +456,7 @@ def create_parser(msg):
         A parser ready to parse the message.
     """
     key = "{} {}".format(msg['header']['softwareName'], msg["$schemaRef"])
+    logging.getLogger(__name__).info("Schema Key: %s", key)
     cls_name = SCHEMA_MAP[key]
     cls = getattr(sys.modules[__name__], cls_name)
 
@@ -491,6 +492,7 @@ def timestamp_is_recent(msg, window=30):
         parsed_time = datetime.datetime.strptime(msg['header']['gatewayTimestamp'], TIME_STRP_MICRO)
     except ValueError:
         parsed_time = datetime.datetime.strptime(msg['header']['gatewayTimestamp'], TIME_STRP)
+    parsed_time = parsed_time.replace(tzinfo=datetime.timezone.utc)
     return (datetime.datetime.now(datetime.timezone.utc) - parsed_time) < datetime.timedelta(minutes=window)
 
 
@@ -523,7 +525,8 @@ def get_msgs(sub):
                     parser.session.rollback()
                     cnt -= 1
         except KeyError as e:
-            logging.getLogger(__name__).info("Exception: %s", str(e))
+            pass
+            #  logging.getLogger(__name__).info("Exception: %s", str(e))
         except StopParsing:
             pass
 
@@ -543,12 +546,37 @@ def connect_loop(sub):
             time.sleep(5)
 
 
+def eddn_log(fname, stream_level="INFO"):
+    """
+    Create a simple file and stream logger for eddn separate from main bot's logging.
+    """
+    log = logging.getLogger(__name__)
+    for hand in log.handlers:
+        log.removeHandler(hand)
+    log.setLevel("DEBUG")
+
+    format = logging.Formatter(fmt="[%(levelname)-5.5s] %(asctime)s %(name)s.%(funcName)s()::%(lineno)s | %(message)s")
+    handler = logging.handlers.RotatingFileHandler(fname, maxBytes=2 ** 20, backupCount=3, encoding='utf8')
+    handler.setFormatter(format)
+    handler.setLevel("DEBUG")
+    handler.doRollover()
+    log.addHandler(handler)
+
+    handler = logging.StreamHandler(sys.stdout)
+    handler.setFormatter(format)
+    handler.setLevel(stream_level)
+    log.addHandler(handler)
+
+
 def main():
     """
     Connect to EDDN and begin ....
         accepting messages and parsing the info
         updating database entries based on new information
     """
+    level = "DEBUG" if not len(sys.argv) == 2 else sys.argv[1]
+    eddn_log(LOG_FILE, level)
+
     try:
         shutil.rmtree(ALL_MSGS)
     except OSError:
@@ -561,10 +589,6 @@ def main():
         shutil.rmtree(JOURNAL_CARS)
     except OSError:
         pass
-    try:
-        os.remove(LOG_OUT)
-    except OSError:
-        pass
     os.mkdir(ALL_MSGS)
     os.mkdir(JOURNAL_MSGS)
     os.mkdir(JOURNAL_CARS)
@@ -574,7 +598,7 @@ def main():
     sub.setsockopt(zmq.RCVTIMEO, TIMEOUT)
 
     try:
-        print("connection established, reading messages.\nOutput at: {}".format(LOG_OUT))
+        print("connection established, reading messages.\nOutput at: {}".format(LOG_FILE))
         connect_loop(sub)
     except KeyboardInterrupt:
         msg = """Terminating ZMQ connection."""
@@ -585,7 +609,6 @@ try:
     MAPS = create_id_maps(cogdb.EDDBSession())
 except (sqla_orm.exc.NoResultFound, sqla.exc.ProgrammingError):
     MAPS = None
-PPRINT = functools.partial(log_msg, path='/tmp', fname="cogdb_eddn")
 
 
 if __name__ == "__main__":
