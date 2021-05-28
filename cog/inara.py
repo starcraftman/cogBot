@@ -17,7 +17,6 @@ Example of how header should look. Now pulled directly from config.
     #  "APIkey": APIKey,
     #  "isDeveloped": True  # Just leae this true.
 #  }
-TODO: Implement rate limiting here or upstream in actions.
 '''
 import asyncio
 import datetime
@@ -87,6 +86,8 @@ EMPTY_INARA = 'unknown'
 INARA_SYSTEM_SEARCH = "https://inara.cz/galaxy-starsystem/?search={}"
 INARA_STATION_SEARCH = "https://inara.cz/galaxy-station/?search={}%20[{}]"  # system, station_name
 INARA_FACTION_SEARCH = "https://inara.cz/galaxy-minorfaction/?search={}"
+RATE_MAX = 12
+RATE_RESUME = 9
 
 
 class InaraApiInput():
@@ -135,6 +136,9 @@ class InaraApi():
         self.req_counter = 0  # count how many searches done with search_in_inara
         self.waiting_messages = {}  # 'Searching in inara.cz' messages. keys are req_id.
 
+        self.rate = 0  # Rate of requests in last 60 seconds
+        self.rate_event = asyncio.Event()
+
     async def delete_waiting_message(self, req_id):  # pragma: no cover
         """ Delete the message which informs user about start of search """
         if req_id in self.waiting_messages:
@@ -174,12 +178,22 @@ class InaraApi():
 
             # search for commander
             async with aiohttp.ClientSession() as http:
+                while self.rate >= RATE_MAX:
+                    msg = await cog.util.BOT.send_message(
+                        msg.channel, "Approaching inara rate, please wait a moment until we are under.")
+
+                    self.rate_event.clear()
+                    await self.rate_event.wait()
+                    await msg.delete()
+                self.rate += 1
+
                 async with http.post(API_ENDPOINT, data=api_input.serialize(),
                                      headers=API_HEADERS) as resp:
+                    asyncio.ensure_future(delay_and_rate_check(self))
+
                     if resp.status != 200:
                         raise cog.exc.RemoteError("Inara search failed. HTTP Response code bad: %s"
                                                   % str(resp.status))
-
                     response_json = await resp.json(loads=wrap_json_loads)
 
             # after here many things are unorthodox due api structure.
@@ -511,6 +525,24 @@ async def inara_squad_parse(url):
         {'name': 'Minor Faction', 'value': squad_data["minor"], 'inline': True},
         {'name': 'Language', 'value': squad_data["language"], 'inline': True},
     ]
+
+
+async def delay_and_rate_check(api, delay=60):
+    """
+    After delay check the new rate against original.
+    If rate is acceptable then notify those waiting event.
+
+    Args:
+        api: An InaraApi client.
+        delay: The delay before decrementing counter. Default 60s
+    """
+    original = api.rate
+    await asyncio.sleep(delay)
+
+    api.rate -= 1
+    if (original < RATE_MAX and api.rate < RATE_MAX) or \
+            (original >= RATE_MAX and api.rate <= RATE_RESUME):
+        api.rate_event.set()
 
 
 def extract_inara_systems(message):
