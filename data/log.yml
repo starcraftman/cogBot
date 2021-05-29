@@ -34,6 +34,9 @@ handlers:
   discord:
     <<: *default_handler
     filename: /tmp/cog/discord.log
+  sqlalchemy:
+    <<: *default_handler
+    filename: /tmp/cog/sqlalchemy.log
   debug_stream:
     class: logging.StreamHandler
     level: DEBUG
@@ -60,7 +63,7 @@ handlers:
 loggers:
   aiozmq:
     level: DEBUG
-    handlers: [aiozmq, err_stream]
+    handlers: [aiozmq, warn_stream]
   asyncio:
     level: DEBUG
     handlers: [asyncio, warn_stream]
@@ -73,6 +76,9 @@ loggers:
   cogdb:
     level: DEBUG
     handlers: [cogdb, info_stream]
+  sqlalchemy:
+    level: DEBUG
+    handlers: [sqlalchemy, warn_stream]
 
 # Nullify any non-explicit handling of logs
 root:

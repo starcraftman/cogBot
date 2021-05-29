@@ -93,6 +93,7 @@ class FortScanner():
         if not session:
             session = cogdb.fresh_sessionmaker()()
         self.flush_to_db(session, (users, systems, drops))
+        session.close()
 
     def flush_to_db(self, session, new_objs):
         """
@@ -331,6 +332,7 @@ class UMScanner(FortScanner):
         if not session:
             session = cogdb.fresh_sessionmaker()()
         self.flush_to_db(session, (users, systems, holds))
+        session.close()
 
     def systems(self):
         """
@@ -603,6 +605,7 @@ class KOSScanner(FortScanner):
         if not session:
             session = cogdb.fresh_sessionmaker()()
         self.flush_to_db(session, (entries,))
+        session.close()
 
     def kos_entries(self):
         """
@@ -715,6 +718,7 @@ class CarrierScanner(FortScanner):
 
         cogdb.query.track_ids_update(session, self.carriers())
         session.commit()
+        session.close()
 
     def carriers(self, *, row_cnt=1):
         """

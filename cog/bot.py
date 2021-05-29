@@ -26,6 +26,7 @@ import logging
 import os
 import pprint
 import re
+import sys
 import tempfile
 
 import aiofiles
@@ -198,7 +199,8 @@ class CogBot(discord.Client):
             asyncio.ensure_future(asyncio.gather(
                 presence_task(self),
                 simple_heartbeat(),
-                cog.actions.monitor_carrier_events(self, next_summary=next_summary, delay=60)
+                cog.actions.monitor_carrier_events(self, next_summary=next_summary, delay=60),
+                cogdb.monitor_pools(),
             ))
 
             self.deny_commands = False
@@ -488,7 +490,12 @@ async def simple_heartbeat(delay=30):
 
 def main():  # pragma: no cover
     """ Entry here! """
-    cog.util.init_logging()
+    sqlalchemy_log = '--db' in sys.argv
+    if sqlalchemy_log:
+        print("Enabling SQLAlchemy log.")
+    else:
+        print("To enable SQLAlchemy log append --db flag.")
+    cog.util.init_logging(sqlalchemy_log)
 
     intents = discord.Intents.default()
     intents.members = True

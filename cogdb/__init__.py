@@ -11,6 +11,7 @@ Relationships:
 Relationship backrefs:
     http://docs.sqlalchemy.org/en/latest/orm/backref.html#relationships-backref
 """
+import asyncio
 import logging
 import os
 import sys
@@ -88,3 +89,15 @@ def fresh_sessionmaker(db=None):
 
     eng = sqlalchemy.create_engine(MYSQL_SPEC.format(**creds), echo=False, pool_recycle=3600)
     return sqlalchemy.orm.sessionmaker(bind=eng)
+
+
+async def monitor_pools(delay=120):
+    """
+    Runs forever and just logs the status of each pool.
+    """
+    await asyncio.sleep(delay)
+    log = logging.getLogger(__name__)
+    for name, eng in zip(("local", "eddb", "side"), (engine, eddb_engine, side_engine)):
+        log.info("POOL %s: %s", name, eng.pool.status())
+
+    asyncio.ensure_future(monitor_pools(delay))

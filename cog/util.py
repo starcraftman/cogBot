@@ -262,7 +262,7 @@ def number_increment(line):
     return line.replace(str(old_num), str(old_num + 1))
 
 
-def init_logging():  # pragma: no cover
+def init_logging(sqlalchemy_log=False):  # pragma: no cover
     """
     Initialize project wide logging. See config file for details and reference on module.
 
@@ -276,6 +276,10 @@ def init_logging():  # pragma: no cover
     except FileNotFoundError:
         raise cog.exc.MissingConfigFile("Missing log.yml. Expected at: " + log_file)
 
+    if not sqlalchemy_log:
+        del lconf['handlers']['sqlalchemy']
+        del lconf['loggers']['sqlalchemy']
+
     for handler in lconf['handlers']:
         try:
             os.makedirs(os.path.dirname(lconf['handlers'][handler]['filename']))
@@ -283,7 +287,7 @@ def init_logging():  # pragma: no cover
             pass
 
     with open(log_file) as fin:
-        logging.config.dictConfig(yaml.load(fin, Loader=Loader))
+        logging.config.dictConfig(lconf)
 
     print(LOG_MSG)
     for name in lconf['handlers']:
