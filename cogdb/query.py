@@ -15,7 +15,7 @@ import cog.sheets
 from cog.util import substr_match, get_config
 from cogdb.schema import (DiscordUser, FortSystem, FortPrep, FortDrop, FortUser, FortOrder,
                           UMSystem, UMUser, UMHold, KOS, AdminPerm, ChannelPerm, RolePerm,
-                          TrackSystem, TrackSystemCached, TrackByID)
+                          TrackSystem, TrackSystemCached, TrackByID, OCRTracker, OCRTrigger)
 from cogdb.eddb import HUDSON_CONTROLS, WINTERS_CONTROLS
 
 DEFER_MISSING = get_config("limits", "defer_missing", default=750)
@@ -935,3 +935,100 @@ def track_ids_newer_than(session, date):
         filter(TrackByID.updated_at > date).\
         order_by(TrackByID.updated_at).\
         all()
+
+
+def update_ocr_live(session, ids_dict, date_obj):
+    """
+    Update the tracked IDs into the database.
+    ids_dict is a dict of form:
+        {
+            {ID: {'id': ID, 'system': SYSTEM, 'fort': FORT, 'um': UM, 'updated_at': datetime obj},
+            ...
+        }
+
+    ID, SYSTEM, FORT and UM are the respective data to store for an ID in schema:
+    If the information exists it will be updated, else inserted.
+
+    Args:
+        session: The session to db.
+        ids_dict: See above dictionary.
+        date_obj: Optional, if provided data will be accepted only if timestamp is newer. Expecting datetime object.
+
+    Returns: (list_updated, list_removed) - both lists are lists of IDs
+    """
+    added, updated = [], []
+    ocr_system_ids = session.query(OCRTracker).\
+        filter(OCRTracker.id.in_(ids_dict.keys())).\
+        all()
+
+    copy_ids_dict = copy.deepcopy(ids_dict)
+    for system in ocr_system_ids:
+        # Reject possible data that is older than current
+        if date_obj and system.updated_at > date_obj:
+            del copy_ids_dict[system.id]
+            continue
+
+        data = copy_ids_dict[system.id]
+        if data.get("fort", ""):
+            system.fort = data['fort']
+        if data.get("um", ""):
+            system.um = data['um']
+        system.system = data.get('system', None)
+        updated += [system.id]
+
+        del copy_ids_dict[system.id]
+
+    for data in copy_ids_dict.values():
+        session.add(OCRTracker(**data))
+        added += [data['id']]
+
+    return (updated, added)
+
+
+def update_ocr_trigger(session, ids_dict, date_obj):
+    """
+    Update the tracked IDs into the database.
+    ids_dict is a dict of form:
+        {
+            {ID: {'id': ID, 'system_id': SYSTEM_ID, 'fort_trigger': FORT_TRIGGER, 'um_trigger': UM_TRIGGER,
+            'updated_at': datetime obj},
+            ...
+        }
+
+    ID, FORT_TRIGGER and UM_TRIGGER and are the respective data to store for an ID in schema:
+    If the information exists it will be updated, else inserted.
+
+    Args:
+        session: The session to db.
+        ids_dict: See above dictionary.
+        date_obj: Optional, if provided data will be accepted only if timestamp is newer. Expecting datetime object.
+
+    Returns: (list_updated, list_removed) - both lists are lists of IDs
+    """
+    added, updated = [], []
+    ocr_system_ids = session.query(OCRTrigger).\
+        filter(OCRTrigger.id.in_(ids_dict.keys())).\
+        all()
+
+    copy_ids_dict = copy.deepcopy(ids_dict)
+    for system in ocr_system_ids:
+        # Reject possible data that is older than current
+        if date_obj and system.updated_at > date_obj:
+            del copy_ids_dict[system.id]
+            continue
+
+        data = copy_ids_dict[system.id]
+        if data.get("fort_trigger", ""):
+            system.fort_trigger = data['fort_trigger']
+        if data.get("um_trigger", ""):
+            system.um_trigger = data['um_trigger']
+        system.system_id = data.get('system_id', None)
+        updated += [system.id]
+
+        del copy_ids_dict[system.id]
+
+    for data in copy_ids_dict.values():
+        session.add(OCRTracker(**data))
+        added += [data['id']]
+
+    return (updated, added)

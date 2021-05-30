@@ -973,6 +973,86 @@ class TrackByID(Base):
         return ("{}{}".format(self.id, " (O)" if self.override else ""), self.squad, self.system)
 
 
+class OCRTracker(Base):
+    """
+    Track systems' Fort and UM from OCR.
+    """
+
+    # TODO: Create relations between OCRTracker and FortSystems
+    __tablename__ = 'systems_live_tracker'
+
+    header = ["ID", "System", "Fort", "Um"]
+
+    id = sqla.Column(sqla.Integer, primary_key=True)
+    system = sqla.Column(sqla.String(LEN_NAME), default="", unique=True)
+    fort = sqla.Column(sqla.Integer, default=0.0)
+    um = sqla.Column(sqla.Integer, default=0.0)
+    updated_at = sqla.Column(sqla.DateTime(timezone=True), default=datetime.datetime.now(datetime.timezone.utc))  # All dates UTC
+
+    def __repr__(self):
+        keys = ['id', 'system', 'fort', 'um', 'updated_at']
+        kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
+
+        return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
+
+    def __str__(self):
+        """ A pretty one line to give all information. """
+        return "{system} : **Fort {fort}**  **UM {um}**  Last Update at {date}".format(
+            um=self.um, fort=self.fort,
+            system=self.system if self.system else "No Info", date=self.updated_at
+        )
+
+    def __eq__(self, other):
+        return isinstance(other, OCRTracker) and hash(self) == hash(other)
+
+    def __lt__(self, other):
+        return self.fort < other.fort and self.um < self.um
+
+    def __hash__(self):
+        return hash("{}".format(self.id))
+
+
+class OCRTrigger(Base):
+    """
+    Store Fort / Um triggers by systems.
+    """
+    __tablename__ = 'systems_trigger_tracker'
+
+    header = ["ID", "System", "Fort_Trigger", "Um_Trigger"]
+
+    id = sqla.Column(sqla.Integer, primary_key=True)
+    system_id = sqla.Column(sqla.Integer, sqla.ForeignKey('systems_live_tracker.id'), nullable=False)
+    fort_trigger = sqla.Column(sqla.Integer, default=0.0)
+    um_trigger = sqla.Column(sqla.Integer, default=0.0)
+    updated_at = sqla.Column(sqla.DateTime(timezone=True),
+                             default=datetime.datetime.now(datetime.timezone.utc))  # All dates UTC
+
+    # Relationships
+    system = sqla_orm.relationship('OCRTracker', uselist=False, back_populates='triggers',
+                                   lazy='select')
+
+    def __repr__(self):
+        keys = ['id', 'system_id', 'fort_trigger', 'um_trigger', 'updated_at']
+        kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
+
+        return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
+
+    def __str__(self):
+        """ A pretty one line to give all information. """
+        system = ''
+        if getattr(self, 'system', None):
+            system = "system={!r}, ".format(self.system.name)
+        return "{system} : {fort_trigger}:{um_trigger}  Last Update at {date}".format(
+            um_trigger=self.um_trigger, fort_trigger=self.fort_trigger,
+            system=system, date=self.updated_at)
+
+    def __eq__(self, other):
+        return isinstance(other, OCRTrigger) and self.system_id == other.system_id
+
+    def __hash__(self):
+        return hash("{}".format(self.id))
+
+
 def kwargs_um_system(cells, sheet_col):
     """
     Return keyword args parsed from cell frame.

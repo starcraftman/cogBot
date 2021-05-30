@@ -706,7 +706,7 @@ class RecruitsScanner(FortScanner):
 
 class CarrierScanner(FortScanner):
     """
-    Scanner for the Hudson recruits sheet.
+    Scanner for the Hudson FC kos sheet.
 
     args:
         asheet: The AsyncGSheet that connects to the sheet.
@@ -748,6 +748,81 @@ class CarrierScanner(FortScanner):
             }
 
         return found
+
+
+class OCRScanner(FortScanner):
+    """
+    Scanner for the Hudson OCR sheet.
+
+    args:
+        asheet: The AsyncGSheet that connects to the sheet.
+    """
+    def __init__(self, asheet):
+        super().__init__(asheet, [])
+
+    def __repr__(self):
+        return super().__repr__().replace('FortScanner', 'OCRScanner')
+
+    def parse_sheet(self, session=None, trigger=False):
+        """
+        Push the update of OCR data to the database.
+        """
+        if not session:
+            session = cogdb.fresh_sessionmaker()()
+
+        cogdb.query.update_ocr_live(session, self.live())
+        if trigger:
+            cogdb.query.update_ocr_trigger(session, self.trigger())
+        session.commit()
+
+    def live(self, *, row_cnt=1):
+        """
+        Scan the live data in the sheet.
+        Update date : cell C1
+        Expected format:
+            System name | Fort value | Um value
+
+        Args:
+            row_cnt: The starting row for data, zero-based.
+
+        Returns: A dictionary ready to update db.
+        """
+        found = {}
+
+        updated_at = self.cells_col_major[2:3][0][:1]
+        users = [x[row_cnt:] for x in self.cells_col_major[:3]]
+        index = 0
+        for system_name, fort, um in list(zip(*users)):
+            # TODO: Need system name, fort value, um value checks here
+
+            found[index] = {
+                "id": index,
+                "system": system_name,
+                "fort": fort,
+                "um": um,
+                "updated_at": updated_at
+            }
+            index += 1
+
+        return found
+
+    def trigger(self, *, row_cnt=1):
+        """
+        Scan the live data in the sheet.
+        Update date : cell C1
+        Expected format:
+            System name | Fort_trigger value | Um_trigger value
+
+        Args:
+            row_cnt: The starting row for data, zero-based.
+
+        Returns: A dictionary ready to update db.
+        """
+        found = {}
+
+        updated_at = self.cells_col_major[2:3][0][:1]
+        # TODO: Returning the dict to update DB.
+        return
 
 
 async def init_scanners():
