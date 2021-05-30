@@ -763,19 +763,21 @@ class OCRScanner(FortScanner):
     def __repr__(self):
         return super().__repr__().replace('FortScanner', 'OCRScanner')
 
-    def parse_sheet(self, session=None, trigger=False):
+    def parse_sheet(self, session=None, trigger=True):
         """
         Push the update of OCR data to the database.
         """
-        if not session:
-            session = cogdb.fresh_sessionmaker()()
+        if session:
+            cogdb.query.update_ocr_live(session, self.live())
+            if trigger:
+                cogdb.query.update_ocr_trigger(session, self.trigger())
+            session.commit()
+            session.close()
+        else:
+            with cogdb.session_scope(cogdb.Session) as session:
+                cogdb.query.update_ocr_live(session, self.live())
 
-        cogdb.query.update_ocr_live(session, self.live())
-        if trigger:
-            cogdb.query.update_ocr_trigger(session, self.trigger())
-        session.commit()
-
-    def live(self, *, row_cnt=1):
+    def live(self, *, row_cnt=2):
         """
         Scan the live data in the sheet.
         Update date : cell C1
@@ -791,7 +793,7 @@ class OCRScanner(FortScanner):
 
         updated_at = self.cells_col_major[2:3][0][:1]
         users = [x[row_cnt:] for x in self.cells_col_major[:3]]
-        index = 0
+        index = 1
         for system_name, fort, um in list(zip(*users)):
             # TODO: Need system name, fort value, um value checks here
 
@@ -800,13 +802,12 @@ class OCRScanner(FortScanner):
                 "system": system_name,
                 "fort": fort,
                 "um": um,
-                "updated_at": updated_at
+                "updated_at": datetime.datetime.fromisoformat(str(updated_at[0]))
             }
             index += 1
-
         return found
 
-    def trigger(self, *, row_cnt=1):
+    def trigger(self, session, *, row_cnt=2):
         """
         Scan the live data in the sheet.
         Update date : cell C1
@@ -814,6 +815,7 @@ class OCRScanner(FortScanner):
             System name | Fort_trigger value | Um_trigger value
 
         Args:
+            session: current cogdb Session
             row_cnt: The starting row for data, zero-based.
 
         Returns: A dictionary ready to update db.
@@ -822,7 +824,20 @@ class OCRScanner(FortScanner):
 
         updated_at = self.cells_col_major[2:3][0][:1]
         # TODO: Returning the dict to update DB.
-        return
+        users = [x[row_cnt:] for x in self.cells_col_major[14:16]]
+        index = 1
+        ocr_systems = cogdb.query.ocr_get_systems(session)
+        for fort_trigger, um_trigger in list(zip(*users)):
+            # TODO: Need system name, fort value, um value checks here
+            found[index] = {
+                "id": index,
+                "system_name": ocr_systems[index-1].system,
+                "fort_trigger": fort_trigger,
+                "um_trigger": um_trigger,
+                "updated_at": datetime.datetime.fromisoformat(str(updated_at[0]))
+            }
+            index += 1
+        return found
 
 
 async def init_scanners():

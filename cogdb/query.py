@@ -937,7 +937,7 @@ def track_ids_newer_than(session, date):
         all()
 
 
-def update_ocr_live(session, ids_dict, date_obj):
+def update_ocr_live(session, ids_dict, date_obj=None):
     """
     Update the tracked IDs into the database.
     ids_dict is a dict of form:
@@ -985,12 +985,12 @@ def update_ocr_live(session, ids_dict, date_obj):
     return (updated, added)
 
 
-def update_ocr_trigger(session, ids_dict, date_obj):
+def update_ocr_trigger(session, ids_dict, date_obj=None):
     """
     Update the tracked IDs into the database.
     ids_dict is a dict of form:
         {
-            {ID: {'id': ID, 'system_id': SYSTEM_ID, 'fort_trigger': FORT_TRIGGER, 'um_trigger': UM_TRIGGER,
+            {ID: {'id': ID, 'fort_trigger': FORT_TRIGGER, 'um_trigger': UM_TRIGGER,
             'updated_at': datetime obj},
             ...
         }
@@ -1022,13 +1022,22 @@ def update_ocr_trigger(session, ids_dict, date_obj):
             system.fort_trigger = data['fort_trigger']
         if data.get("um_trigger", ""):
             system.um_trigger = data['um_trigger']
-        system.system_id = data.get('system_id', None)
+        system.system_name = data.get('system_name', None)
         updated += [system.id]
 
         del copy_ids_dict[system.id]
 
     for data in copy_ids_dict.values():
-        session.add(OCRTracker(**data))
+        session.add(OCRTrigger(**data))
         added += [data['id']]
 
     return (updated, added)
+
+
+def ocr_get_systems(session):
+    """
+    Provide a complete list of all systems.
+
+    Returns: [OCRTracker, OCRTracker, ...]
+    """
+    return session.query(OCRTracker).all()

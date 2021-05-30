@@ -1018,36 +1018,29 @@ class OCRTrigger(Base):
     """
     __tablename__ = 'systems_trigger_tracker'
 
-    header = ["ID", "System", "Fort_Trigger", "Um_Trigger"]
+    header = ["ID", "System_name", "Fort_Trigger", "Um_Trigger"]
 
-    id = sqla.Column(sqla.Integer, primary_key=True)
-    system_id = sqla.Column(sqla.Integer, sqla.ForeignKey('systems_live_tracker.id'), nullable=False)
+    id = sqla.Column(sqla.Integer, sqla.ForeignKey('systems_live_tracker.id'), primary_key=True)
+    system_name = sqla.Column(sqla.String(LEN_NAME), unique=True)
     fort_trigger = sqla.Column(sqla.Integer, default=0.0)
     um_trigger = sqla.Column(sqla.Integer, default=0.0)
     updated_at = sqla.Column(sqla.DateTime(timezone=True),
                              default=datetime.datetime.now(datetime.timezone.utc))  # All dates UTC
 
-    # Relationships
-    system = sqla_orm.relationship('OCRTracker', uselist=False, back_populates='triggers',
-                                   lazy='select')
-
     def __repr__(self):
-        keys = ['id', 'system_id', 'fort_trigger', 'um_trigger', 'updated_at']
+        keys = ['id', 'system_name', 'fort_trigger', 'um_trigger', 'updated_at']
         kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
 
         return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
 
     def __str__(self):
         """ A pretty one line to give all information. """
-        system = ''
-        if getattr(self, 'system', None):
-            system = "system={!r}, ".format(self.system.name)
         return "{system} : {fort_trigger}:{um_trigger}  Last Update at {date}".format(
             um_trigger=self.um_trigger, fort_trigger=self.fort_trigger,
-            system=system, date=self.updated_at)
+            system=self.system_name, date=self.updated_at)
 
     def __eq__(self, other):
-        return isinstance(other, OCRTrigger) and self.system_id == other.system_id
+        return isinstance(other, OCRTrigger)
 
     def __hash__(self):
         return hash("{}".format(self.id))
