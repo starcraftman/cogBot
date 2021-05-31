@@ -194,8 +194,8 @@ class CogBot(discord.Client):
             await self.sched.connect_sub()
             await asyncio.sleep(0.2)
 
-            next_summary = datetime.datetime.now(datetime.timezone.utc)
-            next_summary = next_summary.replace(day=next_summary.day + 1, hour=0, minute=0, microsecond=0)
+            next_summary = datetime.datetime.now(datetime.timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
+            next_summary = next_summary + datetime.timedelta(days=1)
             asyncio.ensure_future(asyncio.gather(
                 presence_task(self),
                 simple_heartbeat(),
