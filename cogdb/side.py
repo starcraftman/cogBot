@@ -891,38 +891,40 @@ def expand_to_candidates(session, system_name):
     Returns:
         [[system_name, distance, influence, state, faction_name], ...]
     """
-    centre = cogdb.eddb.get_systems(cogdb.EDDBSession(), [system_name])[0]
-    blacklist = session.query(Faction.id).\
-        join(Influence, Influence.faction_id == Faction.id).\
-        join(System, Influence.system_id == System.id).\
-        filter(System.name == system_name,
-               Influence.system_id == System.id,
-               Faction.id == Influence.faction_id).\
-        scalar_subquery()
-    matches = session.query(System.name, System.dist_to(centre), System.population, Influence,
-                            Faction, FactionState.text, Government.text).\
-        join(Influence, Influence.system_id == System.id).\
-        join(Faction, Influence.faction_id == Faction.id).\
-        join(FactionState, Faction.state_id == FactionState.id).\
-        join(Government, Faction.government_id == Government.id).\
-        filter(System.dist_to(centre) <= 20,
-               System.name != centre.name,
-               Influence.is_controlling_faction == 1,
-               Faction.id.notin_(blacklist)).\
-        order_by(System.dist_to(centre)).\
-        all()
 
-    lines = [["System", "Dist", "Pop", "Inf", "Gov", "State", "Faction"]]
-    for sys_name, sys_dist, sys_pop, inf, fact, fact_state, gov in matches:
-        lines += [[
-            sys_name[:16],
-            "{:5.2f}".format(sys_dist),
-            "{:3.1f}".format(math.log(sys_pop, 10)),
-            "{:5.2f}".format(inf.influence),
-            gov[:4],
-            fact_state,
-            fact.name
-        ]]
+    with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
+        centre = cogdb.eddb.get_systems(eddb_session, [system_name])[0]
+        blacklist = session.query(Faction.id).\
+            join(Influence, Influence.faction_id == Faction.id).\
+            join(System, Influence.system_id == System.id).\
+            filter(System.name == system_name,
+                   Influence.system_id == System.id,
+                   Faction.id == Influence.faction_id).\
+            scalar_subquery()
+        matches = session.query(System.name, System.dist_to(centre), System.population, Influence,
+                                Faction, FactionState.text, Government.text).\
+            join(Influence, Influence.system_id == System.id).\
+            join(Faction, Influence.faction_id == Faction.id).\
+            join(FactionState, Faction.state_id == FactionState.id).\
+            join(Government, Faction.government_id == Government.id).\
+            filter(System.dist_to(centre) <= 20,
+                   System.name != centre.name,
+                   Influence.is_controlling_faction == 1,
+                   Faction.id.notin_(blacklist)).\
+            order_by(System.dist_to(centre)).\
+            all()
+
+        lines = [["System", "Dist", "Pop", "Inf", "Gov", "State", "Faction"]]
+        for sys_name, sys_dist, sys_pop, inf, fact, fact_state, gov in matches:
+            lines += [[
+                sys_name[:16],
+                "{:5.2f}".format(sys_dist),
+                "{:3.1f}".format(math.log(sys_pop, 10)),
+                "{:5.2f}".format(inf.influence),
+                gov[:4],
+                fact_state,
+                fact.name
+            ]]
 
     return lines
 
@@ -1229,11 +1231,12 @@ def get_edmc_systems(session, controls):
 
 def main():
     pass
-    # session = cogdb.SideSession()
-    # system_ids = get_monitor_systems(session, WATCH_BUBBLES)
-    # print(monitor_dictators(session, ["Othime", "Frey"]))
-    # print(moving_dictators(session, system_ids))
-    # print(get_monitor_factions(session))
+
+    #  with cogdb.session_scope(cogdb.SideSession) as side_session:
+    # system_ids = get_monitor_systems(side_session, WATCH_BUBBLES)
+    # print(monitor_dictators(side_session, ["Othime", "Frey"]))
+    # print(moving_dictators(side_session, system_ids))
+    # print(get_monitor_factions(side_session))
 
 
 if __name__ == "__main__":

@@ -942,9 +942,9 @@ class TrackByID(Base):
     id = sqla.Column(sqla.String(LEN_CARRIER), primary_key=True)
     squad = sqla.Column(sqla.String(LEN_NAME), default="")
     system = sqla.Column(sqla.String(LEN_NAME), default="")
-    override = sqla.Column(sqla.Boolean, default=False)
-    updated_at = sqla.Column(sqla.DateTime(timezone=True), default=datetime.datetime.now(datetime.timezone.utc))  # All dates UTC
     # This flag indicates user requested this ID ALWAYS be tracked, regardless of location.
+    override = sqla.Column(sqla.Boolean, default=False)
+    updated_at = sqla.Column(sqla.DateTime, default=datetime.datetime.now(datetime.timezone.utc))  # All dates UTC
 
     def __repr__(self):
         keys = ['id', 'squad', 'system', 'override', 'updated_at']
@@ -1138,13 +1138,11 @@ else:
     Base.metadata.create_all(cogdb.engine)
 
 
-def main():  # pragma: no cover
+def run_schema_queries(session):  # pragma: no cover
     """
-    This continues to exist only as a sanity test for schema and relations.
+    Run a simple of tests.
+    This section can be used to experiment with relations and changes.
     """
-    recreate_tables()
-    session = cogdb.Session()
-
     try:
         dusers = (
             DiscordUser(id=1, pref_name='User1'),
@@ -1237,6 +1235,16 @@ def main():  # pragma: no cover
 
     #  print(session.query(FortSystem).filter(FortSystem.cmdr_merits > 100).all())
     print(session.query(FortUser).filter(FortUser.dropped > 100).all())
+
+
+def main():  # pragma: no cover
+    """
+    This continues to exist only as a sanity test for schema and relations.
+    """
+    recreate_tables()
+    with cogdb.session_scope(cogdb.Session) as session:
+        run_schema_queries(session)
+    recreate_tables()
 
 
 if __name__ == "__main__":  # pragma: no cover

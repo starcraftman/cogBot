@@ -52,11 +52,11 @@ def test_admin_remove(session, f_dusers, f_admins):
 
 
 def test_admin__repr__(session, f_dusers, f_admins):
-    assert repr(f_admins[0]) == "AdminPerm(id=1, date=datetime.datetime(2017, 9, 26, 13, 34, 39, 721018))"
+    assert repr(f_admins[0]) == "AdminPerm(id=1, date=datetime.datetime(2017, 9, 26, 13, 34, 39))"
 
 
 def test_admin__str__(session, f_dusers, f_admins):
-    assert repr(f_admins[0]) == "AdminPerm(id=1, date=datetime.datetime(2017, 9, 26, 13, 34, 39, 721018))"
+    assert repr(f_admins[0]) == "AdminPerm(id=1, date=datetime.datetime(2017, 9, 26, 13, 34, 39))"
 
 
 def test_admin__eq__(session, f_dusers, f_admins):
@@ -576,11 +576,11 @@ def test_hold__str__(f_dusers, f_um_testbed):
 
 
 def test_kos__repr__(f_kos):
-    assert repr(f_kos[0]) == "KOS(id=1, cmdr='good_guy', faction='Hudson', reason='Very good', is_friendly=1)"
+    assert repr(f_kos[0]) == "KOS(id=1, cmdr='good_guy', faction='Hudson', reason='Very good', is_friendly=True)"
 
 
 def test_kos__str__(f_kos):
-    assert str(f_kos[0]) == "KOS(id=1, cmdr='good_guy', faction='Hudson', reason='Very good', is_friendly=1)"
+    assert str(f_kos[0]) == "KOS(id=1, cmdr='good_guy', faction='Hudson', reason='Very good', is_friendly=True)"
 
 
 def test_kos__eq__(f_kos):

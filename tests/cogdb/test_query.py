@@ -256,7 +256,8 @@ def test_fort_order_drop(session, f_dusers, f_fort_testbed, f_fortorders):
     systems = cogdb.query.fort_order_get(session)
     cogdb.query.fort_order_drop(session, systems[:2])
 
-    assert cogdb.Session().query(FortOrder).all() == [f_fortorders[2]]
+    session.commit()
+    assert session.query(FortOrder).all() == [f_fortorders[2]]
 
 
 def test_um_find_system(session, f_dusers, f_um_testbed):
@@ -402,17 +403,17 @@ def test_check_perms(session, f_cperms, f_rperms):
     msg.channel = ops_channel
     msg.channel.guild = server
 
-    cogdb.query.check_perms(msg, mock.Mock(cmd='Drop'))  # Silent pass
+    cogdb.query.check_perms(session, msg, mock.Mock(cmd='Drop'))  # Silent pass
 
     with pytest.raises(cog.exc.InvalidPerms):
         msg.author.roles = [Role('Winters', id=3002)]
-        cogdb.query.check_perms(msg, mock.Mock(cmd='Drop'))
+        cogdb.query.check_perms(session, msg, mock.Mock(cmd='Drop'))
 
     with pytest.raises(cog.exc.InvalidPerms):
         msg.author.roles = roles
         msg.channel.name = 'Not Operations'
         msg.channel.id = 9999
-        cogdb.query.check_perms(msg, mock.Mock(cmd='Drop'))
+        cogdb.query.check_perms(session, msg, mock.Mock(cmd='Drop'))
 
 
 def test_check_channel_perms(session, f_cperms):
@@ -458,8 +459,7 @@ def test_kos_add_cmdr(session, f_kos):
     cogdb.query.kos_add_cmdr(session, 'cmdr', 'faction', 'A reason', False)
     session.commit()
 
-    nsession = cogdb.Session()
-    all = nsession.query(KOS).all()
+    all = session.query(KOS).all()
     assert all[-1].cmdr == 'cmdr'
     assert all[-1].reason == 'A reason'
 
@@ -469,8 +469,7 @@ def test_track_add_systems(session, f_track_testbed):
     cogdb.query.track_add_systems(session, [system_name], distance=20)
     session.commit()
 
-    new_session = cogdb.Session()
-    result = new_session.query(TrackSystem).filter(TrackSystem.system == system_name).one()
+    result = session.query(TrackSystem).filter(TrackSystem.system == system_name).one()
     assert result.system == system_name
     assert result.distance == 20
 
@@ -486,8 +485,7 @@ def test_track_remove_systems(session, f_track_testbed):
     captured = cogdb.query.track_remove_systems(session, system_names)
     session.commit()
 
-    new_session = cogdb.Session()
-    found = new_session.query(TrackSystem).all()
+    found = session.query(TrackSystem).all()
     assert captured == ["Rhea"]
     assert len(found) == 1
     assert found[0].system == "Nanomam"
@@ -516,8 +514,7 @@ def test_track_systems_computed_update(session, f_track_testbed):
     session.commit()
 
     assert len(cap) == 1
-    new_session = cogdb.Session()
-    found = new_session.query(TrackSystemCached).filter(TrackSystemCached.system.in_(system_names)).all()
+    found = session.query(TrackSystemCached).filter(TrackSystemCached.system.in_(system_names)).all()
     assert len(found) == 2
 
 
@@ -557,8 +554,7 @@ def test_track_systems_computed_remove(session, f_track_testbed):
     session.commit()
 
     assert cap == expected
-    new_session = cogdb.Session()
-    found = new_session.query(TrackSystemCached).filter(TrackSystemCached.system.in_(system_names)).all()
+    found = session.query(TrackSystemCached).filter(TrackSystemCached.system.in_(system_names)).all()
     assert len(found) == 1
 
 
@@ -576,9 +572,8 @@ def test_track_ids_update(session, f_track_testbed):
     cogdb.query.track_ids_update(session, id_dict)
     session.commit()
 
-    new_session = cogdb.Session()
-    updated = new_session.query(TrackByID).filter(TrackByID.id == "J3J-WVT").one()
-    added = new_session.query(TrackByID).filter(TrackByID.id == "ZZZ-111").one()
+    updated = session.query(TrackByID).filter(TrackByID.id == "J3J-WVT").one()
+    added = session.query(TrackByID).filter(TrackByID.id == "ZZZ-111").one()
 
     assert updated.squad == "default"
     assert updated.system == "Rhea"
@@ -591,14 +586,13 @@ def test_track_ids_update_timestamp(session, f_track_testbed):
         "J3J-WVT": {"id": "J3J-WVT", "squad": "default", "system": "Rhea", "override": True},
         "ZZZ-111": {"id": "ZZZ-111", "squad": "new", "system": "News", "override": True},
     }
-    years_ago = datetime.datetime.now(datetime.timezone.utc).replace(year=1000)
+    years_ago = datetime.datetime.now().replace(year=1000)
 
     cogdb.query.track_ids_update(session, id_dict, years_ago)
     session.commit()
 
-    new_session = cogdb.Session()
-    updated = new_session.query(TrackByID).filter(TrackByID.id == "J3J-WVT").one()
-    added = new_session.query(TrackByID).filter(TrackByID.id == "ZZZ-111").one()
+    updated = session.query(TrackByID).filter(TrackByID.id == "J3J-WVT").one()
+    added = session.query(TrackByID).filter(TrackByID.id == "ZZZ-111").one()
 
     assert updated.squad != "default"
     assert updated.system != "Rhea"
@@ -611,21 +605,20 @@ def test_track_ids_remove(session, f_track_testbed):
     cogdb.query.track_ids_remove(session, ids)
     session.commit()
 
-    new_session = cogdb.Session()
     with pytest.raises(sqlalchemy.exc.NoResultFound):
-        new_session.query(TrackByID).filter(TrackByID.id == "J3J-WVT").one()
+        session.query(TrackByID).filter(TrackByID.id == "J3J-WVT").one()
     with pytest.raises(sqlalchemy.exc.NoResultFound):
-        new_session.query(TrackByID).filter(TrackByID.id == "ZZZ-111").one()
+        session.query(TrackByID).filter(TrackByID.id == "ZZZ-111").one()
 
 
 def test_track_ids_show(session, f_track_testbed):
     cap = cogdb.query.track_ids_show(session)
     expected_1 = ["""__Tracking IDs__
 
-J3J-WVT [CLBF] seen in **No Info** at 2000-01-10 00:00:00+00:00.
-J3N-53B [CLBF] seen in **No Info** at 2000-01-12 00:00:00+00:00.
-OVE-111 [Manual] seen in **No Info** at 2000-01-12 00:00:00+00:00.
-XNL-3XQ [CLBF] seen in **No Info** at 2000-01-10 00:00:00+00:00."""]
+J3J-WVT [CLBF] seen in **No Info** at 2000-01-10 00:00:00.
+J3N-53B [CLBF] seen in **No Info** at 2000-01-12 00:00:00.
+OVE-111 [Manual] seen in **No Info** at 2000-01-12 00:00:00.
+XNL-3XQ [CLBF] seen in **No Info** at 2000-01-10 00:00:00."""]
     assert cap == expected_1
 
 

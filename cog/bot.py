@@ -355,9 +355,12 @@ class CogBot(discord.Client):
         try:
             await self.sched.wait_for(args.cmd, wait_cb)
             logging.getLogger(__name__).info('Command %s aquired lock.', msg.content)
-            cogdb.query.check_perms(msg, args)
-            cls = getattr(cog.actions, args.cmd)
-            await cls(**kwargs).execute()
+
+            with cogdb.session_scope(cogdb.Session) as session:
+                cogdb.query.check_perms(session, msg, args)
+                cls = getattr(cog.actions, args.cmd)
+                kwargs['session'] = session
+                await cls(**kwargs).execute()
         finally:
             await self.sched.unwait_for(args.cmd)
             logging.getLogger(__name__).info('Command %s released lock.', msg.content)

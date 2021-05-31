@@ -505,8 +505,8 @@ EXAMPLE_CARRIER_EDMC = """{
 }"""
 
 
-def test_create_id_maps():
-    maps = cogdb.eddn.create_id_maps(cogdb.EDDBSession())
+def test_create_id_maps(eddb_session):
+    maps = cogdb.eddn.create_id_maps(eddb_session)
     assert 'Thargoid' in maps['Allegiance']
 
 
@@ -530,8 +530,8 @@ def test_journal_parse_carrier_edmc_id(session, f_track_testbed):
     }
     assert result == expected
 
-    new_session = cogdb.Session()
-    tracked = new_session.query(TrackByID).filter(TrackByID.id == id).one()
+    session.commit()
+    tracked = session.query(TrackByID).filter(TrackByID.id == id).one()
     assert tracked.system == "Rana"
 
     parser.session.rollback()
@@ -559,8 +559,8 @@ def test_journal_parse_carrier_disc_system(session, f_track_testbed):
     }
     assert result == expected
 
-    new_session = cogdb.Session()
-    tracked = new_session.query(TrackByID).filter(TrackByID.id == id).one()
+    session.commit()
+    tracked = session.query(TrackByID).filter(TrackByID.id == id).one()
     assert tracked.system == "Nanomam"
 
     parser.session.rollback()

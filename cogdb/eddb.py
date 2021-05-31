@@ -1886,7 +1886,7 @@ def parser():
     return parser
 
 
-def import_eddb():
+def import_eddb(eddb_session):
     """ Allows the seeding of db from eddb dumps. """
     args = parser().parse_args()
 
@@ -1899,22 +1899,21 @@ def import_eddb():
     if args.dump:
         print("Dumping to: /tmp/eddb_dump")
         classes = [x[1] for x in inspect.getmembers(sys.modules[__name__], select_classes)]
-        dump_db(cogdb.EDDBSession(), classes)
+        dump_db(eddb_session, classes)
         sys.exit(0)
 
     recreate_tables()
     print('EDDB tables recreated.')
-    session = cogdb.EDDBSession()
     if args.preload:
-        preload_tables(session)
+        preload_tables(eddb_session)
         print('EDDB tables preloaded.')
 
-    load_commodities(session, cog.util.rel_to_abs("data", "eddb", "commodities.jsonl"))
-    load_modules(session, cog.util.rel_to_abs("data", "eddb", "modules.jsonl"))
-    load_factions(session, cog.util.rel_to_abs("data", "eddb", "factions.jsonl"),
+    load_commodities(eddb_session, cog.util.rel_to_abs("data", "eddb", "commodities.jsonl"))
+    load_modules(eddb_session, cog.util.rel_to_abs("data", "eddb", "modules.jsonl"))
+    load_factions(eddb_session, cog.util.rel_to_abs("data", "eddb", "factions.jsonl"),
                   preload=args.preload)
-    load_systems(session, cog.util.rel_to_abs("data", "eddb", "systems_populated.jsonl"))
-    load_stations(session, cog.util.rel_to_abs("data", "eddb", "stations.jsonl"),
+    load_systems(eddb_session, cog.util.rel_to_abs("data", "eddb", "systems_populated.jsonl"))
+    load_stations(eddb_session, cog.util.rel_to_abs("data", "eddb", "stations.jsonl"),
                   preload=args.preload)
 
 
@@ -1922,22 +1921,23 @@ def main():  # pragma: no cover
     """ Main entry. """
     start = datetime.datetime.now(datetime.timezone.utc)
 
-    import_eddb()
+    with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
+        import_eddb(eddb_session)
     # Create views
     with cogdb.eddb_engine.connect() as con:
         con.execute(sqla.sql.text(VIEW_CONTESTEDS.strip()))
         con.execute(sqla.sql.text(EVENT_CONFLICTS.strip()))
 
-    session = cogdb.EDDBSession()
-    print("Module count:", session.query(Module).count())
-    print("Commodity count:", session.query(Commodity).count())
-    print("Faction count:", session.query(Faction).count())
-    print("Faction States count:", session.query(FactionActiveState).count() + session.query(FactionPendingState).count() + session.query(FactionRecoveringState).count())
-    print("Influence count:", session.query(Influence).count())
-    print("Populated System count:", session.query(System).count())
-    print("Station count:", session.query(Station).count())
-    print("Contested count:", session.query(ContestedSystem).count())
-    print("Time taken:", datetime.datetime.now(datetime.timezone.utc) - start)
+    with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
+        print("Module count:", eddb_session.query(Module).count())
+        print("Commodity count:", eddb_session.query(Commodity).count())
+        print("Faction count:", eddb_session.query(Faction).count())
+        print("Faction States count:", eddb_session.query(FactionActiveState).count() + eddb_session.query(FactionPendingState).count() + eddb_session.query(FactionRecoveringState).count())
+        print("Influence count:", eddb_session.query(Influence).count())
+        print("Populated System count:", eddb_session.query(System).count())
+        print("Station count:", eddb_session.query(Station).count())
+        print("Contested count:", eddb_session.query(ContestedSystem).count())
+        print("Time taken:", datetime.datetime.now(datetime.timezone.utc) - start)
 
     #  station = session.query(Station).filter(Station.is_planetary).limit(5).all()[0]
     #  print(station.name, station.economies)
@@ -1963,20 +1963,20 @@ def main():  # pragma: no cover
 
 
 try:
-    session = cogdb.EDDBSession()
-    HUDSON_CONTROLS = sorted([x.name for x in
-                             get_nearest_controls(session, power='Hudson')])
-    WINTERS_CONTROLS = sorted([x.name for x in
-                              get_nearest_controls(session, power='Winters')])
-    PLANETARY_TYPE_IDS = [
-        x[0] for x in
-        session.query(StationType.id).filter(StationType.text.ilike('%planetary%')).all()
-    ]
-    HQS = {
-        p.text.lower(): p.home_system.name for p in
-        session.query(Power).filter(Power.text != 'None').all()
-    }
-    del session
+    with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
+        HUDSON_CONTROLS = sorted([x.name for x in
+                                 get_nearest_controls(eddb_session, power='Hudson')])
+        WINTERS_CONTROLS = sorted([x.name for x in
+                                  get_nearest_controls(eddb_session, power='Winters')])
+        PLANETARY_TYPE_IDS = [
+            x[0] for x in
+            eddb_session.query(StationType.id).filter(StationType.text.ilike('%planetary%')).all()
+        ]
+        HQS = {
+            p.text.lower(): p.home_system.name for p in
+            eddb_session.query(Power).filter(Power.text != 'None').all()
+        }
+        del eddb_session
 except (sqla_orm.exc.NoResultFound, sqla.exc.ProgrammingError):
     HUDSON_CONTROLS = []
     WINTERS_CONTROLS = []

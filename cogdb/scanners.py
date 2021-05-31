@@ -90,10 +90,11 @@ class FortScanner():
         users = self.users()
         drops = self.drops(systems, users)
 
-        if not session:
-            session = cogdb.fresh_sessionmaker()()
-        self.flush_to_db(session, (users, systems, drops))
-        session.close()
+        if session:
+            self.flush_to_db(session, (users, systems, drops))
+        else:
+            with cogdb.session_scope(cogdb.Session) as session:
+                self.flush_to_db(session, (users, systems, drops))
 
     def flush_to_db(self, session, new_objs):
         """
@@ -329,10 +330,11 @@ class UMScanner(FortScanner):
         users = self.users(cls=UMUser)
         holds = self.holds(systems, users)
 
-        if not session:
-            session = cogdb.fresh_sessionmaker()()
-        self.flush_to_db(session, (users, systems, holds))
-        session.close()
+        if session:
+            self.flush_to_db(session, (users, systems, holds))
+        else:
+            with cogdb.session_scope(cogdb.Session) as session:
+                self.flush_to_db(session, (users, systems, holds))
 
     def systems(self):
         """
@@ -602,10 +604,11 @@ class KOSScanner(FortScanner):
             cmdrs = ["CMDR {} duplicated in sheet".format(x.cmdr) for x in dupe_entries]
             raise cog.exc.SheetParsingError("Duplicate CMDRs in KOS sheet.\n\n" + '\n'.join(cmdrs))
 
-        if not session:
-            session = cogdb.fresh_sessionmaker()()
-        self.flush_to_db(session, (entries,))
-        session.close()
+        if session:
+            self.flush_to_db(session, (entries,))
+        else:
+            with cogdb.session_scope(cogdb.Session) as session:
+                self.flush_to_db(session, (entries,))
 
     def kos_entries(self):
         """
@@ -713,12 +716,13 @@ class CarrierScanner(FortScanner):
         """
         Push the update of carriers to the database.
         """
-        if not session:
-            session = cogdb.fresh_sessionmaker()()
-
-        cogdb.query.track_ids_update(session, self.carriers())
-        session.commit()
-        session.close()
+        if session:
+            cogdb.query.track_ids_update(session, self.carriers())
+            session.commit()
+            session.close()
+        else:
+            with cogdb.session_scope(cogdb.Session) as session:
+                cogdb.query.track_ids_update(session, self.carriers())
 
     def carriers(self, *, row_cnt=1):
         """

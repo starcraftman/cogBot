@@ -27,13 +27,12 @@ def count_facts(factions):
     return cnts
 
 
-def write_report():
+def write_report(side_session):
     """
     Generate a report covering breakdown of faction governments in Hudson bubbles.
     """
     print("Report being generated, please wait patiently.")
-    session = cogdb.SideSession()
-    controls = session.query(System).\
+    controls = side_session.query(System).\
         filter(sqla.and_(System.power_state_id == 16,
                          System.power_id == 9)).\
         all()
@@ -41,7 +40,7 @@ def write_report():
     fout = open('/tmp/report.txt', 'w')
     for con in controls:
         fout.write('Control: ' + con.name + '\n')
-        factions = session.query(System, Influence, Faction, Government).\
+        factions = side_session.query(System, Influence, Faction, Government).\
             filter(sqla.and_(System.dist_to(con) <= 15,
                              System.power_state_id != 48)).\
             filter(Influence.system_id == System.id).\
@@ -58,19 +57,18 @@ def write_report():
     print("Report written to /tmp/report.txt")
 
 
-def feudal_finder(gap=15):
+def feudal_finder(side_session, gap=15):
     """
     Find favorable feudals or patronages around a system.
     """
-    session = cogdb.SideSession()
     s_name = input('System to look around: ')
-    centre = session.query(System).filter(System.name == s_name).one()
+    centre = side_session.query(System).filter(System.name == s_name).one()
 
     dist = 0
     while True:
         dist += gap
         print("Searching all systems <= {} from {}.".format(dist, s_name))
-        matches = session.query(System, Influence, Faction, Government).\
+        matches = side_session.query(System, Influence, Faction, Government).\
             filter(sqla.and_(System.dist_to(centre) <= dist,
                              Influence.system_id == System.id,
                              Faction.id == Influence.faction_id,
@@ -93,8 +91,9 @@ def feudal_finder(gap=15):
 
 
 def main():
-    # write_report()
-    feudal_finder()
+    with cogdb.session_scope(cogdb.SideSession) as side_session:
+        feudal_finder(side_session)
+        # write_report()
 
 
 if __name__ == "__main__":

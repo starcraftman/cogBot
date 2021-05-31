@@ -31,7 +31,7 @@ from cogdb.schema import (DiscordUser, FortSystem, FortPrep, FortDrop, FortUser,
 from tests.data import CELLS_FORT, CELLS_FORT_FMT, CELLS_UM
 
 
-@pytest.yield_fixture(scope='function', autouse=True)
+@pytest.fixture(scope='function', autouse=True)
 def around_all_tests(session):
     """
     Executes before and after EVERY test.
@@ -75,21 +75,20 @@ def event_loop():
 
 @pytest.fixture
 def session():
-    session = cogdb.Session(expire_on_commit=False)
-
-    yield session
-
-    session.close()
+    with cogdb.session_scope(cogdb.Session, expire_on_commit=False) as session:
+        yield session
 
 
 @pytest.fixture
 def side_session():
-    return cogdb.SideSession()
+    with cogdb.session_scope(cogdb.SideSession) as session:
+        yield session
 
 
 @pytest.fixture
 def eddb_session():
-    return cogdb.EDDBSession()
+    with cogdb.session_scope(cogdb.EDDBSession) as session:
+        yield session
 
 
 @pytest.fixture
@@ -102,7 +101,7 @@ def db_cleanup(session):
 
     cogdb.schema.empty_tables(session, perm=True)
 
-    classes = [DiscordUser, FortUser, FortSystem, FortDrop, UMUser, UMSystem, UMHold,
+    classes = [DiscordUser, FortUser, FortSystem, FortDrop, FortOrder, UMUser, UMSystem, UMHold,
                KOS, TrackSystem, TrackSystemCached, TrackByID]
     for cls in classes:
         assert session.query(cls).all() == []
@@ -650,12 +649,13 @@ def f_track_testbed(session):
         TrackSystemCached(system="Rhea"),
         TrackSystemCached(system="Santal"),
     )
-    date = datetime.datetime(year=2000, month=1, day=10, hour=0, minute=0, second=0, microsecond=0, tzinfo=datetime.timezone.utc)
+    date = datetime.datetime(year=2000, month=1, day=10, hour=0, minute=0, second=0, microsecond=0)
+    days_2 = datetime.timedelta(days=2)
     track_ids = (
         TrackByID(id="J3J-WVT", squad="CLBF", updated_at=date),
         TrackByID(id="XNL-3XQ", squad="CLBF", updated_at=date),
-        TrackByID(id="J3N-53B", squad="CLBF", updated_at=date.replace(day=date.day + 2)),
-        TrackByID(id="OVE-111", squad="Manual", override=True, updated_at=date.replace(day=date.day + 2)),
+        TrackByID(id="J3N-53B", squad="CLBF", updated_at=date + days_2),
+        TrackByID(id="OVE-111", squad="Manual", override=True, updated_at=date + days_2),
     )
     session.add_all(track_systems + track_systems_cached + track_ids)
     session.commit()

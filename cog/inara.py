@@ -414,21 +414,22 @@ class InaraApi():
 
         embeds = [cmdr_embed] + embeds
 
-        kos_cmdrs = cogdb.query.kos_search_cmdr(cogdb.Session(), cmdr['name'])
-        for kos in kos_cmdrs[:3]:
-            embeds += [discord.Embed.from_dict({
-                'color': KOS_COLORS.get(kos.friendly, KOS_COLORS['default']),
-                'author': {
-                    'name': "KOS Finder",
-                    'icon_url': cmdr["profile_picture"],
-                },
-                "fields": [
-                    {'name': 'Name', 'value': kos.cmdr, 'inline': True},
-                    {'name': 'Reg Squadron', 'value': kos.faction if kos.faction else "Indy", 'inline': True},
-                    {'name': 'Is Friendly ?', 'value': kos.friendly, 'inline': True},
-                    {'name': 'Reason', 'value': kos.reason if kos.reason else "No reason.", 'inline': False},
-                ],
-            })]
+        with cogdb.session_scope(cogdb.Session) as session:
+            kos_cmdrs = cogdb.query.kos_search_cmdr(session, cmdr['name'])
+            for kos in kos_cmdrs[:3]:
+                embeds += [discord.Embed.from_dict({
+                    'color': KOS_COLORS.get(kos.friendly, KOS_COLORS['default']),
+                    'author': {
+                        'name': "KOS Finder",
+                        'icon_url': cmdr["profile_picture"],
+                    },
+                    "fields": [
+                        {'name': 'Name', 'value': kos.cmdr, 'inline': True},
+                        {'name': 'Reg Squadron', 'value': kos.faction if kos.faction else "Indy", 'inline': True},
+                        {'name': 'Is Friendly ?', 'value': kos.friendly, 'inline': True},
+                        {'name': 'Reason', 'value': kos.reason if kos.reason else "No reason.", 'inline': False},
+                    ],
+                })]
 
         futs = [cog.util.BOT.send_message(msg.channel, embed=embed) for embed in embeds]
         futs += [self.delete_waiting_message(req_id)]

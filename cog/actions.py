@@ -105,7 +105,7 @@ class Action():
         self.bot = kwargs['bot']
         self.msg = kwargs['msg']
         self.log = logging.getLogger(__name__)
-        self.session = cogdb.Session()
+        self.session = kwargs['session']
         self.__duser = None
         self.payloads = []
         # TODO: For now used to track updates to sheet prior to sending.
@@ -270,7 +270,7 @@ class Admin(Action):
 
     async def dump(self):
         """ Dump the entire database to a file on server. """
-        cogdb.query.dump_db()
+        cogdb.query.dump_db(self.session)
         return 'Db has been dumped to server file.'
 
     async def halt(self):
@@ -370,44 +370,44 @@ class Admin(Action):
         if 50 < reinforcement_value or reinforcement_value < 0:
             raise cog.exc.InvalidCommandArgs("Wrong reinforcement value, min 0 max 50")
 
-        eddb_session = cogdb.EDDBSession()
-        systems = await self.bot.loop.run_in_executor(
-            None, cogdb.eddb.get_systems, eddb_session,
-            process_system_args(self.args.system))
-
         um_scanner = get_scanner("hudson_undermine")
         systems_in_sheet = cogdb.query.um_get_systems(self.session, exclude_finished=False)
+
         # TODO Using set() to avoid many looping
         # systems_to_add = list(set([x.name for x in systems]) - set([x.name for x in systems_in_sheet]))
         # systems_in_both = list(set([x.name for x in systems_in_sheet]).intersection(set([x.name for x in systems])))
         # systems_to_add = await self.bot.loop.run_in_executor(
         #     None, cogdb.eddb.get_systems, eddb_session, systems_to_add)
+        with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
+            systems = await self.bot.loop.run_in_executor(
+                None, cogdb.eddb.get_systems, eddb_session,
+                process_system_args(self.args.system))
 
-        found_list = []
-        for system in systems:
-            found = False
-            for system_in_sheet in systems_in_sheet:
-                if system_in_sheet.name == system.name:
-                    found = True
-                    found_list.append(system.name)
-            if not found:
-                power = cogdb.eddb.get_power_hq(system.power.text.lower())
-                pow_hq = cogdb.eddb.get_systems(eddb_session, [power[1]])[0]
-                if system.name != pow_hq.name:
-                    reinforced_trigger = system.calc_um_trigger(pow_hq, reinforcement_value)
-                    lines += [
-                        cog.tbl.wrap_markdown(cog.tbl.format_table([
-                            ["System", system.name],
-                            ["Power", power[0]],
-                            ["UM Trigger", system.calc_um_trigger(pow_hq)],
-                            ["UM Trigger {}%".format(reinforcement_value), reinforced_trigger],
-                            ["Priority", priority]
-                        ]))
-                    ]
-                    values.append({"sys_name": system.name, "power": power[0], "trigger": reinforced_trigger,
-                                   "priority": priority})
-                else:
-                    found_list.append(system.name)
+            found_list = []
+            for system in systems:
+                found = False
+                for system_in_sheet in systems_in_sheet:
+                    if system_in_sheet.name == system.name:
+                        found = True
+                        found_list.append(system.name)
+                if not found:
+                    power = cogdb.eddb.get_power_hq(system.power.text.lower())
+                    pow_hq = cogdb.eddb.get_systems(eddb_session, [power[1]])[0]
+                    if system.name != pow_hq.name:
+                        reinforced_trigger = system.calc_um_trigger(pow_hq, reinforcement_value)
+                        lines += [
+                            cog.tbl.wrap_markdown(cog.tbl.format_table([
+                                ["System", system.name],
+                                ["Power", power[0]],
+                                ["UM Trigger", system.calc_um_trigger(pow_hq)],
+                                ["UM Trigger {}%".format(reinforcement_value), reinforced_trigger],
+                                ["Priority", priority]
+                            ]))
+                        ]
+                        values.append({"sys_name": system.name, "power": power[0], "trigger": reinforced_trigger,
+                                      "priority": priority})
+                    else:
+                        found_list.append(system.name)
 
         if values:
             um_sheet = await um_scanner.get_batch(['D1:13'], 'COLUMNS', 'FORMULA')
@@ -425,36 +425,36 @@ class Admin(Action):
 
     async def removeum(self):
         """Remove a system(s) from the um sheet"""
-        eddb_session = cogdb.EDDBSession()
-        systems = await self.bot.loop.run_in_executor(
-            None, cogdb.eddb.get_systems, eddb_session,
-            process_system_args(self.args.system))
+        with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
+            systems = await self.bot.loop.run_in_executor(
+                None, cogdb.eddb.get_systems, eddb_session,
+                process_system_args(self.args.system))
 
-        um_scanner = get_scanner("hudson_undermine")
-        systems_in_sheet = cogdb.query.um_get_systems(self.session, exclude_finished=False)
-        found_list = []
-        unlisted_system = []
-        for system in systems:
-            found = False
-            for system_in_sheet in systems_in_sheet:
-                if system_in_sheet.name == system.name:
-                    found = True
-                    found_list.append(system.name)
-            if not found:
-                unlisted_system.append(system.name)
+            um_scanner = get_scanner("hudson_undermine")
+            systems_in_sheet = cogdb.query.um_get_systems(self.session, exclude_finished=False)
+            found_list = []
+            unlisted_system = []
+            for system in systems:
+                found = False
+                for system_in_sheet in systems_in_sheet:
+                    if system_in_sheet.name == system.name:
+                        found = True
+                        found_list.append(system.name)
+                if not found:
+                    unlisted_system.append(system.name)
 
-        if found_list:
-            um_sheet = await um_scanner.get_batch(['D1:13'], 'COLUMNS', 'FORMULA')
-            data = cogdb.scanners.UMScanner.remove_um(um_sheet, found_list)
-            await um_scanner.send_batch(data, input_opt='USER_ENTERED')
-            self.bot.sched.schedule("hudson_undermine", 1)
-            await asyncio.sleep(1)
-            if unlisted_system:
-                return "Systems removed from the UM sheet.\n\nThe following systems were not found : {}" \
-                    .format(", ".join(unlisted_system))
-            return 'Systems removed from the UM sheet.'
-        else:
-            return 'All systems asked are not on the sheet'
+            if found_list:
+                um_sheet = await um_scanner.get_batch(['D1:13'], 'COLUMNS', 'FORMULA')
+                data = cogdb.scanners.UMScanner.remove_um(um_sheet, found_list)
+                await um_scanner.send_batch(data, input_opt='USER_ENTERED')
+                self.bot.sched.schedule("hudson_undermine", 1)
+                await asyncio.sleep(1)
+                if unlisted_system:
+                    return "Systems removed from the UM sheet.\n\nThe following systems were not found : {}" \
+                        .format(", ".join(unlisted_system))
+                return 'Systems removed from the UM sheet.'
+            else:
+                return 'All systems asked are not on the sheet'
 
     async def execute(self):
         try:
@@ -478,23 +478,23 @@ class BGS(Action):
     """
     Provide bgs related commands.
     """
-    async def age(self, system_name):
+    async def age(self, system_name, **kwargs):
         """ Handle age subcmd. """
         control_name = cogdb.query.complete_control_name(system_name, True)
         self.log.info('BGS - Looking for age around: %s', control_name)
 
-        systems = cogdb.side.exploited_systems_by_age(cogdb.SideSession(), control_name)
+        systems = cogdb.side.exploited_systems_by_age(kwargs['side_session'], control_name)
         systems = await self.bot.loop.run_in_executor(None, cogdb.side.exploited_systems_by_age,
-                                                      cogdb.SideSession(), control_name)
+                                                      kwargs['side_session'], control_name)
         lines = [['Control', 'System', 'Age']]
         lines += [[system.control, system.system, system.age] for system in systems]
         return cog.tbl.wrap_markdown(cog.tbl.format_table(lines, header=True))
 
-    async def dash(self, control_name):
+    async def dash(self, control_name, **kwargs):
         """ Handle dash subcmd. """
         control_name = cogdb.query.complete_control_name(control_name, True)
         control, systems, net_inf, facts_count = await self.bot.loop.run_in_executor(
-            None, cogdb.side.dash_overview, cogdb.SideSession(), control_name)
+            None, cogdb.side.dash_overview, kwargs['side_session'], control_name)
 
         lines = [['Age', 'System', 'Control Faction', 'Gov', 'Inf', 'Net', 'N', 'Pop']]
         strong_cnt, weak_cnt = 0, 0
@@ -537,38 +537,36 @@ class BGS(Action):
         """
         return header + table + explain
 
-    async def edmc(self, system_name):
+    async def edmc(self, system_name, **kwargs):
         """ Handle edmc subcmd. """
         if not system_name:
             controls = cogdb.side.WATCH_BUBBLES
         else:
             controls = process_system_args(system_name.split(' '))
-        eddb_session = cogdb.EDDBSession()
-        side_session = cogdb.SideSession()
 
         resp = "__**EDMC Route**__\nIf no systems listed under control, up to date."
         resp += "\n\n__Bubbles By Proximity__\n"
         if len(controls) > 2:
             _, route = await self.bot.loop.run_in_executor(None, cogdb.eddb.find_best_route,
-                                                           eddb_session, controls)
+                                                           kwargs['eddb_session'], controls)
             controls = [sys.name for sys in route]
         resp += "\n".join(controls)
 
         for control in controls:
             resp += "\n\n__{}__\n".format(string.capwords(control))
             systems = await self.bot.loop.run_in_executor(None, cogdb.side.get_edmc_systems,
-                                                          side_session, [control])
+                                                          kwargs['side_session'], [control])
             if len(systems) > 2:
                 _, systems = await self.bot.loop.run_in_executor(None, cogdb.eddb.find_best_route,
-                                                                 eddb_session,
+                                                                 kwargs['eddb_session'],
                                                                  [system.name for system in systems])
             resp += "\n".join([sys.name for sys in systems])
 
         return resp
 
-    async def exp(self, system_name):
+    async def exp(self, system_name, **kwargs):
         """ Handle exp subcmd. """
-        eddb_session, side_session = cogdb.EDDBSession(), cogdb.SideSession()
+        eddb_session, side_session = kwargs['eddb_session'], kwargs['side_session']
         centre = await self.bot.loop.run_in_executor(None, cogdb.eddb.get_systems,
                                                      eddb_session, [system_name])
         centre = centre[0]
@@ -601,34 +599,34 @@ class BGS(Action):
             except discord.errors.DiscordException:
                 pass
 
-    async def expto(self, system_name):
+    async def expto(self, system_name, **kwargs):
         """ Handle expto subcmd. """
         matches = await self.bot.loop.run_in_executor(None, cogdb.side.expand_to_candidates,
-                                                      cogdb.SideSession(), system_name)
+                                                      kwargs['side_session'], system_name)
         header = "**Nearby Expansion Candidates**\n\n"
         return header + cog.tbl.wrap_markdown(cog.tbl.format_table(matches, header=True))
 
-    async def faction(self, _):
+    async def faction(self, _, **kwargs):
         """ Handle faction subcmd. """
         names = []
         if self.args.faction:
             names = process_system_args(self.args.faction)
         return await self.bot.loop.run_in_executor(None, cogdb.side.monitor_factions,
-                                                   cogdb.SideSession(), names)
+                                                   kwargs['side_session'], names)
 
-    async def find(self, system_name):
+    async def find(self, system_name, **kwargs):
         """ Handle find subcmd. """
         matches = await self.bot.loop.run_in_executor(None, cogdb.side.find_favorable,
-                                                      cogdb.SideSession(), system_name,
+                                                      kwargs['side_session'], system_name,
                                                       self.args.max)
         header = "**Favorable Factions**\n\n"
         return header + cog.tbl.wrap_markdown(cog.tbl.format_table(matches, header=True))
 
-    async def inf(self, system_name):
+    async def inf(self, system_name, **kwargs):
         """ Handle influence subcmd. """
         self.log.info('BGS - Looking for influence like: %s', system_name)
         infs = await self.bot.loop.run_in_executor(None, cogdb.side.influence_in_system,
-                                                   cogdb.SideSession(), system_name)
+                                                   kwargs['side_session'], system_name)
 
         if not infs:
             raise cog.exc.InvalidCommandArgs("Invalid system name or system is not tracked in db.")
@@ -637,18 +635,18 @@ class BGS(Action):
         lines = [['Faction Name', 'Inf', 'Gov', 'PMF?']] + [inf[:-1] for inf in infs]
         return header + cog.tbl.wrap_markdown(cog.tbl.format_table(lines, header=True))
 
-    async def report(self, system_name):
+    async def report(self, system_name, **kwargs):
         """ Handle influence subcmd. """
-        session = cogdb.SideSession()
+        session = kwargs['side_session']
         system_ids = await self.bot.loop.run_in_executor(None, cogdb.side.get_monitor_systems,
                                                          session, cogdb.side.WATCH_BUBBLES)
         report = await asyncio.gather(
             self.bot.loop.run_in_executor(None, cogdb.side.control_dictators,
-                                          cogdb.SideSession(), system_ids),
+                                          kwargs['side_session'], system_ids),
             self.bot.loop.run_in_executor(None, cogdb.side.moving_dictators,
-                                          cogdb.SideSession(), system_ids),
+                                          kwargs['side_session'], system_ids),
             self.bot.loop.run_in_executor(None, cogdb.side.monitor_events,
-                                          cogdb.SideSession(), system_ids))
+                                          kwargs['side_session'], system_ids))
         report = "\n".join(report)
 
         title = "BGS Report {}".format(datetime.datetime.now(datetime.timezone.utc))
@@ -656,11 +654,11 @@ class BGS(Action):
 
         return "Report Generated: <{}>".format(paste_url)
 
-    async def sys(self, system_name):
+    async def sys(self, system_name, **kwargs):
         """ Handle sys subcmd. """
         self.log.info('BGS - Looking for overview like: %s', system_name)
         system, factions = await self.bot.loop.run_in_executor(None, cogdb.side.system_overview,
-                                                               cogdb.SideSession(), system_name)
+                                                               kwargs['side_session'], system_name)
 
         if not system:
             raise cog.exc.InvalidCommandArgs("System **{}** not found. Spelling?".format(system_name))
@@ -689,8 +687,11 @@ If we should contact Gears or Sidewinder""".format(system_name)
     async def execute(self):
         try:
             func = getattr(self, self.args.subcmd)
-            response = await func(' '.join(self.args.system))
-            await self.bot.send_long_message(self.msg.channel, response)
+            with cogdb.session_scope(cogdb.SideSession) as side_session, \
+                 cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
+                response = await func(' '.join(self.args.system),
+                                      side_session=side_session, eddb_session=eddb_session)
+                await self.bot.send_long_message(self.msg.channel, response)
         except AttributeError:
             raise cog.exc.InvalidCommandArgs("Bad subcommand of `!bgs`, see `!bgs -h` for help.")
         except (cog.exc.NoMoreTargets, cog.exc.RemoteError) as exc:
@@ -706,8 +707,9 @@ class Dist(Action):
         if len(system_names) < 2:
             raise cog.exc.InvalidCommandArgs("At least **2** systems required.")
 
-        dists = await self.bot.loop.run_in_executor(None, cogdb.eddb.compute_dists,
-                                                    cogdb.EDDBSession(), system_names)
+        with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
+            dists = await self.bot.loop.run_in_executor(None, cogdb.eddb.compute_dists,
+                                                        eddb_session, system_names)
 
         response = 'Distances From: **{}**\n\n'.format(system_names[0].capitalize())
         lines = [[name, '{:.2f}ly'.format(dist)] for name, dist in dists]
@@ -1105,9 +1107,8 @@ class KOS(Action):
             msg = 'KOS list refreshed from sheet.'
 
         elif self.args.subcmd == 'search':
-            session = cogdb.Session()
             msg = 'Searching for "{}" against known CMDRs\n\n'.format(self.args.term)
-            cmdrs = cogdb.query.kos_search_cmdr(session, self.args.term)
+            cmdrs = cogdb.query.kos_search_cmdr(self.session, self.args.term)
             if cmdrs:
                 lines = [['CMDR Name', 'Faction', 'Is Friendly?', 'Reason']]
                 lines += [[x.cmdr, x.faction, x.friendly, x.reason] for x in cmdrs]
@@ -1123,40 +1124,52 @@ class Near(Action):
     """
     Handle the KOS command.
     """
+    async def control(self, eddb_session):
+        """
+        Find nearest controls.
+        """
+        sys_name = ' '.join(self.args.system)
+        centre = cogdb.eddb.get_systems(eddb_session, [sys_name])[0]
+        systems = await self.bot.loop.run_in_executor(
+            None,
+            functools.partial(
+                cogdb.eddb.get_nearest_controls, eddb_session,
+                centre_name=centre.name, power=self.args.power
+            )
+        )
+
+        lines = [['System', 'Distance']] + [[x.name, "{:.2f}".format(x.dist_to(centre))] for x in systems[:10]]
+        return "__Closest 10 Controls__\n\n" + \
+            cog.tbl.wrap_markdown(cog.tbl.format_table(lines, header=True))
+
+    async def ifactors(self, eddb_session):
+        """
+        Find nearest suitable interstellar factors.
+        """
+        sys_name = ' '.join(self.args.system)
+        centre = cogdb.eddb.get_systems(eddb_session, [sys_name])[0]
+        stations = await self.bot.loop.run_in_executor(
+            None,
+            functools.partial(
+                cogdb.eddb.get_nearest_ifactors, eddb_session,
+                centre_name=centre.name, include_medium=self.args.medium
+            )
+        )
+
+        stations = [["System", "Distance", "Station", "Arrival"]] + stations
+        msg = "__Nearby Interstellar Factors__\n"
+        msg += cog.tbl.wrap_markdown(cog.tbl.format_table(stations, header=True))
+        msg += "[L] Large pads.\n[M] M pads only."
+
+        return msg
+
     async def execute(self):
         msg = 'Invalid near sub command.'
-        eddb_session = cogdb.EDDBSession()
-
-        if self.args.subcmd == 'control':
-            sys_name = ' '.join(self.args.system)
-            centre = cogdb.eddb.get_systems(eddb_session, [sys_name])[0]
-            systems = await self.bot.loop.run_in_executor(
-                None,
-                functools.partial(
-                    cogdb.eddb.get_nearest_controls, eddb_session,
-                    centre_name=centre.name, power=self.args.power
-                )
-            )
-
-            lines = [['System', 'Distance']] + [[x.name, "{:.2f}".format(x.dist_to(centre))] for x in systems[:10]]
-            msg = "__Closest 10 Controls__\n\n" + \
-                  cog.tbl.wrap_markdown(cog.tbl.format_table(lines, header=True))
-
-        elif self.args.subcmd == 'if':
-            sys_name = ' '.join(self.args.system)
-            centre = cogdb.eddb.get_systems(eddb_session, [sys_name])[0]
-            stations = await self.bot.loop.run_in_executor(
-                None,
-                functools.partial(
-                    cogdb.eddb.get_nearest_ifactors, eddb_session,
-                    centre_name=centre.name, include_medium=self.args.medium
-                )
-            )
-
-            stations = [["System", "Distance", "Station", "Arrival"]] + stations
-            msg = "__Nearby Interstellar Factors__\n"
-            msg += cog.tbl.wrap_markdown(cog.tbl.format_table(stations, header=True))
-            msg += "[L] Large pads.\n[M] M pads only."
+        with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
+            if self.args.subcmd == 'control':
+                msg = await self.control(eddb_session)
+            elif self.args.subcmd == 'if':
+                msg = await self.ifactors(eddb_session)
 
         await self.bot.send_message(self.msg.channel, msg)
 
@@ -1229,25 +1242,26 @@ class Repair(Action):
         if self.args.distance > 30:
             raise cog.exc.InvalidCommandArgs("Searching beyond **30**ly would produce too long a list.")
 
-        stations = await self.bot.loop.run_in_executor(
-            None,
-            functools.partial(
-                cogdb.eddb.get_shipyard_stations,
-                cogdb.EDDBSession(), ' '.join(self.args.system),
-                sys_dist=self.args.distance, arrival=self.args.arrival,
-                include_medium=self.args.medium
+        with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
+            stations = await self.bot.loop.run_in_executor(
+                None,
+                functools.partial(
+                    cogdb.eddb.get_shipyard_stations,
+                    eddb_session, ' '.join(self.args.system),
+                    sys_dist=self.args.distance, arrival=self.args.arrival,
+                    include_medium=self.args.medium
+                )
             )
-        )
 
-        if stations:
-            stations = [["System", "Distance", "Station", "Arrival"]] + stations
-            response = "__Nearby orbitals__\n"
-            response += cog.tbl.wrap_markdown(cog.tbl.format_table(stations, header=True))
-            response += "[L] Large pads.\n[M] M pads only.\n"
-            response += "All stations: Repair, Rearm, Refuel, Outfitting\n"
-            response += "L stations: Shipyard"
-        else:
-            response = "No results. Please check system name. Otherwise not near populations."
+            if stations:
+                stations = [["System", "Distance", "Station", "Arrival"]] + stations
+                response = "__Nearby orbitals__\n"
+                response += cog.tbl.wrap_markdown(cog.tbl.format_table(stations, header=True))
+                response += "[L] Large pads.\n[M] M pads only.\n"
+                response += "All stations: Repair, Rearm, Refuel, Outfitting\n"
+                response += "L stations: Shipyard"
+            else:
+                response = "No results. Please check system name. Otherwise not near populations."
 
         await self.bot.send_long_message(self.msg.channel, response)
 
@@ -1259,7 +1273,6 @@ class Route(Action):
     async def execute(self):
         # TODO: Add ability to fix endpoint. That is solve route but then add distance to jump back.
         # TODO: Probably allow dupes.
-        session = cogdb.EDDBSession()
         self.args.system = [arg.lower() for arg in self.args.system]
         system_names = process_system_args(self.args.system)
 
@@ -1269,15 +1282,16 @@ class Route(Action):
         if len(system_names) != len(set(system_names)):
             raise cog.exc.InvalidCommandArgs("Don't duplicate system names.")
 
-        if self.args.optimum:
-            result = await self.bot.loop.run_in_executor(
-                None, cogdb.eddb.find_best_route, session, system_names)
-        else:
-            result = await self.bot.loop.run_in_executor(
-                None, cogdb.eddb.find_route, session, system_names[0], system_names[1:])
+        with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
+            if self.args.optimum:
+                result = await self.bot.loop.run_in_executor(
+                    None, cogdb.eddb.find_best_route, eddb_session, system_names)
+            else:
+                result = await self.bot.loop.run_in_executor(
+                    None, cogdb.eddb.find_route, eddb_session, system_names[0], system_names[1:])
 
-        lines = ["__Route Plotted__", "Total Distance: **{}**ly".format(round(result[0])), ""]
-        lines += [sys.name for sys in result[1]]
+            lines = ["__Route Plotted__", "Total Distance: **{}**ly".format(round(result[0])), ""]
+            lines += [sys.name for sys in result[1]]
 
         await self.bot.send_message(self.msg.channel, "\n".join(lines))
 
@@ -1323,8 +1337,6 @@ class Scout(Action):
         return systems
 
     async def execute(self):
-        session = cogdb.EDDBSession()
-
         if not self.args.round and not self.args.custom:
             raise cog.exc.InvalidCommandArgs("Select a --round or provide a --custom list.")
 
@@ -1334,14 +1346,15 @@ class Scout(Action):
             systems = SCOUT_RND[self.args.round]
             systems = await self.interact_revise(systems)
 
-        result = await self.bot.loop.run_in_executor(
-            None, cogdb.eddb.find_best_route, session, systems)
-        system_list = "\n".join([":Exploration: " + sys.name for sys in result[1]])
+        with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
+            result = await self.bot.loop.run_in_executor(
+                None, cogdb.eddb.find_best_route, eddb_session, systems)
+            system_list = "\n".join([":Exploration: " + sys.name for sys in result[1]])
 
-        now = datetime.datetime.now(datetime.timezone.utc)
-        lines = SCOUT_TEMPLATE.format(
-            round(result[0], 2), now.strftime("%B"),
-            now.day, now.year + 1286, system_list)
+            now = datetime.datetime.now(datetime.timezone.utc)
+            lines = SCOUT_TEMPLATE.format(
+                round(result[0], 2), now.strftime("%B"),
+                now.day, now.year + 1286, system_list)
 
         await self.bot.send_message(self.msg.channel, lines)
 
@@ -1382,8 +1395,9 @@ class Time(Action):
             weekly_tick += datetime.timedelta(days=1)
 
         try:
-            tick = await self.bot.loop.run_in_executor(
-                None, cogdb.side.next_bgs_tick, cogdb.SideSession(), now)
+            with cogdb.session_scope(cogdb.SideSession) as side_session:
+                tick = await self.bot.loop.run_in_executor(
+                    None, cogdb.side.next_bgs_tick, side_session, now)
         except (cog.exc.NoMoreTargets, cog.exc.RemoteError) as exc:
             tick = exc.reply()
         lines = [
@@ -1406,10 +1420,10 @@ class Track(Action):
         cogdb.query.track_add_systems(self.session, system_names, self.args.distance)
 
         to_add = []
-        eddb_session = cogdb.EDDBSession()
-        for sys_name in system_names:
-            to_add += cogdb.eddb.get_systems_around(eddb_session, sys_name, self.args.distance)
-        to_add = {x.name for x in to_add}
+        with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
+            for sys_name in system_names:
+                to_add += cogdb.eddb.get_systems_around(eddb_session, sys_name, self.args.distance)
+            to_add = {x.name for x in to_add}
 
         new_systems = sorted([x.system for x in cogdb.query.track_systems_computed_update(self.session, to_add)])
         response = "__Systems Added To Tracking__\n\nSystems added: {} First few follow ...\n\n".format(len(new_systems))
@@ -1421,11 +1435,11 @@ class Track(Action):
         cogdb.query.track_remove_systems(self.session, system_names)
         remaining = cogdb.query.track_get_all_systems(self.session)
 
-        eddb_session = cogdb.EDDBSession()
-        computed = []
-        for remain in remaining:
-            computed += cogdb.eddb.get_systems_around(eddb_session, remain.system, remain.distance)
-        to_keep = {x.name for x in computed}
+        with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
+            computed = []
+            for remain in remaining:
+                computed += cogdb.eddb.get_systems_around(eddb_session, remain.system, remain.distance)
+            to_keep = {x.name for x in computed}
 
         removed = sorted(cogdb.query.track_systems_computed_remove(self.session, to_keep))
         response = "__Systems Removed From Tracking__\n\nSystems added: {} First few follow ...\n\n".format(len(removed))
@@ -1489,29 +1503,29 @@ class Trigger(Action):
     Calculate the estimated triggers relative Hudson.
     """
     async def execute(self):
-        eddb_session = cogdb.EDDBSession()
-        self.args.power = " ".join(self.args.power).lower()
-        power = cogdb.eddb.get_power_hq(self.args.power)
-        pow_hq = cogdb.eddb.get_systems(eddb_session, [power[1]])[0]
-        lines = [
-            "__Predicted Triggers__",
-            "Power: {}".format(power[0]),
-            "Power HQ: {}\n".format(power[1])
-        ]
-
-        systems = await self.bot.loop.run_in_executor(
-            None, cogdb.eddb.get_systems, eddb_session,
-            process_system_args(self.args.system))
-        for system in systems:
-            lines += [
-                cog.tbl.wrap_markdown(cog.tbl.format_table([
-                    ["System", system.name],
-                    ["Distance", round(system.dist_to(pow_hq), 1)],
-                    ["Upkeep", system.calc_upkeep(pow_hq)],
-                    ["Fort Trigger", system.calc_fort_trigger(pow_hq)],
-                    ["UM Trigger", system.calc_um_trigger(pow_hq)],
-                ]))
+        with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
+            self.args.power = " ".join(self.args.power).lower()
+            power = cogdb.eddb.get_power_hq(self.args.power)
+            pow_hq = cogdb.eddb.get_systems(eddb_session, [power[1]])[0]
+            lines = [
+                "__Predicted Triggers__",
+                "Power: {}".format(power[0]),
+                "Power HQ: {}\n".format(power[1])
             ]
+
+            systems = await self.bot.loop.run_in_executor(
+                None, cogdb.eddb.get_systems, eddb_session,
+                process_system_args(self.args.system))
+            for system in systems:
+                lines += [
+                    cog.tbl.wrap_markdown(cog.tbl.format_table([
+                        ["System", system.name],
+                        ["Distance", round(system.dist_to(pow_hq), 1)],
+                        ["Upkeep", system.calc_upkeep(pow_hq)],
+                        ["Fort Trigger", system.calc_fort_trigger(pow_hq)],
+                        ["UM Trigger", system.calc_um_trigger(pow_hq)],
+                    ]))
+                ]
 
         await self.bot.send_message(self.msg.channel, '\n'.join(lines))
 
@@ -1784,23 +1798,23 @@ async def monitor_carrier_events(client, *, next_summary, last_timestamp=None, d
 
     await asyncio.sleep(delay)
 
-    session = cogdb.Session()
-    if datetime.datetime.now(datetime.timezone.utc) < next_summary:
-        header = "__Fleet Carriers Detected Last {} Seconds__\n".format(delay)
-        tracks = await client.loop.run_in_executor(
-            None, cogdb.query.track_ids_newer_than, session, last_timestamp
-        )
-    else:
-        header = "__Daily Fleet Carrier Summary For {}__\n".format(next_summary)
-        yesterday = next_summary - datetime.timedelta(days=1)
-        next_summary = next_summary + datetime.timedelta(days=1)
-        tracks = await client.loop.run_in_executor(
-            None, cogdb.query.track_ids_newer_than, session, yesterday
-        )
-    if tracks:
-        last_timestamp = tracks[-1].updated_at
+    with cogdb.session_scope(cogdb.Session) as session:
+        if datetime.datetime.now(datetime.timezone.utc) < next_summary:
+            header = "__Fleet Carriers Detected Last {} Seconds__\n".format(delay)
+            tracks = await client.loop.run_in_executor(
+                None, cogdb.query.track_ids_newer_than, session, last_timestamp
+            )
+        else:
+            header = "__Daily Fleet Carrier Summary For {}__\n".format(next_summary)
+            yesterday = next_summary - datetime.timedelta(days=1)
+            next_summary = next_summary + datetime.timedelta(days=1)
+            tracks = await client.loop.run_in_executor(
+                None, cogdb.query.track_ids_newer_than, session, yesterday
+            )
+        if tracks:
+            last_timestamp = tracks[-1].updated_at
 
-    msgs = cog.util.generative_split(tracks, str, header=header)
+        msgs = cog.util.generative_split(tracks, str, header=header)
 
     # Only send messages if generated and channel set
     chan_id = cog.util.get_config("carrier_channel", default=None)

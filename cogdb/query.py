@@ -49,11 +49,10 @@ def fuzzy_find(needle, stack, obj_attr='zzzz', ignore_case=True):
     raise cog.exc.MoreThanOneMatch(needle, matches, obj_attr)
 
 
-def dump_db():  # pragma: no cover
+def dump_db(session):  # pragma: no cover
     """
     Purely debug function, shunts db contents into file for examination.
     """
-    session = cogdb.Session()
     fname = os.path.join(tempfile.gettempdir(), 'dbdump_' + os.environ.get('COG_TOKEN', 'dev'))
     print("Dumping db contents to:", fname)
     with open(fname, 'w') as fout:
@@ -357,15 +356,13 @@ def fort_order_get(session):
     Returns: [] if no systems set, else a list of System objects.
     """
     systems = []
-    dsession = cogdb.Session(expire_on_commit=False)  # Isolate deletions, feels a bit off though
 
-    for fort_order in dsession.query(FortOrder).order_by(FortOrder.order):
+    for fort_order in session.query(FortOrder).order_by(FortOrder.order):
         system = fort_order.system
         if system.is_fortified or system.missing < DEFER_MISSING:
-            dsession.delete(fort_order)
+            session.delete(fort_order)
         else:
             systems += [system]
-    dsession.commit()
 
     return systems
 
@@ -606,14 +603,13 @@ def remove_role_perm(session, cmd, server, role):
         raise cog.exc.InvalidCommandArgs("Role permission does not exist.")
 
 
-def check_perms(msg, args):
+def check_perms(session, msg, args):
     """
     Check if a user is authorized to issue this command.
     Checks will be made against channel and user roles.
 
     Raises InvalidPerms if any permission issue.
     """
-    session = cogdb.Session()
     check_channel_perms(session, args.cmd, msg.channel.guild, msg.channel)
     check_role_perms(session, args.cmd, msg.channel.guild, msg.author.roles)
 

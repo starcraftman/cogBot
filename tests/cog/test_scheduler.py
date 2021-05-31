@@ -130,7 +130,7 @@ async def test_scheduler_schedule_all(f_asheet_fortscanner, f_asheet_umscanner):
 
 
 @pytest.mark.asyncio
-async def test_scheduler_delayed_update(f_bot, f_asheet_fortscanner):
+async def test_scheduler_delayed_update(f_bot, f_asheet_fortscanner, db_cleanup):
     fscan = cogdb.scanners.FortScanner(f_asheet_fortscanner)
     wrap = WrapScanner('fort', fscan, ['Fort'])
 

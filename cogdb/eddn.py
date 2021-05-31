@@ -460,7 +460,9 @@ def create_parser(msg):
     cls_name = SCHEMA_MAP[key]
     cls = getattr(sys.modules[__name__], cls_name)
 
-    return cls(cogdb.Session(), cogdb.EDDBSession(autoflush=False), msg)
+    with cogdb.session_scope(cogdb.Session) as session, \
+         cogdb.session_scope(cogdb.EDDBSession, autoflush=False) as eddb_session:
+        return cls(session, eddb_session, msg)
 
 
 def log_fname(msg):
@@ -524,7 +526,7 @@ def get_msgs(sub):
                 except sqla.exc.OperationalError:
                     parser.session.rollback()
                     cnt -= 1
-        except KeyError as e:
+        except KeyError:
             pass
             #  logging.getLogger(__name__).info("Exception: %s", str(e))
         except StopParsing:
@@ -606,7 +608,8 @@ def main():
 
 
 try:
-    MAPS = create_id_maps(cogdb.EDDBSession())
+    with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
+        MAPS = create_id_maps(eddb_session)
 except (sqla_orm.exc.NoResultFound, sqla.exc.ProgrammingError):
     MAPS = None
 

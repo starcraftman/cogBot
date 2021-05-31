@@ -15,6 +15,7 @@ import asyncio
 import logging
 import os
 import sys
+from contextlib import contextmanager
 
 import sqlalchemy
 import sqlalchemy.event
@@ -75,22 +76,6 @@ def event_checkout(dbapi_connecion, connection_record, connection_proxy):
             'attempting to check out in pid {}'.format(connection_record.info['pid'], pid))
 
 
-def fresh_sessionmaker(db=None):
-    """
-    If in another process, create a new connection setup for new sessions.
-
-    args:
-        db: The database to select with mysql, by default COG_TOKEN.
-    """
-    creds = cog.util.get_config('dbs', 'main')
-    if not db:
-        db = os.environ.get('COG_TOKEN', 'dev')
-    creds['db'] = db
-
-    eng = sqlalchemy.create_engine(MYSQL_SPEC.format(**creds), echo=False, pool_recycle=3600)
-    return sqlalchemy.orm.sessionmaker(bind=eng)
-
-
 async def monitor_pools(delay=120):
     """
     Runs forever and just logs the status of each pool.
@@ -101,3 +86,20 @@ async def monitor_pools(delay=120):
         log.info("POOL %s: %s", name, eng.pool.status())
 
     asyncio.ensure_future(monitor_pools(delay))
+
+
+@contextmanager
+def session_scope(*args, **kwargs):
+    """
+    Provide a transactional scope around a series of operations.
+    """
+    session_maker = args[0]
+    session = session_maker()
+    try:
+        yield session
+        session.commit()
+    except:  # noqa: E722
+        session.rollback()
+        raise
+    finally:
+        session.close()
