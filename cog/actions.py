@@ -1484,10 +1484,6 @@ class Track(Action):
         await scanner.update_cells()
         await self.bot.loop.run_in_executor(None, scanner.parse_sheet)
 
-        scanner = get_scanner("hudson_ocr")
-        await scanner.update_cells()
-        await self.bot.loop.run_in_executor(None, scanner.parse_sheet)
-
         return "Scan finished."
 
     async def execute(self):
