@@ -984,7 +984,7 @@ class OCRTracker(Base):
     header = ["ID", "System", "Fort", "Um"]
 
     id = sqla.Column(sqla.Integer, primary_key=True)
-    system = sqla.Column(sqla.String(LEN_NAME), default="", unique=True)
+    system = sqla.Column(sqla.String(LEN_NAME), default="")
     fort = sqla.Column(sqla.Integer, default=0.0)
     um = sqla.Column(sqla.Integer, default=0.0)
     updated_at = sqla.Column(sqla.DateTime(timezone=True), default=datetime.datetime.now(datetime.timezone.utc))  # All dates UTC
@@ -1006,7 +1006,7 @@ class OCRTracker(Base):
         return isinstance(other, OCRTracker) and hash(self) == hash(other)
 
     def __lt__(self, other):
-        return self.fort < other.fort and self.um < self.um
+        return self.fort < other.fort and self.um < other.um
 
     def __hash__(self):
         return hash("{}".format(self.id))
@@ -1041,6 +1041,40 @@ class OCRTrigger(Base):
 
     def __eq__(self, other):
         return isinstance(other, OCRTrigger)
+
+    def __hash__(self):
+        return hash("{}".format(self.id))
+
+
+class OCRPrep(Base):
+    """
+    Store Prep triggers by systems.
+    """
+    __tablename__ = 'systems_prep_tracker'
+
+    header = ["ID", "System_name", "Merits", "Consolidation"]
+
+    id = sqla.Column(sqla.Integer, primary_key=True)
+    system_name = sqla.Column(sqla.String(LEN_NAME), unique=True)
+    merits = sqla.Column(sqla.Integer, default=0.0)
+    consolidation = sqla.Column(sqla.Integer, default=0.0)
+    updated_at = sqla.Column(sqla.DateTime(timezone=True),
+                             default=datetime.datetime.now(datetime.timezone.utc))  # All dates UTC
+
+    def __repr__(self):
+        keys = ['id', 'system_name', 'merits', 'consolidation', 'updated_at']
+        kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
+
+        return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
+
+    def __str__(self):
+        """ A pretty one line to give all information. """
+        return "{system} : {merits} --Current Vote {consolidation}%  Last Update at {date}".format(
+            consolidation=self.consolidation, merits=self.merits,
+            system=self.system_name, date=self.updated_at)
+
+    def __eq__(self, other):
+        return isinstance(other, OCRPrep)
 
     def __hash__(self):
         return hash("{}".format(self.id))

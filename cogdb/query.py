@@ -15,7 +15,8 @@ import cog.sheets
 from cog.util import substr_match, get_config
 from cogdb.schema import (DiscordUser, FortSystem, FortPrep, FortDrop, FortUser, FortOrder,
                           UMSystem, UMUser, UMHold, KOS, AdminPerm, ChannelPerm, RolePerm,
-                          TrackSystem, TrackSystemCached, TrackByID, OCRTracker, OCRTrigger)
+                          TrackSystem, TrackSystemCached, TrackByID, OCRTracker, OCRTrigger,
+                          OCRPrep)
 from cogdb.eddb import HUDSON_CONTROLS, WINTERS_CONTROLS
 
 DEFER_MISSING = get_config("limits", "defer_missing", default=750)
@@ -973,6 +974,8 @@ def update_ocr_live(session, ids_dict, date_obj=None):
             system.fort = data['fort']
         if data.get("um", ""):
             system.um = data['um']
+        if data.get("updated_at", ""):
+            system.updated_at = data['updated_at']
         system.system = data.get('system', None)
         updated += [system.id]
 
@@ -1029,6 +1032,57 @@ def update_ocr_trigger(session, ids_dict, date_obj=None):
 
     for data in copy_ids_dict.values():
         session.add(OCRTrigger(**data))
+        added += [data['id']]
+
+    return (updated, added)
+
+
+def update_ocr_prep(session, ids_dict, date_obj=None):
+    """
+    Update the tracked IDs into the database.
+    ids_dict is a dict of form:
+        {
+            {ID: {'id': ID, 'system_name': SYSTEM_NAME, 'merits': MERITS, 'consolidation': CONSOLIDATION
+            'updated_at': datetime obj},
+            ...
+        }
+
+    ID, SYSTEM_NAME and MERITS and are the respective data to store for an ID in schema:
+    If the information exists it will be updated, else inserted.
+
+    Args:
+        session: The session to db.
+        ids_dict: See above dictionary.
+        date_obj: Optional, if provided data will be accepted only if timestamp is newer. Expecting datetime object.
+
+    Returns: (list_updated, list_removed) - both lists are lists of IDs
+    """
+    added, updated = [], []
+    ocr_system_ids = session.query(OCRPrep).\
+        filter(OCRPrep.id.in_(ids_dict.keys())).\
+        all()
+
+    copy_ids_dict = copy.deepcopy(ids_dict)
+    for system in ocr_system_ids:
+        # Reject possible data that is older than current
+        if date_obj and system.updated_at > date_obj:
+            del copy_ids_dict[system.id]
+            continue
+
+        data = copy_ids_dict[system.id]
+        if data.get("merits", ""):
+            system.merits = data['merits']
+        if data.get("consolidation", ""):
+            system.consolidation = data['consolidation']
+        if data.get("updated_at", ""):
+            system.updated_at = data['updated_at']
+        system.system_name = data.get('system_name', None)
+        updated += [system.id]
+
+        del copy_ids_dict[system.id]
+
+    for data in copy_ids_dict.values():
+        session.add(OCRPrep(**data))
         added += [data['id']]
 
     return (updated, added)

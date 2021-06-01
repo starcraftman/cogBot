@@ -769,6 +769,7 @@ class OCRScanner(FortScanner):
         """
         if session:
             cogdb.query.update_ocr_live(session, self.live())
+            cogdb.query.update_ocr_prep(session, self.prep())
             if trigger:
                 cogdb.query.update_ocr_trigger(session, self.trigger())
             session.commit()
@@ -823,7 +824,6 @@ class OCRScanner(FortScanner):
         found = {}
 
         updated_at = self.cells_col_major[2:3][0][:1]
-        # TODO: Returning the dict to update DB.
         users = [x[row_cnt:] for x in self.cells_col_major[14:16]]
         index = 1
         ocr_systems = cogdb.query.ocr_get_systems(session)
@@ -834,6 +834,37 @@ class OCRScanner(FortScanner):
                 "system_name": ocr_systems[index-1].system,
                 "fort_trigger": fort_trigger,
                 "um_trigger": um_trigger,
+                "updated_at": datetime.datetime.fromisoformat(str(updated_at[0]))
+            }
+            index += 1
+        return found
+
+    def prep(self, *, row_cnt=2):
+        """
+        Scan the live data in the sheet.
+        Update date : cell C1
+        Expected format:
+            System name | Merits
+
+        Args:
+            session: current cogdb Session
+            row_cnt: The starting row for data, zero-based.
+
+        Returns: A dictionary ready to update db.
+        """
+        found = {}
+
+        updated_at = self.cells_col_major[2:3][0][:1]
+        consolidation = self.cells_col_major[4:5][0][8:9]
+        users = [x[row_cnt:7] for x in self.cells_col_major[3:5]]
+        index = 1
+        for system_name, merits in list(zip(*users)):
+            # TODO: Need system name, merits value and consolidation value checks here
+            found[index] = {
+                "id": index,
+                "system_name": system_name,
+                "merits": merits,
+                "consolidation": int(consolidation[0]),
                 "updated_at": datetime.datetime.fromisoformat(str(updated_at[0]))
             }
             index += 1
