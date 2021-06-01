@@ -12,7 +12,7 @@ except ImportError:
 
 import cogdb.eddn
 import cogdb.schema
-from cogdb.schema import TrackByID, TrackSystemCached
+from cogdb.schema import TrackByID
 from cogdb.eddb import FactionActiveState
 
 

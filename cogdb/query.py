@@ -12,9 +12,6 @@ import sqlalchemy.orm.exc as sqla_oexc
 import cog.exc
 import cog.sheets
 from cog.util import substr_match, get_config
-import cogdb
-import cogdb.eddb
-import cogdb.schema
 from cogdb.schema import (DiscordUser, FortSystem, FortPrep, FortDrop, FortUser, FortOrder,
                           UMSystem, UMUser, UMHold, KOS, AdminPerm, ChannelPerm, RolePerm,
                           TrackSystem, TrackSystemCached, TrackByID)
@@ -71,8 +68,8 @@ def get_duser(session, discord_id):
     """
     try:
         return session.query(DiscordUser).filter_by(id=discord_id).one()
-    except sqla_oexc.NoResultFound:
-        raise cog.exc.NoMatch(discord_id, 'DiscordUser')
+    except sqla_oexc.NoResultFound as exc:
+        raise cog.exc.NoMatch(discord_id, 'DiscordUser') from exc
 
 
 def ensure_duser(session, member):
@@ -109,7 +106,7 @@ def all_discord_with_merits(session):
     return [x for x in session.query(DiscordUser).all() if x.total_merits]
 
 
-def check_pref_name(session, duser, new_name):
+def check_pref_name(session, new_name):
     """
     Check that new name is not taken by another DUser or present as a stray in SheetRows.
 
@@ -379,12 +376,12 @@ def fort_order_set(session, system_names):
                 system_name = fort_find_system(session, system_name).name
             session.add(FortOrder(order=ind, system_name=system_name))
         session.commit()
-    except (sqla_exc.IntegrityError, sqla_oexc.FlushError):
+    except (sqla_exc.IntegrityError, sqla_oexc.FlushError) as exc:
         session.rollback()
-        raise cog.exc.InvalidCommandArgs("Duplicate system specified, check your command!")
-    except cog.exc.NoMatch:
+        raise cog.exc.InvalidCommandArgs("Duplicate system specified, check your command!") from exc
+    except cog.exc.NoMatch as exc:
         session.rollback()
-        raise cog.exc.InvalidCommandArgs("FortSystem '{}' not found in fort systems.".format(system_name))
+        raise cog.exc.InvalidCommandArgs("FortSystem '{}' not found in fort systems.".format(system_name)) from exc
 
 
 def fort_order_drop(session, systems):
@@ -408,16 +405,16 @@ def um_find_system(session, system_name):
     """
     try:
         return session.query(UMSystem).filter_by(name=system_name).one()
-    except (sqla_oexc.NoResultFound, sqla_oexc.MultipleResultsFound):
+    except (sqla_oexc.NoResultFound, sqla_oexc.MultipleResultsFound) as exc:
         systems = session.query(UMSystem).\
             filter(UMSystem.name.ilike('%{}%'.format(system_name))).\
             all()
 
         if len(systems) > 1:
-            raise cog.exc.MoreThanOneMatch(system_name, systems, UMSystem)
+            raise cog.exc.MoreThanOneMatch(system_name, systems, UMSystem) from exc
 
         if len(systems) == 0:
-            raise cog.exc.NoMatch(system_name, UMSystem)
+            raise cog.exc.NoMatch(system_name, UMSystem) from exc
 
         return systems[0]
 
@@ -554,8 +551,8 @@ def get_admin(session, member):
     """
     try:
         return session.query(AdminPerm).filter_by(id=member.id).one()
-    except sqla_oexc.NoResultFound:
-        raise cog.exc.NoMatch(member.display_name, 'Admin')
+    except sqla_oexc.NoResultFound as exc:
+        raise cog.exc.NoMatch(member.display_name, 'Admin') from exc
 
 
 def add_admin(session, member):
@@ -565,24 +562,24 @@ def add_admin(session, member):
     try:
         session.add(AdminPerm(id=member.id))
         session.commit()
-    except (sqla_exc.IntegrityError, sqla_oexc.FlushError):
-        raise cog.exc.InvalidCommandArgs("Member {} is already an admin.".format(member.display_name))
+    except (sqla_exc.IntegrityError, sqla_oexc.FlushError) as exc:
+        raise cog.exc.InvalidCommandArgs("Member {} is already an admin.".format(member.display_name)) from exc
 
 
 def add_channel_perm(session, cmd, server, channel):
     try:
         session.add(ChannelPerm(cmd=cmd, server_id=server.id, channel_id=channel.id))
         session.commit()
-    except (sqla_exc.IntegrityError, sqla_oexc.FlushError):
-        raise cog.exc.InvalidCommandArgs("Channel permission already exists.")
+    except (sqla_exc.IntegrityError, sqla_oexc.FlushError) as exc:
+        raise cog.exc.InvalidCommandArgs("Channel permission already exists.") from exc
 
 
 def add_role_perm(session, cmd, server, role):
     try:
         session.add(RolePerm(cmd=cmd, server_id=server.id, role_id=role.id))
         session.commit()
-    except (sqla_exc.IntegrityError, sqla_oexc.FlushError):
-        raise cog.exc.InvalidCommandArgs("Role permission already exists.")
+    except (sqla_exc.IntegrityError, sqla_oexc.FlushError) as exc:
+        raise cog.exc.InvalidCommandArgs("Role permission already exists.") from exc
 
 
 def remove_channel_perm(session, cmd, server, channel):
@@ -590,8 +587,8 @@ def remove_channel_perm(session, cmd, server, channel):
         session.delete(session.query(ChannelPerm).
                        filter_by(cmd=cmd, server_id=server.id, channel_id=channel.id).one())
         session.commit()
-    except sqla_oexc.NoResultFound:
-        raise cog.exc.InvalidCommandArgs("Channel permission does not exist.")
+    except sqla_oexc.NoResultFound as exc:
+        raise cog.exc.InvalidCommandArgs("Channel permission does not exist.") from exc
 
 
 def remove_role_perm(session, cmd, server, role):
@@ -599,8 +596,8 @@ def remove_role_perm(session, cmd, server, role):
         session.delete(session.query(RolePerm).
                        filter_by(cmd=cmd, server_id=server.id, role_id=role.id).one())
         session.commit()
-    except sqla_oexc.NoResultFound:
-        raise cog.exc.InvalidCommandArgs("Role permission does not exist.")
+    except sqla_oexc.NoResultFound as exc:
+        raise cog.exc.InvalidCommandArgs("Role permission does not exist.") from exc
 
 
 def check_perms(session, msg, args):

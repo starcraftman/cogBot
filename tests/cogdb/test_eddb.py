@@ -168,7 +168,7 @@ def test_get_power_hq_no_match():
 def test_get_nearest_ifactors(eddb_session):
     result = cogdb.eddb.get_nearest_ifactors(eddb_session, centre_name='Sol')
 
-    system_names = list(set([x[0] for x in result]))
+    system_names = {x[0] for x in result}
     assert "Stopover" in system_names
     assert "LHS 449" in system_names
 

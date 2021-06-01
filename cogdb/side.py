@@ -488,8 +488,8 @@ def wrap_exceptions(func):
         """ Simple inner function wrapper. """
         try:
             return func(*args, **kwargs)
-        except sqla_exe.OperationalError:
-            raise cog.exc.RemoteError("Lost connection to Sidewinder's DB.")
+        except sqla_exe.OperationalError as exc:
+            raise cog.exc.RemoteError("Lost connection to Sidewinder's DB.") from exc
 
     return inner
 
@@ -801,8 +801,8 @@ def find_favorable(session, centre_name, max_dist=None, inc=20):
     """
     try:
         centre = session.query(System).filter(System.name == centre_name).one()
-    except sqla_orm.exc.NoResultFound:
-        raise cog.exc.InvalidCommandArgs("System name was not found, must be exact.")
+    except sqla_orm.exc.NoResultFound as exc:
+        raise cog.exc.InvalidCommandArgs("System name was not found, must be exact.") from exc
 
     dist = max_dist if max_dist else inc
     keep_looking = True

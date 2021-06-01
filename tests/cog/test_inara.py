@@ -86,7 +86,7 @@ async def test_select_from_multiple_exact(f_bot):
     cmdr = await api.search_with_api('gears', fake_msg_gears('!whois gears'))
     assert cmdr["name"] == "GearsandCogs"
     with pytest.raises(KeyError):
-        cmdr["otherNamesFound"]
+        cmdr["otherNamesFound"]  # pylint: disable=pointless-statement
 
 
 @INARA_TEST

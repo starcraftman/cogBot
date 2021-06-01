@@ -94,7 +94,7 @@ def session_scope(*args, **kwargs):
     Provide a transactional scope around a series of operations.
     """
     session_maker = args[0]
-    session = session_maker()
+    session = session_maker(**kwargs)
     try:
         yield session
         session.commit()

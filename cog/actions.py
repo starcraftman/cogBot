@@ -229,8 +229,8 @@ class Admin(Action):
             try:
                 async for msg in channel.history(limit=100000, after=after, oldest_first=True):
                     last_msgs[msg.author.id] = msg
-            except discord.errors.Forbidden:
-                raise cog.exc.InvalidCommandArgs("Bot has no permissions for channel: " + channel.name)
+            except discord.errors.Forbidden as exc:
+                raise cog.exc.InvalidCommandArgs("Bot has no permissions for channel: " + channel.name) from exc
 
         for msg in last_msgs.values():
             all_members.remove(msg.author)
@@ -352,11 +352,11 @@ class Admin(Action):
 
             table = cog.tbl.wrap_markdown(cog.tbl.format_table(lines, header=True))
             return "Cycle incremented. Changed sheets scheduled for update.\n\n" + table
-        except ValueError:
-            raise cog.exc.InternalException("Impossible to increment scanner: {}".format(name))
-        except (AssertionError, googleapiclient.errors.HttpError):
+        except ValueError as exc:
+            raise cog.exc.InternalException("Impossible to increment scanner: {}".format(name)) from exc
+        except (AssertionError, googleapiclient.errors.HttpError) as exc:
             raise cog.exc.RemoteError("The sheet {} with tab {} does not exist!".format(
-                name, scanner_configs[name]['page']))
+                name, scanner_configs[name]['page'])) from exc
         finally:
             self.bot.deny_commands = False
 
@@ -367,7 +367,7 @@ class Admin(Action):
 
         reinforcement_value = self.args.reinforced
         priority = self.args.priority
-        if 50 < reinforcement_value or reinforcement_value < 0:
+        if reinforcement_value < 0 or reinforcement_value > 50:
             raise cog.exc.InvalidCommandArgs("Wrong reinforcement value, min 0 max 50")
 
         um_scanner = get_scanner("hudson_undermine")
@@ -420,8 +420,8 @@ class Admin(Action):
                 return "Systems added to the UM sheet.\n\nThe following systems were ignored : {}"\
                     .format(", ".join(found_list))
             return 'Systems added to the UM sheet.'
-        else:
-            return 'All systems asked are already in the sheet or are invalid'
+
+        return 'All systems asked are already in the sheet or are invalid'
 
     async def removeum(self):
         """Remove a system(s) from the um sheet"""
@@ -453,14 +453,14 @@ class Admin(Action):
                     return "Systems removed from the UM sheet.\n\nThe following systems were not found : {}" \
                         .format(", ".join(unlisted_system))
                 return 'Systems removed from the UM sheet.'
-            else:
-                return 'All systems asked are not on the sheet'
+
+            return 'All systems asked are not on the sheet'
 
     async def execute(self):
         try:
             admin = cogdb.query.get_admin(self.session, self.duser)
-        except cog.exc.NoMatch:
-            raise cog.exc.InvalidPerms("{} You are not an admin!".format(self.msg.author.mention))
+        except cog.exc.NoMatch as exc:
+            raise cog.exc.InvalidPerms("{} You are not an admin!".format(self.msg.author.mention)) from exc
 
         try:
             func = getattr(self, self.args.subcmd)
@@ -470,8 +470,8 @@ class Admin(Action):
                 response = await func()
             if response:
                 await self.bot.send_long_message(self.msg.channel, response)
-        except (AttributeError, TypeError):
-            raise cog.exc.InvalidCommandArgs("Bad subcommand of `!admin`, see `!admin -h` for help.")
+        except (AttributeError, TypeError) as exc:
+            raise cog.exc.InvalidCommandArgs("Bad subcommand of `!admin`, see `!admin -h` for help.") from exc
 
 
 class BGS(Action):
@@ -490,9 +490,9 @@ class BGS(Action):
         lines += [[system.control, system.system, system.age] for system in systems]
         return cog.tbl.wrap_markdown(cog.tbl.format_table(lines, header=True))
 
-    async def dash(self, control_name, **kwargs):
+    async def dash(self, system_name, **kwargs):
         """ Handle dash subcmd. """
-        control_name = cogdb.query.complete_control_name(control_name, True)
+        control_name = cogdb.query.complete_control_name(system_name, True)
         control, systems, net_inf, facts_count = await self.bot.loop.run_in_executor(
             None, cogdb.side.dash_overview, kwargs['side_session'], control_name)
 
@@ -591,8 +591,8 @@ class BGS(Action):
                                                         side_session, centre, factions[ind])
             resp = "**Would Expand To**\n\n{}, {}\n\n".format(centre.name, factions[ind].name)
             return resp + cog.tbl.wrap_markdown(cog.tbl.format_table(cands, header=True))
-        except ValueError:
-            raise cog.exc.InvalidCommandArgs("Selection was invalid, try command again.")
+        except ValueError as exc:
+            raise cog.exc.InvalidCommandArgs("Selection was invalid, try command again.") from exc
         finally:
             try:
                 await sent.channel.delete_messages([sent, select])
@@ -635,7 +635,7 @@ class BGS(Action):
         lines = [['Faction Name', 'Inf', 'Gov', 'PMF?']] + [inf[:-1] for inf in infs]
         return header + cog.tbl.wrap_markdown(cog.tbl.format_table(lines, header=True))
 
-    async def report(self, system_name, **kwargs):
+    async def report(self, _, **kwargs):
         """ Handle influence subcmd. """
         session = kwargs['side_session']
         system_ids = await self.bot.loop.run_in_executor(None, cogdb.side.get_monitor_systems,
@@ -692,8 +692,8 @@ If we should contact Gears or Sidewinder""".format(system_name)
                 response = await func(' '.join(self.args.system),
                                       side_session=side_session, eddb_session=eddb_session)
                 await self.bot.send_long_message(self.msg.channel, response)
-        except AttributeError:
-            raise cog.exc.InvalidCommandArgs("Bad subcommand of `!bgs`, see `!bgs -h` for help.")
+        except AttributeError as exc:
+            raise cog.exc.InvalidCommandArgs("Bad subcommand of `!bgs`, see `!bgs -h` for help.") from exc
         except (cog.exc.NoMoreTargets, cog.exc.RemoteError) as exc:
             response = exc.reply()
 
@@ -1208,8 +1208,8 @@ class Recruits(Action):
     async def execute(self):
         try:
             cogdb.query.get_admin(self.session, self.duser)
-        except cog.exc.NoMatch:
-            raise cog.exc.InvalidPerms("{} You are not an admin!".format(self.msg.author.mention))
+        except cog.exc.NoMatch as exc:
+            raise cog.exc.InvalidPerms("{} You are not an admin!".format(self.msg.author.mention)) from exc
 
         r_scanner = get_scanner('hudson_recruits')
         await r_scanner.update_cells()
@@ -1484,8 +1484,8 @@ class Track(Action):
     async def execute(self):
         try:
             cogdb.query.get_admin(self.session, self.duser)
-        except cog.exc.NoMatch:
-            raise cog.exc.InvalidPerms("{} You are not an admin!".format(self.msg.author.mention))
+        except cog.exc.NoMatch as exc:
+            raise cog.exc.InvalidPerms("{} You are not an admin!".format(self.msg.author.mention)) from exc
 
         try:
             func = getattr(self, self.args.subcmd)
@@ -1494,7 +1494,7 @@ class Track(Action):
             if response:
                 await self.bot.send_message(self.msg.channel, response)
         except (AttributeError, TypeError) as exc:
-            self.log.warn("Error for Track: %s", exc)
+            self.log.warning("Error for Track: %s", exc)
             raise cog.exc.InvalidCommandArgs("Bad subcommand of `!admin`, see `!admin -h` for help.")
 
 
@@ -1670,7 +1670,7 @@ class User(Action):
         new_name = ' '.join(self.args.name)
         self.log.info('USER %s - DUser.pref_name from %s -> %s',
                       self.duser.display_name, self.duser.pref_name, new_name)
-        cogdb.query.check_pref_name(self.session, self.duser, new_name)
+        cogdb.query.check_pref_name(self.session, new_name)
 
         try:
             if self.cattle:
@@ -1678,8 +1678,8 @@ class User(Action):
             if self.undermine:
                 self.undermine.name = new_name
             self.session.commit()
-        except sqlalchemy.exc.IntegrityError:
-            raise cog.exc.InvalidCommandArgs("Please try another name, a possible name collision was detected.")
+        except sqlalchemy.exc.IntegrityError as exc:
+            raise cog.exc.InvalidCommandArgs("Please try another name, a possible name collision was detected.") from exc
 
         nduser = cogdb.query.get_duser(self.session, self.duser.id)
         nduser.pref_name = new_name
@@ -1778,8 +1778,8 @@ def get_scanner(name):
     """
     try:
         return SCANNERS[name]
-    except KeyError:
-        raise cog.exc.InvalidCommandArgs("The scanners are not ready. Please try again in 15 seconds.")
+    except KeyError as exc:
+        raise cog.exc.InvalidCommandArgs("The scanners are not ready. Please try again in 15 seconds.") from exc
 
 
 async def monitor_carrier_events(client, *, next_summary, last_timestamp=None, delay=60):

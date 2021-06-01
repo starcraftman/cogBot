@@ -18,8 +18,7 @@ import sqlalchemy as sqla
 import sqlalchemy.orm as sqla_orm
 import sqlalchemy.orm.session
 import sqlalchemy.ext.declarative
-from sqlalchemy.sql.expression import (and_, or_)
-from sqlalchemy.orm import (foreign, remote)
+from sqlalchemy.sql.expression import or_
 from sqlalchemy.ext.hybrid import hybrid_property, hybrid_method
 
 import cog.exc
@@ -384,7 +383,7 @@ class Influence(Base):
         """
         self.happiness_id = kwargs.get('happiness_id', self.happiness_id)
         self.influence = kwargs.get('influence', self.influence)
-        self.is_controlling_kwargs = kwargs.get('is_controlling_kwargs', self.is_controlling_faction)
+        self.is_controlling_faction = kwargs.get('is_controlling_faction', self.is_controlling_faction)
         self.updated_at = kwargs.get('updated_at', self.updated_at)
 
 
@@ -1773,8 +1772,8 @@ def compute_dists(session, system_names):
     system_names = [name.lower() for name in system_names]
     try:
         centre = session.query(System).filter(System.name.ilike(system_names[0])).one()
-    except sqla_orm.exc.NoResultFound:
-        raise cog.exc.InvalidCommandArgs("The start system %s was not found." % system_names[0])
+    except sqla_orm.exc.NoResultFound as exc:
+        raise cog.exc.InvalidCommandArgs("The start system %s was not found." % system_names[0]) from exc
     systems = session.query(System.name, System.dist_to(centre)).\
         filter(System.name.in_(system_names[1:])).\
         order_by(System.name).\
@@ -1872,7 +1871,7 @@ def recreate_tables():
     ContestedSystem.__table__.drop(cogdb.eddb_engine)
 
 
-def parser():
+def make_parser():
     parser = argparse.ArgumentParser(description="EDDB Importer")
     parser.add_argument('--preload', '-p', default=True, action="store_true",
                         help='Preload required database entries.')
@@ -1888,7 +1887,7 @@ def parser():
 
 def import_eddb(eddb_session):
     """ Allows the seeding of db from eddb dumps. """
-    args = parser().parse_args()
+    args = make_parser().parse_args()
 
     if not args.yes:
         confirm = input("Reimport EDDB Database? (y/n) ").strip().lower()
@@ -1963,20 +1962,20 @@ def main():  # pragma: no cover
 
 
 try:
-    with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
+    with cogdb.session_scope(cogdb.EDDBSession) as init_session:
         HUDSON_CONTROLS = sorted([x.name for x in
-                                 get_nearest_controls(eddb_session, power='Hudson')])
+                                 get_nearest_controls(init_session, power='Hudson')])
         WINTERS_CONTROLS = sorted([x.name for x in
-                                  get_nearest_controls(eddb_session, power='Winters')])
+                                  get_nearest_controls(init_session, power='Winters')])
         PLANETARY_TYPE_IDS = [
             x[0] for x in
-            eddb_session.query(StationType.id).filter(StationType.text.ilike('%planetary%')).all()
+            init_session.query(StationType.id).filter(StationType.text.ilike('%planetary%')).all()
         ]
         HQS = {
             p.text.lower(): p.home_system.name for p in
-            eddb_session.query(Power).filter(Power.text != 'None').all()
+            init_session.query(Power).filter(Power.text != 'None').all()
         }
-        del eddb_session
+    del init_session
 except (sqla_orm.exc.NoResultFound, sqla.exc.ProgrammingError):
     HUDSON_CONTROLS = []
     WINTERS_CONTROLS = []

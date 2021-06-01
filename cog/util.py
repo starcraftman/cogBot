@@ -210,8 +210,8 @@ def get_config(*keys, default=None):
     try:
         with open(YAML_FILE) as fin:
             conf = yaml.load(fin, Loader=Loader)
-    except FileNotFoundError:
-        raise cog.exc.MissingConfigFile("Missing config.yml. Expected at: " + YAML_FILE)
+    except FileNotFoundError as exc:
+        raise cog.exc.MissingConfigFile("Missing config.yml. Expected at: " + YAML_FILE) from exc
 
     try:
         for key in keys:
@@ -235,8 +235,8 @@ def update_config(new_val, *keys):
     try:
         with open(YAML_FILE) as fin:
             conf = yaml.load(fin, Loader=Loader)
-    except FileNotFoundError:
-        raise cog.exc.MissingConfigFile("Missing config.yml. Expected at: " + YAML_FILE)
+    except FileNotFoundError as exc:
+        raise cog.exc.MissingConfigFile("Missing config.yml. Expected at: " + YAML_FILE) from exc
 
     whole_conf = conf
     for key in keys[:-1]:
@@ -273,8 +273,8 @@ def init_logging(sqlalchemy_log=False):  # pragma: no cover
     try:
         with open(log_file) as fin:
             lconf = yaml.load(fin, Loader=Loader)
-    except FileNotFoundError:
-        raise cog.exc.MissingConfigFile("Missing log.yml. Expected at: " + log_file)
+    except FileNotFoundError as exc:
+        raise cog.exc.MissingConfigFile("Missing log.yml. Expected at: " + log_file) from exc
 
     if not sqlalchemy_log:
         del lconf['handlers']['sqlalchemy']
@@ -470,19 +470,19 @@ def clean_text(text, *, replace='_'):
     return text
 
 
-def shorten_text(text, len):
+def shorten_text(text, new_len):
     """
     Shorten text to a particular len.
     Indicate text was cut out with a period if we end on middle of word.
 
     Args:
         text: The text to shorten.
-        len: The length desired.
+        new_len: The length desired.
 
     Returns: Text guaranteed to be at most len.
     """
-    if text[:len] != text:
-        text = text[:len]
+    if text[:new_len] != text:
+        text = text[:new_len]
         if not text[-1].isspace():
             text = text[:-1] + '.'
 

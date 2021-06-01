@@ -56,7 +56,6 @@ class StopParsing(Exception):
     """
     Interrupt any further parsing for a variety of reasons.
     """
-    pass
 
 
 class EDMCJournal():
@@ -150,8 +149,8 @@ class EDMCJournal():
             body = self.body
             if 'StarSystem' not in body:
                 raise StopParsing("No StarSystem found or message malformed.")
-        except KeyError as e:
-            raise StopParsing("No StarSystem found or message malformed.") from e
+        except KeyError as exc:
+            raise StopParsing("No StarSystem found or message malformed.") from exc
 
         system = {
             'name': body['StarSystem'],
@@ -185,8 +184,8 @@ class EDMCJournal():
             system_db.update(system)
             self.eddb_session.commit()
             system['id'] = system_db.id
-        except sqla_orm.exc.NoResultFound as e:
-            raise StopParsing() from e  # No interest in systems not in db
+        except sqla_orm.exc.NoResultFound as exc:
+            raise StopParsing() from exc  # No interest in systems not in db
 
         self.parsed['system'] = system
         return system
@@ -205,8 +204,8 @@ class EDMCJournal():
             system = self.parsed['system']
             if 'StationName' not in body or 'id' not in system:
                 raise StopParsing("No Station or system not parsed before.")
-        except KeyError as e:
-            raise StopParsing("No Station or system not parsed before.") from e
+        except KeyError as exc:
+            raise StopParsing("No Station or system not parsed before.") from exc
 
         station = {
             'economies': [],
@@ -231,7 +230,7 @@ class EDMCJournal():
         if "StationFaction" in body:
             station['controlling_minor_faction_id'] = self.eddb_session.query(Faction.id).filter(Faction.name == body['StationFaction']['Name']).scalar()
         if "StationServices" in body:
-            station['features'] = {x: True if x in body["StationServices"] else False for x in STATION_FEATS}
+            station['features'] = {x: x in body["StationServices"] for x in STATION_FEATS}
         if "StationType" in body:
             station['type_id'] = MAPS["StationType"][body['StationType']]
 
@@ -249,8 +248,8 @@ class EDMCJournal():
             system = self.parsed['system']
             if 'Factions' not in self.body or 'id' not in system:
                 raise StopParsing("No Factions or system not parsed before.")
-        except KeyError as e:
-            raise StopParsing("No Factions or system not parsed before.") from e
+        except KeyError as exc:
+            raise StopParsing("No Factions or system not parsed before.") from exc
 
         influences, factions = [], {}
         faction_names = [x['Name'] for x in self.body['Factions']]
@@ -302,8 +301,8 @@ class EDMCJournal():
             factions = self.parsed['factions']
             if 'Conflicts' not in self.body or 'id' not in system:
                 raise StopParsing("No Conflicts or system not parsed before.")
-        except KeyError as e:
-            raise StopParsing("No Conflicts or system not parsed before.") from e
+        except KeyError as exc:
+            raise StopParsing("No Conflicts or system not parsed before.") from exc
 
         conflicts = []
         for conflict in self.body['Conflicts']:
@@ -557,15 +556,15 @@ def eddn_log(fname, stream_level="INFO"):
         log.removeHandler(hand)
     log.setLevel("DEBUG")
 
-    format = logging.Formatter(fmt="[%(levelname)-5.5s] %(asctime)s %(name)s.%(funcName)s()::%(lineno)s | %(message)s")
+    log_fmt = logging.Formatter(fmt="[%(levelname)-5.5s] %(asctime)s %(name)s.%(funcName)s()::%(lineno)s | %(message)s")
     handler = logging.handlers.RotatingFileHandler(fname, maxBytes=2 ** 20, backupCount=3, encoding='utf8')
-    handler.setFormatter(format)
+    handler.setFormatter(log_fmt)
     handler.setLevel("DEBUG")
     handler.doRollover()
     log.addHandler(handler)
 
     handler = logging.StreamHandler(sys.stdout)
-    handler.setFormatter(format)
+    handler.setFormatter(log_fmt)
     handler.setLevel(stream_level)
     log.addHandler(handler)
 
@@ -576,7 +575,7 @@ def main():
         accepting messages and parsing the info
         updating database entries based on new information
     """
-    level = "DEBUG" if not len(sys.argv) == 2 else sys.argv[1]
+    level = "DEBUG" if len(sys.argv) != 2 else sys.argv[1]
     eddn_log(LOG_FILE, level)
 
     try:
@@ -608,8 +607,8 @@ def main():
 
 
 try:
-    with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
-        MAPS = create_id_maps(eddb_session)
+    with cogdb.session_scope(cogdb.EDDBSession) as init_session:
+        MAPS = create_id_maps(init_session)
 except (sqla_orm.exc.NoResultFound, sqla.exc.ProgrammingError):
     MAPS = None
 

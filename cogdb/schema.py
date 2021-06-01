@@ -9,8 +9,8 @@ import sqlalchemy as sqla
 import sqlalchemy.orm as sqla_orm
 import sqlalchemy.orm.session
 import sqlalchemy.ext.declarative
-from sqlalchemy.sql.expression import or_, and_, not_
-from sqlalchemy.ext.hybrid import hybrid_property, hybrid_method
+from sqlalchemy.sql.expression import or_
+from sqlalchemy.ext.hybrid import hybrid_property
 
 import cog.exc
 import cog.tbl
@@ -314,9 +314,9 @@ class FortSystem(Base):
         """
         status = '{:>4}/{} ({}%/{}%)'.format(self.current_status, self.trigger,
                                              self.completion, self.ump)
-        type = str(self.type).split('.')[-1].capitalize()
+        sys_type = str(self.type).split('.')[-1].capitalize()
 
-        return (type, self.name, '{:>4}'.format(self.missing), status, self.notes)
+        return (sys_type, self.name, '{:>4}'.format(self.missing), status, self.notes)
 
     def set_status(self, new_status):
         """
@@ -1022,8 +1022,8 @@ def kwargs_um_system(cells, sheet_col):
             'sheet_col': sheet_col,
             'cls': cls,
         }
-    except (IndexError, TypeError):
-        raise cog.exc.SheetParsingError("Halt UMSystem parsing.")
+    except (IndexError, TypeError) as exc:
+        raise cog.exc.SheetParsingError("Halt UMSystem parsing.") from exc
 
 
 def kwargs_fort_system(lines, order, column):
@@ -1061,8 +1061,8 @@ def kwargs_fort_system(lines, order, column):
             'sheet_col': column,
             'sheet_order': order,
         }
-    except (IndexError, TypeError):
-        raise cog.exc.SheetParsingError("Halt System parsing.")
+    except (IndexError, TypeError) as exc:
+        raise cog.exc.SheetParsingError("Halt System parsing.") from exc
 
 
 def parse_int(word):
@@ -1122,7 +1122,7 @@ def recreate_tables():
     meta.reflect()
     for tbl in reversed(meta.sorted_tables):
         try:
-            if not (str(tbl) in exclude):
+            if not str(tbl in exclude):
                 tbl.drop()
         except sqla.exc.OperationalError:
             pass

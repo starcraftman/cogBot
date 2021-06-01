@@ -128,7 +128,7 @@ def test_msg_splitter():
 
 
 def test_transpose_table():
-    input = [
+    input_table = [
         [0, 1, 2, 3],
         [4, 5, 6, 7],
         [8, 9, 10, 11],
@@ -140,7 +140,7 @@ def test_transpose_table():
         [3, 7, 11],
     ]
 
-    assert cog.util.transpose_table(input) == expect
+    assert cog.util.transpose_table(input_table) == expect
 
 
 class NumObj():

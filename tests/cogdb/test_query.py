@@ -78,10 +78,10 @@ def test_add_duser(session, f_dusers):
 
 def test_check_pref_name(session, f_dusers, f_fort_testbed):
     with pytest.raises(cog.exc.InvalidCommandArgs):
-        cogdb.query.check_pref_name(session, f_dusers[1], f_dusers[0].pref_name)
+        cogdb.query.check_pref_name(session, f_dusers[0].pref_name)
 
     # No raise
-    cogdb.query.check_pref_name(session, f_dusers[0], "ANewName")
+    cogdb.query.check_pref_name(session, "ANewName")
 
 
 def test_next_sheet_row_fort(session, f_dusers, f_fort_testbed):
@@ -459,9 +459,9 @@ def test_kos_add_cmdr(session, f_kos):
     cogdb.query.kos_add_cmdr(session, 'cmdr', 'faction', 'A reason', False)
     session.commit()
 
-    all = session.query(KOS).all()
-    assert all[-1].cmdr == 'cmdr'
-    assert all[-1].reason == 'A reason'
+    results = session.query(KOS).all()
+    assert results[-1].cmdr == 'cmdr'
+    assert results[-1].reason == 'A reason'
 
 
 def test_track_add_systems(session, f_track_testbed):

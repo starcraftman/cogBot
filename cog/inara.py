@@ -23,6 +23,7 @@ import datetime
 import logging
 import math
 import re
+import sys
 try:
     import rapidjson as json
 except ImportError:
@@ -122,9 +123,9 @@ class InaraApiInput():
         try:
             # do not use aiohttp to dump json for handling exception a bit better.
             return json.dumps(send)
-        except TypeError:
+        except TypeError as exc:
             raise cog.exc.InternalException('Inara API input JSON serialization failed.',
-                                            lvl='exception')
+                                            lvl='exception') from exc
 
 
 class InaraApi():
@@ -464,8 +465,8 @@ def wrap_json_loads(string):
     """ Loads JSON. Make aiohttp use this function for custom exceptions. """
     try:
         return json.loads(string)
-    except TypeError:
-        raise cog.exc.RemoteError('Inara API responded with bad JSON.')
+    except TypeError as exc:
+        raise cog.exc.RemoteError('Inara API responded with bad JSON.') from exc
 
 
 api = InaraApi()  # use as module, needs "bot" to be set. pylint: disable=C0103
@@ -528,7 +529,7 @@ async def inara_squad_parse(url):
     ]
 
 
-async def delay_and_rate_check(api, delay=60):
+async def delay_and_rate_check(api_client, delay=60):
     """
     After delay check the new rate against original.
     If rate is acceptable then notify those waiting event.
@@ -537,13 +538,13 @@ async def delay_and_rate_check(api, delay=60):
         api: An InaraApi client.
         delay: The delay before decrementing counter. Default 60s
     """
-    original = api.rate
+    original = api_client.rate
     await asyncio.sleep(delay)
 
-    api.rate -= 1
-    if (original < RATE_MAX and api.rate < RATE_MAX) or \
-            (original >= RATE_MAX and api.rate <= RATE_RESUME):
-        api.rate_event.set()
+    api_client.rate -= 1
+    if (original < RATE_MAX and api_client.rate < RATE_MAX) or \
+            (original >= RATE_MAX and api_client.rate <= RATE_RESUME):
+        api_client.rate_event.set()
 
 
 def extract_inara_systems(message):
@@ -580,10 +581,10 @@ def generate_bgs_embed(sys_list, faction_list):
     Returns: A discord Embed.
     """
     fields = []
-    for sys, sys_link in sys_list:
-        fields += [{'name': "System", 'value': "[{}]({})".format(sys, sys_link), "inline": True}]
-    for fact, fact_link in faction_list:
-        fields += [{'name': "Faction", 'value': "[{}]({})".format(fact, fact_link), "inline": True}]
+    for system, sys_link in sys_list:
+        fields += [{'name': "System", 'value': "[{}]({})".format(system, sys_link), "inline": True}]
+    for faction, fact_link in faction_list:
+        fields += [{'name': "Faction", 'value': "[{}]({})".format(faction, fact_link), "inline": True}]
 
     return discord.Embed.from_dict({
         'color': PP_COLORS.get("Federation"),
@@ -639,7 +640,6 @@ def kos_report_cmdr_embed(reporter, cmdr, faction, reason, is_friendly=False):
 
 
 def main():
-    import sys
     loop = asyncio.new_event_loop()
     for n in sys.argv[1:]:
         loop.run_until_complete(inara_squad_parse('https://inara.cz/squadron/{}/'.format(n)))

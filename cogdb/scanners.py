@@ -261,13 +261,13 @@ class FortScanner():
         await self.asheet.batch_update(dicts, input_opt)
         logging.getLogger(__name__).info("Finished sending update to Fort Sheet.\n%s", str(dicts))
 
-    async def get_batch(self, range, dim='ROWS', value_format='UNFORMATTED_VALUE'):
+    async def get_batch(self, a1range, dim='ROWS', value_format='UNFORMATTED_VALUE'):
         """
-        Get a batch update made up from premade range dicts.
+        Get a batch update made up from premade a1range dicts.
         """
-        logging.getLogger(__name__).info("Get intel from Fort Sheet.\n%s", str(range))
-        data = await self.asheet.batch_get(range, dim=dim, value_render=value_format)
-        logging.getLogger(__name__).info("Finished import from Fort Sheet.\n%s", str(range))
+        logging.getLogger(__name__).info("Get intel from Fort Sheet.\n%s", str(a1range))
+        data = await self.asheet.batch_get(a1range, dim=dim, value_render=value_format)
+        logging.getLogger(__name__).info("Finished import from Fort Sheet.\n%s", str(a1range))
         return data
 
     @staticmethod
@@ -458,7 +458,7 @@ class UMScanner(FortScanner):
                     columns_right_to_update[i] = item['priority']
                 elif i == 8:
                     columns_left_to_update[i] = item['sys_name']
-                elif i == 9 or i == 10:
+                elif i in (9, 10):
                     columns_left_to_update[i] = 0
             if new_um_sheet_temp:
                 new_um_sheet_temp = UMScanner.slide_formula_to_right(new_um_sheet_temp, index)
