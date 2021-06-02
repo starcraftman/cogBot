@@ -78,7 +78,15 @@ class FortScanner():
         self.cells_row_major = await self.asheet.whole_sheet()
         self.__cells_col_major = None
 
-    def parse_sheet(self, session=None):
+    def scheduler_run(self):
+        """
+        Use this when scheduler needs to call parse_sheet.
+        Will inject a fresh connection.
+        """
+        with cogdb.session_scope(cogdb.Session) as session:
+            self.parse_sheet(session)
+
+    def parse_sheet(self, session):
         """
         Parse the updated sheet and return information to directly pass to scan.
 
@@ -90,11 +98,7 @@ class FortScanner():
         users = self.users()
         drops = self.drops(systems, users)
 
-        if session:
-            self.flush_to_db(session, (users, systems, drops))
-        else:
-            with cogdb.session_scope(cogdb.Session) as session:
-                self.flush_to_db(session, (users, systems, drops))
+        self.flush_to_db(session, (users, systems, drops))
 
     def flush_to_db(self, session, new_objs):
         """
@@ -330,11 +334,7 @@ class UMScanner(FortScanner):
         users = self.users(cls=UMUser)
         holds = self.holds(systems, users)
 
-        if session:
-            self.flush_to_db(session, (users, systems, holds))
-        else:
-            with cogdb.session_scope(cogdb.Session) as session:
-                self.flush_to_db(session, (users, systems, holds))
+        self.flush_to_db(session, (users, systems, holds))
 
     def systems(self):
         """
@@ -604,11 +604,7 @@ class KOSScanner(FortScanner):
             cmdrs = ["CMDR {} duplicated in sheet".format(x.cmdr) for x in dupe_entries]
             raise cog.exc.SheetParsingError("Duplicate CMDRs in KOS sheet.\n\n" + '\n'.join(cmdrs))
 
-        if session:
-            self.flush_to_db(session, (entries,))
-        else:
-            with cogdb.session_scope(cogdb.Session) as session:
-                self.flush_to_db(session, (entries,))
+        self.flush_to_db(session, (entries,))
 
     def kos_entries(self):
         """
@@ -716,13 +712,7 @@ class CarrierScanner(FortScanner):
         """
         Push the update of carriers to the database.
         """
-        if session:
-            cogdb.query.track_ids_update(session, self.carriers())
-            session.commit()
-            session.close()
-        else:
-            with cogdb.session_scope(cogdb.Session) as session:
-                cogdb.query.track_ids_update(session, self.carriers())
+        cogdb.query.track_ids_update(session, self.carriers())
 
     def carriers(self, *, row_cnt=1):
         """

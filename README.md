@@ -18,12 +18,12 @@ If people want to make forks and discuss issues that's fine but PRs are likely t
 
 ### Install
 
-This bot requires python >= 3.5. I suggest using pyenv to provide python and isolate from system.
+This bot requires python >= 3.7. I suggest using pyenv to provide python and isolate from system.
 
 - Install [pyenv](https://github.com/pyenv/pyenv) however you prefer
 - `sudo apt-get install libsqlite-dev`
-- `pyenv install 3.5.3`
-- `pyenv local 3.5.3` (in project root)
+- `pyenv install 3.7.10`
+- `pyenv local 3.7.10` (in project root)
 
 Now for project dependencies (you can use mysql instead of maria)
 - `sudo apt-get install python3-dev libffi-dev libczmq-dev libczmq3`mariadb-server mariadb-client

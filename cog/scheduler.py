@@ -20,7 +20,7 @@ import aiozmq.rpc
 import cog.util
 
 ADDR = 'tcp://127.0.0.1:{}'.format(cog.util.get_config('ports', 'zmq'))
-POOL = cfut.ProcessPoolExecutor(max_workers=3)
+POOL = cfut.ProcessPoolExecutor(max_workers=6)
 
 
 class Scheduler(aiozmq.rpc.AttrHandler):
@@ -214,7 +214,7 @@ async def delayed_update(delay, wrap):
         await wrap.scanner.update_cells()
         log.debug("%s | update", wrap.name)
 
-        wrap.job = POOL.submit(wrap.scanner.parse_sheet)
+        wrap.job = POOL.submit(wrap.scanner.scheduler_run)
         wrap.job.add_done_callback(functools.partial(done_cb, wrap))
         wrap.future = None
         log.debug("%s | job made", wrap.name)

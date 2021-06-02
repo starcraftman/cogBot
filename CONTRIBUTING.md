@@ -10,7 +10,7 @@ append at end in a code block (three back ticks).
 
 ## Pull Requests
 
-- All code should be runnable on python >= 3.5.x
+- All code should be runnable on python >= 3.7.x
 - Within the async code, stick to await/async def.
 - All new code should be covered by tests. See tests module.
 - Your code should comply with `flake8` & `pylint`.
