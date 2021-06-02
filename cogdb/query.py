@@ -5,6 +5,7 @@ import copy
 import logging
 import os
 import tempfile
+import datetime
 
 import sqlalchemy as sqla
 import sqlalchemy.exc as sqla_exc
@@ -16,7 +17,7 @@ from cog.util import substr_match, get_config
 from cogdb.schema import (DiscordUser, FortSystem, FortPrep, FortDrop, FortUser, FortOrder,
                           UMSystem, UMUser, UMHold, KOS, AdminPerm, ChannelPerm, RolePerm,
                           TrackSystem, TrackSystemCached, TrackByID, OCRTracker, OCRTrigger,
-                          OCRPrep)
+                          OCRPrep, OCRIndex)
 from cogdb.eddb import HUDSON_CONTROLS, WINTERS_CONTROLS
 
 DEFER_MISSING = get_config("limits", "defer_missing", default=750)
@@ -965,7 +966,7 @@ def update_ocr_live(session, ids_dict, date_obj=None):
     copy_ids_dict = copy.deepcopy(ids_dict)
     for system in ocr_system_ids:
         # Reject possible data that is older than current
-        if date_obj and system.updated_at > date_obj:
+        if date_obj and system.updated_at >= date_obj:
             del copy_ids_dict[system.id]
             continue
 
@@ -976,7 +977,6 @@ def update_ocr_live(session, ids_dict, date_obj=None):
             system.um = data['um']
         if data.get("updated_at", ""):
             system.updated_at = data['updated_at']
-        system.system = data.get('system', None)
         updated += [system.id]
 
         del copy_ids_dict[system.id]
@@ -1012,27 +1012,30 @@ def update_ocr_trigger(session, ids_dict, date_obj=None):
     ocr_system_ids = session.query(OCRTrigger).\
         filter(OCRTrigger.id.in_(ids_dict.keys())).\
         all()
+    if date_obj:
+        now = date_obj.replace(microsecond=0)
+        today = now.replace(hour=0, minute=0, second=0)  # pylint: disable=unexpected-keyword-arg
 
-    copy_ids_dict = copy.deepcopy(ids_dict)
-    for system in ocr_system_ids:
-        # Reject possible data that is older than current
-        if date_obj and system.updated_at > date_obj:
-            del copy_ids_dict[system.id]
-            continue
+        weekly_tick = today + datetime.timedelta(hours=7)
+        while weekly_tick < now or weekly_tick.strftime('%A') != 'Thursday':
+            weekly_tick += datetime.timedelta(days=1)
+        if '6 days' in str(weekly_tick - now): #TODO Change this to trigger it once a day
+            copy_ids_dict = copy.deepcopy(ids_dict)
+            for system in ocr_system_ids:
 
-        data = copy_ids_dict[system.id]
-        if data.get("fort_trigger", ""):
-            system.fort_trigger = data['fort_trigger']
-        if data.get("um_trigger", ""):
-            system.um_trigger = data['um_trigger']
-        system.system_name = data.get('system_name', None)
-        updated += [system.id]
+                data = copy_ids_dict[system.id]
+                if data.get("fort_trigger", ""):
+                    system.fort_trigger = data['fort_trigger']
+                if data.get("um_trigger", ""):
+                    system.um_trigger = data['um_trigger']
+                system.system_name = data.get('system_name', None)
+                updated += [system.id]
 
-        del copy_ids_dict[system.id]
+                del copy_ids_dict[system.id]
 
-    for data in copy_ids_dict.values():
-        session.add(OCRTrigger(**data))
-        added += [data['id']]
+            for data in copy_ids_dict.values():
+                session.add(OCRTrigger(**data))
+                added += [data['id']]
 
     return (updated, added)
 
@@ -1065,7 +1068,7 @@ def update_ocr_prep(session, ids_dict, date_obj=None):
     copy_ids_dict = copy.deepcopy(ids_dict)
     for system in ocr_system_ids:
         # Reject possible data that is older than current
-        if date_obj and system.updated_at > date_obj:
+        if date_obj and system.updated_at >= date_obj:
             del copy_ids_dict[system.id]
             continue
 
@@ -1094,4 +1097,16 @@ def ocr_get_systems(session):
 
     Returns: [OCRTracker, OCRTracker, ...]
     """
-    return session.query(OCRTracker).all()
+    return session.query(OCRIndex).all()
+
+
+def ocr_update_indexes(session, system_names):
+    """
+    Example update indexes query.
+    """
+    existing_names = {x[0] for x in session.query(OCRIndex.system)}
+    to_add = [OCRIndex(system=x) for x in set(system_names) - existing_names]
+    session.add_all(to_add)
+
+    return to_add
+

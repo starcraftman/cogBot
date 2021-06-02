@@ -763,20 +763,31 @@ class OCRScanner(FortScanner):
     def __repr__(self):
         return super().__repr__().replace('FortScanner', 'OCRScanner')
 
-    def parse_sheet(self, session=None, trigger=True):
+    def parse_sheet(self, session=None):
         """
         Push the update of OCR data to the database.
         """
+        live = self.live()
+        prep = self.prep()
+        system_names = [x[2:] for x in self.cells_col_major[:1]][0]
         if session:
-            cogdb.query.update_ocr_live(session, self.live())
-            cogdb.query.update_ocr_prep(session, self.prep())
-            if trigger:
-                cogdb.query.update_ocr_trigger(session, self.trigger())
+            cogdb.query.ocr_update_indexes(session, system_names)
+            trigger = self.trigger(session)
+            cogdb.query.update_ocr_live(session, live[0], live[1])
+            cogdb.query.update_ocr_prep(session, prep[0])
+            cogdb.query.update_ocr_trigger(session, trigger[0], trigger[1])
             session.commit()
             session.close()
         else:
             with cogdb.session_scope(cogdb.Session) as session:
-                cogdb.query.update_ocr_live(session, self.live())
+                # fort_systems = cogdb.query.fort_get_systems(session)
+                # fort_systems_names = [x.name for x in fort_systems]
+                # good_systems = set(fort_systems_names).intersection(set(system_names))
+                cogdb.query.ocr_update_indexes(session, system_names)
+                trigger = self.trigger(session)
+                cogdb.query.update_ocr_live(session, live[0], live[1])
+                cogdb.query.update_ocr_prep(session, prep[0])
+                cogdb.query.update_ocr_trigger(session, trigger[0], trigger[1])
 
     def live(self, *, row_cnt=2):
         """
@@ -793,20 +804,20 @@ class OCRScanner(FortScanner):
         found = {}
 
         updated_at = self.cells_col_major[2:3][0][:1]
-        users = [x[row_cnt:] for x in self.cells_col_major[:3]]
+        formatted_date = datetime.datetime.fromisoformat(str(updated_at[0]))
+        users = [x[row_cnt:] for x in self.cells_col_major[1:3]]
         index = 1
-        for system_name, fort, um in list(zip(*users)):
+        for fort, um in list(zip(*users)):
             # TODO: Need system name, fort value, um value checks here
 
             found[index] = {
                 "id": index,
-                "system": system_name,
                 "fort": fort,
                 "um": um,
-                "updated_at": datetime.datetime.fromisoformat(str(updated_at[0]))
+                "updated_at": formatted_date
             }
             index += 1
-        return found
+        return (found, formatted_date)
 
     def trigger(self, session, *, row_cnt=2):
         """
@@ -824,20 +835,19 @@ class OCRScanner(FortScanner):
         found = {}
 
         updated_at = self.cells_col_major[2:3][0][:1]
+        formatted_date = datetime.datetime.fromisoformat(str(updated_at[0]))
         users = [x[row_cnt:] for x in self.cells_col_major[14:16]]
         index = 1
-        ocr_systems = cogdb.query.ocr_get_systems(session)
         for fort_trigger, um_trigger in list(zip(*users)):
             # TODO: Need system name, fort value, um value checks here
             found[index] = {
                 "id": index,
-                "system_name": ocr_systems[index-1].system,
                 "fort_trigger": fort_trigger,
                 "um_trigger": um_trigger,
-                "updated_at": datetime.datetime.fromisoformat(str(updated_at[0]))
+                "updated_at": formatted_date
             }
             index += 1
-        return found
+        return (found, formatted_date)
 
     def prep(self, *, row_cnt=2):
         """
@@ -855,20 +865,21 @@ class OCRScanner(FortScanner):
         found = {}
 
         updated_at = self.cells_col_major[2:3][0][:1]
-        consolidation = self.cells_col_major[4:5][0][8:9]
+        formatted_date = datetime.datetime.fromisoformat(str(updated_at[0]))
+        consolidation = self.cells_col_major[3:4][0][8:9]
         users = [x[row_cnt:7] for x in self.cells_col_major[3:5]]
         index = 1
         for system_name, merits in list(zip(*users)):
             # TODO: Need system name, merits value and consolidation value checks here
             found[index] = {
                 "id": index,
-                "system_name": system_name,
+                "system": system_name,
                 "merits": merits,
                 "consolidation": int(consolidation[0]),
-                "updated_at": datetime.datetime.fromisoformat(str(updated_at[0]))
+                "updated_at": formatted_date
             }
             index += 1
-        return found
+        return (found, formatted_date)
 
 
 async def init_scanners():

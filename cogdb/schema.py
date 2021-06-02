@@ -192,6 +192,11 @@ class FortSystem(Base):
     sheet_order = sqla.Column(sqla.Integer)
     manual_order = sqla.Column(sqla.Integer, nullable=True)
 
+    ocr_index = sqla.orm.relationship(
+        'OCRIndex', lazy='select', back_populates='fort_system',
+        primaryjoin='foreign(OCRIndex.system) == remote(FortSystem.name)',
+    )
+
     __mapper_args__ = {
         'polymorphic_identity': EFortType.fort,
         'polymorphic_on': type
@@ -371,6 +376,11 @@ class FortPrep(FortSystem):
     __mapper_args__ = {
         'polymorphic_identity': EFortType.prep,
     }
+
+    ocr_prep = sqla.orm.relationship(
+        'OCRPrep', lazy='select', back_populates='prep_system',
+        primaryjoin='foreign(OCRPrep.system) == remote(FortPrep.name)',
+    )
 
     @property
     def is_fortified(self):
@@ -973,24 +983,65 @@ class TrackByID(Base):
         return ("{}{}".format(self.id, " (O)" if self.override else ""), self.squad, self.system)
 
 
+class OCRIndex(Base):
+    """
+    Index to assign IDs to any system tracked by OCR.
+    """
+    __tablename__ = 'ocr_index'
+
+    id = sqla.Column(sqla.Integer, primary_key=True)
+    system = sqla.Column(sqla.String(LEN_NAME), default="")
+
+    fort_system = sqla.orm.relationship(
+        'FortSystem', lazy='select', back_populates='ocr_index',
+        primaryjoin='foreign(OCRIndex.system) == remote(FortSystem.name)',
+    )
+    trackers = sqla.orm.relationship(
+        'OCRTracker', lazy='select', uselist=True, back_populates='ocr_index',
+    )
+    trigger = sqla.orm.relationship(
+        'OCRTrigger', lazy='select', back_populates='ocr_index', uselist=False,
+    )
+
+    def __repr__(self):
+        keys = ['id', 'system']
+        kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
+
+        return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
+
+    def __eq__(self, other):
+        return isinstance(other, OCRIndex) and hash(self) == hash(other)
+
+    def __lt__(self, other):
+        return self.system < other.system
+
+    def __hash__(self):
+        return hash("{}".format(self.id))
+
+
 class OCRTracker(Base):
     """
     Track systems' Fort and UM from OCR.
     """
 
     # TODO: Create relations between OCRTracker and FortSystems
-    __tablename__ = 'systems_live_tracker'
-
-    header = ["ID", "System", "Fort", "Um"]
+    __tablename__ = 'ocr_live_tracker'
 
     id = sqla.Column(sqla.Integer, primary_key=True)
-    system = sqla.Column(sqla.String(LEN_NAME), default="")
+    system_id = sqla.Column(sqla.Integer, sqla.ForeignKey('ocr_index.id'))
     fort = sqla.Column(sqla.Integer, default=0.0)
     um = sqla.Column(sqla.Integer, default=0.0)
     updated_at = sqla.Column(sqla.DateTime(timezone=True), default=datetime.datetime.now(datetime.timezone.utc))  # All dates UTC
 
+    ocr_index = sqla.orm.relationship(
+        'OCRIndex', lazy='select', back_populates='trackers',
+    )
+    __table_args__ = (
+        sqla.UniqueConstraint(id, updated_at),
+    )
+
     def __repr__(self):
-        keys = ['id', 'system', 'fort', 'um', 'updated_at']
+        keys = ['id', 'system_id', 'fort', 'um', 'updated_at']
         kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
 
         return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
@@ -1016,19 +1067,22 @@ class OCRTrigger(Base):
     """
     Store Fort / Um triggers by systems.
     """
-    __tablename__ = 'systems_trigger_tracker'
+    __tablename__ = 'ocr_trigger_tracker'
 
     header = ["ID", "System_name", "Fort_Trigger", "Um_Trigger"]
 
-    id = sqla.Column(sqla.Integer, sqla.ForeignKey('systems_live_tracker.id'), primary_key=True)
-    system_name = sqla.Column(sqla.String(LEN_NAME), unique=True)
+    id = sqla.Column(sqla.Integer, primary_key=True)
+    system_id = sqla.Column(sqla.Integer, sqla.ForeignKey('ocr_index.id'))
     fort_trigger = sqla.Column(sqla.Integer, default=0.0)
     um_trigger = sqla.Column(sqla.Integer, default=0.0)
     updated_at = sqla.Column(sqla.DateTime(timezone=True),
                              default=datetime.datetime.now(datetime.timezone.utc))  # All dates UTC
+    ocr_index = sqla.orm.relationship(
+        'OCRIndex', lazy='select', back_populates='trigger',
+    )
 
     def __repr__(self):
-        keys = ['id', 'system_name', 'fort_trigger', 'um_trigger', 'updated_at']
+        keys = ['id', 'system_id', 'fort_trigger', 'um_trigger', 'updated_at']
         kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
 
         return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
@@ -1050,19 +1104,24 @@ class OCRPrep(Base):
     """
     Store Prep triggers by systems.
     """
-    __tablename__ = 'systems_prep_tracker'
+    __tablename__ = 'ocr_prep_tracker'
 
     header = ["ID", "System_name", "Merits", "Consolidation"]
 
     id = sqla.Column(sqla.Integer, primary_key=True)
-    system_name = sqla.Column(sqla.String(LEN_NAME), unique=True)
+    system = sqla.Column(sqla.String(LEN_NAME), unique=True)
     merits = sqla.Column(sqla.Integer, default=0.0)
     consolidation = sqla.Column(sqla.Integer, default=0.0)
     updated_at = sqla.Column(sqla.DateTime(timezone=True),
                              default=datetime.datetime.now(datetime.timezone.utc))  # All dates UTC
 
+    prep_system = sqla.orm.relationship(
+        'FortPrep', lazy='select', back_populates='ocr_prep',
+        primaryjoin='foreign(OCRPrep.system) == remote(FortPrep.name)',
+    )
+
     def __repr__(self):
-        keys = ['id', 'system_name', 'merits', 'consolidation', 'updated_at']
+        keys = ['id', 'system', 'merits', 'consolidation', 'updated_at']
         kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
 
         return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
@@ -1071,7 +1130,7 @@ class OCRPrep(Base):
         """ A pretty one line to give all information. """
         return "{system} : {merits} --Current Vote {consolidation}%  Last Update at {date}".format(
             consolidation=self.consolidation, merits=self.merits,
-            system=self.system_name, date=self.updated_at)
+            system=self.system, date=self.updated_at)
 
     def __eq__(self, other):
         return isinstance(other, OCRPrep)
@@ -1340,6 +1399,34 @@ def run_schema_queries(session):  # pragma: no cover
 
     #  print(session.query(FortSystem).filter(FortSystem.cmdr_merits > 100).all())
     print(session.query(FortUser).filter(FortUser.dropped > 100).all())
+
+    ocrs = (
+        OCRIndex(system='Frey'),
+        OCRIndex(system='Adeo'),
+        OCRIndex(system='Sol'),
+        OCRIndex(system='Othime'),
+    )
+    session.add_all(ocrs)
+    session.commit()
+
+    date = datetime.datetime.utcnow()
+    date2 = date - datetime.timedelta(hours=2)
+    ocrs_systems = (
+        OCRTracker(system_id=ocrs[0].id, updated_at=date),
+        OCRTracker(system_id=ocrs[0].id, updated_at=date2),
+        OCRTracker(system_id=ocrs[1].id),
+        OCRTracker(system_id=ocrs[2].id),
+        OCRPrep(system=ocrs[3].system),
+        OCRTrigger(system_id=ocrs[0].id)
+    )
+    session.add_all(ocrs_systems)
+    session.commit()
+
+    ocr_index = session.query(OCRIndex).filter(OCRIndex.system == 'Frey').one()
+    print("\n\nOCRIndex Relationships in order")
+    __import__('pprint').pprint(ocr_index.fort_system)
+    __import__('pprint').pprint(ocr_index.trackers)
+    __import__('pprint').pprint(ocr_index.trigger)
 
 
 if cogdb.TEST_DB:
