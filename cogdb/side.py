@@ -1018,9 +1018,8 @@ def monitor_events(session, system_ids):
         if "Retreat" in states:
             retreats += line
 
-    msgs = []
     header = "**__Events in Monitored Systems__**\nMonitoring: {}\n\n**Elections**\n".format(", ".join(WATCH_BUBBLES))
-    msgs += cog.tbl.format_table(elections, header=True, prefix=header)
+    msgs = cog.tbl.format_table(elections, header=True, prefix=header)
     msgs += cog.tbl.format_table(wars, header=True, prefix="\n\n**Wars**\n")
     msgs += cog.tbl.format_table(expansions, header=True, prefix="\n\n**Expansions**\n")
     msgs += cog.tbl.format_table(retreats, header=True, prefix="\n\n**Retreats**\n")

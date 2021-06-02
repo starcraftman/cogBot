@@ -416,7 +416,7 @@ class Admin(Action):
             await um_scanner.send_batch(data, input_opt='USER_ENTERED')
             self.bot.sched.schedule("hudson_undermine", 1)
             msgs = cog.util.merge_msgs_to_least(msgs)
-            for msg in msgs:
+            for msg in cog.util.merge_msgs_to_least(msgs):
                 await self.bot.send_message(self.msg.channel, msg)
             await asyncio.sleep(1)
             if found_list:
@@ -532,11 +532,10 @@ class BGS(Action):
          This is the exponent that would carry 10 to the population of the system.
          Example: Pop = 4.0 then actual population is: 10 ^ 4.0 = 10000
         """
-        msgs = []
-        msgs += cog.tbl.format_table(hlines, prefix="**{}**".format(control.name))
+        msgs = cog.tbl.format_table(hlines, prefix="**{}**".format(control.name))
         msgs += cog.tbl.format_table(lines, header=True, suffix=explain)
 
-        return cog.util.merge_msgs_to_least(msgs)
+        return cog.util.merge_msgs_to_least(msgs)[0]
 
     async def edmc(self, system_name, **kwargs):
         """ Handle edmc subcmd. """
@@ -604,7 +603,7 @@ class BGS(Action):
         """ Handle expto subcmd. """
         matches = await self.bot.loop.run_in_executor(None, cogdb.side.expand_to_candidates,
                                                       kwargs['side_session'], system_name)
-        return cog.tbl.format_table(matches, header=True, prefix="**Nearby Expansion Candidates**\n\n")[0].rstrip()
+        return cog.tbl.format_table(matches, header=True, prefix="**Nearby Expansion Candidates**\n\n")[0]
 
     async def faction(self, _, **kwargs):
         """ Handle faction subcmd. """
@@ -690,7 +689,8 @@ If we should contact Gears or Sidewinder""".format(system_name)
                  cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
                 response = await func(' '.join(self.args.system),
                                       side_session=side_session, eddb_session=eddb_session)
-                await self.bot.send_message(self.msg.channel, response)
+                if response:
+                    await self.bot.send_message(self.msg.channel, response)
         except AttributeError as exc:
             raise cog.exc.InvalidCommandArgs("Bad subcommand of `!bgs`, see `!bgs -h` for help.") from exc
         except (cog.exc.NoMoreTargets, cog.exc.RemoteError) as exc:
