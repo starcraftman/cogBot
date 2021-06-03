@@ -1364,23 +1364,67 @@ async def test_cmd_near_if(f_bot):
     assert "LHS 397        | 19.32    | [L] Zillig Depot" in actual
 
 
-@pytest.mark.asyncio
-async def test_dusers_topn(f_dusers, f_um_testbed, f_fort_testbed):
-    recruit_role = tc.Role("FRC Recruit")
-    member_role = tc.Role("FRC Member")
-    ignore_role = tc.Role("Nothing")
-    role_map = {
-        1: tc.Member("Test1", [recruit_role, ignore_role]),
-        2: tc.Member("Test2", [member_role, ignore_role]),
-        3: tc.Member("Test3", [recruit_role]),
+def test_process_system_args():
+    args = ['This  ,  ', 'is ,   ', '   an,' ' example.']
+    results = cog.actions.process_system_args(args)
+    assert results == ['this', 'is', 'an', 'example.']
+
+
+def test_filter_top_dusers(session, f_dusers, f_fort_testbed, f_um_testbed):
+    top_fort = cogdb.query.users_with_fort_merits(session)
+    mapped = {
+        1: tc.Member(top_fort[2][0].pref_name, roles=[tc.Role("FRC Recruit"), tc.Role("Something")]),
+        2: tc.Member(top_fort[0][0].pref_name, roles=[tc.Role("FRC Member"), tc.Role("Something")]),
+        3: tc.Member(top_fort[1][0].pref_name, roles=[tc.Role("FRC Recruit"), tc.Role("Something")]),
     }
 
-    def get_member_(id):
-        return role_map[id]
+    def get_member_(did):
+        return mapped[did]
 
-    fguild = aiomock.Mock()
-    fguild.get_member = get_member_
+    guild = aiomock.Mock()
+    guild.get_member = get_member_
 
-    rec, mem = cog.actions.dusers_topn(fguild, f_dusers, [], limit=5)
-    assert rec[1].id == 3
-    assert mem[0].id == 2
+    expected_rec = [
+        ('User3', 1800),
+        ('User1', 1100),
+        ('', ''),
+        ('', ''),
+        ('', '')
+    ]
+    expected_mem = [
+        ('User2', 2000),
+        ('', ''),
+        ('', ''),
+        ('', ''),
+        ('', '')
+    ]
+    rec, mem = cog.actions.filter_top_dusers(guild, top_fort, [])
+    assert rec == expected_rec
+    assert mem == expected_mem
+
+
+def test_filter_top_dusers_exclude(session, f_dusers, f_fort_testbed, f_um_testbed):
+    top_fort = cogdb.query.users_with_fort_merits(session)
+    mapped = {
+        1: tc.Member(top_fort[2][0].pref_name, roles=[tc.Role("FRC Recruit"), tc.Role("Filter")]),
+        2: tc.Member(top_fort[0][0].pref_name, roles=[tc.Role("FRC Member"), tc.Role("Something")]),
+        3: tc.Member(top_fort[1][0].pref_name, roles=[tc.Role("FRC Recruit"), tc.Role("Filter")]),
+    }
+
+    def get_member_(did):
+        return mapped[did]
+
+    guild = aiomock.Mock()
+    guild.get_member = get_member_
+
+    expected_rec = [
+        ('', ''),
+        ('', '')
+    ]
+    expected_mem = [
+        ('User2', 2000),
+        ('', ''),
+    ]
+    rec, mem = cog.actions.filter_top_dusers(guild, top_fort, ["Filter"], 2)
+    assert rec == expected_rec
+    assert mem == expected_mem

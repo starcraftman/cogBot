@@ -626,3 +626,21 @@ def test_track_ids_newer_than(session, f_track_testbed):
     date = datetime.datetime(year=2000, month=1, day=10, hour=0, minute=0, second=0, microsecond=0)
     objs = cogdb.query.track_ids_newer_than(session, date)
     assert sorted([x.id for x in objs]) == ["J3N-53B", "OVE-111"]
+
+
+def test_users_with_all_merits(session, f_dusers, f_fort_testbed, f_um_testbed):
+    cap = cogdb.query.users_with_all_merits(session)
+    assert [x[0].display_name for x in cap] == ["User1", "User2"]
+    assert [x[1] for x in cap] == [15050, 8050]
+
+
+def test_users_with_fort_merits(session, f_dusers, f_fort_testbed, f_um_testbed):
+    cap = cogdb.query.users_with_fort_merits(session)
+    assert [x[0].display_name for x in cap] == ["User2", "User3", "User1"]
+    assert [x[1] for x in cap] == [2000, 1800, 1100]
+
+
+def test_users_with_um_merits(session, f_dusers, f_fort_testbed, f_um_testbed):
+    cap = cogdb.query.users_with_um_merits(session)
+    assert [x[0].display_name for x in cap] == ["User1", "User2"]
+    assert [x[1] for x in cap] == [13950, 6050]

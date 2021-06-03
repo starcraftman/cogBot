@@ -6,8 +6,10 @@ import logging
 import os
 import tempfile
 
+import sqlalchemy as sqla
 import sqlalchemy.exc as sqla_exc
 import sqlalchemy.orm.exc as sqla_oexc
+from sqlalchemy.sql.expression import or_
 
 import cog.exc
 import cog.sheets
@@ -99,11 +101,56 @@ def add_duser(session, member):
     return new_duser
 
 
-def all_discord_with_merits(session):
+def users_with_all_merits(session):
     """
-    Return the list of all current discord users that have this cycle merits.
+    Query and return the list of DiscordUsers by their total merit contributions.
+
+    Args:
+        session: A session onto the database.
+
+    Returns:
+        A list of objects of form: [[DiscordUser, total_merits], ... ]
     """
-    return [x for x in session.query(DiscordUser).all() if x.total_merits]
+    return session.query(DiscordUser, (FortUser.dropped + UMUser.combo).label("total_merits")).\
+        join(FortUser, FortUser.name == DiscordUser.pref_name).\
+        join(UMUser, UMUser.name == DiscordUser.pref_name).\
+        filter(or_(FortUser.dropped > 0, UMUser.combo > 0)).\
+        order_by(sqla.desc("total_merits")).\
+        all()
+
+
+def users_with_fort_merits(session):
+    """
+    Query and return the list of DiscordUsers by their total fort contributions.
+
+    Args:
+        session: A session onto the database.
+
+    Returns:
+        A list of objects of form: [[DiscordUser, fort_merits], ... ]
+    """
+    return session.query(DiscordUser, FortUser.dropped).\
+        join(FortUser, FortUser.name == DiscordUser.pref_name).\
+        filter(FortUser.dropped > 0).\
+        order_by(FortUser.dropped.desc()).\
+        all()
+
+
+def users_with_um_merits(session):
+    """
+    Query and return the list of DiscordUsers by their total undermining contributions.
+
+    Args:
+        session: A session onto the database.
+
+    Returns:
+        A list of objects of form: [[DiscordUser, um_merits], ... ]
+    """
+    return session.query(DiscordUser, UMUser.combo).\
+        join(UMUser, UMUser.name == DiscordUser.pref_name).\
+        filter(UMUser.combo > 0).\
+        order_by(UMUser.combo.desc()).\
+        all()
 
 
 def check_pref_name(session, new_name):

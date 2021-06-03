@@ -86,30 +86,10 @@ class DiscordUser(Base):
         """ Mention this user in a response. """
         return "<@{}>".format(self.id)
 
-    @property
+    @hybrid_property
     def total_merits(self):
         """ The total merits a user has done this cycle. """
-        return self.total_fort_merits + self.total_um_merits
-
-    @property
-    def total_fort_merits(self):
-        """ The total merits a user has done forting this cycle. """
-        try:
-            total = self.fort_user.dropped
-        except AttributeError:
-            total = 0
-
-        return total
-
-    @property
-    def total_um_merits(self):
-        """ The total merits a user has done undermining cycle. """
-        try:
-            total = self.um_user.held + self.um_user.redeemed
-        except AttributeError:
-            total = 0
-
-        return total
+        return self.fort_user.dropped + self.um_user.combo
 
 
 class FortUser(Base):
@@ -521,6 +501,20 @@ class UMUser(Base):
         return sqla.select([sqla.func.sum(UMHold.redeemed)]).\
             where(UMHold.user_id == self.id).\
             label('redeemed')
+
+    @hybrid_property
+    def combo(self):
+        """ Total merits undermined by this cmdr. """
+        return self.held + self.redeemed
+
+    @combo.expression
+    def combo_exp(self):
+        """ Total merits undermined by this cmdr. """
+        return sqla.func.sum(
+            sqla.select([sqla.func.sum(UMHold.redeemed, UMHold.held)]).
+            where(UMHold.user_id == self.id).
+            label('combo')
+        )
 
     def __repr__(self):
         keys = ['id', 'name', 'row', 'cry']

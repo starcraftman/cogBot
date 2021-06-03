@@ -147,14 +147,6 @@ def test_duser_total_merits(f_dusers, f_um_testbed, f_fort_testbed):
     assert f_dusers[0].total_merits == 15050
 
 
-def test_duser_total_fort_merits(f_dusers, f_um_testbed, f_fort_testbed):
-    assert f_dusers[0].total_fort_merits == 1100
-
-
-def test_duser_total_um_merits(f_dusers, f_um_testbed, f_fort_testbed):
-    assert f_dusers[0].total_um_merits == 13950
-
-
 def test_fortuser__eq__(f_dusers, f_fort_testbed):
     f_user = f_fort_testbed[0][0]
     equal = FortUser(id=1, name='User1', row=22, cry='')

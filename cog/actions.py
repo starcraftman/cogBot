@@ -300,27 +300,31 @@ class Admin(Action):
         """ Schedule all sheets for update. """
         cycle = cog.util.get_config("scanners", "hudson_cattle", "page", default="Cycle Unknown")
         prefix = "__Top Merits for {}__\n\n".format(cycle)
+        exclude_roles = ["FRC Leadership", "Special Agent"]
         parts = []
 
-        all_dusers = cogdb.query.all_discord_with_merits(self.session)
-        exclude_roles = ["FRC Leadership", "Special Agent"]
-
-        dusers = reversed(sorted(all_dusers, key=lambda x: x.total_merits))
-        top_recruits, top_members = dusers_topn(self.msg.guild, dusers, exclude_roles, limit=self.args.limit)
+        top_all = await self.bot.loop.run_in_executor(
+            None, cogdb.query.users_with_all_merits, self.session,
+        )
+        top_recruits, top_members = filter_top_dusers(self.msg.guild, top_all, exclude_roles, limit=self.args.limit)
         lines = [["Top {} Recruits".format(limit), "Merits", "Top {} Members".format(limit), "Merits"]]
-        lines += [[rec.display_name, rec.total_merits, mem.display_name, mem.total_merits] for rec, mem in zip(top_recruits, top_members)]
+        lines += [[rec[0], rec[1], mem[0], mem[1]] for rec, mem in zip(top_recruits, top_members)]
         parts += cog.tbl.format_table(lines, header=True, prefix=prefix, suffix="\n\n")
 
-        dusers = reversed(sorted(all_dusers, key=lambda x: x.total_fort_merits))
-        top_recruits, top_members = dusers_topn(self.msg.guild, dusers, exclude_roles, limit=self.args.limit)
+        top_fort = await self.bot.loop.run_in_executor(
+            None, cogdb.query.users_with_fort_merits, self.session,
+        )
+        top_recruits, top_members = filter_top_dusers(self.msg.guild, top_fort, exclude_roles, limit=self.args.limit)
         lines = [["Top {} Fort Recruits".format(limit), "Merits", "Top Fort {} Members".format(limit), "Merits"]]
-        lines += [[rec.display_name, rec.total_fort_merits, mem.display_name, mem.total_fort_merits] for rec, mem in zip(top_recruits, top_members)]
+        lines += [[rec[0], rec[1], mem[0], mem[1]] for rec, mem in zip(top_recruits, top_members)]
         parts += cog.tbl.format_table(lines, header=True, suffix="\n\n")
 
-        dusers = reversed(sorted(all_dusers, key=lambda x: x.total_um_merits))
-        top_recruits, top_members = dusers_topn(self.msg.guild, dusers, exclude_roles, limit=self.args.limit)
+        top_um = await self.bot.loop.run_in_executor(
+            None, cogdb.query.users_with_all_merits, self.session,
+        )
+        top_recruits, top_members = filter_top_dusers(self.msg.guild, top_um, exclude_roles, limit=self.args.limit)
         lines = [["Top {} UM Recruits".format(limit), "Merits", "Top UM {} Members".format(limit), "Merits"]]
-        lines += [[rec.display_name, rec.total_um_merits, mem.display_name, mem.total_um_merits] for rec, mem in zip(top_recruits, top_members)]
+        lines += [[rec[0], rec[1], mem[0], mem[1]] for rec, mem in zip(top_recruits, top_members)]
         parts += cog.tbl.format_table(lines, header=True, suffix="\n\n")
 
         for part in cog.util.merge_msgs_to_least(parts):
@@ -1724,21 +1728,25 @@ def process_system_args(args):
     return system_names.split(',')
 
 
-def dusers_topn(guild, dusers, exclude_roles, limit=5):
+def filter_top_dusers(guild, dusers, exclude_roles, limit=5):
     """
     Generate a top N list from existing DiscordUser list.
+    Both lists are guaranteed to be at least limit long and will be
+    padded if not enough entries.
 
     Args:
         guild: The guild to query and get member roles from.
-        dusers: The DiscordUser list.
+        dusers: The DiscordUser list, of form [[DiscordUser, merits]]
         exclude_roles: List of roles to exclude.
         limit: The top limit will be generated. Default 5.
 
     Returns: [top_recruits, top_members]
+        top_recruits: A list of form [[name, merits], [name, merits]].
+        top_members: A list of form [[name, merits], [name, merits]].
     """
     top_recruits, top_members = [], []
 
-    for duser in dusers:
+    for duser, merits in dusers:
         member = guild.get_member(duser.id)
         if not member:
             continue  # User left or wrong discord id
@@ -1748,12 +1756,17 @@ def dusers_topn(guild, dusers, exclude_roles, limit=5):
         if len(list(set(role_names) - set(exclude_roles))) != len(role_names):
             continue
         if "FRC Member" in role_names and len(top_members) != limit:
-            top_members += [duser]
+            top_members += [(duser.pref_name, merits)]
         elif "FRC Recruit" in role_names and len(top_recruits) != limit:
-            top_recruits += [duser]
+            top_recruits += [(duser.pref_name, merits)]
 
         if len(top_recruits) == limit and len(top_members) == limit:
             break
+
+    while len(top_recruits) != limit:
+        top_recruits += [('', '')]
+    while len(top_members) != limit:
+        top_members += [('', '')]
 
     return top_recruits, top_members
 
