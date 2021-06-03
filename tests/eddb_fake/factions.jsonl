@@ -1,0 +1,13 @@
+[
+  {
+    "allegiance": "FakeAllegiance",
+    "allegiance_id": 1000,
+    "government": "FakeGovernment",
+    "government_id": 1000,
+    "home_system_id": null,
+    "id": 942834121,
+    "is_player_faction": false,
+    "name": "FakeFactionName",
+    "updated_at": 1546622499
+  }
+]

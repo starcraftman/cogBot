@@ -273,7 +273,7 @@ MY_EMAIL = 'N/A'
 RUN_DEPS = ['aiofiles', 'aiozmq', 'argparse', 'beautifulsoup4', 'cffi', 'decorator', 'discord.py',
             'google-api-python-client', 'gspread-asyncio', 'ijson', 'msgpack-python',
             'pymysql', 'pyyaml', 'pyzmq', 'rapidjson', 'Sanic==0.6.0', 'SQLalchemy', 'uvloop']
-TEST_DEPS = ['coverage', 'flake8', 'aiomock', 'mock', 'pylint', 'pytest', 'pytest-asyncio',
+TEST_DEPS = ['coverage', 'coveralls', 'flake8', 'aiomock', 'mock', 'pylint', 'pytest', 'pytest-asyncio',
              'pytest-cov', 'sphinx', 'tox']
 setup(
     name='cogbot',

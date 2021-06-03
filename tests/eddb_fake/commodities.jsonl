@@ -1,0 +1,21 @@
+[
+  {
+    "average_price": 108,
+    "buy_price_lower_average": 80,
+    "category": {
+      "id": 10000,
+      "name": "FakeCategory"
+    },
+    "category_id": 1,
+    "ed_id": 128049202,
+    "id": 20000,
+    "is_non_marketable": 0,
+    "is_rare": 0,
+    "max_buy_price": 134,
+    "max_sell_price": 198,
+    "min_buy_price": 8,
+    "min_sell_price": 13,
+    "name": "FakeProdut",
+    "sell_price_upper_average": 124
+  }
+]

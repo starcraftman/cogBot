@@ -1235,9 +1235,8 @@ def get_edmc_systems(session, controls):
         all()
 
 
-def main():
+def main():  # pragma: no cover
     pass
-
     #  with cogdb.session_scope(cogdb.SideSession) as side_session:
     # system_ids = get_monitor_systems(side_session, WATCH_BUBBLES)
     # print(monitor_dictators(side_session, ["Othime", "Frey"]))
@@ -1245,5 +1244,5 @@ def main():
     # print(get_monitor_factions(side_session))
 
 
-if __name__ == "__main__":
+if __name__ == "__main__":  # pragma: no cover
     main()

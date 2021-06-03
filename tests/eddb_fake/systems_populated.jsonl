@@ -1,0 +1,141 @@
+[
+  {
+    "allegiance": "Empire",
+    "allegiance_id": 2,
+    "controlling_minor_faction": "1 G. Caeli Empire League",
+    "controlling_minor_faction_id": 31816,
+    "ed_system_address": 560249948515,
+    "edsm_id": 12695,
+    "government": "Patronage",
+    "government_id": 144,
+    "id": 942834121,
+    "is_populated": true,
+    "minor_faction_presences": [
+      {
+        "active_states": [
+          {
+            "id": 80,
+            "name": "None"
+          }
+        ],
+        "happiness_id": 2,
+        "influence": 57.8842,
+        "minor_faction_id": 31816,
+        "pending_states": [],
+        "recovering_states": []
+      },
+      {
+        "active_states": [
+          {
+            "id": 80,
+            "name": "None"
+          }
+        ],
+        "happiness_id": 2,
+        "influence": 15.2695,
+        "minor_faction_id": 54517,
+        "pending_states": [],
+        "recovering_states": []
+      },
+      {
+        "active_states": [
+          {
+            "id": 80,
+            "name": "None"
+          }
+        ],
+        "happiness_id": 2,
+        "influence": 0.998,
+        "minor_faction_id": 54518,
+        "pending_states": [],
+        "recovering_states": []
+      },
+      {
+        "active_states": [
+          {
+            "id": 80,
+            "name": "None"
+          }
+        ],
+        "happiness_id": 2,
+        "influence": 5.2894,
+        "minor_faction_id": 54519,
+        "pending_states": [],
+        "recovering_states": []
+      },
+      {
+        "active_states": [
+          {
+            "id": 16,
+            "name": "Boom"
+          }
+        ],
+        "happiness_id": 2,
+        "influence": 8.982,
+        "minor_faction_id": 74917,
+        "pending_states": [
+          {
+            "id": 73,
+            "name": "War"
+          }
+        ],
+        "recovering_states": []
+      },
+      {
+        "active_states": [
+          {
+            "id": 80,
+            "name": "None"
+          }
+        ],
+        "happiness_id": 2,
+        "influence": 8.982,
+        "minor_faction_id": 40897,
+        "pending_states": [
+          {
+            "id": 73,
+            "name": "War"
+          }
+        ],
+        "recovering_states": []
+      },
+      {
+        "active_states": [
+          {
+            "id": 80,
+            "name": "None"
+          }
+        ],
+        "happiness_id": 2,
+        "influence": 2.5948,
+        "minor_faction_id": 61626,
+        "pending_states": [],
+        "recovering_states": []
+      }
+    ],
+    "minor_factions_updated_at": 1621467553,
+    "name": "FakeSystem",
+    "needs_permit": false,
+    "population": 6544826,
+    "power": "Arissa Lavigny-Duval",
+    "power_state": "Exploited",
+    "power_state_id": 32,
+    "primary_economy": "Industrial",
+    "primary_economy_id": 4,
+    "reserve_type": "Common",
+    "reserve_type_id": 3,
+    "security": "Medium",
+    "security_id": 32,
+    "simbad_ref": "",
+    "states": [
+      {
+        "id": 80,
+        "name": "None"
+      }
+    ],
+    "updated_at": 1621467553,
+    "x": 80.90625,
+    "y": -83.53125,
+    "z": -30.8125
+  }
+]

@@ -1,11 +1,19 @@
 """
 Tests for local eddb copy
 """
+import tempfile
 import pytest
+from sqlalchemy.orm.exc import NoResultFound
 
 import cog.exc
 import cogdb.eddb
+from cogdb.eddb import (Commodity, CommodityCat, Module, ModuleGroup,
+                        System, Influence, FactionActiveState, Faction,
+                        Allegiance, Government, Station, StationFeatures, StationEconomy)
 
+FAKE_ID1 = 942834121
+FAKE_ID2 = FAKE_ID1 + 1
+FAKE_ID3 = FAKE_ID1 + 2
 
 def test_get_shipyard_stations(eddb_session):
     actual = cogdb.eddb.get_shipyard_stations(eddb_session, "Rana")
@@ -179,3 +187,126 @@ def test_um_trigger(eddb_session):
         filter(cogdb.eddb.System.name.in_(system_names)). \
         all()
     assert cogdb.eddb.System.calc_um_trigger(systems[0], systems[1], 25) == 13306
+
+
+def test_eddb_dump_db(eddb_session):
+    with tempfile.NamedTemporaryFile() as temp:
+        cogdb.eddb.dump_db(eddb_session, [cogdb.eddb.Allegiance], temp.name)
+        with open(temp.name) as fin:
+            assert "Allegiance(" in fin.read()
+
+
+def test_check_eddb_base_subclass():
+    assert cogdb.eddb.check_eddb_base_subclass(cogdb.eddb.System)
+    assert not cogdb.eddb.check_eddb_base_subclass(cogdb.eddb.Base)
+
+
+def test_eddb_make_parser():
+    args = cogdb.eddb.make_parser().parse_args(["--preload", "--yes"])
+    assert args.yes
+    assert args.preload
+
+
+def test_load_commodities(eddb_session):
+    fname = cog.util.rel_to_abs("tests", "eddb_fake", "commodities.jsonl")
+    try:
+        cogdb.eddb.load_commodities(eddb_session, fname)
+        assert eddb_session.query(Commodity).filter(Commodity.id == 20000).one()
+        assert eddb_session.query(CommodityCat).filter(CommodityCat.id == 10000).one()
+    finally:
+        eddb_session.rollback()
+        try:
+            eddb_session.query(Commodity).filter(Commodity.id == 20000).delete()
+        except NoResultFound:
+            pass
+        try:
+            eddb_session.query(CommodityCat).filter(CommodityCat.id == 10000).delete()
+        except NoResultFound:
+            pass
+
+
+def test_load_modules(eddb_session):
+    fname = cog.util.rel_to_abs("tests", "eddb_fake", "modules.jsonl")
+    try:
+        cogdb.eddb.load_modules(eddb_session, fname)
+        assert eddb_session.query(Module).filter(Module.id == 10000).one()
+        assert eddb_session.query(ModuleGroup).filter(ModuleGroup.id == 1000).one()
+    finally:
+        eddb_session.rollback()
+        try:
+            eddb_session.query(Module).filter(Module.id == 10000).delete()
+        except NoResultFound:
+            pass
+        try:
+            eddb_session.query(ModuleGroup).filter(ModuleGroup.id == 1000).delete()
+        except NoResultFound:
+            pass
+
+
+def test_load_systems(eddb_session):
+    fname = cog.util.rel_to_abs("tests", "eddb_fake", "systems_populated.jsonl")
+    try:
+        cogdb.eddb.load_systems(eddb_session, fname)
+        assert eddb_session.query(Influence).filter(Influence.system_id == FAKE_ID1).all()
+        assert eddb_session.query(FactionActiveState).filter(FactionActiveState.system_id == FAKE_ID1).all()
+        assert eddb_session.query(System).filter(System.id == FAKE_ID1).one()
+    finally:
+        eddb_session.rollback()
+        try:
+            eddb_session.query(FactionActiveState).filter(FactionActiveState.system_id == FAKE_ID1).delete()
+        except NoResultFound:
+            pass
+        try:
+            eddb_session.query(Influence).filter(Influence.system_id == FAKE_ID1).delete()
+        except NoResultFound:
+            pass
+        try:
+            eddb_session.query(System).filter(System.id == FAKE_ID1).delete()
+        except NoResultFound:
+            pass
+
+
+def test_load_factions(eddb_session):
+    fname = cog.util.rel_to_abs("tests", "eddb_fake", "factions.jsonl")
+    try:
+        cogdb.eddb.load_factions(eddb_session, fname, preload=False)
+        assert eddb_session.query(Faction).filter(Faction.id == FAKE_ID1).one()
+        assert eddb_session.query(Allegiance).filter(Allegiance.id == 1000).one()
+        assert eddb_session.query(Government).filter(Government.id == 1000).one()
+    finally:
+        eddb_session.rollback()
+        try:
+            eddb_session.query(Faction).filter(Faction.id == FAKE_ID1).delete()
+        except NoResultFound:
+            pass
+        try:
+            eddb_session.query(Allegiance).filter(Allegiance.id == 1000).delete()
+        except NoResultFound:
+            pass
+        try:
+            eddb_session.query(Government).filter(Government.id == 1000).delete()
+        except NoResultFound:
+            pass
+
+
+def test_load_stations(eddb_session):
+    fname = cog.util.rel_to_abs("tests", "eddb_fake", "stations.jsonl")
+    try:
+        cogdb.eddb.load_stations(eddb_session, fname)
+        assert eddb_session.query(StationEconomy).filter(StationEconomy.id == FAKE_ID1).one()
+        assert eddb_session.query(StationFeatures).filter(StationFeatures.id == FAKE_ID1).one()
+        assert eddb_session.query(Station).filter(Station.id == FAKE_ID1).one()
+    finally:
+        eddb_session.rollback()
+        try:
+            eddb_session.query(StationEconomy).filter(StationEconomy.id == FAKE_ID1).delete()
+        except NoResultFound:
+            pass
+        try:
+            eddb_session.query(StationFeatures).filter(StationFeatures.id == FAKE_ID1).delete()
+        except NoResultFound:
+            pass
+        try:
+            eddb_session.query(Station).filter(Station.id == FAKE_ID1).delete()
+        except NoResultFound:
+            pass

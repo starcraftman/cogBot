@@ -1357,6 +1357,10 @@ def load_factions(session, fname, preload=True):
             except KeyError:
                 pass
 
+    #  print("Parsed following allegiances:")
+    #  __import__('pprint').pprint(allegiances)
+    #  print("Parsed following governments:")
+    #  __import__('pprint').pprint(governments)
     if not preload:
         allegiances = [x for x in allegiances if x.id]
         governments = [x for x in governments if x.id]
@@ -1364,10 +1368,6 @@ def load_factions(session, fname, preload=True):
         session.add_all(governments)
         session.flush()
 
-    #  print("Parsed following allegiances:")
-    #  __import__('pprint').pprint(allegiances)
-    #  print("Parsed following governments:")
-    #  __import__('pprint').pprint(governments)
     print("Finished")
     session.add_all(factions)
     session.commit()
@@ -1830,24 +1830,24 @@ def get_power_hq(substr):
     return [string.capwords(matches[0]), HQS[matches[0]]]
 
 
-def dump_db(session, classes):
+def dump_db(session, classes, fname):
     """
     Dump db to a file.
     """
-    with open("/tmp/eddb_dump", "w") as fout:
+    with open(fname, "w") as fout:
         for cls in classes:
             for obj in session.query(cls):
                 fout.write(repr(obj) + '\n')
 
 
-def select_classes(obj):
+def check_eddb_base_subclass(obj):
     """ Simple predicate, select sublasses of Base. """
     return inspect.isclass(obj) and obj.__name__ not in ["Base", "hybrid_method", "hybrid_property"]
 
 
 # TODO: Bit messy but works for now.
 #       Core SQLAlchemy lacks proper views, might be in libraries.
-def recreate_tables():
+def recreate_tables():  # pragma: no cover | destructive to test
     """
     Recreate all tables in the database, mainly for schema changes and testing.
     """
@@ -1885,7 +1885,7 @@ def make_parser():
     return parser
 
 
-def import_eddb(eddb_session):
+def import_eddb(eddb_session):  # pragma: no cover
     """ Allows the seeding of db from eddb dumps. """
     args = make_parser().parse_args()
 
@@ -1896,9 +1896,10 @@ def import_eddb(eddb_session):
             return
 
     if args.dump:
-        print("Dumping to: /tmp/eddb_dump")
-        classes = [x[1] for x in inspect.getmembers(sys.modules[__name__], select_classes)]
-        dump_db(eddb_session, classes)
+        fname = '/tmp/eddb_dump'
+        print("Dumping to: " + fname)
+        classes = [x[1] for x in inspect.getmembers(sys.modules[__name__], check_eddb_base_subclass)]
+        dump_db(eddb_session, classes, fname)
         sys.exit(0)
 
     recreate_tables()
@@ -1976,7 +1977,7 @@ try:
             init_session.query(Power).filter(Power.text != 'None').all()
         }
     del init_session
-except (sqla_orm.exc.NoResultFound, sqla.exc.ProgrammingError):
+except (sqla_orm.exc.NoResultFound, sqla.exc.ProgrammingError):  # pragma: no cover
     HUDSON_CONTROLS = []
     WINTERS_CONTROLS = []
     PLANETARY_TYPE_IDS = None

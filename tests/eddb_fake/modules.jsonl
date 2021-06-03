@@ -1,0 +1,23 @@
+[
+  {
+    "belongs_to": null,
+    "class": 1,
+    "ed_id": 1000000,
+    "ed_symbol": "SideWinder_Armour_Grade1",
+    "game_context_id": null,
+    "group": {
+      "category": "Bulkhead",
+      "category_id": 40,
+      "id": 1000,
+      "name": "Lightweight Alloy"
+    },
+    "group_id": 1000,
+    "id": 10000,
+    "missile_type": null,
+    "name": null,
+    "price": null,
+    "rating": "I",
+    "ship": "Sidewinder Mk. I",
+    "weapon_mode": null
+  }
+]
