@@ -97,7 +97,7 @@ def test_count_factions_in_system(side_session):
     assert isinstance(result, type({}))
     for key in ("Sol", "Othime", "Rana"):
         assert key in result
-        assert result[key] > 1 and result[key] < 8
+        assert result[key] > 1 and result[key] < 9
 
 
 def test_inf_history_for_pairs(side_session):
