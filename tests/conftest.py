@@ -380,10 +380,12 @@ class FakeObject():
         return "{}: {}".format(self.__class__.__name__, self.name)
 
 
+# TODO: Rename Guild.
 class Server(FakeObject):
     def __init__(self, name, id=None):
         super().__init__(name, id)
         self.channels = []
+        self.emojis = []
 
     def add(self, channel):
         self.channels.append(channel)
@@ -391,6 +393,15 @@ class Server(FakeObject):
     # def __repr__(self):
         # channels = "\n  Channels: " + ", ".join([cha.name for cha in self.channels])
         # return super().__repr__() + channels
+
+
+class Emoji(FakeObject):
+    def __init__(self, name, id=None):
+        super().__init__(name, id)
+
+    def __str__(self):
+        return "[{}]".format(self.name)
+
 
 
 class Channel(FakeObject):

@@ -37,8 +37,6 @@ try:
     import uvloop
     asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
     asyncio.get_event_loop().set_debug(True)
-except ImportError:
-    print("Falling back to default python loop.")
 finally:
     print("Default event loop:", asyncio.get_event_loop())
 
@@ -79,7 +77,7 @@ class EmojiResolver():
         """
         for guild in guilds:
             emoji_names = [emoji.name for emoji in guild.emojis]
-            self.emojis[guild.name] = dict(zip(emoji_names, guild.emojis))
+            self.emojis[guild.id] = dict(zip(emoji_names, guild.emojis))
 
     def fix(self, content, guild):
         """
@@ -88,7 +86,7 @@ class EmojiResolver():
         Embed emojis into the content just like on guild surrounded by ':'. Example:
             Status :Fortifying:
         """
-        emojis = self.emojis[guild.name]
+        emojis = self.emojis[guild.id]
         for embed in list(set(re.findall(r':\S+:', content))):
             try:
                 emoji = emojis[embed[1:-1]]

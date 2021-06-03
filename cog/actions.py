@@ -1047,7 +1047,7 @@ class KOS(Action):
     """
     Handle the KOS command.
     """
-    async def report(self):
+    async def report(self):  # pragma: no cover
         """
         Handle the reporting of a new cmdr.
         First ask for approval of addition, then add to kos list.

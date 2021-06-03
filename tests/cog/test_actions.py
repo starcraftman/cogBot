@@ -51,7 +51,7 @@ def patch_scanners():
         'hudson_undermine': scanner,
     }
 
-    yield
+    yield scanner
 
     cog.actions.SCANNERS = old_scanners
 
@@ -84,6 +84,27 @@ def action_map(fake_message, fake_bot):
     #  await action_map(msg, f_bot).execute()
 
     #  print(str(f_bot.send_message.call_args).replace("\\n", "\n"))
+
+
+class FakeToWrap():
+    def __init__(self):
+        self.msg = aiomock.Mock(author=None, mentions=["FakeUser"])
+        self.log = aiomock.AIOMock()
+        self.bot = aiomock.AIOMock()
+        self.bot.on_message.async_return_value = True
+
+    @cog.actions.check_mentions
+    async def execute(self):
+        print("Hello")
+
+
+@pytest.mark.asyncio
+async def test_check_mentions():
+    fakeself = FakeToWrap()
+    await fakeself.execute()
+
+    assert fakeself.msg.author
+    fakeself.bot.on_message.assert_called_with(fakeself.msg)
 
 
 # General Parse Fails
@@ -1300,6 +1321,27 @@ async def test_cmd_dist_invalid_args(f_bot):
     msg = fake_msg_gears("!dist sol, freyyyyy")
     with pytest.raises(cog.exc.InvalidCommandArgs):
         await action_map(msg, f_bot).execute()
+
+
+@pytest.mark.asyncio
+async def test_cmd_kos_search(f_bot, f_kos):
+    msg = fake_msg_gears("!kos search bad")
+
+    await action_map(msg, f_bot).execute()
+
+    expect = "bad_guy   | Hudson  | KILL         | Pretty bad guy"
+    assert expect in str(f_bot.send_message.call_args).replace("\\n", "\n")
+
+
+@pytest.mark.asyncio
+async def test_cmd_kos_pull(f_bot, patch_scanners):
+    msg = fake_msg_gears("!kos pull")
+
+    await action_map(msg, f_bot).execute()
+
+    # FIXME: Improve
+    #  assert patch_scanners.parse_sheet.assert_called()
+    f_bot.send_message.assert_called_with(msg.channel, "KOS list refreshed from sheet.")
 
 
 @pytest.mark.asyncio
