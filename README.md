@@ -1,6 +1,6 @@
 ## Federal Discord Bot
 
-[![Build Status](https://gitlab.com/FUC/cogBot/badges/master/pipeline.svg)](https://gitlab.com/FUC/cogBot/-/commits/master) [![Coverage](https://coveralls.io/repos/gitlab/FUC/cogBot/badge.svg?branch=code_coverage)](https://coveralls.io/gitlab/FUC/cogBot?branch=code_coverage)
+[![Build Status](https://gitlab.com/FUC/cogBot/badges/master/pipeline.svg)](https://gitlab.com/FUC/cogBot/-/commits/master) [![Coverage](https://coveralls.io/repos/gitlab/FUC/cogBot/badge.svg?branch=HEAD)](https://coveralls.io/gitlab/FUC/cogBot?branch=HEAD)
 
 ### Overview
 
