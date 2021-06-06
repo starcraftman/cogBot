@@ -782,7 +782,7 @@ class OCRScanner(FortScanner):
             with cogdb.session_scope(cogdb.Session) as session:
                 # fort_systems = cogdb.query.fort_get_systems(session)
                 # fort_systems_names = [x.name for x in fort_systems]
-                # good_systems = set(fort_systems_names).intersection(set(system_names))
+                # good_systems = set(fort_systems_names.lower()).intersection(set(system_names.lower()))
                 cogdb.query.ocr_update_indexes(session, system_names)
                 trigger = self.trigger(session)
                 cogdb.query.update_ocr_live(session, live[0], live[1])

@@ -1105,7 +1105,7 @@ def ocr_update_indexes(session, system_names):
     Example update indexes query.
     """
     existing_names = {x[0] for x in session.query(OCRIndex.system)}
-    to_add = [OCRIndex(system=x) for x in set(system_names) - existing_names]
+    to_add = sorted([OCRIndex(system=x) for x in set(system_names) - existing_names])
     session.add_all(to_add)
 
     return to_add
