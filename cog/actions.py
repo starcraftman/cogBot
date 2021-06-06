@@ -300,7 +300,7 @@ class Admin(Action):
         """ Schedule all sheets for update. """
         cycle = cog.util.get_config("scanners", "hudson_cattle", "page", default="Cycle Unknown")
         prefix = "__Top Merits for {}__\n\n".format(cycle)
-        exclude_roles = ["FRC Leadership", "Special Agent"]
+        exclude_roles = ["FRC Leadership", "Special Agent"] if not self.args.leaders else []
         parts = []
 
         top_all = await self.bot.loop.run_in_executor(

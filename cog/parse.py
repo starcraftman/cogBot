@@ -87,6 +87,8 @@ def subs_admin(subs, prefix):
         Pull and parse the latest sheet information.
 **{prefix}admin top n**
         Generate a top n summary for the current cycle. Default n = 5.
+**{prefix}admin top n --leaders**
+        Generate a top n summary for the current cycle. Default n = 5. Include leadership.
 **{prefix}admin info @User**
         Information about the mentioned User, DMed to admin.
 **{prefix}admin addum Cubeo, Nauo -p Normal -r 50**
@@ -113,6 +115,7 @@ def subs_admin(subs, prefix):
     subcmds.add_parser('scan', help='Scan the sheets for updates.')
     subcmd = subcmds.add_parser('top', help='Generate the top cmdrs of cycle.')
     subcmd.add_argument('limit', nargs='?', type=int, default=5, help='The limit of users per top list.')
+    subcmd.add_argument('-l', '--leaders', action='store_true', help='Include leaders in the list.')
     subcmd = subcmds.add_parser('info', help='Get info about discord users.')
     subcmd.add_argument('user', nargs='?', help='The user to get info on.')
     subcmd = subcmds.add_parser('active', help='Get a report on user activity.')

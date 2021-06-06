@@ -86,10 +86,19 @@ class DiscordUser(Base):
         """ Mention this user in a response. """
         return "<@{}>".format(self.id)
 
-    @hybrid_property
+    @property
     def total_merits(self):
         """ The total merits a user has done this cycle. """
-        return self.fort_user.dropped + self.um_user.combo
+        try:
+            tot = self.fort_user.dropped
+        except AttributeError:
+            tot = 0
+        try:
+            tot += self.um_user.combo
+        except AttributeError:
+            pass
+
+        return tot
 
 
 class FortUser(Base):

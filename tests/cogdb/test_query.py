@@ -630,8 +630,8 @@ def test_track_ids_newer_than(session, f_track_testbed):
 
 def test_users_with_all_merits(session, f_dusers, f_fort_testbed, f_um_testbed):
     cap = cogdb.query.users_with_all_merits(session)
-    assert [x[0].display_name for x in cap] == ["User1", "User2"]
-    assert [x[1] for x in cap] == [15050, 8050]
+    assert [x[0].display_name for x in cap] == ["User1", "User2", "User3"]
+    assert [x[1] for x in cap] == [15050, 8050, 1800]
 
 
 def test_users_with_fort_merits(session, f_dusers, f_fort_testbed, f_um_testbed):
