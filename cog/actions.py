@@ -223,7 +223,7 @@ class Admin(Action):
                 if channel.permissions_for(member).read_messages and member not in all_members:
                     all_members += [member]
 
-        after = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(days=self.args.days)
+        after = datetime.datetime.utcnow() - datetime.timedelta(days=self.args.days)
         last_msgs = {}
         for channel in self.msg.channel_mentions:
             try:
@@ -233,7 +233,10 @@ class Admin(Action):
                 raise cog.exc.InvalidCommandArgs("Bot has no permissions for channel: " + channel.name) from exc
 
         for msg in last_msgs.values():
-            all_members.remove(msg.author)
+            try:
+                all_members.remove(msg.author)
+            except ValueError:
+                pass
 
         all_members = sorted(all_members, key=lambda x: x.name.lower())
         all_members = sorted(all_members, key=lambda x: x.top_role.name)
