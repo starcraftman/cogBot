@@ -615,6 +615,15 @@ def f_asheet_umscanner(f_asheet):
 
 
 @pytest.fixture
+def f_umformula_values(f_asheet):
+    """
+    Return the raw formula values of a UM Sheet.
+    """
+    with open(cog.util.rel_to_abs('tests', 'test_input.umformula.txt')) as fin:
+        yield eval(fin.read())
+
+
+@pytest.fixture
 def f_asheet_kos(f_asheet):
     """
     Return a mocked AsyncGSheet for the fortscanner.

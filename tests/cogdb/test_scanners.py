@@ -253,22 +253,59 @@ async def test_umscanner_slide_templates(f_asheet_umscanner):
 
 
 @pytest.mark.asyncio
-async def test_umscanner_remove_um(f_asheet_umscanner):
-    systems = []
-    system_to_remove = ['Albisiyatae']
-    [systems.append(await f_asheet_umscanner.values_col(i)) for i in range(17)]
-    systems = [systems[i][:13] for i in range(len(systems))]
-    returned_data = UMScanner.remove_um([systems[3:]], system_to_remove)
-    expected_return = [{'range': 'L1:13', 'values': [
-        ['', '', 'Opp. trigger', '% safety margin', '', ''],
-        ['', '', '', '50%', '', ''], ['0', '', '#DIV/0!', '', '', ''],
-        ['1,000', '', '0', '', '', ''], ['0', '', '0', '', '', ''],
-        ['1,000', '', '0', '', '', ''], ['Sec: N/A', '', 'Sec: N/A', '', '', ''],
-        ['', '', '', '', '', ''], ['Control System Template', '', 'Expansion Template', '', '', ''],
-        ['', '', '', '', '', ''], ['', '', '', '', '', ''],
-        ['Held merits', 'Redeemed merits', 'Held merits', 'Redeemed merits', '', ''],
-        ['', '', '', '', '', '']]}]
-    assert returned_data == expected_return
+async def test_umscanner_slide_formula_by_offset(f_umformula_values):
+    sheet_values = f_umformula_values
+
+    expected = [
+        'Opp. trigger',
+        5905,
+        '=if(max(D$10,D$5+D$13)/D$2-D$11<0,concatenate("behind by '
+            '",round(100*(max(D$10,D$5+D$13)/D$2-D$11)),"%"),concatenate("leading by '
+            '",round(100*(MAX(D$10,D$5+D$13)/D$2-D$11)),"%"))',
+        '=D2*D11*(1+E2)',
+        '=SUM(D14:E)',
+        '=IF(D$10 > D$5+D$13, D$4 - D$10, D$4 - D$5-D$13)',
+        "=MAX(SUM(D$14:D),E$10)-SUM(D$14:D)["
+    ]
+
+    sheet_values[2][6] = "=MAX(SUM(F$14:F),G$10)-SUM(F$14:F)["
+    results = UMScanner.slide_formula_by_offset(sheet_values[2], -2)
+    assert results[:7] == expected
+
+
+@pytest.mark.asyncio
+async def test_umscanner_remove_um(f_umformula_values):
+    payload = UMScanner.remove_um(f_umformula_values, 'Pequen')
+    expected = [
+        '',
+        '',
+        '=IF(J$10 > J$5+J$13, J$10 / J$4 * 100, ROUNDDOWN((J$5+J$13) / J$4 * 100))',
+        '=J2*J11*(1+K2)',
+        '=SUM(J14:K)',
+        '=IF(J$10 > J$5+J$13, J$4 - J$10, J$4 - J$5-J$13)',
+        'Sec: Low',
+        'Muncheim',
+        'Albisiyatae',
+        '',
+        '',
+        'Held merits',
+        '',
+        '',
+        '',
+        1200,
+        '',
+        600,
+        '',
+        '',
+        750,
+        '',
+        1500,
+        '',
+        650,
+        600
+    ]
+    actual_values = payload[0]['values'][0]
+    assert actual_values[6] == expected
 
 
 def test_umscanner_slide_formula_to_right():
@@ -289,20 +326,21 @@ def test_umscanner_slide_formula_to_right():
 
 
 def test_umscanner_slide_formula_to_left():
-    raw_data = [[['', '', '=IF(N$10 > N$5+N$13, N$10 / N$4 * 100, ROUNDDOWN((N$5+N$13) / N$4 * 100))',
+    column = ['', '', '=IF(N$10 > N$5+N$13, N$10 / N$4 * 100, ROUNDDOWN((N$5+N$13) / N$4 * 100))',
                   1000, '=SUM(N$14:O)', '=IF(N$10 > N$5+N$13, N$4 - N$10, N$4 - N$5-N$13)',
                   '=CONCATENATE("Sec: ",IF(ISBLANK(VLOOKUP(N$9,Import!$A$2:$C,2,FALSE)),"N/A",VLOOKUP(N$9,Import!$A$2:$C,2,FALSE)))',
                   '=VLOOKUP(N$9,Import!$A$2:$C,3,FALSE)', 'Control System Template', '', '', 'Held merits',
-                  '=max(SUM(O$14:O),N$10)-SUM(O$14:O)']]]
+                  '=max(SUM(O$14:O),N$10)-SUM(O$14:O)']
 
-    returned_data = UMScanner.slide_formula_to_left(raw_data, 8)
+    returned_data = UMScanner.slide_formula_by_offset(column, -2)
 
-    expected_returned_data = [[['', '', '=IF(L$10 > L$5+L$13, L$10 / L$4 * 100, ROUNDDOWN((L$5+L$13) / L$4 * 100))',
+    expected_returned_data = ['', '', '=IF(L$10 > L$5+L$13, L$10 / L$4 * 100, ROUNDDOWN((L$5+L$13) / L$4 * 100))',
                                 '1000', '=SUM(L$14:M)', '=IF(L$10 > L$5+L$13, L$4 - L$10, L$4 - L$5-L$13)',
                                 '=CONCATENATE("Sec: ",IF(ISBLANK(VLOOKUP(L$9,Import!$A$2:$C,2,FALSE)),"N/A",VLOOKUP(L$9,Import!$A$2:$C,2,FALSE)))',
                                 '=VLOOKUP(L$9,Import!$A$2:$C,3,FALSE)', 'Control System Template', '', '', 'Held merits',
-                                '=max(SUM(M$14:M),L$10)-SUM(M$14:M)']]]
-    assert returned_data == expected_returned_data
+                                '=max(SUM(M$14:M),L$10)-SUM(M$14:M)']
+    for actual, expect in zip(returned_data, expected_returned_data):
+        assert str(actual) == expect
 
 
 # Sanity check for fixture, I know not needed.

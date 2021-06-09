@@ -454,14 +454,16 @@ class Admin(Action):
                     unlisted_system.append(system.name)
 
             if found_list:
-                um_sheet = await um_scanner.get_batch(['D1:13'], 'COLUMNS', 'FORMULA')
-                data = cogdb.scanners.UMScanner.remove_um(um_sheet, found_list)
-                await um_scanner.send_batch(data, input_opt='USER_ENTERED')
-                self.bot.sched.schedule("hudson_undermine", 1)
-                await asyncio.sleep(1)
-                if unlisted_system:
-                    return "Systems removed from the UM sheet.\n\nThe following systems were not found : {}" \
-                        .format(", ".join(unlisted_system))
+                um_sheet = await um_scanner.get_batch(['D1:ZZ'], 'COLUMNS', 'FORMULA')
+                #  __import__('pprint').pprint(um_sheet[0])
+                data = cogdb.scanners.UMScanner.remove_um(um_sheet[0], found_list[0])
+                #  __import__('pprint').pprint(data)
+                #  await um_scanner.send_batch(data, input_opt='USER_ENTERED')
+                #  self.bot.sched.schedule("hudson_undermine", 1)
+                #  await asyncio.sleep(1)
+                #  if unlisted_system:
+                    #  return "Systems removed from the UM sheet.\n\nThe following systems were not found : {}" \
+                        #  .format(", ".join(unlisted_system))
                 return 'Systems removed from the UM sheet.'
 
             return 'All systems asked are not on the sheet'

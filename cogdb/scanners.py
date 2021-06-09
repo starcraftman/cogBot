@@ -6,6 +6,7 @@ Sheet scanners make heavy use of cog.sheets.AsyncGSheet
 import asyncio
 import datetime
 import logging
+import re
 import sys
 from copy import deepcopy
 
@@ -502,74 +503,83 @@ class UMScanner(FortScanner):
             temp_index += 1
         return temp
 
-    @staticmethod
-    def slide_formula_to_left(raw_um_sheet, sheet_index):
+    def slide_formula_by_offset(column, offset=0, start_ind=2, end_ind=13):
         """
-        Local function that return a List of List with slided cells formula to the left by 2 columns.
+        Slide the formula for any singular column by a given offset.
+        Assumption is all formula in columns only refer to main and secondary column.
+
         Args:
-                raw_um_sheet: List of List returned by get_batch.
-                sheet_index: Int, Which column is the first one of the slide. One-base index starting at column D.
-        """
-        temp_index = sheet_index
-        temp = deepcopy(raw_um_sheet)
-        for columns in temp[0]:
-            column_init = cog.sheets.Column()
-            column_name_2 = column_init.offset(temp_index + 3)
-            column_name_3 = column_init.offset(1)
-            column_name_4 = column_init.offset(1)
-            column_name_5 = column_init.offset(1)
-            for j in range(len(columns)):
-                columns[j] = str(columns[j])\
-                    .replace("{}$".format(column_name_4),
-                             "{}$".format(column_name_2))\
-                    .replace(":{}".format(column_name_5),
-                             ":{}".format(column_name_3)) \
-                    .replace("{}$".format(column_name_5),
-                             "{}$".format(column_name_3))
+            column: A column of text from a table, some with formula.
+            offset: An offset to move the formula, positive will move up, negative down.
+            start_ind: The index to start replacing formula.
+            end_ind: The index to end replacing formula.
 
-            temp_index += 1
-        return temp
+        Returns: Column with formula replaced.
+        """
+        main_col, sec_col = re.match(r'=SUM\(([A-Z]+).*:([A-Z]+).*\)', column[4]).groups()
+        new_main_col = cog.sheets.Column(main_col).offset(offset)
+        new_sec_col = cog.sheets.Column(sec_col).offset(offset)
+
+        for ind in range(start_ind, end_ind):
+            try:
+                temp = column[ind]
+
+                # Skip lines that aren't formula, all start with =
+                try:
+                    if str(temp)[0] != '=':
+                        continue
+                except IndexError:
+                    continue
+
+                for old, new in ((main_col, new_main_col), (sec_col, new_sec_col)):
+                    temp = re.sub('{}(\\$?\\d+)'.format(old), '{}\\1'.format(new), temp)
+                    temp = re.sub(":{}\\)".format(old), ":{})".format(new), temp)
+                column[ind] = temp
+            except (AttributeError, TypeError):
+                pass
+
+        return column
+
 
     @staticmethod
-    def remove_um(sheet_values, systems_names):
-        index = 0
-        first_system_found = None
-        # Find the first iteration of a system to delete
-        for column in sheet_values[0]:
-            if column[8] in systems_names:
-                first_system_found = index
-                del sheet_values[0][:index]
-                break
-            index += 1
+    def remove_um(sheet_values, system_name):
+        """
+        Remove columns for system_name from the sheet_values passed in.
+        This will remove the columns, update formulas in others and pad at the right.
 
-        # reset index and adding 13th value to pivot later
-        index = 0
-        [cell.append('') for cell in sheet_values[0][1::2]]
+        Args:
+            sheet_values: A 2d list of the values. If a 3D list is passed, will convert to 2.
+            system_name: The system to remove from the sheet.
 
-        # Setup the temporary sheet needed for later computation
-        new_um_sheet = deepcopy(sheet_values)
-        new_um_sheet_temp = None
-        new_um_index = None
+        Returns: A payload to update the sheet.
+        """
+        new_values = []
+        seen_system = False
+        modify_formula = False
 
-        for column in sheet_values[0]:
-            if column[8] in systems_names:
-                if new_um_sheet_temp:
-                    del new_um_sheet_temp[0][new_um_index:new_um_index + 2]
-                    new_um_index -= 2
-                    index -= 2
-                    new_um_sheet_temp = UMScanner.slide_formula_to_left(new_um_sheet_temp, first_system_found + index)
-                else:
-                    del new_um_sheet[0][:2]
-                    new_um_sheet_temp = UMScanner.slide_formula_to_left(new_um_sheet, first_system_found)
-                    new_um_index = index - 2
-                # Adding 2 empty columns to overwrite the right columns
-                [new_um_sheet_temp[0].append(['', '', '', '', '', '', '', '', '', '', '', '', '']) for _ in range(2)]
-            if new_um_index:
-                new_um_index += 1
-            index += 1
-        new_um_sheet_temp[0] = [[row[i] for row in new_um_sheet_temp[0]] for i in range(13)]
-        return [{'range': '{}1:13'.format(cog.sheets.Column().offset(first_system_found + 3)),
-                 'values': new_um_sheet_temp[0]}]
+        print("start")
+        for col in sheet_values:
+            print(col)
+            if seen_system:  # Skip secondary column
+                seen_system = False
+                modify_formula = True
+                continue
+            elif col[8].strip() == system_name:  # Skip main system column
+                seen_system = True
+                continue
+            #  elif modify_formula and col[8].strip() == "Control System Template":  # No need to update templates
+                #  modify_formula = False
+            elif modify_formula and col[8].strip() != '':  # All formula to right of removal move
+                col = UMScanner.slide_formula_by_offset(col, -2)
+
+            new_values += [col]
+        print("end")
+
+        max_len = max([len(x) for x in sheet_values])
+        pad_col = ['' for _ in range(max_len)]
+        new_values += [pad_col, pad_col]
+
+        return [{'range': 'D1:{}'.format(max_len), 'values': [new_values]}]
 
 
 class KOSScanner(FortScanner):
