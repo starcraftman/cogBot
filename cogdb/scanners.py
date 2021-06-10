@@ -503,6 +503,7 @@ class UMScanner(FortScanner):
             temp_index += 1
         return temp
 
+    @staticmethod
     def slide_formula_by_offset(column, offset=0, start_ind=2, end_ind=13):
         """
         Slide the formula for any singular column by a given offset.
@@ -540,15 +541,15 @@ class UMScanner(FortScanner):
 
         return column
 
-
     @staticmethod
-    def remove_um(sheet_values, system_name):
+    def remove_um_system(sheet_values, system_name):
         """
         Remove columns for system_name from the sheet_values passed in.
         This will remove the columns, update formulas in others and pad at the right.
 
         Args:
             sheet_values: A 2d list of the values. If a 3D list is passed, will convert to 2.
+                Important: Expected to be major index by column.
             system_name: The system to remove from the sheet.
 
         Returns: A payload to update the sheet.
@@ -556,30 +557,28 @@ class UMScanner(FortScanner):
         new_values = []
         seen_system = False
         modify_formula = False
+        max_len = max([len(x) for x in sheet_values])
+        pad_col = ['' for _ in range(max_len)]
 
-        print("start")
         for col in sheet_values:
-            print(col)
-            if seen_system:  # Skip secondary column
+            if not col:  # Can have empty column spacers, just pad
+                col = pad_col
+            elif seen_system:  # Skip secondary column
                 seen_system = False
                 modify_formula = True
                 continue
             elif col[8].strip() == system_name:  # Skip main system column
                 seen_system = True
                 continue
-            #  elif modify_formula and col[8].strip() == "Control System Template":  # No need to update templates
-                #  modify_formula = False
             elif modify_formula and col[8].strip() != '':  # All formula to right of removal move
                 col = UMScanner.slide_formula_by_offset(col, -2)
 
             new_values += [col]
-        print("end")
 
-        max_len = max([len(x) for x in sheet_values])
-        pad_col = ['' for _ in range(max_len)]
         new_values += [pad_col, pad_col]
+        new_values = cog.util.transpose_table(cog.util.pad_table_to_rectangle(new_values))
 
-        return [{'range': 'D1:{}'.format(max_len), 'values': [new_values]}]
+        return [{'range': 'D1:CZ', 'values': new_values}]
 
 
 class KOSScanner(FortScanner):

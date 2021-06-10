@@ -4,12 +4,14 @@ hierarchy of actions that can be recombined in any order.
 All actions have async execute methods.
 """
 import asyncio
+import concurrent
 import datetime
 import functools
 import logging
 import re
 import string
 import tempfile
+import traceback
 
 import aiofiles
 import decorator
@@ -435,38 +437,31 @@ class Admin(Action):
 
     async def removeum(self):
         """Remove a system(s) from the um sheet"""
+        systems = process_system_args(self.args.system)
         with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
             systems = await self.bot.loop.run_in_executor(
-                None, cogdb.eddb.get_systems, eddb_session,
-                process_system_args(self.args.system))
+                None, cogdb.eddb.get_systems, eddb_session, systems
+            )
+            if len(systems) != 1:
+                raise cog.exc.InvalidCommandArgs("Remove only 1 UM system from sheet at a time.")
 
-            um_scanner = get_scanner("hudson_undermine")
-            systems_in_sheet = cogdb.query.um_get_systems(self.session, exclude_finished=False)
-            found_list = []
-            unlisted_system = []
-            for system in systems:
-                found = False
-                for system_in_sheet in systems_in_sheet:
-                    if system_in_sheet.name == system.name:
-                        found = True
-                        found_list.append(system.name)
-                if not found:
-                    unlisted_system.append(system.name)
+            systems_in_sheet = [x.name for x in cogdb.query.um_get_systems(self.session, exclude_finished=False)]
+            found = [x.name for x in systems if x.name in systems_in_sheet]
+            reply = 'System {} is not in the UM sheet.'.format(systems[0].name)
 
-            if found_list:
-                um_sheet = await um_scanner.get_batch(['D1:ZZ'], 'COLUMNS', 'FORMULA')
-                #  __import__('pprint').pprint(um_sheet[0])
-                data = cogdb.scanners.UMScanner.remove_um(um_sheet[0], found_list[0])
-                #  __import__('pprint').pprint(data)
-                #  await um_scanner.send_batch(data, input_opt='USER_ENTERED')
-                #  self.bot.sched.schedule("hudson_undermine", 1)
-                #  await asyncio.sleep(1)
-                #  if unlisted_system:
-                    #  return "Systems removed from the UM sheet.\n\nThe following systems were not found : {}" \
-                        #  .format(", ".join(unlisted_system))
-                return 'Systems removed from the UM sheet.'
+        um_scanner = get_scanner("hudson_undermine")
+        if found:
+            um_sheet = await um_scanner.get_batch(['D1:ZZ'], 'COLUMNS', 'FORMULA')
+            with concurrent.futures.ProcessPoolExecutor() as pool:  # CPU intensive
+                data = await self.bot.loop.run_in_executor(
+                    pool, cogdb.scanners.UMScanner.remove_um_system, um_sheet[0], found[0]
+                )
+            await um_scanner.send_batch(data, input_opt='USER_ENTERED')
+            self.bot.sched.schedule("hudson_undermine", 1)
+            await asyncio.sleep(1)
+            reply = 'System {} removed from the UM sheet.'.format(found[0])
 
-            return 'All systems asked are not on the sheet'
+        return reply
 
     async def execute(self):
         try:
@@ -483,6 +478,7 @@ class Admin(Action):
             if response:
                 await self.bot.send_message(self.msg.channel, response)
         except (AttributeError, TypeError) as exc:
+            traceback.print_exc()
             raise cog.exc.InvalidCommandArgs("Bad subcommand of `!admin`, see `!admin -h` for help.") from exc
 
 

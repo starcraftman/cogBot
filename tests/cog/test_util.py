@@ -114,6 +114,23 @@ def test_transpose_table():
     assert cog.util.transpose_table(input_table) == expect
 
 
+def test_pad_table_to_rectangle():
+    input_table = [
+        [0, 3],
+        [4, 6, 7, 9, 8],
+        [8],
+        [4, 7],
+    ]
+    expect = [
+        [0, 3, '', '', ''],
+        [4, 6, 7, 9, 8],
+        [8, '', '', '', ''],
+        [4, 7, '', '', ''],
+    ]
+
+    assert cog.util.pad_table_to_rectangle(input_table) == expect
+
+
 class NumObj():
     def __init__(self):
         self.num = 0

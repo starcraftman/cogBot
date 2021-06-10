@@ -93,8 +93,8 @@ def subs_admin(subs, prefix):
         Information about the mentioned User, DMed to admin.
 **{prefix}admin addum Cubeo, Nauo -p Normal -r 50**
         Will add Cubeo and Nauo with 50% reinforced trigger and Normal priority in UM sheet.
-**{prefix}admin reumoveum Nauo, Kappa**
-        Will remove Nauo and Kappa from the UM sheet.
+**{prefix}admin removeum Nauo**
+        Will remove Nauo from the UM sheet. 1 system at a time.
     """.format(prefix=prefix)
     sub = subs.add_parser(prefix + 'admin', description=desc, formatter_class=RawHelp)
     sub.set_defaults(cmd='Admin')

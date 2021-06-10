@@ -138,39 +138,34 @@ async def test_cmd_admin_removeum_fail(f_admins, f_bot, db_cleanup):
 
     await action_map(msg, f_bot).execute()
 
-    expect = 'All systems asked are not on the sheet'
+    expect = 'System Sol is not in the UM sheet.'
     f_bot.send_message.assert_called_with(msg.channel, expect)
 
 
 @pytest.mark.asyncio
-async def test_cmd_admin_removeum(f_admins, f_dusers, f_bot, f_asheet_umscanner, f_um_testbed, patch_scanners, db_cleanup):
+async def test_cmd_admin_removeum(f_admins, f_dusers, f_bot, f_asheet_umscanner, f_um_testbed, patch_scanners, db_cleanup, f_umformula_values):
     fake_um = cog.actions.SCANNERS['hudson_undermine']
-    fake_cols = await f_asheet_umscanner.whole_sheet()
-    fake_cols = fake_cols[:13]
-    fake_cols = [[columns[i] for columns in fake_cols] for i in range(17)]
-    fake_cols = [fake_cols[3:]]
-    fake_um._values = fake_cols
+    fake_um._values = [f_umformula_values[4:]]
 
     msg = fake_msg_gears("!admin removeum Pequen")
 
     await action_map(msg, f_bot).execute()
 
-    expected_payloads = [{'range': 'J1:13', 'values': [
-        ['', '', '', '', 'Opp. trigger', '% safety margin', '', ''],
-        ['', '', '', '', '', '50%', '', ''], ['102', '', '0', '', '#DIV/0!', '', '', ''],
-        ['11,678', '', '1,000', '', '0', '', '', ''],
-        ['11,920', '', '0', '', '0', '', '', ''],
-        ['-242', '', '1,000', '', '0', '', '', ''],
-        ['Sec: Low', '', 'Sec: N/A', '', 'Sec: N/A', '', '', ''],
-        ['Muncheim', '', '', '', '', '', '', ''],
-        ['Albisiyatae', '', 'Control System Template', '', 'Expansion Template', '', '', ''],
-        ['', '', '', '', '', '', '', ''],
-        ['', '', '', '', '', '', '', ''],
-        ['Held merits', 'Redeemed merits', 'Held merits', 'Redeemed merits', 'Held merits', 'Redeemed merits', '', ''],
-        ['', '', '', '', '', '', '', '']]}]
-    assert fake_um.payloads == expected_payloads
+    expected = [
+        'Cemplangpa',
+        '',
+        'Albisiyatae',
+        '',
+        'Control System Template',
+        '',
+        'Expansion Template',
+        '',
+        '',
+        ''
+    ]
+    assert fake_um.payloads[0]['values'][8] == expected
 
-    expect = 'Systems removed from the UM sheet.'
+    expect = 'System Pequen removed from the UM sheet.'
     f_bot.send_message.assert_called_with(msg.channel, expect)
 
 

@@ -274,8 +274,8 @@ async def test_umscanner_slide_formula_by_offset(f_umformula_values):
 
 
 @pytest.mark.asyncio
-async def test_umscanner_remove_um(f_umformula_values):
-    payload = UMScanner.remove_um(f_umformula_values, 'Pequen')
+async def test_umscanner_remove_um_system(f_umformula_values):
+    payload = UMScanner.remove_um_system(f_umformula_values, 'Pequen')
     expected = [
         '',
         '',
@@ -304,8 +304,9 @@ async def test_umscanner_remove_um(f_umformula_values):
         650,
         600
     ]
-    actual_values = payload[0]['values'][0]
-    assert actual_values[6] == expected
+    actual_values = payload[0]['values']
+    for ind, e_val in enumerate(expected):
+        assert e_val == actual_values[ind][6]
 
 
 def test_umscanner_slide_formula_to_right():
