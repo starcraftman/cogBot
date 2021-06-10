@@ -203,7 +203,7 @@ async def delayed_update(delay, wrap):
     log = logging.getLogger(__name__)
     log.info(
         "%s | Delaying start by %d seconds\n    Will run at: %s",
-        wrap.name, delay, str(datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(seconds=delay))
+        wrap.name, delay, str(datetime.datetime.utcnow() + datetime.timedelta(seconds=delay))
     )
     await asyncio.sleep(delay)
 
@@ -251,7 +251,7 @@ def done_cb(wrap, fut):  # pragma: no cover
         to_mention = "Gears"
 
     msg = "Sheet update for `{}` failed at {}. {} have a look!\nMost likely seeing this due to duplicate username in row 'B' of this sheet.\n\n{}".format(
-        wrap.name, datetime.datetime.now(datetime.timezone.utc),
+        wrap.name, datetime.datetime.utcnow(),
         to_mention, str(wrap.job.exception()),
     )
     log.error("Critical Worker Error: %s", msg)

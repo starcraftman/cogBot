@@ -586,7 +586,7 @@ def test_track_ids_update_timestamp(session, f_track_testbed):
         "J3J-WVT": {"id": "J3J-WVT", "squad": "default", "system": "Rhea", "override": True},
         "ZZZ-111": {"id": "ZZZ-111", "squad": "new", "system": "News", "override": True},
     }
-    years_ago = datetime.datetime.now().replace(year=1000)
+    years_ago = datetime.datetime.utcnow().replace(year=1000)
 
     cogdb.query.track_ids_update(session, id_dict, years_ago)
     session.commit()

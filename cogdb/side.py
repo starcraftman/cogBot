@@ -518,8 +518,7 @@ def next_bgs_tick(session, now):
                                     % side.mention)
 
     log.info("BGS_TICK - %s -> %s", str(now), result.tick)
-    tick_time = result.tick.replace(tzinfo=datetime.timezone.utc)
-    return "BGS Tick in **{}**    (Expected {})".format(tick_time - now, tick_time)
+    return "BGS Tick in **{}**    (Expected {})".format(result.tick - now, result.tick)
 
 
 @wrap_exceptions

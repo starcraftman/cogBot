@@ -37,7 +37,7 @@ def generate_csv(file_in, file_out):
 
     print("Beginning to write contents of %s to %s" % (file_in, file_out))
     with open(file_out, 'w', newline='') as csv_file:
-        csv_file.write(HEADER.format(datetime.datetime.now(datetime.timezone.utc)))
+        csv_file.write(HEADER.format(datetime.datetime.utcnow()))
         for row in json_content:
             csv_file.write(FMT.format(
                 name=row['name'],

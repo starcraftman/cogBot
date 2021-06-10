@@ -817,7 +817,7 @@ class AdminPerm(Base):
     __tablename__ = 'perms_admins'
 
     id = sqla.Column(sqla.BigInteger, primary_key=True)
-    date = sqla.Column(sqla.DateTime, default=datetime.datetime.now(datetime.timezone.utc))  # All dates UTC
+    date = sqla.Column(sqla.DateTime, default=datetime.datetime.utcnow)  # All dates UTC
 
     def remove(self, session, other):
         """
@@ -947,7 +947,7 @@ class TrackByID(Base):
     system = sqla.Column(sqla.String(LEN_NAME), default="")
     # This flag indicates user requested this ID ALWAYS be tracked, regardless of location.
     override = sqla.Column(sqla.Boolean, default=False)
-    updated_at = sqla.Column(sqla.DateTime, default=datetime.datetime.now(datetime.timezone.utc))  # All dates UTC
+    updated_at = sqla.Column(sqla.DateTime, default=datetime.datetime.utcnow)  # All dates UTC
 
     def __repr__(self):
         keys = ['id', 'squad', 'system', 'override', 'updated_at']

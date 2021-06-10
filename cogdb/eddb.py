@@ -1919,7 +1919,7 @@ def import_eddb(eddb_session):  # pragma: no cover
 
 def main():  # pragma: no cover
     """ Main entry. """
-    start = datetime.datetime.now(datetime.timezone.utc)
+    start = datetime.datetime.utcnow()
 
     with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
         import_eddb(eddb_session)
@@ -1937,7 +1937,7 @@ def main():  # pragma: no cover
         print("Populated System count:", eddb_session.query(System).count())
         print("Station count:", eddb_session.query(Station).count())
         print("Contested count:", eddb_session.query(ContestedSystem).count())
-        print("Time taken:", datetime.datetime.now(datetime.timezone.utc) - start)
+        print("Time taken:", datetime.datetime.utcnow() - start)
 
     #  station = session.query(Station).filter(Station.is_planetary).limit(5).all()[0]
     #  print(station.name, station.economies)

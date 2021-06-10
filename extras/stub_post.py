@@ -35,7 +35,7 @@ async def send_post(scanner):
     atexit.register(functools.partial(pub_close, pub))
 
     while input():
-        await pub.publish('POSTs').remote_func(scanner, datetime.datetime.now(datetime.timezone.utc))
+        await pub.publish('POSTs').remote_func(scanner, datetime.datetime.utcnow())
 
 
 def main():

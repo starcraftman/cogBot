@@ -26,7 +26,6 @@ def test_next_bgs_tick(side_session, f_bot):
     cog.util.BOT = f_bot
     query = sql_text("SELECT tick FROM bgs_tick ORDER BY tick desc LIMIT 1")
     last_tick = side_session.execute(query).fetchone()[0]
-    last_tick = last_tick.replace(tzinfo=datetime.timezone.utc)
 
     before_last = last_tick - datetime.timedelta(hours=4)
     msg = cogdb.side.next_bgs_tick(side_session, before_last)

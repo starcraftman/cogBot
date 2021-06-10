@@ -39,9 +39,9 @@ def around_all_tests(session):
     Can be helpful for tracking bugs, like dirty database after test.
     Disabled unless needed. Non-trivial overhead.
     """
-    start = datetime.datetime.now(datetime.timezone.utc)
+    start = datetime.datetime.utcnow()
     yield
-    print(" Time", datetime.datetime.now(datetime.timezone.utc) - start, end="")
+    print(" Time", datetime.datetime.utcnow() - start, end="")
 
     classes = [DiscordUser, FortUser, FortSystem, FortDrop, UMSystem, UMUser, UMHold,
                KOS, AdminPerm, ChannelPerm, RolePerm,
@@ -460,11 +460,11 @@ class Message(FakeObject):
 
     @property
     def created_at(self):
-        return datetime.datetime.now(datetime.timezone.utc)
+        return datetime.datetime.utcnow()
 
     @property
     def edited_at(self):
-        return datetime.datetime.now(datetime.timezone.utc)
+        return datetime.datetime.utcnow()
 
     async def delete(self):
         self.is_deleted = True
