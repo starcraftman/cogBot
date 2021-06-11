@@ -262,6 +262,7 @@ def f_admins(session):
 
     yield admins
 
+    session.rollback()
     session.query(AdminPerm).delete()
     session.commit()
 
@@ -277,6 +278,7 @@ def f_cperms(session):
 
     yield perms
 
+    session.rollback()
     session.query(ChannelPerm).delete()
     session.commit()
 
@@ -292,6 +294,7 @@ def f_rperms(session):
 
     yield perms
 
+    session.rollback()
     session.query(RolePerm).delete()
     session.commit()
 
@@ -309,6 +312,7 @@ def f_fortorders(session):
 
     yield systems
 
+    session.rollback()
     session.query(FortOrder).delete()
     session.commit()
 
@@ -328,6 +332,7 @@ def f_kos(session):
 
     yield kos_rows
 
+    session.rollback()
     session.query(KOS).delete()
     session.commit()
 

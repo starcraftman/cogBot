@@ -46,7 +46,7 @@ LEN = {  # Lengths for strings stored in the db
     "settlement_security": 10,
     "settlement_size": 3,
     "ship": 20,
-    "station": 38,
+    "station": 41,
     "station_pad": 4,
     "station_type": 24,
     "system": 30,
@@ -187,7 +187,7 @@ class Faction(Base):
     __tablename__ = "factions"
 
     id = sqla.Column(sqla.Integer, primary_key=True)
-    name = sqla.Column(sqla.String(LEN["faction"]))
+    name = sqla.Column(sqla.String(LEN["faction"]), index=True)
     is_player_faction = sqla.Column(sqla.Boolean)
     home_system_id = sqla.Column(sqla.Integer)  # Makes circular foreigns.
     allegiance_id = sqla.Column(sqla.Integer, sqla.ForeignKey('allegiance.id'))
@@ -640,7 +640,7 @@ class Station(Base):
     __tablename__ = "stations"
 
     id = sqla.Column(sqla.Integer, primary_key=True)
-    name = sqla.Column(sqla.String(LEN["station"]))
+    name = sqla.Column(sqla.String(LEN["station"]), index=True)
     distance_to_star = sqla.Column(sqla.Integer)
     is_planetary = sqla.Column(sqla.Boolean)
     max_landing_pad_size = sqla.Column(sqla.String(LEN["station_pad"]))
@@ -689,7 +689,7 @@ class System(Base):
     __tablename__ = "systems"
 
     id = sqla.Column(sqla.Integer, primary_key=True)
-    name = sqla.Column(sqla.String(LEN["system"]))
+    name = sqla.Column(sqla.String(LEN["system"]), index=True)
     population = sqla.Column(sqla.BigInteger)
     needs_permit = sqla.Column(sqla.Integer)
     edsm_id = sqla.Column(sqla.Integer)
@@ -1021,6 +1021,7 @@ def preload_economies(session):
         Economy(id=14, text="Prison", eddn="Prison"),
         Economy(id=15, text="Carrier", eddn="Carrier"),
         Economy(id=16, text="Damaged", eddn="Damaged"),
+        Economy(id=17, text="Repair", eddn="Repair"),
     ])
 
 
@@ -1176,6 +1177,7 @@ def preload_station_types(session):
         StationType(id=22, text='Unknown Dockable'),
         StationType(id=23, text='Non-Dockable Orbital'),
         StationType(id=24, text='Fleet Carrier', eddn='FleetCarrier'),
+        StationType(id=25, text='Odyssey Settlement', eddn='OdysseySettlement'),
     ])
 
 

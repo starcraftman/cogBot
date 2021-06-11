@@ -143,7 +143,8 @@ async def test_cmd_admin_removeum_fail(f_admins, f_bot, db_cleanup):
 
 
 @pytest.mark.asyncio
-async def test_cmd_admin_removeum(f_admins, f_dusers, f_bot, f_asheet_umscanner, f_um_testbed, patch_scanners, db_cleanup, f_umformula_values):
+async def test_cmd_admin_removeum(f_bot, f_dusers, f_admins, f_um_testbed,
+                                  f_umformula_values, patch_scanners, db_cleanup):
     fake_um = cog.actions.SCANNERS['hudson_undermine']
     fake_um._values = [f_umformula_values[4:]]
 
@@ -1356,7 +1357,7 @@ async def test_cmd_near_if(f_bot):
     await action_map(msg, f_bot).execute()
 
     actual = str(f_bot.send_message.call_args).replace("\\n", "\n")
-    assert "LHS 397        | 19.32    | [L] Zillig Depot" in actual
+    assert "Wolf 294 " in actual
 
 
 def test_process_system_args():

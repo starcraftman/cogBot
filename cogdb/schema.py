@@ -48,7 +48,7 @@ class DiscordUser(Base):
 
     id = sqla.Column(sqla.BigInteger, primary_key=True)  # Discord id
     display_name = sqla.Column(sqla.String(LEN_NAME))
-    pref_name = sqla.Column(sqla.String(LEN_NAME), unique=True, nullable=False)  # pref_name == display_name until change
+    pref_name = sqla.Column(sqla.String(LEN_NAME), index=True, nullable=False)  # pref_name == display_name until change
     pref_cry = sqla.Column(sqla.String(LEN_NAME), default='')
 
     # Relationships
@@ -110,7 +110,7 @@ class FortUser(Base):
     __tablename__ = 'hudson_fort_users'
 
     id = sqla.Column(sqla.Integer, primary_key=True)
-    name = sqla.Column(sqla.String(LEN_NAME), unique=True)  # Undeclared FK to discord_users
+    name = sqla.Column(sqla.String(LEN_NAME), index=True)  # Undeclared FK to discord_users
     row = sqla.Column(sqla.Integer, unique=True)
     cry = sqla.Column(sqla.String(LEN_NAME), default='')
 
@@ -179,7 +179,7 @@ class FortSystem(Base):
     header = ['Type', 'System', 'Missing', 'Merits (Fort%/UM%)', 'Notes']
 
     id = sqla.Column(sqla.Integer, primary_key=True)
-    name = sqla.Column(sqla.String(LEN_NAME), unique=True)
+    name = sqla.Column(sqla.String(LEN_NAME), index=True)
     type = sqla.Column(sqla.Enum(EFortType), default=EFortType.fort)
     fort_status = sqla.Column(sqla.Integer, default=0)
     trigger = sqla.Column(sqla.Integer, default=1)
@@ -188,7 +188,7 @@ class FortSystem(Base):
     undermine = sqla.Column(sqla.Float, default=0.0)
     distance = sqla.Column(sqla.Float, default=0.0)
     notes = sqla.Column(sqla.String(LEN_NAME), default='')
-    sheet_col = sqla.Column(sqla.String(LEN_SHEET_COL), default='')
+    sheet_col = sqla.Column(sqla.String(LEN_SHEET_COL), default='', unique=True)
     sheet_order = sqla.Column(sqla.Integer)
     manual_order = sqla.Column(sqla.Integer, nullable=True)
 
@@ -392,7 +392,7 @@ class FortDrop(Base):
     __tablename__ = 'hudson_fort_merits'
 
     id = sqla.Column(sqla.Integer, primary_key=True)
-    amount = sqla.Column(sqla.Integer)
+    amount = sqla.Column(sqla.Integer, default=0, nullable=False)
     system_id = sqla.Column(sqla.Integer, sqla.ForeignKey('hudson_fort_systems.id'), nullable=False)
     user_id = sqla.Column(sqla.Integer, sqla.ForeignKey('hudson_fort_users.id'), nullable=False)
 
@@ -465,7 +465,7 @@ class UMUser(Base):
     __tablename__ = 'hudson_um_users'
 
     id = sqla.Column(sqla.Integer, primary_key=True)
-    name = sqla.Column(sqla.String(LEN_NAME), unique=True)  # Undeclared FK to discord_users
+    name = sqla.Column(sqla.String(LEN_NAME), index=True)  # Undeclared FK to discord_users
     row = sqla.Column(sqla.Integer, unique=True)
     cry = sqla.Column(sqla.String(LEN_NAME), default='')
 
@@ -559,10 +559,10 @@ class UMSystem(Base):
     __tablename__ = 'hudson_um_systems'
 
     id = sqla.Column(sqla.Integer, primary_key=True)
-    name = sqla.Column(sqla.String(LEN_NAME), unique=True)
-    type = sqla.Column(sqla.Enum(EUMType))
-    sheet_col = sqla.Column(sqla.String(LEN_SHEET_COL))
-    goal = sqla.Column(sqla.Integer)
+    name = sqla.Column(sqla.String(LEN_NAME), index=True)
+    type = sqla.Column(sqla.Enum(EUMType), default=EUMType.control)
+    sheet_col = sqla.Column(sqla.String(LEN_SHEET_COL), unique=True)
+    goal = sqla.Column(sqla.Integer, default=0)
     security = sqla.Column(sqla.String(LEN_NAME), default='')
     notes = sqla.Column(sqla.String(LEN_NAME), default='')
     close_control = sqla.Column(sqla.String(LEN_NAME), default='')
@@ -742,8 +742,8 @@ class UMHold(Base):
     id = sqla.Column(sqla.Integer, primary_key=True)
     system_id = sqla.Column(sqla.Integer, sqla.ForeignKey('hudson_um_systems.id'), nullable=False)
     user_id = sqla.Column(sqla.Integer, sqla.ForeignKey('hudson_um_users.id'), nullable=False)
-    held = sqla.Column(sqla.Integer)
-    redeemed = sqla.Column(sqla.Integer)
+    held = sqla.Column(sqla.Integer, default=0, nullable=False)
+    redeemed = sqla.Column(sqla.Integer, default=0, nullable=False)
 
     # Relationships
     user = sqla_orm.relationship('UMUser', uselist=False, back_populates='merits',
@@ -786,10 +786,10 @@ class KOS(Base):
     __tablename__ = 'kos'
 
     id = sqla.Column(sqla.Integer, primary_key=True)
-    cmdr = sqla.Column(sqla.String(LEN_NAME), unique=True, nullable=False)
+    cmdr = sqla.Column(sqla.String(LEN_NAME), index=True, nullable=False)
     faction = sqla.Column(sqla.String(LEN_NAME), nullable=False)
     reason = sqla.Column(sqla.String(LEN_REASON), nullable=False)
-    is_friendly = sqla.Column(sqla.Boolean)
+    is_friendly = sqla.Column(sqla.Boolean, default=False)
 
     def __repr__(self):
         keys = ['id', 'cmdr', 'faction', 'reason', 'is_friendly']
@@ -894,7 +894,7 @@ class TrackSystem(Base):
     __tablename__ = 'carriers_systems'
 
     system = sqla.Column(sqla.String(LEN_NAME), primary_key=True)
-    distance = sqla.Column(sqla.Integer)
+    distance = sqla.Column(sqla.Integer, default=15, nullable=False)
 
     def __repr__(self):
         keys = ['system', 'distance']
@@ -947,7 +947,7 @@ class TrackByID(Base):
     system = sqla.Column(sqla.String(LEN_NAME), default="")
     # This flag indicates user requested this ID ALWAYS be tracked, regardless of location.
     override = sqla.Column(sqla.Boolean, default=False)
-    updated_at = sqla.Column(sqla.DateTime, default=datetime.datetime.utcnow)  # All dates UTC
+    updated_at = sqla.Column(sqla.DateTime, default=datetime.datetime.utcnow, index=True)  # All dates UTC
 
     def __repr__(self):
         keys = ['id', 'squad', 'system', 'override', 'updated_at']
