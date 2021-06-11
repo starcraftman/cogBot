@@ -325,7 +325,7 @@ class Admin(Action):
         parts += cog.tbl.format_table(lines, header=True, suffix="\n\n")
 
         top_um = await self.bot.loop.run_in_executor(
-            None, cogdb.query.users_with_all_merits, self.session,
+            None, cogdb.query.users_with_um_merits, self.session,
         )
         top_recruits, top_members = filter_top_dusers(self.msg.guild, top_um, exclude_roles, limit=self.args.limit)
         lines = [["Top {} UM Recruits".format(limit), "Merits", "Top UM {} Members".format(limit), "Merits"]]

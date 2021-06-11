@@ -15,6 +15,7 @@ FAKE_ID1 = 942834121
 FAKE_ID2 = FAKE_ID1 + 1
 FAKE_ID3 = FAKE_ID1 + 2
 
+
 def test_get_shipyard_stations(eddb_session):
     actual = cogdb.eddb.get_shipyard_stations(eddb_session, "Rana")
     assert actual[0][:3] == ['Rana', 0.0, '[L] Ali Hub']

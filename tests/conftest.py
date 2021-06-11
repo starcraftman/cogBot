@@ -408,7 +408,6 @@ class Emoji(FakeObject):
         return "[{}]".format(self.name)
 
 
-
 class Channel(FakeObject):
     def __init__(self, name, *, srv=None, id=None):
         super().__init__(name, id)

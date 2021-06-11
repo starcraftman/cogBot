@@ -111,8 +111,11 @@ def users_with_all_merits(session):
     Returns:
         A list of objects of form: [[DiscordUser, total_merits], ... ]
     """
-    dusers = [[x, x.total_merits] for x in session.query(DiscordUser) if x.total_merits]
-    return list(reversed(sorted(dusers, key=lambda x: x[1])))
+    return session.query(DiscordUser, (sqla.func.ifnull(FortUser.dropped, 0) + sqla.func.ifnull(UMUser.combo, 0)).label('total')).\
+        outerjoin(FortUser, DiscordUser.pref_name == FortUser.name).\
+        outerjoin(UMUser, DiscordUser.pref_name == UMUser.name).\
+        order_by(sqla.desc("total")).\
+        all()
 
 
 def users_with_fort_merits(session):

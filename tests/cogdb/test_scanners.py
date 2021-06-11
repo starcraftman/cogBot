@@ -260,8 +260,8 @@ async def test_umscanner_slide_formula_by_offset(f_umformula_values):
         'Opp. trigger',
         5905,
         '=if(max(D$10,D$5+D$13)/D$2-D$11<0,concatenate("behind by '
-            '",round(100*(max(D$10,D$5+D$13)/D$2-D$11)),"%"),concatenate("leading by '
-            '",round(100*(MAX(D$10,D$5+D$13)/D$2-D$11)),"%"))',
+        '",round(100*(max(D$10,D$5+D$13)/D$2-D$11)),"%"),concatenate("leading by '
+        '",round(100*(MAX(D$10,D$5+D$13)/D$2-D$11)),"%"))',
         '=D2*D11*(1+E2)',
         '=SUM(D14:E)',
         '=IF(D$10 > D$5+D$13, D$4 - D$10, D$4 - D$5-D$13)',
@@ -336,10 +336,10 @@ def test_umscanner_slide_formula_to_left():
     returned_data = UMScanner.slide_formula_by_offset(column, -2)
 
     expected_returned_data = ['', '', '=IF(L$10 > L$5+L$13, L$10 / L$4 * 100, ROUNDDOWN((L$5+L$13) / L$4 * 100))',
-                                '1000', '=SUM(L$14:M)', '=IF(L$10 > L$5+L$13, L$4 - L$10, L$4 - L$5-L$13)',
-                                '=CONCATENATE("Sec: ",IF(ISBLANK(VLOOKUP(L$9,Import!$A$2:$C,2,FALSE)),"N/A",VLOOKUP(L$9,Import!$A$2:$C,2,FALSE)))',
-                                '=VLOOKUP(L$9,Import!$A$2:$C,3,FALSE)', 'Control System Template', '', '', 'Held merits',
-                                '=max(SUM(M$14:M),L$10)-SUM(M$14:M)']
+                              '1000', '=SUM(L$14:M)', '=IF(L$10 > L$5+L$13, L$4 - L$10, L$4 - L$5-L$13)',
+                              '=CONCATENATE("Sec: ",IF(ISBLANK(VLOOKUP(L$9,Import!$A$2:$C,2,FALSE)),"N/A",VLOOKUP(L$9,Import!$A$2:$C,2,FALSE)))',
+                              '=VLOOKUP(L$9,Import!$A$2:$C,3,FALSE)', 'Control System Template', '', '', 'Held merits',
+                              '=max(SUM(M$14:M),L$10)-SUM(M$14:M)']
     for actual, expect in zip(returned_data, expected_returned_data):
         assert str(actual) == expect
 
