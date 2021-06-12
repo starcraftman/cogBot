@@ -1029,27 +1029,28 @@ class OCRTracker(Base):
 
     id = sqla.Column(sqla.Integer, primary_key=True)
     system_id = sqla.Column(sqla.Integer, sqla.ForeignKey('ocr_index.id'))
-    fort = sqla.Column(sqla.Integer, default=0.0)
-    um = sqla.Column(sqla.Integer, default=0.0)
+    cycle = sqla.Column(sqla.Integer, default=0)
+    fort = sqla.Column(sqla.Integer, default=0)
+    um = sqla.Column(sqla.Integer, default=0)
     updated_at = sqla.Column(sqla.DateTime(timezone=True), default=datetime.datetime.now(datetime.timezone.utc))  # All dates UTC
 
     ocr_index = sqla.orm.relationship(
         'OCRIndex', lazy='select', back_populates='trackers',
     )
     __table_args__ = (
-        sqla.UniqueConstraint(id, updated_at),
+        sqla.UniqueConstraint(id, cycle, updated_at),
     )
 
     def __repr__(self):
-        keys = ['id', 'system_id', 'fort', 'um', 'updated_at']
+        keys = ['id', 'system_id', 'cycle', 'fort', 'um', 'updated_at']
         kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
 
         return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
 
     def __str__(self):
         """ A pretty one line to give all information. """
-        return "{system} : **Fort {fort}**  **UM {um}**  Last Update at {date}".format(
-            um=self.um, fort=self.fort,
+        return "C{cycle} {system} : **Fort {fort}**  **UM {um}**  Last Update at {date}".format(
+            um=self.um, fort=self.fort, cycle=self.cycle,
             system=self.system if self.system else "No Info", date=self.updated_at
         )
 
@@ -1060,7 +1061,9 @@ class OCRTracker(Base):
         return self.fort < other.fort and self.um < other.um
 
     def __hash__(self):
-        return hash("{}".format(self.id))
+        return hash("{}-{}-{}".format(self.id, self.cycle, self.updated_at))
+
+    # def update(self, **kwargs)
 
 
 class OCRTrigger(Base):
@@ -1073,31 +1076,37 @@ class OCRTrigger(Base):
 
     id = sqla.Column(sqla.Integer, primary_key=True)
     system_id = sqla.Column(sqla.Integer, sqla.ForeignKey('ocr_index.id'))
-    fort_trigger = sqla.Column(sqla.Integer, default=0.0)
-    um_trigger = sqla.Column(sqla.Integer, default=0.0)
+    cycle = sqla.Column(sqla.Integer, default=0)
+    fort_trigger = sqla.Column(sqla.Integer, default=0)
+    um_trigger = sqla.Column(sqla.Integer, default=0)
     updated_at = sqla.Column(sqla.DateTime(timezone=True),
                              default=datetime.datetime.now(datetime.timezone.utc))  # All dates UTC
     ocr_index = sqla.orm.relationship(
         'OCRIndex', lazy='select', back_populates='trigger',
     )
+    __table_args__ = (
+        sqla.UniqueConstraint(id, cycle),
+    )
 
     def __repr__(self):
-        keys = ['id', 'system_id', 'fort_trigger', 'um_trigger', 'updated_at']
+        keys = ['id', 'system_id', 'cycle', 'fort_trigger', 'um_trigger', 'updated_at']
         kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
 
         return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
 
     def __str__(self):
         """ A pretty one line to give all information. """
-        return "{system} : {fort_trigger}:{um_trigger}  Last Update at {date}".format(
-            um_trigger=self.um_trigger, fort_trigger=self.fort_trigger,
+        return "C{cycle} {system} : {fort_trigger}:{um_trigger}  Last Update at {date}".format(
+            um_trigger=self.um_trigger, fort_trigger=self.fort_trigger, cycle=self.cycle,
             system=self.system_name, date=self.updated_at)
 
     def __eq__(self, other):
-        return isinstance(other, OCRTrigger)
+        return isinstance(other, OCRTrigger) and hash(self) == hash(other)
 
     def __hash__(self):
-        return hash("{}".format(self.id))
+        return hash("{}-{}".format(self.id, self.cycle))
+
+    # def update(self, **kwargs)
 
 
 class OCRPrep(Base):
@@ -1110,8 +1119,9 @@ class OCRPrep(Base):
 
     id = sqla.Column(sqla.Integer, primary_key=True)
     system = sqla.Column(sqla.String(LEN_NAME), unique=True)
-    merits = sqla.Column(sqla.Integer, default=0.0)
-    consolidation = sqla.Column(sqla.Integer, default=0.0)
+    cycle = sqla.Column(sqla.Integer, default=0)
+    merits = sqla.Column(sqla.Integer, default=0)
+    consolidation = sqla.Column(sqla.Integer, default=0)
     updated_at = sqla.Column(sqla.DateTime(timezone=True),
                              default=datetime.datetime.now(datetime.timezone.utc))  # All dates UTC
 
@@ -1119,24 +1129,27 @@ class OCRPrep(Base):
         'FortPrep', lazy='select', back_populates='ocr_prep',
         primaryjoin='foreign(OCRPrep.system) == remote(FortPrep.name)',
     )
+    __table_args__ = (
+        sqla.UniqueConstraint(cycle, system),
+    )
 
     def __repr__(self):
-        keys = ['id', 'system', 'merits', 'consolidation', 'updated_at']
+        keys = ['id', 'cycle', 'system', 'merits', 'consolidation', 'updated_at']
         kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
 
         return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
 
     def __str__(self):
         """ A pretty one line to give all information. """
-        return "{system} : {merits} --Current Vote {consolidation}%  Last Update at {date}".format(
+        return "C{cycle} {system} : {merits} --Current Vote {consolidation}%  Last Update at {date}".format(
             consolidation=self.consolidation, merits=self.merits,
-            system=self.system, date=self.updated_at)
+            system=self.system, date=self.updated_at, cycle=self.cycle)
 
     def __eq__(self, other):
-        return isinstance(other, OCRPrep)
+        return isinstance(other, OCRPrep) and hash(self) == hash(other)
 
     def __hash__(self):
-        return hash("{}".format(self.id))
+        return hash("{}-{}".format(self.id, self.cycle))
 
 
 def kwargs_um_system(cells, sheet_col):
