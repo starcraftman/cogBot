@@ -1603,19 +1603,21 @@ def get_shipyard_stations(session, centre_name, *, sys_dist=75, arrival=2000, in
         List of matches:
             [system_name, system_dist, station_name, station_arrival_distance]
     """
-    centre = session.query(System).filter(System.name == centre_name).subquery()
-    centre = sqla_orm.aliased(System, centre)
     exclude = session.query(StationType.text).\
         filter(or_(StationType.text.like("%Planet%"),
                    StationType.text.like("%Fleet%"))).\
         scalar_subquery()
 
-    stations = session.query(System.name, System.dist_to(centre),
+    centre = sqla_orm.aliased(System)
+    station_system = sqla_orm.aliased(System)
+    stations = session.query(station_system.name, station_system.dist_to(centre).label('dist_c'),
                              Station.name, Station.distance_to_star, Station.max_landing_pad_size).\
-        join(System, Station.system_id == System.id).\
+        select_from(station_system).\
+        join(centre, centre.name == centre_name).\
+        join(Station, Station.system_id == station_system.id).\
         join(StationType, Station.type_id == StationType.id).\
         join(StationFeatures, Station.id == StationFeatures.id).\
-        filter(System.dist_to(centre) < sys_dist,
+        filter(station_system.dist_to(centre) < sys_dist,
                Station.distance_to_star < arrival,
                StationType.text.notin_(exclude))
 
@@ -1625,7 +1627,7 @@ def get_shipyard_stations(session, centre_name, *, sys_dist=75, arrival=2000, in
     else:
         stations = stations.filter(StationFeatures.shipyard)
 
-    stations = stations.order_by(System.dist_to(centre), Station.distance_to_star).\
+    stations = stations.order_by('dist_c', Station.distance_to_star).\
         limit(20).\
         all()
 
@@ -1732,28 +1734,30 @@ def get_nearest_ifactors(session, *, centre_name, sys_dist=75, arrival=2000, inc
         List of matches:
             [system_name, system_dist, station_name, station_arrival_distance]
     """
-    centre = session.query(System).filter(System.name == centre_name).subquery()
-    centre = sqla_orm.aliased(System, centre)
     exclude = session.query(StationType.text).\
         filter(or_(StationType.text.like("%Planet%"),
                    StationType.text.like("%Fleet%"))).\
         scalar_subquery()
     sub_security = session.query(Security.id).filter(Security.text == "Low").scalar_subquery()
 
-    stations = session.query(System.name, System.dist_to(centre),
+    centre = sqla_orm.aliased(System)
+    station_system = sqla_orm.aliased(System)
+    stations = session.query(station_system.name, station_system.dist_to(centre).label('dist_c'),
                              Station.name, Station.distance_to_star, Station.max_landing_pad_size).\
-        join(System, Station.system_id == System.id).\
+        select_from(station_system).\
+        join(centre, centre.name == centre_name).\
+        join(Station, Station.system_id == station_system.id).\
         join(StationType, Station.type_id == StationType.id).\
         join(StationFeatures, Station.id == StationFeatures.id).\
-        filter(System.dist_to(centre) < sys_dist,
+        filter(station_system.dist_to(centre) < sys_dist,
+               station_system.security_id == sub_security,
                Station.distance_to_star < arrival,
-               StationType.text.notin_(exclude),
-               System.security_id == sub_security)
+               StationType.text.notin_(exclude))
 
     if not include_medium:
         stations = stations.filter(Station.max_landing_pad_size == 'L')
 
-    stations = stations.order_by(System.dist_to(centre), Station.distance_to_star).\
+    stations = stations.order_by('dist_c', Station.distance_to_star).\
         limit(20).\
         all()
 
