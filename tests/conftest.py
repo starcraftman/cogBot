@@ -386,14 +386,26 @@ class FakeObject():
 
 
 # TODO: Rename Guild.
-class Server(FakeObject):
+class Guild(FakeObject):
     def __init__(self, name, id=None):
         super().__init__(name, id)
         self.channels = []
         self.emojis = []
+        self.mapped = {
+            1: Member('User1', [Role('FRC Recruit'), Role("Test")]),
+            2: Member('User2', [Role('FRC Member'), Role("Nothing")]),
+            3: Member('User3', [Role('FRC Recruit'), Role("Test")]),
+        }
 
     def add(self, channel):
         self.channels.append(channel)
+
+    def get_member(self, id):
+        return self.mapped[id]
+
+    @property
+    def members(self):
+        return list(self.mapped.values())
 
     # def __repr__(self):
         # channels = "\n  Channels: " + ", ".join([cha.name for cha in self.channels])
@@ -476,7 +488,7 @@ class Message(FakeObject):
 
 def fake_servers():
     """ Generate fake discord servers for testing. """
-    srv = Server("Gears' Hideout")
+    srv = Guild("Gears' Hideout")
     channels = [
         Channel("feedback", srv=srv),
         Channel("live_hudson", srv=srv),

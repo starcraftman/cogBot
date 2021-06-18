@@ -14,7 +14,7 @@ from cogdb.schema import (DiscordUser, FortSystem, FortUser, FortOrder,
 import cogdb.query
 
 from tests.data import SYSTEMS, USERS
-from tests.conftest import Channel, Member, Message, Role, Server
+from tests.conftest import Channel, Member, Message, Role, Guild
 
 
 def test_fuzzy_find():
@@ -337,7 +337,7 @@ def test_add_admin(session, f_dusers, f_admins):
 
 
 def test_add_channel_perm(session, f_cperms):
-    server = Server('Test', id=10)
+    server = Guild('Test', id=10)
     channel = Channel('AChannel', id=3001)
     cogdb.query.add_channel_perm(session, 'Status', server, channel)
 
@@ -353,7 +353,7 @@ def test_add_channel_perm(session, f_cperms):
 
 
 def test_add_role_perm(session, f_rperms):
-    server = Server('Test', id=10)
+    server = Guild('Test', id=10)
     role = Role("ARole", id=2201)
     cogdb.query.add_role_perm(session, 'Status', server, role)
 
@@ -370,7 +370,7 @@ def test_add_role_perm(session, f_rperms):
 
 def test_remove_channel_perm(session, f_cperms):
     perm = f_cperms[0]
-    server = Server('Test', id=perm.server_id)
+    server = Guild('Test', id=perm.server_id)
     channel = Channel('AChannel', id=perm.channel_id)
     cogdb.query.remove_channel_perm(session, perm.cmd, server, channel)
 
@@ -382,7 +382,7 @@ def test_remove_channel_perm(session, f_cperms):
 
 def test_remove_role_perm(session, f_rperms):
     perm = f_rperms[0]
-    server = Server('Test', id=perm.server_id)
+    server = Guild('Test', id=perm.server_id)
     role = Role('ARole', id=perm.role_id)
     cogdb.query.remove_role_perm(session, perm.cmd, server, role)
 
@@ -394,7 +394,7 @@ def test_remove_role_perm(session, f_rperms):
 
 def test_check_perms(session, f_cperms, f_rperms):
     ops_channel = Channel("Operations", id=2001)
-    server = Server('Test', id=10)
+    server = Guild('Test', id=10)
     server.channels = [ops_channel]
     ops_channel.server = server
     roles = [Role('FRC Member', id=3001), Role('Winters', id=3002)]
@@ -418,22 +418,22 @@ def test_check_perms(session, f_cperms, f_rperms):
 
 def test_check_channel_perms(session, f_cperms):
     # Silently pass if no raise
-    cogdb.query.check_channel_perms(session, 'Drop', Server('Test', id=10), Channel('Operations', id=2001))
-    cogdb.query.check_channel_perms(session, 'Time', Server('NoPerm', id=2333), Channel('Operations', id=2001))
+    cogdb.query.check_channel_perms(session, 'Drop', Guild('Test', id=10), Channel('Operations', id=2001))
+    cogdb.query.check_channel_perms(session, 'Time', Guild('NoPerm', id=2333), Channel('Operations', id=2001))
 
     with pytest.raises(cog.exc.InvalidPerms):
-        cogdb.query.check_channel_perms(session, 'Drop', Server('Test', id=10), Channel('Not Operations', id=2002))
+        cogdb.query.check_channel_perms(session, 'Drop', Guild('Test', id=10), Channel('Not Operations', id=2002))
 
 
 def test_check_role_perms(session, f_rperms):
     # Silently pass if no raise
-    cogdb.query.check_role_perms(session, 'Drop', Server('Test', id=10),
+    cogdb.query.check_role_perms(session, 'Drop', Guild('Test', id=10),
                                  [Role('FRC Member', id=3001), Role('FRC Vet', id=4000)])
-    cogdb.query.check_role_perms(session, 'Time', Server('NoPerm', id=2333),
+    cogdb.query.check_role_perms(session, 'Time', Guild('NoPerm', id=2333),
                                  [Role('Winters', None)])
 
     with pytest.raises(cog.exc.InvalidPerms):
-        cogdb.query.check_role_perms(session, 'Drop', Server('Test', id=10),
+        cogdb.query.check_role_perms(session, 'Drop', Guild('Test', id=10),
                                      [Role('FRC Robot', id=2222), Role('Cookies', id=221)])
 
 

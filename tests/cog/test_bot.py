@@ -2,18 +2,18 @@
 Test the bot's main functions.
 """
 from cog.bot import EmojiResolver
-from tests.conftest import Server, Emoji
+from tests.conftest import Guild, Emoji
 
 
 def test_emoji__init__():
-    guild = Server('myguild')
+    guild = Guild('myguild')
     guild.emojis = [Emoji('duck'), Emoji('car'), Emoji('sleep')]
     emo = EmojiResolver()
     assert emo.emojis == {}
 
 
 def test_emoji__str__():
-    guild = Server('myguild')
+    guild = Guild('myguild')
     guild.emojis = [Emoji('car'), Emoji('duck'), Emoji('sleep')]
     emo = EmojiResolver()
     emo.update([guild])
@@ -22,7 +22,7 @@ def test_emoji__str__():
 
 
 def test_emoji_update():
-    guild = Server('myguild')
+    guild = Guild('myguild')
     guild.emojis = [Emoji('car'), Emoji('duck'), Emoji('sleep')]
     emo = EmojiResolver()
     emo.update([guild])
@@ -38,7 +38,7 @@ def test_emoji_update():
 
 
 def test_emoji_fix():
-    guild = Server('myguild')
+    guild = Guild('myguild')
     guild.emojis = [Emoji('car'), Emoji('duck'), Emoji('sleep')]
     emo = EmojiResolver()
     emo.update([guild])

@@ -213,6 +213,34 @@ async def test_cmd_admin_addum(f_admins, f_bot, f_asheet_umscanner, patch_scanne
 
 
 @pytest.mark.asyncio
+async def test_cmd_admin_top(f_dusers, f_admins, f_bot, f_fort_testbed, f_um_testbed):
+    msg = fake_msg_gears("!admin top 3")
+
+    await action_map(msg, f_bot).execute()
+
+    expected = """
+```Top 5 Recruits | Merits | Top 5 Members | Merits
+-------------- | ------ | ------------- | ------
+User1          | 15050  | User2         | 8050
+User3          | 1800   |               |
+               |        |               |```
+
+```Top 5 Fort Recruits | Merits | Top Fort 5 Members | Merits
+------------------- | ------ | ------------------ | ------
+User3               | 1800   | User2              | 2000
+User1               | 1100   |                    |
+                    |        |                    |```
+
+```Top 5 UM Recruits | Merits | Top UM 5 Members | Merits
+----------------- | ------ | ---------------- | ------
+User1             | 13950  | User2            | 6050
+                  |        |                  |
+                  |        |                  |```
+"""
+    assert expected in str(f_bot.send_message.call_args).replace("\\n", "\n")
+
+
+@pytest.mark.asyncio
 async def test_cmd_bgs_age(side_session, f_bot, f_dusers, f_fort_testbed):
     row = side_session.query(SystemAge).filter(
         SystemAge.control.in_(HUDSON_CONTROLS)).order_by(SystemAge.system.asc()).first()
@@ -590,6 +618,35 @@ async def test_cmd_drop_set(session, f_bot, f_dusers, f_fort_testbed):
 
 
 @pytest.mark.asyncio
+async def test_cmd_drop_finished(session, f_bot, f_dusers, f_fort_testbed):
+    msg = fake_msg_gears("!drop 400 dong")
+
+    await action_map(msg, f_bot).execute()
+    expected = """**Dongkum** 7400/7239 :Fortified:
+
+__Next Fort Target__:
+**Nurundere** 5422/8425 :Fortifying:
+
+**User1** Have a :cookie: for completing Dongkum
+Bonus for highest contribution:
+    :cookie: for **User1** with 400 supplies"""
+    f_bot.send_message.assert_called_with(msg.channel, expected)
+
+    system = session.query(FortSystem).filter_by(name='Dongkum').one()
+    assert system.current_status == 7400
+    duser = session.query(DiscordUser).filter_by(id=msg.author.id).one()
+    cattle = session.query(FortUser).filter_by(name=duser.pref_name).one()
+    drop = session.query(FortDrop).filter_by(user_id=cattle.id, system_id=system.id).one()
+    assert drop.amount == 400
+
+    expect = [
+        {'range': 'K6:K7', 'values': [[7400], [0]]},
+        {'range': 'K15:K15', 'values': [[400]]},
+    ]
+    assert cog.actions.SCANNERS['hudson_cattle'].payloads == expect
+
+
+@pytest.mark.asyncio
 async def test_cmd_hold_simple(session, f_bot, f_dusers, f_um_testbed):
     msg = fake_msg_gears("!hold 2000 empt")
 
@@ -767,14 +824,21 @@ Burr       | 2200 | 5800```"""
 
 
 @pytest.mark.asyncio
-async def test_cmd_repair(f_bot):
-    msg = fake_msg_gears("!repair rana")
+async def test_cmd_pin(session, f_bot, f_dusers, f_fort_testbed):
+    msg = fake_msg_gears("!pin")
 
     await action_map(msg, f_bot).execute()
-
-    actual = str(f_bot.send_message.call_args).replace("\\n", "\n")
-    assert "Ali Hub" in actual
-    assert "Meucci Port" in actual
+    expected = """```:Fortifying: Rhea **Atropos**
+:Fortifying: Othime **Priority for S/M ships (no L pads)**
+:Fortifying: Nurundere
+:Fortifying: LHS 3749
+:Fortifying: Alpha Fornacis
+:Fortifying: Othime **Priority for S/M ships (no L pads)**
+:Fortifying: WW Piscis Austrini
+:Fortifying: LPM 229
+:Fortifying: Dongkum
+:Fortifying: The things in the list after that```"""
+    f_bot.send_message.assert_called_with(msg.channel, expected)
 
 
 @pytest.mark.asyncio
@@ -783,6 +847,17 @@ async def test_cmd_recruits_not_admin(f_bot, db_cleanup):
 
     with pytest.raises(cog.exc.InvalidPerms):
         await action_map(msg, f_bot).execute()
+
+
+@pytest.mark.asyncio
+async def test_cmd_repair(f_bot):
+    msg = fake_msg_gears("!repair rana")
+
+    await action_map(msg, f_bot).execute()
+
+    actual = str(f_bot.send_message.call_args).replace("\\n", "\n")
+    assert "Ali Hub" in actual
+    assert "Meucci Port" in actual
 
 
 @pytest.mark.asyncio

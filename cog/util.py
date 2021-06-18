@@ -325,7 +325,7 @@ def dict_to_columns(data):
 
 # N.B. Intentionally untested, don't want to spam pastebin
 #      I don't see a dummy flag in api.
-async def pastebin_login(dev_key, user, pword):
+async def pastebin_login(dev_key, user, pword):  # pragma: no cover
     """
     Perform simple pastebin login.
     """
@@ -342,7 +342,7 @@ async def pastebin_login(dev_key, user, pword):
             return await resp.text()
 
 
-async def pastebin_upload(dev_key, title, content, session=None):
+async def pastebin_upload(dev_key, title, content, session=None):  # pragma: no cover
     """
     Perform a simple paste to pastebin.
 
@@ -367,7 +367,7 @@ async def pastebin_upload(dev_key, title, content, session=None):
             return await resp.text()
 
 
-async def pastebin_new_paste(title, content):
+async def pastebin_new_paste(title, content):  # pragma: no cover
     """
     Simple wrapper to create a paste and return the url.
     """
