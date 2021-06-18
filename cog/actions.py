@@ -548,6 +548,7 @@ class BGS(Action):
             controls = cogdb.side.WATCH_BUBBLES
         else:
             controls = process_system_args(system_name.split(' '))
+        controls = [x.name for x in cogdb.eddb.get_systems(kwargs['eddb_session'], controls)]
 
         resp = "__**EDMC Route**__\nIf no systems listed under control, up to date."
         resp += "\n\n__Bubbles By Proximity__\n"
@@ -557,15 +558,16 @@ class BGS(Action):
             controls = [sys.name for sys in route]
         resp += "\n".join(controls)
 
-        for control in controls:
-            resp += "\n\n__{}__\n".format(string.capwords(control))
-            systems = await self.bot.loop.run_in_executor(None, cogdb.side.get_edmc_systems,
-                                                          kwargs['side_session'], [control])
-            if len(systems) > 2:
+        control_ages = await self.bot.loop.run_in_executor(None, cogdb.side.get_system_ages,
+                                                           kwargs['side_session'], controls)
+        for control_name in control_ages:
+            resp += "\n\n__{}__\n".format(string.capwords(control_name))
+            ages = control_ages[control_name]
+            if len(ages) > 2:
                 _, systems = await self.bot.loop.run_in_executor(None, cogdb.eddb.find_best_route,
                                                                  kwargs['eddb_session'],
-                                                                 [system.name for system in systems])
-            resp += "\n".join([sys.name for sys in systems])
+                                                                 [age.system for age in ages])
+                resp += "\n".join([sys.name for sys in systems])
 
         return resp
 

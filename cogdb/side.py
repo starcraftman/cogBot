@@ -1224,14 +1224,22 @@ def monitor_factions(session, faction_names=None):
 
 
 @wrap_exceptions
-def get_edmc_systems(session, controls):
+def get_system_ages(session, controls):
     """
     Get the list of Systems that have stale EDDN data.
+
+    Returns: A dictionary of form:
+        {'control': [system, system], ...}
     """
-    return session.query(System).\
-        filter(SystemAge.control.in_(controls),
-               SystemAge.system == System.name).\
+    ages = session.query(SystemAge).\
+        filter(SystemAge.control.in_(controls)).\
         all()
+
+    map_ages = {x: [] for x in controls}
+    for age in ages:
+        map_ages[age.control] += [age]
+
+    return map_ages
 
 
 def main():  # pragma: no cover

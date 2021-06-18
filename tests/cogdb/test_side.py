@@ -171,3 +171,16 @@ def test_system_calc_um_trigger(side_session):
         order_by(System.name).\
         all()
     assert target.calc_um_trigger(pow_hq) == 13786
+
+
+# TODO: Think a better test, other data optional
+def test_get_system_ages(side_session):
+    sys_ages = cogdb.side.get_system_ages(side_session, ['Rana', 'Sol'])
+
+    assert  isinstance(sys_ages, type({}))
+    assert  isinstance(sys_ages['Rana'], type([]))
+    for age in sys_ages['Rana']:
+        assert age.control == 'Rana'
+    assert  isinstance(sys_ages['Sol'], type([]))
+    for age in sys_ages['Sol']:
+        assert age.control == 'Sol'

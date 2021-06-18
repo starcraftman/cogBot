@@ -263,6 +263,17 @@ async def test_cmd_bgs_dash(f_bot, f_dusers, f_fort_testbed):
 
 
 @pytest.mark.asyncio
+async def test_cmd_bgs_edmc(side_session, f_bot, f_dusers, f_fort_testbed):
+    msg = fake_msg_gears("!bgs edmc rana, frey")
+
+    await action_map(msg, f_bot).execute()
+
+    cap = str(f_bot.send_message.call_args).replace("\\n", "\n")
+    assert "__Rana__" in cap
+    assert "__Frey" in cap
+
+
+@pytest.mark.asyncio
 async def test_cmd_bgs_exp(f_bot):
     msg = fake_msg_gears("!bgs exp rana")
 
