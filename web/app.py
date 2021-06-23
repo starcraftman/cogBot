@@ -35,7 +35,7 @@ except ImportError:
 
 import cog.util
 
-app = sanic.Sanic()
+app = sanic.Sanic('cog web')
 ADDR = 'tcp://127.0.0.1:{}'.format(cog.util.get_config('ports', 'zmq'))
 LOG_FILE = os.path.join(tempfile.gettempdir(), 'posts')
 PUB = None
