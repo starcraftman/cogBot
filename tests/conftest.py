@@ -102,7 +102,7 @@ def db_cleanup(session):
     cogdb.schema.empty_tables(session, perm=True)
 
     classes = [DiscordUser, FortUser, FortSystem, FortDrop, FortOrder, UMUser, UMSystem, UMHold,
-               KOS, TrackSystem, TrackSystemCached, TrackByID]
+               KOS, TrackSystem, TrackSystemCached, TrackByID, AdminPerm, ChannelPerm, RolePerm]
     for cls in classes:
         assert session.query(cls).all() == []
 
@@ -461,12 +461,14 @@ class Role(FakeObject):
 
 
 class Message(FakeObject):
-    def __init__(self, content, author, srv, channel, mentions, *, id=None):
+    def __init__(self, content, author, srv, channel, *, id=None, mentions=None, channel_mentions=None, role_mentions=None):
         super().__init__(None, id)
         self.author = author
         self.channel = channel
         self.content = content
         self.mentions = mentions
+        self.channel_mentions = channel_mentions
+        self.role_mentions = role_mentions
         self.guild = srv
         self.is_deleted = False
 
@@ -488,11 +490,11 @@ class Message(FakeObject):
 
 def fake_servers():
     """ Generate fake discord servers for testing. """
-    srv = Guild("Gears' Hideout")
+    srv = Guild("Gears' Hideout", id=1)
     channels = [
-        Channel("feedback", srv=srv),
-        Channel("live_hudson", srv=srv),
-        Channel("private_dev", srv=srv)
+        Channel("feedback", srv=srv, id=10),
+        Channel("live_hudson", srv=srv, id=11),
+        Channel("private_dev", srv=srv, id=12)
     ]
     for cha in channels:
         srv.add(cha)
@@ -500,20 +502,20 @@ def fake_servers():
     return [srv]
 
 
-def fake_msg_gears(content):
+def fake_msg_gears(content, *, mentions=None, channel_mentions=None, role_mentions=None):
     """ Generate fake message with User1 as author. """
     srv = fake_servers()[0]
     roles = [Role('Cookie Lord', srv), Role('Hudson', srv, id=3001)]
     aut = Member("User1", roles, id=1)
-    return Message(content, aut, srv, srv.channels[1], None)
+    return Message(content, aut, srv, srv.channels[1], mentions=mentions, channel_mentions=channel_mentions, role_mentions=role_mentions)
 
 
-def fake_msg_newuser(content):
+def fake_msg_newuser(content, *, mentions=None, channel_mentions=None):
     """ Generate fake message with NewUser as author. """
     srv = fake_servers()[0]
     roles = [Role('Hudson', srv)]
     aut = Member("NewUser", roles, id=4)
-    return Message(content, aut, srv, srv.channels[1], None)
+    return Message(content, aut, srv, srv.channels[1], mentions=None)
 
 
 @pytest.fixture

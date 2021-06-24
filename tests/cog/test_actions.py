@@ -7,6 +7,7 @@ import re
 
 import aiomock
 import pytest
+import sqlalchemy as sqla
 
 import cog.actions
 import cog.bot
@@ -16,6 +17,7 @@ from cogdb.eddb import HUDSON_CONTROLS
 from cogdb.side import SystemAge
 from cogdb.schema import (DiscordUser, FortSystem, FortDrop, FortUser,
                           FortOrder, UMSystem, UMUser, UMHold,
+                          AdminPerm, RolePerm, ChannelPerm,
                           TrackSystem, TrackSystemCached, TrackByID)
 
 from tests.conftest import fake_msg_gears, fake_msg_newuser
@@ -130,6 +132,109 @@ async def test_cmd_invalid_flag(f_bot):
 
     with pytest.raises(cog.exc.ArgumentParseError):
         await action_map(msg, f_bot).execute()
+
+
+@pytest.mark.asyncio
+async def test_cmd_admin_add_admin(f_dusers, f_admins, f_bot, db_cleanup, session):
+    new_admin = tc.Member(f_dusers[-1].display_name, None, id=f_dusers[-1].id)
+    msg = fake_msg_gears("!admin add", mentions=[new_admin])
+
+    await action_map(msg, f_bot).execute()
+
+    session.close()
+    last = session.query(AdminPerm).order_by(AdminPerm.id.desc()).limit(1).one()
+    assert last.id == 3
+
+
+@pytest.mark.asyncio
+async def test_cmd_admin_remove_admin(f_dusers, f_admins, f_bot, db_cleanup, session):
+    new_admin = tc.Member(f_dusers[1].display_name, None, id=f_dusers[1].id)
+    msg = fake_msg_gears("!admin remove", mentions=[new_admin])
+
+    await action_map(msg, f_bot).execute()
+
+    session.close()
+    with pytest.raises(sqla.exc.NoResultFound):
+        session.query(AdminPerm).filter(AdminPerm.id == f_dusers[1].id).limit(1).one()
+
+
+@pytest.mark.asyncio
+async def test_cmd_admin_add_chan(f_dusers, f_admins, f_bot, db_cleanup, session):
+    srv = tc.fake_servers()[0]
+    chan = srv.channels[1]
+    msg = fake_msg_gears("!admin add BGS", channel_mentions=[chan])
+
+    await action_map(msg, f_bot).execute()
+
+    session.close()
+    added = session.query(ChannelPerm).filter(ChannelPerm.cmd == 'BGS').one()
+    assert added.cmd == "BGS"
+
+
+@pytest.mark.asyncio
+async def test_cmd_admin_add_chan_raises(f_dusers, f_admins, f_bot, db_cleanup, session):
+    srv = tc.fake_servers()[0]
+    chan = srv.channels[1]
+    msg = fake_msg_gears("!admin add Invalid", channel_mentions=[chan])
+
+    with pytest.raises(cog.exc.InvalidCommandArgs):
+        await action_map(msg, f_bot).execute()
+
+
+@pytest.mark.asyncio
+async def test_cmd_admin_remove_chan(f_dusers, f_admins, f_bot, db_cleanup, session):
+    srv = tc.fake_servers()[0]
+    chan = srv.channels[1]
+
+    msg = fake_msg_gears("!admin add BGS", channel_mentions=[chan])
+    await action_map(msg, f_bot).execute()
+    msg = fake_msg_gears("!admin remove BGS", channel_mentions=[chan])
+    await action_map(msg, f_bot).execute()
+
+    session.close()
+    with pytest.raises(sqla.exc.NoResultFound):
+        session.query(ChannelPerm).filter(ChannelPerm.cmd == 'BGS').one()
+
+
+@pytest.mark.asyncio
+async def test_cmd_admin_add_role(f_dusers, f_admins, f_bot, db_cleanup, session):
+    srv = tc.fake_servers()[0]
+    role = srv.get_member(1).roles[0]
+    role.id = 90
+    msg = fake_msg_gears("!admin add BGS", role_mentions=[role])
+
+    await action_map(msg, f_bot).execute()
+
+    session.close()
+    added = session.query(RolePerm).filter(RolePerm.cmd == 'BGS').one()
+    assert added.role_id == role.id
+
+
+@pytest.mark.asyncio
+async def test_cmd_admin_add_role_raises(f_dusers, f_admins, f_bot, db_cleanup, session):
+    srv = tc.fake_servers()[0]
+    role = srv.get_member(1).roles[0]
+    role.id = 90
+    msg = fake_msg_gears("!admin add Invalid", role_mentions=[role])
+
+    with pytest.raises(cog.exc.InvalidCommandArgs):
+        await action_map(msg, f_bot).execute()
+
+
+@pytest.mark.asyncio
+async def test_cmd_admin_remove_role(f_dusers, f_admins, f_bot, db_cleanup, session):
+    srv = tc.fake_servers()[0]
+    role = srv.get_member(1).roles[0]
+    role.id = 90
+
+    msg = fake_msg_gears("!admin add BGS", role_mentions=[role])
+    await action_map(msg, f_bot).execute()
+    msg = fake_msg_gears("!admin remove BGS", role_mentions=[role])
+    await action_map(msg, f_bot).execute()
+
+    session.close()
+    with pytest.raises(sqla.exc.NoResultFound):
+        session.query(ChannelPerm).filter(ChannelPerm.cmd == 'BGS').one()
 
 
 @pytest.mark.asyncio

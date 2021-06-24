@@ -174,7 +174,7 @@ class Admin(Action):
                                              self.msg.channel_mentions[0])
                 response = "Channel permission added."
 
-            elif self.args.role:
+            else:
                 cogdb.query.add_role_perm(self.session, self.args.rule_cmd,
                                           self.msg.channel.guild,
                                           self.msg.role_mentions[0])
@@ -203,7 +203,7 @@ class Admin(Action):
                                                 self.msg.channel_mentions[0])
                 response = "Channel permission removed."
 
-            elif self.args.role:
+            else:
                 cogdb.query.remove_role_perm(self.session, self.args.rule_cmd,
                                              self.msg.channel.guild,
                                              self.msg.role_mentions[0])

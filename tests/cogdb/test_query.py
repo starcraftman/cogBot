@@ -399,7 +399,7 @@ def test_check_perms(session, f_cperms, f_rperms):
     ops_channel.server = server
     roles = [Role('FRC Member', id=3001), Role('Winters', id=3002)]
     author = Member('User1', roles)
-    msg = Message('!drop', author, server, ops_channel, None)
+    msg = Message('!drop', author, server, ops_channel)
     msg.channel = ops_channel
     msg.channel.guild = server
 

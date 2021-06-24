@@ -177,10 +177,10 @@ def test_system_calc_um_trigger(side_session):
 def test_get_system_ages(side_session):
     sys_ages = cogdb.side.get_system_ages(side_session, ['Rana', 'Sol'])
 
-    assert  isinstance(sys_ages, type({}))
-    assert  isinstance(sys_ages['Rana'], type([]))
+    assert isinstance(sys_ages, type({}))
+    assert isinstance(sys_ages['Rana'], type([]))
     for age in sys_ages['Rana']:
         assert age.control == 'Rana'
-    assert  isinstance(sys_ages['Sol'], type([]))
+    assert isinstance(sys_ages['Sol'], type([]))
     for age in sys_ages['Sol']:
         assert age.control == 'Sol'

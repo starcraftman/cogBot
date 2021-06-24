@@ -9,7 +9,6 @@ import tempfile
 import sqlalchemy as sqla
 import sqlalchemy.exc as sqla_exc
 import sqlalchemy.orm.exc as sqla_oexc
-from sqlalchemy.sql.expression import or_
 
 import cog.exc
 import cog.sheets

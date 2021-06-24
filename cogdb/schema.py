@@ -1102,7 +1102,8 @@ def empty_tables(session, *, perm=False):
     """
     Drop all tables.
     """
-    classes = [FortDrop, UMHold, FortSystem, UMSystem, FortUser, UMUser, KOS]
+    classes = [FortDrop, UMHold, FortSystem, UMSystem, FortUser, UMUser, KOS,
+               KOS, TrackSystem, TrackSystemCached, TrackByID, AdminPerm, ChannelPerm, RolePerm]
     if perm:
         classes += [DiscordUser]
 
