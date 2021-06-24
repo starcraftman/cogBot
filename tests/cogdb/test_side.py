@@ -184,3 +184,10 @@ def test_get_system_ages(side_session):
     assert isinstance(sys_ages['Sol'], type([]))
     for age in sys_ages['Sol']:
         assert age.control == 'Sol'
+
+
+def test_monitor_factions(side_session):
+    faction_names = ["Sol Workers' Party", "Sol Nationalists"]
+    results = cogdb.side.monitor_factions(side_session, faction_names)
+
+    assert "Sol         | Sol            | Sol Workers' Par | Dem |" in '\n'.join(results)

@@ -22,6 +22,7 @@ import cog.tbl
 import cog.util
 import cogdb
 from cogdb.eddb import LEN, TIME_FMT, HUDSON_BGS
+import cogdb.eddb as edb
 
 
 WATCH_BUBBLES = [
@@ -1191,34 +1192,38 @@ def monitor_factions(session, faction_names=None):
     """
     current = sqla_orm.aliased(FactionState)
     pending = sqla_orm.aliased(FactionState)
-    control_system = sqla_orm.aliased(System)
-    c_state = session.query(PowerState.id).\
-        filter(PowerState.text == "Control").\
-        subquery()
+    sys = sqla_orm.aliased(System)
+    sys_control = sqla_orm.aliased(System)
     if not faction_names:
         faction_names = WATCH_FACTIONS
-    faction_ids = [x[0] for x in session.query(Faction.id).
-                   filter(Faction.name.in_(faction_names)).
-                   all()]
+    with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
+        faction_ids = [x[0] for x in eddb_session.query(edb.Faction.id).
+                       filter(edb.Faction.name.in_(faction_names)).
+                       all()]
 
-    matches = session.query(Influence.influence, System.name, Faction.name, Government.text,
-                            control_system.name, current.text, pending.text).\
+    control_id = session.query(PowerState.id).\
+        filter(PowerState.text == "Control").\
+        scalar_subquery()
+    matches = session.query(Influence.influence, sys.name, Faction.name,
+                            Government.text, current.text, pending.text,
+                            sqla.func.ifnull(sys_control.name, 'N/A')).\
         filter(Influence.faction_id.in_(faction_ids)).\
-        filter(Influence.system_id == System.id,
-               Influence.faction_id == Faction.id,
-               Faction.government_id == Government.id,
-               Influence.state_id == current.id,
-               Influence.pending_state_id == pending.id,
-               sqla.and_(control_system.power_state_id == c_state,
-                         control_system.dist_to(System) <= 15)).\
-        order_by(Faction.name, control_system.name, System.name).\
+        join(sys, Influence.system_id == sys.id).\
+        join(Faction, Influence.faction_id == Faction.id).\
+        join(Government, Faction.government_id == Government.id).\
+        join(current, Influence.state_id == current.id).\
+        outerjoin(pending, Influence.pending_state_id == pending.id).\
+        outerjoin(sys_control, sqla.and_(
+            sys_control.power_state_id == control_id,
+            sys_control.dist_to(sys) < 15)
+        ).\
         all()
 
     lines = [["Control", "System", "Faction", "Gov", "Inf",
               "State", "Pending State"]]
     for match in matches:
-        lines += [[match[-3], match[1][:16], match[2][:16], match[3][:3],
-                   "{:5.2f}".format(round(match[0], 2)), match[-2], match[-1]]]
+        lines += [[match[-1], match[1][:16], match[2][:16], match[3][:3],
+                   "{:5.2f}".format(round(match[0], 2)), match[-3], match[-2]]]
 
     return cog.tbl.format_table(lines, header=True, prefix="\n\n**Monitored Factions**\n")
 

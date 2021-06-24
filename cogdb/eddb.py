@@ -319,8 +319,8 @@ class FactionRecoveringState(Base):
         return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
 
     def __eq__(self, other):
-        return (isinstance(self, FactionPendingState)
-                and isinstance(other, FactionPendingState)
+        return (isinstance(self, FactionRecoveringState)
+                and isinstance(other, FactionRecoveringState)
                 and self.__hash__() == other.__hash__())
 
     def __hash__(self):
