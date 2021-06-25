@@ -929,70 +929,74 @@ def expand_to_candidates(session, system_name):
     return lines
 
 
-# TODO: Unit test below.
 def get_monitor_systems(session, controls):
     """
     Get all uncontested systems within the range of mentioned controls.
-    Include all systems with EG Union.
+    Always include all systems with EG Union.
 
     Returns: List of system_ids
     """
     eg_systems = session.query(System.id).\
-        outerjoin(Influence, Faction).\
-        filter(Faction.name == "EG Union",
-               Influence.faction_id == Faction.id,
-               Influence.system_id == System.id).\
-        limit(100).\
+        join(Influence, Influence.system_id == System.id).\
+        join(Faction, Influence.faction_id == Faction.id).\
+        filter(Faction.name == "EG Union").\
+        order_by(System.id).\
         all()
 
+    # Generate orable filter criteria for systems in the bubbles of controls
+    pstates = session.query(PowerState.id).\
+        filter(PowerState.text.in_(["Exploited", "Control"])).\
+        scalar_subquery()
     look_for = [
         System.dist_to(sqla_orm.aliased(System,
                                         session.query(System).filter(System.name == control).subquery())) <= 15
         for control in controls
     ]
-    pstates = session.query(PowerState.id).\
-        filter(PowerState.text.in_(["Exploited", "Control"])).\
-        subquery()
-    systems = [sys[0] for sys in session.query(System.id).
-               filter(System.power_state_id.in_(pstates)).
-               filter(sqla.or_(*look_for))]
+    uncontesteds = session.query(System.id).\
+        filter(System.power_state_id.in_(pstates),
+               sqla.or_(*look_for)).\
+        order_by(System.id).\
+        all()
 
-    return list(set(systems + [x[0] for x in eg_systems]))
+    return sorted(list(set([x[0] for x in eg_systems + uncontesteds])))
 
 
 @wrap_exceptions
 def monitor_events(session, system_ids):
     """
-    Monitor a number of controls for special events within them.
-
-    Subqueries galore, you've been warned.
+    Monitor a number of systems by given ids for special events within them.
 
     Returns: A list of messages to send.
     """
-    current = sqla_orm.aliased(FactionState)
-    pending = sqla_orm.aliased(FactionState)
-
     monitor_states = session.query(FactionState.id).\
         filter(FactionState.text.in_(["Election", "War", "Civil War", "Expansion", "Retreat"])).\
-        subquery()
-    c_state = session.query(PowerState.id).\
+        scalar_subquery()
+    control_state_id = session.query(PowerState.id).\
         filter(PowerState.text == "Control").\
-        subquery()
+        scalar_subquery()
 
-    control_system = sqla_orm.aliased(System)
-    events = session.query(Influence.influence, System.name, Faction.name, Government.text,
-                           control_system.name, current.text, pending.text).\
+    current = sqla_orm.aliased(FactionState)
+    pending = sqla_orm.aliased(FactionState)
+    sys = sqla_orm.aliased(System)
+    sys_control = sqla_orm.aliased(System)
+    events = session.query(Influence.influence, sys.name, Faction.name, Government.text,
+                           current.text, pending.text,
+                           sqla.func.ifnull(sys_control.name, 'N/A').label('control')).\
         filter(Influence.system_id.in_(system_ids),
                sqla.or_(Influence.state_id.in_(monitor_states),
                         Influence.pending_state_id.in_(monitor_states))).\
-        filter(Influence.system_id == System.id,
-               Influence.faction_id == Faction.id,
-               Faction.government_id == Government.id,
-               sqla.and_(control_system.power_state_id == c_state,
-                         control_system.dist_to(System) <= 15),
-               current.id == Influence.state_id,
-               pending.id == Influence.pending_state_id).\
-        order_by(control_system.name, System.name, current.text, pending.text).\
+        join(sys, Influence.system_id == sys.id).\
+        join(Faction, Influence.faction_id == Faction.id).\
+        join(Government, Faction.government_id == Government.id).\
+        join(current, Influence.state_id == current.id).\
+        join(pending, Influence.pending_state_id == pending.id).\
+        outerjoin(
+            sys_control, sqla.and_(
+                sys_control.power_state_id == control_state_id,
+                sys_control.dist_to(sys) < 15
+            )
+        ).\
+        order_by('control', sys.name, current.text, pending.text).\
         limit(1000).\
         all()
 
@@ -1002,9 +1006,9 @@ def monitor_events(session, system_ids):
     elections = wars[:]
 
     for event in events:
-        states = [event[-2], event[-1]]
-        line = [[event[-3], event[1][:16], event[2][:16], event[3][:3],
-                 "{:5.2f}".format(round(event[0], 2)), event[-2], event[-1]]]
+        states = [event[-3], event[-2]]
+        line = [[event[-1][:20], event[1][:20], event[2][:20], event[3][:3],
+                 "{:5.2f}".format(round(event[0], 2)), event[-3], event[-2]]]
 
         if "Election" in states:
             elections += line
@@ -1018,11 +1022,12 @@ def monitor_events(session, system_ids):
         if "Retreat" in states:
             retreats += line
 
-    header = "**__Events in Monitored Systems__**\nMonitoring: {}\n\n**Elections**\n".format(", ".join(WATCH_BUBBLES))
+    header = "**__Events in Monitored Systems__**\n\n**Elections**\n"
     msgs = cog.tbl.format_table(elections, header=True, prefix=header)
     msgs += cog.tbl.format_table(wars, header=True, prefix="\n\n**Wars**\n")
     msgs += cog.tbl.format_table(expansions, header=True, prefix="\n\n**Expansions**\n")
     msgs += cog.tbl.format_table(retreats, header=True, prefix="\n\n**Retreats**\n")
+    __import__('pprint').pprint(msgs)
 
     return cog.util.merge_msgs_to_least(msgs)
 
@@ -1201,7 +1206,7 @@ def monitor_factions(session, faction_names=None):
                        filter(edb.Faction.name.in_(faction_names)).
                        all()]
 
-    control_id = session.query(PowerState.id).\
+    control_state_id = session.query(PowerState.id).\
         filter(PowerState.text == "Control").\
         scalar_subquery()
     matches = session.query(Influence.influence, sys.name, Faction.name,
@@ -1212,11 +1217,14 @@ def monitor_factions(session, faction_names=None):
         join(Faction, Influence.faction_id == Faction.id).\
         join(Government, Faction.government_id == Government.id).\
         join(current, Influence.state_id == current.id).\
-        outerjoin(pending, Influence.pending_state_id == pending.id).\
-        outerjoin(sys_control, sqla.and_(
-            sys_control.power_state_id == control_id,
-            sys_control.dist_to(sys) < 15)
+        join(pending, Influence.pending_state_id == pending.id).\
+        outerjoin(
+            sys_control, sqla.and_(
+                sys_control.power_state_id == control_state_id,
+                sys_control.dist_to(sys) < 15
+            )
         ).\
+        limit(1000).\
         all()
 
     lines = [["Control", "System", "Faction", "Gov", "Inf",

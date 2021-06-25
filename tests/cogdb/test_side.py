@@ -9,7 +9,7 @@ from sqlalchemy.sql import text as sql_text
 import cog.exc
 import cog.util
 import cogdb.side
-from cogdb.side import BGSTick, SystemAge, System, Faction
+from cogdb.side import BGSTick, SystemAge, System, Faction, FactionState
 
 
 def test_bgstick__repr__(side_session):
@@ -184,6 +184,31 @@ def test_get_system_ages(side_session):
     assert isinstance(sys_ages['Sol'], type([]))
     for age in sys_ages['Sol']:
         assert age.control == 'Sol'
+
+
+def test_get_monitor_systems(side_session):
+    systems = ['Rana', 'Sol', 'Rhea', 'Adeo']
+    results = cogdb.side.get_monitor_systems(side_session, systems)
+
+    assert len(results) > 80
+
+
+def test_monitor_events(side_session):
+    monitor_states = side_session.query(FactionState.id).\
+        filter(FactionState.text.in_(["Election", "War", "Civil War", "Expansion", "Retreat"])).\
+        scalar_subquery()
+    system_ids = side_session.query(System.id, System.name, Faction.name).\
+        join(Faction, System.controlling_faction_id == Faction.id).\
+        join(FactionState, Faction.state_id == FactionState.id).\
+        filter(FactionState.id.in_(monitor_states),
+               System.dist_to_nanomam < 90).\
+        limit(25).\
+        all()
+    system_ids = [x[0] for x in system_ids]
+
+    results = cogdb.side.monitor_events(side_session, system_ids)
+    assert results
+    #  __import__('pprint').pprint(results)
 
 
 def test_monitor_factions(side_session):
