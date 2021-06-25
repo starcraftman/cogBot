@@ -9,7 +9,7 @@ from sqlalchemy.sql import text as sql_text
 import cog.exc
 import cog.util
 import cogdb.side
-from cogdb.side import BGSTick, SystemAge, System, Faction, FactionState
+from cogdb.side import BGSTick, SystemAge, System, Faction, FactionState, Government, Influence
 
 
 def test_bgstick__repr__(side_session):
@@ -193,11 +193,30 @@ def test_get_monitor_systems(side_session):
     assert len(results) > 80
 
 
+def test_moving_dictators(side_session):
+    gov_dic = side_session.query(Government.id).\
+        filter(Government.text.in_(["Anarchy", "Dictatorship"])).\
+        scalar_subquery()
+    system_ids = side_session.query(Influence.system_id).\
+        join(System, Influence.system_id == System.id).\
+        join(Faction, Influence.faction_id == Faction.id).\
+        join(Government, Faction.government_id == Government.id).\
+        filter(Government.id.in_(gov_dic),
+               System.dist_to_nanomam < 90).\
+        group_by(System.id).\
+        limit(20).\
+        all()
+    system_ids = [x[0] for x in system_ids]
+
+    results = cogdb.side.moving_dictators(side_session, system_ids)
+    assert "25 Nu-2 Draconis " in str(results)
+
+
 def test_monitor_events(side_session):
     monitor_states = side_session.query(FactionState.id).\
         filter(FactionState.text.in_(["Election", "War", "Civil War", "Expansion", "Retreat"])).\
         scalar_subquery()
-    system_ids = side_session.query(System.id, System.name, Faction.name).\
+    system_ids = side_session.query(System.id).\
         join(Faction, System.controlling_faction_id == Faction.id).\
         join(FactionState, Faction.state_id == FactionState.id).\
         filter(FactionState.id.in_(monitor_states),
@@ -208,7 +227,6 @@ def test_monitor_events(side_session):
 
     results = cogdb.side.monitor_events(side_session, system_ids)
     assert results
-    #  __import__('pprint').pprint(results)
 
 
 def test_monitor_factions(side_session):

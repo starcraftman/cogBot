@@ -1032,6 +1032,7 @@ def monitor_events(session, system_ids):
     return cog.util.merge_msgs_to_least(msgs)
 
 
+# TODO: Clean.
 @wrap_exceptions
 def control_dictators(session, system_ids):
     """
@@ -1129,33 +1130,39 @@ def moving_dictators(session, system_ids):
 
     Returns: A list of messages to send.
     """
-    current = sqla_orm.aliased(FactionState)
-    pending = sqla_orm.aliased(FactionState)
     gov_dic = session.query(Government.id).\
         filter(Government.text.in_(["Anarchy", "Dictatorship"])).\
-        subquery()
-    c_state = session.query(PowerState.id).\
+        scalar_subquery()
+    control_state_id = session.query(PowerState.id).\
         filter(PowerState.text == "Control").\
-        subquery()
+        scalar_subquery()
 
-    control_system = sqla_orm.aliased(System)
-    dics = session.query(Influence, System, Faction, Government.text,
-                         control_system, current.text, pending.text).\
-        filter(Influence.system_id.in_(system_ids)).\
-        filter(Influence.system_id == System.id,
-               Influence.faction_id == Faction.id,
-               Faction.government_id == Government.id,
-               Faction.government_id.in_(gov_dic),
-               Influence.state_id == current.id,
-               Influence.pending_state_id == pending.id,
-               sqla.and_(control_system.power_state_id == c_state,
-                         control_system.dist_to(System) <= 15)).\
-        order_by(control_system.name, System.name).\
+    current = sqla_orm.aliased(FactionState)
+    pending = sqla_orm.aliased(FactionState)
+    sys = sqla_orm.aliased(System)
+    sys_control = sqla_orm.aliased(System)
+    dics = session.query(Influence, sys.name, Faction.name, Government.text,
+                         current.text, pending.text,
+                         sqla.func.ifnull(sys_control.name, 'N/A').label('control')).\
+        join(sys, Influence.system_id == sys.id).\
+        join(Faction, Influence.faction_id == Faction.id).\
+        join(Government, Faction.government_id == Government.id).\
+        join(current, Influence.state_id == current.id).\
+        join(pending, Influence.pending_state_id == pending.id).\
+        outerjoin(
+            sys_control, sqla.and_(
+                sys_control.power_state_id == control_state_id,
+                sys_control.dist_to(sys) < 15
+            )
+        ).\
+        filter(Influence.system_id.in_(system_ids),
+               Government.id.in_(gov_dic)).\
+        order_by('control', sys.name).\
         all()
 
-    look_for = [sqla.and_(InfluenceHistory.system_id == pair[1].id,
-                          InfluenceHistory.faction_id == pair[2].id)
-                for pair in dics]
+    look_for = [sqla.and_(InfluenceHistory.system_id == inf[0].system_id,
+                          InfluenceHistory.faction_id == inf[0].faction_id)
+                for inf in dics]
     time_window = time.time() - (60 * 60 * 24 * 2)
     inf_history = session.query(InfluenceHistory).\
         filter(sqla.or_(*look_for)).\
@@ -1170,21 +1177,20 @@ def moving_dictators(session, system_ids):
         pair_hist[key] = hist
 
     lines = [["Control", "System", "Faction", "Gov", "Date",
-              "Inf", "Inf (2 days)", "State", "Pending State"]]
+              "Inf", "Inf (2 days ago)", "State", "Pending State"]]
     for dic in dics:
-        key = "{}_{}".format(dic[1].id, dic[2].id)
+        key = "{}_{}".format(dic[0].system_id, dic[0].faction_id)
         try:
-            if (dic[0].influence - pair_hist[key].influence) > 5:
-                lines += [[dic[-3].name, dic[1].name[:16], dic[2].name[:16], dic[3][:3],
-                           dic[0].short_date, "{:5.2f}".format(round(dic[0].influence, 2)),
-                           "{:5.2f}".format(round(pair_hist[key].influence, 2)), dic[-2], dic[-1]]]
+            lines += [[dic[-1], dic[1][:16], dic[2][:16], dic[3][:3],
+                       dic[0].short_date, "{:5.2f}".format(round(dic[0].influence, 2)),
+                       "{:5.2f}".format(round(pair_hist[key].influence, 2)), dic[-3], dic[-2]]]
         except KeyError:
-            lines += [[dic[-3].name, dic[1].name[:16], dic[2].name[:16], dic[3][:3],
-                       dic[0].short_date, "{:5.2f}".format(round(dic[0].influence, 2)), "N/A", dic[-2], dic[-1]]]
+            lines += [[dic[-1], dic[1][:16], dic[2][:16], dic[3][:3],
+                       dic[0].short_date, "{:5.2f}".format(round(dic[0].influence, 2)), "N/A",
+                       dic[-3], dic[-2]]]
 
     prefix = "**\n\nInf Movement Anarchies/Dictators**)\n"
     prefix += "N/A: Means no previous information, either newly expanded to system or not tracking.\n"
-    prefix += "Criteria: 5% movement in last 2 days or N/A\n\n"
     return cog.tbl.format_table(lines, header=True, prefix=prefix)
 
 
@@ -1218,8 +1224,8 @@ def monitor_factions(session, faction_names=None):
         join(Government, Faction.government_id == Government.id).\
         join(current, Influence.state_id == current.id).\
         join(pending, Influence.pending_state_id == pending.id).\
-        outerjoin(
-            sys_control, sqla.and_(
+        outerjoin(sys_control,
+            sqla.and_(
                 sys_control.power_state_id == control_state_id,
                 sys_control.dist_to(sys) < 15
             )
