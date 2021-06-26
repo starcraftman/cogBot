@@ -72,10 +72,10 @@ loggers:
     handlers: [discord, warn_stream]
   cog:
     level: DEBUG
-    handlers: [cog, info_stream]
+    handlers: [cog, warn_stream]
   cogdb:
     level: DEBUG
-    handlers: [cogdb, info_stream]
+    handlers: [cogdb, warn_stream]
   sqlalchemy:
     level: DEBUG
     handlers: [sqlalchemy, warn_stream]
