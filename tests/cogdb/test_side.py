@@ -193,6 +193,25 @@ def test_get_monitor_systems(side_session):
     assert len(results) > 80
 
 
+def test_control_dictators(side_session):
+    gov_dic = side_session.query(Government.id).\
+        filter(Government.text.in_(["Anarchy", "Dictatorship"])).\
+        scalar_subquery()
+    system_ids = side_session.query(Influence.system_id).\
+        join(System, Influence.system_id == System.id).\
+        join(Faction, Influence.faction_id == Faction.id).\
+        join(Government, Faction.government_id == Government.id).\
+        filter(Government.id.in_(gov_dic),
+               System.dist_to_nanomam < 90).\
+        group_by(System.id).\
+        limit(50).\
+        all()
+    system_ids = [x[0] for x in system_ids]
+
+    results = cogdb.side.control_dictators(side_session, system_ids)
+    assert "| Dictatorship |" in str(results)
+
+
 def test_moving_dictators(side_session):
     gov_dic = side_session.query(Government.id).\
         filter(Government.text.in_(["Anarchy", "Dictatorship"])).\
@@ -209,7 +228,7 @@ def test_moving_dictators(side_session):
     system_ids = [x[0] for x in system_ids]
 
     results = cogdb.side.moving_dictators(side_session, system_ids)
-    assert "25 Nu-2 Draconis " in str(results)
+    assert "| Dic |" in str(results)
 
 
 def test_monitor_events(side_session):
@@ -226,6 +245,7 @@ def test_monitor_events(side_session):
     system_ids = [x[0] for x in system_ids]
 
     results = cogdb.side.monitor_events(side_session, system_ids)
+    assert "| Election" in str(results)
     assert results
 
 
