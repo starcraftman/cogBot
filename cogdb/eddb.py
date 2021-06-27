@@ -56,6 +56,7 @@ TIME_FMT = "%d/%m/%y %H:%M:%S"
 # These are the faction types strong/weak verse.
 HUDSON_BGS = [['Feudal', 'Patronage'], ["Dictatorship"]]
 WINTERS_BGS = [["Corporate"], ["Communism", "Cooperative", "Feudal", "Patronage"]]
+# State ids: 16 control, 32 exploited, 48 contested
 VIEW_CONTESTEDS = """
 CREATE or REPLACE VIEW eddb.v_contesteds
 AS
@@ -66,12 +67,29 @@ AS
     CROSS JOIN systems AS c
     INNER JOIN powers as p ON c.power_id = p.id
     WHERE
-        s.power_state_id = (SELECT id FROM power_state WHERE power_state.text = 'Contested') AND
-        c.power_state_id = (SELECT id FROM power_state WHERE power_state.text = 'Control') AND
+        s.power_state_id = 48 AND
+        c.power_state_id = 16 AND
         sqrt((c.x - s.x) * (c.x - s.x) +
              (c.y - s.y) * (c.y - s.y) +
              (c.z - s.z) * (c.z - s.z)) <= 15
-    ORDER BY s.id;
+    ORDER BY s.name, c.name;
+"""
+VIEW_SYSTEM_CONTROLS = """
+CREATE or REPLACE VIEW eddb.v_system_controls
+AS
+    SELECT s.id as system_id, s.name as system_name,
+           c.id as control_id, c.name as control_name,
+           p.text as power
+    FROM systems s
+    CROSS JOIN systems AS c
+    INNER JOIN powers as p ON c.power_id = p.id
+    WHERE
+        s.power_state_id in (32, 48) AND
+        c.power_state_id = 16 AND
+        sqrt((c.x - s.x) * (c.x - s.x) +
+             (c.y - s.y) * (c.y - s.y) +
+             (c.z - s.z) * (c.z - s.z)) <= 15
+    ORDER BY s.name, c.name;
 """
 EVENT_CONFLICTS = """
 CREATE EVENT IF NOT EXISTS clean_conflicts
@@ -699,7 +717,6 @@ class System(Base):
     security_id = sqla.Column(sqla.Integer, sqla.ForeignKey('security.id'))
     power_state_id = sqla.Column(sqla.Integer, sqla.ForeignKey('power_state.id'))
     controlling_minor_faction_id = sqla.Column(sqla.Integer, sqla.ForeignKey('factions.id'), nullable=True)
-    control_system_id = sqla.Column(sqla.Integer, sqla.ForeignKey('systems.id'), nullable=True)
     x = sqla.Column(sqla.Numeric(10, 5, None, False))
     y = sqla.Column(sqla.Numeric(10, 5, None, False))
     z = sqla.Column(sqla.Numeric(10, 5, None, False))
@@ -725,17 +742,21 @@ class System(Base):
         'Allegiance', viewonly=True, uselist=False, lazy='select',
         primaryjoin='and_(System.controlling_minor_faction_id == remote(Faction.id), foreign(Faction.allegiance_id) == foreign(Allegiance.id))',
     )
-    control_system = sqla_orm.relationship(
-        'System', uselist=False, lazy='select',
-        primaryjoin='foreign(System.control_system_id) == System.id',
-    )
     government = sqla_orm.relationship(
         'Government', viewonly=True, uselist=False, lazy='select',
         primaryjoin='and_(System.controlling_minor_faction_id == remote(Faction.id), foreign(Faction.government_id) == foreign(Government.id))',
     )
-    controls_contesting = sqla_orm.relationship(
-        'System', viewonly=True, uselist=True, lazy='select',
-        primaryjoin='and_(foreign(System.id) == remote(ContestedSystem.id), foreign(ContestedSystem.control_id) == System.id)',
+    controls = sqla_orm.relationship(
+        'System', uselist=True, lazy='select', viewonly=True, order_by='System.name',
+        primaryjoin='and_(foreign(System.id) == remote(SystemControl.system_id), foreign(SystemControl.control_id) == remote(System.id))'
+    )
+    exploiteds = sqla_orm.relationship(
+        'System', uselist=True, lazy='select', viewonly=True, order_by='System.name',
+        primaryjoin='and_(foreign(System.id) == remote(SystemControl.control_id), foreign(SystemControl.system_id) == remote(System.id))'
+    )
+    contesteds = sqla_orm.relationship(
+        'System', uselist=True, lazy='select', viewonly=True, order_by='System.name',
+        primaryjoin='and_(foreign(System.id) == remote(ContestedSystem.control_id), foreign(ContestedSystem.id) == remote(System.id))',
     )
 
     @hybrid_property
@@ -796,7 +817,7 @@ class System(Base):
         keys = ['id', 'name', 'population',
                 'needs_permit', 'updated_at', 'power_id', 'edsm_id',
                 'primary_economy_id', 'secondary_economy_id', 'security_id', 'power_state_id',
-                'controlling_minor_faction_id', 'control_system_id', 'x', 'y', 'z']
+                'controlling_minor_faction_id', 'x', 'y', 'z']
         kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
 
         return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
@@ -806,6 +827,46 @@ class System(Base):
 
     def __hash__(self):
         return hash(self.id)
+
+
+class SystemControl(Base):
+    """
+    This table is a __VIEW__. See VIEW_SYSTEM_CONTROLS.
+
+    Repesents a many to many connection between systems.
+        - A control system can have N exploiteds under it.
+        - An exploited system can overlap several controls.
+    """
+    __tablename__ = "v_system_controls"
+
+    system_id = sqla.Column(sqla.Integer, sqla.ForeignKey('systems.id'), primary_key=True, )
+    system_name = sqla.Column(sqla.String(LEN["system"]))
+    control_id = sqla.Column(sqla.Integer, sqla.ForeignKey('systems.id'), primary_key=True, )
+    control_name = sqla.Column(sqla.String(LEN["system"]))
+    power = sqla.Column(sqla.String(LEN["power"]))
+
+    # Relationships
+    system = sqla_orm.relationship(
+        'System', uselist=False, lazy='select',
+        primaryjoin='foreign(SystemControl.system_id) == System.id',
+    )
+    control = sqla_orm.relationship(
+        'System', uselist=False, lazy='select',
+        primaryjoin='foreign(SystemControl.control_id) == System.id',
+    )
+
+    def __repr__(self):
+        keys = ['system_id', 'system_name', 'control_id', 'control_name', 'power']
+        kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
+
+        return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
+
+    def __eq__(self, other):
+        return isinstance(self, SystemControl) and isinstance(other, SystemControl) and \
+            hash(self) == hash(other)
+
+    def __hash__(self):
+        return hash("{}_{}".format(self.system_id, self.control_id))
 
 
 class ConflictState(Base):
@@ -910,11 +971,11 @@ class ContestedSystem(Base):
     power = sqla.Column(sqla.String(LEN['power']))
 
     # Relationships
-    contested_system = sqla_orm.relationship(
+    system = sqla_orm.relationship(
         'System', uselist=False, lazy='select',
         primaryjoin='foreign(ContestedSystem.id) == System.id',
     )
-    control_system = sqla_orm.relationship(
+    control = sqla_orm.relationship(
         'System', uselist=False, lazy='select',
         primaryjoin='foreign(ContestedSystem.control_id) == System.id',
     )
@@ -1397,7 +1458,6 @@ def load_systems(session, fname):
         'item.power': [('system', 'power')],
         'item.power_state_id': [('system', 'power_state_id')],
         'item.controlling_minor_faction_id': [('system', 'controlling_minor_faction_id')],
-        'item.control_system_id': [('system', 'control_system_id')],
         'item.x': [('system', 'x')],
         'item.y': [('system', 'y')],
         'item.z': [('system', 'z')],
@@ -1859,11 +1919,16 @@ def recreate_tables():  # pragma: no cover | destructive to test
     """
     sqlalchemy.orm.session.close_all_sessions()
 
+    drop_cmds = [
+        "DROP VIEW eddb.v_contesteds"
+        "DROP VIEW eddb.v_system_controls",
+        "DROP EVENT clean_conflicts",
+    ]
     try:
         with cogdb.eddb_engine.connect() as con:
-            con.execute(sqla.sql.text("DROP VIEW eddb.v_contesteds"))
-            con.execute(sqla.sql.text("DROP EVENT clean_conflicts"))
-    except sqla.exc.OperationalError:
+            for drop_cmd in drop_cmds:
+                con.execute(sqla.sql.text(drop_cmd))
+    except (sqla.exc.OperationalError, sqla.exc.ProgrammingError):
         pass
     meta = sqlalchemy.MetaData(bind=cogdb.eddb_engine)
     meta.reflect()
@@ -1874,7 +1939,24 @@ def recreate_tables():  # pragma: no cover | destructive to test
             pass
 
     Base.metadata.create_all(cogdb.eddb_engine)
-    ContestedSystem.__table__.drop(cogdb.eddb_engine)
+    try:
+        ContestedSystem.__table__.drop(cogdb.eddb_engine)
+    except sqla.exc.OperationalError:
+        pass
+    try:
+        SystemControl.__table__.drop(cogdb.eddb_engine)
+    except sqla.exc.OperationalError:
+        pass
+
+    # Create views
+    create_cmds = [
+        VIEW_CONTESTEDS.strip(),
+        VIEW_SYSTEM_CONTROLS.strip(),
+        EVENT_CONFLICTS.strip(),
+    ]
+    with cogdb.eddb_engine.connect() as con:
+        for create_cmd in create_cmds:
+            con.execute(sqla.sql.text(create_cmd))
 
 
 def make_parser():
@@ -1923,16 +2005,61 @@ def import_eddb(eddb_session):  # pragma: no cover
                   preload=args.preload)
 
 
+def main_test_area(eddb_session):  # pragma: no cover
+    """ A test area for testing things with schema. """
+    station = eddb_session.query(Station).filter(Station.is_planetary).limit(5).all()[0]
+    print(station.name, station.economies)
+
+    #  Check relationships
+    system = eddb_session.query(System).filter(System.name == 'Sol').one()
+    print(system.allegiance, system.government, system.power, system.power_state, system.security)
+    print('------')
+    print(system.controls, system.controlling_faction)
+    print('------')
+    print(system.stations)
+    print('------')
+    print(system.controlling_faction.home_system)
+    print('------')
+
+    station = eddb_session.query(Station).\
+        filter(Station.system_id == system.id,
+               Station.name == "Daedalus").\
+        one()
+    print(station.system, station.type, station.features, station.faction)
+
+    __import__('pprint').pprint(get_nearest_ifactors(eddb_session, centre_name='rana'))
+    stations = get_shipyard_stations(eddb_session, input("Please enter a system name ... "))
+    if stations:
+        print(cog.tbl.format_table(stations))
+
+    print('31 Aquilae')
+    sys = sqla_orm.aliased(System)
+    sys_control = sqla_orm.aliased(System)
+    systems = eddb_session.query(sys.name, sys_control.name).\
+        filter(sys.name == '31 Aquilae').\
+        join(SystemControl, sys.id == SystemControl.system_id).\
+        join(sys_control, sys_control.id == SystemControl.control_id).\
+        all()
+    __import__('pprint').pprint(systems)
+    print('Togher')
+    system = eddb_session.query(sys).\
+        filter(sys.name == 'Togher').\
+        one()
+    __import__('pprint').pprint(system.controls)
+    print('Wat Yu')
+    system = eddb_session.query(sys).\
+        filter(sys.name == 'Wat Yu').\
+        one()
+    __import__('pprint').pprint(system.exploiteds)
+    __import__('pprint').pprint(system.contesteds)
+
+
 def main():  # pragma: no cover
     """ Main entry. """
     start = datetime.datetime.utcnow()
 
     with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
         import_eddb(eddb_session)
-    # Create views
-    with cogdb.eddb_engine.connect() as con:
-        con.execute(sqla.sql.text(VIEW_CONTESTEDS.strip()))
-        con.execute(sqla.sql.text(EVENT_CONFLICTS.strip()))
 
     with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
         print("Module count:", eddb_session.query(Module).count())
@@ -1944,28 +2071,7 @@ def main():  # pragma: no cover
         print("Station count:", eddb_session.query(Station).count())
         print("Contested count:", eddb_session.query(ContestedSystem).count())
         print("Time taken:", datetime.datetime.utcnow() - start)
-
-    #  station = session.query(Station).filter(Station.is_planetary).limit(5).all()[0]
-    #  print(station.name, station.economies)
-
-    # Check relationships
-    #  system = session.query(System).filter(System.name == 'Sol').one()
-    #  print(system.allegiance, system.government, system.power, system.power_state, system.security)
-    #  print('------')
-    #  print(system.control_system, system.controlling_faction)
-    #  print('------')
-    #  print(system.stations)
-    #  print('------')
-    #  print(system.controlling_faction.home_system)
-    #  print('------')
-
-    #  station = session.query(Station).filter(Station.system_id == system.id, Station.name == "Daedalus").one()
-    #  print(station.system, station.station_type, station.features, station.faction)
-
-    #  __import__('pprint').pprint(get_nearest_ifactors(session, centre_name='rana'))
-    #  stations = get_shipyard_stations(session, input("Please enter a system name ... "))
-    # if stations:
-        # print(cog.tbl.format_table(stations))
+        #  main_test_area(eddb_session)
 
 
 try:

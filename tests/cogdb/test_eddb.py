@@ -4,16 +4,42 @@ Tests for local eddb copy
 import tempfile
 import pytest
 from sqlalchemy.orm.exc import NoResultFound
+import sqlalchemy.orm as sqla_orm
 
 import cog.exc
 import cogdb.eddb
 from cogdb.eddb import (Commodity, CommodityCat, Module, ModuleGroup,
                         System, Influence, FactionActiveState, Faction,
-                        Allegiance, Government, Station, StationFeatures, StationEconomy)
+                        Allegiance, Government, Station, StationFeatures, StationEconomy,
+                        SystemControl)
 
 FAKE_ID1 = 942834121
 FAKE_ID2 = FAKE_ID1 + 1
 FAKE_ID3 = FAKE_ID1 + 2
+
+
+def test_system_controls(eddb_session):
+    system = eddb_session.query(System).\
+        filter(System.name == 'Togher').\
+        one()
+
+    assert len(system.controls) > 1
+
+
+def test_system_exploiteds(eddb_session):
+    system = eddb_session.query(System).\
+        filter(System.name == 'Wat Yu').\
+        one()
+
+    assert len(system.exploiteds) > 10
+
+
+def test_system_contesteds(eddb_session):
+    system = eddb_session.query(System).\
+        filter(System.name == 'Wat Yu').\
+        one()
+
+    assert system.contesteds[0].name == "Togher"
 
 
 def test_get_shipyard_stations(eddb_session):
