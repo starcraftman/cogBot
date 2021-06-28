@@ -3,6 +3,7 @@ Tests for cog.inara
 """
 import os
 
+import discord
 try:
     import rapidjson as json
 except ImportError:
@@ -188,3 +189,10 @@ Alone <:Small-1:3210582> Any Station
     ])
 
     assert cog.inara.extract_inara_systems(msg) == expect
+
+
+def test_kos_lookup_cmdr_embeds(session, f_kos):
+    results = cog.inara.kos_lookup_cmdr_embeds(session, "good_guy")
+    assert len(results) == 2
+    assert isinstance(results[0], discord.Embed)
+    assert results[0].fields[0].value == 'good_guy'

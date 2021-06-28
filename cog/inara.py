@@ -209,9 +209,22 @@ class InaraApi():
 
             event = response_json["events"][0]
             if event["eventStatus"] == API_RESPONSE_CODES["no result"]:
-                await cog.util.BOT.send_message(msg.channel,
-                                                "Could not find CMDR **{}**".format(cmdr_name))
-                return None
+                response = "__Inara__ Could not find CMDR **{}**".format(cmdr_name)
+                futs = []
+
+                # Even if not on inara.cz, lookup in kos
+                with cogdb.session_scope(cogdb.Session) as session:
+                    embeds = kos_lookup_cmdr_embeds(session, cmdr_name)
+                    if not embeds:
+                        response += "\n\n__KOS__ Could not find CMDR **{}**".format(cmdr_name)
+                    else:
+                        futs += [cog.util.BOT.send_message(msg.channel, embed=embed) for embed in embeds]
+                        futs += [self.delete_waiting_message(req_id)]
+
+                futs = [cog.util.BOT.send_message(msg.channel, response)] + futs
+                for fut in futs:
+                    await fut
+                return None  # No reason to go further
 
             event_data = event["eventData"]
 
@@ -416,22 +429,7 @@ class InaraApi():
         embeds = [cmdr_embed] + embeds
 
         with cogdb.session_scope(cogdb.Session) as session:
-            kos_cmdrs = cogdb.query.kos_search_cmdr(session, cmdr['name'])
-            for kos in kos_cmdrs[:3]:
-                embeds += [discord.Embed.from_dict({
-                    'color': KOS_COLORS.get(kos.friendly, KOS_COLORS['default']),
-                    'author': {
-                        'name': "KOS Finder",
-                        'icon_url': cmdr["profile_picture"],
-                    },
-                    "fields": [
-                        {'name': 'Name', 'value': kos.cmdr, 'inline': True},
-                        {'name': 'Reg Squadron', 'value': kos.faction if kos.faction else "Indy", 'inline': True},
-                        {'name': 'Is Friendly ?', 'value': kos.friendly, 'inline': True},
-                        {'name': 'Reason', 'value': kos.reason if kos.reason else "No reason.", 'inline': False},
-                    ],
-                })]
-
+            embeds += kos_lookup_cmdr_embeds(session, cmdr['name'], cmdr['profile_picture'])
         futs = [cog.util.BOT.send_message(msg.channel, embed=embed) for embed in embeds]
         futs += [self.delete_waiting_message(req_id)]
         for fut in futs:
@@ -607,6 +605,30 @@ def generate_bgs_embed(sys_list, faction_list):
     })
 
 
+def kos_lookup_cmdr_embeds(session, cmdr_name, cmdr_pic=None):
+    if not cmdr_pic:
+        cmdr_pic = EMPTY_IMG
+
+    kos_cmdrs = cogdb.query.kos_search_cmdr(session, cmdr_name)
+    embeds = []
+    for kos in kos_cmdrs[:3]:
+        embeds += [discord.Embed.from_dict({
+            'color': KOS_COLORS.get(kos.friendly, KOS_COLORS['default']),
+            'author': {
+                'name': "KOS Finder",
+                'icon_url': cmdr_pic,
+            },
+            "fields": [
+                {'name': 'Name', 'value': kos.cmdr, 'inline': True},
+                {'name': 'Reg Squadron', 'value': kos.faction if kos.faction else "Indy", 'inline': True},
+                {'name': 'Is Friendly ?', 'value': kos.friendly, 'inline': True},
+                {'name': 'Reason', 'value': kos.reason if kos.reason else "No reason.", 'inline': False},
+            ],
+        })]
+
+    return embeds
+
+
 def kos_report_cmdr_embed(reporter, cmdr, faction, reason, is_friendly=False):
     """
     Return an embed that be used to inform of a report.
@@ -639,7 +661,7 @@ def kos_report_cmdr_embed(reporter, cmdr, faction, reason, is_friendly=False):
     })
 
 
-def main():
+def main():  # pragma: no cover
     loop = asyncio.new_event_loop()
     for n in sys.argv[1:]:
         loop.run_until_complete(inara_squad_parse('https://inara.cz/squadron/{}/'.format(n)))
