@@ -46,7 +46,7 @@ LEN = {  # Lengths for strings stored in the db
     "settlement_security": 10,
     "settlement_size": 3,
     "ship": 20,
-    "station": 41,
+    "station": 45,
     "station_pad": 4,
     "station_type": 24,
     "system": 30,
