@@ -60,18 +60,17 @@ WINTERS_BGS = [["Corporate"], ["Communism", "Cooperative", "Feudal", "Patronage"
 VIEW_CONTESTEDS = """
 CREATE or REPLACE VIEW eddb.v_contesteds
 AS
-    SELECT s.id as id, s.name as name,
+    SELECT s.id as system_id, s.name as system_name,
            c.id as control_id, c.name as control_name,
            p.text as power
     FROM systems s
-    CROSS JOIN systems AS c
+    CROSS JOIN (select id, name, power_id, x, y, z from systems where power_state_id = 16) AS c
     INNER JOIN powers as p ON c.power_id = p.id
     WHERE
         s.power_state_id = 48 AND
-        c.power_state_id = 16 AND
-        sqrt((c.x - s.x) * (c.x - s.x) +
-             (c.y - s.y) * (c.y - s.y) +
-             (c.z - s.z) * (c.z - s.z)) <= 15
+        (c.x - s.x) * (c.x - s.x) +
+        (c.y - s.y) * (c.y - s.y) +
+        (c.z - s.z) * (c.z - s.z) <= 225
     ORDER BY s.name, c.name;
 """
 VIEW_SYSTEM_CONTROLS = """
@@ -81,14 +80,13 @@ AS
            c.id as control_id, c.name as control_name,
            p.text as power
     FROM systems s
-    CROSS JOIN systems AS c
+    CROSS JOIN (select id, name, power_id, x, y, z from systems where power_state_id = 16) AS c
     INNER JOIN powers as p ON c.power_id = p.id
     WHERE
         s.power_state_id in (32, 48) AND
-        c.power_state_id = 16 AND
-        sqrt((c.x - s.x) * (c.x - s.x) +
-             (c.y - s.y) * (c.y - s.y) +
-             (c.z - s.z) * (c.z - s.z)) <= 15
+        (c.x - s.x) * (c.x - s.x) +
+        (c.y - s.y) * (c.y - s.y) +
+        (c.z - s.z) * (c.z - s.z) <= 225
     ORDER BY s.name, c.name;
 """
 EVENT_CONFLICTS = """
@@ -756,7 +754,7 @@ class System(Base):
     )
     contesteds = sqla_orm.relationship(
         'System', uselist=True, lazy='select', viewonly=True, order_by='System.name',
-        primaryjoin='and_(foreign(System.id) == remote(ContestedSystem.control_id), foreign(ContestedSystem.id) == remote(System.id))',
+        primaryjoin='and_(foreign(System.id) == remote(SystemContested.control_id), foreign(SystemContested.system_id) == remote(System.id))',
     )
 
     @hybrid_property
@@ -827,6 +825,45 @@ class System(Base):
 
     def __hash__(self):
         return hash(self.id)
+
+
+class SystemContested(Base):
+    """
+    This table is a __VIEW__. See VIEW_CONTESTEDS.
+
+    Tracks all control systems that are conflicting with a given contested system.
+    A system is contested if two or more different powers have a control system within 15ly.
+    """
+    __tablename__ = 'v_contesteds'
+
+    system_id = sqla.Column(sqla.Integer, sqla.ForeignKey('systems.id'), primary_key=True)
+    system_name = sqla.Column(sqla.String(LEN['system']))
+    control_id = sqla.Column(sqla.Integer, primary_key=True)
+    control_name = sqla.Column(sqla.String(LEN['system']))
+    power = sqla.Column(sqla.String(LEN['power']))
+
+    # Relationships
+    system = sqla_orm.relationship(
+        'System', uselist=False, lazy='select',
+        primaryjoin='foreign(SystemContested.system_id) == System.id',
+    )
+    control = sqla_orm.relationship(
+        'System', uselist=False, lazy='select',
+        primaryjoin='foreign(SystemContested.control_id) == System.id',
+    )
+
+    def __repr__(self):
+        keys = ['id', 'name', 'control_id', 'control_name', 'power']
+        kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
+
+        return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
+
+    def __eq__(self, other):
+        return (isinstance(self, SystemContested) and isinstance(other, SystemContested)
+                and self.__hash__() == other.__hash__())
+
+    def __hash__(self):
+        return hash("{}_{}".format(self.id, self.control_id))
 
 
 class SystemControl(Base):
@@ -953,45 +990,6 @@ class Conflict(Base):
     def update(self, kwargs):
         """ Update this object based on a dictionary of kwargs. """
         self.__dict__.update(kwargs)
-
-
-class ContestedSystem(Base):
-    """
-    This table is a __VIEW__. See VIEW_CONTESTEDS.
-
-    Tracks all control systems that are conflicting with a given contested system.
-    A system is contested if two or more different powers have a control system within 15ly.
-    """
-    __tablename__ = 'v_contesteds'
-
-    id = sqla.Column(sqla.Integer, sqla.ForeignKey('systems.id'), primary_key=True)
-    name = sqla.Column(sqla.String(LEN['system']))
-    control_id = sqla.Column(sqla.Integer, primary_key=True)
-    control_name = sqla.Column(sqla.String(LEN['system']))
-    power = sqla.Column(sqla.String(LEN['power']))
-
-    # Relationships
-    system = sqla_orm.relationship(
-        'System', uselist=False, lazy='select',
-        primaryjoin='foreign(ContestedSystem.id) == System.id',
-    )
-    control = sqla_orm.relationship(
-        'System', uselist=False, lazy='select',
-        primaryjoin='foreign(ContestedSystem.control_id) == System.id',
-    )
-
-    def __repr__(self):
-        keys = ['id', 'name', 'control_id', 'control_name', 'power']
-        kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
-
-        return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
-
-    def __eq__(self, other):
-        return (isinstance(self, ContestedSystem) and isinstance(other, ContestedSystem)
-                and self.__hash__() == other.__hash__())
-
-    def __hash__(self):
-        return hash("{}_{}".format(self.id, self.control_id))
 
 
 # Bidirectional relationships
@@ -1930,6 +1928,7 @@ def recreate_tables():  # pragma: no cover | destructive to test
                 con.execute(sqla.sql.text(drop_cmd))
     except (sqla.exc.OperationalError, sqla.exc.ProgrammingError):
         pass
+
     meta = sqlalchemy.MetaData(bind=cogdb.eddb_engine)
     meta.reflect()
     for tbl in reversed(meta.sorted_tables):
@@ -1940,7 +1939,7 @@ def recreate_tables():  # pragma: no cover | destructive to test
 
     Base.metadata.create_all(cogdb.eddb_engine)
     try:
-        ContestedSystem.__table__.drop(cogdb.eddb_engine)
+        SystemContested.__table__.drop(cogdb.eddb_engine)
     except sqla.exc.OperationalError:
         pass
     try:
@@ -2069,7 +2068,7 @@ def main():  # pragma: no cover
         print("Influence count:", eddb_session.query(Influence).count())
         print("Populated System count:", eddb_session.query(System).count())
         print("Station count:", eddb_session.query(Station).count())
-        print("Contested count:", eddb_session.query(ContestedSystem).count())
+        print("Contested count:", eddb_session.query(SystemContested).count())
         print("Time taken:", datetime.datetime.utcnow() - start)
         #  main_test_area(eddb_session)
 
