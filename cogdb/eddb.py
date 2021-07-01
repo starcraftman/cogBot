@@ -4,6 +4,8 @@ All schema logic related to eddb.
 Note there may be duplication between here and side.py.
 The latter is purely a mapping of sidewinder's remote.
 This module is for internal use.
+
+N.B. Don't put subqueries in FROM of views for now, doesn't work on test docker.
 """
 import copy
 import datetime
@@ -63,11 +65,12 @@ AS
     SELECT s.id as system_id, s.name as system_name,
            c.id as control_id, c.name as control_name,
            p.text as power
-    FROM systems s
-    CROSS JOIN (select id, name, power_id, x, y, z from systems where power_state_id = 16) AS c
+    FROM systems as s
+    CROSS JOIN systems as c
     INNER JOIN powers as p ON c.power_id = p.id
     WHERE
         s.power_state_id = 48 AND
+        c.power_state_id = 16 AND
         (c.x - s.x) * (c.x - s.x) +
         (c.y - s.y) * (c.y - s.y) +
         (c.z - s.z) * (c.z - s.z) <= 225
@@ -80,10 +83,11 @@ AS
            c.id as control_id, c.name as control_name,
            p.text as power
     FROM systems s
-    CROSS JOIN (select id, name, power_id, x, y, z from systems where power_state_id = 16) AS c
+    CROSS JOIN systems as c
     INNER JOIN powers as p ON c.power_id = p.id
     WHERE
         s.power_state_id in (32, 48) AND
+        c.power_state_id = 16 AND
         (c.x - s.x) * (c.x - s.x) +
         (c.y - s.y) * (c.y - s.y) +
         (c.z - s.z) * (c.z - s.z) <= 225
