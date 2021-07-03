@@ -1230,7 +1230,7 @@ def monitor_factions(session, faction_names=None):
 
 
 @wrap_exceptions
-def get_system_ages(session, controls):
+def get_system_ages(session, controls, cutoff=1):
     """
     Get the list of Systems that have stale EDDN data.
 
@@ -1238,7 +1238,8 @@ def get_system_ages(session, controls):
         {'control': [system, system], ...}
     """
     ages = session.query(SystemAge).\
-        filter(SystemAge.control.in_(controls)).\
+        filter(SystemAge.control.in_(controls),
+               SystemAge.age >= cutoff).\
         all()
 
     map_ages = {x: [] for x in controls}

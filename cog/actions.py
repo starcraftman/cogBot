@@ -559,7 +559,7 @@ class BGS(Action):
         resp += "\n".join(controls)
 
         control_ages = await self.bot.loop.run_in_executor(None, cogdb.side.get_system_ages,
-                                                           kwargs['side_session'], controls)
+                                                           kwargs['side_session'], controls, self.args.age)
         for control_name in control_ages:
             resp += "\n\n__{}__\n".format(string.capwords(control_name))
             ages = control_ages[control_name]

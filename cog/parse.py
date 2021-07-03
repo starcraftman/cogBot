@@ -144,6 +144,8 @@ def subs_bgs(subs, prefix):
         Present the optimized route to jump and update EDMC for default systems.
 **{prefix}bgs edmc Rana, Frey**
         Present the optimized route to jump and update EDMC for Rana, Frey.
+**{prefix}bgs edmc --age 2 Rana, Frey**
+        Present the optimized route to jump and update EDMC for Rana, Frey.
 **{prefix}bgs exp Rana**
         Show all factions in Rana, select one, then show all expansion candidates.
 **{prefix}bgs expto Rana**
@@ -172,6 +174,7 @@ def subs_bgs(subs, prefix):
     subcmd = subcmds.add_parser('dash', help='Dashboard overview of exploiteds around a control.')
     subcmd.add_argument('system', nargs='+', help='The system to lookup.')
     subcmd = subcmds.add_parser('edmc', help='Create the EDMC update route.')
+    subcmd.add_argument('--age', type=int, default=1, help='The results will be this old or more.')
     subcmd.add_argument('system', nargs='*', help='The control systems to update.')
     subcmd = subcmds.add_parser('exp', help='Find expansion candidates from system.')
     subcmd.add_argument('system', nargs='+', help='The system to lookup.')
