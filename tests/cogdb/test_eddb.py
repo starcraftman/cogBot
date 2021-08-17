@@ -204,8 +204,7 @@ def test_get_nearest_ifactors(eddb_session):
     result = cogdb.eddb.get_nearest_ifactors(eddb_session, centre_name='Sol')
 
     system_names = {x[0] for x in result}
-    assert "Stopover" in system_names
-    assert "LHS 449" in system_names
+    assert "Barnard's Star" in system_names
 
 
 def test_um_trigger(eddb_session):

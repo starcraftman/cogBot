@@ -1548,7 +1548,7 @@ async def test_cmd_near_if(f_bot):
     await action_map(msg, f_bot).execute()
 
     actual = str(f_bot.send_message.call_args).replace("\\n", "\n")
-    assert "Wolf 294 " in actual
+    assert "Barnard's Star" in actual
 
 
 def test_process_system_args():

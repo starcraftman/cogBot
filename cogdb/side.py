@@ -1238,8 +1238,8 @@ def get_system_ages(session, controls, cutoff=1):
         {'control': [system, system], ...}
     """
     ages = session.query(SystemAge).\
-        filter(SystemAge.control.in_(controls),
-               SystemAge.age >= cutoff).\
+        filter(SystemAge.control.in_(controls)).\
+        having(SystemAge.age >= cutoff).\
         all()
 
     map_ages = {x: [] for x in controls}
