@@ -1126,7 +1126,7 @@ def recreate_tables():
     meta.reflect()
     for tbl in reversed(meta.sorted_tables):
         try:
-            if not str(tbl in exclude):
+            if not str(tbl) in exclude:
                 tbl.drop()
         except sqla.exc.OperationalError:
             pass
@@ -1134,12 +1134,6 @@ def recreate_tables():
 
     with cogdb.engine.connect() as con:
         con.execute(sqla.sql.text(EVENT_CARRIER.format(cogdb.CUR_DB).strip()))
-
-
-if cogdb.TEST_DB:
-    recreate_tables()
-else:
-    Base.metadata.create_all(cogdb.engine)
 
 
 def run_schema_queries(session):  # pragma: no cover
@@ -1239,6 +1233,12 @@ def run_schema_queries(session):  # pragma: no cover
 
     #  print(session.query(FortSystem).filter(FortSystem.cmdr_merits > 100).all())
     print(session.query(FortUser).filter(FortUser.dropped > 100).all())
+
+
+if cogdb.TEST_DB:
+    recreate_tables()
+else:
+    Base.metadata.create_all(cogdb.engine)
 
 
 def main():  # pragma: no cover
