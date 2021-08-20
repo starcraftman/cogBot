@@ -192,9 +192,13 @@ class FortSystem(Base):
     sheet_order = sqla.Column(sqla.Integer)
     manual_order = sqla.Column(sqla.Integer, nullable=True)
 
-    ocr_index = sqla.orm.relationship(
-        'OCRIndex', lazy='select', back_populates='fort_system',
-        primaryjoin='foreign(OCRIndex.system) == remote(FortSystem.name)',
+    ocr_tracker = sqla.orm.relationship(
+        'OCRTracker', lazy='select', uselist=False, backref='fort_system',
+        primaryjoin='remote(OCRTracker.system) == foreign(FortSystem.name)',
+    )
+    ocr_trigger = sqla.orm.relationship(
+        'OCRTrigger', lazy='select', uselist=False, backref='fort_system',
+        primaryjoin='remote(OCRTrigger.system) == foreign(FortSystem.name)',
     )
 
     __mapper_args__ = {
@@ -378,8 +382,8 @@ class FortPrep(FortSystem):
     }
 
     ocr_prep = sqla.orm.relationship(
-        'OCRPrep', lazy='select', back_populates='prep_system',
-        primaryjoin='foreign(OCRPrep.system) == remote(FortPrep.name)',
+        'OCRPrep', lazy='select', backref='prep_system',
+        primaryjoin='remote(OCRPrep.system) == foreign(FortPrep.name)',
     )
 
     @property
@@ -983,75 +987,28 @@ class TrackByID(Base):
         return ("{}{}".format(self.id, " (O)" if self.override else ""), self.squad, self.system)
 
 
-class OCRIndex(Base):
-    """
-    Index to assign IDs to any system tracked by OCR.
-    """
-    __tablename__ = 'ocr_index'
-
-    id = sqla.Column(sqla.Integer, primary_key=True)
-    system = sqla.Column(sqla.String(LEN_NAME), default="")
-
-    fort_system = sqla.orm.relationship(
-        'FortSystem', lazy='select', back_populates='ocr_index',
-        primaryjoin='foreign(OCRIndex.system) == remote(FortSystem.name)',
-    )
-    trackers = sqla.orm.relationship(
-        'OCRTracker', lazy='select', uselist=True, back_populates='ocr_index',
-    )
-    trigger = sqla.orm.relationship(
-        'OCRTrigger', lazy='select', back_populates='ocr_index', uselist=False,
-    )
-
-    def __repr__(self):
-        keys = ['id', 'system']
-        kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
-
-        return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
-
-    def __eq__(self, other):
-        return isinstance(other, OCRIndex) and hash(self) == hash(other)
-
-    def __lt__(self, other):
-        return self.system < other.system
-
-    def __hash__(self):
-        return hash("{}".format(self.id))
-
-
 class OCRTracker(Base):
     """
     Track systems' Fort and UM from OCR.
     """
-
-    # TODO: Create relations between OCRTracker and FortSystems
     __tablename__ = 'ocr_live_tracker'
 
     id = sqla.Column(sqla.Integer, primary_key=True)
-    system_id = sqla.Column(sqla.Integer, sqla.ForeignKey('ocr_index.id'))
-    cycle = sqla.Column(sqla.Integer, default=0)
+    system = sqla.Column(sqla.String(LEN_NAME), index=True, nullable=False)
     fort = sqla.Column(sqla.Integer, default=0)
     um = sqla.Column(sqla.Integer, default=0)
-    updated_at = sqla.Column(sqla.DateTime(timezone=True), default=datetime.datetime.now(datetime.timezone.utc))  # All dates UTC
-
-    ocr_index = sqla.orm.relationship(
-        'OCRIndex', lazy='select', back_populates='trackers',
-    )
-    __table_args__ = (
-        sqla.UniqueConstraint(id, cycle, updated_at),
-    )
+    updated_at = sqla.Column(sqla.DateTime(timezone=False), default=datetime.datetime.utcnow())  # All dates UTC
 
     def __repr__(self):
-        keys = ['id', 'system_id', 'cycle', 'fort', 'um', 'updated_at']
+        keys = ['id', 'system', 'fort', 'um', 'updated_at']
         kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
 
         return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
 
     def __str__(self):
         """ A pretty one line to give all information. """
-        return "C{cycle} {system} : **Fort {fort}**  **UM {um}**  Last Update at {date}".format(
-            um=self.um, fort=self.fort, cycle=self.cycle,
-            system=self.system if self.system else "No Info", date=self.updated_at
+        return "{system}: **Fort {fort}**  **UM {um}**  Last Update at {date}".format(
+            um=self.um, fort=self.fort, system=self.system, date=self.updated_at
         )
 
     def __eq__(self, other):
@@ -1061,9 +1018,7 @@ class OCRTracker(Base):
         return self.fort < other.fort and self.um < other.um
 
     def __hash__(self):
-        return hash("{}-{}-{}".format(self.id, self.cycle, self.updated_at))
-
-    # def update(self, **kwargs)
+        return hash("{}".format(self.system))
 
 
 class OCRTrigger(Base):
@@ -1072,41 +1027,31 @@ class OCRTrigger(Base):
     """
     __tablename__ = 'ocr_trigger_tracker'
 
-    header = ["ID", "System_name", "Fort_Trigger", "Um_Trigger"]
+    header = ["ID", "System", "Fort Trigger", "UM Trigger"]
 
     id = sqla.Column(sqla.Integer, primary_key=True)
-    system_id = sqla.Column(sqla.Integer, sqla.ForeignKey('ocr_index.id'))
-    cycle = sqla.Column(sqla.Integer, default=0)
+    system = sqla.Column(sqla.String(LEN_NAME), index=True, nullable=False)
     fort_trigger = sqla.Column(sqla.Integer, default=0)
     um_trigger = sqla.Column(sqla.Integer, default=0)
-    updated_at = sqla.Column(sqla.DateTime(timezone=True),
-                             default=datetime.datetime.now(datetime.timezone.utc))  # All dates UTC
-    ocr_index = sqla.orm.relationship(
-        'OCRIndex', lazy='select', back_populates='trigger',
-    )
-    __table_args__ = (
-        sqla.UniqueConstraint(id, cycle),
-    )
+    updated_at = sqla.Column(sqla.DateTime(timezone=False), default=datetime.datetime.utcnow())  # All dates UTC
 
     def __repr__(self):
-        keys = ['id', 'system_id', 'cycle', 'fort_trigger', 'um_trigger', 'updated_at']
+        keys = ['id', 'system', 'fort_trigger', 'um_trigger', 'updated_at']
         kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
 
         return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
 
     def __str__(self):
         """ A pretty one line to give all information. """
-        return "C{cycle} {system} : {fort_trigger}:{um_trigger}  Last Update at {date}".format(
-            um_trigger=self.um_trigger, fort_trigger=self.fort_trigger, cycle=self.cycle,
-            system=self.system_name, date=self.updated_at)
+        return "{system}: {fort_trigger}:{um_trigger}  Last Update at {date}".format(
+            um_trigger=self.um_trigger, fort_trigger=self.fort_trigger,
+            system=self.system, date=self.updated_at)
 
     def __eq__(self, other):
         return isinstance(other, OCRTrigger) and hash(self) == hash(other)
 
     def __hash__(self):
-        return hash("{}-{}".format(self.id, self.cycle))
-
-    # def update(self, **kwargs)
+        return hash("{}".format(self.system))
 
 
 class OCRPrep(Base):
@@ -1115,41 +1060,31 @@ class OCRPrep(Base):
     """
     __tablename__ = 'ocr_prep_tracker'
 
-    header = ["ID", "System_name", "Merits", "Consolidation"]
+    header = ["ID", "System", "Merits", "Consolidation"]
 
     id = sqla.Column(sqla.Integer, primary_key=True)
-    system = sqla.Column(sqla.String(LEN_NAME), unique=True)
-    cycle = sqla.Column(sqla.Integer, default=0)
+    system = sqla.Column(sqla.String(LEN_NAME), index=True)
     merits = sqla.Column(sqla.Integer, default=0)
     consolidation = sqla.Column(sqla.Integer, default=0)
-    updated_at = sqla.Column(sqla.DateTime(timezone=True),
-                             default=datetime.datetime.now(datetime.timezone.utc))  # All dates UTC
-
-    prep_system = sqla.orm.relationship(
-        'FortPrep', lazy='select', back_populates='ocr_prep',
-        primaryjoin='foreign(OCRPrep.system) == remote(FortPrep.name)',
-    )
-    __table_args__ = (
-        sqla.UniqueConstraint(cycle, system),
-    )
+    updated_at = sqla.Column(sqla.DateTime(timezone=False), default=datetime.datetime.utcnow())  # All dates UTC
 
     def __repr__(self):
-        keys = ['id', 'cycle', 'system', 'merits', 'consolidation', 'updated_at']
+        keys = ['id', 'system', 'merits', 'consolidation', 'updated_at']
         kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
 
         return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
 
     def __str__(self):
         """ A pretty one line to give all information. """
-        return "C{cycle} {system} : {merits} --Current Vote {consolidation}%  Last Update at {date}".format(
+        return "{system}: {merits} --Current Vote {consolidation}%  Last Update at {date}".format(
             consolidation=self.consolidation, merits=self.merits,
-            system=self.system, date=self.updated_at, cycle=self.cycle)
+            system=self.system, date=self.updated_at)
 
     def __eq__(self, other):
         return isinstance(other, OCRPrep) and hash(self) == hash(other)
 
     def __hash__(self):
-        return hash("{}-{}".format(self.id, self.cycle))
+        return hash("{}".format(self.system))
 
 
 def kwargs_um_system(cells, sheet_col):
@@ -1413,33 +1348,26 @@ def run_schema_queries(session):  # pragma: no cover
     #  print(session.query(FortSystem).filter(FortSystem.cmdr_merits > 100).all())
     print(session.query(FortUser).filter(FortUser.dropped > 100).all())
 
-    ocrs = (
-        OCRIndex(system='Frey'),
-        OCRIndex(system='Adeo'),
-        OCRIndex(system='Sol'),
-        OCRIndex(system='Othime'),
-    )
-    session.add_all(ocrs)
-    session.commit()
-
     date = datetime.datetime.utcnow()
-    date2 = date - datetime.timedelta(hours=2)
     ocrs_systems = (
-        OCRTracker(system_id=ocrs[0].id, updated_at=date),
-        OCRTracker(system_id=ocrs[0].id, updated_at=date2),
-        OCRTracker(system_id=ocrs[1].id),
-        OCRTracker(system_id=ocrs[2].id),
-        OCRPrep(system=ocrs[3].system),
-        OCRTrigger(system_id=ocrs[0].id)
+        OCRTracker(system="Frey", updated_at=date),
+        OCRTracker(system="Adeo"),
+        OCRTracker(system="Sol"),
+        OCRPrep(system="Othime"),
+        OCRTrigger(system="Frey")
     )
     session.add_all(ocrs_systems)
     session.commit()
 
-    ocr_index = session.query(OCRIndex).filter(OCRIndex.system == 'Frey').one()
-    print("\n\nOCRIndex Relationships in order")
-    __import__('pprint').pprint(ocr_index.fort_system)
-    __import__('pprint').pprint(ocr_index.trackers)
-    __import__('pprint').pprint(ocr_index.trigger)
+    print("\n\nOCR Relationships and Objects")
+    print(session.query(OCRTracker).filter(OCRTracker.system == "Frey").one())
+    print(session.query(OCRPrep).one())
+    print(session.query(OCRTrigger).one())
+
+    sys = session.query(FortSystem).filter(FortSystem.name == "Frey").one()
+    print(sys)
+    print(sys.ocr_tracker)
+    print(sys.ocr_trigger)
 
 
 if cogdb.TEST_DB:

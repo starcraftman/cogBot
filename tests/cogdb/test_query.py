@@ -10,7 +10,8 @@ import cog.exc
 import cogdb
 from cogdb.schema import (DiscordUser, FortSystem, FortUser, FortOrder,
                           UMUser, UMHold, AdminPerm, ChannelPerm, RolePerm,
-                          KOS, TrackSystem, TrackSystemCached, TrackByID)
+                          KOS, TrackSystem, TrackSystemCached, TrackByID,
+                          OCRTracker, OCRTrigger, OCRPrep)
 import cogdb.query
 
 from tests.data import SYSTEMS, USERS

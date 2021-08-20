@@ -9,6 +9,7 @@ Utility functions
     pastebin_new_paste - Upload something to pastebin.
 """
 import asyncio
+import datetime
 import logging
 import logging.handlers
 import logging.config
@@ -534,6 +535,18 @@ def merge_msgs_to_least(parts, limit=MSG_LIMIT):
         new_parts += [cur_part]
 
     return new_parts
+
+
+# TODO: Use later.
+class TimestampMixin():
+    """
+    Simple mixing that converts updated_at timestamp to a datetime object.
+    """
+    def utc_date_notz(self):
+        return datetime.datetime.utcfromtimestamp(self.updated_at)
+
+    def utc_date_tz(self):
+        return datetime.datetime.utcfromtimestamp(self.updated_at).astimezone(datetime.timezone.utc)
 
 
 #  # Scenario multiple readers, always allowed

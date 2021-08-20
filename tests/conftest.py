@@ -27,7 +27,8 @@ import cogdb.query
 from cogdb.schema import (DiscordUser, FortSystem, FortPrep, FortDrop, FortUser, FortOrder,
                           UMSystem, UMExpand, UMOppose, UMUser, UMHold, KOS,
                           AdminPerm, ChannelPerm, RolePerm,
-                          TrackSystem, TrackSystemCached, TrackByID)
+                          TrackSystem, TrackSystemCached, TrackByID,
+                          OCRTracker, OCRTrigger, OCRPrep)
 from tests.data import CELLS_FORT, CELLS_FORT_FMT, CELLS_UM
 
 
@@ -705,5 +706,31 @@ def f_track_testbed(session):
 
     session.rollback()
     for cls in (TrackSystem, TrackSystemCached, TrackByID):
+        session.query(cls).delete()
+    session.commit()
+
+
+@pytest.fixture
+def f_ocr_testbed(session):
+    """
+    Setup the database with dummy data for track tests.
+    """
+    date = datetime.datetime.utcnow()
+    ocr_tracks = (
+        OCRTracker(system="Frey", updated_at=date),
+        OCRTracker(system="Adeo"),
+        OCRTracker(system="Sol"),
+    )
+    ocr_triggers = (
+        OCRPrep(system="Othime"),
+    )
+    ocr_preps = (
+        OCRTrigger(system="Frey")
+    )
+
+    yield ocr_tracks, ocr_triggers, ocr_preps,
+
+    session.rollback()
+    for cls in (OCRPrep, OCRTrigger, OCRTracker):
         session.query(cls).delete()
     session.commit()
