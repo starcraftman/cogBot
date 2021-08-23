@@ -101,6 +101,7 @@ class FortScanner():
 
         self.flush_to_db(session, (users, systems, drops))
 
+    # TODO: Change to updating objects instead of deleting.
     def flush_to_db(self, session, new_objs):
         """
         Flush the parsed values directly into the database.
@@ -760,126 +761,151 @@ class OCRScanner(FortScanner):
     def __init__(self, asheet):
         super().__init__(asheet, [])
 
+        # All columns are mapped from letters to indices, so B == 1
+        self.start_row = 2  # Usable info starts on this row
+        self.prep_consolidation_row = 8  # Consolidation always at this row of prep column
+        self.prep_col = 3  # Col where prep info starts
+        self.trigger_col = 11  # Col where trigger info starts
+
     def __repr__(self):
         return super().__repr__().replace('FortScanner', 'OCRScanner')
 
     def parse_sheet(self, session=None):
-        """
-        Push the update of OCR data to the database.
-        """
-        live = self.live()
-        prep = self.prep()
-        system_names = [x[2:] for x in self.cells_col_major[:1]][0]
-        if session:
-            cogdb.query.ocr_update_indexes(session, system_names)
-            trigger = self.trigger(session)
-            cogdb.query.update_ocr_live(session, live[0], live[1])
-            cogdb.query.update_ocr_prep(session, prep[0])
-            cogdb.query.update_ocr_trigger(session, trigger[0], trigger[1])
-            session.commit()
-            session.close()
-        else:
-            with cogdb.session_scope(cogdb.Session) as session:
-                # fort_systems = cogdb.query.fort_get_systems(session)
-                # fort_systems_names = [x.name for x in fort_systems]
-                # good_systems = set(fort_systems_names.lower()).intersection(set(system_names.lower()))
-                cogdb.query.ocr_update_indexes(session, system_names)
-                trigger = self.trigger(session)
-                cogdb.query.update_ocr_live(session, live[0], live[1])
-                cogdb.query.update_ocr_prep(session, prep[0])
-                cogdb.query.update_ocr_trigger(session, trigger[0], trigger[1])
+        # Date in format: 2021-08-22 20:33:07',
+        __import__('pprint').pprint(self.cells_row_major[0])
+        sheet_date = datetime.datetime.strptime(self.cells_row_major[0][2], "%Y-%m-%d %H:%M:%S")
 
-    def live(self, *, row_cnt=2):
+        ocr_trackers = self.ocr_trackers(sheet_date)
+        ocr_preps = self.ocr_preps(sheet_date)
+        ocr_triggers = self.ocr_triggers(sheet_date)
+        __import__('pprint').pprint(ocr_trackers)
+        __import__('pprint').pprint(ocr_preps)
+        __import__('pprint').pprint(ocr_trackers)
+
+        # flush to db
+        #  cogdb.query.update_ocr_live(session, ocr_trackers)
+        #  cogdb.query.update_ocr_prep(session, ocr_preps)
+
+        #  oldest_trigger = cogdb.query.get_oldest_ocr_trigger(session)
+        #  if self.should_update_trigger(oldest_trigger, sheet_date):
+        ocr_triggers = self.ocr_triggers(sheet_date)
+        #  cogdb.query.update_ocr_trigger(session, ocr_triggers)
+
+    def should_update_trigger(self, oldest_trigger, sheet_date):
         """
-        Scan the live data in the sheet.
-        Update date : cell C1
-        Expected format:
-            System name | Fort value | Um value
+        Triggers are updated exactly ONCE post tick.
+        Returns True if and only if either of these:
+            1) The oldest trigger is more than 7 days old.
+            2) The sheet update is being processed in first 2 hours post tick.
+        """
+        update_time = sheet_date.replace(microsecond=0)
+        today = update_time.replace(hour=0, minute=0, second=0)  # pylint: disable=unexpected-keyword-arg
+        weekly_tick = today + datetime.timedelta(hours=7)
+        while weekly_tick < update_time or weekly_tick.strftime('%A') != 'Thursday':
+            weekly_tick += datetime.timedelta(days=1)
+
+        trigger_stale = (sheet_date - oldest_trigger.updated_at).days >= 7
+        over_7_days = (weekly_tick - update_time).days >= 7
+
+        return trigger_stale or over_7_days
+
+    def ocr_trackers(self, sheet_date):
+        """
+        Parse and return all OCR Tracking information for current forts.
 
         Args:
-            row_cnt: The starting row for data, zero-based.
+            sheet_date: The date of the last sheet update.
 
-        Returns: A dictionary ready to update db.
+        Returns: All parsed trackers.
         """
-        found = {}
+        trackers = {}
+        for row in self.cells_row_major[self.start_row:]:
+            try:
+                system = row[0].lower().capitalize()
+                trackers[system] = {
+                    'system': system,
+                    'fort': int(row[1]),
+                    'um': int(row[2]),
+                    'updated_at': sheet_date,
+                }
+            except ValueError:
+                logging.getLogger(__name__).error("Failed to parse row: %s", str(row))
 
-        updated_at = self.cells_col_major[2:3][0][:1]
-        formatted_date = datetime.datetime.fromisoformat(str(updated_at[0]))
-        users = [x[row_cnt:] for x in self.cells_col_major[1:3]]
-        index = 1
-        for fort, um in list(zip(*users)):
-            # TODO: Need system name, fort value, um value checks here
+        return trackers
 
-            found[index] = {
-                "id": index,
-                "fort": fort,
-                "um": um,
-                "updated_at": formatted_date
-            }
-            index += 1
-        return (found, formatted_date)
-
-    def trigger(self, session, *, row_cnt=2):
+    def ocr_preps(self, sheet_date):
         """
-        Scan the live data in the sheet.
-        Update date : cell C1
-        Expected format:
-            System name | Fort_trigger value | Um_trigger value
-
-        Args:
-            session: current cogdb Session
-            row_cnt: The starting row for data, zero-based.
-
-        Returns: A dictionary ready to update db.
+        Parse and return all OCR Preps listed.
         """
-        found = {}
+        consolidation = int(self.cells_row_major[self.prep_consolidation_row][self.prep_col])
+        preps = {}
+        for row in self.cells_row_major[self.start_row:]:
+            try:
+                system = row[self.prep_col].lower().capitalize()
+                if not system:
+                    break
+                preps[system] = {
+                    'system': system,
+                    'merits': int(row[self.prep_col + 1]),
+                    'consolidation': consolidation,
+                    'updated_at': sheet_date,
+                }
+            except ValueError:
+                logging.getLogger(__name__).error("Failed to parse row: %s", str(row))
 
-        updated_at = self.cells_col_major[2:3][0][:1]
-        formatted_date = datetime.datetime.fromisoformat(str(updated_at[0]))
-        users = [x[row_cnt:] for x in self.cells_col_major[14:16]]
-        index = 1
-        for fort_trigger, um_trigger in list(zip(*users)):
-            # TODO: Need system name, fort value, um value checks here
-            found[index] = {
-                "id": index,
-                "fort_trigger": fort_trigger,
-                "um_trigger": um_trigger,
-                "updated_at": formatted_date
-            }
-            index += 1
-        return (found, formatted_date)
+        return preps
 
-    def prep(self, *, row_cnt=2):
+    def ocr_triggers(self, sheet_date):
         """
-        Scan the live data in the sheet.
-        Update date : cell C1
-        Expected format:
-            System name | Merits
+        Parse and return all OCR Triggers listed for the cycle.
 
-        Args:
-            session: current cogdb Session
-            row_cnt: The starting row for data, zero-based.
+        IMPORTANT:
+        Triggers are updated EXACTLY once a week. Only update them in the few hours after tick.
 
-        Returns: A dictionary ready to update db.
+        Returns:k
         """
-        found = {}
+        triggers = {}
+        for row in self.cells_row_major[self.start_row:]:
+            try:
+                system = row[self.trigger_col].lower().capitalize()
+                triggers[system] = {
+                    'system': system,
+                    'last_upkeep': int(row[self.trigger_col + 1]),
+                    'base_incomer': int(row[self.trigger_col + 2]),
+                    'fort_trigger': int(row[self.trigger_col + 3]),
+                    'um_trigger': int(row[self.trigger_col + 4]),
+                    'upated_at': sheet_date,
+                }
+            except ValueError:
+                logging.getLogger(__name__).error("Failed to parse row: %s", str(row))
 
-        updated_at = self.cells_col_major[2:3][0][:1]
-        formatted_date = datetime.datetime.fromisoformat(str(updated_at[0]))
-        consolidation = self.cells_col_major[3:4][0][8:9]
-        users = [x[row_cnt:7] for x in self.cells_col_major[3:5]]
-        index = 1
-        for system_name, merits in list(zip(*users)):
-            # TODO: Need system name, merits value and consolidation value checks here
-            found[index] = {
-                "id": index,
-                "system": system_name,
-                "merits": merits,
-                "consolidation": int(consolidation[0]),
-                "updated_at": formatted_date
-            }
-            index += 1
-        return (found, formatted_date)
+        return triggers
+
+    #  def parse_sheet_old(self, session=None):
+        #  """
+        #  Push the update of OCR data to the database.
+        #  """
+        #  live = self.live()
+        #  prep = self.prep()
+        #  system_names = [x[2:] for x in self.cells_col_major[:1]][0]
+        #  if session:
+            #  cogdb.query.ocr_update_indexes(session, system_names)
+            #  trigger = self.trigger(session)
+            #  cogdb.query.update_ocr_live(session, live[0], live[1])
+            #  cogdb.query.update_ocr_prep(session, prep[0])
+            #  cogdb.query.update_ocr_trigger(session, trigger[0], trigger[1])
+            #  session.commit()
+            #  session.close()
+        #  else:
+            #  with cogdb.session_scope(cogdb.Session) as session:
+                #  # fort_systems = cogdb.query.fort_get_systems(session)
+                #  # fort_systems_names = [x.name for x in fort_systems]
+                #  # good_systems = set(fort_systems_names.lower()).intersection(set(system_names.lower()))
+                #  cogdb.query.ocr_update_indexes(session, system_names)
+                #  trigger = self.trigger(session)
+                #  cogdb.query.update_ocr_live(session, live[0], live[1])
+                #  cogdb.query.update_ocr_prep(session, prep[0])
+                #  cogdb.query.update_ocr_trigger(session, trigger[0], trigger[1])
 
 
 async def init_scanners():

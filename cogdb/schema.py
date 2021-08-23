@@ -194,11 +194,13 @@ class FortSystem(Base):
 
     ocr_tracker = sqla.orm.relationship(
         'OCRTracker', lazy='select', uselist=False, backref='fort_system',
-        primaryjoin='remote(OCRTracker.system) == foreign(FortSystem.name)',
+        primaryjoin='remote(FortSystem.name) == foreign(OCRTracker.system)',
+        cascade='all, delete, delete-orphan',
     )
     ocr_trigger = sqla.orm.relationship(
         'OCRTrigger', lazy='select', uselist=False, backref='fort_system',
-        primaryjoin='remote(OCRTrigger.system) == foreign(FortSystem.name)',
+        primaryjoin='remote(FortSystem.name) == foreign(OCRTrigger.system)',
+        cascade='all, delete, delete-orphan',
     )
 
     __mapper_args__ = {
@@ -382,8 +384,9 @@ class FortPrep(FortSystem):
     }
 
     ocr_prep = sqla.orm.relationship(
-        'OCRPrep', lazy='select', backref='prep_system',
-        primaryjoin='remote(OCRPrep.system) == foreign(FortPrep.name)',
+        'OCRPrep', lazy='select', uselist=False, backref='fort_prep',
+        primaryjoin='remote(FortSystem.name) == foreign(OCRPrep.system)',
+        cascade='all, delete, delete-orphan',
     )
 
     @property
@@ -994,6 +997,7 @@ class OCRTracker(Base):
     __tablename__ = 'ocr_live_tracker'
 
     id = sqla.Column(sqla.Integer, primary_key=True)
+    #  system = sqla.Column(sqla.String(LEN_NAME), sqla.ForeignKey('hudson_fort_systems.name'), nullable=False)
     system = sqla.Column(sqla.String(LEN_NAME), index=True, nullable=False)
     fort = sqla.Column(sqla.Integer, default=0)
     um = sqla.Column(sqla.Integer, default=0)
@@ -1030,7 +1034,10 @@ class OCRTrigger(Base):
     header = ["ID", "System", "Fort Trigger", "UM Trigger"]
 
     id = sqla.Column(sqla.Integer, primary_key=True)
+    #  system = sqla.Column(sqla.String(LEN_NAME), sqla.ForeignKey('hudson_fort_systems.name'), nullable=False)
     system = sqla.Column(sqla.String(LEN_NAME), index=True, nullable=False)
+    base_income = sqla.Column(sqla.Integer, default=0)
+    last_upkeep = sqla.Column(sqla.Integer, default=0)
     fort_trigger = sqla.Column(sqla.Integer, default=0)
     um_trigger = sqla.Column(sqla.Integer, default=0)
     updated_at = sqla.Column(sqla.DateTime(timezone=False), default=datetime.datetime.utcnow())  # All dates UTC
@@ -1063,7 +1070,8 @@ class OCRPrep(Base):
     header = ["ID", "System", "Merits", "Consolidation"]
 
     id = sqla.Column(sqla.Integer, primary_key=True)
-    system = sqla.Column(sqla.String(LEN_NAME), index=True)
+    #  system = sqla.Column(sqla.String(LEN_NAME), sqla.ForeignKey('hudson_fort_systems.name'), nullable=False)
+    system = sqla.Column(sqla.String(LEN_NAME), index=True, nullable=False)
     merits = sqla.Column(sqla.Integer, default=0)
     consolidation = sqla.Column(sqla.Integer, default=0)
     updated_at = sqla.Column(sqla.DateTime(timezone=False), default=datetime.datetime.utcnow())  # All dates UTC
@@ -1368,6 +1376,9 @@ def run_schema_queries(session):  # pragma: no cover
     print(sys)
     print(sys.ocr_tracker)
     print(sys.ocr_trigger)
+
+    #  sys = session.query(FortSystem).filter(FortSystem.name == "Othime").one()
+    #  print(sys.ocr_prep)
 
 
 if cogdb.TEST_DB:

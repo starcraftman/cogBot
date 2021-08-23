@@ -1184,18 +1184,22 @@ class Pin(Action):
     """
     # TODO: Incomplete, expect bot to manage pin entirely. Left undocumented.
     async def execute(self):
-        systems = cogdb.query.fort_get_targets(self.session)
-        systems.reverse()
-        systems += cogdb.query.fort_get_next_targets(self.session, count=5)
-        for defer in cogdb.query.fort_get_deferred_targets(self.session):
-            if defer.name != "Othime":
-                systems += [defer]
+        ocr_scanner = get_scanner('hudson_ocr')
+        await ocr_scanner.update_cells()
+        with cogdb.session_scope(cogdb.Session) as session:
+            ocr_scanner.parse_sheet(session)
+        #  systems = cogdb.query.fort_get_targets(self.session)
+        #  systems.reverse()
+        #  systems += cogdb.query.fort_get_next_targets(self.session, count=5)
+        #  for defer in cogdb.query.fort_get_deferred_targets(self.session):
+            #  if defer.name != "Othime":
+                #  systems += [defer]
 
-        lines = [":Fortifying: {}{}".format(
-            sys.name, " **{}**".format(sys.notes) if sys.notes else "") for sys in systems]
-        lines += [":Fortifying: The things in the list after that"]
+        #  lines = [":Fortifying: {}{}".format(
+            #  sys.name, " **{}**".format(sys.notes) if sys.notes else "") for sys in systems]
+        #  lines += [":Fortifying: The things in the list after that"]
 
-        await self.bot.send_message(self.msg.channel, cog.tbl.wrap_markdown('\n'.join(lines)))
+        #  await self.bot.send_message(self.msg.channel, cog.tbl.wrap_markdown('\n'.join(lines)))
 
         # TODO: Use later in proper pin manager
         # to_delete = [msg]

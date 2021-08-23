@@ -5,7 +5,6 @@ import copy
 import logging
 import os
 import tempfile
-import datetime
 
 import sqlalchemy as sqla
 import sqlalchemy.exc as sqla_exc
@@ -939,126 +938,125 @@ def track_ids_newer_than(session, date):
         all()
 
 
-def update_ocr_live(session, ids_dict, date_obj=None):
+def update_ocr_live(session, trackers_dict, sheet_date=None):
     """
     Update the tracked IDs into the database.
-    ids_dict is a dict of form:
+    tracker_dict is a dict of form:
         {
             SYSTEM:
                 {
+                    'system': SYSTEM,
                     'fort': FORT,
                     'um': UM,
-                    'updated_at': datetime obj
+                    'updated_at': UPDATED_AT,
                 },
             ...
         }
 
     FORT, UM and UPDATED_AT are the respective data to store for a SYSTEM in schema:
     If the information exists it will be updated, else inserted.
-    If updated_at not present but date_obj is, date_obj will be set as updated_at time.
+    If updated_at not present but sheet_date is, sheet_date will be set as updated_at time.
 
     Args:
         session: The session to db.
-        ids_dict: See above dictionary.
-        date_obj: Optional, if provided data will be accepted only if timestamp is newer. Expecting datetime object.
+        tracker_dict: See above dictionary.
+        sheet_date: Optionally will be used if no 'updated_at' key in dict.
 
-    Returns: (updated, added) - both lists are lists of system names
+    Returns: (updated, removed) - Both lists are SYSTEM names (str).
     """
     added, updated = [], []
     ocr_systems = session.query(OCRTracker).\
-        filter(OCRTracker.system.in_(ids_dict.keys())).\
+        filter(OCRTracker.system.in_(trackers_dict.keys())).\
         all()
 
-    copy_ids_dict = copy.deepcopy(ids_dict)
+    copy_tracker_dict = copy.deepcopy(trackers_dict)
     for system in ocr_systems:
         # Reject possible data that is older than current
-        if date_obj and system.updated_at >= date_obj:
-            del copy_ids_dict[system.id]
+        if sheet_date and system.updated_at >= sheet_date:
+            del copy_tracker_dict[system.id]
             continue
 
-        data = copy_ids_dict[system.name]
+        data = copy_tracker_dict[system.system]
 
+        # TODO: Move to obj.update(), validate internally.
         system.fort = data.get('fort', system.fort)
         system.um = data.get('um', system.um)
-        system.updated_at = data.get('updated_at', date_obj)
-        updated += [system.name]
+        system.updated_at = data.get('updated_at', sheet_date)
+        updated += [system.system]
 
-        del copy_ids_dict[system.id]
+        del copy_tracker_dict[system.system]
 
-    for data in copy_ids_dict.values():
+    for data in copy_tracker_dict.values():
         session.add(OCRTracker(**data))
         added += [data['system']]
 
     return (updated, added)
 
 
-def update_ocr_trigger(session, ids_dict, date_obj=None):
+def update_ocr_trigger(session, trigger_dict, sheet_date=None):
     """
     Update the tracked IDs into the database.
-    ids_dict is a dict of form:
+    trigger_dict is a dict of form:
         {
             SYSTEM: {
+                'system': SYSTEM,
                 'fort_trigger': FORT_TRIGGER,
                 'um_trigger': UM_TRIGGER,
-                'updated_at': datetime obj
+                'base_income': BASE_INCOME,
+                'last_upkeep': LAST_CYCLE_UPKEEP,
+                'updated_at': UPDATED_AT,
                 },
             ...
         }
 
-    FORT_TRIGGER and UM_TRIGGER and are the respective data to store for an ID in schema:
+    FORT_TRIGGER, UM_TRIGGER, BASE_INCOME, LAST_CYCLE_UPKEEP and UPDATED_AT are the
+    respective data to store for a SYSTEM in the dict.
     If the information exists it will be updated, else inserted.
 
     Args:
         session: The session to db.
-        ids_dict: See above dictionary.
-        date_obj: Optional, if provided data will be accepted only if timestamp is newer. Expecting datetime object.
+        trigger_dict: See above dictionary.
+        sheet_date: Optionally will be used if no 'updated_at' key in dict.
 
-    Returns: (list_updated, list_removed) - both lists are lists of IDs
+    Returns: (updated, removed) - Both lists are SYSTEM names (str).
     """
     added, updated = [], []
     ocr_systems = session.query(OCRTrigger).\
-        filter(OCRTrigger.system.in_(ids_dict.keys())).\
+        filter(OCRTrigger.system.in_(trigger_dict.keys())).\
         all()
 
-    if date_obj:
-        now = date_obj.replace(microsecond=0)
-        today = now.replace(hour=0, minute=0, second=0)  # pylint: disable=unexpected-keyword-arg
+    copy_trigger_dict = copy.deepcopy(trigger_dict)
+    for system in ocr_systems:
+        data = copy_trigger_dict[system.system]
 
-        weekly_tick = today + datetime.timedelta(hours=7)
-        while weekly_tick < now or weekly_tick.strftime('%A') != 'Thursday':
-            weekly_tick += datetime.timedelta(days=1)
+        # TODO: Move to obj.update(), validate internally.
+        system.fort_trigger = data.get("fort_trigger", system.fort_trigger)
+        system.um_trigger = data.get("um_trigger", system.um_trigger)
+        system.base_income = data.get("base_income", system.base_income)
+        system.last_upkeep = data.get("last_upkeep", system.last_upkeep)
+        system.updated_at = data.get('updated_at', sheet_date)
+        updated += [system.system]
 
-        # TODO Change this to trigger it once a day
-        if '6 days' in str(weekly_tick - now):
-            copy_ids_dict = copy.deepcopy(ids_dict)
-            for system in ocr_systems:
+        del copy_trigger_dict[system.system]
 
-                data = copy_ids_dict[system.id]
-
-                system.fort_trigger = data.get("fort_trigger", system.fort_trigger)
-                system.um_trigger = data.get("um_trigger", system.um_trigger)
-                system.updated_at = data.get('system_name', system.updated_at)
-                updated += [system.id]
-
-                del copy_ids_dict[system.id]
-
-            for data in copy_ids_dict.values():
-                session.add(OCRTrigger(**data))
-                added += [data['id']]
+    for data in copy_trigger_dict.values():
+        session.add(OCRTrigger(**data))
+        added += [data['system']]
 
     return (updated, added)
 
 
-def update_ocr_prep(session, ids_dict, date_obj=None):
+def update_ocr_prep(session, prep_dict, sheet_date=None):
     """
     Update the tracked IDs into the database.
-    ids_dict is a dict of form:
+    prep_dict is a dict of form:
         {
-            SYSTEM:
-                {'system': SYSTEM,
+            SYSTEM: {
+                'system': SYSTEM,
                 'merits': MERITS,
                 'consolidation': CONSOLIDATION
-                'updated_at': datetime obj},
+                'updated_at': datetime obj
+            },
             ...
         }
 
@@ -1067,33 +1065,48 @@ def update_ocr_prep(session, ids_dict, date_obj=None):
 
     Args:
         session: The session to db.
-        ids_dict: See above dictionary.
-        date_obj: Optional, if provided data will be accepted only if timestamp is newer. Expecting datetime object.
+        prep_dict: See above dictionary.
+        sheet_date: Optional, if provided data will be accepted only if timestamp is newer. Expecting datetime object.
 
-    Returns: (list_updated, list_removed) - both lists are lists of IDs
+    Returns: (updated, removed) - Both lists are SYSTEM names (str).
     """
     added, updated = [], []
     ocr_systems = session.query(OCRPrep).\
-        filter(OCRPrep.system.in_(ids_dict.keys())).\
+        filter(OCRPrep.system.in_(prep_dict.keys())).\
         all()
 
-    copy_ids_dict = copy.deepcopy(ids_dict)
+    copy_prep_dict = copy.deepcopy(prep_dict)
     for system in ocr_systems:
         # Reject possible data that is older than current
-        if date_obj and system.updated_at >= date_obj:
-            del copy_ids_dict[system.id]
+        if sheet_date and system.updated_at >= sheet_date:
+            del copy_prep_dict[system.system]
             continue
 
-        data = copy_ids_dict[system.id]
+        data = copy_prep_dict[system.system]
+
+        # TODO: Move to obj.update(), validate internally.
         system.merits = data.get("merits", system.merits)
         system.consolidation = data.get("consolidation", system.consolidation)
         system.updated_at = data.get("updated_at", system.updated_at)
         updated += [system.system]
 
-        del copy_ids_dict[system.id]
+        del copy_prep_dict[system.system]
 
-    for data in copy_ids_dict.values():
+    for data in copy_prep_dict.values():
         session.add(OCRPrep(**data))
-        added += [data['id']]
+        added += [data['system']]
 
     return (updated, added)
+
+
+def get_oldest_ocr_trigger(session):
+    """
+    Return the oldest OCRTrigger entry.
+
+    Args:
+        session: The session to db.
+    """
+    return session.query(OCRTrigger).\
+        order_by(OCRTrigger.updated_at.asc()).\
+        limit(1).\
+        one()

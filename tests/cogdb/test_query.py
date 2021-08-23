@@ -645,3 +645,107 @@ def test_users_with_um_merits(session, f_dusers, f_fort_testbed, f_um_testbed):
     cap = cogdb.query.users_with_um_merits(session)
     assert [x[0].display_name for x in cap] == ["User1", "User2"]
     assert [x[1] for x in cap] == [13950, 6050]
+
+
+def test_update_ocr_live(session, f_ocr_testbed):
+    session.add(OCRTracker(system='Sol', fort=7777, um=9999, updated_at=datetime.datetime(2021, 8, 23, 0, 33, 20)))
+    session.commit()
+    test_data = {
+        'Adeo': {
+            'system': 'Adeo',
+            'fort': 4444,
+            'um': 2332,
+            'updated_at': datetime.datetime(2021, 8, 23, 0, 33, 20),
+        },
+        'Sol': {
+            'system': 'Sol',
+            'fort': 3333,
+            'um': 400,
+            'updated_at': datetime.datetime(2021, 8, 23, 0, 33, 20),
+        },
+    }
+    cogdb.query.update_ocr_live(session, test_data)
+
+    tracks = session.query(OCRTracker).order_by(OCRTracker.system.asc()).all()
+    assert tracks[0].um == 2332
+    assert tracks[1].fort == 3333
+
+
+def test_update_ocr_trigger(session, f_ocr_testbed):
+    session.add(OCRTrigger(system='Sol', fort_trigger=7777, um_trigger=9999, updated_at=datetime.datetime(2021, 8, 23, 0, 33, 20)))
+    session.commit()
+    test_data = {
+        'Adeo': {
+            'system': 'Adeo',
+            'fort_trigger': 4444,
+            'um_trigger': 2332,
+            'base_income': 94,
+            'last_upkeep': 0,
+            'updated_at': datetime.datetime(2021, 8, 23, 0, 33, 20),
+        },
+        'Sol': {
+            'system': 'Sol',
+            'fort_trigger': 3333,
+            'um_trigger': 400,
+            'base_income': 4,
+            'last_upkeep': 30,
+            'updated_at': datetime.datetime(2021, 8, 23, 0, 33, 20),
+        },
+    }
+    cogdb.query.update_ocr_trigger(session, test_data)
+
+    tracks = session.query(OCRTrigger).order_by(OCRTrigger.system.asc()).all()
+    assert tracks[0].um_trigger == 2332
+    assert tracks[1].fort_trigger == 3333
+    assert tracks[1].base_income == 4
+
+
+def test_update_ocr_prep(session, f_ocr_testbed):
+    session.add(OCRPrep(system='Sol', merits=7777, consolidation=76, updated_at=datetime.datetime(2021, 8, 23, 0, 33, 20)))
+    session.commit()
+    test_data = {
+        'NuSys': {
+            'system': 'NuSys',
+            'merits': 3421,
+            'consolidation': 76,
+            'updated_at': datetime.datetime(2021, 8, 23, 0, 33, 20),
+        },
+        'Sol': {
+            'system': 'Sol',
+            'merits': 333,
+            'consolidation': 76,
+            'updated_at': datetime.datetime(2021, 8, 23, 0, 33, 20),
+        },
+    }
+    cogdb.query.update_ocr_prep(session, test_data)
+
+    tracks = session.query(OCRPrep).order_by(OCRPrep.system.asc()).all()
+    assert tracks[0].system == 'NuSys'
+    assert tracks[1].merits == 333
+
+
+def test_get_oldest_trigger(session, f_ocr_testbed):
+    test_data = {
+        'Adeo': {
+            'system': 'Adeo',
+            'fort_trigger': 4444,
+            'um_trigger': 2332,
+            'base_income': 94,
+            'last_upkeep': 0,
+            'updated_at': datetime.datetime(2021, 8, 23, 0, 33, 20),
+        },
+        'Sol': {
+            'system': 'Sol',
+            'fort_trigger': 3333,
+            'um_trigger': 400,
+            'base_income': 4,
+            'last_upkeep': 30,
+            'updated_at': datetime.datetime(2021, 8, 23, 0, 33, 20),
+        },
+    }
+    session.add(OCRTrigger(**test_data['Adeo']))
+    session.add(OCRTrigger(**test_data['Sol']))
+    session.commit()
+
+    oldest = cogdb.query.get_oldest_ocr_trigger(session)
+    assert oldest.system == "Adeo"
