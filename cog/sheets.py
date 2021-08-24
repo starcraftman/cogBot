@@ -89,7 +89,7 @@ class Column():
         """
         Access the current column string by using str().
 
-        IMPORTANT: Counters are stored backwards, lease significant counter at index 0.
+        IMPORTANT: Counters are stored backwards, least significant counter at index 0.
 
         Args:
             init_col: A string representing an excel column of A-Z, AA, AB, etc ...

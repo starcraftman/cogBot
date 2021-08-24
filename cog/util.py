@@ -537,6 +537,29 @@ def merge_msgs_to_least(parts, limit=MSG_LIMIT):
     return new_parts
 
 
+def next_weekly_tick(a_date, offset=0):
+    """
+    Take a_date and compute next weekly tick date.
+    Tick occurs Thursday at 0700 UTC at present.
+
+    Args:
+        a_date: Should be a utc date object without timezone information.
+                i.e. use datetime.datetime.utcnow()
+        offset: The offset of weeks to computing the tick.
+                i.e. -1 means subtract 7 days from a_date to compute last tick.
+
+    Returns: The weekly tick represented as a native utc date object (no timezone).
+    """
+    a_date = a_date.replace(microsecond=0) + datetime.timedelta(weeks=offset)
+    weekly_tick = a_date.replace(hour=7, minute=0, second=0)  # pylint: disable=unexpected-keyword-arg
+
+    a_day = datetime.timedelta(days=1)
+    while weekly_tick.strftime('%A') != 'Thursday' or weekly_tick < a_date:
+        weekly_tick += a_day
+
+    return weekly_tick
+
+
 # TODO: Use later.
 class TimestampMixin():
     """

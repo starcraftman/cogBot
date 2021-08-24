@@ -1184,22 +1184,24 @@ class Pin(Action):
     """
     # TODO: Incomplete, expect bot to manage pin entirely. Left undocumented.
     async def execute(self):
-        ocr_scanner = get_scanner('hudson_ocr')
-        await ocr_scanner.update_cells()
-        with cogdb.session_scope(cogdb.Session) as session:
-            ocr_scanner.parse_sheet(session)
-        #  systems = cogdb.query.fort_get_targets(self.session)
-        #  systems.reverse()
-        #  systems += cogdb.query.fort_get_next_targets(self.session, count=5)
-        #  for defer in cogdb.query.fort_get_deferred_targets(self.session):
-            #  if defer.name != "Othime":
-                #  systems += [defer]
+        # TODO: Remove on shipping feature
+        #  ocr_scanner = get_scanner('hudson_ocr')
+        #  await ocr_scanner.update_cells()
+        #  with cogdb.session_scope(cogdb.Session) as session:
+            #  ocr_scanner.parse_sheet(session)
 
-        #  lines = [":Fortifying: {}{}".format(
-            #  sys.name, " **{}**".format(sys.notes) if sys.notes else "") for sys in systems]
-        #  lines += [":Fortifying: The things in the list after that"]
+        systems = cogdb.query.fort_get_targets(self.session)
+        systems.reverse()
+        systems += cogdb.query.fort_get_next_targets(self.session, count=5)
+        for defer in cogdb.query.fort_get_deferred_targets(self.session):
+            if defer.name != "Othime":
+                systems += [defer]
 
-        #  await self.bot.send_message(self.msg.channel, cog.tbl.wrap_markdown('\n'.join(lines)))
+        lines = [":Fortifying: {}{}".format(
+            sys.name, " **{}**".format(sys.notes) if sys.notes else "") for sys in systems]
+        lines += [":Fortifying: The things in the list after that"]
+
+        await self.bot.send_message(self.msg.channel, cog.tbl.wrap_markdown('\n'.join(lines)))
 
         # TODO: Use later in proper pin manager
         # to_delete = [msg]
@@ -1845,6 +1847,28 @@ async def monitor_carrier_events(client, *, next_summary, last_timestamp=None, d
         monitor_carrier_events(
             client, next_summary=next_summary,
             last_timestamp=last_timestamp, delay=delay
+        )
+    )
+
+
+async def monitor_ocr_sheet(client, *, last_timestamp=None, delay=30):
+    """
+    Simple async task that just checks for changes to the OCR sheet.
+    """
+    start = datetime.datetime.utcnow()
+    if not last_timestamp:
+        last_timestamp = start
+
+    timedelta_to_wait = (last_timestamp + datetime.timedelta(minutes=delay)) - start
+    if timedelta_to_wait.seconds > 0:
+        await asyncio.sleep(delay)
+
+    # TODO: Update database first.
+    # TODO: Analyse information here.
+
+    asyncio.ensure_future(
+        monitor_carrier_events(
+            client, last_timestamp=last_timestamp, delay=delay
         )
     )
 

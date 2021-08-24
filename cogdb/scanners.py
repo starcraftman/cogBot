@@ -771,43 +771,45 @@ class OCRScanner(FortScanner):
         return super().__repr__().replace('FortScanner', 'OCRScanner')
 
     def parse_sheet(self, session=None):
-        # Date in format: 2021-08-22 20:33:07',
-        __import__('pprint').pprint(self.cells_row_major[0])
-        sheet_date = datetime.datetime.strptime(self.cells_row_major[0][2], "%Y-%m-%d %H:%M:%S")
+        # Update consolidation vote
+        globe = cogdb.query.get_current_global(session)
+        globe.consolidation = int(self.cells_row_major[self.prep_consolidation_row][self.prep_col])
 
+        # Date in format: 2021-08-22 20:33:07
+        sheet_date = datetime.datetime.strptime(self.cells_row_major[0][2], "%Y-%m-%d %H:%M:%S")
         ocr_trackers = self.ocr_trackers(sheet_date)
         ocr_preps = self.ocr_preps(sheet_date)
-        ocr_triggers = self.ocr_triggers(sheet_date)
-        __import__('pprint').pprint(ocr_trackers)
-        __import__('pprint').pprint(ocr_preps)
-        __import__('pprint').pprint(ocr_trackers)
 
         # flush to db
-        #  cogdb.query.update_ocr_live(session, ocr_trackers)
-        #  cogdb.query.update_ocr_prep(session, ocr_preps)
+        cogdb.query.update_ocr_live(session, ocr_trackers)
+        cogdb.query.update_ocr_prep(session, ocr_preps)
 
+        # TODO: Enable weekly limit when fully tested.
         #  oldest_trigger = cogdb.query.get_oldest_ocr_trigger(session)
         #  if self.should_update_trigger(oldest_trigger, sheet_date):
         ocr_triggers = self.ocr_triggers(sheet_date)
-        #  cogdb.query.update_ocr_trigger(session, ocr_triggers)
+        cogdb.query.update_ocr_trigger(session, ocr_triggers)
+        session.commit()
 
     def should_update_trigger(self, oldest_trigger, sheet_date):
         """
         Triggers are updated exactly ONCE post tick.
         Returns True if and only if either of these:
-            1) The oldest trigger is more than 7 days old.
-            2) The sheet update is being processed in first 2 hours post tick.
+            1) The oldest trigger is 7 or more days older than sheet_date.
+            2) Oldest trigger is None, means none were in DB.
+            3) The sheet update is being processed in first 2 hours post tick.
         """
-        update_time = sheet_date.replace(microsecond=0)
-        today = update_time.replace(hour=0, minute=0, second=0)  # pylint: disable=unexpected-keyword-arg
-        weekly_tick = today + datetime.timedelta(hours=7)
-        while weekly_tick < update_time or weekly_tick.strftime('%A') != 'Thursday':
-            weekly_tick += datetime.timedelta(days=1)
+        sheet_date = sheet_date.replace(microsecond=0)
+        weekly_tick = cog.util.next_weekly_tick(sheet_date)
 
-        trigger_stale = (sheet_date - oldest_trigger.updated_at).days >= 7
-        over_7_days = (weekly_tick - update_time).days >= 7
+        if not oldest_trigger:
+            trigger_stale = True
+        else:
+            trigger_stale = (sheet_date - oldest_trigger.updated_at).days >= 7
+        tick_diff = (weekly_tick - sheet_date)
+        just_past_tick = tick_diff.days == 6 and (tick_diff.seconds // 3600) >= 22
 
-        return trigger_stale or over_7_days
+        return trigger_stale or just_past_tick
 
     def ocr_trackers(self, sheet_date):
         """
@@ -837,7 +839,6 @@ class OCRScanner(FortScanner):
         """
         Parse and return all OCR Preps listed.
         """
-        consolidation = int(self.cells_row_major[self.prep_consolidation_row][self.prep_col])
         preps = {}
         for row in self.cells_row_major[self.start_row:]:
             try:
@@ -847,7 +848,6 @@ class OCRScanner(FortScanner):
                 preps[system] = {
                     'system': system,
                     'merits': int(row[self.prep_col + 1]),
-                    'consolidation': consolidation,
                     'updated_at': sheet_date,
                 }
             except ValueError:
@@ -871,41 +871,15 @@ class OCRScanner(FortScanner):
                 triggers[system] = {
                     'system': system,
                     'last_upkeep': int(row[self.trigger_col + 1]),
-                    'base_incomer': int(row[self.trigger_col + 2]),
+                    'base_income': int(row[self.trigger_col + 2]),
                     'fort_trigger': int(row[self.trigger_col + 3]),
                     'um_trigger': int(row[self.trigger_col + 4]),
-                    'upated_at': sheet_date,
+                    'updated_at': sheet_date,
                 }
             except ValueError:
                 logging.getLogger(__name__).error("Failed to parse row: %s", str(row))
 
         return triggers
-
-    #  def parse_sheet_old(self, session=None):
-        #  """
-        #  Push the update of OCR data to the database.
-        #  """
-        #  live = self.live()
-        #  prep = self.prep()
-        #  system_names = [x[2:] for x in self.cells_col_major[:1]][0]
-        #  if session:
-            #  cogdb.query.ocr_update_indexes(session, system_names)
-            #  trigger = self.trigger(session)
-            #  cogdb.query.update_ocr_live(session, live[0], live[1])
-            #  cogdb.query.update_ocr_prep(session, prep[0])
-            #  cogdb.query.update_ocr_trigger(session, trigger[0], trigger[1])
-            #  session.commit()
-            #  session.close()
-        #  else:
-            #  with cogdb.session_scope(cogdb.Session) as session:
-                #  # fort_systems = cogdb.query.fort_get_systems(session)
-                #  # fort_systems_names = [x.name for x in fort_systems]
-                #  # good_systems = set(fort_systems_names.lower()).intersection(set(system_names.lower()))
-                #  cogdb.query.ocr_update_indexes(session, system_names)
-                #  trigger = self.trigger(session)
-                #  cogdb.query.update_ocr_live(session, live[0], live[1])
-                #  cogdb.query.update_ocr_prep(session, prep[0])
-                #  cogdb.query.update_ocr_trigger(session, trigger[0], trigger[1])
 
 
 async def init_scanners():

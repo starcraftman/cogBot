@@ -16,7 +16,7 @@ from cog.util import substr_match, get_config
 from cogdb.schema import (DiscordUser, FortSystem, FortPrep, FortDrop, FortUser, FortOrder,
                           UMSystem, UMUser, UMHold, KOS, AdminPerm, ChannelPerm, RolePerm,
                           TrackSystem, TrackSystemCached, TrackByID, OCRTracker, OCRTrigger,
-                          OCRPrep)
+                          OCRPrep, Global)
 from cogdb.eddb import HUDSON_CONTROLS, WINTERS_CONTROLS
 
 DEFER_MISSING = get_config("limits", "defer_missing", default=750)
@@ -1054,19 +1054,18 @@ def update_ocr_prep(session, prep_dict, sheet_date=None):
             SYSTEM: {
                 'system': SYSTEM,
                 'merits': MERITS,
-                'consolidation': CONSOLIDATION
                 'updated_at': datetime obj
             },
             ...
         }
 
-    SYSTEM, CONSOLIDATION and MERITS and are the respective data to store for an SYSTEM in schema:
+    SYSTEM and MERITS are the respective data to store for an SYSTEM in schema:
     If the information exists it will be updated, else inserted.
 
     Args:
         session: The session to db.
         prep_dict: See above dictionary.
-        sheet_date: Optional, if provided data will be accepted only if timestamp is newer. Expecting datetime object.
+        sheet_date: Optionally will be used if no 'updated_at' key in dict.
 
     Returns: (updated, removed) - Both lists are SYSTEM names (str).
     """
@@ -1086,7 +1085,6 @@ def update_ocr_prep(session, prep_dict, sheet_date=None):
 
         # TODO: Move to obj.update(), validate internally.
         system.merits = data.get("merits", system.merits)
-        system.consolidation = data.get("consolidation", system.consolidation)
         system.updated_at = data.get("updated_at", system.updated_at)
         updated += [system.system]
 
@@ -1101,12 +1099,32 @@ def update_ocr_prep(session, prep_dict, sheet_date=None):
 
 def get_oldest_ocr_trigger(session):
     """
-    Return the oldest OCRTrigger entry.
+    Return the oldest OCRTrigger entry. If no entries, returns None.
 
     Args:
         session: The session to db.
     """
-    return session.query(OCRTrigger).\
-        order_by(OCRTrigger.updated_at.asc()).\
-        limit(1).\
-        one()
+    try:
+        return session.query(OCRTrigger).\
+            order_by(OCRTrigger.updated_at.asc()).\
+            limit(1).\
+            one()
+    except sqla_oexc.NoResultFound:
+        return None
+
+
+def get_current_global(session):
+    """
+    Return the current global for this cycle.
+    If none present, generate one.
+
+    Returns: The current Global
+    """
+    try:
+        globe = session.query(Global).one()
+    except sqla_oexc.NoResultFound:
+        globe = Global()
+        session.add(globe)
+        session.flush()
+
+    return globe

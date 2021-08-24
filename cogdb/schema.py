@@ -997,7 +997,6 @@ class OCRTracker(Base):
     __tablename__ = 'ocr_live_tracker'
 
     id = sqla.Column(sqla.Integer, primary_key=True)
-    #  system = sqla.Column(sqla.String(LEN_NAME), sqla.ForeignKey('hudson_fort_systems.name'), nullable=False)
     system = sqla.Column(sqla.String(LEN_NAME), index=True, nullable=False)
     fort = sqla.Column(sqla.Integer, default=0)
     um = sqla.Column(sqla.Integer, default=0)
@@ -1034,7 +1033,6 @@ class OCRTrigger(Base):
     header = ["ID", "System", "Fort Trigger", "UM Trigger"]
 
     id = sqla.Column(sqla.Integer, primary_key=True)
-    #  system = sqla.Column(sqla.String(LEN_NAME), sqla.ForeignKey('hudson_fort_systems.name'), nullable=False)
     system = sqla.Column(sqla.String(LEN_NAME), index=True, nullable=False)
     base_income = sqla.Column(sqla.Integer, default=0)
     last_upkeep = sqla.Column(sqla.Integer, default=0)
@@ -1067,32 +1065,58 @@ class OCRPrep(Base):
     """
     __tablename__ = 'ocr_prep_tracker'
 
-    header = ["ID", "System", "Merits", "Consolidation"]
+    header = ["ID", "System", "Merits"]
 
     id = sqla.Column(sqla.Integer, primary_key=True)
-    #  system = sqla.Column(sqla.String(LEN_NAME), sqla.ForeignKey('hudson_fort_systems.name'), nullable=False)
     system = sqla.Column(sqla.String(LEN_NAME), index=True, nullable=False)
     merits = sqla.Column(sqla.Integer, default=0)
-    consolidation = sqla.Column(sqla.Integer, default=0)
     updated_at = sqla.Column(sqla.DateTime(timezone=False), default=datetime.datetime.utcnow())  # All dates UTC
 
     def __repr__(self):
-        keys = ['id', 'system', 'merits', 'consolidation', 'updated_at']
+        keys = ['id', 'system', 'merits', 'updated_at']
         kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
 
         return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
 
     def __str__(self):
         """ A pretty one line to give all information. """
-        return "{system}: {merits} --Current Vote {consolidation}%  Last Update at {date}".format(
-            consolidation=self.consolidation, merits=self.merits,
-            system=self.system, date=self.updated_at)
+        return "{system}: {merits} Last Update at {date}".format(
+            merits=self.merits, system=self.system, date=self.updated_at)
 
     def __eq__(self, other):
         return isinstance(other, OCRPrep) and hash(self) == hash(other)
 
     def __hash__(self):
         return hash("{}".format(self.system))
+
+
+class Global(Base):
+    """
+    A simple storage table for any globals per cycle.
+    """
+    __tablename__ = 'globals'
+
+    id = sqla.Column(sqla.Integer, primary_key=True)
+    consolidation = sqla.Column(sqla.Integer, default=0)
+    updated_at = sqla.Column(sqla.DateTime(timezone=False), default=datetime.datetime.utcnow())  # All dates UTC
+
+    def __repr__(self):
+        keys = ['id', 'consolidation']
+        kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
+
+        return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
+
+    def __str__(self):
+        """ A pretty one line to give all information. """
+        return "{cycle}: Consolidation Vote: {consolidation}%".format(
+            cycle=self.cycle, consolidation=self.consolidation
+        )
+
+    def __eq__(self, other):
+        return isinstance(other, Global) and hash(self) == hash(other)
+
+    def __hash__(self):
+        return hash("{}".format(self.id))
 
 
 def kwargs_um_system(cells, sheet_col):
@@ -1377,8 +1401,8 @@ def run_schema_queries(session):  # pragma: no cover
     print(sys.ocr_tracker)
     print(sys.ocr_trigger)
 
-    #  sys = session.query(FortSystem).filter(FortSystem.name == "Othime").one()
-    #  print(sys.ocr_prep)
+    sys = session.query(FortSystem).filter(FortSystem.name == "Othime").one()
+    print(sys.ocr_prep)
 
 
 if cogdb.TEST_DB:

@@ -626,7 +626,7 @@ def f_asheet_fortscanner(f_asheet):
 @pytest.fixture
 def f_asheet_umscanner(f_asheet):
     """
-    Return a mocked AsyncGSheet for the fortscanner.
+    Return a mocked AsyncGSheet for the umscanner.
     """
     f_asheet.filename = cog.util.rel_to_abs('tests', 'test_input.umscanner.txt')
 
@@ -645,9 +645,19 @@ def f_umformula_values(f_asheet):
 @pytest.fixture
 def f_asheet_kos(f_asheet):
     """
-    Return a mocked AsyncGSheet for the fortscanner.
+    Return a mocked AsyncGSheet for the kosscanner.
     """
     f_asheet.filename = cog.util.rel_to_abs('tests', 'test_input.kos.txt')
+
+    yield f_asheet
+
+
+@pytest.fixture
+def f_asheet_ocrscanner(f_asheet):
+    """
+    Return a mocked AsyncGSheet for the ocrscanner.
+    """
+    f_asheet.filename = cog.util.rel_to_abs('tests', 'test_input.ocrscanner.txt')
 
     yield f_asheet
 

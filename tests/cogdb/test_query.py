@@ -701,19 +701,17 @@ def test_update_ocr_trigger(session, f_ocr_testbed):
 
 
 def test_update_ocr_prep(session, f_ocr_testbed):
-    session.add(OCRPrep(system='Sol', merits=7777, consolidation=76, updated_at=datetime.datetime(2021, 8, 23, 0, 33, 20)))
+    session.add(OCRPrep(system='Sol', merits=7777, updated_at=datetime.datetime(2021, 8, 23, 0, 33, 20)))
     session.commit()
     test_data = {
         'NuSys': {
             'system': 'NuSys',
             'merits': 3421,
-            'consolidation': 76,
             'updated_at': datetime.datetime(2021, 8, 23, 0, 33, 20),
         },
         'Sol': {
             'system': 'Sol',
             'merits': 333,
-            'consolidation': 76,
             'updated_at': datetime.datetime(2021, 8, 23, 0, 33, 20),
         },
     }
@@ -722,6 +720,11 @@ def test_update_ocr_prep(session, f_ocr_testbed):
     tracks = session.query(OCRPrep).order_by(OCRPrep.system.asc()).all()
     assert tracks[0].system == 'NuSys'
     assert tracks[1].merits == 333
+
+
+def test_get_oldest_trigger(session):
+    oldest = cogdb.query.get_oldest_ocr_trigger(session)
+    assert oldest is None
 
 
 def test_get_oldest_trigger(session, f_ocr_testbed):
@@ -740,7 +743,7 @@ def test_get_oldest_trigger(session, f_ocr_testbed):
             'um_trigger': 400,
             'base_income': 4,
             'last_upkeep': 30,
-            'updated_at': datetime.datetime(2021, 8, 23, 0, 33, 20),
+            'updated_at': datetime.datetime(2021, 10, 25, 0, 33, 20),
         },
     }
     session.add(OCRTrigger(**test_data['Adeo']))
@@ -749,3 +752,15 @@ def test_get_oldest_trigger(session, f_ocr_testbed):
 
     oldest = cogdb.query.get_oldest_ocr_trigger(session)
     assert oldest.system == "Adeo"
+
+
+def test_get_current_global(session):
+    current = cogdb.query.get_current_global(session)
+    assert current.consolidation == 0
+    current.consolidation = 77
+    session.commit()
+
+    with cogdb.session_scope(cogdb.Session):
+        latest = cogdb.query.get_current_global(session)
+        latest == current
+        latest.consolidation == 77
