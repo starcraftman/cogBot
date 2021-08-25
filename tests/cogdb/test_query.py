@@ -11,7 +11,7 @@ import cogdb
 from cogdb.schema import (DiscordUser, FortSystem, FortUser, FortOrder,
                           UMUser, UMHold, AdminPerm, ChannelPerm, RolePerm,
                           KOS, TrackSystem, TrackSystemCached, TrackByID,
-                          OCRTracker, OCRTrigger, OCRPrep)
+                          OCRTracker, OCRTrigger, OCRPrep, Global)
 import cogdb.query
 
 from tests.data import SYSTEMS, USERS
@@ -648,7 +648,7 @@ def test_users_with_um_merits(session, f_dusers, f_fort_testbed, f_um_testbed):
 
 
 def test_update_ocr_live(session, f_ocr_testbed):
-    session.add(OCRTracker(system='Sol', fort=7777, um=9999, updated_at=datetime.datetime(2021, 8, 23, 0, 33, 20)))
+    session.add(OCRTracker(system='Sol', fort=3333, um=2222, updated_at=datetime.datetime(2021, 8, 23, 0, 33, 20)))
     session.commit()
     test_data = {
         'Adeo': {
@@ -659,8 +659,8 @@ def test_update_ocr_live(session, f_ocr_testbed):
         },
         'Sol': {
             'system': 'Sol',
-            'fort': 3333,
-            'um': 400,
+            'fort': 7777,
+            'um': 8888,
             'updated_at': datetime.datetime(2021, 8, 23, 0, 33, 20),
         },
     }
@@ -668,7 +668,7 @@ def test_update_ocr_live(session, f_ocr_testbed):
 
     tracks = session.query(OCRTracker).order_by(OCRTracker.system.asc()).all()
     assert tracks[0].um == 2332
-    assert tracks[1].fort == 3333
+    assert tracks[1].fort == 7777
 
 
 def test_update_ocr_trigger(session, f_ocr_testbed):
@@ -722,7 +722,7 @@ def test_update_ocr_prep(session, f_ocr_testbed):
     assert tracks[1].merits == 333
 
 
-def test_get_oldest_trigger(session):
+def test_get_oldest_trigger_empty(session):
     oldest = cogdb.query.get_oldest_ocr_trigger(session)
     assert oldest is None
 
@@ -754,7 +754,8 @@ def test_get_oldest_trigger(session, f_ocr_testbed):
     assert oldest.system == "Adeo"
 
 
-def test_get_current_global(session):
+def test_get_current_global(session, f_global_testbed):
+    session.query(Global).delete()
     current = cogdb.query.get_current_global(session)
     assert current.consolidation == 0
     current.consolidation = 77

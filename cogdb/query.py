@@ -978,11 +978,12 @@ def update_ocr_live(session, trackers_dict, sheet_date=None):
 
         data = copy_tracker_dict[system.system]
 
-        # TODO: Move to obj.update(), validate internally.
-        system.fort = data.get('fort', system.fort)
-        system.um = data.get('um', system.um)
-        system.updated_at = data.get('updated_at', sheet_date)
-        updated += [system.system]
+        data['updated_at'] = data.get('updated_at', sheet_date)
+        try:
+            system.update(**data)
+            updated += [system.system]
+        except cog.exc.ValidationFail:
+            pass
 
         del copy_tracker_dict[system.system]
 
@@ -1029,13 +1030,12 @@ def update_ocr_trigger(session, trigger_dict, sheet_date=None):
     for system in ocr_systems:
         data = copy_trigger_dict[system.system]
 
-        # TODO: Move to obj.update(), validate internally.
-        system.fort_trigger = data.get("fort_trigger", system.fort_trigger)
-        system.um_trigger = data.get("um_trigger", system.um_trigger)
-        system.base_income = data.get("base_income", system.base_income)
-        system.last_upkeep = data.get("last_upkeep", system.last_upkeep)
-        system.updated_at = data.get('updated_at', sheet_date)
-        updated += [system.system]
+        data['updated_at'] = data.get('updated_at', sheet_date)
+        try:
+            system.update(**data)
+            updated += [system.system]
+        except cog.exc.ValidationFail:
+            pass
 
         del copy_trigger_dict[system.system]
 
@@ -1083,10 +1083,12 @@ def update_ocr_prep(session, prep_dict, sheet_date=None):
 
         data = copy_prep_dict[system.system]
 
-        # TODO: Move to obj.update(), validate internally.
-        system.merits = data.get("merits", system.merits)
-        system.updated_at = data.get("updated_at", system.updated_at)
-        updated += [system.system]
+        data['updated_at'] = data.get('updated_at', sheet_date)
+        try:
+            system.update(**data)
+            updated += [system.system]
+        except cog.exc.ValidationFail:
+            pass
 
         del copy_prep_dict[system.system]
 

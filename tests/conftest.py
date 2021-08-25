@@ -28,7 +28,7 @@ from cogdb.schema import (DiscordUser, FortSystem, FortPrep, FortDrop, FortUser,
                           UMSystem, UMExpand, UMOppose, UMUser, UMHold, KOS,
                           AdminPerm, ChannelPerm, RolePerm,
                           TrackSystem, TrackSystemCached, TrackByID,
-                          OCRTracker, OCRTrigger, OCRPrep)
+                          OCRTracker, OCRTrigger, OCRPrep, Global)
 from tests.data import CELLS_FORT, CELLS_FORT_FMT, CELLS_UM
 
 
@@ -46,7 +46,8 @@ def around_all_tests(session):
 
     classes = [DiscordUser, FortUser, FortSystem, FortDrop, UMSystem, UMUser, UMHold,
                KOS, AdminPerm, ChannelPerm, RolePerm,
-               TrackSystem, TrackSystemCached, TrackByID]
+               TrackSystem, TrackSystemCached, TrackByID,
+               OCRTracker, OCRTrigger, OCRPrep, Global]
     for cls in classes:
         assert not session.query(cls).all()
 
@@ -725,22 +726,44 @@ def f_ocr_testbed(session):
     """
     Setup the database with dummy data for track tests.
     """
-    date = datetime.datetime.utcnow()
+    date = datetime.datetime(2021, 8, 25, 2, 33, 0)
     ocr_tracks = (
-        OCRTracker(system="Frey", updated_at=date),
-        OCRTracker(system="Adeo"),
-        OCRTracker(system="Sol"),
-    )
-    ocr_triggers = (
-        OCRPrep(system="Othime"),
+        OCRTracker(id=1, system="SystemA", fort=0, um=0, updated_at=date),
+        OCRTracker(id=2, system="SystemB", fort=0, um=0, updated_at=date),
+        OCRTracker(id=3, system="SystemC", fort=0, um=0, updated_at=date),
     )
     ocr_preps = (
-        OCRTrigger(system="Frey")
+        OCRPrep(id=1, system="SystemD", merits=0, updated_at=date),
     )
+    ocr_triggers = (
+        OCRTrigger(id=1, system="SystemA", fort_trigger=500, um_trigger=1000, base_income=50, last_upkeep=24, updated_at=date),
+    )
+    session.add_all(ocr_tracks + ocr_preps + ocr_triggers)
+    session.commit()
 
     yield ocr_tracks, ocr_triggers, ocr_preps,
 
     session.rollback()
     for cls in (OCRPrep, OCRTrigger, OCRTracker):
+        session.query(cls).delete()
+    session.commit()
+
+
+@pytest.fixture
+def f_global_testbed(session):
+    """
+    Setup the database with dummy data for track tests.
+    """
+    date = datetime.datetime(2021, 8, 25, 2, 33, 0)
+    globals = (
+        Global(id=1, consolidation=77, updated_at=date),
+    )
+    session.add_all(globals)
+    session.commit()
+
+    yield globals
+
+    session.rollback()
+    for cls in (Global,):
         session.query(cls).delete()
     session.commit()

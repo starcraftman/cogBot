@@ -22,6 +22,8 @@ LEN_NAME = 100
 LEN_REASON = 400
 LEN_SHEET_COL = 5
 LEN_CARRIER = 7
+SENSIBLE_OCR_MERITS = 150000
+SENSIBLE_OCR_INCOME = 250
 EVENT_CARRIER = """
 CREATE EVENT IF NOT EXISTS clean_carriers
 ON SCHEDULE
@@ -1023,6 +1025,46 @@ class OCRTracker(Base):
     def __hash__(self):
         return hash("{}".format(self.system))
 
+    def update(self, **kwargs):
+        """
+        Update the object with expected kwargs.
+
+        kwargs:
+            fort: The new fort merit value.
+            um: The new um merit value.
+            updated_at: The new date time to set for this update. (Required)
+
+        Raises:
+            ValidationFail - The kwargs did not contain updated_at or it was not suitable.
+        """
+        if 'updated_at' not in kwargs:
+            raise cog.exc.ValidationFail("Expected key 'updated_at' is missing.")
+
+        self.updated_at = kwargs['updated_at']
+        for key in ['fort', 'um']:
+            try:
+                setattr(self, key, kwargs[key])
+            except (KeyError, cog.exc.ValidationFail):
+                pass
+
+    @sqla_orm.validates('fort', 'um')
+    def validate_merits(self, key, value):
+        try:
+            if value < 0 or value > SENSIBLE_OCR_MERITS or value < getattr(self, key):
+                raise cog.exc.ValidationFail("Bounds check failed for: {} with value {}".format(key, value))
+        except TypeError:
+            pass
+
+        return value
+
+    @sqla_orm.validates('updated_at')
+    def validate_updated_at(self, key, value):
+        if not value or not isinstance(value, datetime.datetime) or (
+                self.updated_at and value < self.updated_at):
+            raise cog.exc.ValidationFail("Date invalid or was older than current value.")
+
+        return value
+
 
 class OCRTrigger(Base):
     """
@@ -1041,15 +1083,16 @@ class OCRTrigger(Base):
     updated_at = sqla.Column(sqla.DateTime(timezone=False), default=datetime.datetime.utcnow())  # All dates UTC
 
     def __repr__(self):
-        keys = ['id', 'system', 'fort_trigger', 'um_trigger', 'updated_at']
+        keys = ['id', 'system', 'fort_trigger', 'um_trigger', 'base_income', 'last_upkeep', 'updated_at']
         kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
 
         return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
 
     def __str__(self):
         """ A pretty one line to give all information. """
-        return "{system}: {fort_trigger}:{um_trigger}  Last Update at {date}".format(
+        return "{system}: {fort_trigger}:{um_trigger} with income of {base_income} and upkeep {last_upkeep}  Last Update at {date}".format(
             um_trigger=self.um_trigger, fort_trigger=self.fort_trigger,
+            base_income=self.base_income, last_upkeep=self.last_upkeep,
             system=self.system, date=self.updated_at)
 
     def __eq__(self, other):
@@ -1057,6 +1100,57 @@ class OCRTrigger(Base):
 
     def __hash__(self):
         return hash("{}".format(self.system))
+
+    def update(self, **kwargs):
+        """
+        Update the object with expected kwargs.
+
+        kwargs:
+            fort_trigger: The new fort trigger.
+            um_trigger: The new um trigger.
+            base_income: The new base income of the system.
+            last_upkeep: The last cycle upkeep of this system.
+            updated_at: The new date time to set for this update. (Required)
+
+        Raises:
+            ValidationFail - The kwargs did not contain updated_at or it was not suitable.
+        """
+        if 'updated_at' not in kwargs:
+            raise cog.exc.ValidationFail("Expected key 'updated_at' is missing.")
+
+        self.updated_at = kwargs['updated_at']
+        for key in ['fort_trigger', 'um_trigger', 'base_income', 'last_upkeep']:
+            try:
+                setattr(self, key, kwargs[key])
+            except (KeyError, cog.exc.ValidationFail):
+                pass
+
+    @sqla_orm.validates('fort_trigger', 'um_trigger')
+    def validate_triggers(self, key, value):
+        try:
+            if value < 0 or value > SENSIBLE_OCR_MERITS:
+                raise cog.exc.ValidationFail("Bounds check failed for: {} with value {}".format(key, value))
+        except TypeError:
+            pass
+
+        return value
+
+    @sqla_orm.validates('base_income', 'last_upkeep')
+    def validate_incomes(self, key, value):
+        try:
+            if value < 0 or value > SENSIBLE_OCR_INCOME:
+                raise cog.exc.ValidationFail("Bounds check failed for: {} with value {}".format(key, value))
+        except TypeError:
+            pass
+
+        return value
+
+    @sqla_orm.validates('updated_at')
+    def validate_updated_at(self, key, value):
+        if not value or not isinstance(value, datetime.datetime) or (self.updated_at and value < self.updated_at):
+            raise cog.exc.ValidationFail("Date invalid or was older than current value.")
+
+        return value
 
 
 class OCRPrep(Base):
@@ -1089,6 +1183,43 @@ class OCRPrep(Base):
     def __hash__(self):
         return hash("{}".format(self.system))
 
+    def update(self, **kwargs):
+        """
+        Update the object with expected kwargs.
+
+        kwargs:
+            merits: The current merits for the system.
+            updated_at: The new date time to set for this update. (Required)
+
+        Raises:
+            ValidationFail - The kwargs did not contain updated_at or it was not suitable.
+        """
+        if 'updated_at' not in kwargs:
+            raise cog.exc.ValidationFail("Expected key 'updated_at' is missing.")
+
+        self.updated_at = kwargs['updated_at']
+        try:
+            self.merits = kwargs['merits']
+        except (KeyError, cog.exc.ValidationFail):
+            pass
+
+    @sqla_orm.validates('merits')
+    def validate_triggers(self, key, value):
+        try:
+            if value < 0 or value > SENSIBLE_OCR_MERITS:
+                raise cog.exc.ValidationFail("Bounds check failed for: {} with value {}".format(key, value))
+        except TypeError:
+            pass
+
+        return value
+
+    @sqla_orm.validates('updated_at')
+    def validate_updated_at(self, key, value):
+        if not value or not isinstance(value, datetime.datetime) or (self.updated_at and value < self.updated_at):
+            raise cog.exc.ValidationFail("Date invalid or was older than current value.")
+
+        return value
+
 
 class Global(Base):
     """
@@ -1117,6 +1248,43 @@ class Global(Base):
 
     def __hash__(self):
         return hash("{}".format(self.id))
+
+    def update(self, **kwargs):
+        """
+        Update the object with expected kwargs.
+
+        kwargs:
+            consolidation: The consolidation % of the curent vote.
+            updated_at: The new date time to set for this update. (Required)
+
+        Raises:
+            ValidationFail - The kwargs did not contain updated_at or it was not suitable.
+        """
+        if 'updated_at' not in kwargs:
+            raise cog.exc.ValidationFail("Expected key 'updated_at' is missing.")
+
+        self.updated_at = kwargs['updated_at']
+        try:
+            self.consolidation = kwargs['consolidation']
+        except (KeyError, cog.exc.ValidationFail):
+            pass
+
+    @sqla_orm.validates('consolidation')
+    def validate_triggers(self, key, value):
+        try:
+            if value < 0 or value > 100:
+                raise cog.exc.ValidationFail("Bounds check failed for: {} with value {}".format(key, value))
+        except TypeError:
+            pass
+
+        return value
+
+    @sqla_orm.validates('updated_at')
+    def validate_updated_at(self, key, value):
+        if not value or not isinstance(value, datetime.datetime) or (self.updated_at and value < self.updated_at):
+            raise cog.exc.ValidationFail("Date invalid or was older than current value.")
+
+        return value
 
 
 def kwargs_um_system(cells, sheet_col):

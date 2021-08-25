@@ -482,7 +482,7 @@ async def test_carrierscanner_parse_sheet(session, f_track_testbed):
 
 
 @pytest.mark.asyncio
-async def test_ocrscanner_parse_sheet(session, f_asheet_ocrscanner, f_ocr_testbed):
+async def test_ocrscanner_parse_sheet(session, f_asheet_ocrscanner, f_ocr_testbed, f_global_testbed):
     o_scanner = OCRScanner(f_asheet_ocrscanner)
     await o_scanner.update_cells()
     o_scanner.parse_sheet(session)
@@ -491,7 +491,7 @@ async def test_ocrscanner_parse_sheet(session, f_asheet_ocrscanner, f_ocr_testbe
         assert new_session.query(OCRTracker).filter(OCRTracker.system == 'Adeo').one().fort == 3576
         assert new_session.query(OCRPrep).filter(OCRPrep.system == 'Bolg').one().merits == 8592
         assert new_session.query(OCRTrigger).filter(OCRTrigger.system == 'Adeo').one().fort_trigger == 3576
-        assert new_session.query(Global).one().consolidation == 76
+        assert new_session.query(Global).all()[-1].consolidation == 76
 
 
 @pytest.mark.asyncio
@@ -505,12 +505,12 @@ async def test_ocrscanner_should_update_triggers_none(session, f_asheet_ocrscann
 @pytest.mark.asyncio
 async def test_ocrscanner_should_update_triggers_stale(session, f_asheet_ocrscanner, f_ocr_testbed):
     trigger = f_ocr_testbed[0][0]
-    trigger.updated_at = trigger.updated_at - datetime.timedelta(days=14)
+    old_trigger = OCRTrigger(system='Adeo', updated_at=(trigger.updated_at - datetime.timedelta(days=14)))
 
     o_scanner = OCRScanner(f_asheet_ocrscanner)
     await o_scanner.update_cells()
     sheet_date = datetime.datetime.strptime(o_scanner.cells_row_major[0][2], "%Y-%m-%d %H:%M:%S")
-    assert o_scanner.should_update_trigger(trigger, sheet_date)
+    assert o_scanner.should_update_trigger(old_trigger, sheet_date)
 
 
 @pytest.mark.asyncio
