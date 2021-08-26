@@ -460,17 +460,17 @@ async def test_cmd_fort(f_bot, f_dusers, f_fort_testbed):
     await action_map(msg, f_bot).execute()
 
     expect = """__Active Targets__
-**Nurundere** 5422/8425 :Fortifying:
-**Othime**    0/7367 :Fortifying: Priority for S/M ships (no L pads)
-Prep: **Rhea** 5100/10000 :Fortifying: Atropos
+**Nurundere** 5422/8425 :Fortifying: - 99.51Ly
+**Othime**    0/7367 :Fortifying: Priority for S/M ships (no L pads) - 83.68Ly
+Prep: **Rhea** 5100/10000 :Fortifying: Atropos - 65.55Ly
 
 __Next Targets__
-**LHS 3749** 1850/5974 :Fortifying:
-**Alpha Fornacis**    0/6476 :Fortifying:
-**Othime**    0/7367 :Fortifying: Priority for S/M ships (no L pads)
+**LHS 3749** 1850/5974 :Fortifying: - 55.72Ly
+**Alpha Fornacis**    0/6476 :Fortifying: - 67.27Ly
+**Othime**    0/7367 :Fortifying: Priority for S/M ships (no L pads) - 83.68Ly
 
 __Almost Done__
-**Dongkum** 7000/7239 :Fortifying: (239 left)"""
+**Dongkum** 7000/7239 :Fortifying: (239 left) - 81.54Ly"""
     f_bot.send_message.assert_called_with(msg.channel, expect)
 
 
@@ -493,8 +493,8 @@ async def test_cmd_fort_next(f_bot, f_dusers, f_fort_testbed):
     await action_map(msg, f_bot).execute()
 
     expect = """__Next Targets__
-**LHS 3749** 1850/5974 :Fortifying:
-**Alpha Fornacis**    0/6476 :Fortifying:"""
+**LHS 3749** 1850/5974 :Fortifying: - 55.72Ly
+**Alpha Fornacis**    0/6476 :Fortifying: - 67.27Ly"""
     f_bot.send_message.assert_called_with(msg.channel, expect)
 
 
@@ -505,7 +505,7 @@ async def test_cmd_fort_miss(f_bot, f_dusers, f_fort_testbed):
     await action_map(msg, f_bot).execute()
 
     expect = """__Systems Missing 1000 Supplies__
-**Dongkum** 7000/7239 :Fortifying: (239 left)"""
+**Dongkum** 7000/7239 :Fortifying: (239 left) - 81.54Ly"""
     f_bot.send_message.assert_called_with(msg.channel, expect)
 
 
@@ -516,8 +516,8 @@ async def test_cmd_fort_search(f_bot, f_dusers, f_fort_testbed):
     await action_map(msg, f_bot).execute()
 
     expect = """__Search Results__
-**Nurundere** 5422/8425 :Fortifying:
-**Othime**    0/7367 :Fortifying: Priority for S/M ships (no L pads)"""
+**Nurundere** 5422/8425 :Fortifying: - 99.51Ly
+**Othime**    0/7367 :Fortifying: Priority for S/M ships (no L pads) - 83.68Ly"""
     f_bot.send_message.assert_called_with(msg.channel, expect)
 
 
@@ -527,7 +527,7 @@ async def test_cmd_fort_set(session, f_bot, f_dusers, f_fort_testbed):
 
     await action_map(msg, f_bot).execute()
 
-    expect = """**Nurundere** 7000/8425 :Fortifying:, 222 :Undermining: (1425 left)"""
+    expect = """**Nurundere** 7000/8425 :Fortifying:, 222 :Undermining: (1425 left) - 99.51Ly"""
     f_bot.send_message.assert_called_with(msg.channel, expect)
 
     session.commit()
@@ -647,7 +647,7 @@ async def test_cmd_drop_simple(session, f_bot, f_dusers, f_fort_testbed):
 
     await action_map(msg, f_bot).execute()
 
-    f_bot.send_message.assert_called_with(msg.channel, '**Nurundere** 6000/8425 :Fortifying:')
+    f_bot.send_message.assert_called_with(msg.channel, '**Nurundere** 6000/8425 :Fortifying: - 99.51Ly')
 
     system = session.query(FortSystem).filter_by(name='Nurundere').one()
     assert system.current_status == 6000
@@ -669,7 +669,7 @@ async def test_cmd_drop_negative(session, f_bot, f_dusers, f_fort_testbed):
 
     await action_map(msg, f_bot).execute()
 
-    f_bot.send_message.assert_called_with(msg.channel, '**Nurundere** 5322/8425 :Fortifying:')
+    f_bot.send_message.assert_called_with(msg.channel, '**Nurundere** 5322/8425 :Fortifying: - 99.51Ly')
 
     system = session.query(FortSystem).filter_by(name='Nurundere').one()
     assert system.current_status == 5322
@@ -693,7 +693,7 @@ async def test_cmd_drop_newuser(session, f_bot, f_dusers, f_fort_testbed):
 
     expect = 'Will automatically add NewUser to sheet. See !user command to change.'
     f_bot.send_message.assert_any_call(msg.channel, expect)
-    f_bot.send_message.assert_any_call(msg.channel, '**Nurundere** 5922/8425 :Fortifying:')
+    f_bot.send_message.assert_any_call(msg.channel, '**Nurundere** 5922/8425 :Fortifying: - 99.51Ly')
 
     system = session.query(FortSystem).filter_by(name='Nurundere').one()
     system = session.query(FortSystem).filter_by(name='Nurundere').one()
@@ -717,7 +717,7 @@ async def test_cmd_drop_set(session, f_bot, f_dusers, f_fort_testbed):
 
     await action_map(msg, f_bot).execute()
 
-    f_bot.send_message.assert_called_with(msg.channel, '**Nurundere** 6500/8425 :Fortifying:')
+    f_bot.send_message.assert_called_with(msg.channel, '**Nurundere** 6500/8425 :Fortifying: - 99.51Ly')
 
     system = session.query(FortSystem).filter_by(name='Nurundere').one()
     assert system.current_status == 6500
@@ -738,10 +738,10 @@ async def test_cmd_drop_finished(session, f_bot, f_dusers, f_fort_testbed):
     msg = fake_msg_gears("!drop 400 dong")
 
     await action_map(msg, f_bot).execute()
-    expected = """**Dongkum** 7400/7239 :Fortified:
+    expected = """**Dongkum** 7400/7239 :Fortified: - 81.54Ly
 
 __Next Fort Target__:
-**Nurundere** 5422/8425 :Fortifying:
+**Nurundere** 5422/8425 :Fortifying: - 99.51Ly
 
 **User1** Have a :cookie: for completing Dongkum
 Bonus for highest contribution:

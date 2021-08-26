@@ -232,11 +232,11 @@ def test_fortsystem_cmdr_merits_expression(session, f_dusers, f_fort_testbed):
 
 def test_fortsystem_display(f_dusers, f_fort_testbed):
     system = f_fort_testbed[1][0]
-    assert system.display() == '**Frey** 4910/4910 :Fortified:'
+    assert system.display() == '**Frey** 4910/4910 :Fortified: - 116.99Ly'
 
     system.fort_status = 4000
-    assert system.display() == '**Frey** 4000/4910 :Fortifying: (910 left)'
-    assert system.display(miss=False) == '**Frey** 4000/4910 :Fortifying:'
+    assert system.display() == '**Frey** 4000/4910 :Fortifying: (910 left) - 116.99Ly'
+    assert system.display(miss=False) == '**Frey** 4000/4910 :Fortifying: - 116.99Ly'
 
 
 def test_fortsystem_display_details(f_dusers, f_fort_testbed):
@@ -355,9 +355,9 @@ def test_fortsystem_table_row(f_dusers, f_fort_testbed):
     assert system.table_row == ('Fort', 'Frey', '   0', '4910/4910 (100.0%/0.0%)', 'Leave')
 
 
-def test_prepsystem_dispay(f_dusers, f_fort_testbed):
+def test_prepsystem_display(f_dusers, f_fort_testbed):
     f_prep = f_fort_testbed[1][-1]
-    assert f_prep.display() == "Prep: **Rhea** 5100/10000 :Fortifying: Atropos"
+    assert f_prep.display() == "Prep: **Rhea** 5100/10000 :Fortifying: Atropos - 65.55Ly"
 
 
 def test_prepsystem_is_fortified(f_dusers, f_fort_testbed):
