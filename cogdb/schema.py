@@ -195,14 +195,12 @@ class FortSystem(Base):
     manual_order = sqla.Column(sqla.Integer, nullable=True)
 
     ocr_tracker = sqla.orm.relationship(
-        'OCRTracker', lazy='select', uselist=False, backref='fort_system',
-        primaryjoin='remote(FortSystem.name) == foreign(OCRTracker.system)',
-        cascade='all, delete, delete-orphan',
+        'OCRTracker', lazy='select', uselist=False, viewonly=True,
+        primaryjoin='foreign(FortSystem.name) == remote(OCRTracker.system)',
     )
     ocr_trigger = sqla.orm.relationship(
-        'OCRTrigger', lazy='select', uselist=False, backref='fort_system',
-        primaryjoin='remote(FortSystem.name) == foreign(OCRTrigger.system)',
-        cascade='all, delete, delete-orphan',
+        'OCRTrigger', lazy='select', uselist=False, viewonly=True,
+        primaryjoin='foreign(FortSystem.name) == remote(OCRTrigger.system)',
     )
 
     __mapper_args__ = {
@@ -386,9 +384,8 @@ class FortPrep(FortSystem):
     }
 
     ocr_prep = sqla.orm.relationship(
-        'OCRPrep', lazy='select', uselist=False, backref='fort_prep',
-        primaryjoin='remote(FortSystem.name) == foreign(OCRPrep.system)',
-        cascade='all, delete, delete-orphan',
+        'OCRPrep', lazy='select', uselist=False, viewonly=True,
+        primaryjoin='foreign(FortSystem.name) == remote(OCRPrep.system)',
     )
 
     @property
@@ -1012,7 +1009,7 @@ class OCRTracker(Base):
 
     def __str__(self):
         """ A pretty one line to give all information. """
-        return "{system}: **Fort {fort}**  **UM {um}**  Last Update at {date}".format(
+        return "{system}: **Fort {fort}**  **UM {um}**, updated at {date}".format(
             um=self.um, fort=self.fort, system=self.system, date=self.updated_at
         )
 
@@ -1090,7 +1087,7 @@ class OCRTrigger(Base):
 
     def __str__(self):
         """ A pretty one line to give all information. """
-        return "{system}: {fort_trigger}:{um_trigger} with income of {base_income} and upkeep {last_upkeep}  Last Update at {date}".format(
+        return "{system}: {fort_trigger}:{um_trigger} with income of {base_income} and upkeep {last_upkeep}, updated at {date}".format(
             um_trigger=self.um_trigger, fort_trigger=self.fort_trigger,
             base_income=self.base_income, last_upkeep=self.last_upkeep,
             system=self.system, date=self.updated_at)
@@ -1174,7 +1171,7 @@ class OCRPrep(Base):
 
     def __str__(self):
         """ A pretty one line to give all information. """
-        return "{system}: {merits} Last Update at {date}".format(
+        return "{system}: {merits}, updated at {date}".format(
             merits=self.merits, system=self.system, date=self.updated_at)
 
     def __eq__(self, other):
@@ -1204,7 +1201,7 @@ class OCRPrep(Base):
             pass
 
     @sqla_orm.validates('merits')
-    def validate_triggers(self, key, value):
+    def validate_merits(self, key, value):
         try:
             if value < 0 or value > SENSIBLE_OCR_MERITS:
                 raise cog.exc.ValidationFail("Bounds check failed for: {} with value {}".format(key, value))
@@ -1228,18 +1225,19 @@ class Global(Base):
     __tablename__ = 'globals'
 
     id = sqla.Column(sqla.Integer, primary_key=True)
+    cycle = sqla.Column(sqla.Integer, default=0)
     consolidation = sqla.Column(sqla.Integer, default=0)
     updated_at = sqla.Column(sqla.DateTime(timezone=False), default=datetime.datetime.utcnow())  # All dates UTC
 
     def __repr__(self):
-        keys = ['id', 'consolidation']
+        keys = ['id', 'cycle', 'consolidation']
         kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
 
         return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
 
     def __str__(self):
         """ A pretty one line to give all information. """
-        return "{cycle}: Consolidation Vote: {consolidation}%".format(
+        return "Cycle {cycle}: Consolidation Vote: {consolidation}%".format(
             cycle=self.cycle, consolidation=self.consolidation
         )
 
@@ -1247,7 +1245,7 @@ class Global(Base):
         return isinstance(other, Global) and hash(self) == hash(other)
 
     def __hash__(self):
-        return hash("{}".format(self.id))
+        return hash("{}".format(self.cycle))
 
     def update(self, **kwargs):
         """
@@ -1264,13 +1262,24 @@ class Global(Base):
             raise cog.exc.ValidationFail("Expected key 'updated_at' is missing.")
 
         self.updated_at = kwargs['updated_at']
+        for key in ['cycle', 'consolidation']:
+            try:
+                setattr(self, key, kwargs[key])
+            except (KeyError, cog.exc.ValidationFail):
+                pass
+
+    @sqla_orm.validates('cycle')
+    def validate_cycle(self, key, value):
         try:
-            self.consolidation = kwargs['consolidation']
-        except (KeyError, cog.exc.ValidationFail):
+            if value < 1:
+                raise cog.exc.ValidationFail("Bounds check failed for: {} with value {}".format(key, value))
+        except TypeError:
             pass
 
+        return value
+
     @sqla_orm.validates('consolidation')
-    def validate_triggers(self, key, value):
+    def validate_consolidation(self, key, value):
         try:
             if value < 0 or value > 100:
                 raise cog.exc.ValidationFail("Bounds check failed for: {} with value {}".format(key, value))
@@ -1417,7 +1426,9 @@ def empty_tables(session, *, perm=False):
     Drop all tables.
     """
     classes = [FortDrop, UMHold, FortSystem, UMSystem, FortUser, UMUser, KOS,
-               KOS, TrackSystem, TrackSystemCached, TrackByID, AdminPerm, ChannelPerm, RolePerm]
+               KOS, TrackSystem, TrackSystemCached, TrackByID,
+               AdminPerm, ChannelPerm, RolePerm,
+               OCRTracker, OCRTrigger, OCRPrep, Global]
     if perm:
         classes += [DiscordUser]
 

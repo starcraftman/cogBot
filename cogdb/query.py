@@ -18,6 +18,7 @@ from cogdb.schema import (DiscordUser, FortSystem, FortPrep, FortDrop, FortUser,
                           TrackSystem, TrackSystemCached, TrackByID, OCRTracker, OCRTrigger,
                           OCRPrep, Global)
 from cogdb.eddb import HUDSON_CONTROLS, WINTERS_CONTROLS
+from cogdb.scanners import FortScanner
 
 DEFER_MISSING = get_config("limits", "defer_missing", default=750)
 MAX_DROP = get_config("limits", "max_drop", default=1000)
@@ -1130,3 +1131,46 @@ def get_current_global(session):
         session.flush()
 
     return globe
+
+
+def ocr_update_fort_status(session):
+    """
+    Iterate every fort in the system and update fort_status, um_status and triggers if needed.
+    For any system that is updated generate an update_system_dict to be sent in batch.
+
+    Returns: A list of FortScanner.update_system_dicts that will update the sheet with OCR changes.
+    """
+    cell_updates = []
+
+    for sys in session.query(FortSystem):
+        if not sys.ocr_tracker:
+            continue
+
+        changed = False
+        if sys.ocr_tracker.fort > sys.fort_status:
+            sys.fort_status = sys.ocr_tracker.fort
+            changed = True
+        if sys.ocr_tracker.um > sys.um_status:
+            sys.um_status = sys.ocr_tracker.um
+            changed = True
+        if changed:
+            cell_updates += FortScanner.update_system_dict(sys.sheet_col, sys.fort_status, sys.um_status)
+
+    return cell_updates
+
+
+def ocr_prep_report(session):
+    """
+    Generate a small report on the preps currently tracked.
+
+    Returns: Report on current consolidation and prep merits. (String)
+    """
+    globe = get_current_global(session)
+    msg = """__Hudson Preps Report__
+
+Current Consolidation: {}%
+""".format(globe.consolidation)
+    for prep in session.query(OCRPrep).order_by(OCRPrep.merits.desc()).all():
+        msg += "\n" + str(prep)
+
+    return msg

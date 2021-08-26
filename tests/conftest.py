@@ -104,7 +104,8 @@ def db_cleanup(session):
     cogdb.schema.empty_tables(session, perm=True)
 
     classes = [DiscordUser, FortUser, FortSystem, FortDrop, FortOrder, UMUser, UMSystem, UMHold,
-               KOS, TrackSystem, TrackSystemCached, TrackByID, AdminPerm, ChannelPerm, RolePerm]
+               KOS, TrackSystem, TrackSystemCached, TrackByID, AdminPerm, ChannelPerm, RolePerm,
+               OCRTracker, OCRTrigger, OCRPrep, Global]
     for cls in classes:
         assert session.query(cls).all() == []
 
@@ -728,15 +729,17 @@ def f_ocr_testbed(session):
     """
     date = datetime.datetime(2021, 8, 25, 2, 33, 0)
     ocr_tracks = (
-        OCRTracker(id=1, system="SystemA", fort=0, um=0, updated_at=date),
-        OCRTracker(id=2, system="SystemB", fort=0, um=0, updated_at=date),
-        OCRTracker(id=3, system="SystemC", fort=0, um=0, updated_at=date),
+        OCRTracker(id=1, system="Frey", fort=0, um=0, updated_at=date),
+        OCRTracker(id=2, system="Nurundere", fort=0, um=0, updated_at=date),
+        OCRTracker(id=3, system="Sol", fort=0, um=0, updated_at=date),
     )
     ocr_preps = (
-        OCRPrep(id=1, system="SystemD", merits=0, updated_at=date),
+        OCRPrep(id=1, system="Rhea", merits=0, updated_at=date),
     )
     ocr_triggers = (
-        OCRTrigger(id=1, system="SystemA", fort_trigger=500, um_trigger=1000, base_income=50, last_upkeep=24, updated_at=date),
+        OCRTrigger(id=1, system="Frey", fort_trigger=500, um_trigger=1000, base_income=50, last_upkeep=24, updated_at=date),
+        OCRTrigger(id=2, system="Nurundere", fort_trigger=500, um_trigger=1000, base_income=50, last_upkeep=24, updated_at=date),
+        OCRTrigger(id=3, system="Sol", fort_trigger=500, um_trigger=1000, base_income=50, last_upkeep=24, updated_at=date),
     )
     session.add_all(ocr_tracks + ocr_preps + ocr_triggers)
     session.commit()
@@ -756,7 +759,7 @@ def f_global_testbed(session):
     """
     date = datetime.datetime(2021, 8, 25, 2, 33, 0)
     globals = (
-        Global(id=1, consolidation=77, updated_at=date),
+        Global(id=1, cycle=240, consolidation=77, updated_at=date),
     )
     session.add_all(globals)
     session.commit()

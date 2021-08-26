@@ -5,6 +5,7 @@ All actions have async execute methods.
 """
 import asyncio
 import concurrent
+import concurrent.futures as cfut
 import datetime
 import functools
 import logging
@@ -1178,18 +1179,28 @@ class Near(Action):
         await self.bot.send_message(self.msg.channel, msg)
 
 
+class OCR(Action):
+    """
+    Management interface for OCR operations.
+    """
+    async def execute(self):
+        reply = None
+
+        if self.args.subcmd == "preps":
+            reply = cogdb.query.ocr_prep_report(self.session)
+        elif self.args.subcmd == "refresh":  # pragma: no cover
+            await monitor_ocr_sheet(self.bot, delay_minutes=0, repeat=False)
+
+        if reply:
+            await self.bot.send_message(self.msg.channel, reply)
+
+
 class Pin(Action):
     """
     Create an objetives pin.
     """
     # TODO: Incomplete, expect bot to manage pin entirely. Left undocumented.
     async def execute(self):
-        # TODO: Remove on shipping feature
-        #  ocr_scanner = get_scanner('hudson_ocr')
-        #  await ocr_scanner.update_cells()
-        #  with cogdb.session_scope(cogdb.Session) as session:
-            #  ocr_scanner.parse_sheet(session)
-
         systems = cogdb.query.fort_get_targets(self.session)
         systems.reverse()
         systems += cogdb.query.fort_get_next_targets(self.session, count=5)
@@ -1837,11 +1848,8 @@ async def monitor_carrier_events(client, *, next_summary, last_timestamp=None, d
         msgs = cog.util.generative_split(tracks, str, header=header)
 
     # Only send messages if generated and channel set
-    chan_id = cog.util.get_config("carrier_channel", default=None)
-    if msgs and chan_id and msgs != [header]:
-        chan = client.get_channel(chan_id)
-        for msg in msgs:
-            await client.send_message(chan, msg)
+    if msgs != [header]:
+        await report_to_leadership(client, msgs)
 
     asyncio.ensure_future(
         monitor_carrier_events(
@@ -1851,26 +1859,68 @@ async def monitor_carrier_events(client, *, next_summary, last_timestamp=None, d
     )
 
 
-async def monitor_ocr_sheet(client, *, last_timestamp=None, delay=30):
+async def monitor_ocr_sheet(client, *, last_timestamp=None, delay_minutes=30, repeat=True):
     """
     Simple async task that just checks for changes to the OCR sheet.
+    This task will schedule itself infinitely on a delay.
+
+    Args:
+        client: The bot client itself.
+
+    Kwargs:
+        last_timestamp: The last timestamp the bot woke up at.
+        delay_minutes: The minutes between polling sheet for new change.
+        repeat: If true, will schedule itself infinitely.
     """
     start = datetime.datetime.utcnow()
     if not last_timestamp:
         last_timestamp = start
 
-    timedelta_to_wait = (last_timestamp + datetime.timedelta(minutes=delay)) - start
+    timedelta_to_wait = (last_timestamp + datetime.timedelta(minutes=delay_minutes)) - start
     if timedelta_to_wait.seconds > 0:
-        await asyncio.sleep(delay)
+        await asyncio.sleep(timedelta_to_wait.seconds)
 
-    # TODO: Update database first.
-    # TODO: Analyse information here.
-
-    asyncio.ensure_future(
-        monitor_carrier_events(
-            client, last_timestamp=last_timestamp, delay=delay
+    # Update database by triggering manual refresh
+    ocr_scanner = get_scanner('hudson_ocr')
+    await ocr_scanner.update_cells()
+    with cfut.ProcessPoolExecutor(max_workers=1) as pool:
+        await client.loop.run_in_executor(
+            pool, ocr_scanner.scheduler_run,
         )
-    )
+
+    # Data refreshed, analyse and update
+    with cogdb.session_scope(cogdb.Session) as session:
+        updates = cogdb.query.ocr_update_fort_status(session)
+        if updates:
+            await get_scanner('hudson_cattle').send_batch(updates)
+
+        prep_report = cogdb.query.ocr_prep_report(session)
+
+    # Only send messages if generated and channel set
+    await report_to_leadership(client, [prep_report])
+
+    # A onetime flag to trigger for testing
+    if repeat:
+        asyncio.ensure_future(
+            monitor_ocr_sheet(
+                client, last_timestamp=last_timestamp, delay_minutes=delay_minutes
+            )
+        )
+
+
+async def report_to_leadership(client, msgs):
+    """
+    Send messages to the channel configured to receive reports.
+
+    Args:
+        client: The bot client.
+        msgs: A list of messages, each should be under discord char limit.
+    """
+    chan_id = cog.util.get_config("carrier_channel", default=None)
+    if msgs and chan_id:
+        chan = client.get_channel(chan_id)
+        for msg in msgs:
+            await client.send_message(chan, msg)
 
 
 SCANNERS = {}

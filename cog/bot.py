@@ -199,6 +199,7 @@ class CogBot(discord.Client):
                 presence_task(self),
                 simple_heartbeat(),
                 cog.actions.monitor_carrier_events(self, next_summary=next_summary, delay=60),
+                cog.actions.monitor_ocr_sheet(self),
                 cogdb.monitor_pools(),
             ))
 

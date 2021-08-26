@@ -482,6 +482,16 @@ async def test_carrierscanner_parse_sheet(session, f_track_testbed):
 
 
 @pytest.mark.asyncio
+async def test_ocrscanner_generate_system_map(session, f_asheet_ocrscanner, f_ocr_testbed):
+    o_scanner = OCRScanner(f_asheet_ocrscanner)
+    await o_scanner.update_cells()
+    sys_map = o_scanner.generate_system_map()
+
+    assert sys_map['HYADES SECTOR GH-V D2-135'] == 'Hyades Sector GH-V d2-135'
+    assert sys_map['LALANDE 39866'] == 'Lalande 39866'
+
+
+@pytest.mark.asyncio
 async def test_ocrscanner_parse_sheet(session, f_asheet_ocrscanner, f_ocr_testbed, f_global_testbed):
     o_scanner = OCRScanner(f_asheet_ocrscanner)
     await o_scanner.update_cells()
@@ -538,7 +548,7 @@ async def test_ocrscanner_ocr_trackers(session, f_asheet_ocrscanner, f_ocr_testb
         'updated_at': datetime.datetime(2021, 8, 23, 20, 32, 47)
     }
 
-    result = o_scanner.ocr_trackers(sheet_date)
+    result = o_scanner.ocr_trackers(sheet_date, o_scanner.generate_system_map())
     assert result['Adeo'] == expect
 
 
@@ -556,7 +566,7 @@ async def test_ocrscanner_ocr_triggers(session, f_asheet_ocrscanner, f_ocr_testb
         'um_trigger': 13260,
         'updated_at': datetime.datetime(2021, 8, 23, 20, 32, 47)
     }
-    result = o_scanner.ocr_triggers(sheet_date)
+    result = o_scanner.ocr_triggers(sheet_date, o_scanner.generate_system_map())
     assert result['Adeo'] == expect
 
 
@@ -571,7 +581,8 @@ async def test_ocrscanner_ocr_preps(session, f_asheet_ocrscanner, f_ocr_testbed)
         'system': 'Bolg',
         'updated_at': datetime.datetime(2021, 8, 23, 20, 32, 47)
     }
-    result = o_scanner.ocr_preps(sheet_date)
+    sys_map = o_scanner.generate_system_map()
+    result = o_scanner.ocr_preps(sheet_date, sys_map)
     assert result['Bolg'] == expect
 
 

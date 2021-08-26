@@ -591,13 +591,13 @@ def test_kos_friendly(f_kos):
 def test_ocrtracker__str__(f_ocr_testbed):
     tracker = f_ocr_testbed[0][0]
 
-    assert str(tracker) == "SystemA: **Fort 0**  **UM 0**  Last Update at 2021-08-25 02:33:00"
+    assert str(tracker) == "Frey: **Fort 0**  **UM 0**, updated at 2021-08-25 02:33:00"
 
 
 def test_ocrtracker__repr__(f_ocr_testbed):
     tracker = f_ocr_testbed[0][0]
 
-    assert repr(tracker) == "OCRTracker(id=1, system='SystemA', fort=0, um=0, updated_at=datetime.datetime(2021, 8, 25, 2, 33))"
+    assert repr(tracker) == "OCRTracker(id=1, system='Frey', fort=0, um=0, updated_at=datetime.datetime(2021, 8, 25, 2, 33))"
 
 
 def test_ocrtracker_update(f_ocr_testbed):
@@ -652,13 +652,13 @@ def test_ocrtrigger_update(f_ocr_testbed):
 def test_ocrtrigger__str__(f_ocr_testbed):
     trigger = f_ocr_testbed[1][0]
 
-    assert str(trigger) == "SystemA: 500:1000 with income of 50 and upkeep 24  Last Update at 2021-08-25 02:33:00"
+    assert str(trigger) == "Frey: 500:1000 with income of 50 and upkeep 24, updated at 2021-08-25 02:33:00"
 
 
 def test_ocrtrigger__repr__(f_ocr_testbed):
     trigger = f_ocr_testbed[1][0]
 
-    assert repr(trigger) == "OCRTrigger(id=1, system='SystemA', fort_trigger=500, um_trigger=1000, base_income=50, last_upkeep=24, updated_at=datetime.datetime(2021, 8, 25, 2, 33))"
+    assert repr(trigger) == "OCRTrigger(id=1, system='Frey', fort_trigger=500, um_trigger=1000, base_income=50, last_upkeep=24, updated_at=datetime.datetime(2021, 8, 25, 2, 33))"
 
 
 def test_ocrtrigger_validate_fort_trigger(f_ocr_testbed):
@@ -709,13 +709,13 @@ def test_ocrtrigger_validate_updated_at(f_ocr_testbed):
 def test_ocrprep__str__(f_ocr_testbed):
     prep = f_ocr_testbed[2][0]
 
-    assert str(prep) == "SystemD: 0 Last Update at 2021-08-25 02:33:00"
+    assert str(prep) == "Rhea: 0, updated at 2021-08-25 02:33:00"
 
 
 def test_ocrprep__repr__(f_ocr_testbed):
     prep = f_ocr_testbed[2][0]
 
-    assert repr(prep) == "OCRPrep(id=1, system='SystemD', merits=0, updated_at=datetime.datetime(2021, 8, 25, 2, 33))"
+    assert repr(prep) == "OCRPrep(id=1, system='Rhea', merits=0, updated_at=datetime.datetime(2021, 8, 25, 2, 33))"
 
 
 def test_ocrprep_update(f_ocr_testbed):
@@ -747,6 +747,38 @@ def test_ocrprep_validate_updated_at(f_ocr_testbed):
         prep.updated_at = 0
     with pytest.raises(cog.exc.ValidationFail):
         prep.updated_at = datetime.datetime(1000, 1, 1)
+
+
+def test_global__repr__(f_global_testbed):
+    globe = f_global_testbed[0]
+
+    expect = "Global(id=1, cycle=240, consolidation=77)"
+    assert repr(globe) == expect
+
+
+def test_global__str__(f_global_testbed):
+    globe = f_global_testbed[0]
+
+    expect = "Cycle 240: Consolidation Vote: 77%"
+    assert str(globe) == expect
+
+
+def test_global_update(f_global_testbed):
+    globe = f_global_testbed[0]
+
+    with pytest.raises(cog.exc.ValidationFail):
+        globe.update(consolidation=9999)
+
+    globe.update(cycle=100, consolidation=80, updated_at=globe.updated_at + datetime.timedelta(minutes=1))
+    assert globe.cycle == 100
+    assert globe.consolidation == 80
+
+
+def test_global_validate_cycle(f_global_testbed):
+    globe = f_global_testbed[0]
+
+    with pytest.raises(cog.exc.ValidationFail):
+        globe.cycle = -1
 
 
 def test_global_validate_consolidation(f_global_testbed):

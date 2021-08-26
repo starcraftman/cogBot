@@ -751,6 +751,10 @@ class CarrierScanner(FortScanner):
         return found
 
 
+# TODO: Correct possible corruption of system names from OCR
+#       Use some string similarity algorithm vs known controls.
+#       Examples: 16 CYGN = 16 CYGNI
+#       At present bot will ignore updates where system name is corrupted.
 class OCRScanner(FortScanner):
     """
     Scanner for the Hudson OCR sheet.
@@ -771,14 +775,16 @@ class OCRScanner(FortScanner):
         return super().__repr__().replace('FortScanner', 'OCRScanner')
 
     def parse_sheet(self, session=None):
+        sys_map = self.generate_system_map()
+
         # Update consolidation vote
         globe = cogdb.query.get_current_global(session)
         globe.consolidation = int(self.cells_row_major[self.prep_consolidation_row][self.prep_col])
 
         # Date in format: 2021-08-22 20:33:07
         sheet_date = datetime.datetime.strptime(self.cells_row_major[0][2], "%Y-%m-%d %H:%M:%S")
-        ocr_trackers = self.ocr_trackers(sheet_date)
-        ocr_preps = self.ocr_preps(sheet_date)
+        ocr_trackers = self.ocr_trackers(sheet_date, sys_map)
+        ocr_preps = self.ocr_preps(sheet_date, sys_map)
 
         # flush to db
         cogdb.query.update_ocr_live(session, ocr_trackers)
@@ -787,9 +793,37 @@ class OCRScanner(FortScanner):
         # TODO: Enable weekly limit when fully tested.
         #  oldest_trigger = cogdb.query.get_oldest_ocr_trigger(session)
         #  if self.should_update_trigger(oldest_trigger, sheet_date):
-        ocr_triggers = self.ocr_triggers(sheet_date)
+        ocr_triggers = self.ocr_triggers(sheet_date, sys_map)
         cogdb.query.update_ocr_trigger(session, ocr_triggers)
         session.commit()
+
+    def generate_system_map(self):
+        """
+        Use this map to correct systm names and ensure system name is not corrupted in ocr sheet.
+        Looks up candidates against the EDDB database, maps the CAPS -> Normal system names.
+        Any system names corrupted won't be in the map and will generate errors when looked up.
+
+        Dictionary Format:
+        {
+            "16 CYGNI": "16 Cygni",
+            "ADEO": "Adeo",
+            ...
+        }
+
+        Returns: A dictionary mapping system names from ALL CAPS to normal eddb name.
+        """
+        systems_in_sheets = [x.upper() for x in cogdb.eddb.HUDSON_CONTROLS] + \
+            [x for x in self.cells_col_major[self.prep_col][2:7] if x]
+
+        # Generate a map for system name correction
+        with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
+            eddb_systems = eddb_session.query(cogdb.eddb.System).\
+                filter(cogdb.eddb.System.name.in_(systems_in_sheets)).\
+                all()
+            mapping_eddb = {x.name.lower(): x.name for x in eddb_systems}
+
+        return {x: mapping_eddb[x.lower()] for x in systems_in_sheets
+                if x.lower() in mapping_eddb}
 
     def should_update_trigger(self, oldest_trigger, sheet_date):
         """
@@ -811,7 +845,7 @@ class OCRScanner(FortScanner):
 
         return trigger_stale or just_past_tick
 
-    def ocr_trackers(self, sheet_date):
+    def ocr_trackers(self, sheet_date, sys_map):
         """
         Parse and return all OCR Tracking information for current forts.
 
@@ -823,39 +857,40 @@ class OCRScanner(FortScanner):
         trackers = {}
         for row in self.cells_row_major[self.start_row:]:
             try:
-                system = row[0].lower().capitalize()
+                system = sys_map[row[0]]
                 trackers[system] = {
                     'system': system,
                     'fort': int(row[1]),
                     'um': int(row[2]),
                     'updated_at': sheet_date,
                 }
-            except ValueError:
-                logging.getLogger(__name__).error("Failed to parse row: %s", str(row))
+            except (KeyError, ValueError):
+                logging.getLogger(__name__).info("Failed to parse row: %s", str(row))
 
         return trackers
 
-    def ocr_preps(self, sheet_date):
+    def ocr_preps(self, sheet_date, sys_map):
         """
         Parse and return all OCR Preps listed.
         """
         preps = {}
         for row in self.cells_row_major[self.start_row:]:
             try:
-                system = row[self.prep_col].lower().capitalize()
+                system = row[self.prep_col]
                 if not system:
                     break
+                system = sys_map[system]
                 preps[system] = {
                     'system': system,
                     'merits': int(row[self.prep_col + 1]),
                     'updated_at': sheet_date,
                 }
-            except ValueError:
-                logging.getLogger(__name__).error("Failed to parse row: %s", str(row))
+            except (KeyError, ValueError):
+                logging.getLogger(__name__).info("Failed to parse row: %s", str(row))
 
         return preps
 
-    def ocr_triggers(self, sheet_date):
+    def ocr_triggers(self, sheet_date, sys_map):
         """
         Parse and return all OCR Triggers listed for the cycle.
 
@@ -867,7 +902,7 @@ class OCRScanner(FortScanner):
         triggers = {}
         for row in self.cells_row_major[self.start_row:]:
             try:
-                system = row[self.trigger_col].lower().capitalize()
+                system = sys_map[row[self.trigger_col]]
                 triggers[system] = {
                     'system': system,
                     'last_upkeep': int(row[self.trigger_col + 1]),
@@ -876,8 +911,8 @@ class OCRScanner(FortScanner):
                     'um_trigger': int(row[self.trigger_col + 4]),
                     'updated_at': sheet_date,
                 }
-            except ValueError:
-                logging.getLogger(__name__).error("Failed to parse row: %s", str(row))
+            except (KeyError, ValueError):
+                logging.getLogger(__name__).info("Failed to parse row: %s", str(row))
 
         return triggers
 

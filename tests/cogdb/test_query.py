@@ -648,6 +648,7 @@ def test_users_with_um_merits(session, f_dusers, f_fort_testbed, f_um_testbed):
 
 
 def test_update_ocr_live(session, f_ocr_testbed):
+    session.query(OCRTracker).delete()
     session.add(OCRTracker(system='Sol', fort=3333, um=2222, updated_at=datetime.datetime(2021, 8, 23, 0, 33, 20)))
     session.commit()
     test_data = {
@@ -672,6 +673,7 @@ def test_update_ocr_live(session, f_ocr_testbed):
 
 
 def test_update_ocr_trigger(session, f_ocr_testbed):
+    session.query(OCRTrigger).delete()
     session.add(OCRTrigger(system='Sol', fort_trigger=7777, um_trigger=9999, updated_at=datetime.datetime(2021, 8, 23, 0, 33, 20)))
     session.commit()
     test_data = {
@@ -701,11 +703,12 @@ def test_update_ocr_trigger(session, f_ocr_testbed):
 
 
 def test_update_ocr_prep(session, f_ocr_testbed):
+    session.query(OCRPrep).delete()
     session.add(OCRPrep(system='Sol', merits=7777, updated_at=datetime.datetime(2021, 8, 23, 0, 33, 20)))
     session.commit()
     test_data = {
-        'NuSys': {
-            'system': 'NuSys',
+        'Cubeo': {
+            'system': 'Cubeo',
             'merits': 3421,
             'updated_at': datetime.datetime(2021, 8, 23, 0, 33, 20),
         },
@@ -718,7 +721,7 @@ def test_update_ocr_prep(session, f_ocr_testbed):
     cogdb.query.update_ocr_prep(session, test_data)
 
     tracks = session.query(OCRPrep).order_by(OCRPrep.system.asc()).all()
-    assert tracks[0].system == 'NuSys'
+    assert tracks[0].system == 'Cubeo'
     assert tracks[1].merits == 333
 
 
@@ -765,3 +768,48 @@ def test_get_current_global(session, f_global_testbed):
         latest = cogdb.query.get_current_global(session)
         latest == current
         latest.consolidation == 77
+
+
+# Manually setup a situation to test update of db.
+def test_ocr_update_forts(session, db_cleanup):
+    date = datetime.datetime(2021, 8, 25, 2, 33, 0)
+    fort_systems = [
+        FortSystem(id=1, name='Frey', fort_status=4910, trigger=4910, fort_override=0.7, um_status=0, undermine=0.0, distance=116.99, notes='', sheet_col='G', sheet_order=1),
+        FortSystem(id=2, name='Nurundere', fort_status=5422, trigger=8425, fort_override=0.6, um_status=0, undermine=0.0, distance=99.51, notes='', sheet_col='H', sheet_order=2),
+        FortSystem(id=4, name='Sol', fort_status=2500, trigger=5211, fort_override=0.0, um_status=2250, undermine=0.0, distance=28.94, notes='Leave For Grinders', sheet_col='J', sheet_order=4)
+    ]
+    ocr_tracks = [
+        OCRTracker(id=1, system="Frey", fort=5555, um=2500, updated_at=date),
+        OCRTracker(id=2, system="Nurundere", fort=4444, um=1000, updated_at=date),
+        OCRTracker(id=3, system="Sol", fort=4444, um=1250, updated_at=date),
+    ]
+    session.add_all(fort_systems + ocr_tracks)
+    session.commit()
+    result = cogdb.query.ocr_update_fort_status(session)
+    session.commit()
+
+    system = session.query(FortSystem).filter(FortSystem.name == 'Frey').one()
+    assert system.fort_status == 5555
+    assert system.um_status == 2500
+    system = session.query(FortSystem).filter(FortSystem.name == 'Nurundere').one()
+    assert system.fort_status == 5422
+    assert system.um_status == 1000
+    system = session.query(FortSystem).filter(FortSystem.name == 'Sol').one()
+    assert system.fort_status == 4444
+    assert system.um_status == 2250
+
+    expect = [{'range': 'G6:G7', 'values': [[5555], [2500]]}, {'range': 'H6:H7', 'values': [[5422], [1000]]}, {'range': 'J6:J7', 'values': [[4444], [2250]]}]
+    assert result == expect
+
+
+def test_ocr_prep_report(session, f_ocr_testbed, f_global_testbed):
+    prep = f_ocr_testbed[2][0]
+    session.add(OCRPrep(system='Cubeo', merits=5531, updated_at=prep.updated_at))
+    session.commit()
+    expect = """__Hudson Preps Report__
+
+Current Consolidation: 77%
+
+Cubeo: 5531, updated at 2021-08-25 02:33:00
+Rhea: 0, updated at 2021-08-25 02:33:00"""
+    assert cogdb.query.ocr_prep_report(session) == expect
