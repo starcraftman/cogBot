@@ -359,6 +359,8 @@ class FortSystem(Base):
         if self.notes:
             msg += ' ' + self.notes
 
+        msg += ' - {}Ly'.format(self.distance)
+
         return msg
 
     def display_details(self):
