@@ -1138,21 +1138,27 @@ def ocr_update_fort_status(session):
     Iterate every fort in the system and update fort_status, um_status and triggers if needed.
     For any system that is updated generate an update_system_dict to be sent in batch.
 
-    Returns: A list of FortScanner.update_system_dicts that will update the sheet with OCR changes.
+    Args:
+        session: A session for the database.
+
+    Returns: (cell_updates, warnings)
+        cell_updates: A list of FortScanner.update_system_dicts that will update the sheet with OCR changes.
+        warnings: A list of warnings about NEWLY undermined systems.
     """
     cell_updates = []
 
     for sys in session.query(FortSystem):
         if not sys.ocr_tracker:
             continue
-
         changed = False
-        if sys.ocr_tracker.fort > sys.fort_status:
+
+        if not sys.is_fortified and sys.ocr_tracker.fort > sys.fort_status:
             sys.fort_status = sys.ocr_tracker.fort
             changed = True
-        if sys.ocr_tracker.um > sys.um_status:
+        if not sys.is_undermined and sys.ocr_tracker.um > sys.um_status:
             sys.um_status = sys.ocr_tracker.um
             changed = True
+
         if changed:
             cell_updates += FortScanner.update_system_dict(sys.sheet_col, sys.fort_status, sys.um_status)
 
@@ -1162,6 +1168,9 @@ def ocr_update_fort_status(session):
 def ocr_prep_report(session):
     """
     Generate a small report on the preps currently tracked.
+
+    Args:
+        session: A session for the database.
 
     Returns: Report on current consolidation and prep merits. (String)
     """

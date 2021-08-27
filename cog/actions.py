@@ -1890,14 +1890,9 @@ async def monitor_ocr_sheet(client, *, last_timestamp=None, delay_minutes=30, re
 
     # Data refreshed, analyse and update
     with cogdb.session_scope(cogdb.Session) as session:
-        updates = cogdb.query.ocr_update_fort_status(session)
-        if updates:
-            await get_scanner('hudson_cattle').send_batch(updates)
-
-        prep_report = cogdb.query.ocr_prep_report(session)
-
-    # Only send messages if generated and channel set
-    await report_to_leadership(client, [prep_report])
+        cell_updates, _ = cogdb.query.ocr_update_fort_status(session)
+        if cell_updates:
+            await get_scanner('hudson_cattle').send_batch(cell_updates)
 
     # A onetime flag to trigger for testing
     if repeat:
@@ -1908,7 +1903,7 @@ async def monitor_ocr_sheet(client, *, last_timestamp=None, delay_minutes=30, re
         )
 
 
-async def report_to_leadership(client, msgs):
+async def report_to_leadership(client, msgs):  # pragma: no cover
     """
     Send messages to the channel configured to receive reports.
 

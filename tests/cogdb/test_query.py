@@ -783,13 +783,16 @@ def test_ocr_update_forts(session, db_cleanup):
         OCRTracker(id=2, system="Nurundere", fort=4444, um=1000, updated_at=date),
         OCRTracker(id=3, system="Sol", fort=4444, um=1250, updated_at=date),
     ]
-    session.add_all(fort_systems + ocr_tracks)
+    ocr_triggers = [
+        OCRTrigger(id=3, system="Sol", fort_trigger=8000, um_trigger=1000, updated_at=date),
+    ]
+    session.add_all(fort_systems + ocr_tracks + ocr_triggers)
     session.commit()
-    result = cogdb.query.ocr_update_fort_status(session)
+    cell_updates = cogdb.query.ocr_update_fort_status(session)
     session.commit()
 
     system = session.query(FortSystem).filter(FortSystem.name == 'Frey').one()
-    assert system.fort_status == 5555
+    assert system.fort_status == 4910
     assert system.um_status == 2500
     system = session.query(FortSystem).filter(FortSystem.name == 'Nurundere').one()
     assert system.fort_status == 5422
@@ -798,8 +801,8 @@ def test_ocr_update_forts(session, db_cleanup):
     assert system.fort_status == 4444
     assert system.um_status == 2250
 
-    expect = [{'range': 'G6:G7', 'values': [[5555], [2500]]}, {'range': 'H6:H7', 'values': [[5422], [1000]]}, {'range': 'J6:J7', 'values': [[4444], [2250]]}]
-    assert result == expect
+    expect = [{'range': 'G6:G7', 'values': [[4910], [2500]]}, {'range': 'H6:H7', 'values': [[5422], [1000]]}, {'range': 'J6:J7', 'values': [[4444], [2250]]}]
+    assert cell_updates == expect
 
 
 def test_ocr_prep_report(session, f_ocr_testbed, f_global_testbed):

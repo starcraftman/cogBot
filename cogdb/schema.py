@@ -1252,6 +1252,7 @@ class Global(Base):
         Update the object with expected kwargs.
 
         kwargs:
+            cycle: The current cycle number.
             consolidation: The consolidation % of the curent vote.
             updated_at: The new date time to set for this update. (Required)
 
