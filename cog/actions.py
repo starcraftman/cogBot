@@ -243,11 +243,10 @@ class Admin(Action):
 
         all_members = sorted(all_members, key=lambda x: x.name.lower())
         all_members = sorted(all_members, key=lambda x: x.top_role.name)
-        try:
-            tfile = tempfile.NamedTemporaryFile(mode='r')
+        with tempfile.NamedTemporaryFile(mode='r') as tfile:
             async with aiofiles.open(tfile.name, 'w') as fout:
                 await fout.write("__Members With No Activity in Last {} Day{}__\n".format(self.args.days,
-                                                                                          "" if self.args.days == 1 else "s"))
+                                                                                        "" if self.args.days == 1 else "s"))
                 for member in all_members:
                     await fout.write("{}, Top Role: {}\n".format(member.name, member.top_role))
 
@@ -256,13 +255,11 @@ class Admin(Action):
                     await fout.write("{}, Top Role: {}, Last Msg Sent on {} in {}\n".format(
                         msg.author.name, msg.author.top_role, msg.created_at, msg.channel.name))
 
-            fname = 'activity_report_{}_{}.txt'.format(
-                self.msg.guild.name, datetime.datetime.utcnow().replace(microsecond=0))
-            await self.msg.channel.send("Report generated in this file.",
-                                        file=discord.File(fp=tfile.name, filename=fname))
-            await asyncio.sleep(5)
-        finally:
-            tfile.close()
+        fname = 'activity_report_{}_{}.txt'.format(
+            self.msg.guild.name, datetime.datetime.utcnow().replace(microsecond=0))
+        await self.msg.channel.send("Report generated in this file.",
+                                    file=discord.File(fp=tfile.name, filename=fname))
+        await asyncio.sleep(5)
 
     async def cast(self):
         """ Broacast a message accross a server. """
@@ -1189,7 +1186,7 @@ class OCR(Action):
         if self.args.subcmd == "preps":
             reply = cogdb.query.ocr_prep_report(self.session)
         elif self.args.subcmd == "refresh":  # pragma: no cover
-            await monitor_ocr_sheet(self.bot, delay_minutes=0, repeat=False)
+            await monitor_ocr_sheet(self.bot, delay=0, repeat=False)
 
         if reply:
             await self.bot.send_message(self.msg.channel, reply)
@@ -1859,7 +1856,7 @@ async def monitor_carrier_events(client, *, next_summary, last_timestamp=None, d
     )
 
 
-async def monitor_ocr_sheet(client, *, last_timestamp=None, delay_minutes=30, repeat=True):
+async def monitor_ocr_sheet(client, *, delay=1800, repeat=True):
     """
     Simple async task that just checks for changes to the OCR sheet.
     This task will schedule itself infinitely on a delay.
@@ -1868,17 +1865,11 @@ async def monitor_ocr_sheet(client, *, last_timestamp=None, delay_minutes=30, re
         client: The bot client itself.
 
     Kwargs:
-        last_timestamp: The last timestamp the bot woke up at.
-        delay_minutes: The minutes between polling sheet for new change.
+        delay: The seconds between checking the sheet. Default 30 minutes.
         repeat: If true, will schedule itself infinitely.
     """
-    start = datetime.datetime.utcnow()
-    if not last_timestamp:
-        last_timestamp = start
-
-    timedelta_to_wait = (last_timestamp + datetime.timedelta(minutes=delay_minutes)) - start
-    if timedelta_to_wait.seconds > 0:
-        await asyncio.sleep(timedelta_to_wait.seconds)
+    if delay >= 1:
+        await asyncio.sleep(delay)
 
     # Update database by triggering manual refresh
     ocr_scanner = get_scanner('hudson_ocr')
@@ -1890,15 +1881,16 @@ async def monitor_ocr_sheet(client, *, last_timestamp=None, delay_minutes=30, re
 
     # Data refreshed, analyse and update
     with cogdb.session_scope(cogdb.Session) as session:
-        cell_updates, _ = cogdb.query.ocr_update_fort_status(session)
+        cell_updates = cogdb.query.ocr_update_fort_status(session)
         if cell_updates:
             await get_scanner('hudson_cattle').send_batch(cell_updates)
+            logging.getLogger(__name__).info("Sent update to sheet.")
 
     # A onetime flag to trigger for testing
     if repeat:
         asyncio.ensure_future(
             monitor_ocr_sheet(
-                client, last_timestamp=last_timestamp, delay_minutes=delay_minutes
+                client, delay=delay, repeat=repeat
             )
         )
 

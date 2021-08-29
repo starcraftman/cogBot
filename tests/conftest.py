@@ -744,7 +744,7 @@ def f_ocr_testbed(session):
     session.add_all(ocr_tracks + ocr_preps + ocr_triggers)
     session.commit()
 
-    yield ocr_tracks, ocr_triggers, ocr_preps,
+    yield ocr_tracks, ocr_triggers, ocr_preps
 
     session.rollback()
     for cls in (OCRPrep, OCRTrigger, OCRTracker):

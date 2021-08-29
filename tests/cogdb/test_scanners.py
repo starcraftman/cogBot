@@ -239,7 +239,8 @@ def test_umscanner_update_hold_dict():
 async def test_umscanner_slide_templates(f_asheet_umscanner):
     systems = []
     value_to_add = [{"sys_name": "Frey", "power": "Yuri Grom", "trigger": "12345", "priority": "Normal"}]
-    [systems.append(await f_asheet_umscanner.values_col(i)) for i in range(17)]
+    for i in range(17):
+        systems.append(await f_asheet_umscanner.values_col(i))
     systems = [systems[i][:13] for i in range(len(systems))]
     returned_data = UMScanner.slide_templates([systems[3:]], value_to_add)
     expected_return = [{'range': 'N1:13', 'values': [

@@ -1147,11 +1147,14 @@ def ocr_update_fort_status(session):
     """
     cell_updates = []
 
+    print("HI")
     for sys in session.query(FortSystem):
+        print(sys.name)
         if not sys.ocr_tracker:
             continue
         changed = False
 
+        print(sys.name, sys.fort_status, sys.ocr_tracker.fort, sys.um_status, sys.ocr_tracker.um)
         if not sys.is_fortified and sys.ocr_tracker.fort > sys.fort_status:
             sys.fort_status = sys.ocr_tracker.fort
             changed = True

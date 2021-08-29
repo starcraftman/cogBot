@@ -1552,7 +1552,7 @@ async def test_cmd_near_if(f_bot):
 
 
 def test_process_system_args():
-    args = ['This  ,  ', 'is ,   ', '   an,' ' example.']
+    args = ['This  ,  ', 'is ,   ', '   an,', ' example.']
     results = cog.actions.process_system_args(args)
     assert results == ['this', 'is', 'an', 'example.']
 

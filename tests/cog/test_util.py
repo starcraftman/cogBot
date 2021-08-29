@@ -51,9 +51,10 @@ def test_update_config():
 
         assert cog.util.get_config('scanners', 'hudson_cattle', 'page') == 150
         found = False
-        for line in open(cog.util.YAML_FILE):
-            if 'page: 150' in line:
-                found = True
+        with open(cog.util.YAML_FILE) as fin:
+            for line in fin:
+                if 'page: 150' in line:
+                    found = True
 
         assert found
 
