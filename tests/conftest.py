@@ -27,7 +27,8 @@ import cogdb.query
 from cogdb.schema import (DiscordUser, FortSystem, FortPrep, FortDrop, FortUser, FortOrder,
                           UMSystem, UMExpand, UMOppose, UMUser, UMHold, KOS,
                           AdminPerm, ChannelPerm, RolePerm,
-                          TrackSystem, TrackSystemCached, TrackByID)
+                          TrackSystem, TrackSystemCached, TrackByID,
+                          OCRTracker, OCRTrigger, OCRPrep, Global)
 from tests.data import CELLS_FORT, CELLS_FORT_FMT, CELLS_UM
 
 
@@ -45,7 +46,8 @@ def around_all_tests(session):
 
     classes = [DiscordUser, FortUser, FortSystem, FortDrop, UMSystem, UMUser, UMHold,
                KOS, AdminPerm, ChannelPerm, RolePerm,
-               TrackSystem, TrackSystemCached, TrackByID]
+               TrackSystem, TrackSystemCached, TrackByID,
+               OCRTracker, OCRTrigger, OCRPrep, Global]
     for cls in classes:
         assert not session.query(cls).all()
 
@@ -102,7 +104,8 @@ def db_cleanup(session):
     cogdb.schema.empty_tables(session, perm=True)
 
     classes = [DiscordUser, FortUser, FortSystem, FortDrop, FortOrder, UMUser, UMSystem, UMHold,
-               KOS, TrackSystem, TrackSystemCached, TrackByID, AdminPerm, ChannelPerm, RolePerm]
+               KOS, TrackSystem, TrackSystemCached, TrackByID, AdminPerm, ChannelPerm, RolePerm,
+               OCRTracker, OCRTrigger, OCRPrep, Global]
     for cls in classes:
         assert session.query(cls).all() == []
 
@@ -625,7 +628,7 @@ def f_asheet_fortscanner(f_asheet):
 @pytest.fixture
 def f_asheet_umscanner(f_asheet):
     """
-    Return a mocked AsyncGSheet for the fortscanner.
+    Return a mocked AsyncGSheet for the umscanner.
     """
     f_asheet.filename = cog.util.rel_to_abs('tests', 'test_input.umscanner.txt')
 
@@ -644,9 +647,19 @@ def f_umformula_values(f_asheet):
 @pytest.fixture
 def f_asheet_kos(f_asheet):
     """
-    Return a mocked AsyncGSheet for the fortscanner.
+    Return a mocked AsyncGSheet for the kosscanner.
     """
     f_asheet.filename = cog.util.rel_to_abs('tests', 'test_input.kos.txt')
+
+    yield f_asheet
+
+
+@pytest.fixture
+def f_asheet_ocrscanner(f_asheet):
+    """
+    Return a mocked AsyncGSheet for the ocrscanner.
+    """
+    f_asheet.filename = cog.util.rel_to_abs('tests', 'test_input.ocrscanner.txt')
 
     yield f_asheet
 
@@ -705,5 +718,55 @@ def f_track_testbed(session):
 
     session.rollback()
     for cls in (TrackSystem, TrackSystemCached, TrackByID):
+        session.query(cls).delete()
+    session.commit()
+
+
+@pytest.fixture
+def f_ocr_testbed(session):
+    """
+    Setup the database with dummy data for track tests.
+    """
+    date = datetime.datetime(2021, 8, 25, 2, 33, 0)
+    ocr_tracks = (
+        OCRTracker(id=1, system="Frey", fort=0, um=0, updated_at=date),
+        OCRTracker(id=2, system="Nurundere", fort=0, um=0, updated_at=date),
+        OCRTracker(id=3, system="Sol", fort=0, um=0, updated_at=date),
+    )
+    ocr_preps = (
+        OCRPrep(id=1, system="Rhea", merits=0, updated_at=date),
+    )
+    ocr_triggers = (
+        OCRTrigger(id=1, system="Frey", fort_trigger=500, um_trigger=1000, base_income=50, last_upkeep=24, updated_at=date),
+        OCRTrigger(id=2, system="Nurundere", fort_trigger=500, um_trigger=1000, base_income=50, last_upkeep=24, updated_at=date),
+        OCRTrigger(id=3, system="Sol", fort_trigger=500, um_trigger=1000, base_income=50, last_upkeep=24, updated_at=date),
+    )
+    session.add_all(ocr_tracks + ocr_preps + ocr_triggers)
+    session.commit()
+
+    yield ocr_tracks, ocr_triggers, ocr_preps
+
+    session.rollback()
+    for cls in (OCRPrep, OCRTrigger, OCRTracker):
+        session.query(cls).delete()
+    session.commit()
+
+
+@pytest.fixture
+def f_global_testbed(session):
+    """
+    Setup the database with dummy data for track tests.
+    """
+    date = datetime.datetime(2021, 8, 25, 2, 33, 0)
+    globals = (
+        Global(id=1, cycle=240, consolidation=77, updated_at=date),
+    )
+    session.add_all(globals)
+    session.commit()
+
+    yield globals
+
+    session.rollback()
+    for cls in (Global,):
         session.query(cls).delete()
     session.commit()

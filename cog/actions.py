@@ -5,6 +5,7 @@ All actions have async execute methods.
 """
 import asyncio
 import concurrent
+import concurrent.futures as cfut
 import datetime
 import functools
 import logging
@@ -242,11 +243,10 @@ class Admin(Action):
 
         all_members = sorted(all_members, key=lambda x: x.name.lower())
         all_members = sorted(all_members, key=lambda x: x.top_role.name)
-        try:
-            tfile = tempfile.NamedTemporaryFile(mode='r')
+        with tempfile.NamedTemporaryFile(mode='r') as tfile:
             async with aiofiles.open(tfile.name, 'w') as fout:
                 await fout.write("__Members With No Activity in Last {} Day{}__\n".format(self.args.days,
-                                                                                          "" if self.args.days == 1 else "s"))
+                                                                                        "" if self.args.days == 1 else "s"))
                 for member in all_members:
                     await fout.write("{}, Top Role: {}\n".format(member.name, member.top_role))
 
@@ -255,13 +255,11 @@ class Admin(Action):
                     await fout.write("{}, Top Role: {}, Last Msg Sent on {} in {}\n".format(
                         msg.author.name, msg.author.top_role, msg.created_at, msg.channel.name))
 
-            fname = 'activity_report_{}_{}.txt'.format(
-                self.msg.guild.name, datetime.datetime.utcnow().replace(microsecond=0))
-            await self.msg.channel.send("Report generated in this file.",
-                                        file=discord.File(fp=tfile.name, filename=fname))
-            await asyncio.sleep(5)
-        finally:
-            tfile.close()
+        fname = 'activity_report_{}_{}.txt'.format(
+            self.msg.guild.name, datetime.datetime.utcnow().replace(microsecond=0))
+        await self.msg.channel.send("Report generated in this file.",
+                                    file=discord.File(fp=tfile.name, filename=fname))
+        await asyncio.sleep(5)
 
     async def cast(self):
         """ Broacast a message accross a server. """
@@ -1178,6 +1176,22 @@ class Near(Action):
         await self.bot.send_message(self.msg.channel, msg)
 
 
+class OCR(Action):
+    """
+    Management interface for OCR operations.
+    """
+    async def execute(self):
+        reply = None
+
+        if self.args.subcmd == "preps":
+            reply = cogdb.query.ocr_prep_report(self.session)
+        elif self.args.subcmd == "refresh":  # pragma: no cover
+            await monitor_ocr_sheet(self.bot, delay=0, repeat=False)
+
+        if reply:
+            await self.bot.send_message(self.msg.channel, reply)
+
+
 class Pin(Action):
     """
     Create an objetives pin.
@@ -1831,11 +1845,8 @@ async def monitor_carrier_events(client, *, next_summary, last_timestamp=None, d
         msgs = cog.util.generative_split(tracks, str, header=header)
 
     # Only send messages if generated and channel set
-    chan_id = cog.util.get_config("carrier_channel", default=None)
-    if msgs and chan_id and msgs != [header]:
-        chan = client.get_channel(chan_id)
-        for msg in msgs:
-            await client.send_message(chan, msg)
+    if msgs != [header]:
+        await report_to_leadership(client, msgs)
 
     asyncio.ensure_future(
         monitor_carrier_events(
@@ -1843,6 +1854,60 @@ async def monitor_carrier_events(client, *, next_summary, last_timestamp=None, d
             last_timestamp=last_timestamp, delay=delay
         )
     )
+
+
+async def monitor_ocr_sheet(client, *, delay=1800, repeat=True):
+    """
+    Simple async task that just checks for changes to the OCR sheet.
+    This task will schedule itself infinitely on a delay.
+
+    Args:
+        client: The bot client itself.
+
+    Kwargs:
+        delay: The seconds between checking the sheet. Default 30 minutes.
+        repeat: If true, will schedule itself infinitely.
+    """
+    if delay >= 1:
+        await asyncio.sleep(delay)
+
+    # Update database by triggering manual refresh
+    ocr_scanner = get_scanner('hudson_ocr')
+    await ocr_scanner.update_cells()
+    with cfut.ProcessPoolExecutor(max_workers=1) as pool:
+        await client.loop.run_in_executor(
+            pool, ocr_scanner.scheduler_run,
+        )
+
+    # Data refreshed, analyse and update
+    with cogdb.session_scope(cogdb.Session) as session:
+        cell_updates = cogdb.query.ocr_update_fort_status(session)
+        if cell_updates:
+            await get_scanner('hudson_cattle').send_batch(cell_updates)
+            logging.getLogger(__name__).info("Sent update to sheet.")
+
+    # A onetime flag to trigger for testing
+    if repeat:
+        asyncio.ensure_future(
+            monitor_ocr_sheet(
+                client, delay=delay, repeat=repeat
+            )
+        )
+
+
+async def report_to_leadership(client, msgs):  # pragma: no cover
+    """
+    Send messages to the channel configured to receive reports.
+
+    Args:
+        client: The bot client.
+        msgs: A list of messages, each should be under discord char limit.
+    """
+    chan_id = cog.util.get_config("carrier_channel", default=None)
+    if msgs and chan_id:
+        chan = client.get_channel(chan_id)
+        for msg in msgs:
+            await client.send_message(chan, msg)
 
 
 SCANNERS = {}

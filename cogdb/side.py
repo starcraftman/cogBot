@@ -958,7 +958,7 @@ def get_monitor_systems(session, controls):
         order_by(System.id).\
         all()
 
-    return sorted(list(set([x[0] for x in eg_systems + uncontesteds])))
+    return sorted(list({x[0] for x in eg_systems + uncontesteds}))
 
 
 @wrap_exceptions

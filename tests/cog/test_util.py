@@ -1,6 +1,7 @@
 """
 Test util the grab all module.
 """
+import datetime
 import os
 import shutil
 import tempfile
@@ -50,9 +51,10 @@ def test_update_config():
 
         assert cog.util.get_config('scanners', 'hudson_cattle', 'page') == 150
         found = False
-        for line in open(cog.util.YAML_FILE):
-            if 'page: 150' in line:
-                found = True
+        with open(cog.util.YAML_FILE) as fin:
+            for line in fin:
+                if 'page: 150' in line:
+                    found = True
 
         assert found
 
@@ -309,3 +311,19 @@ def test_merge_msgs_to_least():
     results = cog.util.merge_msgs_to_least(parts, limit=900)
     assert len(results) == 2
     assert len(results[0]) == 900
+
+
+def test_next_weekly_tick():
+    now = datetime.datetime(2021, 8, 24, 16, 34, 39, 246075)
+    tick = cog.util.next_weekly_tick(now)
+    assert tick == datetime.datetime(2021, 8, 26, 7, 0)
+
+    tick = cog.util.next_weekly_tick(now, -1)
+    assert tick == datetime.datetime(2021, 8, 19, 7, 0)
+
+    tick = cog.util.next_weekly_tick(now, 1)
+    assert tick == datetime.datetime(2021, 9, 2, 7, 0)
+
+    # Calculate tick just past hour
+    tick = cog.util.next_weekly_tick(tick + datetime.timedelta(hours=1), 0)
+    assert tick == datetime.datetime(2021, 9, 9, 7, 0)

@@ -15,8 +15,10 @@ import cog.sheets
 from cog.util import substr_match, get_config
 from cogdb.schema import (DiscordUser, FortSystem, FortPrep, FortDrop, FortUser, FortOrder,
                           UMSystem, UMUser, UMHold, KOS, AdminPerm, ChannelPerm, RolePerm,
-                          TrackSystem, TrackSystemCached, TrackByID)
+                          TrackSystem, TrackSystemCached, TrackByID, OCRTracker, OCRTrigger,
+                          OCRPrep, Global)
 from cogdb.eddb import HUDSON_CONTROLS, WINTERS_CONTROLS
+from cogdb.scanners import FortScanner
 
 DEFER_MISSING = get_config("limits", "defer_missing", default=750)
 MAX_DROP = get_config("limits", "max_drop", default=1000)
@@ -935,3 +937,252 @@ def track_ids_newer_than(session, date):
         filter(TrackByID.updated_at > date).\
         order_by(TrackByID.updated_at).\
         all()
+
+
+def update_ocr_live(session, trackers_dict, sheet_date=None):
+    """
+    Update the tracked IDs into the database.
+    tracker_dict is a dict of form:
+        {
+            SYSTEM:
+                {
+                    'system': SYSTEM,
+                    'fort': FORT,
+                    'um': UM,
+                    'updated_at': UPDATED_AT,
+                },
+            ...
+        }
+
+    FORT, UM and UPDATED_AT are the respective data to store for a SYSTEM in schema:
+    If the information exists it will be updated, else inserted.
+    If updated_at not present but sheet_date is, sheet_date will be set as updated_at time.
+
+    Args:
+        session: The session to db.
+        tracker_dict: See above dictionary.
+        sheet_date: Optionally will be used if no 'updated_at' key in dict.
+
+    Returns: (updated, removed) - Both lists are SYSTEM names (str).
+    """
+    added, updated = [], []
+    ocr_systems = session.query(OCRTracker).\
+        filter(OCRTracker.system.in_(trackers_dict.keys())).\
+        all()
+
+    copy_tracker_dict = copy.deepcopy(trackers_dict)
+    for system in ocr_systems:
+        # Reject possible data that is older than current
+        if sheet_date and system.updated_at >= sheet_date:
+            del copy_tracker_dict[system.id]
+            continue
+
+        data = copy_tracker_dict[system.system]
+
+        data['updated_at'] = data.get('updated_at', sheet_date)
+        try:
+            system.update(**data)
+            updated += [system.system]
+        except cog.exc.ValidationFail:
+            pass
+
+        del copy_tracker_dict[system.system]
+
+    for data in copy_tracker_dict.values():
+        session.add(OCRTracker(**data))
+        added += [data['system']]
+
+    return (updated, added)
+
+
+def update_ocr_trigger(session, trigger_dict, sheet_date=None):
+    """
+    Update the tracked IDs into the database.
+    trigger_dict is a dict of form:
+        {
+            SYSTEM: {
+                'system': SYSTEM,
+                'fort_trigger': FORT_TRIGGER,
+                'um_trigger': UM_TRIGGER,
+                'base_income': BASE_INCOME,
+                'last_upkeep': LAST_CYCLE_UPKEEP,
+                'updated_at': UPDATED_AT,
+                },
+            ...
+        }
+
+    FORT_TRIGGER, UM_TRIGGER, BASE_INCOME, LAST_CYCLE_UPKEEP and UPDATED_AT are the
+    respective data to store for a SYSTEM in the dict.
+    If the information exists it will be updated, else inserted.
+
+    Args:
+        session: The session to db.
+        trigger_dict: See above dictionary.
+        sheet_date: Optionally will be used if no 'updated_at' key in dict.
+
+    Returns: (updated, removed) - Both lists are SYSTEM names (str).
+    """
+    added, updated = [], []
+    ocr_systems = session.query(OCRTrigger).\
+        filter(OCRTrigger.system.in_(trigger_dict.keys())).\
+        all()
+
+    copy_trigger_dict = copy.deepcopy(trigger_dict)
+    for system in ocr_systems:
+        data = copy_trigger_dict[system.system]
+
+        data['updated_at'] = data.get('updated_at', sheet_date)
+        try:
+            system.update(**data)
+            updated += [system.system]
+        except cog.exc.ValidationFail:
+            pass
+
+        del copy_trigger_dict[system.system]
+
+    for data in copy_trigger_dict.values():
+        session.add(OCRTrigger(**data))
+        added += [data['system']]
+
+    return (updated, added)
+
+
+def update_ocr_prep(session, prep_dict, sheet_date=None):
+    """
+    Update the tracked IDs into the database.
+    prep_dict is a dict of form:
+        {
+            SYSTEM: {
+                'system': SYSTEM,
+                'merits': MERITS,
+                'updated_at': datetime obj
+            },
+            ...
+        }
+
+    SYSTEM and MERITS are the respective data to store for an SYSTEM in schema:
+    If the information exists it will be updated, else inserted.
+
+    Args:
+        session: The session to db.
+        prep_dict: See above dictionary.
+        sheet_date: Optionally will be used if no 'updated_at' key in dict.
+
+    Returns: (updated, removed) - Both lists are SYSTEM names (str).
+    """
+    added, updated = [], []
+    ocr_systems = session.query(OCRPrep).\
+        filter(OCRPrep.system.in_(prep_dict.keys())).\
+        all()
+
+    copy_prep_dict = copy.deepcopy(prep_dict)
+    for system in ocr_systems:
+        # Reject possible data that is older than current
+        if sheet_date and system.updated_at >= sheet_date:
+            del copy_prep_dict[system.system]
+            continue
+
+        data = copy_prep_dict[system.system]
+
+        data['updated_at'] = data.get('updated_at', sheet_date)
+        try:
+            system.update(**data)
+            updated += [system.system]
+        except cog.exc.ValidationFail:
+            pass
+
+        del copy_prep_dict[system.system]
+
+    for data in copy_prep_dict.values():
+        session.add(OCRPrep(**data))
+        added += [data['system']]
+
+    return (updated, added)
+
+
+def get_oldest_ocr_trigger(session):
+    """
+    Return the oldest OCRTrigger entry. If no entries, returns None.
+
+    Args:
+        session: The session to db.
+    """
+    try:
+        return session.query(OCRTrigger).\
+            order_by(OCRTrigger.updated_at.asc()).\
+            limit(1).\
+            one()
+    except sqla_oexc.NoResultFound:
+        return None
+
+
+def get_current_global(session):
+    """
+    Return the current global for this cycle.
+    If none present, generate one.
+
+    Returns: The current Global
+    """
+    try:
+        globe = session.query(Global).one()
+    except sqla_oexc.NoResultFound:
+        globe = Global()
+        session.add(globe)
+        session.flush()
+
+    return globe
+
+
+def ocr_update_fort_status(session):
+    """
+    Iterate every fort in the system and update fort_status, um_status and triggers if needed.
+    For any system that is updated generate an update_system_dict to be sent in batch.
+
+    Args:
+        session: A session for the database.
+
+    Returns: (cell_updates, warnings)
+        cell_updates: A list of FortScanner.update_system_dicts that will update the sheet with OCR changes.
+        warnings: A list of warnings about NEWLY undermined systems.
+    """
+    cell_updates = []
+
+    print("HI")
+    for sys in session.query(FortSystem):
+        print(sys.name)
+        if not sys.ocr_tracker:
+            continue
+        changed = False
+
+        print(sys.name, sys.fort_status, sys.ocr_tracker.fort, sys.um_status, sys.ocr_tracker.um)
+        if not sys.is_fortified and sys.ocr_tracker.fort > sys.fort_status:
+            sys.fort_status = sys.ocr_tracker.fort
+            changed = True
+        if not sys.is_undermined and sys.ocr_tracker.um > sys.um_status:
+            sys.um_status = sys.ocr_tracker.um
+            changed = True
+
+        if changed:
+            cell_updates += FortScanner.update_system_dict(sys.sheet_col, sys.fort_status, sys.um_status)
+
+    return cell_updates
+
+
+def ocr_prep_report(session):
+    """
+    Generate a small report on the preps currently tracked.
+
+    Args:
+        session: A session for the database.
+
+    Returns: Report on current consolidation and prep merits. (String)
+    """
+    globe = get_current_global(session)
+    msg = """__Hudson Preps Report__
+
+Current Consolidation: {}%
+""".format(globe.consolidation)
+    for prep in session.query(OCRPrep).order_by(OCRPrep.merits.desc()).all():
+        msg += "\n" + str(prep)
+
+    return msg

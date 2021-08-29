@@ -108,6 +108,12 @@ class InternalException(CogException):
         super().__init__(msg, lvl)
 
 
+class ValidationFail(InternalException):
+    """ Raise when a validation function on db has failed. """
+    def __init__(self, msg=''):
+        super().__init__(msg)
+
+
 class ColOverflow(InternalException):
     """ Raise when a column has reached end, increment next column.  """
     def __init__(self):
