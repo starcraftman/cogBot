@@ -362,9 +362,12 @@ def fort_get_priority_targets(session):
     deferred, priority = [], []
 
     for system in fort_get_systems(session):
+        if system.is_fortified:
+            continue
+
         if 'priority' in system.notes.lower():
             priority += [system]
-        elif system.missing < DEFER_MISSING and not system.is_fortified:
+        elif system.missing < DEFER_MISSING:
             deferred += [system]
 
     return priority, deferred
