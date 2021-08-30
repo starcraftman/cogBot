@@ -1249,3 +1249,20 @@ def add_vote(session, member, vote, amount):
     except (sqla_exc.IntegrityError, sqla_oexc.FlushError) as exc:
         raise cog.exc.InvalidCommandArgs("Member {} as an error when voting.".format(member.display_name)) from exc
 
+
+def has_voted(session, member):
+    """
+    Get if user in Vote DB already.
+    """
+    for user in session.query(Vote):
+        if user.id == member.id:
+            return user
+    return False
+
+
+def update_vote(session, member, vote, amount, to_update):
+    """
+    Add amount to a vote cast by the same member.
+    """
+    new_vote_amount = to_update.amount + int(amount)
+    print(new_vote_amount)
