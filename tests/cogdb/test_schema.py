@@ -844,6 +844,20 @@ def test_global__str__(f_global_testbed):
     assert str(globe) == expect
 
 
+def test_vote__repr__(f_vote_testbed):
+    vote = f_vote_testbed[0]
+
+    expect = 'Vote(id=1, vote=<VoteType.cons: 1>, amount=1, date=datetime.datetime(2021, 8, 25, 2, 33))'
+    assert repr(vote) == expect
+
+
+def test_vote__str__(f_vote_testbed):
+    vote = f_vote_testbed[0]
+
+    expect = "**User1**: voted 1 prep, last updated at {date}."
+    assert str(vote) == expect
+
+
 def test_global_update(f_global_testbed):
     globe = f_global_testbed[0]
 

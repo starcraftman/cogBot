@@ -28,7 +28,7 @@ from cogdb.schema import (DiscordUser, FortSystem, FortPrep, FortDrop, FortUser,
                           UMSystem, UMExpand, UMOppose, UMUser, UMHold, KOS,
                           AdminPerm, ChannelPerm, RolePerm,
                           TrackSystem, TrackSystemCached, TrackByID,
-                          OCRTracker, OCRTrigger, OCRPrep, Global)
+                          OCRTracker, OCRTrigger, OCRPrep, Global, Vote, VoteType)
 from tests.data import CELLS_FORT, CELLS_FORT_FMT, CELLS_UM
 
 
@@ -763,5 +763,25 @@ def f_global_testbed(session):
 
     session.rollback()
     for cls in (Global,):
+        session.query(cls).delete()
+    session.commit()
+
+
+@pytest.fixture
+def f_vote_testbed(session):
+    """
+    Setup the database with dummy data for vote tracker.
+    """
+    date = datetime.datetime(2021, 8, 25, 2, 33, 0)
+    vote = (
+        Vote(id=1, vote=VoteType.cons, amount=1, date=date),
+    )
+    session.add_all(vote)
+    session.commit()
+
+    yield vote
+
+    session.rollback()
+    for cls in (vote,):
         session.query(cls).delete()
     session.commit()
