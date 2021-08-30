@@ -339,6 +339,7 @@ class Admin(Action):
     async def cycle(self):
         """
         Rollover scanners to new sheets post cycle tick.
+        Run the top 5 command and then cycle.
 
         Configs will be modified and scanners re-initialized.
 
@@ -346,6 +347,7 @@ class Admin(Action):
             InternalException - No parseable numeric component found in tab.
             RemoteError - The sheet/tab combination could not be resolved. Tab needs creating.
         """
+        await self.top(5)
         self.bot.deny_commands = True
         scanner_configs = cog.util.get_config('scanners')
         lines = [['Document', 'Active Page']]
