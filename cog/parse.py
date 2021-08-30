@@ -293,6 +293,8 @@ def subs_fort(subs, prefix):
                      help='Show the next NUM fort targets after current')
     sub.add_argument('-d', '--details', action='store_true',
                      help='Show details on selected systems (will truncate to 4).')
+    sub.add_argument('-p', '--priority', action='store_true',
+                     help='Show high priority systems in the fort results.')
 
 
 @register_parser

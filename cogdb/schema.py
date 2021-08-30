@@ -459,7 +459,7 @@ class FortOrder(Base):
 
     # Relationships
     system = sqla.orm.relationship(
-        'FortSystem', uselist=False,
+        'FortSystem', uselist=False, viewonly=True,
         primaryjoin="foreign(FortOrder.system_name) == FortSystem.name"
     )
 
@@ -1229,6 +1229,7 @@ class Global(Base):
     id = sqla.Column(sqla.Integer, primary_key=True)
     cycle = sqla.Column(sqla.Integer, default=0)
     consolidation = sqla.Column(sqla.Integer, default=0)
+    show_almost_done = sqla.Column(sqla.Boolean, default=False)
     updated_at = sqla.Column(sqla.DateTime(timezone=False), default=datetime.datetime.utcnow())  # All dates UTC
 
     def __repr__(self):
@@ -1256,6 +1257,7 @@ class Global(Base):
         kwargs:
             cycle: The current cycle number.
             consolidation: The consolidation % of the curent vote.
+            show_almost_done: Manual override to show almost done.
             updated_at: The new date time to set for this update. (Required)
 
         Raises:

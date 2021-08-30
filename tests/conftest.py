@@ -44,7 +44,8 @@ def around_all_tests(session):
     yield
     print(" Time", datetime.datetime.utcnow() - start, end="")
 
-    classes = [DiscordUser, FortUser, FortSystem, FortDrop, UMSystem, UMUser, UMHold,
+    classes = [DiscordUser, FortUser, FortSystem, FortDrop, FortOrder,
+               UMSystem, UMUser, UMHold,
                KOS, AdminPerm, ChannelPerm, RolePerm,
                TrackSystem, TrackSystemCached, TrackByID,
                OCRTracker, OCRTrigger, OCRPrep, Global]

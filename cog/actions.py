@@ -838,27 +838,87 @@ class Fort(Action):
         merit_table = cog.tbl.format_table(merits, header=True)[0]
         return system.display_details() + "\n" + merit_table
 
+    async def set(self):
+        """
+        Set the system's fort status and um status.
+        """
+        system_name = ' '.join(self.args.system)
+        if ',' in system_name:
+            raise cog.exc.InvalidCommandArgs('One system at a time with --set flag')
+
+        system = cogdb.query.fort_find_system(self.session, system_name)
+        system.set_status(self.args.set)
+        self.session.commit()
+
+        self.payloads += cogdb.scanners.FortScanner.update_system_dict(
+            system.sheet_col, system.fort_status, system.um_status
+        )
+        scanner = get_scanner("hudson_cattle")
+        await scanner.send_batch(self.payloads)
+
+        return system.display()
+
+    def order(self):
+        """
+        Manage the manual fort order interface.
+        """
+
+        cogdb.query.fort_order_drop(self.session,
+                                    cogdb.query.fort_order_get(self.session))
+        if self.args.system:
+            system_names = process_system_args(self.args.system)
+            cogdb.query.fort_order_set(self.session, system_names)
+            response = """Fort order has been manually set.
+When all systems completed order will return to default.
+To unset override, simply set an empty list of systems.
+"""
+        else:
+            response = "Manual fort order unset. Resuming normal order."
+
+        return response
+
+    def default_show(self, manual):
+        """
+        Default show fort information to users.
+        """
+        lines = ['__Active Targets{}__'.format(manual)]
+        lines += [system.display() for system in cogdb.query.fort_get_targets(self.session)]
+
+        lines += ['\n__Next Targets__']
+        next_count = self.args.next if self.args.next else 3
+        lines += [system.display() for system in
+                  cogdb.query.fort_get_next_targets(self.session, count=next_count)]
+
+        globe = cogdb.query.get_current_global(self.session)
+        defers = cogdb.query.fort_get_deferred_targets(self.session)
+        if defers and (globe.show_almost_done or self.is_near_tick()):
+            lines += ['\n__Almost Done__'] + [system.display() for system in defers]
+
+        return '\n'.join(lines)
+
+    def is_near_tick(self):
+        """
+        Check if we are within the window configured for
+        showing deferred systems.
+        """
+        hours_to_tick = cog.util.get_config("hours_to_tick_deferred")
+
+        now = datetime.datetime.utcnow().replace(microsecond=0)
+        weekly_tick = now.replace(hour=7, minute=0, second=0)  # pylint: disable=unexpected-keyword-arg
+        while weekly_tick < now or weekly_tick.strftime('%A') != 'Thursday':
+            weekly_tick += datetime.timedelta(days=1)
+        tick_diff = (weekly_tick - now)
+        hours_left = tick_diff.seconds // 3600 + tick_diff.days * 24
+
+        return hours_left <= hours_to_tick
+
     async def execute(self):
         manual = ' (Manual Order)' if cogdb.query.fort_order_get(self.session) else ''
         if self.args.summary:
             response = self.system_summary()
 
         elif self.args.set:
-            system_name = ' '.join(self.args.system)
-            if ',' in system_name:
-                raise cog.exc.InvalidCommandArgs('One system at a time with --set flag')
-
-            system = cogdb.query.fort_find_system(self.session, system_name)
-            system.set_status(self.args.set)
-            self.session.commit()
-
-            self.payloads += cogdb.scanners.FortScanner.update_system_dict(
-                system.sheet_col, system.fort_status, system.um_status
-            )
-            scanner = get_scanner("hudson_cattle")
-            await scanner.send_batch(self.payloads)
-
-            response = system.display()
+            response = await self.set()
 
         elif self.args.miss:
             response = self.find_missing(self.args.miss)
@@ -867,17 +927,7 @@ class Fort(Action):
             response = self.system_details()
 
         elif self.args.order:
-            cogdb.query.fort_order_drop(self.session,
-                                        cogdb.query.fort_order_get(self.session))
-            if self.args.system:
-                system_names = process_system_args(self.args.system)
-                cogdb.query.fort_order_set(self.session, system_names)
-                response = """Fort order has been manually set.
-When all systems completed order will return to default.
-To unset override, simply set an empty list of systems.
-"""
-            else:
-                response = "Manual fort order unset. Resuming normal order."
+            response = self.order()
 
         elif self.args.system:
             lines = ['__Search Results__']
@@ -891,19 +941,14 @@ To unset override, simply set an empty list of systems.
                       cogdb.query.fort_get_next_targets(self.session, count=self.args.next)]
             response = '\n'.join(lines)
 
+        elif self.args.priority:
+            globe = cogdb.query.get_current_global(self.session)
+            globe.show_almost_done = not globe.show_almost_done
+            show_msg = "SHOW" if globe.show_almost_done else "NOT show"
+            response = "Will now {} the almost done fort systems.".format(show_msg)
+
         else:
-            lines = ['__Active Targets{}__'.format(manual)]
-            lines += [system.display() for system in cogdb.query.fort_get_targets(self.session)]
-
-            lines += ['\n__Next Targets__']
-            next_count = self.args.next if self.args.next else 3
-            lines += [system.display() for system in
-                      cogdb.query.fort_get_next_targets(self.session, count=next_count)]
-
-            defers = cogdb.query.fort_get_deferred_targets(self.session)
-            if defers:
-                lines += ['\n__Almost Done__'] + [system.display() for system in defers]
-            response = '\n'.join(lines)
+            response = self.default_show(manual)
 
         await self.bot.send_message(self.msg.channel,
                                     self.bot.emoji.fix(response, self.msg.guild))
