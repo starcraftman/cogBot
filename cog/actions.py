@@ -904,7 +904,7 @@ To unset override, simply set an empty list of systems.
         Check if we are within the window configured for
         showing deferred systems.
         """
-        hours_to_tick = cog.util.get_config("hours_to_tick_deferred")
+        hours_to_tick = cog.util.get_config("hours_to_tick_priority")
 
         now = datetime.datetime.utcnow().replace(microsecond=0)
         weekly_tick = now.replace(hour=7, minute=0, second=0)  # pylint: disable=unexpected-keyword-arg
