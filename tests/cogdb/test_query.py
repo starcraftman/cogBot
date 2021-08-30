@@ -143,7 +143,7 @@ def test_fort_get_medium_systems(session, f_dusers, f_fort_testbed):
 
 def test_fort_get_systems(session, f_dusers, f_fort_testbed):
     systems = cogdb.query.fort_get_systems(session)
-    assert len(systems) == 10
+    assert len(systems) == 8
     assert systems[0].name == 'Frey'
     assert systems[-1].name == 'LPM 229'
 
@@ -155,7 +155,7 @@ def test_fort_get_preps(session, f_dusers, f_fort_testbed):
 
 def test_fort_get_systems_no_mediums(session, f_dusers, f_fort_testbed):
     systems = cogdb.query.fort_get_systems(session, mediums=False)
-    assert len(systems) == 9
+    assert len(systems) == 7
     assert systems[0].name == 'Frey'
     assert systems[-1].name == 'LPM 229'
 
@@ -173,7 +173,7 @@ def test_fort_get_systems_by_state(session, f_dusers, f_fort_testbed):
     assert [sys.name for sys in systems['left'][0:3]] == [
         "LHS 3749", "Dongkum", "Alpha Fornacis"]
     assert [sys.name for sys in systems['undermined']] == [
-        "Nurundere", "Dongkum", 'WW Piscis Austrini', 'LPM 229']
+        "Nurundere", "Alpha Fornacis", 'WW Piscis Austrini', 'LPM 229']
     assert [sys.name for sys in systems['skipped']] == ['Sol', 'Phra Mool']
 
 

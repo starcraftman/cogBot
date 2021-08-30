@@ -467,6 +467,9 @@ Prep: **Rhea** 5100/10000 :Fortifying: Atropos - 65.55Ly
 __Next Targets__
 **LHS 3749** 1850/5974 :Fortifying: - 55.72Ly
 **Alpha Fornacis**    0/6476 :Fortifying: - 67.27Ly
+**Othime**    0/7367 :Fortifying: Priority for S/M ships (no L pads) - 83.68Ly
+
+__Priority Systems__
 **Othime**    0/7367 :Fortifying: Priority for S/M ships (no L pads) - 83.68Ly"""
     f_bot.send_message.assert_called_with(msg.channel, expect)
 
@@ -589,7 +592,10 @@ async def test_cmd_fort_order(session, f_bot, f_dusers, f_fort_testbed, f_fortor
 **Sol** 2500/5211 :Fortifying:, 2250 :Undermining: Leave For Grinders - 28.94Ly
 
 __Next Targets__
-**Nurundere** 5422/8425 :Fortifying: - 99.51Ly"""
+**Nurundere** 5422/8425 :Fortifying: - 99.51Ly
+
+__Priority Systems__
+**Othime**    0/7367 :Fortifying: Priority for S/M ships (no L pads) - 83.68Ly"""
     f_bot.send_message.assert_called_with(msg2.channel, expect)
 
 
@@ -943,7 +949,6 @@ async def test_cmd_pin(session, f_bot, f_dusers, f_fort_testbed):
 :Fortifying: Nurundere
 :Fortifying: LHS 3749
 :Fortifying: Alpha Fornacis
-:Fortifying: Othime **Priority for S/M ships (no L pads)**
 :Fortifying: WW Piscis Austrini
 :Fortifying: LPM 229
 :Fortifying: Dongkum

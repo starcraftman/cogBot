@@ -814,7 +814,7 @@ class Fort(Action):
         """ Provide a quick summary of systems. """
         states = cogdb.query.fort_get_systems_by_state(self.session)
 
-        total = len(cogdb.query.fort_get_systems(self.session))
+        total = len(cogdb.query.fort_get_systems(self.session, ignore_skips=False))
         keys = ['cancelled', 'fortified', 'undermined', 'skipped', 'left']
         lines = [
             [key.capitalize() for key in keys],
@@ -889,9 +889,13 @@ To unset override, simply set an empty list of systems.
                   cogdb.query.fort_get_next_targets(self.session, count=next_count)]
 
         globe = cogdb.query.get_current_global(self.session)
-        defers = cogdb.query.fort_get_deferred_targets(self.session)
-        if defers and (globe.show_almost_done or self.is_near_tick()):
-            lines += ['\n__Almost Done__'] + [system.display() for system in defers]
+        priority, deferred = cogdb.query.fort_get_priority_targets(self.session)
+        if priority + deferred:
+            lines += ['\n__Priority Systems__']
+            if priority:
+                lines += [system.display() for system in priority]
+            if deferred and (globe.show_almost_done or self.is_near_tick()):
+                lines += [system.display() for system in deferred]
 
         return '\n'.join(lines)
 
@@ -1247,10 +1251,10 @@ class Pin(Action):
     async def execute(self):
         systems = cogdb.query.fort_get_targets(self.session)
         systems.reverse()
-        systems += cogdb.query.fort_get_next_targets(self.session, count=5)
-        for defer in cogdb.query.fort_get_deferred_targets(self.session):
-            if defer.name != "Othime":
-                systems += [defer]
+        priority, deferred = cogdb.query.fort_get_priority_targets(self.session)
+        for sys in cogdb.query.fort_get_next_targets(self.session, count=5) + priority + deferred:
+            if sys not in systems:
+                systems += [sys]
 
         lines = [":Fortifying: {}{}".format(
             sys.name, " **{}**".format(sys.notes) if sys.notes else "") for sys in systems]

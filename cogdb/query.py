@@ -210,15 +210,19 @@ def fort_get_medium_systems(session):
     return unforted
 
 
-def fort_get_systems(session, mediums=True):
+def fort_get_systems(session, *, mediums=True, ignore_skips=True):
     """
-    Return a list of all Systems. PrepSystems are not included.
+    Return a list of all FortSystems. PrepSystems are not included.
 
-    args:
+    kwargs:
         mediums: If false, exclude all systems designated for j
                  Determined by "S/M" being in notes.
+        ignore_skips: If True, ignore systems with notes containing: "eave for".
     """
     query = session.query(FortSystem).filter(FortSystem.type != 'prep')
+
+    if ignore_skips:
+        query = query.filter(sqla.not_(FortSystem.skip))
     if not mediums:
         med_names = [med.name for med in fort_get_medium_systems(session)]
         query = query.filter(FortSystem.name.notin_(med_names))
@@ -285,7 +289,7 @@ def fort_get_systems_by_state(session):
         'skipped': [],
     }
 
-    for system in fort_get_systems(session):
+    for system in fort_get_systems(session, ignore_skips=False):
         log.info('STATE - %s', system)
         if system.is_fortified and system.is_undermined:
             states['cancelled'].append(system)
@@ -350,12 +354,20 @@ def fort_get_next_targets(session, count=1):
     return targets
 
 
-def fort_get_deferred_targets(session):
+def fort_get_priority_targets(session):
     """
     Return all deferred targets under deferal amount.
+    This will also return any systems that are prioritized.
     """
-    return [system for system in fort_get_systems(session)
-            if system.missing < DEFER_MISSING and not system.is_fortified]
+    deferred, priority = [], []
+
+    for system in fort_get_systems(session):
+        if 'priority' in system.notes.lower():
+            priority += [system]
+        elif system.missing < DEFER_MISSING and not system.is_fortified:
+            deferred += [system]
+
+    return priority, deferred
 
 
 def fort_add_drop(session, *, user, system, amount):
