@@ -17,7 +17,12 @@ from cog.util import substr_match, get_config
 from cogdb.schema import (DiscordUser, FortSystem, FortPrep, FortDrop, FortUser, FortOrder,
                           UMSystem, UMUser, UMHold, KOS, AdminPerm, ChannelPerm, RolePerm,
                           TrackSystem, TrackSystemCached, TrackByID, OCRTracker, OCRTrigger,
+<<<<<<< HEAD
                           OCRPrep, Global)
+=======
+                          OCRPrep, Global, Vote)
+from cogdb.eddb import HUDSON_CONTROLS, WINTERS_CONTROLS
+>>>>>>> adding progress for vote cmd
 from cogdb.scanners import FortScanner
 
 DEFER_MISSING = get_config("limits", "defer_missing", default=650)
@@ -1230,3 +1235,17 @@ def ocr_zero_live_trackers(session):
         tracker.fort = 0
         tracker.um = 0
     session.commit()
+
+
+def add_vote(session, member, vote, amount):
+    """
+    Cast a vote
+    """
+    try:
+        session.add(Vote(id=member.id, vote=vote, amount=amount))
+        session.commit()
+        return "**{member}** :{amount} {voteType} vote cast.".format(
+            member=member.display_name, amount=amount, voteType=vote)
+    except (sqla_exc.IntegrityError, sqla_oexc.FlushError) as exc:
+        raise cog.exc.InvalidCommandArgs("Member {} as an error when voting.".format(member.display_name)) from exc
+

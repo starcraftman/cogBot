@@ -636,6 +636,22 @@ def subs_user(subs, prefix):
 
 
 @register_parser
+def subs_vote(subs, prefix):
+    """ Subcommand parsing for vote """
+    desc = """Cast a vote.
+
+**{prefix}vote cons 5**
+        Vote consolidation with a power of 5 ...
+**{prefix}vote prep 15**
+        Vote preparation with 3 accounts and 5 vote power each.
+    """.format(prefix=prefix)
+    sub = subs.add_parser(prefix + 'vote', description=desc, formatter_class=RawHelp)
+    sub.set_defaults(cmd='Vote')
+    sub.add_argument('voteType', nargs='+', help='Vote type, either Cons or Prep')
+    sub.add_argument('amount', nargs='+', help='Vote power (either 1 or a multiple of 5)')
+
+
+@register_parser
 def subs_whois(subs, prefix):
     """ Subcommand parsing for whois """
     desc = """Lookup information for a commander on Inara.cz

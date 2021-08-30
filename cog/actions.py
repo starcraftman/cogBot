@@ -1789,6 +1789,17 @@ class User(Action):
         self.session.commit()
 
 
+class Vote(Action):
+    """
+    Cast a vote based on CMDR discord ID.
+    """
+    async def execute(self):
+        print("Votetype", self.args.voteType[0])
+        print("amount", self.args.amount[0])
+        response = cogdb.query.add_vote(self.session, self.msg.author, self.args.voteType[0], self.args.amount[0])
+        await self.bot.send_message(self.msg.channel, response)
+
+
 class WhoIs(Action):
     """
     Who is request to Inara for CMDR info.

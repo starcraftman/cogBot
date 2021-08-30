@@ -1353,6 +1353,52 @@ class Global(Base):
         return value
 
 
+class VoteType(enum.Enum):
+    """ Type of vote. """
+    cons = 1
+    prep = 2
+
+
+class Vote(Base):
+    """
+    Store vote amount to DB based on discord User ID.
+    """
+    __tablename__ = 'vote_tracker'
+
+    id = sqla.Column(sqla.BigInteger, primary_key=True)
+    vote = sqla.Column(sqla.Enum(VoteType), default=VoteType.cons, primary_key=True)
+    amount = sqla.Column(sqla.Integer, default=0)
+    date = sqla.Column(sqla.DateTime, default=datetime.datetime.utcnow)  # All dates UTC
+
+    def __repr__(self):
+        keys = ['id', 'vote', 'amount', 'date']
+        kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
+
+        return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
+
+    def __str__(self):
+        """ A pretty one line to give all information. """
+        return "{date} - **{id}**: voted {amount} {vote}.".format(
+            id=self.id, amount=self.amount,
+            vote=self.vote, date=self.date)
+
+    def __eq__(self, other):
+        return isinstance(other, Vote) and hash(self) == hash(other)
+
+    def __hash__(self):
+        return hash("{}".format(self.id))
+
+    @sqla_orm.validates('amount')
+    def validate_amount(self, key, value):
+        try:
+            if value != 1 and value % 5 != 0 or value <= 0:
+                raise cog.exc.ValidationFail("Bounds check failed for: {} with value {}".format(key, value))
+        except TypeError:
+            pass
+
+        return value
+
+
 def kwargs_um_system(cells, sheet_col):
     """
     Return keyword args parsed from cell frame.
