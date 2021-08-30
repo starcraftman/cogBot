@@ -647,8 +647,8 @@ def subs_vote(subs, prefix):
     """.format(prefix=prefix)
     sub = subs.add_parser(prefix + 'vote', description=desc, formatter_class=RawHelp)
     sub.set_defaults(cmd='Vote')
-    sub.add_argument('voteType', nargs='+', help='Vote type, either Cons or Prep')
-    sub.add_argument('amount', nargs='+', help='Vote power (either 1 or a multiple of 5)')
+    sub.add_argument('vote_type', nargs='+', help='Vote type, either Cons or Prep', choices=['cons', 'prep'])
+    sub.add_argument('amount', type=int, help='Vote power (either 1 or a multiple of 5)')
 
 
 @register_parser

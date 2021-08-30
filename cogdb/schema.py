@@ -1378,7 +1378,7 @@ class Vote(Base):
 
     def __str__(self):
         """ A pretty one line to give all information. """
-        return "{date} - **{id}**: voted {amount} {vote}.".format(
+        return "**{id}**: voted {amount} {vote}, last updated at {date}.".format(
             id=self.id, amount=self.amount,
             vote=self.vote, date=self.date)
 

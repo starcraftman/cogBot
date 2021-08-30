@@ -1794,11 +1794,11 @@ class Vote(Action):
     Cast a vote based on CMDR discord ID.
     """
     async def execute(self):
-        vote = cogdb.query.has_voted(self.session, self.msg.author)
+        vote = cogdb.query.has_voted(self.session, self.msg.author.id)
         if vote:
-            response = cogdb.query.update_vote(self.session, self.msg.author, self.args.voteType[0], self.args.amount[0], vote)
+            response = cogdb.query.update_vote(self.session, self.args.amount, vote)
         else:
-            response = cogdb.query.add_vote(self.session, self.msg.author, self.args.voteType[0], self.args.amount[0])
+            response = cogdb.query.add_vote(self.session, self.msg.author, self.args.vote_type[0], self.args.amount)
         await self.bot.send_message(self.msg.channel, response)
 
 

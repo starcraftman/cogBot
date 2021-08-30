@@ -1243,26 +1243,24 @@ def add_vote(session, member, vote, amount):
     """
     try:
         session.add(Vote(id=member.id, vote=vote, amount=amount))
-        session.commit()
-        return "**{member}** :{amount} {voteType} vote cast.".format(
-            member=member.display_name, amount=amount, voteType=vote)
+        return "**{member}** : {amount} {vote_type} vote cast.".format(
+            member=member.display_name, amount=amount, vote_type=vote)
     except (sqla_exc.IntegrityError, sqla_oexc.FlushError) as exc:
         raise cog.exc.InvalidCommandArgs("Member {} as an error when voting.".format(member.display_name)) from exc
 
 
-def has_voted(session, member):
+def has_voted(session, member_id):
     """
     Get if user in Vote DB already.
     """
     for user in session.query(Vote):
-        if user.id == member.id:
+        if user.id == member_id:
             return user
     return False
 
 
-def update_vote(session, member, vote, amount, to_update):
+def update_vote(session, amount, to_update):
     """
     Add amount to a vote cast by the same member.
     """
-    new_vote_amount = to_update.amount + int(amount)
-    print(new_vote_amount)
+    to_update.amount += int(amount)
