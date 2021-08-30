@@ -863,8 +863,7 @@ class Fort(Action):
         Manage the manual fort order interface.
         """
 
-        cogdb.query.fort_order_drop(self.session,
-                                    cogdb.query.fort_order_get(self.session))
+        cogdb.query.fort_order_drop(self.session)
         if self.args.system:
             system_names = process_system_args(self.args.system)
             cogdb.query.fort_order_set(self.session, system_names)
@@ -913,6 +912,7 @@ To unset override, simply set an empty list of systems.
         return hours_left <= hours_to_tick
 
     async def execute(self):
+        cogdb.query.fort_order_remove_finished(self.session)
         manual = ' (Manual Order)' if cogdb.query.fort_order_get(self.session) else ''
         if self.args.summary:
             response = self.system_summary()

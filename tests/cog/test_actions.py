@@ -574,60 +574,55 @@ async def test_cmd_fort_set_invalid(f_bot, f_dusers, f_fort_testbed):
         await action_map(msg, f_bot).execute()
 
 
-# FIXME: f_fortorders fixture broken, table gets locked for some reason
-#  @pytest.mark.asyncio
-#  async def test_cmd_fort_order(session, f_bot, f_dusers, f_fort_testbed, f_fortorders):
-    #  msg = fake_msg_gears("!fort --order sol, nuru, frey")
-    #  await action_map(msg, f_bot).execute()
+@pytest.mark.asyncio
+async def test_cmd_fort_order(session, f_bot, f_dusers, f_fort_testbed, f_fortorders):
+    msg = fake_msg_gears("!fort --order sol, nuru, frey")
+    await action_map(msg, f_bot).execute()
 
-    #  systems = [sys.system_name for sys in session.query(FortOrder).order_by(FortOrder.order)]
-    #  assert systems == ['Sol', 'Nurundere', 'Frey']
+    systems = [sys.system_name for sys in session.query(FortOrder).order_by(FortOrder.order)]
+    assert systems == ['Sol', 'Nurundere', 'Frey']
 
-    #  msg2 = fake_msg_gears("!fort")
-    #  await action_map(msg2, f_bot).execute()
+    msg2 = fake_msg_gears("!fort")
+    await action_map(msg2, f_bot).execute()
 
-    #  expect = """__Active Targets (Manual Order)__
-#  **Sol** 2500/5211 :Fortifying:, 2250 :Undermining: Leave For Grinders - 28.94Ly
+    expect = """__Active Targets (Manual Order)__
+**Sol** 2500/5211 :Fortifying:, 2250 :Undermining: Leave For Grinders - 28.94Ly
 
-#  __Next Targets__
-#  **Nurundere** 5422/8425 :Fortifying: - 99.51Ly"""
-    #  f_bot.send_message.assert_called_with(msg2.channel, expect)
-
-
-#  @pytest.mark.asyncio
-#  async def test_cmd_fort_order_next(session, f_bot, f_dusers, f_fort_testbed, f_fortorders):
-    #  msg = fake_msg_gears("!fort --order sol, nuru, frey")
-    #  await action_map(msg, f_bot).execute()
-
-    #  systems = [sys.system_name for sys in session.query(FortOrder).order_by(FortOrder.order)]
-    #  assert systems == ['Sol', 'Nurundere', 'Frey']
-
-    #  msg2 = fake_msg_gears("!fort --next 2")
-    #  await action_map(msg2, f_bot).execute()
-
-    #  expect = """__Next Targets (Manual Order)__
-#  **Nurundere** 5422/8425 :Fortifying:"""
-    #  f_bot.send_message.assert_called_with(msg2.channel, expect)
+__Next Targets__
+**Nurundere** 5422/8425 :Fortifying: - 99.51Ly"""
+    f_bot.send_message.assert_called_with(msg2.channel, expect)
 
 
-#  @pytest.mark.asyncio
-#  async def test_cmd_fort_unset(session, f_bot, f_dusers, f_fort_testbed, f_fortorders):
-    #  session.query(FortOrder).delete()
-    #  session.commit()
-    #  input()
-    #  msg = fake_msg_gears("!fort --order sol, nuru, frey")
-    #  await action_map(msg, f_bot).execute()
-    #  input()
+@pytest.mark.asyncio
+async def test_cmd_fort_order_next(session, f_bot, f_dusers, f_fort_testbed, f_fortorders):
+    msg = fake_msg_gears("!fort --order sol, nuru, frey")
+    await action_map(msg, f_bot).execute()
 
-    #  systems = [sys.system_name for sys in session.query(FortOrder).order_by(FortOrder.order)]
-    #  assert systems == ['Sol', 'Nurundere', 'Frey']
+    systems = [sys.system_name for sys in session.query(FortOrder).order_by(FortOrder.order)]
+    assert systems == ['Sol', 'Nurundere', 'Frey']
 
-    #  msg2 = fake_msg_gears("!fort --order")
-    #  await action_map(msg2, f_bot).execute()
+    msg2 = fake_msg_gears("!fort --next 2")
+    await action_map(msg2, f_bot).execute()
 
-    #  session.commit()
-    #  systems = [sys.system_name for sys in session.query(FortOrder).order_by(FortOrder.order)]
-    #  assert systems == []
+    expect = """__Next Targets (Manual Order)__
+**Nurundere** 5422/8425 :Fortifying: - 99.51Ly"""
+    f_bot.send_message.assert_called_with(msg2.channel, expect)
+
+
+@pytest.mark.asyncio
+async def test_cmd_fort_unset(session, f_bot, f_dusers, f_fort_testbed, f_fortorders):
+    msg = fake_msg_gears("!fort --order sol, nuru, frey")
+    await action_map(msg, f_bot).execute()
+
+    systems = [sys.system_name for sys in session.query(FortOrder).order_by(FortOrder.order)]
+    assert systems == ['Sol', 'Nurundere', 'Frey']
+
+    msg2 = fake_msg_gears("!fort --order")
+    await action_map(msg2, f_bot).execute()
+
+    session.commit()
+    systems = [sys.system_name for sys in session.query(FortOrder).order_by(FortOrder.order)]
+    assert systems == []
 
 
 @pytest.mark.asyncio

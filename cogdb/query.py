@@ -19,6 +19,7 @@ from cogdb.schema import (DiscordUser, FortSystem, FortPrep, FortDrop, FortUser,
                           OCRPrep, Global)
 from cogdb.eddb import HUDSON_CONTROLS, WINTERS_CONTROLS
 from cogdb.scanners import FortScanner
+import cogdb
 
 DEFER_MISSING = get_config("limits", "defer_missing", default=750)
 MAX_DROP = get_config("limits", "max_drop", default=1000)
@@ -389,58 +390,55 @@ def fort_add_drop(session, *, user, system, amount):
     return drop
 
 
+def fort_order_remove_finished(session):
+    """
+    Clean up any FortOrders that have been completed.
+    Deletions will be comitted.
+    """
+    for fort_order in session.query(FortOrder).order_by(FortOrder.order):
+        if fort_order.system.is_fortified or fort_order.system.missing < DEFER_MISSING:
+            session.delete(fort_order)
+
+    session.commit()
+
+
 def fort_order_get(session):
     """
     Get the order of systems to fort.
 
-    If any systems have been completed, remove them from the list.
-
     Returns: [] if no systems set, else a list of System objects.
     """
-    systems = []
-
-    for fort_order in session.query(FortOrder).order_by(FortOrder.order):
-        system = fort_order.system
-        if system.is_fortified or system.missing < DEFER_MISSING:
-            session.delete(fort_order)
-        else:
-            systems += [system]
-
-    return systems
+    return session.query(FortSystem).\
+        join(FortOrder, FortSystem.name == FortOrder.system_name).\
+        order_by(FortOrder.order).\
+        all()
 
 
-def fort_order_set(session, system_names):
+def fort_order_set(session, systems):
     """
     Simply set the systems in the order desired.
 
     Ensure systems are actually valid before.
     """
     try:
-        for ind, system_name in enumerate(system_names, start=1):
-            if not isinstance(system_name, FortSystem):
-                system_name = fort_find_system(session, system_name).name
-            session.add(FortOrder(order=ind, system_name=system_name))
+        for ind, system in enumerate(systems, start=1):
+            if not isinstance(system, FortSystem):
+                system = fort_find_system(session, system).name
+            session.add(FortOrder(order=ind, system_name=system))
         session.commit()
     except (sqla_exc.IntegrityError, sqla_oexc.FlushError) as exc:
         session.rollback()
         raise cog.exc.InvalidCommandArgs("Duplicate system specified, check your command!") from exc
     except cog.exc.NoMatch as exc:
         session.rollback()
-        raise cog.exc.InvalidCommandArgs("FortSystem '{}' not found in fort systems.".format(system_name)) from exc
+        raise cog.exc.InvalidCommandArgs("FortSystem '{}' not found in fort systems.".format(system)) from exc
 
 
-def fort_order_drop(session, systems):
+def fort_order_drop(session):
     """
-    Drop the given system_names from the override table.
+    Drop the existing FortOrder table.
     """
-    for system_name in systems:
-        try:
-            if isinstance(system_name, FortSystem):
-                system_name = system_name.name
-            session.delete(session.query(FortOrder).filter_by(system_name=system_name).one())
-        except sqla_oexc.NoResultFound:
-            pass
-
+    session.query(FortOrder).delete()
     session.commit()
 
 

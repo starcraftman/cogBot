@@ -239,7 +239,7 @@ def test_fort_order_get(session, f_dusers, f_fort_testbed, f_fortorders):
 
 
 def test_fort_order_set(session, f_dusers, f_fort_testbed, f_fortorders):
-    cogdb.query.fort_order_drop(session, cogdb.query.fort_order_get(session))
+    cogdb.query.fort_order_drop(session)
     assert cogdb.query.fort_order_get(session) == []
 
     with pytest.raises(cog.exc.InvalidCommandArgs):
@@ -254,11 +254,17 @@ def test_fort_order_set(session, f_dusers, f_fort_testbed, f_fortorders):
 
 
 def test_fort_order_drop(session, f_dusers, f_fort_testbed, f_fortorders):
-    systems = cogdb.query.fort_order_get(session)
-    cogdb.query.fort_order_drop(session, systems[:2])
+    cogdb.query.fort_order_drop(session)
 
-    session.commit()
-    assert session.query(FortOrder).all() == [f_fortorders[2]]
+    assert session.query(FortOrder).all() == []
+
+
+def test_fort_order_remove_finished(session, f_dusers, f_fort_testbed, f_fortorders):
+    sol = session.query(FortSystem).filter(FortSystem.name == "Sol").one()
+    sol.fort_status = 20000
+
+    cogdb.query.fort_order_remove_finished(session)
+    assert [x[0] for x in session.query(FortOrder.system_name).order_by(FortOrder.order)] == ["LPM 229", "Othime"]
 
 
 def test_um_find_system(session, f_dusers, f_um_testbed):
