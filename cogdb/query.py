@@ -1002,8 +1002,11 @@ def update_ocr_live(session, trackers_dict, sheet_date=None):
         del copy_tracker_dict[system.system]
 
     for data in copy_tracker_dict.values():
-        session.add(OCRTracker(**data))
-        added += [data['system']]
+        try:
+            session.add(OCRTracker(**data))
+            added += [data['system']]
+        except cog.exc.ValidationFail:
+            pass
 
     return (updated, added)
 
@@ -1054,8 +1057,11 @@ def update_ocr_trigger(session, trigger_dict, sheet_date=None):
         del copy_trigger_dict[system.system]
 
     for data in copy_trigger_dict.values():
-        session.add(OCRTrigger(**data))
-        added += [data['system']]
+        try:
+            session.add(OCRTrigger(**data))
+            added += [data['system']]
+        except cog.exc.ValidationFail:
+            pass
 
     return (updated, added)
 
@@ -1107,8 +1113,11 @@ def update_ocr_prep(session, prep_dict, sheet_date=None):
         del copy_prep_dict[system.system]
 
     for data in copy_prep_dict.values():
-        session.add(OCRPrep(**data))
-        added += [data['system']]
+        try:
+            session.add(OCRPrep(**data))
+            added += [data['system']]
+        except cog.exc.ValidationFail:
+            pass
 
     return (updated, added)
 
