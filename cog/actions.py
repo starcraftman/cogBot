@@ -890,11 +890,12 @@ To unset override, simply set an empty list of systems.
 
         globe = cogdb.query.get_current_global(self.session)
         priority, deferred = cogdb.query.fort_get_priority_targets(self.session)
-        if priority + deferred:
+        show_deferred = deferred and (globe.show_almost_done or self.is_near_tick())
+        if priority or show_deferred:
             lines += ['\n__Priority Systems__']
             if priority:
                 lines += [system.display() for system in priority]
-            if deferred and (globe.show_almost_done or self.is_near_tick()):
+            if show_deferred:
                 lines += [system.display() for system in deferred]
 
         return '\n'.join(lines)
@@ -1936,6 +1937,7 @@ async def monitor_ocr_sheet(client, *, delay=1800, repeat=True):
         if cell_updates:
             await get_scanner('hudson_cattle').send_batch(cell_updates)
             logging.getLogger(__name__).info("Sent update to sheet.")
+            logging.getLogger(__name__).info(str(cell_updates))
 
     # A onetime flag to trigger for testing
     if repeat:

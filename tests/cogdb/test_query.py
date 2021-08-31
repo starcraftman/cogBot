@@ -798,7 +798,7 @@ def test_ocr_update_forts(session, db_cleanup):
     session.commit()
 
     system = session.query(FortSystem).filter(FortSystem.name == 'Frey').one()
-    assert system.fort_status == 4910
+    assert system.fort_status == 5555
     assert system.um_status == 2500
     system = session.query(FortSystem).filter(FortSystem.name == 'Nurundere').one()
     assert system.fort_status == 5422
@@ -807,7 +807,7 @@ def test_ocr_update_forts(session, db_cleanup):
     assert system.fort_status == 4444
     assert system.um_status == 2250
 
-    expect = [{'range': 'G6:G7', 'values': [[4910], [2500]]}, {'range': 'H6:H7', 'values': [[5422], [1000]]}, {'range': 'J6:J7', 'values': [[4444], [2250]]}]
+    expect = [{'range': 'G6:G7', 'values': [[5555], [2500]]}, {'range': 'H6:H7', 'values': [[5422], [1000]]}, {'range': 'J6:J7', 'values': [[4444], [2250]]}]
     assert cell_updates == expect
 
 

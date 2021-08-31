@@ -1174,10 +1174,10 @@ def ocr_update_fort_status(session):
             continue
         changed = False
 
-        if not sys.is_fortified and sys.ocr_tracker.fort > sys.fort_status:
+        if sys.ocr_tracker.fort > sys.fort_status:
             sys.fort_status = sys.ocr_tracker.fort
             changed = True
-        if not sys.is_undermined and sys.ocr_tracker.um > sys.um_status:
+        if sys.ocr_tracker.um > sys.um_status:
             sys.um_status = sys.ocr_tracker.um
             changed = True
 
