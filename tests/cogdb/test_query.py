@@ -841,3 +841,8 @@ def test_vote_has_voted(session, f_dusers):
     assert cogdb.query.has_voted(session, f_dusers[2].id) == vote
 
 
+def test_vote_update(session, f_vote_testbed):
+    cogdb.query.update_vote(session, 5, f_vote_testbed[0])
+    assert f_vote_testbed[0].amount == 6
+
+

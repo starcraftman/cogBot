@@ -1389,16 +1389,6 @@ class Vote(Base):
     def __hash__(self):
         return hash("{}-{}".format(self.id, self.vote))
 
-    @sqla_orm.validates('amount')
-    def validate_amount(self, key, value):
-        try:
-            if value != 1 and value % 5 != 0 or value <= 0:
-                raise cog.exc.ValidationFail("Bounds check failed for: {} with value {}".format(key, value))
-        except TypeError:
-            pass
-
-        return value
-
 
 def kwargs_um_system(cells, sheet_col):
     """
