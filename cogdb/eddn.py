@@ -68,6 +68,7 @@ class EDMCJournal():
         self.session = session
         self.eddb_session = eddb_session
         self.parsed = {}
+        self.flushed = []
 
     @property
     def header(self):
@@ -188,6 +189,9 @@ class EDMCJournal():
         """
         Flush the system information to the database.
         Only update systems alrady in the db.
+
+        Raises:
+            StopParsing - There is no reason to continue parsing, system not of interest.
         """
         system = self.parsed['system']
         try:
@@ -195,6 +199,7 @@ class EDMCJournal():
             system_db.update(system)
             self.eddb_session.commit()
             system['id'] = system_db.id
+            self.flushed += [system_db]
         except sqla_orm.exc.NoResultFound as exc:
             raise StopParsing() from exc  # No interest in systems not in db
 
@@ -311,6 +316,10 @@ class EDMCJournal():
         except KeyError:
             pass
 
+        finally:
+            if self.parsed.get('station'):
+                self.flushed += [station_db, station_features_db]
+
         if station_economies:
             self.eddb_session.query(StationEconomy).filter(StationEconomy.id == station_db.id).delete()
             for econ in station_economies:
@@ -400,7 +409,10 @@ class EDMCJournal():
                     one()
                 faction_db.update(faction)
             except sqla_orm.exc.NoResultFound:
-                self.eddb_session.add(Faction(**faction))
+                faction_db = Faction(**faction)
+                self.eddb_session.add(faction_db)
+            finally:
+                self.flushed += [faction_db]
 
         self.eddb_session.flush()
 
@@ -416,7 +428,10 @@ class EDMCJournal():
                     one()
                 influence_db.update(influence)
             except sqla_orm.exc.NoResultFound:
+                influence_db = Influence(**influence)
                 self.eddb_session.add(Influence(**influence))
+            finally:
+                self.flushed += [influence_db]
 
         self.eddb_session.flush()
 
@@ -472,6 +487,8 @@ class EDMCJournal():
             except sqla_orm.exc.NoResultFound:
                 conflict_db = Conflict(**conflict)
                 self.eddb_session.add(conflict_db)
+            finally:
+                self.flushed += [conflict_db]
 
 
 def create_id_maps(session):
@@ -551,7 +568,7 @@ def timestamp_is_recent(msg, window=30):
     return (datetime.datetime.now(datetime.timezone.utc) - parsed_time) < datetime.timedelta(minutes=window)
 
 
-def get_msgs(sub):
+def get_msgs(sub):  # pragma: no cover
     """ Continuously receive messages and log them. """
     while True:
         msg = sub.recv()
@@ -587,7 +604,7 @@ def get_msgs(sub):
             pass
 
 
-def connect_loop(sub):
+def connect_loop(sub):  # pragma: no cover
     """
     Continuously connect and get messages until user cancels.
     All messages logged to file and printed.
@@ -624,7 +641,7 @@ def eddn_log(fname, stream_level="INFO"):
     log.addHandler(handler)
 
 
-def main():
+def main():  # pragma: no cover
     """
     Connect to EDDN and begin ....
         accepting messages and parsing the info

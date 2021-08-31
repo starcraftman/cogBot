@@ -992,7 +992,7 @@ class Conflict(Base):
     )
 
     def __repr__(self):
-        keys = ['system_id', 'state_id', 'type_id',
+        keys = ['system_id', 'status_id', 'type_id',
                 'faction1_id', 'faction1_stake_id', 'faction1_days',
                 'faction2_id', 'faction2_stake_id', 'faction2_days']
         kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]

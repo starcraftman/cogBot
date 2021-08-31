@@ -1,6 +1,7 @@
 """
 Tests for cogdb.eddn
 """
+import datetime
 import pathlib
 import shutil
 import tempfile
@@ -457,7 +458,7 @@ EXAMPLE_CARRIER_EDMC = """{
       -462.3125,
       11445.25
     ],
-    "StarSystem": "Prua Phoe EQ-Z b45-7",
+    "StarSystem": "Nanomam",
     "StationEconomies": [
       {
         "Name": "$economy_Carrier;",
@@ -510,14 +511,44 @@ def test_create_id_maps(eddb_session):
     assert 'Thargoid' in maps['Allegiance']
 
 
+def test_edmcjournal_header():
+    msg = json.loads(EXAMPLE_JOURNAL_STATION)
+    parser = cogdb.eddn.create_parser(msg)
+
+    assert parser.header["softwareName"] == "E:D Market Connector [Windows]"
+
+
+def test_edmcjournal_body():
+    msg = json.loads(EXAMPLE_JOURNAL_STATION)
+    parser = cogdb.eddn.create_parser(msg)
+
+    assert parser.body["BodyID"] == 65
+
+
+def test_edmcjournal_date_obj():
+    msg = json.loads(EXAMPLE_JOURNAL_STATION)
+    parser = cogdb.eddn.create_parser(msg)
+
+    assert parser.date_obj == datetime.datetime(2020, 8, 3, 11, 4, 11, tzinfo=datetime.timezone.utc)
+
+
+def test_edmcjournal_timestamp():
+    msg = json.loads(EXAMPLE_JOURNAL_STATION)
+    parser = cogdb.eddn.create_parser(msg)
+
+    assert parser.timestamp == 1596452651
+
+
 def test_edmcjournal_system_is_useful():
     msg = json.loads(EXAMPLE_JOURNAL_STATION)
     parser = cogdb.eddn.create_parser(msg)
+    assert not parser.system_is_useful
+
     parser.parse_msg()
     assert parser.system_is_useful
 
 
-def test_edmcjournal_parse_msg():
+def test_edmcjournal_parse_msg_journal():
     msg = json.loads(EXAMPLE_JOURNAL_STATION)
     parser = cogdb.eddn.create_parser(msg)
     result = parser.parse_msg()
@@ -527,6 +558,71 @@ def test_edmcjournal_parse_msg():
     assert result['factions']
     assert result['influences']
     assert result['conflicts']
+
+
+def test_edmcjournal_parse_msg_carrier():
+    msg = json.loads(EXAMPLE_CARRIER_EDMC)
+    parser = cogdb.eddn.create_parser(msg)
+    result = parser.parse_msg()
+    parser.parse_system()
+    parser.parse_and_flush_carrier()
+
+    assert result['system']
+    assert result['carriers']
+    assert result['station']
+    assert not result.get('factions')
+    assert not result.get('influences')
+    assert not result.get('conflicts')
+
+
+def test_edmcjournal_update_database():
+    msg = json.loads(EXAMPLE_JOURNAL_STATION)
+    parser = cogdb.eddn.create_parser(msg)
+    parser.parse_msg()
+    parser.update_database()
+    result = parser.parsed
+
+    # Since updating EDDB, these already exist in db so just test valid IDs were set.
+    assert result['system']['id'] == 569
+    assert result['station']['id'] == 35712
+    assert result['factions']['Ahemakino Bridge Organisation']['id'] == 55927
+    assert result['influences'][0]['faction_id'] == 26800
+    assert result['influences'][0]['system_id'] == 569
+    assert result['conflicts'][0]['faction1_id'] == 68340
+
+
+def test_edmcjournal_parse_system():
+    expected = {
+        'controlling_minor_faction_id': 55925,
+        'id': 569,
+        'name': 'Ahemakino',
+        'population': 9165120,
+        'power_id': 6,
+        'power_state_id': 16,
+        'primary_economy_id': 4,
+        'secondary_economy_id': 6,
+        'security_id': 48,
+        'updated_at': 1596452651,
+        'x': 123.25,
+        'y': -3.21875,
+        'z': -97.4375
+    }
+    msg = json.loads(EXAMPLE_JOURNAL_STATION)
+    parser = cogdb.eddn.create_parser(msg)
+
+    result = parser.parse_system()
+
+    assert result == expected
+
+
+def test_edmcjournal_flush_system_to_db():
+    msg = json.loads(EXAMPLE_JOURNAL_STATION)
+    parser = cogdb.eddn.create_parser(msg)
+    parser.parse_system()
+
+    # TODO: Atm this implicit in parse_system, potentially separate.
+    parser.flush_system_to_db()
+    assert parser.flushed
 
 
 def test_edmcjournal_parse_and_flush_carrier_edmc_id(session, f_track_testbed):
@@ -586,32 +682,6 @@ def test_edmcjournal_parse_and_flush_carrier_disc_system(session, f_track_testbe
     parser.eddb_session.rollback()
 
 
-def test_edmcjournal_parse_system():
-    expected = {
-        'controlling_minor_faction_id': 55925,
-        'id': 569,
-        'name': 'Ahemakino',
-        'population': 9165120,
-        'power_id': 6,
-        'power_state_id': 16,
-        'primary_economy_id': 4,
-        'secondary_economy_id': 6,
-        'security_id': 48,
-        'updated_at': 1596452651,
-        'x': 123.25,
-        'y': -3.21875,
-        'z': -97.4375
-    }
-    msg = json.loads(EXAMPLE_JOURNAL_STATION)
-    parser = cogdb.eddn.create_parser(msg)
-
-    result = parser.parse_system()
-
-    #  __import__('pprint').pprint(result)
-    assert result == expected
-    parser.eddb_session.rollback()
-
-
 def test_edmcjournal_parse_station():
     expected = {
         'controlling_minor_faction_id': 55925,
@@ -638,9 +708,20 @@ def test_edmcjournal_parse_station():
     parser.parse_system()
     result = parser.parse_station()
 
-    #  __import__('pprint').pprint(result)
     assert result == expected
-    parser.eddb_session.rollback()
+
+
+def test_edmcjournal_flush_station_to_db():
+    msg = json.loads(EXAMPLE_JOURNAL_STATION)
+    parser = cogdb.eddn.create_parser(msg)
+
+    parser.parse_system()
+    result = parser.parse_station()
+    assert result
+    assert len(parser.flushed) == 1
+
+    parser.flush_station_to_db()
+    assert parser.flushed[1].name == "Mattingly Port"
 
 
 def test_edmcjournal_parse_factions():
@@ -743,9 +824,36 @@ def test_edmcjournal_parse_factions():
     parser.parse_station()
     result = parser.parse_factions()
 
-    #  __import__('pprint').pprint(result)
     assert result == expect
-    parser.eddb_session.rollback()
+
+
+def test_edmcjournal_flush_factions_to_db():
+    msg = json.loads(EXAMPLE_JOURNAL_STATION)
+    parser = cogdb.eddn.create_parser(msg)
+
+    parser.parse_system()
+    parser.parse_station()
+    result = parser.parse_factions()
+    assert result
+
+    parser.flush_factions_to_db()
+    assert parser.flushed[1].name == "Ochosag Federal Company"
+
+
+def test_edmcjournal_flush_influences_to_db():
+    msg = json.loads(EXAMPLE_JOURNAL_STATION)
+    parser = cogdb.eddn.create_parser(msg)
+
+    parser.parse_system()
+    parser.parse_station()
+    result = parser.parse_factions()
+    assert result
+
+    parser.flush_influences_to_db()
+    assert parser.flushed[2].faction_id == 55925
+    assert parser.flushed[2].is_controlling_faction
+    assert parser.flushed[2].happiness_id == 2
+
 
 
 def test_edmcjournal_parse_conflicts():
@@ -769,9 +877,22 @@ def test_edmcjournal_parse_conflicts():
     parser.parse_factions()
     result = parser.parse_conflicts()
 
-    #  __import__('pprint').pprint(result)
     assert result == expect
-    parser.eddb_session.rollback()
+
+
+def test_edmcjournal_flush_conflicts_to_db():
+    msg = json.loads(EXAMPLE_JOURNAL_STATION)
+    parser = cogdb.eddn.create_parser(msg)
+
+    parser.parse_system()
+    parser.parse_station()
+    parser.parse_factions()
+    result = parser.parse_conflicts()
+    assert result
+
+    parser.flush_conflicts_to_db()
+    assert parser.flushed[1].faction1_id == 68340
+    assert parser.flushed[1].faction2_id == 58194
 
 
 def test_log_fname():
