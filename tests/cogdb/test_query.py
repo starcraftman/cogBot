@@ -11,7 +11,7 @@ import cogdb
 from cogdb.schema import (DiscordUser, FortSystem, FortUser, FortOrder,
                           UMUser, UMHold, AdminPerm, ChannelPerm, RolePerm,
                           KOS, TrackSystem, TrackSystemCached, TrackByID,
-                          OCRTracker, OCRTrigger, OCRPrep, Global)
+                          OCRTracker, OCRTrigger, OCRPrep, Global, Vote, VoteType)
 import cogdb.query
 
 from tests.data import SYSTEMS, USERS
@@ -823,3 +823,21 @@ def test_ocr_zero_live_trackers(session, f_ocr_testbed):
     for tracker in session.query(OCRTracker):
         assert tracker.fort == 0
         assert tracker.um == 0
+
+
+def test_vote_add(session, f_dusers):
+    returned_message = cogdb.query.add_vote(session, f_dusers[1], 'prep', 1)
+    expected_message = "**User2** : 1 prep vote cast."
+    assert returned_message == expected_message
+    with pytest.raises(cog.exc.InvalidCommandArgs):
+        cogdb.query.add_vote(session, f_dusers[1], 'prep', 1)
+
+
+def test_vote_has_voted(session, f_dusers):
+    assert not cogdb.query.has_voted(session, f_dusers[2].id)
+    vote = Vote(id=3, vote=VoteType.cons, amount=1)
+    session.add(vote)
+    session.commit()
+    assert cogdb.query.has_voted(session, f_dusers[2].id) == vote
+
+

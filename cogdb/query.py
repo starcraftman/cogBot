@@ -1243,6 +1243,7 @@ def add_vote(session, member, vote, amount):
     """
     try:
         session.add(Vote(id=member.id, vote=vote, amount=amount))
+        session.commit()
         return "**{member}** : {amount} {vote_type} vote cast.".format(
             member=member.display_name, amount=amount, vote_type=vote)
     except (sqla_exc.IntegrityError, sqla_oexc.FlushError) as exc:

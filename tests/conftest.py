@@ -772,9 +772,9 @@ def f_vote_testbed(session):
     """
     Setup the database with dummy data for vote tracker.
     """
-    date = datetime.datetime(2021, 8, 25, 2, 33, 0)
+    updated_at = datetime.datetime(2021, 8, 25, 2, 33, 0)
     vote = (
-        Vote(id=1, vote=VoteType.cons, amount=1, date=date),
+        Vote(id=1, vote=VoteType.cons, amount=1, updated_at=updated_at),
     )
     session.add_all(vote)
     session.commit()
@@ -782,6 +782,6 @@ def f_vote_testbed(session):
     yield vote
 
     session.rollback()
-    for cls in (vote,):
+    for cls in (Vote,):
         session.query(cls).delete()
     session.commit()

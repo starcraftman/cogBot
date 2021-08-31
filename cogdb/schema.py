@@ -1368,25 +1368,26 @@ class Vote(Base):
     id = sqla.Column(sqla.BigInteger, primary_key=True)
     vote = sqla.Column(sqla.Enum(VoteType), default=VoteType.cons, primary_key=True)
     amount = sqla.Column(sqla.Integer, default=0)
-    date = sqla.Column(sqla.DateTime, default=datetime.datetime.utcnow)  # All dates UTC
+    updated_at = sqla.Column(sqla.DateTime, default=datetime.datetime.utcnow)  # All dates UTC
 
     def __repr__(self):
-        keys = ['id', 'vote', 'amount', 'date']
+        keys = ['id', 'vote', 'amount', 'updated_at']
         kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
 
         return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
 
     def __str__(self):
         """ A pretty one line to give all information. """
-        return "**{id}**: voted {amount} {vote}, last updated at {date}.".format(
+        vote_type = str(self.vote).split('.')[-1].capitalize()
+        return "**{id}**: voted {amount} {vote}, last updated at {updated_at}.".format(
             id=self.id, amount=self.amount,
-            vote=self.vote, date=self.date)
+            vote=vote_type, updated_at=self.updated_at)
 
     def __eq__(self, other):
         return isinstance(other, Vote) and hash(self) == hash(other)
 
     def __hash__(self):
-        return hash("{}".format(self.id))
+        return hash("{}-{}".format(self.id, self.vote))
 
     @sqla_orm.validates('amount')
     def validate_amount(self, key, value):
