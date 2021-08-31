@@ -233,6 +233,18 @@ class Faction(Base):
     def __hash__(self):
         return hash(self.id)
 
+    def update(self, kwargs):
+        """
+        Update based on existing kwargs, all are optional except updated_at time.
+        """
+        try:
+            self.updated_at = kwargs['updated_at']
+            self.allegiance_id = kwargs.get('allegiance_id', self.allegiance_id)
+            self.government_id = kwargs.get('government_id', self.government_id)
+            self.state_id = kwargs.get('state_id', self.state_id)
+        except KeyError:
+            pass
+
 
 class FactionHappiness(Base):
     """ The happiness of a faction. """
@@ -401,10 +413,13 @@ class Influence(Base):
         """
         Update the object from kwargs.
         """
-        self.happiness_id = kwargs.get('happiness_id', self.happiness_id)
-        self.influence = kwargs.get('influence', self.influence)
-        self.is_controlling_faction = kwargs.get('is_controlling_faction', self.is_controlling_faction)
-        self.updated_at = kwargs.get('updated_at', self.updated_at)
+        try:
+            self.updated_at = kwargs['updated_at']
+            self.happiness_id = kwargs.get('happiness_id', self.happiness_id)
+            self.influence = kwargs.get('influence', self.influence)
+            self.is_controlling_faction = kwargs.get('is_controlling_faction', self.is_controlling_faction)
+        except KeyError:
+            pass
 
 
 class Module(Base):

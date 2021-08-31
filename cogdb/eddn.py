@@ -89,18 +89,27 @@ class EDMCJournal():
     def timestamp(self):
         return int(self.date_obj.timestamp())
 
+    @property
+    def system_is_useful(self):
+        """
+        Returns true if the system is in fact useful.
+        ID is only set for systems tracked already in DB.
+        """
+        try:
+            return self.parsed['system']['id']
+        except KeyError:
+            return False
+
     def parse_msg(self):
         """
         Perform whole message parsing.
-
-        Raises:
-            StopParsing - No need to continue parsing.
         """
         log = logging.getLogger(__name__)
         try:
             log.info(pprint.pformat(self.parse_system()))
+            self.flush_system_to_db()
 
-            parsed = self.parse_carrier()
+            parsed = self.parse_and_flush_carrier()
             if parsed:
                 log_msg(self.msg, path=JOURNAL_CARS, fname=log_fname(self.msg))
                 log.info(pprint.pformat(parsed))
@@ -114,29 +123,21 @@ class EDMCJournal():
 
         return self.parsed
 
-    def parse_carrier(self):
+    def update_database(self):
         """
-        Parse carrier information if it is available.
+        Update the database based on parsed information.
+
+        All parts are optional depending on how much was parsed.
         """
-        body = self.body
-        if not ("StationType" in body and body["StationType"] == "FleetCarrier"):
-            return None
-
-        id = body["StationName"]
-        system = self.parsed["system"]["name"]
-        date = self.date_obj
-        ids_dict = {id: {'id': id, 'system': system, 'updated_at': date}}
-
-        if cogdb.query.track_ids_check(self.session, id):
-            cogdb.query.track_ids_update(self.session, ids_dict)
-        elif cogdb.query.track_systems_computed_check(self.session, system):
-            ids_dict[id]['override'] = False
-            cogdb.query.track_ids_update(self.session, ids_dict)
-        self.session.commit()
-
-        self.parsed["carriers"] = ids_dict[id]
-        logging.getLogger(__name__).info("Matched carrier: %s", id)
-        return ids_dict
+        if self.parsed.get('station'):
+            self.flush_station_to_db()
+        if self.parsed.get('factions'):
+            self.flush_factions_to_db()
+        if self.parsed.get('influences'):
+            self.flush_influences_to_db()
+        if self.parsed.get('conflicts'):
+            self.flush_conflicts_to_db()
+        self.eddb_session.commit()
 
     def parse_system(self):
         """
@@ -179,6 +180,16 @@ class EDMCJournal():
             for key, dest in [(0, "x"), (1, "y"), (2, "z")]:
                 system[dest] = body["StarPos"][key]
 
+        self.parsed['system'] = system
+        self.flush_system_to_db()
+        return system
+
+    def flush_system_to_db(self):
+        """
+        Flush the system information to the database.
+        Only update systems alrady in the db.
+        """
+        system = self.parsed['system']
         try:
             system_db = self.eddb_session.query(System).filter(System.name == system['name']).one()
             system_db.update(system)
@@ -187,8 +198,31 @@ class EDMCJournal():
         except sqla_orm.exc.NoResultFound as exc:
             raise StopParsing() from exc  # No interest in systems not in db
 
-        self.parsed['system'] = system
-        return system
+    def parse_and_flush_carrier(self):
+        """
+        Parse carrier information if it is available.
+
+        N.B. It will be flushed to db upon return to ensure survival.
+        """
+        body = self.body
+        if not ("StationType" in body and body["StationType"] == "FleetCarrier"):
+            return None
+
+        id = body["StationName"]
+        system = self.parsed["system"]["name"]
+        date = self.date_obj
+        ids_dict = {id: {'id': id, 'system': system, 'updated_at': date}}
+
+        if cogdb.query.track_ids_check(self.session, id):
+            cogdb.query.track_ids_update(self.session, ids_dict)
+        elif cogdb.query.track_systems_computed_check(self.session, system):
+            ids_dict[id]['override'] = False
+            cogdb.query.track_ids_update(self.session, ids_dict)
+        self.session.commit()
+
+        self.parsed["carriers"] = ids_dict[id]
+        logging.getLogger(__name__).info("Matched carrier: %s", id)
+        return ids_dict
 
     def parse_station(self):
         """
@@ -236,6 +270,54 @@ class EDMCJournal():
 
         self.parsed['station'] = station
         return station
+
+    def flush_station_to_db(self):
+        """
+        Flush the station information to db.
+        """
+        if not self.parsed.get('station'):
+            return
+
+        try:
+            station = self.parsed['station']
+            station_features = station.pop('features')
+            station_economies = station.pop('economies')
+
+            station_db = self.eddb_session.query(Station).\
+                filter(Station.name == station['name'],
+                       Station.system_id == station['system_id']).\
+                one()
+            station_db.update(station)
+            station['id'] = station_db.id
+
+            if station_features:
+                station_features_db = self.eddb_session.query(StationFeatures).\
+                    filter(StationFeatures.id == station_db.id).\
+                    one()
+                station_features_db.update(station_features)
+                station_features['id'] = station_db.id
+            self.eddb_session.flush()
+
+        except sqla_orm.exc.NoResultFound:
+            station_db = Station(**station)
+            self.eddb_session.add(station_db)
+            self.eddb_session.flush()
+
+            station_features['id'] = station_db.id
+            station_features_db = StationFeatures(**station_features)
+            self.eddb_session.add(station_features_db)
+            self.eddb_session.flush()
+
+        except KeyError:
+            pass
+
+        if station_economies:
+            self.eddb_session.query(StationEconomy).filter(StationEconomy.id == station_db.id).delete()
+            for econ in station_economies:
+                econ['id'] = station_db.id
+                self.eddb_session.add(StationEconomy(**econ))
+
+        self.eddb_session.flush()
 
     def parse_factions(self):
         """
@@ -295,6 +377,49 @@ class EDMCJournal():
         self.parsed['influences'] = influences
         return factions, influences
 
+    def flush_factions_to_db(self):
+        """
+        Flush factions information to db.
+        """
+        system = self.parsed['system']
+        for faction in self.parsed['factions'].values():
+            for cls in (FactionActiveState, FactionPendingState, FactionRecoveringState):
+                self.eddb_session.query(cls).\
+                    filter(cls.system_id == system['id'],
+                           cls.faction_id == faction['id']).\
+                    delete()
+            self.eddb_session.flush()
+            for key in ("active_states", "pending_states", "recovering_states"):
+                if key in faction:
+                    self.eddb_session.add_all(faction[key])
+                    del faction[key]
+
+            try:
+                faction_db = self.eddb_session.query(Faction).\
+                    filter(Faction.id == faction['id']).\
+                    one()
+                faction_db.update(faction)
+            except sqla_orm.exc.NoResultFound:
+                self.eddb_session.add(Faction(**faction))
+
+        self.eddb_session.flush()
+
+    def flush_influences_to_db(self):
+        """
+        Flush influences information to db.
+        """
+        for influence in self.parsed['influences']:
+            try:
+                influence_db = self.eddb_session.query(Influence).\
+                    filter(Influence.system_id == influence['system_id'],
+                           Influence.faction_id == influence['faction_id']).\
+                    one()
+                influence_db.update(influence)
+            except sqla_orm.exc.NoResultFound:
+                self.eddb_session.add(Influence(**influence))
+
+        self.eddb_session.flush()
+
     def parse_conflicts(self):
         try:
             system = self.parsed['system']
@@ -332,92 +457,21 @@ class EDMCJournal():
         self.parsed['conflicts'] = conflicts
         return conflicts
 
-    def update_database(self):
+    def flush_conflicts_to_db(self):
         """
-        Update the database based on parsed information.
-
-        This is called to finalize flushing the parsed information to the database.
+        Flush the information on active conflicts to the db.
         """
-        self.eddb_session.rollback()  # Clear any previous db objects
-        system = self.parsed['system']
-
-        try:
-            station = self.parsed['station']
-            station_features = station.pop('features')
-            station_economies = station.pop('economies')
-            station_db = self.eddb_session.query(Station).\
-                filter(Station.name == station['name'],
-                       Station.system_id == station['system_id']).\
-                one()
-            station_db.update(station)
-            station['id'] = station_db.id
-
-            if station_features:
-                station_features_db = self.eddb_session.query(StationFeatures).\
-                    filter(StationFeatures.id == station_db.id).\
+        for conflict in self.parsed['conflicts']:
+            try:
+                conflict_db = self.eddb_session.query(Conflict).\
+                    filter(Conflict.system_id == conflict['system_id'],
+                           Conflict.faction1_id == conflict['faction1_id'],
+                           Conflict.faction2_id == conflict['faction2_id']).\
                     one()
-                station_features_db.update(station_features)
-                station_features['id'] = station_db.id
-
-        except sqla_orm.exc.NoResultFound:
-            station_db = Station(**station)
-            self.eddb_session.add(station_db)
-            self.eddb_session.flush()
-
-            station_features['id'] = station_db.id
-            station_features_db = StationFeatures(**station_features)
-            self.eddb_session.add(station_features_db)
-
-        except KeyError:
-            pass
-        self.eddb_session.flush()
-
-        if 'economies' in self.parsed['station'] and station_economies:
-            self.eddb_session.query(StationEconomy).filter(StationEconomy.id == station_db.id).delete()
-            for econ in station_economies:
-                econ['id'] = station_db.id
-                self.eddb_session.add(StationEconomy(**econ))
-            self.eddb_session.flush()
-
-        if 'factions' in self.parsed and self.parsed['factions']:
-            for faction in self.parsed['factions'].values():
-                for cls in (FactionActiveState, FactionPendingState, FactionRecoveringState):
-                    self.eddb_session.query(cls).\
-                        filter(cls.system_id == system['id'],
-                               cls.faction_id == faction['id']).\
-                        delete()
-                self.eddb_session.flush()
-                for key in ("active_states", "pending_states", "recovering_states"):
-                    if key in faction:
-                        self.eddb_session.add_all(faction[key])
-
-                try:
-                    influence_db = self.eddb_session.query(Influence).\
-                        filter(Influence.system_id == system['id'],
-                               Influence.faction_id == faction['id']).\
-                        one()
-                    influence_db.update(faction)
-                except sqla_orm.exc.NoResultFound:
-                    self.eddb_session.add(Influence(
-                        system_id=system['id'],
-                        faction_id=faction['id'],
-                        happiness_id=faction['happiness_id'],
-                        influence=faction['influence'],
-                        is_controlling_faction=faction['is_controlling_faction'],
-                    ))
-
-        if 'conflicts' in self.parsed and self.parsed['conflicts']:
-            for conflict in self.parsed['conflicts']:
-                try:
-                    conflict_db = self.eddb_session.query(Conflict).\
-                        filter(Conflict.system_id == conflict['system_id'],
-                               Conflict.faction1_id == conflict['faction1_id'],
-                               Conflict.faction2_id == conflict['faction2_id']).\
-                        one()
-                    conflict_db.update(conflict)
-                except sqla_orm.exc.NoResultFound:
-                    conflict_db = Conflict(**conflict)
-                    self.eddb_session.add(conflict_db)
+                conflict_db.update(conflict)
+            except sqla_orm.exc.NoResultFound:
+                conflict_db = Conflict(**conflict)
+                self.eddb_session.add(conflict_db)
 
 
 def create_id_maps(session):
@@ -428,16 +482,16 @@ def create_id_maps(session):
     Returns: A adict of dicts that ultimately points to integer ids in the db.
     """
     maps = {
-        'Allegiance': {x.eddn: x.id for x in session.query(cogdb.eddb.Allegiance).all()},
-        'ConflictState': {x.eddn: x.id for x in session.query(cogdb.eddb.ConflictState).all()},
-        'Economy': {x.eddn: x.id for x in session.query(cogdb.eddb.Economy).all()},
-        'FactionState': {x.eddn: x.id for x in session.query(cogdb.eddb.FactionState).all()},
-        'Government': {x.eddn: x.id for x in session.query(cogdb.eddb.Government).all()},
-        'Happiness': {x.eddn: x.id for x in session.query(cogdb.eddb.FactionHappiness).all()},
-        'Powers': {x.eddn: x.id for x in session.query(cogdb.eddb.Power).all()},
-        'PowerplayState': {x.eddn: x.id for x in session.query(cogdb.eddb.PowerState).all()},
-        'Security': {x.eddn: x.id for x in session.query(cogdb.eddb.Security).all()},
-        'StationType': {x.eddn: x.id for x in session.query(cogdb.eddb.StationType).all()},
+        'Allegiance': {x.eddn: x.id for x in session.query(cogdb.eddb.Allegiance)},
+        'ConflictState': {x.eddn: x.id for x in session.query(cogdb.eddb.ConflictState)},
+        'Economy': {x.eddn: x.id for x in session.query(cogdb.eddb.Economy)},
+        'FactionState': {x.eddn: x.id for x in session.query(cogdb.eddb.FactionState)},
+        'Government': {x.eddn: x.id for x in session.query(cogdb.eddb.Government)},
+        'Happiness': {x.eddn: x.id for x in session.query(cogdb.eddb.FactionHappiness)},
+        'Powers': {x.eddn: x.id for x in session.query(cogdb.eddb.Power)},
+        'PowerplayState': {x.eddn: x.id for x in session.query(cogdb.eddb.PowerState)},
+        'Security': {x.eddn: x.id for x in session.query(cogdb.eddb.Security)},
+        'StationType': {x.eddn: x.id for x in session.query(cogdb.eddb.StationType)},
     }
     maps['PowerplayState']['HomeSystem'] = maps['PowerplayState']['Controlled']
 
@@ -515,16 +569,17 @@ def get_msgs(sub):
             parser = create_parser(msg)
             parser.parse_msg()
 
-            # Retry if lock timeout throws
-            cnt = 3
-            while cnt:
-                try:
-                    parser.update_database()
-                    parser.session.commit()
-                    cnt = 0
-                except sqla.exc.OperationalError:
-                    parser.session.rollback()
-                    cnt -= 1
+            if parser.system_is_useful:
+                # TODO: Is this still needed?
+                # Retry if lock timeout throws
+                cnt = 3
+                while cnt:
+                    try:
+                        parser.update_database()
+                        cnt = 0
+                    except sqla.exc.OperationalError:
+                        parser.session.rollback()
+                        cnt -= 1
         except KeyError:
             pass
             #  logging.getLogger(__name__).info("Exception: %s", str(e))
@@ -578,22 +633,6 @@ def main():
     level = "DEBUG" if len(sys.argv) != 2 else sys.argv[1]
     eddn_log(LOG_FILE, level)
 
-    try:
-        shutil.rmtree(ALL_MSGS)
-    except OSError:
-        pass
-    try:
-        shutil.rmtree(JOURNAL_MSGS)
-    except OSError:
-        pass
-    try:
-        shutil.rmtree(JOURNAL_CARS)
-    except OSError:
-        pass
-    os.mkdir(ALL_MSGS)
-    os.mkdir(JOURNAL_MSGS)
-    os.mkdir(JOURNAL_CARS)
-
     sub = zmq.Context().socket(zmq.SUB)
     sub.setsockopt(zmq.SUBSCRIBE, b'')
     sub.setsockopt(zmq.RCVTIMEO, TIMEOUT)
@@ -605,7 +644,22 @@ def main():
         msg = """Terminating ZMQ connection."""
         print(msg)
 
-
+# Any time code run, need these dirs to write to
+try:
+    shutil.rmtree(ALL_MSGS)
+except OSError:
+    pass
+try:
+    shutil.rmtree(JOURNAL_MSGS)
+except OSError:
+    pass
+try:
+    shutil.rmtree(JOURNAL_CARS)
+except OSError:
+    pass
+os.mkdir(ALL_MSGS)
+os.mkdir(JOURNAL_MSGS)
+os.mkdir(JOURNAL_CARS)
 try:
     with cogdb.session_scope(cogdb.EDDBSession) as init_session:
         MAPS = create_id_maps(init_session)

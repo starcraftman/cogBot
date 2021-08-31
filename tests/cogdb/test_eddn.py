@@ -510,7 +510,26 @@ def test_create_id_maps(eddb_session):
     assert 'Thargoid' in maps['Allegiance']
 
 
-def test_journal_parse_carrier_edmc_id(session, f_track_testbed):
+def test_edmcjournal_system_is_useful():
+    msg = json.loads(EXAMPLE_JOURNAL_STATION)
+    parser = cogdb.eddn.create_parser(msg)
+    parser.parse_msg()
+    assert parser.system_is_useful
+
+
+def test_edmcjournal_parse_msg():
+    msg = json.loads(EXAMPLE_JOURNAL_STATION)
+    parser = cogdb.eddn.create_parser(msg)
+    result = parser.parse_msg()
+
+    assert result['system']
+    assert result['station']
+    assert result['factions']
+    assert result['influences']
+    assert result['conflicts']
+
+
+def test_edmcjournal_parse_and_flush_carrier_edmc_id(session, f_track_testbed):
     msg = json.loads(EXAMPLE_CARRIER_EDMC)
     parser = cogdb.eddn.create_parser(msg)
     parser.parsed['system'] = {
@@ -518,7 +537,7 @@ def test_journal_parse_carrier_edmc_id(session, f_track_testbed):
         "updated_at": "2021-05-20T19:03:20.11111Z",
     }
 
-    result = parser.parse_carrier()
+    result = parser.parse_and_flush_carrier()
 
     id = 'OVE-111'
     expected = {
@@ -538,7 +557,7 @@ def test_journal_parse_carrier_edmc_id(session, f_track_testbed):
     parser.eddb_session.rollback()
 
 
-def test_journal_parse_carrier_disc_system(session, f_track_testbed):
+def test_edmcjournal_parse_and_flush_carrier_disc_system(session, f_track_testbed):
     msg = json.loads(EXAMPLE_CARRIER_DISC)
     parser = cogdb.eddn.create_parser(msg)
     parser.parsed['system'] = {
@@ -546,7 +565,7 @@ def test_journal_parse_carrier_disc_system(session, f_track_testbed):
         "updated_at": "2021-05-20 19:03:20",
     }
 
-    result = parser.parse_carrier()
+    result = parser.parse_and_flush_carrier()
 
     id = 'KLG-9TL'
     expected = {
@@ -567,7 +586,7 @@ def test_journal_parse_carrier_disc_system(session, f_track_testbed):
     parser.eddb_session.rollback()
 
 
-def test_journal_parse_system():
+def test_edmcjournal_parse_system():
     expected = {
         'controlling_minor_faction_id': 55925,
         'id': 569,
@@ -593,7 +612,7 @@ def test_journal_parse_system():
     parser.eddb_session.rollback()
 
 
-def test_journal_parse_station():
+def test_edmcjournal_parse_station():
     expected = {
         'controlling_minor_faction_id': 55925,
         'economies': [{'economy_id': 4, 'primary': True, 'proportion': 0.8},
@@ -624,7 +643,7 @@ def test_journal_parse_station():
     parser.eddb_session.rollback()
 
 
-def test_journal_parse_factions():
+def test_edmcjournal_parse_factions():
     expect = ({
         'Ahemakino Bridge Organisation': {'allegiance_id': 4,
                                           'government_id': 64,
@@ -729,7 +748,7 @@ def test_journal_parse_factions():
     parser.eddb_session.rollback()
 
 
-def test_journal_parse_conflicts():
+def test_edmcjournal_parse_conflicts():
     expect = [{
         'faction1_days': 1,
         'faction1_id': 68340,
