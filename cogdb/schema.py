@@ -36,6 +36,7 @@ DO
             and
         (carriers_ids.override = 0)
 """
+TRACK_SYSTEM_SEP = ", "
 Base = sqlalchemy.ext.declarative.declarative_base()
 
 
@@ -938,9 +939,10 @@ class TrackSystemCached(Base):
     __tablename__ = 'carriers_systems_cached'
 
     system = sqla.Column(sqla.String(LEN_NAME), primary_key=True)
+    overlaps_with = sqla.Column(sqla.String(LEN_REASON), default="", nullable=False)
 
     def __repr__(self):
-        keys = ['system']
+        keys = ['system', 'overlaps_with']
         kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
 
         return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
@@ -951,6 +953,26 @@ class TrackSystemCached(Base):
     def __hash__(self):
         return hash("{}".format(self.system))
 
+    def add_overlap(self, centre):
+        """
+        Add the overlap to this system.
+        """
+        if self.overlaps_with:
+            self.overlaps_with += TRACK_SYSTEM_SEP
+        self.overlaps_with += centre
+
+    def remove_overlap(self, centre):
+        """
+        Remove the overlap to this system.
+
+        Returns: True if this object should now be deleted.
+        """
+        centres = self.overlaps_with.split(TRACK_SYSTEM_SEP)
+        centres = [x for x in centres if x.lower() != centre.lower()]
+        self.overlaps_with = TRACK_SYSTEM_SEP.join(centres)
+
+        return self.overlaps_with == ""
+
 
 class TrackByID(Base):
     """
@@ -958,26 +980,38 @@ class TrackByID(Base):
     """
     __tablename__ = 'carriers_ids'
 
-    header = ["ID", "Squad", "System"]
+    header = ["ID", "Squad", "System", "Last System"]
 
     id = sqla.Column(sqla.String(LEN_CARRIER), primary_key=True)
     squad = sqla.Column(sqla.String(LEN_NAME), default="")
     system = sqla.Column(sqla.String(LEN_NAME), default="")
+    last_system = sqla.Column(sqla.String(LEN_NAME), default="")
     # This flag indicates user requested this ID ALWAYS be tracked, regardless of location.
     override = sqla.Column(sqla.Boolean, default=False)
     updated_at = sqla.Column(sqla.DateTime, default=datetime.datetime.utcnow, index=True)  # All dates UTC
 
+    track_system = sqla.orm.relationship(
+        'TrackSystemCached', uselist=False, viewonly=True,
+        primaryjoin="foreign(TrackByID.system) == TrackSystemCached.system"
+    )
+
     def __repr__(self):
-        keys = ['id', 'squad', 'system', 'override', 'updated_at']
+        keys = ['id', 'squad', 'system', 'last_system', 'override', 'updated_at']
         kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
 
         return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
 
     def __str__(self):
         """ A pretty one line to give all information. """
-        return "{id} [{squad}] seen in **{system}** at {date}.".format(
+        overlaps = ""
+        if self.track_system:
+            overlaps = ", near {}".format(self.track_system.overlaps_with)
+
+        return "{id} [{squad}] jumped **{last_system}** => **{system}**{overlaps}.".format(
             id=self.id, squad=self.squad if self.squad else "No Group",
-            system=self.system if self.system else "No Info", date=self.updated_at
+            system=self.system if self.system else "No Info",
+            last_system=self.last_system if self.last_system else "No Info",
+            overlaps=overlaps
         )
 
     def __eq__(self, other):
@@ -988,7 +1022,14 @@ class TrackByID(Base):
 
     def table_line(self):
         """ Returns a line for table formatting. """
-        return ("{}{}".format(self.id, " (O)" if self.override else ""), self.squad, self.system)
+        return (self.id, self.squad, self.system, self.last_system)
+
+    def spotted(self, new_system):
+        """
+        Tracked has been spotted in a new system. Update accordingly.
+        """
+        self.last_system = self.system
+        self.system = new_system
 
 
 class OCRTracker(Base):

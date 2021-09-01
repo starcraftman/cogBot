@@ -795,41 +795,61 @@ def track_show_systems(session):
     return msgs
 
 
-def track_systems_computed_update(session, systems):
+def track_systems_computed_add(session, systems, centre):
     """
-    Update the computed systems database area, merge in new systems.
-    Ensure no dupes added.
+    Add to the computed systems database area, merge in new systems.
+    For all systems existing, add centre to overlap.
 
-    Returns: [system_name, system_name, ...]
+    Args:
+        session: The session to the db.
+        systems: The system names to add.
+        centre: The centre system associated with these systems.
+
+    Returns: (added, modified)
+        added: A list of system names added to tracking.
+        modified: A list of system names where overlap was incremented.
     """
-    track_systems = session.query(TrackSystemCached.system).\
+    existing = session.query(TrackSystemCached).\
         filter(TrackSystemCached.system.in_(systems)).\
         all()
-    existing = [x[0] for x in track_systems]
-    to_add = set(systems) - set(existing)
-    added = [TrackSystemCached(system=x) for x in to_add]
+
+    for system in existing:
+        system.add_overlap(centre)
+
+    to_add = set(systems) - {x.system for x in existing}
+    added = [TrackSystemCached(system=x, overlaps_with=centre) for x in to_add]
     session.add_all(added)
 
-    return added
+    return [x.system for x in added], [x.system for x in existing]
 
 
-def track_systems_computed_remove(session, to_keep):
+def track_systems_computed_remove(session, centre):
     """
-    Update the computed systems database area, remove all systems not in
-    to_keep array.
+    Update the computed systems database area.
+    Remove all systems that no longer need tracking once centre removed.
+    For remaining systems update overlap tracking.
 
-    Returns: [system_name, system_name, ...]
+    Args:
+        session: The session to the db.
+        centre: The centre system associated with the systems to update.
+
+    Returns: (deleted, modified)
+        deleted: A list of system names removed from tracking.
+        modified: A list of system names where overlap was reduced.
     """
-    track_systems = session.query(TrackSystemCached).\
-        filter(TrackSystemCached.system.notin_(to_keep)).\
+    existing = session.query(TrackSystemCached).\
+        filter(TrackSystemCached.overlaps_with.ilike('%{}%'.format(centre))).\
         all()
 
-    removed = []
-    for sys in track_systems:
-        session.delete(sys)
-        removed += [sys.system]
+    deleted, modified = [], []
+    for system in existing:
+        if system.remove_overlap(centre):
+            session.delete(system)
+            deleted += [system.system]
+        else:
+            modified += [system.system]
 
-    return removed
+    return deleted, modified
 
 
 def track_systems_computed_check(session, system_name):
@@ -847,6 +867,7 @@ def track_systems_computed_check(session, system_name):
 def track_ids_update(session, ids_dict, date_obj=None):
     """
     Update the tracked IDs into the database.
+    Important: IGNORE updates where system in data is same as in db.
     ids_dict is a dict of form:
         {
             {ID: {'id': ID, 'group': GROUP, 'system': SYSTEM, 'override': False, 'updated_at': datetime obj},
@@ -870,16 +891,18 @@ def track_ids_update(session, ids_dict, date_obj=None):
 
     copy_ids_dict = copy.deepcopy(ids_dict)
     for track in track_ids:
+        data = copy_ids_dict[track.id]
+        new_system = data.get('system', track.system)
+
         # Reject possible data that is older than current
-        if date_obj and track.updated_at > date_obj:
+        if date_obj and track.updated_at > date_obj or track.system == new_system:
             del copy_ids_dict[track.id]
             continue
 
-        data = copy_ids_dict[track.id]
         track.updated_at = data.get('updated_at', date_obj)
         track.squad = data.get("squad", track.squad)
         track.override = data.get("override", track.override)
-        track.system = data.get('system', track.system)
+        track.spotted(new_system)
         updated += [track.id]
 
         del copy_ids_dict[track.id]

@@ -1134,15 +1134,15 @@ HIP 33799, Hyades Sector IC-K b9-4, Kappa, Ocshongzi, Pang, Suttora, Tjiwang, Ty
 
 @pytest.mark.asyncio
 async def test_cmd_track_remove(session, f_bot, f_dusers, f_admins, f_track_testbed):
-    msg = fake_msg_gears("!track remove Rhea")
+    msg = fake_msg_gears("!track remove Tollan")
 
     await action_map(msg, f_bot).execute()
 
     expected = """__Systems Removed From Tracking__
 
-Systems added: 8 First few follow ...
+Systems added: 1 First few follow ...
 
-Amun, BD-13 2439, LP 726-6, LQ Hydrae, Masans, Orishpucho, Rhea, Santal"""
+Tollan"""
     f_bot.send_message.assert_called_with(msg.channel, expected)
 
     assert session.query(TrackSystem).filter(TrackSystem.system == "Rhea").all() == []
@@ -1158,7 +1158,7 @@ async def test_cmd_track_show(f_bot, f_dusers, f_admins, f_track_testbed):
     expected = """__Tracking System Rules__
 
     Tracking systems <= 15ly from Nanomam
-    Tracking systems <= 15ly from Rhea"""
+    Tracking systems <= 12ly from Tollan"""
     f_bot.send_message.assert_called_with(msg.channel, expected)
 
 
@@ -1194,10 +1194,10 @@ async def test_cmd_track_ids_show(f_bot, f_dusers, f_admins, f_track_testbed):
 
     expected = """__Tracking IDs__
 
-J3J-WVT [CLBF] seen in **No Info** at 2000-01-10 00:00:00.
-J3N-53B [CLBF] seen in **No Info** at 2000-01-12 00:00:00.
-OVE-111 [Manual] seen in **No Info** at 2000-01-12 00:00:00.
-XNL-3XQ [CLBF] seen in **No Info** at 2000-01-10 00:00:00."""
+J3J-WVT [CLBF] jumped **Nanomam** => **Rana**.
+J3N-53B [CLBF] jumped **No Info** => **No Info**.
+OVE-111 [Manual] jumped **No Info** => **No Info**.
+XNL-3XQ [CLBF] jumped **No Info** => **Tollan**, near Tollan."""
     f_bot.send_message.assert_called_with(msg.channel, expected)
 
 

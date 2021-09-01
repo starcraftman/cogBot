@@ -12,6 +12,7 @@ import cogdb.schema
 from cogdb.schema import (DiscordUser, FortSystem, FortDrop, FortUser, FortOrder,
                           UMSystem, UMExpand, UMOppose, UMUser, UMHold,
                           AdminPerm, ChannelPerm, RolePerm,
+                          TrackSystem, TrackSystemCached, TrackByID,
                           kwargs_um_system, kwargs_fort_system)
 
 from tests.data import SYSTEMS_DATA, SYSTEMSUM_DATA, SYSTEMUM_EXPAND
@@ -586,6 +587,72 @@ def test_kos__eq__(f_kos):
 def test_kos_friendly(f_kos):
     assert f_kos[0].friendly == 'FRIENDLY'
     assert f_kos[2].friendly == 'KILL'
+
+
+def test_tracksystem__repr__(f_track_testbed):
+    track_system = f_track_testbed[0][0]
+
+    assert repr(track_system) == "TrackSystem(system='Nanomam', distance=15)"
+
+
+def test_tracksystem__str__(f_track_testbed):
+    track_system = f_track_testbed[0][0]
+
+    assert str(track_system) == "Tracking systems <= 15ly from Nanomam"
+
+
+def test_tracksystemcached__repr__(f_track_testbed):
+    track_system = f_track_testbed[1][0]
+
+    assert repr(track_system) == "TrackSystemCached(system='44 chi Draconis', overlaps_with='Nanomam')"
+
+
+def test_tracksystemcached_add_overlap(f_track_testbed):
+    track_system = f_track_testbed[1][0]
+
+    track_system.add_overlap("Tollan")
+    track_system.add_overlap("Adeo")
+    assert track_system.overlaps_with == "Nanomam, Tollan, Adeo"
+
+
+def test_tracksystemcached_remove_overlap(f_track_testbed):
+    track_system = f_track_testbed[1][0]
+    track_system.add_overlap("Tollan")
+    track_system.add_overlap("Adeo")
+    assert track_system.overlaps_with == "Nanomam, Tollan, Adeo"
+
+    assert not track_system.remove_overlap("tolLan")
+    assert not track_system.remove_overlap("ADEO")
+    assert track_system.remove_overlap("Nanomam")
+    assert track_system.overlaps_with == ""
+
+
+def test_trackbyid__repr__(f_track_testbed):
+    track_id = f_track_testbed[2][0]
+
+    expect = "TrackByID(id='J3J-WVT', squad='CLBF', system='Rana', last_system='Nanomam', override=False, updated_at=datetime.datetime(2000, 1, 10, 0, 0))"
+    assert repr(track_id) == expect
+
+
+def test_trackbyid__str__(f_track_testbed):
+    track_id = f_track_testbed[2][0]
+
+    expect = "J3J-WVT [CLBF] jumped **Nanomam** => **Rana**."
+    assert str(track_id) == expect
+
+
+def test_trackbyid_table_line(f_track_testbed):
+    track_id = f_track_testbed[2][0]
+
+    assert track_id.table_line() == ('J3J-WVT', 'CLBF', 'Rana', 'Nanomam')
+
+
+def test_trackbyid_spotted(f_track_testbed):
+    track_id = f_track_testbed[2][0]
+
+    track_id.spotted("Cubeo")
+    assert track_id.system == "Cubeo"
+    assert track_id.last_system == "Rana"
 
 
 def test_ocrtracker__str__(f_ocr_testbed):

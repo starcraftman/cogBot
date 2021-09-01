@@ -482,18 +482,18 @@ def test_track_add_systems(session, f_track_testbed):
 
 
 def test_track_add_systems_exists(session, f_track_testbed):
-    system_name = "Rhea"
-    cap = cogdb.query.track_add_systems(session, [system_name], distance=20)
-    assert cap == []
+    system_name = "Tollan"
+    added = cogdb.query.track_add_systems(session, [system_name], distance=20)
+    assert added == []
 
 
 def test_track_remove_systems(session, f_track_testbed):
-    system_names = ["Rhea", "Rana"]
+    system_names = ["Tollan", "Rana"]
     captured = cogdb.query.track_remove_systems(session, system_names)
     session.commit()
 
     found = session.query(TrackSystem).all()
-    assert captured == ["Rhea"]
+    assert captured == ["Tollan"]
     assert len(found) == 1
     assert found[0].system == "Nanomam"
 
@@ -501,73 +501,51 @@ def test_track_remove_systems(session, f_track_testbed):
 def test_track_get_all_systems(session, f_track_testbed):
     captured = cogdb.query.track_get_all_systems(session)
 
-    assert list(sorted([x.system for x in captured])) == ["Nanomam", "Rhea"]
+    assert list(sorted([x.system for x in captured])) == ["Nanomam", "Tollan"]
 
 
 def test_track_show_systems(session, f_track_testbed):
     expected = """__Tracking System Rules__
 
     Tracking systems <= 15ly from Nanomam
-    Tracking systems <= 15ly from Rhea"""
+    Tracking systems <= 12ly from Tollan"""
 
     captured = cogdb.query.track_show_systems(session)
     assert captured == [expected]
 
 
-def test_track_systems_computed_update(session, f_track_testbed):
-    system_names = ["Rana", "Rhea"]
+def test_track_systems_computed_add_new(session, f_track_testbed):
+    system_names = ["System1", "System2", "System3"]
 
-    cap = cogdb.query.track_systems_computed_update(session, system_names)
-    session.commit()
-
-    assert len(cap) == 1
-    found = session.query(TrackSystemCached).filter(TrackSystemCached.system.in_(system_names)).all()
-    assert len(found) == 2
+    added, _ = cogdb.query.track_systems_computed_add(session, system_names, "Rhea")
+    assert sorted(added) == system_names
+    system = session.query(TrackSystemCached).filter(TrackSystemCached.system == "System1").one()
+    assert system.overlaps_with == "Rhea"
 
 
 def test_track_systems_computed_remove(session, f_track_testbed):
-    system_names = ["Rana", "Rhea"]
-    expected = [
-        '44 chi Draconis',
-        'Acihaut',
-        'Amun',
-        'BD-13 2439',
+    deleted, modified = cogdb.query.track_systems_computed_remove(session, "Tollan")
+    session.commit()
+
+    assert deleted == ["Tollan"]
+    assert modified == [
         'Bodedi',
         'DX 799',
-        'G 239-25',
-        'Lalande 18115',
-        'LFT 880',
         'LHS 1885',
         'LHS 215',
         'LHS 221',
-        'LHS 2459',
         'LHS 246',
         'LHS 262',
         'LHS 283',
         'LHS 6128',
-        'LP 5-88',
-        'LP 64-194',
-        'LP 726-6',
-        'LQ Hydrae',
-        'Masans',
-        'Nang Ta-khian',
-        'Nanomam',
-        'Orishpucho',
-        'Santal',
-        'Tollan'
+        'Nanomam'
     ]
-
-    cap = cogdb.query.track_systems_computed_remove(session, system_names)
-    session.commit()
-
-    assert cap == expected
-    found = session.query(TrackSystemCached).filter(TrackSystemCached.system.in_(system_names)).all()
-    assert len(found) == 1
+    assert session.query(TrackSystemCached).filter(TrackSystemCached.system == "Nanomam").one().overlaps_with == "Nanomam"
 
 
 def test_track_systems_computed_check(session, f_track_testbed):
     assert not cogdb.query.track_systems_computed_check(session, "Kappa")
-    assert cogdb.query.track_systems_computed_check(session, "Rhea")
+    assert cogdb.query.track_systems_computed_check(session, "Nanomam")
 
 
 def test_track_ids_update(session, f_track_testbed):
@@ -586,6 +564,20 @@ def test_track_ids_update(session, f_track_testbed):
     assert updated.system == "Rhea"
     assert added.squad == "new"
     assert added.system == "News"
+
+
+def test_track_ids_update_ignore(session, f_track_testbed):
+    id_dict = {
+        "J3J-WVT": {"id": "J3J-WVT", "squad": "IGNORE", "system": "Rana", "override": True},
+    }
+
+    cogdb.query.track_ids_update(session, id_dict)
+    session.commit()
+
+    ignored = session.query(TrackByID).filter(TrackByID.id == "J3J-WVT").one()
+
+    assert ignored.system == "Rana"
+    assert ignored.squad == "CLBF"
 
 
 def test_track_ids_update_timestamp(session, f_track_testbed):
@@ -620,13 +612,13 @@ def test_track_ids_remove(session, f_track_testbed):
 
 def test_track_ids_show(session, f_track_testbed):
     cap = cogdb.query.track_ids_show(session)
-    expected_1 = ["""__Tracking IDs__
+    expected = ["""__Tracking IDs__
 
-J3J-WVT [CLBF] seen in **No Info** at 2000-01-10 00:00:00.
-J3N-53B [CLBF] seen in **No Info** at 2000-01-12 00:00:00.
-OVE-111 [Manual] seen in **No Info** at 2000-01-12 00:00:00.
-XNL-3XQ [CLBF] seen in **No Info** at 2000-01-10 00:00:00."""]
-    assert cap == expected_1
+J3J-WVT [CLBF] jumped **Nanomam** => **Rana**.
+J3N-53B [CLBF] jumped **No Info** => **No Info**.
+OVE-111 [Manual] jumped **No Info** => **No Info**.
+XNL-3XQ [CLBF] jumped **No Info** => **Tollan**, near Tollan."""]
+    assert cap == expected
 
 
 def test_track_ids_check(session, f_track_testbed):

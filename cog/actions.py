@@ -1491,13 +1491,15 @@ class Track(Action):
         system_names = process_system_args(self.args.systems)
         cogdb.query.track_add_systems(self.session, system_names, self.args.distance)
 
-        to_add = []
+        added = []
         with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
-            for sys_name in system_names:
-                to_add += cogdb.eddb.get_systems_around(eddb_session, sys_name, self.args.distance)
-            to_add = {x.name for x in to_add}
+            for centre in system_names:
+                to_add = cogdb.eddb.get_systems_around(eddb_session, centre, self.args.distance)
+                to_add = [x.name for x in to_add]
+                add, _ = cogdb.query.track_systems_computed_add(self.session, to_add, centre)
+                added += add
 
-        new_systems = sorted([x.system for x in cogdb.query.track_systems_computed_update(self.session, to_add)])
+        new_systems = sorted(added)
         response = "__Systems Added To Tracking__\n\nSystems added: {} First few follow ...\n\n".format(len(new_systems))
         return response + ", ".join(new_systems[:TRACK_LIMIT])
 
@@ -1505,15 +1507,13 @@ class Track(Action):
         """ Subcmd remove for track command. """
         system_names = process_system_args(self.args.systems)
         cogdb.query.track_remove_systems(self.session, system_names)
-        remaining = cogdb.query.track_get_all_systems(self.session)
 
-        with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
-            computed = []
-            for remain in remaining:
-                computed += cogdb.eddb.get_systems_around(eddb_session, remain.system, remain.distance)
-            to_keep = {x.name for x in computed}
+        removed = []
+        for centre in system_names:
+            deleted, _ = cogdb.query.track_systems_computed_remove(self.session, centre)
+            removed += deleted
 
-        removed = sorted(cogdb.query.track_systems_computed_remove(self.session, to_keep))
+        removed = sorted(removed)
         response = "__Systems Removed From Tracking__\n\nSystems added: {} First few follow ...\n\n".format(len(removed))
         return response + ", ".join(removed[:TRACK_LIMIT])
 
@@ -1787,6 +1787,7 @@ class WhoIs(Action):
             await cog.inara.api.reply_with_api_result(cmdr["req_id"], cmdr["event_data"], self.msg)
 
 
+# TODO: I'm not sure why this is "lowered"
 def process_system_args(args):
     """
     Process the system args by:
