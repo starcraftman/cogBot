@@ -1573,7 +1573,7 @@ async def test_cmd_near_if(f_bot):
 
 
 @pytest.mark.asyncio
-async def test_cmd_vote_prep(f_bot):
+async def test_cmd_vote_prep(f_bot, f_global_testbed, f_vote_testbed):
     msg = fake_msg_gears("!vote prep 1")
 
     await action_map(msg, f_bot).execute()
@@ -1581,7 +1581,7 @@ async def test_cmd_vote_prep(f_bot):
 
 
 @pytest.mark.asyncio
-async def test_cmd_vote_cons(f_bot):
+async def test_cmd_vote_cons(f_bot, f_global_testbed, f_vote_testbed):
     msg = fake_msg_gears("!vote cons 5")
 
     await action_map(msg, f_bot).execute()
@@ -1589,19 +1589,19 @@ async def test_cmd_vote_cons(f_bot):
 
 
 @pytest.mark.asyncio
-async def test_cmd_vote(f_bot):
+async def test_cmd_vote(f_bot, f_global_testbed, f_vote_testbed):
     msg = fake_msg_gears("!vote")
 
     await action_map(msg, f_bot).execute()
-    f_bot.send_message.assert_called_with(msg.channel, 'Current vote goal is 0%, current consolidation 0%, please **Hold your vote**.')
+    f_bot.send_message.assert_called_with(msg.channel, 'Please hold your vote for now. A ping will be send once we have a final decision.')
 
 
 @pytest.mark.asyncio
-async def test_cmd_vote_set_goal(f_bot):
+async def test_cmd_vote_set_goal(f_bot, f_global_testbed, f_vote_testbed):
     msg = fake_msg_gears("!vote -s 75")
 
     await action_map(msg, f_bot).execute()
-    f_bot.send_message.assert_called_with(msg.channel, 'New vote goal is **75%**, current vote is 0%.')
+    f_bot.send_message.assert_called_with(msg.channel, 'New vote goal is **75%**, current vote is 77%.')
 
 
 def test_process_system_args():

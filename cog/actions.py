@@ -1809,16 +1809,19 @@ class Vote(Action):
                 .format(goal=self.args.set, current_vote=globe.consolidation)
             await self.bot.send_message(self.msg.channel, msg)
         else:
-            if globe.consolidation > globe.vote_goal:
-                vote_choice = 'vote Preparation'
-            elif globe.consolidation < globe.vote_goal:
-                vote_choice = 'vote Consolidation'
+            if not globe.show_almost_done:
+                msg = "Please hold your vote for now. A ping will be send once we have a final decision."
             else:
-                vote_choice = 'Hold your vote'
-            msg = "Current vote goal is {goal}%, current consolidation {current_cons}%, please **{vote_choice}**."\
-                .format(
-                    goal=globe.vote_goal, current_cons=globe.consolidation, vote_choice=vote_choice
-                )
+                if globe.consolidation > globe.vote_goal:
+                    vote_choice = 'vote Preparation'
+                elif globe.consolidation < globe.vote_goal:
+                    vote_choice = 'vote Consolidation'
+                else:
+                    vote_choice = 'Hold your vote'
+                msg = "Current vote goal is {goal}%, current consolidation {current_cons}%, please **{vote_choice}**."\
+                    .format(
+                        goal=globe.vote_goal, current_cons=globe.consolidation, vote_choice=vote_choice
+                    )
             await self.bot.send_message(self.msg.channel, msg)
 
     def update_goal(self):
