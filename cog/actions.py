@@ -1794,12 +1794,37 @@ class Vote(Action):
     Cast a vote based on CMDR discord ID.
     """
     async def execute(self):
-        vote = cogdb.query.has_voted(self.session, self.msg.author.id)
-        if vote:
-            response = cogdb.query.update_vote(self.session, self.args.amount, vote)
+        globe = cogdb.query.get_current_global(self.session)
+        if self.args.set:
+            self.update_goal()
+        if self.args.vote_type:
+            vote = cogdb.query.has_voted(self.session, self.msg.author.id)
+            if vote:
+                response = cogdb.query.update_vote(self.session, self.args.amount, vote)
+            else:
+                response = cogdb.query.add_vote(self.session, self.msg.author, self.args.vote_type[0], self.args.amount)
+            await self.bot.send_message(self.msg.channel, response)
+        elif self.args.set:
+            msg = "New vote goal is **{goal}%**, current vote is {current_vote}%."\
+                .format(goal=self.args.set, current_vote=globe.consolidation)
+            await self.bot.send_message(self.msg.channel, msg)
         else:
-            response = cogdb.query.add_vote(self.session, self.msg.author, self.args.vote_type[0], self.args.amount)
-        await self.bot.send_message(self.msg.channel, response)
+            if globe.consolidation > globe.vote_goal:
+                vote_choice = 'vote Preparation'
+            elif globe.consolidation < globe.vote_goal:
+                vote_choice = 'vote Consolidation'
+            else:
+                vote_choice = 'Hold your vote'
+            msg = "Current vote goal is {goal}%, current consolidation {current_cons}%, please **{vote_choice}**."\
+                .format(
+                    goal=globe.vote_goal, current_cons=globe.consolidation, vote_choice=vote_choice
+                )
+            await self.bot.send_message(self.msg.channel, msg)
+
+    def update_goal(self):
+        """Update vote goal."""
+        globe = cogdb.query.get_current_global(self.session)
+        globe.vote_goal = self.args.set
 
 
 class WhoIs(Action):

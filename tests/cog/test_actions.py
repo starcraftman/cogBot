@@ -1588,6 +1588,22 @@ async def test_cmd_vote_cons(f_bot):
     f_bot.send_message.assert_called_with(msg.channel, "**User1** : 5 cons vote cast.")
 
 
+@pytest.mark.asyncio
+async def test_cmd_vote(f_bot):
+    msg = fake_msg_gears("!vote")
+
+    await action_map(msg, f_bot).execute()
+    f_bot.send_message.assert_called_with(msg.channel, 'Current vote goal is 0%, current consolidation 0%, please **Hold your vote**.')
+
+
+@pytest.mark.asyncio
+async def test_cmd_vote_set_goal(f_bot):
+    msg = fake_msg_gears("!vote -s 75")
+
+    await action_map(msg, f_bot).execute()
+    f_bot.send_message.assert_called_with(msg.channel, 'New vote goal is **75%**, current vote is 0%.')
+
+
 def test_process_system_args():
     args = ['This  ,  ', 'is ,   ', '   an,', ' example.']
     results = cog.actions.process_system_args(args)

@@ -1282,6 +1282,7 @@ class Global(Base):
     cycle = sqla.Column(sqla.Integer, default=0)
     consolidation = sqla.Column(sqla.Integer, default=0)
     show_almost_done = sqla.Column(sqla.Boolean, default=False)
+    vote_goal = sqla.Column(sqla.Integer, default=0)
     updated_at = sqla.Column(sqla.DateTime(timezone=False), default=datetime.datetime.utcnow())  # All dates UTC
 
     def __repr__(self):
@@ -1337,6 +1338,16 @@ class Global(Base):
 
     @sqla_orm.validates('consolidation')
     def validate_consolidation(self, key, value):
+        try:
+            if value < 0 or value > 100:
+                raise cog.exc.ValidationFail("Bounds check failed for: {} with value {}".format(key, value))
+        except TypeError:
+            pass
+
+        return value
+
+    @sqla_orm.validates('vote_goal')
+    def validate_vote_goal(self, key, value):
         try:
             if value < 0 or value > 100:
                 raise cog.exc.ValidationFail("Bounds check failed for: {} with value {}".format(key, value))

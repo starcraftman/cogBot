@@ -640,6 +640,8 @@ def subs_vote(subs, prefix):
     """ Subcommand parsing for vote """
     desc = """Cast a vote.
 
+**{prefix}vote**
+        Show current vote goal.
 **{prefix}vote cons 5**
         Vote consolidation with a power of 5 ...
 **{prefix}vote prep 15**
@@ -647,8 +649,9 @@ def subs_vote(subs, prefix):
     """.format(prefix=prefix)
     sub = subs.add_parser(prefix + 'vote', description=desc, formatter_class=RawHelp)
     sub.set_defaults(cmd='Vote')
-    sub.add_argument('vote_type', nargs='+', help='Vote type, either Cons or Prep', choices=['cons', 'prep'])
-    sub.add_argument('amount', type=int, help='Vote power (either 1 or a multiple of 5)')
+    sub.add_argument('vote_type', nargs='?', help='Vote type, either Cons or Prep', choices=['cons', 'prep'])
+    sub.add_argument('amount', nargs='?', type=int, help='Vote power (either 1 or a multiple of 5)')
+    sub.add_argument('--set', '-s', help='Set vote goal.')
 
 
 @register_parser
