@@ -640,7 +640,7 @@ def test_edmcjournal_parse_and_flush_carrier_edmc_id(session, f_track_testbed):
         id: {
             'id': id,
             'system': 'Rana',
-            'updated_at': parser.date_obj,
+            'updated_at': parser.date_obj.replace(tzinfo=None),
         }
     }
     assert result == expected
@@ -669,7 +669,7 @@ def test_edmcjournal_parse_and_flush_carrier_disc_system(session, f_track_testbe
             'id': 'KLG-9TL',
             'override': False,
             'system': 'Nanomam',
-            'updated_at': parser.date_obj,
+            'updated_at': parser.date_obj.replace(tzinfo=None),
         }
     }
     assert result == expected
@@ -853,7 +853,6 @@ def test_edmcjournal_flush_influences_to_db():
     assert parser.flushed[2].faction_id == 55925
     assert parser.flushed[2].is_controlling_faction
     assert parser.flushed[2].happiness_id == 2
-
 
 
 def test_edmcjournal_parse_conflicts():

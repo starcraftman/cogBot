@@ -19,7 +19,6 @@ from cogdb.schema import (DiscordUser, FortSystem, FortPrep, FortDrop, FortUser,
                           OCRPrep, Global)
 from cogdb.eddb import HUDSON_CONTROLS, WINTERS_CONTROLS
 from cogdb.scanners import FortScanner
-import cogdb
 
 DEFER_MISSING = get_config("limits", "defer_missing", default=750)
 MAX_DROP = get_config("limits", "max_drop", default=1000)
@@ -877,11 +876,10 @@ def track_ids_update(session, ids_dict, date_obj=None):
             continue
 
         data = copy_ids_dict[track.id]
-        if data.get("squad", ""):
-            track.squad = data['squad']
-        if data.get("override", None):
-            track.override = data['override']
-        track.system = data.get('system', None)
+        track.updated_at = data.get('updated_at', date_obj)
+        track.squad = data.get("squad", track.squad)
+        track.override = data.get("override", track.override)
+        track.system = data.get('system', track.system)
         updated += [track.id]
 
         del copy_ids_dict[track.id]

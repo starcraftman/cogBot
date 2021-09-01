@@ -246,7 +246,7 @@ class Admin(Action):
         with tempfile.NamedTemporaryFile(mode='r') as tfile:
             async with aiofiles.open(tfile.name, 'w') as fout:
                 await fout.write("__Members With No Activity in Last {} Day{}__\n".format(self.args.days,
-                                                                                        "" if self.args.days == 1 else "s"))
+                                                                                          "" if self.args.days == 1 else "s"))
                 for member in all_members:
                     await fout.write("{}, Top Role: {}\n".format(member.name, member.top_role))
 
@@ -890,7 +890,7 @@ To unset override, simply set an empty list of systems.
 
         globe = cogdb.query.get_current_global(self.session)
         priority, deferred = cogdb.query.fort_get_priority_targets(self.session)
-        show_deferred = deferred and (globe.show_almost_done or self.is_near_tick())
+        show_deferred = deferred and (globe.show_almost_done or self.is_near_tick()) or cogdb.TEST_DB
         if priority or show_deferred:
             lines += ['\n__Priority Systems__']
             if priority:
@@ -1156,9 +1156,10 @@ class KOS(Action):
             msg = None
 
         elif self.args.subcmd == 'pull':
-            await self.bot.loop.run_in_executor(
-                None, get_scanner('hudson_kos').parse_sheet
-            )
+            with cfut.ProcessPoolExecutor(max_workers=1) as pool:
+                await self.bot.loop.run_in_executor(
+                    pool, get_scanner('hudson_kos').scheduler_run
+                )
             msg = 'KOS list refreshed from sheet.'
 
         elif self.args.subcmd == 'search':
@@ -1548,7 +1549,10 @@ class Track(Action):
         """ Subcmd scan for track command. """
         scanner = get_scanner("hudson_carriers")
         await scanner.update_cells()
-        await self.bot.loop.run_in_executor(None, scanner.parse_sheet)
+        with cfut.ProcessPoolExecutor(max_workers=1) as pool:
+            await self.bot.loop.run_in_executor(
+                pool, scanner.scheduler_run
+            )
 
         return "Scan finished."
 

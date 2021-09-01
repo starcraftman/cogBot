@@ -325,7 +325,7 @@ class UMScanner(FortScanner):
     def __repr__(self):
         return super().__repr__().replace('FortScanner', 'UMScanner')
 
-    def parse_sheet(self, session=None):
+    def parse_sheet(self, session):
         """
         Parse the updated sheet and return information to directly pass to scan.
 
@@ -595,7 +595,7 @@ class KOSScanner(FortScanner):
     def __repr__(self):
         return super().__repr__().replace('FortScanner', 'KOSScanner')
 
-    def parse_sheet(self, session=None):
+    def parse_sheet(self, session):
         """
         Parse the updated sheet and return information to directly pass to scan.
 
@@ -670,7 +670,7 @@ class RecruitsScanner(FortScanner):
     def __repr__(self):
         return super().__repr__().replace('FortScanner', 'RecruitsScanner')
 
-    def parse_sheet(self, session=None):
+    def parse_sheet(self, session):
         """
         Unused, remains for consistency of interface.
         """
@@ -718,7 +718,7 @@ class CarrierScanner(FortScanner):
     def __repr__(self):
         return super().__repr__().replace('FortScanner', 'CarrierScanner')
 
-    def parse_sheet(self, session=None):
+    def parse_sheet(self, session):
         """
         Push the update of carriers to the database.
         """
@@ -774,7 +774,7 @@ class OCRScanner(FortScanner):
     def __repr__(self):
         return super().__repr__().replace('FortScanner', 'OCRScanner')
 
-    def parse_sheet(self, session=None):
+    def parse_sheet(self, session):
         sys_map = self.generate_system_map()
 
         # Update consolidation vote

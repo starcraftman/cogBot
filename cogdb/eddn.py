@@ -216,7 +216,7 @@ class EDMCJournal():
         id = body["StationName"]
         system = self.parsed["system"]["name"]
         date = self.date_obj
-        ids_dict = {id: {'id': id, 'system': system, 'updated_at': date}}
+        ids_dict = {id: {'id': id, 'system': system, 'updated_at': date.replace(tzinfo=None)}}
 
         if cogdb.query.track_ids_check(self.session, id):
             cogdb.query.track_ids_update(self.session, ids_dict)
@@ -563,7 +563,11 @@ def timestamp_is_recent(msg, window=30):
     try:
         parsed_time = datetime.datetime.strptime(msg['header']['gatewayTimestamp'], TIME_STRP_MICRO)
     except ValueError:
-        parsed_time = datetime.datetime.strptime(msg['header']['gatewayTimestamp'], TIME_STRP)
+        try:
+            parsed_time = datetime.datetime.strptime(msg['header']['gatewayTimestamp'], TIME_STRP)
+        except ValueError:
+            return False
+
     parsed_time = parsed_time.replace(tzinfo=datetime.timezone.utc)
     return (datetime.datetime.now(datetime.timezone.utc) - parsed_time) < datetime.timedelta(minutes=window)
 
@@ -660,6 +664,7 @@ def main():  # pragma: no cover
     except KeyboardInterrupt:
         msg = """Terminating ZMQ connection."""
         print(msg)
+
 
 # Any time code run, need these dirs to write to
 try:

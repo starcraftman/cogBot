@@ -629,6 +629,11 @@ XNL-3XQ [CLBF] seen in **No Info** at 2000-01-10 00:00:00."""]
     assert cap == expected_1
 
 
+def test_track_ids_check(session, f_track_testbed):
+    assert cogdb.query.track_ids_check(session, 'OVE-111')
+    assert not cogdb.query.track_ids_check(session, 'J3J-WVT')
+
+
 def test_track_ids_newer_than(session, f_track_testbed):
     date = datetime.datetime(year=2000, month=1, day=10, hour=0, minute=0, second=0, microsecond=0)
     objs = cogdb.query.track_ids_newer_than(session, date)
