@@ -1090,7 +1090,7 @@ class OCRTracker(Base):
     @sqla_orm.validates('fort', 'um')
     def validate_merits(self, key, value):
         try:
-            if value < 0 or value > SENSIBLE_OCR_MERITS or value < getattr(self, key):
+            if value < 0 or value > SENSIBLE_OCR_MERITS:
                 raise cog.exc.ValidationFail("Bounds check failed for: {} with value {}".format(key, value))
         except TypeError:
             pass

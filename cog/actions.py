@@ -1244,6 +1244,7 @@ class OCR(Action):
         if self.args.subcmd == "preps":
             reply = cogdb.query.ocr_prep_report(self.session)
         elif self.args.subcmd == "refresh":  # pragma: no cover
+            reply = "OCR Sheet has been read and update pushed to Fort"
             await monitor_ocr_sheet(self.bot, delay=0, repeat=False)
 
         if reply:
