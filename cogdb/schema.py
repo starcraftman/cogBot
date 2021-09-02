@@ -1400,6 +1400,30 @@ class Vote(Base):
     def __hash__(self):
         return hash("{}-{}".format(self.id, self.vote))
 
+    def update(self, **kwargs):
+        """
+        Update the object with expected kwargs.
+
+        kwargs:
+            id: The current Discord user ID.
+            vote: The vote type.
+            updated_at: The date of the last vote. (this will be updated too)
+            amount: The amount of vote to add to previous amount. (Required)
+
+        Raises:
+            ValidationFail - The kwargs did not contain updated_at or it was not suitable.
+        """
+        if 'amount' not in kwargs:
+            raise cog.exc.ValidationFail("Expected key 'amount' is missing.")
+
+        self.updated_at = datetime.datetime.utcnow
+        self.amount += int(kwargs['amount'])
+        for key in ['id', 'vote']:
+            try:
+                setattr(self, key, kwargs[key])
+            except (KeyError, cog.exc.ValidationFail):
+                pass
+
 
 def kwargs_um_system(cells, sheet_col):
     """

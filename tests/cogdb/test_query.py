@@ -830,7 +830,7 @@ def test_vote_add(session, f_dusers, f_vote_testbed, f_global_testbed):
     expected_message = "**User2** : 1 prep vote cast."
     assert returned_message == expected_message
     with pytest.raises(cog.exc.InvalidCommandArgs):
-        cogdb.query.add_vote(session, f_dusers[1], 'prep', 1)
+        cogdb.query.add_vote(session, f_dusers[2], 'prep', 1)
 
 
 def test_vote_has_voted(session, f_dusers, f_vote_testbed):

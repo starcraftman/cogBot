@@ -1798,11 +1798,12 @@ class Vote(Action):
         if self.args.set:
             self.update_goal()
         if self.args.vote_type:
-            vote = cogdb.query.has_voted(self.session, self.msg.author.id)
-            if vote:
-                response = cogdb.query.update_vote(self.session, self.args.amount, vote)
+            has_voted = cogdb.query.has_voted(self.session, self.args.vote_type, self.msg.author.id)
+            print("voted", has_voted)
+            if has_voted:
+                response = cogdb.query.update_vote(self.session, self.args.amount,  self.args.vote_type, self.msg.author.id, has_voted)
             else:
-                response = cogdb.query.add_vote(self.session, self.msg.author, self.args.vote_type[0], self.args.amount)
+                response = cogdb.query.add_vote(self.session, self.msg.author, self.args.vote_type, self.args.amount)
             await self.bot.send_message(self.msg.channel, response)
         elif self.args.set:
             msg = "New vote goal is **{goal}%**, current vote is {current_vote}%."\
