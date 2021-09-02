@@ -834,15 +834,10 @@ def test_vote_add(session, f_dusers, f_vote_testbed, f_global_testbed):
 
 
 def test_vote_has_voted(session, f_dusers, f_vote_testbed):
-    assert not cogdb.query.has_voted(session, f_dusers[2].id)
+    assert not cogdb.query.has_voted(session, 'cons', f_dusers[2].id)
     vote = Vote(id=3, vote=VoteType.cons, amount=1)
     session.add(vote)
     session.commit()
-    assert cogdb.query.has_voted(session, f_dusers[2].id) == vote
-
-
-def test_vote_update(session, f_vote_testbed):
-    cogdb.query.update_vote(session, 5, f_vote_testbed[0])
-    assert f_vote_testbed[0].amount == 6
+    assert cogdb.query.has_voted(session, 'cons', f_dusers[2].id) == [vote]
 
 

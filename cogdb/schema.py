@@ -24,6 +24,7 @@ LEN_SHEET_COL = 5
 LEN_CARRIER = 7
 SENSIBLE_OCR_MERITS = 150000
 SENSIBLE_OCR_INCOME = 250
+MAX_VOTE_VALUE = 50
 EVENT_CARRIER = """
 CREATE EVENT IF NOT EXISTS clean_carriers
 ON SCHEDULE
@@ -1379,7 +1380,13 @@ class Vote(Base):
     id = sqla.Column(sqla.BigInteger, primary_key=True)
     vote = sqla.Column(sqla.Enum(VoteType), default=VoteType.cons, primary_key=True)
     amount = sqla.Column(sqla.Integer, default=0)
-    updated_at = sqla.Column(sqla.DateTime, default=datetime.datetime.utcnow)  # All dates UTC
+    updated_at = sqla.Column(sqla.DateTime, default=datetime.datetime.utcnow())  # All dates UTC
+
+    # Relationships
+    discord_user = sqla.orm.relationship(
+        'DiscordUser', uselist=False,
+        primaryjoin='foreign(Vote.id) == DiscordUser.id'
+    )
 
     def __repr__(self):
         keys = ['id', 'vote', 'amount', 'updated_at']
@@ -1391,7 +1398,7 @@ class Vote(Base):
         """ A pretty one line to give all information. """
         vote_type = str(self.vote).split('.')[-1].capitalize()
         return "**{id}**: voted {amount} {vote}, last updated at {updated_at}.".format(
-            id=self.id, amount=self.amount,
+            id=self.discord_user.display_name, amount=self.amount,
             vote=vote_type, updated_at=self.updated_at)
 
     def __eq__(self, other):
@@ -1400,29 +1407,30 @@ class Vote(Base):
     def __hash__(self):
         return hash("{}-{}".format(self.id, self.vote))
 
-    def update(self, **kwargs):
+    def update_amount(self, amount):
         """
-        Update the object with expected kwargs.
-
-        kwargs:
-            id: The current Discord user ID.
-            vote: The vote type.
-            updated_at: The date of the last vote. (this will be updated too)
-            amount: The amount of vote to add to previous amount. (Required)
-
-        Raises:
-            ValidationFail - The kwargs did not contain updated_at or it was not suitable.
+        Update the object with new amount.
         """
-        if 'amount' not in kwargs:
-            raise cog.exc.ValidationFail("Expected key 'amount' is missing.")
+        self.amount += int(amount)
+        self.updated_at = datetime.datetime.utcnow()
+        return self
 
-        self.updated_at = datetime.datetime.utcnow
-        self.amount += int(kwargs['amount'])
-        for key in ['id', 'vote']:
-            try:
-                setattr(self, key, kwargs[key])
-            except (KeyError, cog.exc.ValidationFail):
-                pass
+    @sqla_orm.validates('updated_at')
+    def validate_updated_at(self, key, value):
+        if not value or not isinstance(value, datetime.datetime) or (self.updated_at and value < self.updated_at):
+            raise cog.exc.ValidationFail("Date invalid or was older than current value.")
+
+        return value
+
+    @sqla_orm.validates('amount')
+    def validate_amount(self, key, value):
+        try:
+            if value < 0 or value > MAX_VOTE_VALUE:
+                raise cog.exc.ValidationFail("Bounds check failed for: {} with value {}".format(key, value))
+        except TypeError:
+            pass
+
+        return value
 
 
 def kwargs_um_system(cells, sheet_col):

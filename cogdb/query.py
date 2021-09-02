@@ -1260,14 +1260,3 @@ def has_voted(session, vote_type, member_id):
     except sqla_oexc.NoResultFound:
         return False
 
-
-def update_vote(session, amount, vote_type, member_id, vote_to_update):
-    """
-    Add amount to a vote cast by the same member.
-    """
-    for vote in vote_to_update:
-        vote.amount = amount
-        try:
-            vote.update(**vote)
-        except cog.exc.ValidationFail:
-            pass

@@ -858,6 +858,12 @@ def test_vote__str__(f_vote_testbed):
     assert str(vote) == expect.format(vote.updated_at)
 
 
+def test_vote_update_amount(f_vote_testbed):
+    vote = f_vote_testbed[0]
+    vote.update_amount(5)
+    assert vote.amount == 6
+
+
 def test_global_update(f_global_testbed):
     globe = f_global_testbed[0]
 
