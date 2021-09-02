@@ -1586,7 +1586,6 @@ async def test_cmd_vote_cons(f_bot, f_global_testbed, f_vote_testbed):
     msg = fake_msg_gears("!vote cons 5")
 
     await action_map(msg, f_bot).execute()
-    now = datetime.datetime.utcnow()
     f_bot.send_message.assert_called_with(msg.channel, "**User1**: voted 6 Cons.")
 
 

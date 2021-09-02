@@ -773,16 +773,16 @@ def f_vote_testbed(session):
     Setup the database with dummy data for vote tracker.
     """
     updated_at = datetime.datetime(2021, 8, 25, 2, 33, 0)
-    vote = (
-        Vote(id=1, vote=VoteType.cons, amount=1, updated_at=updated_at),
-    )
     dusers = (
         DiscordUser(id=1, display_name='User1', pref_name='User1'),
     )
-    session.add_all(vote + dusers)
+    vote = (
+        Vote(id=1, vote=VoteType.cons, amount=1, updated_at=updated_at),
+    )
+    session.add_all(dusers + vote)
     session.commit()
 
-    yield vote
+    yield dusers, vote
 
     session.rollback()
     for cls in (Vote, DiscordUser):
