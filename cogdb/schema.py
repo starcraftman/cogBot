@@ -1397,9 +1397,9 @@ class Vote(Base):
     def __str__(self):
         """ A pretty one line to give all information. """
         vote_type = str(self.vote).split('.')[-1].capitalize()
-        return "**{id}**: voted {amount} {vote}, last updated at {updated_at}.".format(
+        return "**{id}**: voted {amount} {vote}.".format(
             id=self.discord_user.display_name, amount=self.amount,
-            vote=vote_type, updated_at=self.updated_at)
+            vote=vote_type)
 
     def __eq__(self, other):
         return isinstance(other, Vote) and hash(self) == hash(other)

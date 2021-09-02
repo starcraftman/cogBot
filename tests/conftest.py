@@ -776,12 +776,15 @@ def f_vote_testbed(session):
     vote = (
         Vote(id=1, vote=VoteType.cons, amount=1, updated_at=updated_at),
     )
-    session.add_all(vote)
+    dusers = (
+        DiscordUser(id=1, display_name='User1', pref_name='User1'),
+    )
+    session.add_all(vote + dusers)
     session.commit()
 
     yield vote
 
     session.rollback()
-    for cls in (Vote,):
+    for cls in (Vote, DiscordUser):
         session.query(cls).delete()
     session.commit()
