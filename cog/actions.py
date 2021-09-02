@@ -303,13 +303,18 @@ class Admin(Action):
         """ Schedule all sheets for update. """
         cycle = cog.util.get_config("scanners", "hudson_cattle", "page", default="Cycle Unknown")
         prefix = "__Top Merits for {}__\n\n".format(cycle)
-        exclude_roles = ["FRC Leadership", "Special Agent"] if not self.args.leaders else []
+        try:
+            exclude_roles = ["FRC Leadership", "Special Agent"] if not self.args.leaders else []
+            arg_limit = self.args.limit
+        except AttributeError:
+            exclude_roles = ["FRC Leadership", "Special Agent"]
+            arg_limit = limit
         parts = []
 
         top_all = await self.bot.loop.run_in_executor(
             None, cogdb.query.users_with_all_merits, self.session,
         )
-        top_recruits, top_members = filter_top_dusers(self.msg.guild, top_all, exclude_roles, limit=self.args.limit)
+        top_recruits, top_members = filter_top_dusers(self.msg.guild, top_all, exclude_roles, limit=arg_limit)
         lines = [["Top {} Recruits".format(limit), "Merits", "Top {} Members".format(limit), "Merits"]]
         lines += [[rec[0], rec[1], mem[0], mem[1]] for rec, mem in zip(top_recruits, top_members)]
         parts += cog.tbl.format_table(lines, header=True, prefix=prefix, suffix="\n\n")
@@ -317,7 +322,7 @@ class Admin(Action):
         top_fort = await self.bot.loop.run_in_executor(
             None, cogdb.query.users_with_fort_merits, self.session,
         )
-        top_recruits, top_members = filter_top_dusers(self.msg.guild, top_fort, exclude_roles, limit=self.args.limit)
+        top_recruits, top_members = filter_top_dusers(self.msg.guild, top_fort, exclude_roles, limit=arg_limit)
         lines = [["Top {} Fort Recruits".format(limit), "Merits", "Top Fort {} Members".format(limit), "Merits"]]
         lines += [[rec[0], rec[1], mem[0], mem[1]] for rec, mem in zip(top_recruits, top_members)]
         parts += cog.tbl.format_table(lines, header=True, suffix="\n\n")
@@ -325,7 +330,7 @@ class Admin(Action):
         top_um = await self.bot.loop.run_in_executor(
             None, cogdb.query.users_with_um_merits, self.session,
         )
-        top_recruits, top_members = filter_top_dusers(self.msg.guild, top_um, exclude_roles, limit=self.args.limit)
+        top_recruits, top_members = filter_top_dusers(self.msg.guild, top_um, exclude_roles, limit=arg_limit)
         lines = [["Top {} UM Recruits".format(limit), "Merits", "Top UM {} Members".format(limit), "Merits"]]
         lines += [[rec[0], rec[1], mem[0], mem[1]] for rec, mem in zip(top_recruits, top_members)]
         parts += cog.tbl.format_table(lines, header=True, suffix="\n\n")
