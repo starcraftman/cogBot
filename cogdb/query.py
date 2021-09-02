@@ -1226,3 +1226,16 @@ Current Consolidation: {}%
         msg += "\n" + str(prep)
 
     return msg
+
+
+def ocr_zero_live_trackers(session):
+    """
+    Post cycle tick 0 out existing OCRTracker objects fort and um fields.
+
+    Args:
+        session: Session on to the db.
+    """
+    for tracker in session.query(OCRTracker):
+        tracker.fort = 0
+        tracker.um = 0
+    session.commit()

@@ -353,6 +353,8 @@ class Admin(Action):
             RemoteError - The sheet/tab combination could not be resolved. Tab needs creating.
         """
         await self.top(5)
+        # Zero trackers for new ocr data
+        cogdb.query.ocr_zero_live_trackers(self.session)
         self.bot.deny_commands = True
         scanner_configs = cog.util.get_config('scanners')
         lines = [['Document', 'Active Page']]

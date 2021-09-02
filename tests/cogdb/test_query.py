@@ -819,3 +819,11 @@ Current Consolidation: 77%
 Cubeo: 5531, updated at 2021-08-25 02:33:00
 Rhea: 0, updated at 2021-08-25 02:33:00"""
     assert cogdb.query.ocr_prep_report(session) == expect
+
+
+def test_ocr_zero_live_trackers(session, f_ocr_testbed):
+    cogdb.query.ocr_zero_live_trackers(session)
+
+    for tracker in session.query(OCRTracker):
+        assert tracker.fort == 0
+        assert tracker.um == 0
