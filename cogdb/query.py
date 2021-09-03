@@ -304,50 +304,37 @@ def fort_get_systems_by_state(session):
     return states
 
 
-def fort_get_targets(session):
+def fort_get_next_targets(session, *, offset=0, count=4):
     """
-    Returns a list of Systems that should be fortified.
+    Return the fort targets that need to be completed.
+    If manual targets set, return those.
+    Otherwise, return up to count systems that are not:
+        - preps
+        - priority or deferred systems
 
-    - First System is not Othime and is unfortified.
-    - Second System if present is a medium only system, if one remains unfortified.
-    - All Systems after are prep targets.
-    """
-    targets = fort_order_get(session)
-    if targets:
-        return targets[:1]
+    Args:
+        session: A session onto db.
 
-    current = fort_find_current_index(session)
-    systems = fort_get_systems(session)
-    targets = [systems[current]]
-
-    mediums = fort_get_medium_systems(session)
-    if mediums and mediums[0].name != systems[current].name:
-        targets.append(mediums[0])
-
-    targets += fort_get_preps(session)
-
-    return targets
-
-
-def fort_get_next_targets(session, count=1):
-    """
-    Return next 'count' fort targets.
+    Kwargs:
+        offset: If set, start offset forward from current active fort target. Default 0
+        count: Return this many targets. Default 4
     """
     systems = fort_order_get(session)
-    start = 1
+    start = 0
     if not systems:
         systems = fort_get_systems(session)
-        start = fort_find_current_index(session) + 1
+        start = fort_find_current_index(session)
+    start += offset
 
     targets = []
     for system in systems[start:]:
-        if system.is_fortified or system.skip or system.missing < DEFER_MISSING:
+        if system.is_fortified or system.priority or system.skip or system.missing < DEFER_MISSING:
             continue
 
         targets.append(system)
-        count = count - 1
+        count -= 1
 
-        if count == 0:
+        if count <= 0:
             break
 
     return targets

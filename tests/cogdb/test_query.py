@@ -190,16 +190,11 @@ def test_fort_find_system(session, f_dusers, f_fort_testbed):
     assert sys.name == 'Alpha Fornacis'
 
 
-def test_fort_get_targets(session, f_dusers, f_fort_testbed):
-    targets = cogdb.query.fort_get_targets(session)
-    assert [sys.name for sys in targets] == ['Nurundere', 'Othime', 'Rhea']
-
-
 def test_fort_get_next_targets(session, f_dusers, f_fort_testbed):
-    targets = cogdb.query.fort_get_next_targets(session)
+    targets = cogdb.query.fort_get_next_targets(session, offset=1, count=1)
     assert [sys.name for sys in targets] == ["LHS 3749"]
 
-    targets = cogdb.query.fort_get_next_targets(session, count=2)
+    targets = cogdb.query.fort_get_next_targets(session, offset=1, count=2)
     assert [sys.name for sys in targets] == ["LHS 3749", "Alpha Fornacis"]
 
 

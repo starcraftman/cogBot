@@ -277,6 +277,20 @@ def test_fortsystem_current_status(f_dusers, f_fort_testbed):
     assert system.current_status == 4910
 
 
+def test_fortsystem_priority(f_dusers, f_fort_testbed):
+    system = f_fort_testbed[1][0]
+    assert system.priority is False
+
+    system.notes = 'Priority for small ships'
+    assert system.priority is True
+
+
+def test_fortsystem_priority_expression(session, f_dusers, f_fort_testbed):
+    skips = session.query(FortSystem.name).filter(FortSystem.priority).all()
+
+    assert [x[0] for x in skips] == ["Othime"]
+
+
 def test_fortsystem_skip(f_dusers, f_fort_testbed):
     system = f_fort_testbed[1][0]
     assert system.skip is False

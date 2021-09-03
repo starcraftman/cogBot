@@ -739,7 +739,7 @@ class Drop(Action):
         Additional reply when a system is finished (i.e. deferred or 100%).
         """
         try:
-            new_target = cogdb.query.fort_get_targets(self.session)[0]
+            new_target = cogdb.query.fort_get_next_targets(self.session, count=1)[0]
             response = '\n\n__Next Fort Target__:\n' + new_target.display()
         except cog.exc.NoMoreTargets:
             response = '\n\n Could not determine next fort target.'
@@ -887,17 +887,22 @@ To unset override, simply set an empty list of systems.
         """
         Default show fort information to users.
         """
+        next_count = self.args.next if self.args.next else 3
+        preps = cogdb.query.fort_get_preps(self.session) if not manual else []
+        forts = cogdb.query.fort_get_next_targets(self.session, offset=0, count=next_count + 1)
+        priority, deferred = cogdb.query.fort_get_priority_targets(self.session)
+
         lines = ['__Active Targets{}__'.format(manual)]
-        lines += [system.display() for system in cogdb.query.fort_get_targets(self.session)]
+        lines += [system.display() for system in preps + forts[:1]]
+        forts = forts[1:]
 
         lines += ['\n__Next Targets__']
-        next_count = self.args.next if self.args.next else 3
-        lines += [system.display() for system in
-                  cogdb.query.fort_get_next_targets(self.session, count=next_count)]
+        lines += [system.display() for system in forts]
 
         globe = cogdb.query.get_current_global(self.session)
-        priority, deferred = cogdb.query.fort_get_priority_targets(self.session)
-        show_deferred = deferred and (globe.show_almost_done or self.is_near_tick()) or cogdb.TEST_DB
+        show_deferred = deferred and not manual and (
+            globe.show_almost_done or self.is_near_tick()) or \
+            cogdb.TEST_DB
         if priority or show_deferred:
             lines += ['\n__Priority Systems__']
             if priority:
@@ -949,8 +954,9 @@ To unset override, simply set an empty list of systems.
 
         elif self.args.next:
             lines = ['__Next Targets{}__'.format(manual)]
-            lines += [system.display() for system in
-                      cogdb.query.fort_get_next_targets(self.session, count=self.args.next)]
+            next_up = cogdb.query.fort_get_next_targets(self.session, offset=1, count=self.args.next)
+            lines += [system.display() for system in next_up]
+
             response = '\n'.join(lines)
 
         elif self.args.priority:
@@ -1259,12 +1265,10 @@ class Pin(Action):
     """
     # TODO: Incomplete, expect bot to manage pin entirely. Left undocumented.
     async def execute(self):
-        systems = cogdb.query.fort_get_targets(self.session)
-        systems.reverse()
+        preps = cogdb.query.fort_get_preps(self.session)
         priority, deferred = cogdb.query.fort_get_priority_targets(self.session)
-        for sys in cogdb.query.fort_get_next_targets(self.session, count=5) + priority + deferred:
-            if sys not in systems:
-                systems += [sys]
+        regular = cogdb.query.fort_get_next_targets(self.session, count=5)
+        systems = preps + priority + deferred + regular
 
         lines = [":Fortifying: {}{}".format(
             sys.name, " **{}**".format(sys.notes) if sys.notes else "") for sys in systems]

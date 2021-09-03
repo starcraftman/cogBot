@@ -463,14 +463,13 @@ async def test_cmd_fort(f_bot, f_dusers, f_fort_testbed):
     await action_map(msg, f_bot).execute()
 
     expect = """__Active Targets__
-**Nurundere** 5422/8425 :Fortifying: - 99.51Ly
-**Othime**    0/7367 :Fortifying: Priority for S/M ships (no L pads) - 83.68Ly
 Prep: **Rhea** 5100/10000 :Fortifying: Atropos - 65.55Ly
+**Nurundere** 5422/8425 :Fortifying: - 99.51Ly
 
 __Next Targets__
 **LHS 3749** 1850/5974 :Fortifying: - 55.72Ly
 **Alpha Fornacis**    0/6476 :Fortifying: - 67.27Ly
-**Othime**    0/7367 :Fortifying: Priority for S/M ships (no L pads) - 83.68Ly
+**WW Piscis Austrini**    0/8563 :Fortifying:, :Undermined: - 101.38Ly
 
 __Priority Systems__
 **Othime**    0/7367 :Fortifying: Priority for S/M ships (no L pads) - 83.68Ly
@@ -583,17 +582,17 @@ async def test_cmd_fort_set_invalid(f_bot, f_dusers, f_fort_testbed):
 
 @pytest.mark.asyncio
 async def test_cmd_fort_order(session, f_bot, f_dusers, f_fort_testbed, f_fortorders):
-    msg = fake_msg_gears("!fort --order sol, nuru, frey")
+    msg = fake_msg_gears("!fort --order lpm 229, nuru, frey")
     await action_map(msg, f_bot).execute()
 
     systems = [sys.system_name for sys in session.query(FortOrder).order_by(FortOrder.order)]
-    assert systems == ['Sol', 'Nurundere', 'Frey']
+    assert systems == ['LPM 229', 'Nurundere', 'Frey']
 
     msg2 = fake_msg_gears("!fort")
     await action_map(msg2, f_bot).execute()
 
     expect = """__Active Targets (Manual Order)__
-**Sol** 2500/5211 :Fortifying:, 2250 :Undermining: Leave For Grinders - 28.94Ly
+**LPM 229**    0/9479 :Fortifying:, :Undermined: - 112.98Ly
 
 __Next Targets__
 **Nurundere** 5422/8425 :Fortifying: - 99.51Ly
@@ -964,12 +963,12 @@ async def test_cmd_pin(session, f_bot, f_dusers, f_fort_testbed):
     await action_map(msg, f_bot).execute()
     expected = """```:Fortifying: Rhea **Atropos**
 :Fortifying: Othime **Priority for S/M ships (no L pads)**
+:Fortifying: Dongkum
 :Fortifying: Nurundere
 :Fortifying: LHS 3749
 :Fortifying: Alpha Fornacis
 :Fortifying: WW Piscis Austrini
 :Fortifying: LPM 229
-:Fortifying: Dongkum
 :Fortifying: The things in the list after that```"""
     f_bot.send_message.assert_called_with(msg.channel, expected)
 

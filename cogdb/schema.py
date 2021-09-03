@@ -261,6 +261,17 @@ class FortSystem(Base):
         return max(self.fort_status, self.cmdr_merits)
 
     @hybrid_property
+    def priority(self):
+        """ The system should be priority. """
+        notes = self.notes.lower()
+        return 'priority' in notes
+
+    @priority.expression
+    def priority(cls):
+        """ The system should be priority. """
+        return cls.notes.ilike("%priority%")
+
+    @hybrid_property
     def skip(self):
         """ The system should be skipped. """
         notes = self.notes.lower()
