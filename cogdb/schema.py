@@ -1384,7 +1384,7 @@ class Vote(Base):
 
     # Relationships
     discord_user = sqla.orm.relationship(
-        'DiscordUser', uselist=False,
+        'DiscordUser', uselist=False, viewonly=True,
         primaryjoin='foreign(Vote.id) == DiscordUser.id'
     )
 
@@ -1397,9 +1397,10 @@ class Vote(Base):
     def __str__(self):
         """ A pretty one line to give all information. """
         vote_type = str(self.vote).split('.')[-1].capitalize()
-        return "**{id}**: voted {amount} {vote}.".format(
-            id=self.discord_user.display_name, amount=self.amount,
-            vote=vote_type)
+
+        return "**{name}**: voted {amount} {vote}.".format(
+            name=self.discord_user.display_name ,
+            amount=self.amount, vote=vote_type)
 
     def __eq__(self, other):
         return isinstance(other, Vote) and hash(self) == hash(other)

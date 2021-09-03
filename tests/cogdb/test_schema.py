@@ -851,10 +851,10 @@ def test_vote__repr__(f_vote_testbed):
     assert repr(vote) == expect
 
 
-def test_vote__str__(f_vote_testbed):
+def test_vote__str__(f_dusers, f_vote_testbed):
     vote = f_vote_testbed[0]
 
-    expect = "**User1**: voted 1 Cons, last updated at {}."
+    expect = "**User1**: voted 1 Cons."
     assert str(vote) == expect.format(vote.updated_at)
 
 

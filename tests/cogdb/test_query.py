@@ -832,12 +832,18 @@ def test_vote_add(session, f_dusers, f_vote_testbed, f_global_testbed):
     with pytest.raises(cog.exc.InvalidCommandArgs):
         cogdb.query.add_vote(session, f_dusers[2], 'prep', 1)
 
-
-def test_vote_has_voted(session, f_dusers, f_vote_testbed):
-    assert not cogdb.query.has_voted(session, 'cons', f_dusers[2].id)
-    vote = Vote(id=3, vote=VoteType.cons, amount=1)
-    session.add(vote)
-    session.commit()
-    assert cogdb.query.has_voted(session, 'cons', f_dusers[2].id) == [vote]
+    the_vote = cogdb.query.add_vote(session, f_dusers[1].id, VoteType.cons, 5)
+    expect = "**{}**: voted 6 Cons.".format(f_dusers[1].display_name)
+    assert str(the_vote) == expect
 
 
+def test_vote_get(session, f_dusers, f_vote_testbed):
+    # Existing
+    the_vote = cogdb.query.get_vote(session, f_dusers[1].id, VoteType.cons)
+    assert the_vote.id == f_dusers[1].id
+    assert the_vote.vote == VoteType.cons
+
+    # Doesn't exist
+    the_vote = cogdb.query.get_vote(session, f_dusers[2].id, VoteType.prep)
+    assert the_vote.id == f_dusers[2].id
+    assert the_vote.vote == VoteType.prep

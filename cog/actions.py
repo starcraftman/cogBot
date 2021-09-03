@@ -1794,42 +1794,33 @@ class Vote(Action):
     Cast a vote based on CMDR discord ID.
     """
     async def execute(self):
-        try:
-            globe = cogdb.query.get_current_global(self.session)
-            if self.args.set:
-                self.update_goal()
-            if self.args.vote_type:
-                has_voted = cogdb.query.has_voted(self.session, self.args.vote_type, self.msg.author.id)
-                if has_voted:
-                    for vote in has_voted:
-                        try:
-                            response = vote.update_amount(self.args.amount)
-                        except cog.exc.ValidationFail as e:
-                            response = e
-                else:
-                    response = cogdb.query.add_vote(self.session, self.msg.author, self.args.vote_type, self.args.amount)
-                await self.bot.send_message(self.msg.channel, str(response))
-            elif self.args.set:
-                msg = "New vote goal is **{goal}%**, current vote is {current_vote}%."\
-                    .format(goal=self.args.set, current_vote=globe.consolidation)
-                await self.bot.send_message(self.msg.channel, msg)
+        globe = cogdb.query.get_current_global(self.session)
+        if self.args.set:
+            self.update_goal()
+            msg = "New vote goal is **{goal}%**, current vote is {current_vote}%."\
+                .format(goal=self.args.set, current_vote=globe.consolidation)
+
+        elif self.args.vote_type:
+            vote = cogdb.query.add_vote(self.session, self.msg.author.id,
+                                        self.args.vote_type, self.args.amount)
+            msg = str(vote)
+
+        else:
+            if not globe.show_almost_done:
+                msg = "Please hold your vote for now. A ping will be send once we have a final decision."
             else:
-                if not globe.show_almost_done:
-                    msg = "Please hold your vote for now. A ping will be send once we have a final decision."
+                if globe.consolidation > globe.vote_goal:
+                    vote_choice = 'vote Preparation'
+                elif globe.consolidation < globe.vote_goal:
+                    vote_choice = 'vote Consolidation'
                 else:
-                    if globe.consolidation > globe.vote_goal:
-                        vote_choice = 'vote Preparation'
-                    elif globe.consolidation < globe.vote_goal:
-                        vote_choice = 'vote Consolidation'
-                    else:
-                        vote_choice = 'Hold your vote'
-                    msg = "Current vote goal is {goal}%, current consolidation {current_cons}%, please **{vote_choice}**."\
-                        .format(
-                            goal=globe.vote_goal, current_cons=globe.consolidation, vote_choice=vote_choice
-                        )
-                await self.bot.send_message(self.msg.channel, msg)
-        except Exception as e:
-            print(e)
+                    vote_choice = 'Hold your vote'
+                msg = "Current vote goal is {goal}%, current consolidation {current_cons}%, please **{vote_choice}**."\
+                    .format(
+                        goal=globe.vote_goal, current_cons=globe.consolidation, vote_choice=vote_choice
+                    )
+
+        await self.bot.send_message(self.msg.channel, msg)
 
     def update_goal(self):
         """Update vote goal."""

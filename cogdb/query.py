@@ -1237,26 +1237,27 @@ def ocr_zero_live_trackers(session):
     session.commit()
 
 
-def add_vote(session, member, vote, amount):
+def add_vote(session, discord_id, vote_type, amount):
     """
-    Cast a vote
+    Cast a vote.
     """
-    try:
-        session.add(Vote(id=member.id, vote=vote, amount=amount))
-        session.commit()
-        return "**{member}** : {amount} {vote_type} vote cast.".format(
-            member=member.display_name, amount=amount, vote_type=vote)
-    except (sqla_exc.IntegrityError, sqla_oexc.FlushError) as exc:
-        session.rollback()
-        raise cog.exc.InvalidCommandArgs("Member {} as an error when voting.".format(member.display_name)) from exc
+    the_vote = get_vote(session, discord_id, vote_type)
+    the_vote.update_amount(amount)
+    session.flush()
+
+    return the_vote
 
 
-def has_voted(session, vote_type, member_id):
+def get_vote(session, discord_id, vote_type):
     """
     Get if user in Vote DB already.
     """
     try:
-        return session.query(Vote).filter(Vote.id == member_id, Vote.vote == vote_type).all()
+        the_vote = session.query(Vote).\
+            filter(Vote.id == discord_id, Vote.vote == vote_type).\
+            one()
     except sqla_oexc.NoResultFound:
-        return False
+        the_vote = Vote(id=discord_id, vote=vote_type, amount=0)
+        session.add(the_vote)
 
+    return the_vote
