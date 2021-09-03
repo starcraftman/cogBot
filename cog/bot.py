@@ -50,6 +50,7 @@ import cog.util
 import cogdb
 import cogdb.scanners
 import cogdb.query
+import cogdb.eddb
 
 
 SYNC_NOTICE = """Synchronizing sheet changes.
@@ -200,6 +201,7 @@ class CogBot(discord.Client):
                 simple_heartbeat(),
                 cog.actions.monitor_carrier_events(self, next_summary=next_summary, delay=60),
                 cog.actions.monitor_ocr_sheet(self),
+                cogdb.eddb.monitor_eddb_caches(),
                 cogdb.monitor_pools(),
             ))
 

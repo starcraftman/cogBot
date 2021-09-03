@@ -13,7 +13,7 @@ import cog.actions
 import cog.bot
 import cog.parse
 import cogdb
-from cogdb.eddb import HUDSON_CONTROLS
+import cogdb.eddb
 from cogdb.side import SystemAge
 from cogdb.schema import (DiscordUser, FortSystem, FortDrop, FortUser,
                           FortOrder, UMSystem, UMUser, UMHold,
@@ -346,9 +346,12 @@ User1             | 13950  | User2            | 6050
 
 
 @pytest.mark.asyncio
-async def test_cmd_bgs_age(side_session, f_bot, f_dusers, f_fort_testbed):
-    row = side_session.query(SystemAge).filter(
-        SystemAge.control.in_(HUDSON_CONTROLS)).order_by(SystemAge.system.asc()).first()
+async def test_cmd_bgs_age(side_session, eddb_session, f_bot, f_dusers, f_fort_testbed):
+    hudson_controls = cogdb.eddb.get_controls_of_power(eddb_session, power='%hudson')
+    row = side_session.query(SystemAge).\
+        filter(SystemAge.control.in_(hudson_controls)).\
+        order_by(SystemAge.system.asc()).\
+        first()
     msg = fake_msg_gears("!bgs age " + row.control)
 
     await action_map(msg, f_bot).execute()
@@ -1562,7 +1565,7 @@ async def test_cmd_near_if(f_bot):
     await action_map(msg, f_bot).execute()
 
     actual = str(f_bot.send_message.call_args).replace("\\n", "\n")
-    assert "Barnard's Star" in actual
+    assert "Lacaille 9352" in actual
 
 
 def test_process_system_args():

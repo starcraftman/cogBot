@@ -7,6 +7,7 @@ This module is for internal use.
 
 N.B. Don't put subqueries in FROM of views for now, doesn't work on test docker.
 """
+import asyncio
 import copy
 import datetime
 import inspect
@@ -60,38 +61,32 @@ HUDSON_BGS = [['Feudal', 'Patronage'], ["Dictatorship"]]
 WINTERS_BGS = [["Corporate"], ["Communism", "Cooperative", "Feudal", "Patronage"]]
 # State ids: 16 control, 32 exploited, 48 contested
 VIEW_CONTESTEDS = """
-CREATE or REPLACE VIEW eddb.v_contesteds
+CREATE or REPLACE VIEW eddb.v_systems_contested
 AS
-    SELECT s.id as system_id, s.name as system_name,
-           c.id as control_id, c.name as control_name,
-           p.text as power
-    FROM systems as s
-    CROSS JOIN systems as c
-    INNER JOIN powers as p ON c.power_id = p.id
-    WHERE
-        s.power_state_id = 48 AND
-        c.power_state_id = 16 AND
-        (c.x - s.x) * (c.x - s.x) +
-        (c.y - s.y) * (c.y - s.y) +
-        (c.z - s.z) * (c.z - s.z) <= 225
-    ORDER BY s.name, c.name;
+    SELECT s.system_id as system_id, exp.name as system,
+           s.control_id as control_id, con.name as control,
+           s.power_id as power_id, p.text as power
+    FROM systems_controlled as s
+    INNER JOIN systems as exp ON s.system_id = exp.id
+    INNER JOIN systems as con ON s.control_id = con.id
+    INNER JOIN powers as p ON s.power_id = p.id
+    INNER JOIN power_state as ps ON s.power_state_id = ps.id
+    WHERE s.power_state_id = 48
+    ORDER BY exp.name;
 """
 VIEW_SYSTEM_CONTROLS = """
-CREATE or REPLACE VIEW eddb.v_system_controls
+CREATE or REPLACE VIEW eddb.v_systems_controlled
 AS
-    SELECT s.id as system_id, s.name as system_name,
-           c.id as control_id, c.name as control_name,
-           p.text as power
-    FROM systems s
-    CROSS JOIN systems as c
-    INNER JOIN powers as p ON c.power_id = p.id
-    WHERE
-        s.power_state_id in (32, 48) AND
-        c.power_state_id = 16 AND
-        (c.x - s.x) * (c.x - s.x) +
-        (c.y - s.y) * (c.y - s.y) +
-        (c.z - s.z) * (c.z - s.z) <= 225
-    ORDER BY s.name, c.name;
+    SELECT s.system_id as system_id, exp.name as system,
+           s.power_state_id as power_state_id, ps.text as power_state,
+           s.control_id as control_id, con.name as control,
+           s.power_id as power_id, p.text as power
+    FROM systems_controlled as s
+    INNER JOIN systems as exp ON s.system_id = exp.id
+    INNER JOIN systems as con ON s.control_id = con.id
+    INNER JOIN powers as p ON s.power_id = p.id
+    INNER JOIN power_state as ps ON s.power_state_id = ps.id
+    ORDER BY con.name, exp.name;
 """
 EVENT_CONFLICTS = """
 CREATE EVENT IF NOT EXISTS clean_conflicts
@@ -720,7 +715,11 @@ class Station(Base):
 
 
 class System(Base):
-    """ Repesents a system in the universe. """
+    """
+    Repesents a system in the universe.
+
+    See SystemControlV for complete control information, especially for contesteds.
+    """
     __tablename__ = "systems"
 
     id = sqla.Column(sqla.Integer, primary_key=True)
@@ -773,7 +772,7 @@ class System(Base):
     )
     contesteds = sqla_orm.relationship(
         'System', uselist=True, lazy='select', viewonly=True, order_by='System.name',
-        primaryjoin='and_(foreign(System.id) == remote(SystemContested.control_id), foreign(SystemContested.system_id) == remote(System.id))',
+        primaryjoin='and_(foreign(System.id) == remote(SystemContestedV.control_id), foreign(SystemContestedV.system_id) == remote(System.id))',
     )
 
     @hybrid_property
@@ -846,73 +845,85 @@ class System(Base):
         return hash(self.id)
 
 
-class SystemContested(Base):
+class SystemContestedV(Base):
     """
     This table is a __VIEW__. See VIEW_CONTESTEDS.
 
-    Tracks all control systems that are conflicting with a given contested system.
-    A system is contested if two or more different powers have a control system within 15ly.
+    This view simply selects down only those contested systems.
     """
-    __tablename__ = 'v_contesteds'
+    __tablename__ = 'v_systems_contested'
 
     system_id = sqla.Column(sqla.Integer, sqla.ForeignKey('systems.id'), primary_key=True)
-    system_name = sqla.Column(sqla.String(LEN['system']))
-    control_id = sqla.Column(sqla.Integer, primary_key=True)
-    control_name = sqla.Column(sqla.String(LEN['system']))
+    system = sqla.Column(sqla.String(LEN['system']))
+    control_id = sqla.Column(sqla.Integer, sqla.ForeignKey('systems.id'), primary_key=True, )
+    control = sqla.Column(sqla.String(LEN['system']))
+    power_id = sqla.Column(sqla.Integer)
     power = sqla.Column(sqla.String(LEN['power']))
 
-    # Relationships
-    system = sqla_orm.relationship(
-        'System', uselist=False, lazy='select',
-        primaryjoin='foreign(SystemContested.system_id) == System.id',
-    )
-    control = sqla_orm.relationship(
-        'System', uselist=False, lazy='select',
-        primaryjoin='foreign(SystemContested.control_id) == System.id',
-    )
-
     def __repr__(self):
-        keys = ['id', 'name', 'control_id', 'control_name', 'power']
+        keys = ['system_id', 'system', 'control_id', 'control', 'power_id', 'power']
         kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
 
         return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
 
     def __eq__(self, other):
-        return (isinstance(self, SystemContested) and isinstance(other, SystemContested)
+        return (isinstance(self, SystemContestedV) and isinstance(other, SystemContestedV)
                 and self.__hash__() == other.__hash__())
 
     def __hash__(self):
         return hash("{}_{}".format(self.id, self.control_id))
 
 
-class SystemControl(Base):
+class SystemControlV(Base):
     """
     This table is a __VIEW__. See VIEW_SYSTEM_CONTROLS.
 
-    Repesents a many to many connection between systems.
-        - A control system can have N exploiteds under it.
-        - An exploited system can overlap several controls.
+    This view augments SystemControl with joined text information.
     """
-    __tablename__ = "v_system_controls"
+    __tablename__ = "v_systems_controlled"
 
     system_id = sqla.Column(sqla.Integer, sqla.ForeignKey('systems.id'), primary_key=True, )
-    system_name = sqla.Column(sqla.String(LEN["system"]))
+    system = sqla.Column(sqla.String(LEN["system"]))
+    power_state_id = sqla.Column(sqla.Integer)
+    power_state = sqla.Column(sqla.String(LEN['power_state']))
     control_id = sqla.Column(sqla.Integer, sqla.ForeignKey('systems.id'), primary_key=True, )
-    control_name = sqla.Column(sqla.String(LEN["system"]))
-    power = sqla.Column(sqla.String(LEN["power"]))
+    control = sqla.Column(sqla.String(LEN["system"]))
+    power_id = sqla.Column(sqla.Integer)
+    power = sqla.Column(sqla.String(LEN['power']))
 
-    # Relationships
-    system = sqla_orm.relationship(
-        'System', uselist=False, lazy='select',
-        primaryjoin='foreign(SystemControl.system_id) == System.id',
-    )
-    control = sqla_orm.relationship(
-        'System', uselist=False, lazy='select',
-        primaryjoin='foreign(SystemControl.control_id) == System.id',
-    )
+    def __str__(self):
+        return f"{self.system} controlled by {self.control} ({self.power})"
 
     def __repr__(self):
-        keys = ['system_id', 'system_name', 'control_id', 'control_name', 'power']
+        keys = ['system_id', 'system', 'power_state_id', 'power_state',
+                'control_id', 'control', 'power_id', 'power']
+        kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
+
+        return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
+
+    def __eq__(self, other):
+        return isinstance(self, SystemControlV) and isinstance(other, SystemControlV) and \
+            hash(self) == hash(other)
+
+    def __hash__(self):
+        return hash("{}_{}".format(self.system_id, self.control_id))
+
+
+class SystemControl(Base):
+    """
+    This table stores all pairs of systems and their controls.
+    Importantly for this consideration a control system is not paired with itself.
+    Use this system mainly for joins of the IDs, for query use the augmented VIEW above.
+    """
+    __tablename__ = "systems_controlled"
+
+    system_id = sqla.Column(sqla.Integer, sqla.ForeignKey('systems.id'), primary_key=True)
+    power_state_id = sqla.Column(sqla.Integer, sqla.ForeignKey('power_state.id'))
+    control_id = sqla.Column(sqla.Integer, sqla.ForeignKey('systems.id'), primary_key=True)
+    power_id = sqla.Column(sqla.Integer, sqla.ForeignKey('powers.id'))
+
+    def __repr__(self):
+        keys = ['system_id', 'power_state_id', 'control_id', 'power_id']
         kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
 
         return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
@@ -1779,25 +1790,89 @@ def find_best_route(session, systems):
     return best
 
 
-def get_nearest_controls(session, *, centre_name='sol', power='Hudson'):
+def get_nearest_controls(session, *, centre_name='sol', power='%hudson'):
     """
     Find nearest control systems of a particular power.
 
     Args:
         session: The EDDBSession variable.
+
+    Kwargs:
+        centre_name: The central system to find closest powers to.
+        power: The power you are looking for.
     """
     centre = session.query(System).filter(System.name == centre_name).one()
-    subq = session.query(PowerState.id).\
-        filter(PowerState.text == 'Control').\
-        scalar_subquery()
-    subq2 = session.query(Power.id).\
-        filter(Power.text.ilike('%{}%'.format(power))).\
-        scalar_subquery()
-
-    return session.query(System).\
-        filter(System.power_state_id == subq,
-               System.power_id.in_(subq2)).\
+    results = session.query(SystemControlV.control_id, System).\
+        distinct(SystemControlV.control_id).\
+        filter(SystemControlV.power.ilike(power)).\
+        join(System, System.id == SystemControlV.control_id).\
         order_by(System.dist_to(centre)).\
+        all()
+
+    return [x[1] for x in results]
+
+
+def get_controls_of_power(session, *, power='%hudson'):
+    """
+    Find the names of all controls of a given power.
+
+    Args:
+        session: The EDDBSession variable.
+
+    Kwargs:
+        power: The loose like match of the power, i.e. "%hudson".
+    """
+    results = session.query(SystemControlV.control_id, System.name).\
+        distinct(SystemControlV.control_id).\
+        filter(SystemControlV.power.ilike(power)).\
+        join(System, System.id == SystemControlV.control_id).\
+        order_by(System.name).\
+        all()
+
+    return [x[1] for x in results]
+
+
+def get_systems_of_power(session, *, power='%hudson'):
+    """
+    Find the names of all exploited and contested systems of a power.
+
+    Args:
+        session: The EDDBSession variable.
+
+    Kwargs:
+        power: The loose like match of the power, i.e. "%hudson".
+    """
+    results = session.query(SystemControlV.system_id, System.name).\
+        distinct(SystemControlV.system_id).\
+        filter(SystemControlV.power.ilike(power)).\
+        join(System, System.id == SystemControlV.system_id).\
+        order_by(System.name).\
+        all()
+
+    return [x[1] for x in results] + get_controls_of_power(session, power=power)
+
+
+def is_system_of_power(session, system_name, *, power='%hudson'):
+    """
+    Returns True if a system is under control of a given power.
+
+    Args:
+        session: The EDDBSession variable.
+        system: The name of the system.
+
+    Kwargs:
+        power: The loose like match of the power, i.e. "%hudson".
+
+    Returns: True if system is owned by power.
+    """
+    return session.query(SystemControlV.control).\
+        filter(
+            SystemControlV.power.ilike(power),
+            sqla.or_(
+                SystemControlV.system == system_name,
+                SystemControlV.control == system_name
+            )
+        ).\
         all()
 
 
@@ -1880,8 +1955,9 @@ def bgs_funcs(system_name):
         strong(gov_type), weak(gov_type)
     """
     bgs = HUDSON_BGS
-    if system_name in WINTERS_CONTROLS:
-        bgs = WINTERS_BGS
+    with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
+        if is_system_of_power(eddb_session, system_name, power='%winters'):
+            bgs = WINTERS_BGS
 
     def strong(gov_type):
         """ Strong vs these governments. """
@@ -1913,6 +1989,37 @@ def get_power_hq(substr):
     return [string.capwords(matches[0]), HQS[matches[0]]]
 
 
+def populate_system_controls(session):
+    """
+    Compute all pairs of control and exploited systems
+    based on the current EDDB information.
+
+    Insert the computed information into SystemControl objects.
+    """
+    session.query(SystemControl).delete()
+
+    subq_pcontrol = session.query(PowerState.id).\
+        filter(PowerState.text == 'Control').\
+        scalar_subquery()
+    control_ids = session.query(System.id).\
+        filter(System.power_state_id == subq_pcontrol).\
+        scalar_subquery()
+
+    subq_pexploits = session.query(PowerState.id).\
+        filter(PowerState.text.in_(['Exploited', 'Contested'])).\
+        scalar_subquery()
+    exploited = sqla_orm.aliased(System)
+    systems = session.query(System.id, System.power_id, exploited.id, exploited.power_state_id).\
+        filter(System.id.in_(control_ids)).\
+        join(exploited, System.dist_to(exploited) <= 15).\
+        filter(exploited.power_state_id.in_(subq_pexploits)).\
+        all()
+
+    for c_id, p_id, s_id, sp_id in systems:
+        session.add(SystemControl(system_id=s_id, control_id=c_id, power_id=p_id,
+                                  power_state_id=sp_id))
+
+
 def dump_db(session, classes, fname):
     """
     Dump db to a file.
@@ -1937,8 +2044,8 @@ def recreate_tables():  # pragma: no cover | destructive to test
     sqlalchemy.orm.session.close_all_sessions()
 
     drop_cmds = [
-        "DROP VIEW eddb.v_contesteds"
-        "DROP VIEW eddb.v_system_controls",
+        "DROP VIEW eddb.v_systems_contested"
+        "DROP VIEW eddb.v_systems_controlled",
         "DROP EVENT clean_conflicts",
     ]
     try:
@@ -1958,11 +2065,11 @@ def recreate_tables():  # pragma: no cover | destructive to test
 
     Base.metadata.create_all(cogdb.eddb_engine)
     try:
-        SystemContested.__table__.drop(cogdb.eddb_engine)
+        SystemContestedV.__table__.drop(cogdb.eddb_engine)
     except sqla.exc.OperationalError:
         pass
     try:
-        SystemControl.__table__.drop(cogdb.eddb_engine)
+        SystemControlV.__table__.drop(cogdb.eddb_engine)
     except sqla.exc.OperationalError:
         pass
 
@@ -2023,6 +2130,28 @@ def import_eddb(eddb_session):  # pragma: no cover
                   preload=args.preload)
 
 
+async def monitor_eddb_caches(*, delay_hours=4):  # pragma: no cover
+    """
+    Monitor and recompute cached tables:
+        - Repopulates SystemControls from latest data.
+
+    Kwargs:
+        delay_hours: The hours between refreshing cached tables. Default: 2
+    """
+    await asyncio.sleep(delay_hours * 3600)
+
+    with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
+        await asyncio.get_event_loop().run_in_executor(
+            None, populate_system_controls, eddb_session
+        )
+
+    asyncio.ensure_future(
+        monitor_eddb_caches(
+            delay_hours=delay_hours
+        )
+    )
+
+
 def main_test_area(eddb_session):  # pragma: no cover
     """ A test area for testing things with schema. """
     station = eddb_session.query(Station).filter(Station.is_planetary).limit(5).all()[0]
@@ -2078,6 +2207,8 @@ def main():  # pragma: no cover
 
     with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
         import_eddb(eddb_session)
+        #  Manually compute post import the initial SystemControl table
+        populate_system_controls(eddb_session)
 
     with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
         print("Module count:", eddb_session.query(Module).count())
@@ -2087,17 +2218,13 @@ def main():  # pragma: no cover
         print("Influence count:", eddb_session.query(Influence).count())
         print("Populated System count:", eddb_session.query(System).count())
         print("Station count:", eddb_session.query(Station).count())
-        print("Contested count:", eddb_session.query(SystemContested).count())
+        print("Contested count:", eddb_session.query(SystemContestedV).count())
         print("Time taken:", datetime.datetime.utcnow() - start)
         #  main_test_area(eddb_session)
 
 
 try:
     with cogdb.session_scope(cogdb.EDDBSession) as init_session:
-        HUDSON_CONTROLS = sorted([x.name for x in
-                                 get_nearest_controls(init_session, power='Hudson')])
-        WINTERS_CONTROLS = sorted([x.name for x in
-                                  get_nearest_controls(init_session, power='Winters')])
         PLANETARY_TYPE_IDS = [
             x[0] for x in
             init_session.query(StationType.id).filter(StationType.text.ilike('%planetary%')).all()
@@ -2108,8 +2235,6 @@ try:
         }
     del init_session
 except (sqla_orm.exc.NoResultFound, sqla.exc.ProgrammingError):  # pragma: no cover
-    HUDSON_CONTROLS = []
-    WINTERS_CONTROLS = []
     PLANETARY_TYPE_IDS = None
     HQS = None
 

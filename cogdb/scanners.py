@@ -813,8 +813,8 @@ class OCRScanner(FortScanner):
         Returns: A dictionary mapping system names from ALL CAPS to normal eddb name.
         """
         with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
-            systems_in_sheets = [x.name.upper() for x in
-                                 cogdb.eddb.get_nearest_controls(eddb_session, power='Hudson')]
+            systems_in_sheets = [x.upper() for x in
+                                 cogdb.eddb.get_controls_of_power(eddb_session, power='%hudson')]
         systems_in_sheets += [x for x in self.cells_col_major[self.prep_col][2:7] if x]
 
         # Generate a map for system name correction

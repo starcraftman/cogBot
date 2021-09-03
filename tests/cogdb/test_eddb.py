@@ -144,11 +144,11 @@ def test_find_best_route(eddb_session):
 
 
 def test_get_nearest_controls(eddb_session):
-    result = [x.name for x in cogdb.eddb.get_nearest_controls(eddb_session, power='Hudson')[0:3]]
+    result = [x.name for x in cogdb.eddb.get_nearest_controls(eddb_session, power='%hudson')[0:3]]
 
     assert result == ['Sol', 'Lung', 'Groombridge 1618']
 
-    result = [x.name for x in cogdb.eddb.get_nearest_controls(eddb_session, centre_name='cubeo', power='Hudson')[0:3]]
+    result = [x.name for x in cogdb.eddb.get_nearest_controls(eddb_session, centre_name='cubeo', power='%hudson')[0:3]]
 
     assert result == ['Caspatsuria', 'LTT 9472', 'Clayahu']
 
@@ -169,7 +169,7 @@ def test_compute_dists_incomplete(eddb_session):
 
 
 def test_bgs_funcs_hudson():
-    strong, weak = cogdb.eddb.bgs_funcs('Rana')
+    strong, weak = cogdb.eddb.bgs_funcs('Nanomam')
 
     assert strong("Feudal")
     assert strong("Patronage")
@@ -204,7 +204,7 @@ def test_get_nearest_ifactors(eddb_session):
     result = cogdb.eddb.get_nearest_ifactors(eddb_session, centre_name='Sol')
 
     system_names = {x[0] for x in result}
-    assert "Barnard's Star" in system_names
+    assert "Lacaille 9352" in system_names
 
 
 def test_um_trigger(eddb_session):
@@ -336,3 +336,31 @@ def test_load_stations(eddb_session):
             eddb_session.query(Station).filter(Station.id == FAKE_ID1).delete()
         except NoResultFound:
             pass
+
+
+def test_get_controls_of_power(eddb_session):
+    systems = cogdb.eddb.get_controls_of_power(eddb_session, power='%hudson')
+    assert "Nanomam" in systems
+
+    systems = cogdb.eddb.get_controls_of_power(eddb_session, power='%winters')
+    assert "Rhea" in systems
+
+
+def test_get_systems_of_power(eddb_session):
+    systems = cogdb.eddb.get_systems_of_power(eddb_session, power='%hudson')
+    assert "Nanomam" in systems
+    assert "Yen Ti" in systems
+
+    systems = cogdb.eddb.get_systems_of_power(eddb_session, power='%winters')
+    assert "Rhea" in systems
+    assert "Shalit" in systems
+
+
+def test_is_system_of_power(eddb_session):
+    assert cogdb.eddb.is_system_of_power(eddb_session, "Nanomam", power='%hudson')
+    assert cogdb.eddb.is_system_of_power(eddb_session, "Yen Ti", power='%hudson')
+    assert not cogdb.eddb.is_system_of_power(eddb_session, "Rhea", power='%hudson')
+
+    assert cogdb.eddb.is_system_of_power(eddb_session, "Rhea", power='%winters')
+    assert cogdb.eddb.is_system_of_power(eddb_session, "Shalit", power='%winters')
+    assert not cogdb.eddb.is_system_of_power(eddb_session, "Nanomam", power='%winters')

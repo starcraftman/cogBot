@@ -12,12 +12,12 @@ import sqlalchemy.orm.exc as sqla_oexc
 
 import cog.exc
 import cog.sheets
+import cogdb.eddb
 from cog.util import substr_match, get_config
 from cogdb.schema import (DiscordUser, FortSystem, FortPrep, FortDrop, FortUser, FortOrder,
                           UMSystem, UMUser, UMHold, KOS, AdminPerm, ChannelPerm, RolePerm,
                           TrackSystem, TrackSystemCached, TrackByID, OCRTracker, OCRTrigger,
                           OCRPrep, Global)
-from cogdb.eddb import HUDSON_CONTROLS, WINTERS_CONTROLS
 from cogdb.scanners import FortScanner
 
 DEFER_MISSING = get_config("limits", "defer_missing", default=750)
@@ -702,9 +702,10 @@ def complete_control_name(partial, include_winters=False):
     """
     Provide name completion of Federal controls without db query.
     """
-    systems = HUDSON_CONTROLS[:]
-    if include_winters:
-        systems += WINTERS_CONTROLS
+    with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
+        systems = cogdb.eddb.get_controls_of_power(eddb_session, power='%hudson')
+        if include_winters:
+            systems += cogdb.eddb.get_controls_of_power(eddb_session, power='%winters')
 
     return fuzzy_find(partial, systems)
 

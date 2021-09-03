@@ -1197,7 +1197,7 @@ class Near(Action):
             None,
             functools.partial(
                 cogdb.eddb.get_nearest_controls, eddb_session,
-                centre_name=centre.name, power=self.args.power
+                centre_name=centre.name, power='%' + self.args.power
             )
         )
 
