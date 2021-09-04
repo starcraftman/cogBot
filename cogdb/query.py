@@ -1243,7 +1243,7 @@ def add_vote(session, discord_id, vote_type, amount):
     """
     the_vote = get_vote(session, discord_id, vote_type)
     the_vote.update_amount(amount)
-    session.flush()
+    session.commit()
 
     return the_vote
 
