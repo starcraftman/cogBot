@@ -1796,6 +1796,10 @@ class Vote(Action):
     async def execute(self):
         globe = cogdb.query.get_current_global(self.session)
         if self.args.set:
+            try:
+                cogdb.query.get_admin(self.session, self.duser)
+            except cog.exc.NoMatch as exc:
+                raise cog.exc.InvalidPerms("{} You are not an admin!".format(self.msg.author.mention)) from exc
             self.update_goal()
             msg = "New vote goal is **{goal}%**, current vote is {current_vote}%."\
                 .format(goal=self.args.set, current_vote=globe.consolidation)
