@@ -1574,15 +1574,15 @@ async def test_cmd_near_if(f_bot):
 
 
 @pytest.mark.asyncio
-async def test_cmd_vote_prep(f_bot, f_global_testbed, f_vote_testbed):
+async def test_cmd_vote_prep(f_bot, f_dusers, f_global_testbed, f_vote_testbed):
     msg = fake_msg_gears("!vote prep 1")
 
     await action_map(msg, f_bot).execute()
-    f_bot.send_message.assert_called_with(msg.channel, "**User1** : 1 prep vote cast.")
+    f_bot.send_message.assert_called_with(msg.channel, "**User1**: voted 1 Prep.")
 
 
 @pytest.mark.asyncio
-async def test_cmd_vote_cons(f_bot, f_global_testbed, f_vote_testbed):
+async def test_cmd_vote_cons(f_bot, f_dusers, f_global_testbed, f_vote_testbed):
     msg = fake_msg_gears("!vote cons 5")
 
     await action_map(msg, f_bot).execute()
@@ -1598,7 +1598,7 @@ async def test_cmd_vote(f_bot, f_global_testbed, f_vote_testbed):
 
 
 @pytest.mark.asyncio
-async def test_cmd_vote_set_goal(f_bot, f_global_testbed, f_vote_testbed):
+async def test_cmd_vote_set_goal(f_bot, f_admins, f_dusers, f_global_testbed, f_vote_testbed):
     msg = fake_msg_gears("!vote -s 75")
 
     await action_map(msg, f_bot).execute()
