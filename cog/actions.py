@@ -29,6 +29,7 @@ import cog.inara
 import cog.tbl
 import cog.util
 from cogdb.schema import FortUser, UMUser
+from cogdb.schema import Vote as VoteSchema
 
 
 async def bot_shutdown(bot):  # pragma: no cover
@@ -353,6 +354,8 @@ class Admin(Action):
             RemoteError - The sheet/tab combination could not be resolved. Tab needs creating.
         """
         await self.top(5)
+        self.session.query(VoteSchema).delete()
+        self.session.commit()
         # Zero trackers for new ocr data
         cogdb.query.ocr_zero_live_trackers(self.session)
         self.bot.deny_commands = True
