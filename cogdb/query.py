@@ -17,12 +17,8 @@ from cog.util import substr_match, get_config
 from cogdb.schema import (DiscordUser, FortSystem, FortPrep, FortDrop, FortUser, FortOrder,
                           UMSystem, UMUser, UMHold, KOS, AdminPerm, ChannelPerm, RolePerm,
                           TrackSystem, TrackSystemCached, TrackByID, OCRTracker, OCRTrigger,
-<<<<<<< HEAD
-                          OCRPrep, Global)
-=======
                           OCRPrep, Global, Vote)
 from cogdb.eddb import HUDSON_CONTROLS, WINTERS_CONTROLS
->>>>>>> adding progress for vote cmd
 from cogdb.scanners import FortScanner
 
 DEFER_MISSING = get_config("limits", "defer_missing", default=650)
