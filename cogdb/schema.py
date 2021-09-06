@@ -1283,6 +1283,7 @@ class Global(Base):
     cycle = sqla.Column(sqla.Integer, default=0)
     consolidation = sqla.Column(sqla.Integer, default=0)
     show_almost_done = sqla.Column(sqla.Boolean, default=False)
+    show_vote_goal = sqla.Column(sqla.Boolean, default=False)
     vote_goal = sqla.Column(sqla.Integer, default=0)
     updated_at = sqla.Column(sqla.DateTime(timezone=False), default=datetime.datetime.utcnow())  # All dates UTC
 

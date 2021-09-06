@@ -1605,6 +1605,14 @@ async def test_cmd_vote_set_goal(f_bot, f_admins, f_dusers, f_global_testbed, f_
     f_bot.send_message.assert_called_with(msg.channel, 'New vote goal is **75%**, current vote is 77%.')
 
 
+@pytest.mark.asyncio
+async def test_cmd_vote_display(f_bot, f_admins, f_dusers, f_global_testbed, f_vote_testbed):
+    msg = fake_msg_gears("!vote --display")
+
+    await action_map(msg, f_bot).execute()
+    f_bot.send_message.assert_called_with(msg.channel, 'Will now SHOW the vote goal.')
+
+
 def test_process_system_args():
     args = ['This  ,  ', 'is ,   ', '   an,', ' example.']
     results = cog.actions.process_system_args(args)

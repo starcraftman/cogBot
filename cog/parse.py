@@ -652,6 +652,7 @@ def subs_vote(subs, prefix):
     sub.add_argument('vote_type', nargs='?', help='Vote type, either Cons or Prep', choices=['cons', 'prep'])
     sub.add_argument('amount', nargs='?', type=int, help='Vote power (either 1 or a multiple of 5)')
     sub.add_argument('--set', '-s', type=int, help='Set vote goal.')
+    sub.add_argument('--display', '-d', action='store_true', help='Display the current vote goal.')
 
 
 @register_parser

@@ -904,7 +904,7 @@ To unset override, simply set an empty list of systems.
 
         globe = cogdb.query.get_current_global(self.session)
         show_deferred = deferred and not manual and (
-            globe.show_almost_done or self.is_near_tick()) or \
+            globe.show_almost_done or is_near_tick()) or \
             cogdb.TEST_DB
         if priority:
             lines += ['\n__Priority Systems__']
@@ -915,21 +915,6 @@ To unset override, simply set an empty list of systems.
 
         return '\n'.join(lines)
 
-    def is_near_tick(self):
-        """
-        Check if we are within the window configured for
-        showing deferred systems.
-        """
-        hours_to_tick = cog.util.get_config("hours_to_tick_priority")
-
-        now = datetime.datetime.utcnow().replace(microsecond=0)
-        weekly_tick = now.replace(hour=7, minute=0, second=0)  # pylint: disable=unexpected-keyword-arg
-        while weekly_tick < now or weekly_tick.strftime('%A') != 'Thursday':
-            weekly_tick += datetime.timedelta(days=1)
-        tick_diff = (weekly_tick - now)
-        hours_left = tick_diff.seconds // 3600 + tick_diff.days * 24
-
-        return hours_left <= hours_to_tick
 
     async def execute(self):
         cogdb.query.fort_order_remove_finished(self.session)
@@ -1812,10 +1797,19 @@ class Vote(Action):
                                         self.args.vote_type, self.args.amount)
             msg = str(vote)
 
+        elif self.args.display:
+            try:
+                cogdb.query.get_admin(self.session, self.duser)
+            except cog.exc.NoMatch as exc:
+                raise cog.exc.InvalidPerms("{} You are not an admin!".format(self.msg.author.mention)) from exc
+
+            globe = cogdb.query.get_current_global(self.session)
+            globe.show_vote_goal = not globe.show_vote_goal
+            show_msg = "SHOW" if globe.show_vote_goal else "NOT show"
+            msg = "Will now {} the vote goal.".format(show_msg)
+
         else:
-            if not globe.show_almost_done:
-                msg = "Please hold your vote for now. A ping will be send once we have a final decision."
-            else:
+            if globe.show_vote_goal or is_near_tick():
                 if globe.consolidation > globe.vote_goal:
                     vote_choice = 'vote Preparation'
                 elif globe.consolidation < globe.vote_goal:
@@ -1826,6 +1820,8 @@ class Vote(Action):
                     .format(
                         goal=globe.vote_goal, current_cons=globe.consolidation, vote_choice=vote_choice
                     )
+            else:
+                msg = "Please hold your vote for now. A ping will be send once we have a final decision."
 
         await self.bot.send_message(self.msg.channel, msg)
 
@@ -1843,6 +1839,23 @@ class WhoIs(Action):
         cmdr = await cog.inara.api.search_with_api(' '.join(self.args.cmdr), self.msg)
         if cmdr:
             await cog.inara.api.reply_with_api_result(cmdr["req_id"], cmdr["event_data"], self.msg)
+
+
+def is_near_tick():
+    """
+    Check if we are within the window configured for
+    showing deferred systems.
+    """
+    hours_to_tick = cog.util.get_config("hours_to_tick_priority")
+
+    now = datetime.datetime.utcnow().replace(microsecond=0)
+    weekly_tick = now.replace(hour=7, minute=0, second=0)  # pylint: disable=unexpected-keyword-arg
+    while weekly_tick < now or weekly_tick.strftime('%A') != 'Thursday':
+        weekly_tick += datetime.timedelta(days=1)
+    tick_diff = (weekly_tick - now)
+    hours_left = tick_diff.seconds // 3600 + tick_diff.days * 24
+
+    return hours_left <= hours_to_tick
 
 
 # TODO: I'm not sure why this is "lowered"
