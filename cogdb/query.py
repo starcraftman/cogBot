@@ -20,7 +20,7 @@ from cogdb.schema import (DiscordUser, FortSystem, FortPrep, FortDrop, FortUser,
                           OCRPrep, Global)
 from cogdb.scanners import FortScanner
 
-DEFER_MISSING = get_config("limits", "defer_missing", default=750)
+DEFER_MISSING = get_config("limits", "defer_missing", default=650)
 MAX_DROP = get_config("limits", "max_drop", default=1000)
 
 
@@ -286,6 +286,7 @@ def fort_get_systems_by_state(session):
         'left': [],
         'undermined': [],
         'skipped': [],
+        'almost_done': [],
     }
 
     for system in fort_get_systems(session, ignore_skips=False):
@@ -300,6 +301,8 @@ def fort_get_systems_by_state(session):
             states['left'].append(system)
         if system.skip:
             states['skipped'].append(system)
+        if system.missing > 0 and system.missing <= DEFER_MISSING:
+            states['almost_done'].append(system)
 
     return states
 

@@ -175,6 +175,7 @@ def test_fort_get_systems_by_state(session, f_dusers, f_fort_testbed):
     assert [sys.name for sys in systems['undermined']] == [
         "Nurundere", "Alpha Fornacis", 'WW Piscis Austrini', 'LPM 229']
     assert [sys.name for sys in systems['skipped']] == ['Sol', 'Phra Mool']
+    assert [sys.name for sys in systems['almost_done']] == ['Dongkum']
 
 
 def test_fort_find_current_index(session, f_dusers, f_fort_testbed):

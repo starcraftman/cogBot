@@ -822,7 +822,7 @@ class Fort(Action):
         states = cogdb.query.fort_get_systems_by_state(self.session)
 
         total = len(cogdb.query.fort_get_systems(self.session, ignore_skips=False))
-        keys = ['cancelled', 'fortified', 'undermined', 'skipped', 'left']
+        keys = ['cancelled', 'fortified', 'undermined', 'skipped', 'left', 'almost_done']
         lines = [
             [key.capitalize() for key in keys],
             ['{}/{}'.format(len(states[key]), total) for key in keys],
