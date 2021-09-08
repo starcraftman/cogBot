@@ -1787,7 +1787,7 @@ class Vote(Action):
                 cogdb.query.get_admin(self.session, self.duser)
             except cog.exc.NoMatch as exc:
                 raise cog.exc.InvalidPerms("{} You are not an admin!".format(self.msg.author.mention)) from exc
-            self.update_goal()
+            globe.vote_goal = self.args.set
             msg = "New vote goal is **{goal}%**, current vote is {current_vote}%."\
                 .format(goal=self.args.set, current_vote=globe.consolidation)
 
@@ -1815,11 +1815,6 @@ class Vote(Action):
                 msg = "Please hold your vote for now. A ping will be sent once we have a final decision."
 
         await self.bot.send_message(self.msg.channel, msg)
-
-    def update_goal(self):
-        """Update vote goal."""
-        globe = cogdb.query.get_current_global(self.session)
-        globe.vote_goal = self.args.set
 
     def display(self, globe):
         """Display vote goal"""
