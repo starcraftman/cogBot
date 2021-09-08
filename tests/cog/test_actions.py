@@ -473,6 +473,8 @@ __Next Targets__
 
 __Priority Systems__
 **Othime**    0/7367 :Fortifying: Priority for S/M ships (no L pads) - 83.68Ly
+
+__Almost Done__
 **Dongkum** 7000/7239 :Fortifying: (239 left) - 81.54Ly"""
     f_bot.send_message.assert_called_with(msg.channel, expect)
 
@@ -599,6 +601,8 @@ __Next Targets__
 
 __Priority Systems__
 **Othime**    0/7367 :Fortifying: Priority for S/M ships (no L pads) - 83.68Ly
+
+__Almost Done__
 **Dongkum** 7000/7239 :Fortifying: (239 left) - 81.54Ly"""
     f_bot.send_message.assert_called_with(msg2.channel, expect)
 
