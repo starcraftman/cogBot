@@ -903,12 +903,12 @@ To unset override, simply set an empty list of systems.
         show_deferred = deferred and not manual and (
             globe.show_almost_done or self.is_near_tick()) or \
             cogdb.TEST_DB
-        if priority or show_deferred:
+        if priority:
             lines += ['\n__Priority Systems__']
-            if priority:
-                lines += [system.display() for system in priority]
-            if show_deferred:
-                lines += [system.display() for system in deferred]
+            lines += [system.display() for system in priority]
+        if show_deferred:
+            lines += ['\n__Almost Done__']
+            lines += [system.display() for system in deferred]
 
         return '\n'.join(lines)
 
