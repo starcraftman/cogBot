@@ -1797,15 +1797,7 @@ class Vote(Action):
             msg = str(vote)
 
         elif self.args.display:
-            try:
-                cogdb.query.get_admin(self.session, self.duser)
-            except cog.exc.NoMatch as exc:
-                raise cog.exc.InvalidPerms("{} You are not an admin!".format(self.msg.author.mention)) from exc
-
-            globe = cogdb.query.get_current_global(self.session)
-            globe.show_vote_goal = not globe.show_vote_goal
-            show_msg = "SHOW" if globe.show_vote_goal else "NOT show"
-            msg = "Will now {} the vote goal.".format(show_msg)
+            msg = self.display(globe)
 
         else:
             if globe.show_vote_goal or is_near_tick():
@@ -1820,7 +1812,7 @@ class Vote(Action):
                         goal=globe.vote_goal, current_cons=globe.consolidation, vote_choice=vote_choice
                     )
             else:
-                msg = "Please hold your vote for now. A ping will be send once we have a final decision."
+                msg = "Please hold your vote for now. A ping will be sent once we have a final decision."
 
         await self.bot.send_message(self.msg.channel, msg)
 
@@ -1828,6 +1820,17 @@ class Vote(Action):
         """Update vote goal."""
         globe = cogdb.query.get_current_global(self.session)
         globe.vote_goal = self.args.set
+
+    def display(self, globe):
+        """Display vote goal"""
+        try:
+            cogdb.query.get_admin(self.session, self.duser)
+        except cog.exc.NoMatch as exc:
+            raise cog.exc.InvalidPerms("{} You are not an admin!".format(self.msg.author.mention)) from exc
+
+        globe.show_vote_goal = not globe.show_vote_goal
+        show_msg = "SHOW" if globe.show_vote_goal else "NOT show"
+        return "Will now {} the vote goal.".format(show_msg)
 
 
 class WhoIs(Action):
