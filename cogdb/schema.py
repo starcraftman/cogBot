@@ -1372,7 +1372,7 @@ class VoteType(enum.Enum):
     prep = 2
 
 
-class Vote(Base):
+class Voting(Base):
     """
     Store vote amount to DB based on discord User ID.
     """
@@ -1386,7 +1386,7 @@ class Vote(Base):
     # Relationships
     discord_user = sqla.orm.relationship(
         'DiscordUser', uselist=False, viewonly=True,
-        primaryjoin='foreign(Vote.id) == DiscordUser.id'
+        primaryjoin='foreign(Voting.id) == DiscordUser.id'
     )
 
     def __repr__(self):
@@ -1400,11 +1400,11 @@ class Vote(Base):
         vote_type = str(self.vote).split('.')[-1].capitalize()
 
         return "**{name}**: voted {amount} {vote}.".format(
-            name=self.discord_user.display_name ,
+            name=self.discord_user.display_name,
             amount=self.amount, vote=vote_type)
 
     def __eq__(self, other):
-        return isinstance(other, Vote) and hash(self) == hash(other)
+        return isinstance(other, Voting) and hash(self) == hash(other)
 
     def __hash__(self):
         return hash("{}-{}".format(self.id, self.vote))

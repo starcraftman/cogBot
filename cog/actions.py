@@ -28,8 +28,7 @@ import cogdb.side
 import cog.inara
 import cog.tbl
 import cog.util
-from cogdb.schema import FortUser, UMUser
-from cogdb.schema import Vote as VoteSchema
+from cogdb.schema import FortUser, UMUser, Voting
 
 
 async def bot_shutdown(bot):  # pragma: no cover

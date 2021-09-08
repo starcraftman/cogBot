@@ -17,7 +17,7 @@ from cog.util import substr_match, get_config
 from cogdb.schema import (DiscordUser, FortSystem, FortPrep, FortDrop, FortUser, FortOrder,
                           UMSystem, UMUser, UMHold, KOS, AdminPerm, ChannelPerm, RolePerm,
                           TrackSystem, TrackSystemCached, TrackByID, OCRTracker, OCRTrigger,
-                          OCRPrep, Global, Vote)
+                          OCRPrep, Global, Voting)
 from cogdb.scanners import FortScanner
 
 DEFER_MISSING = get_config("limits", "defer_missing", default=650)
@@ -1248,11 +1248,11 @@ def get_vote(session, discord_id, vote_type):
     Get if user in Vote DB already.
     """
     try:
-        the_vote = session.query(Vote).\
-            filter(Vote.id == discord_id, Vote.vote == vote_type).\
+        the_vote = session.query(Voting).\
+            filter(Voting.id == discord_id, Voting.vote == vote_type).\
             one()
     except sqla_oexc.NoResultFound:
-        the_vote = Vote(id=discord_id, vote=vote_type, amount=0)
+        the_vote = Voting(id=discord_id, vote=vote_type, amount=0)
         session.add(the_vote)
 
     return the_vote
