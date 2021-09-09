@@ -28,7 +28,7 @@ import cogdb.side
 import cog.inara
 import cog.tbl
 import cog.util
-from cogdb.schema import FortUser, UMUser, Vote
+from cogdb.schema import FortUser, UMUser
 
 
 async def bot_shutdown(bot):  # pragma: no cover
@@ -354,7 +354,7 @@ class Admin(Action):
         """
         await self.top(5)
         # Zero trackers for new ocr data
-        cogdb.query.ocr_zero_live_trackers(self.session)
+        cogdb.query.post_cycle_db_cleanup(self.session)
         self.bot.deny_commands = True
         scanner_configs = cog.util.get_config('scanners')
         lines = [['Document', 'Active Page']]
@@ -911,7 +911,6 @@ To unset override, simply set an empty list of systems.
             lines += [system.display() for system in deferred]
 
         return '\n'.join(lines)
-
 
     async def execute(self):
         cogdb.query.fort_order_remove_finished(self.session)
@@ -1824,8 +1823,8 @@ class Voting(Action):
                 vote_choice = 'Hold your vote'
             msg = "Current vote goal is {goal}%, current consolidation {current_cons}%, please **{vote_choice}**." \
                 .format(
-                goal=globe.vote_goal, current_cons=globe.consolidation, vote_choice=vote_choice
-            )
+                    goal=globe.vote_goal, current_cons=globe.consolidation, vote_choice=vote_choice
+                )
         else:
             msg = "Please hold your vote for now. A ping will be sent once we have a final decision."
         return msg

@@ -4,14 +4,12 @@ Tests for local eddb copy
 import tempfile
 import pytest
 from sqlalchemy.orm.exc import NoResultFound
-import sqlalchemy.orm as sqla_orm
 
 import cog.exc
 import cogdb.eddb
 from cogdb.eddb import (Commodity, CommodityCat, Module, ModuleGroup,
                         System, Influence, FactionActiveState, Faction,
-                        Allegiance, Government, Station, StationFeatures, StationEconomy,
-                        SystemControl)
+                        Allegiance, Government, Station, StationFeatures, StationEconomy)
 
 FAKE_ID1 = 942834121
 FAKE_ID2 = FAKE_ID1 + 1

@@ -7,7 +7,6 @@ import re
 
 import aiomock
 import pytest
-import datetime
 import sqlalchemy as sqla
 
 import cog.actions

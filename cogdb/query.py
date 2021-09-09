@@ -1219,9 +1219,11 @@ Current Consolidation: {}%
     return msg
 
 
-def ocr_zero_live_trackers(session):
+def post_cycle_db_cleanup(session):
     """
-    Post cycle tick 0 out existing OCRTracker objects fort and um fields.
+    Cleanup the database post cycle change:
+        Zero out existing OCRTracker objects fort and um fields.
+        Delete all votes of last cycle.
 
     Args:
         session: Session on to the db.
@@ -1229,7 +1231,7 @@ def ocr_zero_live_trackers(session):
     for tracker in session.query(OCRTracker):
         tracker.fort = 0
         tracker.um = 0
-    session.query(VoteSchema).delete()
+    session.query(Vote).delete()
     session.commit()
 
 

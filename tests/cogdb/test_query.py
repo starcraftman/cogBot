@@ -817,12 +817,13 @@ Rhea: 0, updated at 2021-08-25 02:33:00"""
     assert cogdb.query.ocr_prep_report(session) == expect
 
 
-def test_ocr_zero_live_trackers(session, f_ocr_testbed):
-    cogdb.query.ocr_zero_live_trackers(session)
+def test_post_cycle_db_cleanup(session, f_ocr_testbed, f_vote_testbed):
+    cogdb.query.post_cycle_db_cleanup(session)
 
     for tracker in session.query(OCRTracker):
         assert tracker.fort == 0
         assert tracker.um == 0
+    assert session.query(Vote).all() == []
 
 
 def test_vote_add(session, f_dusers, f_vote_testbed, f_global_testbed):
