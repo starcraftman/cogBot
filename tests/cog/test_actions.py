@@ -1677,3 +1677,24 @@ def test_filter_top_dusers_exclude(session, f_dusers, f_fort_testbed, f_um_testb
     rec, mem = cog.actions.filter_top_dusers(guild, top_fort, ["Filter"], 2)
     assert rec == expected_rec
     assert mem == expected_mem
+
+
+def test_route_systems(session, f_dusers, f_fort_testbed):
+    systems = f_fort_testbed[1]
+
+    expected = [
+        '**Sol** 2500/5211 :Fortifying:, 2250 :Undermining: Leave For Grinders - 28.94Ly',
+        '**Alpha Fornacis**    0/6476 :Fortifying: - 67.27Ly',
+        '**Dongkum** 7000/7239 :Fortifying: (239 left) - 81.54Ly',
+        '**Nurundere** 5422/8425 :Fortifying: - 99.51Ly',
+        '**LHS 3749** 1850/5974 :Fortifying: - 55.72Ly',
+        '**Frey** 4910/4910 :Fortified: - 116.99Ly'
+    ]
+    assert cog.actions.route_systems(systems[:6]) == expected
+
+
+def test_route_systems_less_two(session, f_dusers, f_fort_testbed):
+    systems = f_fort_testbed[1]
+
+    expected = ['**Frey** 4910/4910 :Fortified: - 116.99Ly']
+    assert cog.actions.route_systems(systems[:1]) == expected

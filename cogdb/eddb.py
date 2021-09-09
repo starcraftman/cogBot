@@ -1790,6 +1790,25 @@ def find_best_route(session, systems):
     return best
 
 
+def find_route_closest_hq(session, systems):
+    """
+    Given a set of system names in eddb:
+        - Find the system that is closest to the HQ.
+        - Route the remaining systems to minimize jump distance starting at closest to HQ.
+
+    Args:
+        session: Session onto the db.
+        systems: A list of system names to route.
+
+    Returns:
+        [total_distance, [Systems]]
+    """
+    start = get_system_closest_to_HQ(session, systems)
+    systems = [x for x in systems if x.lower() != start.name.lower()]
+
+    return find_route(session, start, systems)
+
+
 def get_nearest_controls(session, *, centre_name='sol', power='%hudson'):
     """
     Find nearest control systems of a particular power.
@@ -1987,6 +2006,34 @@ def get_power_hq(substr):
         raise cog.exc.InvalidCommandArgs(msg)
 
     return [string.capwords(matches[0]), HQS[matches[0]]]
+
+
+def get_system_closest_to_HQ(session, systems, *, power='hudson'):
+    """
+    Return the system closest to the HQ of the given power.
+
+    Args:
+        session; A session onto the db.
+        systems: A list of names of systems.
+
+    Kwargs:
+        power: A substring of the power we want to find closest system to.
+
+    Returns: A System object of the closest system to the power's HQ.
+
+    Raises:
+        InvalidCommandArgs - A bad name of power was given.
+    """
+    _, hq_system = get_power_hq(power)
+    subq_hq_system = session.query(System).\
+        filter(System.name == hq_system).\
+        one()
+
+    return session.query(System).\
+        filter(System.name.in_(systems)).\
+        order_by(System.dist_to(subq_hq_system)).\
+        limit(1).\
+        one()
 
 
 def populate_system_controls(session):

@@ -362,3 +362,17 @@ def test_is_system_of_power(eddb_session):
     assert cogdb.eddb.is_system_of_power(eddb_session, "Rhea", power='%winters')
     assert cogdb.eddb.is_system_of_power(eddb_session, "Shalit", power='%winters')
     assert not cogdb.eddb.is_system_of_power(eddb_session, "Nanomam", power='%winters')
+
+
+def test_get_system_closest_to_HQ(eddb_session):
+    systems = ['Rana', 'Adeo', 'Cubeo', 'Sol', 'Rhea']
+    result = cogdb.eddb.get_system_closest_to_HQ(eddb_session, systems)
+    assert result.name == "Sol"
+
+
+def test_find_route_from_hq(eddb_session):
+    systems = ['Rana', 'Adeo', 'Cubeo', 'Sol', 'Rhea']
+    expected = ['Sol', 'Rana', 'Rhea', 'Adeo', 'Cubeo']
+
+    dist, sorted_systems = cogdb.eddb.find_route_closest_hq(eddb_session, systems)
+    assert [x.name for x in sorted_systems] == expected

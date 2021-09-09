@@ -904,11 +904,9 @@ To unset override, simply set an empty list of systems.
             globe.show_almost_done or is_near_tick()) or \
             cogdb.TEST_DB
         if priority:
-            lines += ['\n__Priority Systems__']
-            lines += [system.display() for system in priority]
+            lines += ['\n__Priority Systems__'] + route_systems(priority)
         if show_deferred:
-            lines += ['\n__Almost Done__']
-            lines += [system.display() for system in deferred]
+            lines += ['\n__Almost Done__'] + route_systems(deferred)
 
         return '\n'.join(lines)
 
@@ -1855,6 +1853,30 @@ def is_near_tick():
     hours_left = tick_diff.seconds // 3600 + tick_diff.days * 24
 
     return hours_left <= hours_to_tick
+
+
+def route_systems(systems):
+    """
+    Take a series of FortSystem objects from local database and return them
+    sorted by best route given following criteria and formatted for display.
+        - Start at systems closest HQ.
+        - Route remaining systems by closest to last position.
+        - Format them for display to user into a list.
+
+    Args:
+        systems: A list of FortSystem objects from the live database.
+
+    Returns:
+        [System.display(), System.display(), ...]
+    """
+    if len(systems) < 2:
+        return [system.display() for system in systems]
+
+    system_names = [x.name for x in systems]
+    with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
+        _, routed_systems = cogdb.eddb.find_route_closest_hq(eddb_session, system_names)
+        mapped_originals = {x.name: x for x in systems}
+        return [mapped_originals[x.name].display() for x in routed_systems]
 
 
 # TODO: I'm not sure why this is "lowered"
