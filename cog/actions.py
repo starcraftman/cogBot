@@ -28,7 +28,7 @@ import cogdb.side
 import cog.inara
 import cog.tbl
 import cog.util
-from cogdb.schema import FortUser, UMUser, Voting
+from cogdb.schema import FortUser, UMUser, Vote
 
 
 async def bot_shutdown(bot):  # pragma: no cover
@@ -353,8 +353,6 @@ class Admin(Action):
             RemoteError - The sheet/tab combination could not be resolved. Tab needs creating.
         """
         await self.top(5)
-        self.session.query(VoteSchema).delete()
-        self.session.commit()
         # Zero trackers for new ocr data
         cogdb.query.ocr_zero_live_trackers(self.session)
         self.bot.deny_commands = True
@@ -1776,7 +1774,7 @@ class User(Action):
         self.session.commit()
 
 
-class Vote(Action):
+class Voting(Action):
     """
     Cast a vote based on CMDR discord ID.
     """
@@ -1800,19 +1798,7 @@ class Vote(Action):
             msg = self.display(globe)
 
         else:
-            if globe.show_vote_goal or is_near_tick():
-                if globe.consolidation > globe.vote_goal:
-                    vote_choice = 'vote Preparation'
-                elif globe.consolidation < globe.vote_goal:
-                    vote_choice = 'vote Consolidation'
-                else:
-                    vote_choice = 'Hold your vote'
-                msg = "Current vote goal is {goal}%, current consolidation {current_cons}%, please **{vote_choice}**."\
-                    .format(
-                        goal=globe.vote_goal, current_cons=globe.consolidation, vote_choice=vote_choice
-                    )
-            else:
-                msg = "Please hold your vote for now. A ping will be sent once we have a final decision."
+            msg = self.vote_direction(globe)
 
         await self.bot.send_message(self.msg.channel, msg)
 
@@ -1826,6 +1812,23 @@ class Vote(Action):
         globe.show_vote_goal = not globe.show_vote_goal
         show_msg = "SHOW" if globe.show_vote_goal else "NOT show"
         return "Will now {} the vote goal.".format(show_msg)
+
+    def vote_direction(self, globe):
+        """Display vote direction"""
+        if globe.show_vote_goal or is_near_tick():
+            if globe.consolidation > globe.vote_goal:
+                vote_choice = 'vote Preparation'
+            elif globe.consolidation < globe.vote_goal:
+                vote_choice = 'vote Consolidation'
+            else:
+                vote_choice = 'Hold your vote'
+            msg = "Current vote goal is {goal}%, current consolidation {current_cons}%, please **{vote_choice}**." \
+                .format(
+                goal=globe.vote_goal, current_cons=globe.consolidation, vote_choice=vote_choice
+            )
+        else:
+            msg = "Please hold your vote for now. A ping will be sent once we have a final decision."
+        return msg
 
 
 class WhoIs(Action):

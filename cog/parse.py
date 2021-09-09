@@ -648,7 +648,7 @@ def subs_vote(subs, prefix):
         Vote preparation with 3 accounts and 5 vote power each.
     """.format(prefix=prefix)
     sub = subs.add_parser(prefix + 'vote', description=desc, formatter_class=RawHelp)
-    sub.set_defaults(cmd='Vote')
+    sub.set_defaults(cmd='Voting')
     sub.add_argument('vote_type', nargs='?', help='Vote type, either Cons or Prep', choices=['cons', 'prep'])
     sub.add_argument('amount', nargs='?', type=int, help='Vote power (either 1 or a multiple of 5)')
     sub.add_argument('--set', '-s', type=int, help='Set vote goal.')

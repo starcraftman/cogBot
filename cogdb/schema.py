@@ -22,7 +22,7 @@ LEN_NAME = 100
 LEN_REASON = 400
 LEN_SHEET_COL = 5
 LEN_CARRIER = 7
-SENSIBLE_OCR_MERITS = 150000
+MAX_OCR_MERITS = 150000
 SENSIBLE_OCR_INCOME = 250
 MAX_VOTE_VALUE = 50
 EVENT_CARRIER = """
@@ -1102,7 +1102,7 @@ class OCRTracker(Base):
     @sqla_orm.validates('fort', 'um')
     def validate_merits(self, key, value):
         try:
-            if value < 0 or value > SENSIBLE_OCR_MERITS:
+            if value < 0 or value > MAX_OCR_MERITS:
                 raise cog.exc.ValidationFail("Bounds check failed for: {} with value {}".format(key, value))
         except TypeError:
             pass
@@ -1180,7 +1180,7 @@ class OCRTrigger(Base):
     @sqla_orm.validates('fort_trigger', 'um_trigger')
     def validate_triggers(self, key, value):
         try:
-            if value < 0 or value > SENSIBLE_OCR_MERITS:
+            if value < 0 or value > MAX_OCR_MERITS:
                 raise cog.exc.ValidationFail("Bounds check failed for: {} with value {}".format(key, value))
         except TypeError:
             pass
@@ -1258,7 +1258,7 @@ class OCRPrep(Base):
     @sqla_orm.validates('merits')
     def validate_merits(self, key, value):
         try:
-            if value < 0 or value > SENSIBLE_OCR_MERITS:
+            if value < 0 or value > MAX_OCR_MERITS:
                 raise cog.exc.ValidationFail("Bounds check failed for: {} with value {}".format(key, value))
         except TypeError:
             pass
@@ -1372,11 +1372,11 @@ class VoteType(enum.Enum):
     prep = 2
 
 
-class Voting(Base):
+class Vote(Base):
     """
     Store vote amount to DB based on discord User ID.
     """
-    __tablename__ = 'vote_tracker'
+    __tablename__ = 'powerplay_votes'
 
     id = sqla.Column(sqla.BigInteger, primary_key=True)
     vote = sqla.Column(sqla.Enum(VoteType), default=VoteType.cons, primary_key=True)
@@ -1386,7 +1386,7 @@ class Voting(Base):
     # Relationships
     discord_user = sqla.orm.relationship(
         'DiscordUser', uselist=False, viewonly=True,
-        primaryjoin='foreign(Voting.id) == DiscordUser.id'
+        primaryjoin='foreign(Vote.id) == DiscordUser.id'
     )
 
     def __repr__(self):
@@ -1404,7 +1404,7 @@ class Voting(Base):
             amount=self.amount, vote=vote_type)
 
     def __eq__(self, other):
-        return isinstance(other, Voting) and hash(self) == hash(other)
+        return isinstance(other, Vote) and hash(self) == hash(other)
 
     def __hash__(self):
         return hash("{}-{}".format(self.id, self.vote))

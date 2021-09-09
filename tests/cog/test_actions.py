@@ -1594,7 +1594,8 @@ async def test_cmd_vote(f_bot, f_global_testbed, f_vote_testbed):
     msg = fake_msg_gears("!vote")
 
     await action_map(msg, f_bot).execute()
-    f_bot.send_message.assert_called_with(msg.channel, 'Current vote goal is 0%, current consolidation 77%, please **vote Preparation**.')
+    f_bot.send_message.assert_called_with(
+        msg.channel, 'Please hold your vote for now. A ping will be sent once we have a final decision.')
 
 
 @pytest.mark.asyncio

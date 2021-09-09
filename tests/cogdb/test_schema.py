@@ -847,7 +847,7 @@ def test_global__str__(f_global_testbed):
 def test_vote__repr__(f_vote_testbed):
     vote = f_vote_testbed[0]
 
-    expect = 'Voting(id=1, vote=<VoteType.cons: 1>, amount=1, updated_at=datetime.datetime(2021, 8, 25, 2, 33))'
+    expect = 'Vote(id=1, vote=<VoteType.cons: 1>, amount=1, updated_at=datetime.datetime(2021, 8, 25, 2, 33))'
     assert repr(vote) == expect
 
 
