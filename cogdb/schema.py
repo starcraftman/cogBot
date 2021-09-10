@@ -1753,8 +1753,6 @@ def run_schema_queries(session):  # pragma: no cover
     sys = session.query(FortSystem).filter(FortSystem.name == "Othime").one()
     print(sys.ocr_prep)
 
-    session.query(UMSystem).filter(UMSystem.sheet_src == EUMSheet.main).delete()
-
 
 if cogdb.TEST_DB:
     recreate_tables()

@@ -758,7 +758,7 @@ def dash_overview(session, control_system):
 
     Returns: List of (System, Faction, Government) for exploiteds + control system.
     """
-    control = session.query(System).filter_by(name=control_system).one()
+    control = session.query(System).filter(System.name == control_system).one()
     factions = session.query(System, Faction, Government, Influence, SystemAge.age).\
         filter(System.dist_to(control) <= 15,
                System.power_state_id != 48).\
