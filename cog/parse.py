@@ -641,11 +641,12 @@ def subs_vote(subs, prefix):
     desc = """Cast a vote.
 
 **{prefix}vote**
-        Show current vote goal.
+        Show the current vote instructions.
 **{prefix}vote cons 5**
-        Vote consolidation with a power of 5 ...
+        Vote consolidation with a strength of 5.
 **{prefix}vote prep 15**
-        Vote preparation with 3 accounts and 5 vote power each.
+        Vote preparation with strength 15.
+        In this case 3 accounts that have 5 vote strength each.
     """.format(prefix=prefix)
     sub = subs.add_parser(prefix + 'vote', description=desc, formatter_class=RawHelp)
     sub.set_defaults(cmd='Voting')

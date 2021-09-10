@@ -993,6 +993,7 @@ class Help(Action):
             ['{prefix}drop', 'Drop forts into the fort sheet'],
             ['{prefix}feedback', 'Give feedback or report a bug'],
             ['{prefix}fort', 'Get information about our fort systems'],
+            ['{prefix}help', 'This help command.'],
             ['{prefix}hold', 'Declare held merits or redeem them'],
             ['{prefix}kos', 'Manage or search kos list'],
             ['{prefix}near', 'Find things near you.'],
@@ -1006,6 +1007,7 @@ class Help(Action):
             ['{prefix}trigger', 'Calculate fort and um triggers for systems'],
             ['{prefix}um', 'Get information about undermining targets'],
             ['{prefix}user', 'Manage your user, set sheet name and tag'],
+            ['{prefix}vote', 'Check and record cycle vote for prep/consolidation.'],
             ['{prefix}whois', 'Search for commander on inara.cz'],
             ['{prefix}help', 'This help message'],
         ]
