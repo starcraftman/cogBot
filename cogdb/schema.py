@@ -489,6 +489,12 @@ class FortOrder(Base):
         return hash(self.system_name)
 
 
+class EUMSheet(enum.Enum):
+    """ Type of undermining row. """
+    main = 'main'
+    snipe = 'snipe'
+
+
 class UMUser(Base):
     """
     Track all infomration about the user in a row of the cattle sheet.
@@ -496,9 +502,14 @@ class UMUser(Base):
     __tablename__ = 'hudson_um_users'
 
     id = sqla.Column(sqla.Integer, primary_key=True)
+    sheet_src = sqla.Column(sqla.Enum(EUMSheet), default=EUMSheet.main)
     name = sqla.Column(sqla.String(LEN_NAME), index=True)  # Undeclared FK to discord_users
-    row = sqla.Column(sqla.Integer, unique=True)
+    row = sqla.Column(sqla.Integer)
     cry = sqla.Column(sqla.String(LEN_NAME), default='')
+
+    __table_args__ = (
+        sqla.UniqueConstraint('sheet_src', 'row', name='umuser_sheet_row_constraint'),
+    )
 
     # Relationships
     discord_user = sqla.orm.relationship(
@@ -590,9 +601,10 @@ class UMSystem(Base):
     __tablename__ = 'hudson_um_systems'
 
     id = sqla.Column(sqla.Integer, primary_key=True)
+    sheet_src = sqla.Column(sqla.Enum(EUMSheet), default=EUMSheet.main)
     name = sqla.Column(sqla.String(LEN_NAME), index=True)
     type = sqla.Column(sqla.Enum(EUMType), default=EUMType.control)
-    sheet_col = sqla.Column(sqla.String(LEN_SHEET_COL), unique=True)
+    sheet_col = sqla.Column(sqla.String(LEN_SHEET_COL))
     goal = sqla.Column(sqla.Integer, default=0)
     security = sqla.Column(sqla.String(LEN_NAME), default='')
     notes = sqla.Column(sqla.String(LEN_NAME), default='')
@@ -603,6 +615,9 @@ class UMSystem(Base):
     map_offset = sqla.Column(sqla.Integer, default=0)
     exp_trigger = sqla.Column(sqla.Integer, default=0)
 
+    __table_args__ = (
+        sqla.UniqueConstraint('sheet_src', 'sheet_col', name='umsystem_sheet_row_constraint'),
+    )
     __mapper_args__ = {
         'polymorphic_identity': EUMType.control,
         'polymorphic_on': type,
@@ -771,10 +786,15 @@ class UMHold(Base):
     __tablename__ = 'hudson_um_merits'
 
     id = sqla.Column(sqla.Integer, primary_key=True)
+    sheet_src = sqla.Column(sqla.Enum(EUMSheet), default=EUMSheet.main)
     system_id = sqla.Column(sqla.Integer, sqla.ForeignKey('hudson_um_systems.id'), nullable=False)
     user_id = sqla.Column(sqla.Integer, sqla.ForeignKey('hudson_um_users.id'), nullable=False)
     held = sqla.Column(sqla.Integer, default=0, nullable=False)
     redeemed = sqla.Column(sqla.Integer, default=0, nullable=False)
+
+    __table_args__ = (
+        sqla.UniqueConstraint('sheet_src', 'system_id', 'user_id', name='umhold_sheet_row_constraint'),
+    )
 
     # Relationships
     user = sqla_orm.relationship('UMUser', uselist=False, back_populates='merits',
@@ -1435,7 +1455,7 @@ class Vote(Base):
         return value
 
 
-def kwargs_um_system(cells, sheet_col):
+def kwargs_um_system(cells, sheet_col, *, sheet_src=EUMSheet.main):
     """
     Return keyword args parsed from cell frame.
 
@@ -1453,6 +1473,16 @@ def kwargs_um_system(cells, sheet_col):
         11: Enemy Progress (percentage) | Type String (Ignore)
         12: Skip
         13: Map Offset (Map Value - Cmdr Merits)
+
+    Args:
+        cells: The cells to parse and use for kwargs initialization.
+        sheet_col: The column of the sheet these cells came from.
+
+    Kwargs:
+        sheet_src: The sheet src, by default main.
+
+    Raises:
+        SheetParsingError - An error occurred during parsing of the cells.
     """
     try:
         main_col, sec_col = cells[0], cells[1]
@@ -1474,6 +1504,7 @@ def kwargs_um_system(cells, sheet_col):
             map_offset = 0
 
         return {
+            'sheet_src': sheet_src,
             'exp_trigger': parse_int(main_col[1]),
             'goal': parse_int(main_col[3]),
             'security': main_col[6].strip().replace('Sec: ', ''),
@@ -1721,6 +1752,8 @@ def run_schema_queries(session):  # pragma: no cover
 
     sys = session.query(FortSystem).filter(FortSystem.name == "Othime").one()
     print(sys.ocr_prep)
+
+    session.query(UMSystem).filter(UMSystem.sheet_src == EUMSheet.main).delete()
 
 
 if cogdb.TEST_DB:

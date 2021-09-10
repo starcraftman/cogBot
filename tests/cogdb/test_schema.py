@@ -11,7 +11,7 @@ import cogdb
 import cogdb.schema
 from cogdb.schema import (DiscordUser, FortSystem, FortDrop, FortUser, FortOrder,
                           UMSystem, UMExpand, UMOppose, UMUser, UMHold,
-                          AdminPerm, ChannelPerm, RolePerm,
+                          AdminPerm, ChannelPerm, RolePerm, EUMSheet,
                           kwargs_um_system, kwargs_fort_system)
 
 from tests.data import SYSTEMS_DATA, SYSTEMSUM_DATA, SYSTEMUM_EXPAND
@@ -913,6 +913,7 @@ def test_kwargs_system_um():
         'progress_us': 161630,
         'security': 'Low',
         'sheet_col': 'D',
+        'sheet_src': EUMSheet.main,
     }
     sys_cols = copy.deepcopy(SYSTEMUM_EXPAND)
     assert kwargs_um_system(sys_cols, 'D') == expect
