@@ -28,7 +28,7 @@ import cogdb.side
 import cog.inara
 import cog.tbl
 import cog.util
-from cogdb.schema import FortUser, UMUser
+from cogdb.schema import FortUser, UMUser, EUMSheet
 
 
 async def bot_shutdown(bot):  # pragma: no cover
@@ -1027,14 +1027,17 @@ class Hold(Action):
         if not self.args.system:
             raise cog.exc.InvalidCommandArgs("You forgot to specify a system to update.")
 
-        system = cogdb.query.um_find_system(self.session, ' '.join(self.args.system))
+        system = cogdb.query.um_find_system(self.session, ' '.join(self.args.system),
+                                            sheet_src=self.args.sheet_src)
         self.log.info('HOLD %s - Matched system name %s: \n%s.',
                       self.duser.display_name, self.args.system, system)
         hold = cogdb.query.um_add_hold(self.session, system=system,
-                                       user=self.undermine, held=self.args.amount)
+                                       user=self.undermine, held=self.args.amount,
+                                       sheet_src=self.args.sheet_src)
 
         if self.args.set:
             system.set_status(self.args.set)
+            # TODO: Same payload now, but will have to switch if diverge.
             self.payloads += cogdb.scanners.UMScanner.update_systemum_dict(
                 system.sheet_col, system.progress_us,
                 system.progress_them, system.map_offset
@@ -1058,12 +1061,14 @@ class Hold(Action):
                       self.duser.display_name, self.duser.id, self.undermine)
 
         if self.args.died:
-            holds = cogdb.query.um_reset_held(self.session, self.undermine)
+            holds = cogdb.query.um_reset_held(self.session, self.undermine,
+                                              sheet_src=self.args.sheet_src)
             self.log.info('HOLD %s - User reset merits.', self.duser.display_name)
             response = 'Sorry you died :(. Held merits reset.'
 
         elif self.args.redeem:
-            holds, redeemed = cogdb.query.um_redeem_merits(self.session, self.undermine)
+            holds, redeemed = cogdb.query.um_redeem_merits(self.session, self.undermine,
+                                                           sheet_src=self.args.sheet_src)
             self.log.info('HOLD %s - Redeemed %d merits.', self.duser.display_name, redeemed)
 
             response = '**Redeemed Now** {}\n\n__Cycle Summary__\n'.format(redeemed)
@@ -1074,7 +1079,8 @@ class Hold(Action):
 
         elif self.args.redeem_systems:
             system_strs = " ".join(self.args.redeem_systems).split(",")
-            holds, redeemed = cogdb.query.um_redeem_systems(self.session, self.undermine, system_strs)
+            holds, redeemed = cogdb.query.um_redeem_systems(self.session, self.undermine, system_strs,
+                                                            sheet_src=self.args.sheet_src)
 
             response = '**Redeemed Now** {}\n\n__Cycle Summary__\n'.format(redeemed)
             lines = [['System', 'Hold', 'Redeemed']]
@@ -1091,7 +1097,7 @@ class Hold(Action):
             self.payloads += cogdb.scanners.UMScanner.update_hold_dict(
                 hold.system.sheet_col, hold.user.row, hold.held, hold.redeemed)
 
-        scanner = get_scanner("hudson_undermine")
+        scanner = get_scanner("hudson_undermine" if self.args.sheet_src == EUMSheet.main else "hudson_snipe")
         await scanner.send_batch(self.payloads)
 
         await self.bot.send_message(self.msg.channel, response)
@@ -1621,10 +1627,12 @@ class UM(Action):
                 weekly_tick += datetime.timedelta(days=1)
 
             prefix = "**Held Merits**\n\n{}\n".format('DEADLINE **{}**'.format(weekly_tick - now))
-            response = cog.tbl.format_table(cogdb.query.um_all_held_merits(self.session), header=True, prefix=prefix)[0]
+            held_merits = cogdb.query.um_all_held_merits(self.session, sheet_src=self.args.sheet_src)
+            response = cog.tbl.format_table(held_merits, header=True, prefix=prefix)[0]
 
         elif self.args.system:
-            system = cogdb.query.um_find_system(self.session, ' '.join(self.args.system))
+            system = cogdb.query.um_find_system(self.session, ' '.join(self.args.system),
+                                                sheet_src=self.args.sheet_src)
 
             if self.args.offset:
                 system.map_offset = self.args.offset
@@ -1633,11 +1641,12 @@ class UM(Action):
             if self.args.set or self.args.offset:
                 self.session.commit()
 
+                # TODO: Same payload now, but will have to switch if diverge.
                 self.payloads += cogdb.scanners.UMScanner.update_systemum_dict(
                     system.sheet_col, system.progress_us,
                     system.progress_them, system.map_offset
                 )
-                scanner = get_scanner("hudson_undermine")
+                scanner = get_scanner("hudson_undermine" if self.args.sheet_src == EUMSheet.main else "hudson_snipe")
                 await scanner.send_batch(self.payloads)
 
             response = system.display()
@@ -1674,7 +1683,7 @@ class UM(Action):
             return
 
         else:
-            systems = cogdb.query.um_get_systems(self.session)
+            systems = cogdb.query.um_get_systems(self.session, sheet_src=self.args.sheet_src)
             response = '__Current UM Targets__\n\n' + '\n'.join(
                 [system.display() for system in systems])
 
