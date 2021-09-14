@@ -468,8 +468,8 @@ class InaraApi():
         await sent[0].add_reaction(cog.util.get_config('emojis', '_hostile'))
         await sent[0].add_reaction(canceled_emote)
 
-        def check(_, user):
-            return user == msg.author
+        def check(reaction, user):
+            return user == msg.author and reaction.message == sent[0]
 
         react, _ = await cog.util.BOT.wait_for('reaction_add', check=check)
 
