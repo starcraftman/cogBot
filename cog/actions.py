@@ -2017,7 +2017,7 @@ def get_scanner(name):
         raise cog.exc.InvalidCommandArgs("The scanners are not ready. Please try again in 15 seconds.") from exc
 
 
-async def monitor_carrier_events(client, *, next_summary, last_timestamp=None, delay=60):
+async def monitor_carrier_events(client, *, next_summary, last_timestamp=None, delay=60):  # pragma: no cover
     """
     Simple async task that just checks for new events every delay.
 
@@ -2063,7 +2063,7 @@ async def monitor_carrier_events(client, *, next_summary, last_timestamp=None, d
     )
 
 
-async def monitor_ocr_sheet(client, *, delay=1800, repeat=True):
+async def monitor_ocr_sheet(client, *, delay=1800, repeat=True):  # pragma: no cover
     """
     Simple async task that just checks for changes to the OCR sheet.
     This task will schedule itself infinitely on a delay.
@@ -2100,6 +2100,58 @@ async def monitor_ocr_sheet(client, *, delay=1800, repeat=True):
             monitor_ocr_sheet(
                 client, delay=delay, repeat=repeat
             )
+        )
+
+
+async def monitor_snipe_merits(client, *, repeat=True):  # pragma: no cover
+    """
+    Schedule self to check snipe merits at the following times.
+    This task will sleep until required.
+        - 12 hours before tick, remind everyone with @here ping to redeem.
+        - 30 minutes before tick, ping unredeemed users directly.
+
+    Kwargs:
+        repeat: If true, will schedule itself infinitely.
+    """
+    guild = [x for x in client.guilds if x.name == FUC_GUILD]
+    if guild:
+        guild = guild[0]
+    chan_id = cog.util.get_config('snipe_channel', default=None)
+    if not guild or not chan_id:  # Don't bother if not set
+        return
+    snipe_chan = client.get_channel(chan_id)
+    next_cycle = cog.util.next_weekly_tick(datetime.datetime.utcnow())
+
+    # 12 hours to tick, ping here
+    next_date = next_cycle - datetime.timedelta(hours=12)
+    now = datetime.datetime.utcnow()
+    if now < next_date:
+        diff_dates = next_date - now
+        delay_seconds = diff_dates.seconds + diff_dates.days * 24 * 60 * 60
+        await asyncio.sleep(delay_seconds)
+
+        # Notify here
+        client.send_message(snipe_chan, "@here Snipe members it is tick day and there are 12 hours remaining.")
+
+    # 30 mins to tick ping remaining in message
+    next_date = next_cycle - datetime.timedelta(minutes=30)
+    now = datetime.datetime.utcnow()
+    if now < next_date:
+        diff_dates = next_date - now
+        delay_seconds = diff_dates.seconds + diff_dates.days * 24 * 60 * 60
+        await asyncio.sleep(delay_seconds)
+
+        # Notify members holding
+        with cogdb.session_scope(cogdb.Session) as session:
+            to_contact = cogdb.query.get_snipe_members_holding(session, client)
+            msg = """__Final Snipe Reminder__
+There are less than **30 minutes left**. The following members are still holding.
+"""
+        client.send_message(snipe_chan, msg + to_contact)
+
+    if repeat:
+        asyncio.ensure_future(
+            monitor_snipe_merits(client, repeat=repeat)
         )
 
 
@@ -2203,3 +2255,4 @@ UM_NPC_TABLE = [
     ['Archon Delaine', 'Kumo Crew Watch', 'Kumo Crew Transport', 'Kumo Crew Strike Ships']
 ]
 TRACK_LIMIT = 20
+FUC_GUILD = "Federal United Command"

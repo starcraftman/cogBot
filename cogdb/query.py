@@ -15,7 +15,8 @@ import cog.sheets
 import cogdb.eddb
 from cog.util import substr_match, get_config
 from cogdb.schema import (DiscordUser, FortSystem, FortPrep, FortDrop, FortUser, FortOrder,
-                          UMSystem, UMUser, UMHold, EUMSheet, KOS, AdminPerm, ChannelPerm, RolePerm,
+                          UMSystem, UMUser, UMHold, EUMSheet, KOS,
+                          AdminPerm, ChannelPerm, RolePerm,
                           TrackSystem, TrackSystemCached, TrackByID, OCRTracker, OCRTrigger,
                           OCRPrep, Global, Vote)
 from cogdb.scanners import FortScanner
@@ -114,7 +115,7 @@ def users_with_all_merits(session):
     """
     return session.query(DiscordUser, (sqla.func.ifnull(FortUser.dropped, 0) + sqla.func.ifnull(UMUser.combo, 0)).label('total')).\
         outerjoin(FortUser, DiscordUser.pref_name == FortUser.name).\
-        outerjoin(UMUser, DiscordUser.pref_name == UMUser.name).\
+        outerjoin(UMUser, DiscordUser.pref_name == UMUser.name,).\
         order_by(sqla.desc("total")).\
         all()
 
@@ -147,6 +148,7 @@ def users_with_um_merits(session):
     """
     return session.query(DiscordUser, UMUser.combo).\
         join(UMUser, UMUser.name == DiscordUser.pref_name).\
+        filter(UMUser.sheet_src == EUMSheet.main).\
         order_by(UMUser.combo.desc()).\
         all()
 
@@ -597,7 +599,10 @@ def um_all_held_merits(session, *, sheet_src=EUMSheet.main):
         except KeyError:
             c_dict[merit.user.name] = {merit.system.name: merit}
 
-    systems = session.query(UMSystem).order_by(UMSystem.id).all()
+    systems = session.query(UMSystem).\
+        filter(UMSystem.sheet_src == EUMSheet.main).\
+        order_by(UMSystem.id).\
+        all()
     system_names = [sys.name for sys in systems]
     rows = []
     for cmdr in c_dict:
@@ -1295,3 +1300,33 @@ def get_vote(session, discord_id, vote_type):
         session.add(the_vote)
 
     return the_vote
+
+
+def get_snipe_members_holding(session, guild):
+    """
+    Find the members who are holding merits on the snipe sheet.
+    For each found member, attempt to resolve them with the guild to mention them.
+    If we cannot resolve their name with guild, just write the name.
+    Format one large message reminding the users and return it.
+
+    Args:
+        session: A session onto the db.
+        guild: The guild of the server in question.
+
+    Returns:
+        A string formatted mentioning or naming all users with snipe merits.
+    """
+    snipe_holds = session.query(UMHold).\
+        filter(UMHold.sheet_src == EUMSheet.snipe,
+               UMHold.held > 0).\
+        all()
+
+    template_msg = "{} is holding {} merits in {}\n"
+    reply = ""
+    for hold in snipe_holds:
+        duser = hold.user.discord_user
+        found = guild.get_member_named(duser.pref_name)
+        mention = found.mention if found else duser.pref_name
+        reply += template_msg.format(mention, hold.held, hold.system.name)
+
+    return reply

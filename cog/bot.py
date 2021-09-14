@@ -203,6 +203,7 @@ class CogBot(discord.Client):
                 simple_heartbeat(),
                 cog.actions.monitor_carrier_events(self, next_summary=next_summary, delay=60),
                 cog.actions.monitor_ocr_sheet(self),
+                cog.actions.monitor_snipe_merits(self),
                 cogdb.eddb.monitor_eddb_caches(),
                 cogdb.monitor_pools(),
             ))

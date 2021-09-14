@@ -534,7 +534,8 @@ class UMUser(Base):
     def held(self):
         """ Total merits held by this cmdr. """
         return sqla.select([sqla.func.sum(UMHold.held)]).\
-            where(UMHold.user_id == self.id).\
+            where(sqla.and_(UMHold.user_id == self.id,
+                            UMHold.sheet_src != EUMSheet.snipe)).\
             label('held')
 
     @hybrid_property
@@ -550,7 +551,8 @@ class UMUser(Base):
     def redeemed(self):
         """ Total merits redeemed by this cmdr. """
         return sqla.select([sqla.func.sum(UMHold.redeemed)]).\
-            where(UMHold.user_id == self.id).\
+            where(sqla.and_(UMHold.user_id == self.id,
+                            UMHold.sheet_src != EUMSheet.snipe)).\
             label('redeemed')
 
     @hybrid_property
@@ -570,6 +572,7 @@ class UMUser(Base):
     def __repr__(self):
         keys = ['id', 'name', 'row', 'cry']
         kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
+        kwargs.insert(1, "sheet_src={}".format("EUMSheet.main" if self.sheet_src == EUMSheet.main else "EUMSheet.snipe"))
 
         return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
 
@@ -639,6 +642,7 @@ class UMSystem(Base):
         keys = ['id', 'name', 'sheet_col', 'goal', 'security', 'notes',
                 'progress_us', 'progress_them', 'close_control', 'priority', 'map_offset']
         kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
+        kwargs.insert(1, "sheet_src={}".format("EUMSheet.main" if self.sheet_src == EUMSheet.main else "EUMSheet.snipe"))
 
         return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
 
@@ -805,6 +809,7 @@ class UMHold(Base):
     def __repr__(self):
         keys = ['id', 'system_id', 'user_id', 'held', 'redeemed']
         kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
+        kwargs.insert(1, "sheet_src={}".format("EUMSheet.main" if self.sheet_src == EUMSheet.main else "EUMSheet.snipe"))
 
         return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
 
@@ -1667,6 +1672,8 @@ def run_schema_queries(session):  # pragma: no cover
                    trigger=6000, undermine=0, notes="S/M Priority, Skip"),
         FortSystem(name='Rana', sheet_col='J', sheet_order=5, fort_status=0,
                    trigger=6000, undermine=1.2, notes="Attacked"),
+        FortPrep(name='Rhea', sheet_col='L', sheet_order=6, fort_status=0,
+                 trigger=8000, notes="To prep"),
     )
     session.add_all(systems)
     session.flush()
@@ -1734,7 +1741,7 @@ def run_schema_queries(session):  # pragma: no cover
         OCRTracker(system="Frey", updated_at=date),
         OCRTracker(system="Adeo"),
         OCRTracker(system="Sol"),
-        OCRPrep(system="Othime"),
+        OCRPrep(system="Rhea"),
         OCRTrigger(system="Frey")
     )
     session.add_all(ocrs_systems)
@@ -1750,7 +1757,7 @@ def run_schema_queries(session):  # pragma: no cover
     print(sys.ocr_tracker)
     print(sys.ocr_trigger)
 
-    sys = session.query(FortSystem).filter(FortSystem.name == "Othime").one()
+    sys = session.query(FortPrep).one()
     print(sys.ocr_prep)
 
 

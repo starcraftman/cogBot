@@ -846,3 +846,15 @@ def test_vote_get(session, f_dusers, f_vote_testbed):
     the_vote = cogdb.query.get_vote(session, f_dusers[2].id, VoteType.prep)
     assert the_vote.id == f_dusers[2].id
     assert the_vote.vote == VoteType.prep
+
+
+def test_get_snipe_members_holding(session, f_bot, f_dusers, f_um_testbed):
+    expected = 'User3 is holding 5000 merits in ToSnipe\n'
+    results = cogdb.query.get_snipe_members_holding(session, f_bot.guilds[0])
+    assert results == expected
+
+
+def test_get_snipe_members_holding(session, f_bot, f_dusers, f_um_testbed):
+    expected = 'User3 is holding 5000 merits in ToSnipe\n'
+    results = cogdb.query.get_snipe_members_holding(session, f_bot.guilds[0])
+    assert results == expected
