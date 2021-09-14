@@ -25,7 +25,7 @@ import cog.util
 import cogdb
 import cogdb.query
 from cogdb.schema import (DiscordUser, FortSystem, FortPrep, FortDrop, FortUser, FortOrder,
-                          UMSystem, UMExpand, UMOppose, UMUser, UMHold, KOS,
+                          UMSystem, UMExpand, UMOppose, UMUser, UMHold, EUMSheet, KOS,
                           AdminPerm, ChannelPerm, RolePerm,
                           TrackSystem, TrackSystemCached, TrackByID,
                           OCRTracker, OCRTrigger, OCRPrep, Global, Vote, VoteType)
@@ -211,6 +211,7 @@ def f_um_testbed(session):
     users = (
         UMUser(id=dusers[0].id, name=dusers[0].pref_name, row=18, cry='We go pew pew!'),
         UMUser(id=dusers[1].id, name=dusers[1].pref_name, row=19, cry='Shooting time'),
+        UMUser(id=dusers[2].id, name=dusers[2].pref_name, sheet_src=EUMSheet.snipe, row=18, cry='Sniping away'),
     )
     systems = (
         UMSystem(id=1, name='Cemplangpa', sheet_col='D', goal=14878, security='Medium', notes='',
@@ -228,6 +229,9 @@ def f_um_testbed(session):
         UMSystem(id=5, name='Empty', sheet_col='K', goal=10000, security='Medium', notes='',
                  progress_us=0, progress_them=0.0, close_control='Rana', priority='Low',
                  map_offset=0),
+        UMSystem(id=7, name='ToSnipe', sheet_col='D', goal=100000, security='Medium', notes='',
+                 progress_us=0, progress_them=0.0, close_control='Rana', priority='Low',
+                 map_offset=0, sheet_src=EUMSheet.snipe),
     )
     holds = (
         UMHold(id=1, held=0, redeemed=4000, user_id=dusers[0].id, system_id=systems[0].id),
@@ -236,6 +240,7 @@ def f_um_testbed(session):
         UMHold(id=4, held=450, redeemed=2000, user_id=dusers[1].id, system_id=systems[0].id),
         UMHold(id=5, held=2400, redeemed=0, user_id=dusers[1].id, system_id=systems[1].id),
         UMHold(id=6, held=0, redeemed=1200, user_id=dusers[1].id, system_id=systems[2].id),
+        UMHold(id=7, sheet_src=EUMSheet.snipe, held=5000, redeemed=1200, user_id=dusers[2].id, system_id=systems[-1].id),
     )
     session.add_all(users + systems)
     session.flush()
@@ -413,6 +418,15 @@ class Guild(FakeObject):
 
     def get_channel(self, channel):
         return [guild_channel for guild_channel in self.channels if guild_channel.id == channel][0]
+
+    def get_member_named(self, nick):
+        """
+        Find name of user by string.
+
+        Returns: A member if found at least one (first one) else return None.
+        """
+        found = [x for x in self.mapped.values() if nick in x.display_name]
+        return found[0] if found else None
 
     # def __repr__(self):
         # channels = "\n  Channels: " + ", ".join([cha.name for cha in self.channels])

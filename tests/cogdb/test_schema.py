@@ -11,7 +11,7 @@ import cogdb
 import cogdb.schema
 from cogdb.schema import (DiscordUser, FortSystem, FortDrop, FortUser, FortOrder,
                           UMSystem, UMExpand, UMOppose, UMUser, UMHold,
-                          AdminPerm, ChannelPerm, RolePerm,
+                          AdminPerm, ChannelPerm, RolePerm, EUMSheet,
                           kwargs_um_system, kwargs_fort_system)
 
 from tests.data import SYSTEMS_DATA, SYSTEMSUM_DATA, SYSTEMUM_EXPAND
@@ -411,12 +411,12 @@ def test_umuser__eq__(f_dusers, f_um_testbed):
 
 def test_umuser__repr__(f_dusers, f_um_testbed):
     f_user = f_um_testbed[0][0]
-    assert repr(f_user) == "UMUser(id=1, name='User1', row=18, cry='We go pew pew!')"
+    assert repr(f_user) == "UMUser(id=1, sheet_src=EUMSheet.main, name='User1', row=18, cry='We go pew pew!')"
 
 
 def test_umuser__str__(f_dusers, f_um_testbed):
     f_user = f_um_testbed[0][0]
-    assert str(f_user) == "held=2600, redeemed=11350, UMUser(id=1, name='User1', row=18, cry='We go pew pew!')"
+    assert str(f_user) == "held=2600, redeemed=11350, UMUser(id=1, sheet_src=EUMSheet.main, name='User1', row=18, cry='We go pew pew!')"
 
 
 def test_umuser_held(f_dusers, f_um_testbed):
@@ -458,7 +458,7 @@ def test_umuser_relationships(f_dusers, f_um_testbed):
 def test_umsystem__repr__(f_dusers, f_um_testbed):
     system = f_um_testbed[1][0]
 
-    assert repr(system) == "UMSystem(id=1, name='Cemplangpa', sheet_col='D', "\
+    assert repr(system) == "UMSystem(id=1, sheet_src=EUMSheet.main, name='Cemplangpa', sheet_col='D', "\
                            "goal=14878, security='Medium', notes='', "\
                            "progress_us=15000, progress_them=1.0, "\
                            "close_control='Sol', priority='Medium', map_offset=1380)"
@@ -468,8 +468,8 @@ def test_umsystem__repr__(f_dusers, f_um_testbed):
 def test_umsystem__str__(f_dusers, f_um_testbed):
     system = f_um_testbed[1][0]
 
-    assert str(system) == "cmdr_merits=6450, UMSystem(id=1, name='Cemplangpa', "\
-                          "sheet_col='D', goal=14878, security='Medium', notes='', "\
+    assert str(system) == "cmdr_merits=6450, UMSystem(id=1, sheet_src=EUMSheet.main, "\
+                          "name='Cemplangpa', sheet_col='D', goal=14878, security='Medium', notes='', "\
                           "progress_us=15000, progress_them=1.0, "\
                           "close_control='Sol', priority='Medium', map_offset=1380)"
     assert system == eval(repr(system))
@@ -501,7 +501,12 @@ def test_umsystem_cmdr_merits(session, f_dusers, f_um_testbed):
 
 
 def test_umsystem_cmdr_merits_expression(session, f_dusers, f_um_testbed):
-    result = [x[0] for x in session.query(UMSystem.name).filter(UMSystem.cmdr_merits > 5000).all()]
+    system_names = session.query(UMSystem.name).\
+        filter(UMSystem.cmdr_merits > 5000,
+               UMSystem.sheet_src == EUMSheet.main).\
+        order_by(UMSystem.name).\
+        all()
+    result = [x[0] for x in system_names]
     assert result == ['Burr', 'Cemplangpa']
 
 
@@ -572,7 +577,7 @@ def test_hold__eq__(f_dusers, f_um_testbed):
 
 def test_hold__repr__(f_dusers, f_um_testbed):
     user, system, hold = f_um_testbed[0][0], f_um_testbed[1][0], f_um_testbed[2][0]
-    assert repr(hold) == "UMHold(id=1, system_id={}, user_id={}, held=0, redeemed=4000)".format(
+    assert repr(hold) == "UMHold(id=1, sheet_src=EUMSheet.main, system_id={}, user_id={}, held=0, redeemed=4000)".format(
         system.id, user.id)
     assert hold == eval(repr(hold))
 
@@ -580,7 +585,7 @@ def test_hold__repr__(f_dusers, f_um_testbed):
 def test_hold__str__(f_dusers, f_um_testbed):
     user, system, hold = f_um_testbed[0][0], f_um_testbed[1][0], f_um_testbed[2][0]
     assert str(hold) == "system='Cemplangpa', user='User1', "\
-                        "UMHold(id=1, system_id={}, user_id={}, held=0, redeemed=4000)".format(
+                        "UMHold(id=1, sheet_src=EUMSheet.main, system_id={}, user_id={}, held=0, redeemed=4000)".format(
         system.id, user.id)
 
 
@@ -913,6 +918,7 @@ def test_kwargs_system_um():
         'progress_us': 161630,
         'security': 'Low',
         'sheet_col': 'D',
+        'sheet_src': EUMSheet.main,
     }
     sys_cols = copy.deepcopy(SYSTEMUM_EXPAND)
     assert kwargs_um_system(sys_cols, 'D') == expect

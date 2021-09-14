@@ -9,7 +9,7 @@ import pytest
 import cog.exc
 import cogdb
 from cogdb.schema import (DiscordUser, FortSystem, FortUser, FortOrder,
-                          UMUser, UMHold, AdminPerm, ChannelPerm, RolePerm,
+                          UMUser, UMHold, EUMSheet, AdminPerm, ChannelPerm, RolePerm,
                           KOS, TrackSystem, TrackSystemCached, TrackByID,
                           OCRTracker, OCRTrigger, OCRPrep, Global, Vote, VoteType)
 import cogdb.query
@@ -846,3 +846,15 @@ def test_vote_get(session, f_dusers, f_vote_testbed):
     the_vote = cogdb.query.get_vote(session, f_dusers[2].id, VoteType.prep)
     assert the_vote.id == f_dusers[2].id
     assert the_vote.vote == VoteType.prep
+
+
+def test_get_all_snipe_holds(session, f_bot, f_dusers, f_um_testbed):
+    expected = [UMHold(id=7, sheet_src=EUMSheet.snipe, system_id=7, user_id=3, held=5000, redeemed=1200)]
+    results = cogdb.query.get_all_snipe_holds(session)
+    assert results == expected
+
+
+def test_get_snipe_members_holding(session, f_bot, f_dusers, f_um_testbed):
+    expected = 'User3 is holding 5000 merits in ToSnipe\n'
+    results = cogdb.query.get_snipe_members_holding(session, f_bot.guilds[0])
+    assert results == expected

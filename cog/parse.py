@@ -9,6 +9,7 @@ from argparse import RawDescriptionHelpFormatter as RawHelp
 
 import cog.exc
 import cog.util
+from cogdb.schema import EUMSheet
 
 PARSERS = []
 
@@ -327,7 +328,43 @@ def subs_hold(subs, prefix):
 and 130% opposition.
     """.format(prefix=prefix)
     sub = subs.add_parser(prefix + 'hold', description=desc, formatter_class=RawHelp)
-    sub.set_defaults(cmd='Hold')
+    sub.set_defaults(cmd='Hold', sheet_src=EUMSheet.main)
+    sub.add_argument('amount', nargs='?', type=int, help='The amount of merits held.')
+    sub.add_argument('system', nargs='*', help='The system merits are held in.')
+    sub.add_argument('-r', '--redeem', action='store_true', help='Redeem all held merits.')
+    sub.add_argument('--redeem-systems', nargs='+', help='Redeem all held merits.')
+    sub.add_argument('-d', '--died', action='store_true', help='Zero out held merits.')
+    sub.add_argument('-s', '--set',
+                     help='Update the galmap progress us:them. Example: --set 3500:200')
+
+
+@register_parser
+def subs_shold(subs, prefix):
+    """ Subcommand parsing for shold, snipe variant of hold """
+    desc = """Update a user's held or redeemed merits.
+IMPORTANT: This is the __SNIPE__ sheet.
+
+Examples:
+
+**{prefix}shold 1200 burr**
+        Set your held merits at Burr to 1200.
+**{prefix}shold 900 af leopris @Memau**
+        Set held merits at System AF Leopris to 900 held for Memau.
+**{prefix}shold --died**
+**{prefix}shold -d**
+        Reset your held merits to 0 due to dying.
+**{prefix}shold --redeem**
+**{prefix}shold -r**
+        Move all held merits to redeemed column.
+**{prefix}shold --redeem-systems Burr, Rana**
+        Redeem only merits for systems listed.
+**{prefix}shold 720 burr --set 60000:130**
+**{prefix}shold 720 burr -s 60000:130**
+        Update held merits to 720 at Burr expansion and set progress to 60000 merits for us
+and 130% opposition.
+    """.format(prefix=prefix)
+    sub = subs.add_parser(prefix + 'shold', description=desc, formatter_class=RawHelp)
+    sub.set_defaults(cmd='Hold', sheet_src=EUMSheet.snipe)
     sub.add_argument('amount', nargs='?', type=int, help='The amount of merits held.')
     sub.add_argument('system', nargs='*', help='The system merits are held in.')
     sub.add_argument('-r', '--redeem', action='store_true', help='Redeem all held merits.')
@@ -608,7 +645,42 @@ def subs_um(subs, prefix):
         List powerplay NPC ships by alligence.
     """.format(prefix=prefix)
     sub = subs.add_parser(prefix + 'um', description=desc, formatter_class=RawHelp)
-    sub.set_defaults(cmd='UM')
+    sub.set_defaults(cmd='UM', sheet_src=EUMSheet.main)
+    sub.add_argument('system', nargs='*', help='The system to update or show.')
+    sub.add_argument('-s', '--set',
+                     help='Set the status of the system, us:them. Example-> --set 3500:200')
+    sub.add_argument('-o', '--offset', type=int, help='Set the system galmap offset.')
+    sub.add_argument('-l', '--list', action='store_true', help='Show all outstanding merits on sheet.')
+    sub.add_argument('--npcs', action='store_true', help='List powerplay NPC ships by alligence.')
+
+
+@register_parser
+def subs_snipe(subs, prefix):
+    """ Subcommand parsing for snipe, the snipe variant of um """
+    desc = """Get undermining targets and update their galmap status.
+IMPORTANT: This is the __SNIPE__ sheet.
+
+Examples:
+
+**{prefix}snipe**
+        Show current active undermining targets.
+**{prefix}snipe burr**
+        Show the current status and information on Burr.
+**{prefix}snipe afl**
+        Show the current status and information on AF Leopris, matched search.
+**{prefix}snipe burr --set 60000:130**
+**{prefix}snipe burr -s 60000:130**
+        Set the galmap status of Burr to 60000 and opposition to 130%.
+**{prefix}snipe burr --offset 4000**
+**{prefix}snipe burr -o 4000**
+        Set the offset difference of cmdr merits and galmap.
+**{prefix}snipe --list**
+        Show all outstanding merits by users and system.
+**{prefix}snipe --npcs**
+        List powerplay NPC ships by alligence.
+    """.format(prefix=prefix)
+    sub = subs.add_parser(prefix + 'snipe', description=desc, formatter_class=RawHelp)
+    sub.set_defaults(cmd='UM', sheet_src=EUMSheet.snipe)
     sub.add_argument('system', nargs='*', help='The system to update or show.')
     sub.add_argument('-s', '--set',
                      help='Set the status of the system, us:them. Example-> --set 3500:200')

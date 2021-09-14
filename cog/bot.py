@@ -182,6 +182,8 @@ class CogBot(discord.Client):
                                     ('Drop', 'Fort', 'User'))
                 self.sched.register('hudson_undermine', scanners['hudson_undermine'],
                                     ('Hold', 'UM', 'User'))
+                self.sched.register('hudson_snipe', scanners['hudson_snipe'],
+                                    ('Hold', 'UM', 'User'))
                 self.sched.register('hudson_kos', scanners['hudson_kos'], ('KOS'))
                 self.sched.register('hudson_ocr', scanners['hudson_ocr'], ('OCR'))
                 self.sched.schedule_all(delay=1)
@@ -201,6 +203,7 @@ class CogBot(discord.Client):
                 simple_heartbeat(),
                 cog.actions.monitor_carrier_events(self, next_summary=next_summary, delay=60),
                 cog.actions.monitor_ocr_sheet(self),
+                cog.actions.monitor_snipe_merits(self),
                 cogdb.eddb.monitor_eddb_caches(),
                 cogdb.monitor_pools(),
             ))

@@ -15,8 +15,11 @@ import cog.sheets
 import cog.util
 import cogdb
 from cogdb.schema import (FortSystem, FortPrep, FortDrop, FortUser,
-                          UMSystem, UMUser, UMHold, KOS,
+                          UMSystem, UMUser, UMHold, KOS, EUMSheet,
                           kwargs_fort_system, kwargs_um_system)
+
+
+SNIPE_FIRST_ID = 10001
 
 
 class FortScanner():
@@ -321,6 +324,7 @@ class UMScanner(FortScanner):
         self.system_col = 'D'
         self.user_col = 'B'
         self.user_row = 14
+        self.sheet_src = EUMSheet.main
 
     def __repr__(self):
         return super().__repr__().replace('FortScanner', 'UMScanner')
@@ -338,16 +342,52 @@ class UMScanner(FortScanner):
 
         self.flush_to_db(session, (users, systems, holds))
 
-    def systems(self):
+    def flush_to_db(self, session, new_objs):
+        """
+        Flush the parsed values directly into the database.
+        Ensure ONLY the correct sheet_src dropped.
+
+        Args:
+            session: A valid session for db.
+            new_objs: A list of list of db objects to put in database.
+        """
+        for cls in self.db_classes:
+            session.query(cls).filter(cls.sheet_src == self.sheet_src).delete()
+            session.commit()
+
+        for objs in new_objs:
+            session.add_all(objs)
+            session.flush()
+        session.commit()
+
+    def users(self, *, row_cnt=None, first_id=1, cls=UMUser):
+        """
+        Scan the users in the sheet and return sheet user objects.
+
+        Args:
+            row_cnt: The starting row for users, zero indexed. Default is user_row.
+            first_id: The id to start for the users.
+            cls: The class to create for each user found.
+        """
+        found = super().users(row_cnt=row_cnt, first_id=first_id, cls=cls)
+        for user in found:
+            user.sheet_src = self.sheet_src
+
+        return found
+
+    def systems(self, *, first_id=1):
         """
         Scan all the systems in the sheet.
         A UM System takes up two adjacent columns.
+
+        Kwargs:
+            first_id: The number to start ids at.
 
         Returns:
             A list of UMSystems to insert into db.
         """
         cell_column = cog.sheets.Column(self.system_col)
-        found, cnt, sys_ind = [], 1, 3
+        found, cnt, sys_ind = [], first_id, 3
 
         try:
             while True:
@@ -357,7 +397,7 @@ class UMScanner(FortScanner):
                 if not sys_cells[0][8] or 'Template' in sys_cells[0][8]:
                     break
 
-                kwargs = kwargs_um_system(sys_cells, str(cell_column))
+                kwargs = kwargs_um_system(sys_cells, str(cell_column), sheet_src=self.sheet_src)
                 kwargs['id'] = cnt
                 cnt += 1
                 cls = kwargs.pop('cls')
@@ -370,7 +410,7 @@ class UMScanner(FortScanner):
 
         return found
 
-    def holds(self, systems, users):
+    def holds(self, systems, users, *, first_id=1):
         """
         Parse the held and redeemed merits that fall under the same column as System.
 
@@ -378,10 +418,13 @@ class UMScanner(FortScanner):
             systems: The SystemUMs parsed from sheet.
             users: The SheetRows parsed from sheet.
 
+        Kwargs:
+            first_id: The number to start ids at.
+
         Returns:
             A list of Hold objects to put in db.
         """
-        found, cnt = [], 1
+        found, cnt = [], first_id
 
         for system in systems:
             sys_ind = cog.sheets.column_to_index(system.sheet_col, zero_index=True)
@@ -395,7 +438,8 @@ class UMScanner(FortScanner):
                     if not held and not redeemed:
                         continue
 
-                    found += [UMHold(id=cnt, user_id=users[user_ind].id, system_id=system.id,
+                    found += [UMHold(id=cnt, sheet_src=self.sheet_src,
+                                     user_id=users[user_ind].id, system_id=system.id,
                                      held=held, redeemed=redeemed)]
                     cnt += 1
                 except (IndexError, ValueError):
@@ -580,6 +624,69 @@ class UMScanner(FortScanner):
         new_values = cog.util.transpose_table(cog.util.pad_table_to_rectangle(new_values))
 
         return [{'range': 'D1:CZ', 'values': new_values}]
+
+
+class SnipeScanner(UMScanner):
+    """
+    Specialization of the UMScanner for Snipe sheet.
+
+    args:
+        asheet: The AsyncGSheet that connects to the sheet.
+    """
+    def __init__(self, asheet):
+        super().__init__(asheet)
+
+        # For now, format is identical to UM Sheet.
+        self.sheet_src = EUMSheet.snipe
+
+    def __repr__(self):
+        return super().__repr__().replace('FortScanner', 'SnipeScanner')
+
+    def users(self, *, row_cnt=None, first_id=SNIPE_FIRST_ID, cls=UMUser):
+        """
+        Scan the users in the sheet and return sheet user objects.
+
+        Args:
+            row_cnt: The starting row for users, zero indexed. Default is user_row.
+            first_id: The id to start for the users.
+            cls: The class to create for each user found.
+
+        Kwargs:
+            first_id: The number to start ids at.
+
+        Returns:
+            A list of UMUsers to insert into db.
+        """
+        return super().users(row_cnt=row_cnt, first_id=first_id, cls=cls)
+
+    def systems(self, *, first_id=SNIPE_FIRST_ID):
+        """
+        Scan all the systems in the sheet.
+        A UM System takes up two adjacent columns.
+
+        Kwargs:
+            first_id: The number to start ids at.
+
+        Returns:
+            A list of UMSystems to insert into db.
+        """
+        return super().systems(first_id=first_id)
+
+    def holds(self, systems, users, *, first_id=SNIPE_FIRST_ID):
+        """
+        Parse the held and redeemed merits that fall under the same column as System.
+
+        Args:
+            systems: The SystemUMs parsed from sheet.
+            users: The SheetRows parsed from sheet.
+
+        Kwargs:
+            first_id: The number to start ids at.
+
+        Returns:
+            A list of Hold objects to put in db.
+        """
+        return super().holds(systems, users, first_id=first_id)
 
 
 class KOSScanner(FortScanner):

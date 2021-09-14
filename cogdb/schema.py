@@ -489,6 +489,12 @@ class FortOrder(Base):
         return hash(self.system_name)
 
 
+class EUMSheet(enum.Enum):
+    """ Type of undermining row. """
+    main = 'main'
+    snipe = 'snipe'
+
+
 class UMUser(Base):
     """
     Track all infomration about the user in a row of the cattle sheet.
@@ -496,9 +502,14 @@ class UMUser(Base):
     __tablename__ = 'hudson_um_users'
 
     id = sqla.Column(sqla.Integer, primary_key=True)
+    sheet_src = sqla.Column(sqla.Enum(EUMSheet), default=EUMSheet.main)
     name = sqla.Column(sqla.String(LEN_NAME), index=True)  # Undeclared FK to discord_users
-    row = sqla.Column(sqla.Integer, unique=True)
+    row = sqla.Column(sqla.Integer)
     cry = sqla.Column(sqla.String(LEN_NAME), default='')
+
+    __table_args__ = (
+        sqla.UniqueConstraint('sheet_src', 'row', name='umuser_sheet_row_constraint'),
+    )
 
     # Relationships
     discord_user = sqla.orm.relationship(
@@ -523,7 +534,8 @@ class UMUser(Base):
     def held(self):
         """ Total merits held by this cmdr. """
         return sqla.select([sqla.func.sum(UMHold.held)]).\
-            where(UMHold.user_id == self.id).\
+            where(sqla.and_(UMHold.user_id == self.id,
+                            UMHold.sheet_src != EUMSheet.snipe)).\
             label('held')
 
     @hybrid_property
@@ -539,7 +551,8 @@ class UMUser(Base):
     def redeemed(self):
         """ Total merits redeemed by this cmdr. """
         return sqla.select([sqla.func.sum(UMHold.redeemed)]).\
-            where(UMHold.user_id == self.id).\
+            where(sqla.and_(UMHold.user_id == self.id,
+                            UMHold.sheet_src != EUMSheet.snipe)).\
             label('redeemed')
 
     @hybrid_property
@@ -559,6 +572,7 @@ class UMUser(Base):
     def __repr__(self):
         keys = ['id', 'name', 'row', 'cry']
         kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
+        kwargs.insert(1, "sheet_src={}".format("EUMSheet.main" if self.sheet_src == EUMSheet.main else "EUMSheet.snipe"))
 
         return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
 
@@ -590,9 +604,10 @@ class UMSystem(Base):
     __tablename__ = 'hudson_um_systems'
 
     id = sqla.Column(sqla.Integer, primary_key=True)
+    sheet_src = sqla.Column(sqla.Enum(EUMSheet), default=EUMSheet.main)
     name = sqla.Column(sqla.String(LEN_NAME), index=True)
     type = sqla.Column(sqla.Enum(EUMType), default=EUMType.control)
-    sheet_col = sqla.Column(sqla.String(LEN_SHEET_COL), unique=True)
+    sheet_col = sqla.Column(sqla.String(LEN_SHEET_COL))
     goal = sqla.Column(sqla.Integer, default=0)
     security = sqla.Column(sqla.String(LEN_NAME), default='')
     notes = sqla.Column(sqla.String(LEN_NAME), default='')
@@ -603,6 +618,9 @@ class UMSystem(Base):
     map_offset = sqla.Column(sqla.Integer, default=0)
     exp_trigger = sqla.Column(sqla.Integer, default=0)
 
+    __table_args__ = (
+        sqla.UniqueConstraint('sheet_src', 'sheet_col', name='umsystem_sheet_row_constraint'),
+    )
     __mapper_args__ = {
         'polymorphic_identity': EUMType.control,
         'polymorphic_on': type,
@@ -624,6 +642,7 @@ class UMSystem(Base):
         keys = ['id', 'name', 'sheet_col', 'goal', 'security', 'notes',
                 'progress_us', 'progress_them', 'close_control', 'priority', 'map_offset']
         kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
+        kwargs.insert(1, "sheet_src={}".format("EUMSheet.main" if self.sheet_src == EUMSheet.main else "EUMSheet.snipe"))
 
         return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
 
@@ -771,10 +790,15 @@ class UMHold(Base):
     __tablename__ = 'hudson_um_merits'
 
     id = sqla.Column(sqla.Integer, primary_key=True)
+    sheet_src = sqla.Column(sqla.Enum(EUMSheet), default=EUMSheet.main)
     system_id = sqla.Column(sqla.Integer, sqla.ForeignKey('hudson_um_systems.id'), nullable=False)
     user_id = sqla.Column(sqla.Integer, sqla.ForeignKey('hudson_um_users.id'), nullable=False)
     held = sqla.Column(sqla.Integer, default=0, nullable=False)
     redeemed = sqla.Column(sqla.Integer, default=0, nullable=False)
+
+    __table_args__ = (
+        sqla.UniqueConstraint('sheet_src', 'system_id', 'user_id', name='umhold_sheet_row_constraint'),
+    )
 
     # Relationships
     user = sqla_orm.relationship('UMUser', uselist=False, back_populates='merits',
@@ -785,6 +809,7 @@ class UMHold(Base):
     def __repr__(self):
         keys = ['id', 'system_id', 'user_id', 'held', 'redeemed']
         kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
+        kwargs.insert(1, "sheet_src={}".format("EUMSheet.main" if self.sheet_src == EUMSheet.main else "EUMSheet.snipe"))
 
         return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
 
@@ -1435,7 +1460,7 @@ class Vote(Base):
         return value
 
 
-def kwargs_um_system(cells, sheet_col):
+def kwargs_um_system(cells, sheet_col, *, sheet_src=EUMSheet.main):
     """
     Return keyword args parsed from cell frame.
 
@@ -1453,6 +1478,16 @@ def kwargs_um_system(cells, sheet_col):
         11: Enemy Progress (percentage) | Type String (Ignore)
         12: Skip
         13: Map Offset (Map Value - Cmdr Merits)
+
+    Args:
+        cells: The cells to parse and use for kwargs initialization.
+        sheet_col: The column of the sheet these cells came from.
+
+    Kwargs:
+        sheet_src: The sheet src, by default main.
+
+    Raises:
+        SheetParsingError - An error occurred during parsing of the cells.
     """
     try:
         main_col, sec_col = cells[0], cells[1]
@@ -1474,6 +1509,7 @@ def kwargs_um_system(cells, sheet_col):
             map_offset = 0
 
         return {
+            'sheet_src': sheet_src,
             'exp_trigger': parse_int(main_col[1]),
             'goal': parse_int(main_col[3]),
             'security': main_col[6].strip().replace('Sec: ', ''),
@@ -1636,6 +1672,8 @@ def run_schema_queries(session):  # pragma: no cover
                    trigger=6000, undermine=0, notes="S/M Priority, Skip"),
         FortSystem(name='Rana', sheet_col='J', sheet_order=5, fort_status=0,
                    trigger=6000, undermine=1.2, notes="Attacked"),
+        FortPrep(name='Rhea', sheet_col='L', sheet_order=6, fort_status=0,
+                 trigger=8000, notes="To prep"),
     )
     session.add_all(systems)
     session.flush()
@@ -1703,7 +1741,7 @@ def run_schema_queries(session):  # pragma: no cover
         OCRTracker(system="Frey", updated_at=date),
         OCRTracker(system="Adeo"),
         OCRTracker(system="Sol"),
-        OCRPrep(system="Othime"),
+        OCRPrep(system="Rhea"),
         OCRTrigger(system="Frey")
     )
     session.add_all(ocrs_systems)
@@ -1719,7 +1757,7 @@ def run_schema_queries(session):  # pragma: no cover
     print(sys.ocr_tracker)
     print(sys.ocr_trigger)
 
-    sys = session.query(FortSystem).filter(FortSystem.name == "Othime").one()
+    sys = session.query(FortPrep).one()
     print(sys.ocr_prep)
 
 

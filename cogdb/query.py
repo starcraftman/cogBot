@@ -15,7 +15,8 @@ import cog.sheets
 import cogdb.eddb
 from cog.util import substr_match, get_config
 from cogdb.schema import (DiscordUser, FortSystem, FortPrep, FortDrop, FortUser, FortOrder,
-                          UMSystem, UMUser, UMHold, KOS, AdminPerm, ChannelPerm, RolePerm,
+                          UMSystem, UMUser, UMHold, EUMSheet, KOS,
+                          AdminPerm, ChannelPerm, RolePerm,
                           TrackSystem, TrackSystemCached, TrackByID, OCRTracker, OCRTrigger,
                           OCRPrep, Global, Vote)
 from cogdb.scanners import FortScanner
@@ -70,7 +71,7 @@ def get_duser(session, discord_id):
         NoMatch - No possible match found.
     """
     try:
-        return session.query(DiscordUser).filter_by(id=discord_id).one()
+        return session.query(DiscordUser).filter(DiscordUser.id == discord_id).one()
     except sqla_oexc.NoResultFound as exc:
         raise cog.exc.NoMatch(discord_id, 'DiscordUser') from exc
 
@@ -147,6 +148,7 @@ def users_with_um_merits(session):
     """
     return session.query(DiscordUser, UMUser.combo).\
         join(UMUser, UMUser.name == DiscordUser.pref_name).\
+        filter(UMUser.sheet_src == EUMSheet.main).\
         order_by(UMUser.combo.desc()).\
         all()
 
@@ -263,7 +265,7 @@ def fort_find_system(session, system_name, search_all=True):
         MoreThanOneMatch - Too many matches possible, ask user to resubmit.
     """
     try:
-        return session.query(FortSystem).filter_by(name=system_name).one()
+        return session.query(FortSystem).filter(FortSystem.name == system_name).one()
     except (sqla_oexc.NoResultFound, sqla_oexc.MultipleResultsFound):
         index = 0 if search_all else fort_find_current_index(session)
         systems = fort_get_systems(session)[index:] + fort_get_preps(session)
@@ -379,7 +381,10 @@ def fort_add_drop(session, *, user, system, amount):
         raise cog.exc.InvalidCommandArgs('Drop amount must be in range [-{num}, {num}]'.format(num=MAX_DROP))
 
     try:
-        drop = session.query(FortDrop).filter_by(user_id=user.id, system_id=system.id).one()
+        drop = session.query(FortDrop).\
+            filter(FortDrop.user_id == user.id,
+                   FortDrop.system_id == system.id).\
+            one()
     except sqla_oexc.NoResultFound:
         drop = FortDrop(user_id=user.id, system_id=system.id, amount=0)
         session.add(drop)
@@ -446,15 +451,19 @@ def fort_order_drop(session):
     session.commit()
 
 
-def um_find_system(session, system_name):
+def um_find_system(session, system_name, *, sheet_src=EUMSheet.main):
     """
     Find the UMSystem with system_name
     """
     try:
-        return session.query(UMSystem).filter_by(name=system_name).one()
+        return session.query(UMSystem).\
+            filter(UMSystem.name == system_name,
+                   UMSystem.sheet_src == sheet_src).\
+            one()
     except (sqla_oexc.NoResultFound, sqla_oexc.MultipleResultsFound) as exc:
         systems = session.query(UMSystem).\
-            filter(UMSystem.name.ilike('%{}%'.format(system_name))).\
+            filter(UMSystem.name.ilike('%{}%'.format(system_name)),
+                   UMSystem.sheet_src == sheet_src).\
             all()
 
         if len(systems) > 1:
@@ -466,25 +475,29 @@ def um_find_system(session, system_name):
         return systems[0]
 
 
-def um_get_systems(session, exclude_finished=True):
+def um_get_systems(session, exclude_finished=True, *, sheet_src=EUMSheet.main):
     """
     Return a list of all current undermining targets.
 
     kwargs:
         finished: Return just the finished targets.
     """
-    systems = session.query(UMSystem).all()
+    systems = session.query(UMSystem).\
+        filter(UMSystem.sheet_src == sheet_src).\
+        all()
     if exclude_finished:
         systems = [system for system in systems if not system.is_undermined]
 
     return systems
 
 
-def um_reset_held(session, user):
+def um_reset_held(session, user, *, sheet_src=EUMSheet.main):
     """
     Reset all held merits to 0.
     """
-    holds = session.query(UMHold).filter_by(user_id=user.id).all()
+    holds = session.query(UMHold).\
+        filter(UMHold.user_id == user.id,
+               UMHold.sheet_src == sheet_src).all()
     for hold in holds:
         hold.held = 0
 
@@ -492,12 +505,14 @@ def um_reset_held(session, user):
     return holds
 
 
-def um_redeem_merits(session, user):
+def um_redeem_merits(session, user, *, sheet_src=EUMSheet.main):
     """
     Redeem all held merits for user.
     """
     total = 0
-    holds = session.query(UMHold).filter_by(user_id=user.id).all()
+    holds = session.query(UMHold).\
+        filter(UMHold.user_id == user.id).\
+        all()
     for hold in holds:
         total += hold.held
         hold.redeemed = hold.redeemed + hold.held
@@ -507,13 +522,14 @@ def um_redeem_merits(session, user):
     return (holds, total)
 
 
-def um_redeem_systems(session, user, systems):
+def um_redeem_systems(session, user, systems, *, sheet_src=EUMSheet.main):
     """
     Redeem merits only for the specified user and the systems that matched exactly.
     """
     total = 0
     subq = session.query(UMSystem.id).\
-        filter(UMSystem.name.in_(systems)).\
+        filter(UMSystem.name.in_(systems),
+               UMSystem.sheet_src == sheet_src).\
         scalar_subquery()
     holds = session.query(UMHold).filter(UMHold.user_id == user.id,
                                          UMHold.system_id.in_(subq)).all()
@@ -526,7 +542,7 @@ def um_redeem_systems(session, user, systems):
     return (holds, total)
 
 
-def um_add_hold(session, **kwargs):
+def um_add_hold(session, *, sheet_src=EUMSheet.main, **kwargs):
     """
     Add or update the user's Hold, that is their UM merits held or redeemed.
         System.name and SUser.name
@@ -545,10 +561,13 @@ def um_add_hold(session, **kwargs):
         raise cog.exc.InvalidCommandArgs('Hold amount must be in range [0, \u221E]')
 
     try:
-        hold = session.query(UMHold).filter_by(user_id=user.id,
-                                               system_id=system.id).one()
+        hold = session.query(UMHold).\
+            filter(UMHold.user_id == user.id,
+                   UMHold.system_id == system.id,
+                   UMHold.sheet_src == sheet_src).\
+            one()
     except sqla_oexc.NoResultFound:
-        hold = UMHold(user_id=user.id, system_id=system.id, held=0, redeemed=0)
+        hold = UMHold(user_id=user.id, system_id=system.id, held=0, redeemed=0, sheet_src=sheet_src)
         session.add(hold)
 
     hold.held = held
@@ -557,7 +576,7 @@ def um_add_hold(session, **kwargs):
     return hold
 
 
-def um_all_held_merits(session):
+def um_all_held_merits(session, *, sheet_src=EUMSheet.main):
     """
     Return a list of lists that show all users with merits still held.
 
@@ -569,13 +588,21 @@ def um_all_held_merits(session):
     ]
     """
     c_dict = {}
-    for merit in session.query(UMHold).filter(UMHold.held > 0).order_by(UMHold.system_id).all():
+    held_merits = session.query(UMHold).\
+        filter(UMHold.held > 0,
+               UMHold.sheet_src == sheet_src).\
+        order_by(UMHold.system_id).\
+        all()
+    for merit in held_merits:
         try:
             c_dict[merit.user.name][merit.system.name] = merit
         except KeyError:
             c_dict[merit.user.name] = {merit.system.name: merit}
 
-    systems = session.query(UMSystem).order_by(UMSystem.id).all()
+    systems = session.query(UMSystem).\
+        filter(UMSystem.sheet_src == EUMSheet.main).\
+        order_by(UMSystem.id).\
+        all()
     system_names = [sys.name for sys in systems]
     rows = []
     for cmdr in c_dict:
@@ -597,7 +624,7 @@ def get_admin(session, member):
     Otherwise, raise NoMatch.
     """
     try:
-        return session.query(AdminPerm).filter_by(id=member.id).one()
+        return session.query(AdminPerm).filter(AdminPerm.id == member.id).one()
     except sqla_oexc.NoResultFound as exc:
         raise cog.exc.NoMatch(member.display_name, 'Admin') from exc
 
@@ -631,8 +658,12 @@ def add_role_perm(session, cmd, server, role):
 
 def remove_channel_perm(session, cmd, server, channel):
     try:
-        session.delete(session.query(ChannelPerm).
-                       filter_by(cmd=cmd, server_id=server.id, channel_id=channel.id).one())
+        perm = session.query(ChannelPerm).\
+            filter(ChannelPerm.cmd == cmd,
+                   ChannelPerm.server_id == server.id,
+                   ChannelPerm.channel_id == channel.id).\
+            one()
+        session.delete(perm)
         session.commit()
     except sqla_oexc.NoResultFound as exc:
         raise cog.exc.InvalidCommandArgs("Channel permission does not exist.") from exc
@@ -640,8 +671,12 @@ def remove_channel_perm(session, cmd, server, channel):
 
 def remove_role_perm(session, cmd, server, role):
     try:
-        session.delete(session.query(RolePerm).
-                       filter_by(cmd=cmd, server_id=server.id, role_id=role.id).one())
+        perm = session.query(RolePerm).\
+            filter(RolePerm.cmd == cmd,
+                   RolePerm.server_id == server.id,
+                   RolePerm.role_id == role.id).\
+            one()
+        session.delete(perm)
         session.commit()
     except sqla_oexc.NoResultFound as exc:
         raise cog.exc.InvalidCommandArgs("Role permission does not exist.") from exc
@@ -666,8 +701,11 @@ def check_channel_perms(session, cmd, server, channel):
 
     Raises InvalidPerms if fails permission check.
     """
-    channels = [perm.channel_id for perm in session.query(ChannelPerm).
-                filter_by(cmd=cmd, server_id=server.id)]
+    perms = session.query(ChannelPerm).\
+        filter(ChannelPerm.cmd == cmd,
+               ChannelPerm.server_id == server.id).\
+        all()
+    channels = [perm.channel_id for perm in perms]
     if channels and channel.id not in channels:
         raise cog.exc.InvalidPerms("The '{}' command is not permitted on this channel.".format(
             cmd.lower()))
@@ -681,8 +719,11 @@ def check_role_perms(session, cmd, server, member_roles):
 
     Raises InvalidPerms if fails permission check.
     """
-    perm_roles = {perm.role_id for perm in session.query(RolePerm).
-                  filter_by(cmd=cmd, server_id=server.id)}
+    perms = session.query(RolePerm).\
+        filter(RolePerm.cmd == cmd,
+               RolePerm.server_id == server.id).\
+        all()
+    perm_roles = {perm.role_id for perm in perms}
     member_roles = {role.id for role in member_roles}
     if perm_roles and len(member_roles - perm_roles) == len(member_roles):
         raise cog.exc.InvalidPerms("You do not have the roles for the command.")
@@ -1259,3 +1300,41 @@ def get_vote(session, discord_id, vote_type):
         session.add(the_vote)
 
     return the_vote
+
+
+def get_all_snipe_holds(session):
+    """
+    Args:
+        session: A session onto the db.
+
+    Returns: A list of UMHolds for the snipe sheet. Empty by default.
+    """
+    return session.query(UMHold).\
+        filter(UMHold.sheet_src == EUMSheet.snipe,
+               UMHold.held > 0).\
+        all()
+
+
+def get_snipe_members_holding(session, guild):
+    """
+    Find the members who are holding merits on the snipe sheet.
+    For each found member, attempt to resolve them with the guild to mention them.
+    If we cannot resolve their name with guild, just write the name.
+    Format one large message reminding the users and return it.
+
+    Args:
+        session: A session onto the db.
+        guild: The guild of the server in question.
+
+    Returns:
+        A string formatted mentioning or naming all users with snipe merits.
+    """
+    template_msg = "{} is holding {} merits in {}\n"
+    reply = ""
+    for hold in get_all_snipe_holds(session):
+        duser = hold.user.discord_user
+        found = guild.get_member_named(duser.pref_name)
+        mention = found.mention if found else duser.pref_name
+        reply += template_msg.format(mention, hold.held, hold.system.name)
+
+    return reply
