@@ -1598,8 +1598,14 @@ async def test_cmd_vote(f_bot, f_global_testbed, f_vote_testbed):
     msg = fake_msg_gears("!vote")
 
     await action_map(msg, f_bot).execute()
-    f_bot.send_message.assert_called_with(
-        msg.channel, 'Please hold your vote for now. A ping will be sent once we have a final decision.')
+
+    possibles = [
+        "Current vote goal is 0%, current consolidation 77%, please **vote Preparation**.",
+        "Please hold your vote for now. A ping will be sent once we have a final decision.",
+    ]
+    actual = str(f_bot.send_message.call_args).replace("\\n", "\n")
+    actual = re.sub(r'call\(Channel: \d+ live_hudson, \'', '', actual)[:-2]
+    assert actual in possibles
 
 
 @pytest.mark.asyncio
