@@ -293,16 +293,16 @@ def fort_get_systems_by_state(session):
         log.info('STATE - %s', system)
         if system.is_fortified and system.is_undermined:
             states['cancelled'].append(system)
-        if system.is_undermined:
+        elif system.is_undermined:
             states['undermined'].append(system)
-        if system.is_fortified:
+        elif system.is_fortified:
             states['fortified'].append(system)
-        if not system.is_fortified and not system.skip:
-            states['left'].append(system)
-        if system.skip:
+        elif system.skip:
             states['skipped'].append(system)
-        if system.missing > 0 and system.missing <= DEFER_MISSING:
+        elif system.missing > 0 and system.missing <= DEFER_MISSING:
             states['almost_done'].append(system)
+        else:
+            states['left'].append(system)
 
     return states
 

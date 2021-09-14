@@ -492,7 +492,7 @@ async def test_cmd_fort_summary(f_bot, f_dusers, f_fort_testbed):
 
     expect = """```Cancelled|Fortified|Undermined|Skipped|Left|Almost_done
 ---------|---------|----------|-------|----|-----------
-0/10     |1/10     |2/10      |2/10   |7/10|1/10```"""
+0/10     |1/10     |2/10      |2/10   |4/10|1/10```"""
 
     f_bot.send_message.assert_called_with(msg.channel, expect)
 

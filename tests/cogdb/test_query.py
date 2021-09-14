@@ -169,13 +169,13 @@ def test_fort_get_systems_by_state(session, f_dusers, f_fort_testbed):
 
     systems = cogdb.query.fort_get_systems_by_state(session)
     assert [sys.name for sys in systems['cancelled']] == ["Nurundere"]
-    assert [sys.name for sys in systems['fortified']] == ["Frey", "Nurundere"]
-    assert [sys.name for sys in systems['left'][0:3]] == [
-        "LHS 3749", "Dongkum", "Alpha Fornacis"]
+    assert [sys.name for sys in systems['fortified']] == ["Frey"]
     assert [sys.name for sys in systems['undermined']] == [
-        "Nurundere", "Alpha Fornacis", 'WW Piscis Austrini', 'LPM 229']
+        "Alpha Fornacis", 'WW Piscis Austrini', 'LPM 229']
     assert [sys.name for sys in systems['skipped']] == ['Sol', 'Phra Mool']
     assert [sys.name for sys in systems['almost_done']] == ['Dongkum']
+    assert [sys.name for sys in systems['left'][0:3]] == [
+        "LHS 3749", "Othime"]
 
 
 def test_fort_find_current_index(session, f_dusers, f_fort_testbed):
