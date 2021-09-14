@@ -411,6 +411,9 @@ class Guild(FakeObject):
     def members(self):
         return list(self.mapped.values())
 
+    def get_channel(self, channel):
+        return [guild_channel for guild_channel in self.channels if guild_channel.id == channel][0]
+
     # def __repr__(self):
         # channels = "\n  Channels: " + ", ".join([cha.name for cha in self.channels])
         # return super().__repr__() + channels
@@ -429,6 +432,7 @@ class Channel(FakeObject):
         super().__init__(name, id)
         self.guild = srv
         self.all_delete_messages = []
+        self.send_messages = None
 
     # def __repr__(self):
         # return super().__repr__() + ", Server: {}".format(self.server.name)
@@ -437,6 +441,9 @@ class Channel(FakeObject):
         for msg in messages:
             msg.is_deleted = True
         self.all_delete_messages += messages
+
+    async def send(self, embed):
+        return Message(embed, None, self.guild, None)
 
 
 class Member(FakeObject):
@@ -475,6 +482,7 @@ class Message(FakeObject):
         self.role_mentions = role_mentions
         self.guild = srv
         self.is_deleted = False
+        self.reaction = []
 
     # def __repr__(self):
         # return super().__repr__() + "\n  Content: {}\n  Author: {}\n  Channel: {}\n  Server: {}".format(
@@ -491,6 +499,9 @@ class Message(FakeObject):
     async def delete(self):
         self.is_deleted = True
 
+    async def add_reaction(self, emote):
+        self.reaction.append(emote)
+
 
 def fake_servers():
     """ Generate fake discord servers for testing. """
@@ -498,7 +509,8 @@ def fake_servers():
     channels = [
         Channel("feedback", srv=srv, id=10),
         Channel("live_hudson", srv=srv, id=11),
-        Channel("private_dev", srv=srv, id=12)
+        Channel("private_dev", srv=srv, id=12),
+        Channel("carrier_channel", srv=srv, id=13)
     ]
     for cha in channels:
         srv.add(cha)
@@ -549,11 +561,11 @@ def f_bot():
     fake_bot.emoji.fix = lambda x, y: x
     fake_bot.guilds = fake_servers()
     fake_bot.get_channel_by_name.return_value = 'private_dev'
-    #  fake_bot.msgs = []
-
-    #  async def send_message_(_, msg):
-        #  fake_bot.msgs += msg
-    #  fake_bot.send_message.async_side_effect = send_message_
+    # fake_bot.msgs = []
+    #
+    # async def send_message_(_, msg):
+    #     fake_bot.msgs += msg
+    # fake_bot.send_message.async_side_effect = send_message_
 
     def fake_exec(_, func, *args):
         return func(*args)
@@ -603,6 +615,9 @@ def f_asheet():
         async with aiofiles.open(asheet.filename, 'r') as fin:
             return eval(await fin.read())
 
+    async def update_cells_():
+        return True
+
     asheet.batch_get.async_return_value = None
     asheet.batch_update = batch_update_send_
     asheet.batch_get = batch_update_get_
@@ -612,6 +627,7 @@ def f_asheet():
     asheet.values_col = values_col_
     asheet.values_row = values_row_
     asheet.whole_sheet = whole_sheet_
+    asheet.update_cells = update_cells_
 
     yield asheet
 

@@ -22,6 +22,7 @@ from cogdb.schema import (DiscordUser, FortSystem, FortDrop, FortUser,
 
 from tests.conftest import fake_msg_gears, fake_msg_newuser
 import tests.conftest as tc
+from tests.cog.test_inara import INARA_TEST
 
 
 # Important, any fixtures in here get auto run
@@ -40,6 +41,9 @@ def patch_scanners():
     async def get_batch_(*args):
         return scanner._values
 
+    async def update_cells_():
+        return True
+
     mock_cls = aiomock.Mock()
     mock_cls.update_sheet_user_dict.return_value = [
         {'range': 'A20:B20', 'values': [['test cry', 'test name']]},
@@ -47,6 +51,7 @@ def patch_scanners():
     scanner.__class__ = mock_cls
     scanner.send_batch = send_batch_
     scanner.get_batch = get_batch_
+    scanner.update_cells = update_cells_
     cog.actions.SCANNERS = {
         'hudson_cattle': scanner,
         'hudson_kos': scanner,
@@ -1611,6 +1616,39 @@ async def test_cmd_vote_display(f_bot, f_admins, f_dusers, f_global_testbed, f_v
 
     await action_map(msg, f_bot).execute()
     f_bot.send_message.assert_called_with(msg.channel, 'Will now SHOW the vote goal.')
+
+
+@INARA_TEST
+@pytest.mark.asyncio
+async def test_cmd_whois_canceled(f_bot, f_asheet_kos, f_kos):
+    emoji_no = "\u274C"
+    msg = fake_msg_gears("!whois Prozer")
+    f_bot.wait_for.async_return_value = emoji_no, None
+
+    await action_map(msg, f_bot).execute()
+    f_bot.send_message.assert_called_with(msg.channel, 'Command ignored.')
+
+
+@INARA_TEST
+@pytest.mark.asyncio
+async def test_cmd_whois_friendly(f_bot, f_asheet_kos, f_kos):
+    emoji_friendly = "\u1F7E2"
+    f_bot.wait_for.async_return_value = emoji_friendly, None
+    msg = fake_msg_gears("!whois Prozer")
+
+    await action_map(msg, f_bot).execute()
+    f_bot.send_message.assert_called_with(msg.channel, 'CMDR has been reported to Leadership.')
+
+
+@INARA_TEST
+@pytest.mark.asyncio
+async def test_cmd_whois_hostile(f_bot, f_asheet_kos, f_kos):
+    emoji_hostile = "\u1F534"
+    f_bot.wait_for.async_return_value = emoji_hostile, None
+    msg = fake_msg_gears("!whois Prozer")
+
+    await action_map(msg, f_bot).execute()
+    f_bot.send_message.assert_called_with(msg.channel, 'CMDR has been reported to Leadership.')
 
 
 def test_process_system_args():

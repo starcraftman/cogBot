@@ -211,7 +211,6 @@ class InaraApi():
             if event["eventStatus"] == API_RESPONSE_CODES["no result"]:
                 response = "__Inara__ Could not find CMDR **{}**".format(cmdr_name)
                 futs = []
-
                 # Even if not on inara.cz, lookup in kos
                 with cogdb.session_scope(cogdb.Session) as session:
                     embeds = kos_lookup_cmdr_embeds(session, cmdr_name)
@@ -224,7 +223,10 @@ class InaraApi():
                 futs = [cog.util.BOT.send_message(msg.channel, response)] + futs
                 for fut in futs:
                     await fut
-                return None  # No reason to go further
+                if not embeds:
+                    cmdr = {"name": cmdr_name}
+                    return await self.adding_to_kos(cmdr, msg)  # No reason to go further
+                return None
 
             event_data = event["eventData"]
 
@@ -397,10 +399,12 @@ class InaraApi():
 
         embeds = []
 
+        with_squad = True
         try:
             cmdr["squad"] = event_data["commanderSquadron"].get("squadronName", cmdr["squad"])
             embeds += [await self.squad_details(event_data, cmdr)]
         except KeyError:
+            with_squad = False
             pass
 
         cmdr_embed = discord.Embed.from_dict({
@@ -429,11 +433,57 @@ class InaraApi():
         embeds = [cmdr_embed] + embeds
 
         with cogdb.session_scope(cogdb.Session) as session:
-            embeds += kos_lookup_cmdr_embeds(session, cmdr['name'], cmdr['profile_picture'])
+            returned_embed = kos_lookup_cmdr_embeds(session, cmdr['name'], cmdr['profile_picture'])
+            embeds += returned_embed
+
         futs = [cog.util.BOT.send_message(msg.channel, embed=embed) for embed in embeds]
         futs += [self.delete_waiting_message(req_id)]
         for fut in futs:
             await fut
+
+        return await self.friendly_detector(cmdr, with_squad, returned_embed, msg)
+
+    async def friendly_detector(self, cmdr, with_squad, returned_embed, msg):
+        if not returned_embed:
+            returned_addition, is_friendly = await self.adding_to_kos(cmdr, msg)
+            if returned_addition is None:
+                return None, None
+            cmdr_squad = "Unknown"
+            if with_squad:
+                cmdr_squad = cmdr["squad"]
+            return is_friendly, cmdr_squad
+        return None, None
+
+    async def adding_to_kos(self, cmdr, msg):
+        req_id = self.req_counter
+        sent = [await cog.util.BOT.send_message(
+            msg.channel,
+            "Should the CMDR {} be added as friendly or hostile? Use reactions below to select. Use X to ignore."
+                .format(cmdr["name"]))]
+
+        self.waiting_messages[req_id] = sent[0]
+        friendly_emote = cog.util.get_config('emojis', '_friendly')
+        canceled_emote = cog.util.get_config('emojis', '_no')
+        await sent[0].add_reaction(friendly_emote)
+        await sent[0].add_reaction(cog.util.get_config('emojis', '_hostile'))
+        await sent[0].add_reaction(canceled_emote)
+
+        def check(_, user):
+            return user == msg.author
+
+        react, _ = await cog.util.BOT.wait_for('reaction_add', check=check)
+
+        # Approved update
+        response = "Command ignored."
+        reason, is_friendly = None, None
+        if str(react) != canceled_emote:
+            is_friendly = str(react) == friendly_emote
+            reason = "Manual report after a !whois in {channel} by cmdr {reported_by}" \
+                .format(channel=msg.channel, reported_by=msg.author)
+            response = "CMDR has been reported to Leadership."
+        await cog.util.BOT.send_message(msg.channel, response)
+        await self.delete_waiting_message(req_id)
+        return reason, is_friendly
 
 
 def check_reply(msg, prefix='!'):
