@@ -992,15 +992,6 @@ async def test_cmd_recruits_not_admin(f_bot, db_cleanup):
 
 
 @pytest.mark.asyncio
-async def test_cmd_recruits_duplicate(f_bot, f_admins, db_cleanup):
-    msg = fake_msg_gears("!recruits add Prozer")
-    await action_map(msg, f_bot).execute()
-
-    expected = "CMDR TestUser has been detected as duplicate. Row 5 in sheet. Please Manual check @"
-    f_bot.send_message.assert_called_with(msg.channel, expected )
-
-
-@pytest.mark.asyncio
 async def test_cmd_repair(f_bot):
     msg = fake_msg_gears("!repair rana")
 
