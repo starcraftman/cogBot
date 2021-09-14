@@ -67,14 +67,63 @@ async def test_search_with_api(f_bot):
 @pytest.mark.asyncio
 async def test_reply_with_api_result(f_bot):
     api = cog.inara.InaraApi()
-    f_bot.wait_for.async_return_value = fake_msg_gears('stop')
+    f_bot.wait_for.async_return_value = (fake_msg_gears('stop'), None)
+    f_bot.send_message.async_return_value = fake_msg_gears("A message to send.")
     cog.util.BOT = f_bot
     f_msg = fake_msg_gears('!whois gearsandcogs')
     cmdr = await api.search_with_api('gearsandcogs', f_msg)
     await api.reply_with_api_result(cmdr["req_id"], cmdr["event_data"], f_msg)
 
     # TODO: Very lazy check :/
-    assert 'embed=<discord.embeds.Embed' in str(f_bot.send_message.call_args)
+    assert "CMDR has been reported to Leadership." in str(f_bot.send_message.call_args)
+
+
+@pytest.mark.asyncio
+async def test_friendly_detector_already_in_kos(f_bot):
+    api = cog.inara.InaraApi()
+    f_msg = fake_msg_gears('!whois Prozer')
+    f_bot.wait_for.async_return_value = True, None
+    is_friendly_returned, squad_returned = await api.friendly_detector(None, False, ["test embed"], f_msg)
+
+    assert is_friendly_returned is None and squad_returned is None
+
+
+@pytest.mark.asyncio
+async def test_friendly_detector_canceled(f_bot):
+    api = cog.inara.InaraApi()
+    f_msg = fake_msg_gears('!whois Prozer')
+    emoji_cancel = "\u274C"
+    f_bot.wait_for.async_return_value = emoji_cancel, None
+    cmdr = {"name": "Prozer", "allegiance": "Federation"}
+    is_friendly_returned, squad_returned = await api.friendly_detector(cmdr, False, [], f_msg)
+
+    assert is_friendly_returned is None and squad_returned is None
+
+
+@pytest.mark.asyncio
+async def test_friendly_detector_friendly_no_squad(f_bot):
+    api = cog.inara.InaraApi()
+    f_msg = fake_msg_gears('!whois Prozer')
+    emoji_friendly = "\U0001F7E2"
+    f_bot.wait_for.async_return_value = emoji_friendly, None
+    cmdr = {"name": "Prozer", "allegiance": "Federation"}
+    is_friendly_returned, squad_returned = await api.friendly_detector(cmdr, False, [], f_msg)
+
+    assert is_friendly_returned
+    assert squad_returned == "Unknown"
+
+
+@pytest.mark.asyncio
+async def test_friendly_detector_hostile_with_squad(f_bot):
+    api = cog.inara.InaraApi()
+    emoji_hostile = "\U0001F534"
+    f_bot.wait_for.async_return_value = emoji_hostile, None
+    f_msg = fake_msg_gears('!whois Akeno')
+    cmdr = {"name": "Akeno", "allegiance": "Empire", "squad": "Test"}
+    is_friendly_returned, squad_returned = await api.friendly_detector(cmdr, True, [], f_msg)
+
+    assert not is_friendly_returned
+    assert squad_returned == "Test"
 
 
 @INARA_TEST
