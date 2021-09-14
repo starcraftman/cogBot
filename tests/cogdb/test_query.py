@@ -817,7 +817,6 @@ Rhea: 0, updated at 2021-08-25 02:33:00"""
     assert cogdb.query.ocr_prep_report(session) == expect
 
 
-
 def test_post_cycle_db_cleanup(session, f_ocr_testbed, f_vote_testbed):
     cogdb.query.post_cycle_db_cleanup(session)
 

@@ -19,6 +19,7 @@ import decorator
 import discord
 import googleapiclient.errors
 import sqlalchemy.exc
+import textdistance
 
 import cogdb
 import cogdb.eddb
@@ -1296,6 +1297,25 @@ class Recruits(Action):
     """
     Manage recruits in the recruit sheet.
     """
+    def duplicate_verifier(self, r_scanner, cmdr_name, discord_name):
+        all_cmdr_names = r_scanner.cells_col_major[0]
+        all_discord_names = r_scanner.cells_col_major[1]
+
+        index = 0
+        for sheet_cmdr_name in all_cmdr_names:
+            distance = textdistance.hamming(sheet_cmdr_name, cmdr_name)
+            if distance <= 1:
+                return index
+            index += 1
+
+        index = 0
+        for sheet_discord_name in all_discord_names:
+            distance = textdistance.hamming(sheet_discord_name, discord_name)
+            if distance <= 0:
+                return index
+            index += 1
+        return 0
+
     async def execute(self):
         try:
             cogdb.query.get_admin(self.session, self.duser)
@@ -1312,16 +1332,22 @@ class Recruits(Action):
         if not re.match(r'.*-\s*\S+$', notes):
             notes += " -{}".format(self.msg.author.name)
 
-        await r_scanner.send_batch(r_scanner.add_recruit_dict(
-            cmdr=cmdr,
-            discord_name=discord_name,
-            rank=self.args.rank,
-            platform=self.args.platform,
-            pmf=" ".join(self.args.pmf),
-            notes=notes,
-        ))
+        index = self.duplicate_verifier(r_scanner, cmdr, discord_name)
+        to_mention = cog.util.BOT.get_member_by_substr(self.msg.author.display_name).mention
 
-        response = "CMDR {} has been added to row: {}".format(cmdr, r_scanner.first_free - 1)
+        response = "CMDR {} has been detected as duplicate. Row {} in sheet. Please Manual check {}.".\
+            format(cmdr, index+1, to_mention)
+        if index == 0:
+            await r_scanner.send_batch(r_scanner.add_recruit_dict(
+                cmdr=cmdr,
+                discord_name=discord_name,
+                rank=self.args.rank,
+                platform=self.args.platform,
+                pmf=" ".join(self.args.pmf),
+                notes=notes,
+            ))
+
+            response = "CMDR {} has been added to row: {}".format(cmdr, r_scanner.first_free - 1)
         await self.bot.send_message(self.msg.channel, response)
 
 
