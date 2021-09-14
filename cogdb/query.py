@@ -115,7 +115,7 @@ def users_with_all_merits(session):
     """
     return session.query(DiscordUser, (sqla.func.ifnull(FortUser.dropped, 0) + sqla.func.ifnull(UMUser.combo, 0)).label('total')).\
         outerjoin(FortUser, DiscordUser.pref_name == FortUser.name).\
-        outerjoin(UMUser, DiscordUser.pref_name == UMUser.name,).\
+        outerjoin(UMUser, DiscordUser.pref_name == UMUser.name).\
         order_by(sqla.desc("total")).\
         all()
 
@@ -1302,6 +1302,19 @@ def get_vote(session, discord_id, vote_type):
     return the_vote
 
 
+def get_all_snipe_holds(session):
+    """
+    Args:
+        session: A session onto the db.
+
+    Returns: A list of UMHolds for the snipe sheet. Empty by default.
+    """
+    return session.query(UMHold).\
+        filter(UMHold.sheet_src == EUMSheet.snipe,
+               UMHold.held > 0).\
+        all()
+
+
 def get_snipe_members_holding(session, guild):
     """
     Find the members who are holding merits on the snipe sheet.
@@ -1316,14 +1329,9 @@ def get_snipe_members_holding(session, guild):
     Returns:
         A string formatted mentioning or naming all users with snipe merits.
     """
-    snipe_holds = session.query(UMHold).\
-        filter(UMHold.sheet_src == EUMSheet.snipe,
-               UMHold.held > 0).\
-        all()
-
     template_msg = "{} is holding {} merits in {}\n"
     reply = ""
-    for hold in snipe_holds:
+    for hold in get_all_snipe_holds(session):
         duser = hold.user.discord_user
         found = guild.get_member_named(duser.pref_name)
         mention = found.mention if found else duser.pref_name

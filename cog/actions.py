@@ -2131,7 +2131,12 @@ async def monitor_snipe_merits(client, *, repeat=True):  # pragma: no cover
         await asyncio.sleep(delay_seconds)
 
         # Notify here
-        client.send_message(snipe_chan, "@here Snipe members it is tick day and there are 12 hours remaining.")
+        with cogdb.session_scope(cogdb.Session) as session:
+            if cogdb.query.get_all_snipe_holds(session):
+                client.send_message(
+                    snipe_chan,
+                    "@here Snipe members it is tick day and there are 12 hours remaining."
+                )
 
     # 30 mins to tick ping remaining in message
     next_date = next_cycle - datetime.timedelta(minutes=30)
@@ -2143,11 +2148,12 @@ async def monitor_snipe_merits(client, *, repeat=True):  # pragma: no cover
 
         # Notify members holding
         with cogdb.session_scope(cogdb.Session) as session:
-            to_contact = cogdb.query.get_snipe_members_holding(session, client)
-            msg = """__Final Snipe Reminder__
-There are less than **30 minutes left**. The following members are still holding.
-"""
-        client.send_message(snipe_chan, msg + to_contact)
+            if cogdb.query.get_all_snipe_holds(session):
+                to_contact = cogdb.query.get_snipe_members_holding(session, client)
+                msg = """__Final Snipe Reminder__
+    There are less than **30 minutes left**. The following members are still holding.
+    """
+                client.send_message(snipe_chan, msg + to_contact)
 
     if repeat:
         asyncio.ensure_future(
