@@ -36,7 +36,7 @@ except ImportError:
 import cog.util
 
 app = sanic.Sanic('cog web')
-ADDR = 'tcp://127.0.0.1:{}'.format(cog.util.get_config('ports', 'zmq'))
+ADDR = 'tcp://127.0.0.1:{}'.format(cog.util.CONF.ports.zmq)
 LOG_FILE = os.path.join(tempfile.gettempdir(), 'posts')
 PUB = None
 RECV = []
@@ -99,7 +99,7 @@ async def post(request):
 def main():
     """ Start sanic server and pass POSTs to bot. """
     init_log()
-    port = cog.util.get_config('ports', 'sanic')
+    port = cog.util.CONF.ports.sanic
     print("Sanic server listening on:", port)
     print("ZMQ pub/sub binding on:", ADDR)
     app.run(host='0.0.0.0', port=port)

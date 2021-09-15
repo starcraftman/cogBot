@@ -524,7 +524,7 @@ def fake_servers():
         Channel("feedback", srv=srv, id=10),
         Channel("live_hudson", srv=srv, id=11),
         Channel("private_dev", srv=srv, id=12),
-        Channel("carrier_channel", srv=srv, id=cog.util.get_config('carrier_channel', default=13))
+        Channel("carrier_channel", srv=srv, id=cog.util.CONF.carrier_channel)
     ]
     for cha in channels:
         srv.add(cha)

@@ -28,7 +28,7 @@ import cog.util
 # engine = sqlalchemy.create_engine('sqlite://', echo=False)
 
 MYSQL_SPEC = 'mysql+pymysql://{user}:{pass}@{host}/{db}?charset=utf8mb4'
-CREDS = cog.util.get_config('dbs', 'main')
+CREDS = cog.util.CONF.dbs.main.unwrap
 
 TEST_DB = False
 if 'pytest' in sys.modules:
@@ -49,7 +49,7 @@ eddb_engine = sqlalchemy.create_engine(MYSQL_SPEC.format(**CREDS), echo=False, p
 EDDBSession = sqlalchemy.orm.sessionmaker(bind=eddb_engine)
 
 # Remote server tracking bgs
-CREDS = cog.util.get_config('dbs', 'side')
+CREDS = cog.util.CONF.dbs.side.unwrap
 side_engine = sqlalchemy.create_engine(MYSQL_SPEC.format(**CREDS), echo=False, pool_recycle=3600, pool_size=10)
 SideSession = sqlalchemy.orm.sessionmaker(bind=side_engine)
 

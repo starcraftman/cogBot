@@ -18,7 +18,7 @@ except ImportError:
 
 import cog.util
 
-ADDR = 'tcp://127.0.0.1:{}'.format(cog.util.get_config('ports', 'zmq'))
+ADDR = 'tcp://127.0.0.1:{}'.format(cog.util.CONF.ports.zqm)
 
 
 def pub_close(pub):

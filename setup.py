@@ -269,9 +269,10 @@ class UMLDocs(Command):
 SHORT_DESC = 'The Elite Federal Discord Bot'
 MY_NAME = 'Jeremy Pallats / starcraft.man'
 MY_EMAIL = 'N/A'
-RUN_DEPS = ['aiofiles', 'aiozmq', 'argparse', 'beautifulsoup4', 'cffi', 'decorator', 'discord.py',
-            'google-api-python-client', 'gspread-asyncio', 'ijson', 'msgpack-python',
-            'pymysql', 'pyyaml', 'pyzmq', 'rapidjson', 'Sanic', 'SQLalchemy', 'uvloop']
+RUN_DEPS = ['aiofiles', 'aiozmq', 'argparse', 'asyncinotify', 'beautifulsoup4', 'cffi',
+            'decorator', 'discord.py', 'google-api-python-client', 'gspread-asyncio',
+            'ijson', 'msgpack-python', 'pymysql', 'pyyaml', 'pyzmq', 'rapidjson',
+            'Sanic', 'SQLalchemy', 'uvloop']
 TEST_DEPS = ['coverage', 'coveralls', 'flake8', 'aiomock', 'mock', 'pylint', 'pytest', 'pytest-asyncio',
              'pytest-cov', 'sphinx', 'tox']
 setup(

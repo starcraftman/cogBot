@@ -12,8 +12,9 @@ import sqlalchemy.orm.exc as sqla_oexc
 
 import cog.exc
 import cog.sheets
+import cog.util
 import cogdb.eddb
-from cog.util import substr_match, get_config
+from cog.util import substr_match
 from cogdb.schema import (DiscordUser, FortSystem, FortPrep, FortDrop, FortUser, FortOrder,
                           UMSystem, UMUser, UMHold, EUMSheet, KOS,
                           AdminPerm, ChannelPerm, RolePerm,
@@ -21,8 +22,8 @@ from cogdb.schema import (DiscordUser, FortSystem, FortPrep, FortDrop, FortUser,
                           OCRPrep, Global, Vote)
 from cogdb.scanners import FortScanner
 
-DEFER_MISSING = get_config("limits", "defer_missing", default=650)
-MAX_DROP = get_config("limits", "max_drop", default=1000)
+DEFER_MISSING = cog.util.CONF.defer_missing
+MAX_DROP = cog.util.CONF.max_drop
 
 
 def fuzzy_find(needle, stack, obj_attr='zzzz', ignore_case=True):

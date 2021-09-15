@@ -1037,12 +1037,12 @@ async def init_scanners():
         A dict where key is name of scanner and value is the scanner.
     """
     scanners, init_coros = {}, []
-    paths = cog.util.get_config("paths")
+    paths = cog.util.paths.unwrap
     cog.sheets.AGCM = cog.sheets.init_agcm(
         cog.util.rel_to_abs(paths['service_json']),
     )
 
-    s_configs = cog.util.get_config('scanners')
+    s_configs = cog.util.CONF.scanners.unwrap
     for key in s_configs:
         s_config = s_configs[key]
         asheet = cog.sheets.AsyncGSheet(s_config['id'], s_config['page'])

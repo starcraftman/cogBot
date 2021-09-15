@@ -41,7 +41,7 @@ import cogdb
 # Disable line too long, pylint: disable=C0301
 
 try:
-    HEADER_PROTO = cog.util.get_config('inara', 'proto_header')
+    HEADER_PROTO = cog.util.CONF.inara.proto_header.unwrap
 except KeyError:
     HEADER_PROTO = None
     logging.getLogger(__name__).\
@@ -468,10 +468,10 @@ class InaraApi():
                 .format(cmdr["name"]))]
 
         self.waiting_messages[req_id] = sent[0]
-        friendly_emote = cog.util.get_config('emojis', '_friendly')
-        canceled_emote = cog.util.get_config('emojis', '_no')
+        friendly_emote = cog.util.CONF.emojis._friendly
+        canceled_emote = cog.util.CONF.emojis._no
         await sent[0].add_reaction(friendly_emote)
-        await sent[0].add_reaction(cog.util.get_config('emojis', '_hostile'))
+        await sent[0].add_reaction(cog.util.CONF.emojis._hostile)
         await sent[0].add_reaction(canceled_emote)
 
         def check(reaction, user):

@@ -15,7 +15,7 @@ from tests.conftest import SHEET_TEST
 
 
 # Caching for a library component that I want to share across tests.
-PATHS = cog.util.get_config('paths')
+PATHS = cog.util.CONF.paths.unwrap
 AGCM = None
 FORT_INPUT = cog.util.rel_to_abs('tests', 'test_input.unit_fort.txt')
 
@@ -29,7 +29,7 @@ async def f_fort_ws():
     cog.sheets.AGCM = agcm
     await agcm.authorize()
 
-    sheet = cog.util.get_config('tests', 'hudson_cattle')
+    sheet = cog.util.CONF.tests.hudson_cattle
     asheet = cog.sheets.AsyncGSheet(sheet['id'], sheet['page'])
     await asheet.init_sheet()
 
@@ -45,7 +45,7 @@ async def f_um_ws():
     cog.sheets.AGCM = agcm
     await agcm.authorize()
 
-    sheet = cog.util.get_config('tests', 'hudson_undermine')
+    sheet = cog.util.CONF.tests.hudson_undermine
     asheet = cog.sheets.AsyncGSheet(sheet['id'], sheet['page'])
     await asheet.init_sheet()
 
@@ -78,7 +78,7 @@ async def test_asheet_init_sheet():
     cog.sheets.AGCM = agcm
     await agcm.authorize()
 
-    sheet = cog.util.get_config('tests', 'hudson_cattle')
+    sheet = cog.util.CONF.tests.hudson_cattle
     asheet = cog.sheets.AsyncGSheet(sheet['id'], sheet['page'])
     await asheet.init_sheet()
 
@@ -296,6 +296,6 @@ def test_index_to_column():
 
 @pytest.mark.asyncio
 async def test_init_agcm():
-    sheets = cog.util.get_config('tests', 'hudson_cattle')
-    agcm = cog.sheets.init_agcm(sheets['id'], sheets['page'])
+    sheet = cog.util.CONF.tests.hudson_cattle
+    agcm = cog.sheets.init_agcm(sheet['id'], sheet['page'])
     assert isinstance(agcm, gspread_asyncio.AsyncioGspreadClientManager)

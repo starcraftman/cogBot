@@ -2,7 +2,7 @@
 Utility functions
 -----------------
     BOT - Global reference to cog.bot.CogBot set post startup.
-    get_config - Pull out configuration information.
+    CONF - The global configuration object, manages the file on change.
     rel_to_abs - Convert relative paths to rooted at project ones.
     init_logging - Project wide logging initialization.
     msg_splitter - Long message splitter, not ideal.
@@ -23,6 +23,7 @@ try:
 except ImportError:
     from yaml import Loader, Dumper
 
+import cog.config
 import cog.exc
 
 BOT = None
@@ -197,57 +198,6 @@ def rel_to_abs(*path_parts):
     return os.path.join(ROOT_DIR, *path_parts)
 
 
-def get_config(*keys, default=None):
-    """
-    Return keys straight from yaml config.
-
-    Args:
-        keys: The keys going down the config.
-        default: A default value to return. If not set, will raise KeyError.
-
-    Raises:
-        KeyError: If no default set and keys were not in config.
-    """
-    try:
-        with open(YAML_FILE) as fin:
-            conf = yaml.load(fin, Loader=Loader)
-    except FileNotFoundError as exc:
-        raise cog.exc.MissingConfigFile("Missing config.yml. Expected at: " + YAML_FILE) from exc
-
-    try:
-        for key in keys:
-            conf = conf[key]
-
-        return conf
-    except KeyError:
-        if default:
-            return default
-
-        raise
-
-
-def update_config(new_val, *keys):
-    """
-    Get current config and replace the value of keys with new_val.
-    Then flush new config to the file.
-
-    N. B. The key must exist, else KeyError
-    """
-    try:
-        with open(YAML_FILE) as fin:
-            conf = yaml.load(fin, Loader=Loader)
-    except FileNotFoundError as exc:
-        raise cog.exc.MissingConfigFile("Missing config.yml. Expected at: " + YAML_FILE) from exc
-
-    whole_conf = conf
-    for key in keys[:-1]:
-        conf = conf[key]
-    conf[keys[-1]] = new_val
-
-    with open(YAML_FILE, 'w') as fout:
-        yaml.dump(whole_conf, fout, Dumper=Dumper, default_flow_style=False)
-
-
 def number_increment(line):
     """
     Take a string of form: text 10
@@ -270,7 +220,7 @@ def init_logging(sqlalchemy_log=False):  # pragma: no cover
      - On every start the file logs are rolled over.
      - This must be the first invocation on startup to set up logging.
     """
-    log_file = rel_to_abs(get_config('paths', 'log_conf'))
+    log_file = rel_to_abs(CONF.paths.log_conf)
     try:
         with open(log_file) as fin:
             lconf = yaml.load(fin, Loader=Loader)
@@ -372,7 +322,7 @@ async def pastebin_new_paste(title, content):  # pragma: no cover
     """
     Simple wrapper to create a paste and return the url.
     """
-    pbin = cog.util.get_config("pastebin")
+    pbin = CONF.pastebin.unwrap
     user_session = await pastebin_login(pbin["dev_key"], pbin["user"], pbin["pass"])
     return await pastebin_upload(pbin["dev_key"], title, content, session=user_session)
 
@@ -708,3 +658,5 @@ class TimestampMixin():
 
 ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 YAML_FILE = rel_to_abs('data', 'config.yml')
+CONF = cog.config.Config(rel_to_abs('data', 'config.yml'))
+CONF.read()

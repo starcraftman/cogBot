@@ -28,40 +28,6 @@ def test_dict_to_columns():
     assert cog.util.dict_to_columns(data) == expect
 
 
-def test_get_config():
-    assert cog.util.get_config('paths', 'log_conf') == 'data/log.yml'
-
-
-def test_get_config_default():
-    assert cog.util.get_config('zzzzzz', default=100) == 100
-
-
-def test_get_config_raises():
-    with pytest.raises(KeyError):
-        cog.util.get_config('zzzzzz')
-
-
-def test_update_config():
-    try:
-        tfile = tempfile.mktemp()
-        shutil.copyfile(cog.util.YAML_FILE, tfile)
-        assert os.path.exists(tfile)
-
-        cog.util.update_config(150, 'scanners', 'hudson_cattle', 'page')
-
-        assert cog.util.get_config('scanners', 'hudson_cattle', 'page') == 150
-        found = False
-        with open(cog.util.YAML_FILE) as fin:
-            for line in fin:
-                if 'page: 150' in line:
-                    found = True
-
-        assert found
-
-    finally:
-        shutil.copyfile(tfile, cog.util.YAML_FILE)
-
-
 def test_number_increment():
     assert cog.util.number_increment('C149') == 'C150'
     assert cog.util.number_increment('Cycle 149') == 'Cycle 150'

@@ -302,7 +302,8 @@ class Admin(Action):
 
     async def top(self, limit=5):
         """ Schedule all sheets for update. """
-        cycle = cog.util.get_config("scanners", "hudson_cattle", "page", default="Cycle Unknown")
+        # TODO: Fetch cycle from Global.
+        cycle = cog.util.CONF.scanners.hudson_cattle.page
         prefix = "__Top Merits for {}__\n\n".format(cycle)
         try:
             exclude_roles = ["FRC Leadership", "Special Agent"] if not self.args.leaders else []
@@ -357,7 +358,7 @@ class Admin(Action):
         # Zero trackers for new ocr data
         cogdb.query.post_cycle_db_cleanup(self.session)
         self.bot.deny_commands = True
-        scanner_configs = cog.util.get_config('scanners')
+        scanner_configs = cog.util.CONF.scanners.unwrap
         lines = [['Document', 'Active Page']]
 
         try:
@@ -367,7 +368,8 @@ class Admin(Action):
                 await SCANNERS[name].asheet.change_worksheet(new_page)
                 self.bot.sched.schedule(name, delay=1)
                 lines += [[await SCANNERS[name].asheet.title(), new_page]]
-            cog.util.update_config(scanner_configs, 'scanners')
+
+            await cog.util.CONF.aupdate("scanners", value=scanner_configs)
 
             prefix = "Cycle incremented. Changed sheets scheduled for update.\n\n"
             return cog.tbl.format_table(lines, header=True, prefix=prefix)[0]
@@ -1129,15 +1131,15 @@ class KOS(Action):
 
     async def send_to_moderation(self, cmdr, faction, reason, is_friendly):
         # Request approval
-        chan = self.msg.guild.get_channel(cog.util.get_config("carrier_channel"))
+        chan = self.msg.guild.get_channel(cog.util.CONF.carrier_channel)
         sent = await chan.send(
             embed=cog.inara.kos_report_cmdr_embed(
                 self.msg.author.name, cmdr, faction, reason, is_friendly,
             )
         )
-        yes_emoji = cog.util.get_config('emojis', '_yes')
+        yes_emoji = cog.util.CONF.emojis._yes
         await sent.add_reaction(yes_emoji)
-        await sent.add_reaction(cog.util.get_config('emojis', '_no'))
+        await sent.add_reaction(cog.util.CONF.emojis._no)
 
         def check(_, user):
             try:
@@ -1555,7 +1557,7 @@ class Track(Action):
 
     async def channel(self):
         """ Subcmd channel for track command. """
-        cog.util.update_config(self.msg.channel.id, "carrier_channel")
+        await cog.util.CONF.aupdate("carrier_channel", value=self.msg.channel.id)
         return "Channel set to: {}".format(self.msg.channel.name)
 
     async def scan(self):
@@ -1863,16 +1865,16 @@ class WhoIs(Action):
     """
     async def send_to_moderation(self, cmdr, faction, reason, is_friendly):
         # Request approval
-        chan = self.msg.guild.get_channel(cog.util.get_config("carrier_channel"))
+        chan = self.msg.guild.get_channel(cog.util.CONF.carrier_channel)
         reason, _ = reason
         sent = await chan.send(
             embed=cog.inara.kos_report_cmdr_embed(
                 self.msg.author.name, cmdr, faction, reason, is_friendly,
             )
         )
-        yes_emoji = cog.util.get_config('emojis', '_yes')
+        yes_emoji = cog.util.CONF.emojis._yes
         await sent.add_reaction(yes_emoji)
-        await sent.add_reaction(cog.util.get_config('emojis', '_no'))
+        await sent.add_reaction(cog.util.CONF.emojis._no)
 
         def check(_, user):
             try:
@@ -1918,7 +1920,7 @@ def is_near_tick():
     Check if we are within the window configured for
     showing deferred systems.
     """
-    hours_to_tick = cog.util.get_config("hours_to_tick_priority")
+    hours_to_tick = cog.util.CONF.hours_to_tick_priority
 
     now = datetime.datetime.utcnow().replace(microsecond=0)
     weekly_tick = now.replace(hour=7, minute=0, second=0)  # pylint: disable=unexpected-keyword-arg
@@ -2018,7 +2020,7 @@ def init_scanner(name):
     """
     print("Intializing scanner -> ", name)
     logging.getLogger(__name__).info("Initializing the %s scanner.", name)
-    sheet = cog.util.get_config("scanners", name)
+    sheet = cog.util.CONF.scanners.get(name)
     cls = getattr(cogdb.scanners, sheet["cls"])
     scanner = cls(sheet)
     SCANNERS[name] = scanner
@@ -2133,7 +2135,7 @@ async def monitor_snipe_merits(client, *, repeat=True):  # pragma: no cover
     guild = [x for x in client.guilds if x.name == FUC_GUILD]
     if guild:
         guild = guild[0]
-    chan_id = cog.util.get_config('snipe_channel', default=None)
+    chan_id = cog.util.CONF.snipe_channel
     if not guild or not chan_id:  # Don't bother if not set
         return
     snipe_chan = client.get_channel(chan_id)
@@ -2186,7 +2188,7 @@ async def report_to_leadership(client, msgs):  # pragma: no cover
         client: The bot client.
         msgs: A list of messages, each should be under discord char limit.
     """
-    chan_id = cog.util.get_config("carrier_channel", default=None)
+    chan_id = cog.util.CONF.carrier_channel
     if msgs and chan_id:
         chan = client.get_channel(chan_id)
         for msg in msgs:

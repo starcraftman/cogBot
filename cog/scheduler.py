@@ -19,7 +19,7 @@ import aiozmq.rpc
 
 import cog.util
 
-ADDR = 'tcp://127.0.0.1:{}'.format(cog.util.get_config('ports', 'zmq'))
+ADDR = 'tcp://127.0.0.1:{}'.format(cog.util.CONF.ports.zmq)
 POOL = cfut.ProcessPoolExecutor(max_workers=6)
 
 
