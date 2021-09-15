@@ -148,7 +148,8 @@ class Admin(Action):
     """
     def check_cmd(self):
         """ Sanity check that cmd exists. """
-        cmd_set = sorted([cls.__name__ for cls in cog.actions.Action.__subclasses__()])
+        cmd_set = sorted([cls.__name__ for cls in cog.actions.Action.__subclasses__()]
+                         + ['Snipe', 'SnipeHold'])
         cmd_set.remove('Admin')  # Admin cannot be restricted even by admins
         if not self.args.rule_cmd or self.args.rule_cmd not in cmd_set:
             raise cog.exc.InvalidCommandArgs("Rules require a command in following set: \n\n%s"
@@ -1103,6 +1104,13 @@ class Hold(Action):
         await self.bot.send_message(self.msg.channel, response)
 
 
+class SnipeHold(Hold):
+    """
+    SnipeHold, same as Hold but for snipe sheet.
+    """
+    pass
+
+
 class KOS(Action):
     """
     Handle the KOS command.
@@ -1688,6 +1696,13 @@ class UM(Action):
                 [system.display() for system in systems])
 
         await self.bot.send_message(self.msg.channel, response)
+
+
+class Snipe(UM):
+    """
+    Snipe, same as UM but for snipe sheet.
+    """
+    pass
 
 
 class User(Action):

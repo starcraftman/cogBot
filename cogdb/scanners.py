@@ -104,19 +104,24 @@ class FortScanner():
 
         self.flush_to_db(session, (users, systems, drops))
 
-    # TODO: Change to updating objects instead of deleting.
+    def drop_db_entries(self, session):
+        """
+        Drop the objects in the database that this scanner is responsible for.
+        """
+        for cls in self.db_classes:
+            session.query(cls).delete()
+        session.commit()
+
     def flush_to_db(self, session, new_objs):
         """
         Flush the parsed values directly into the database.
-        This method will purge old entries first.
+        Old values will be dropped first as no guarantee same objects.
 
         Args:
             session: A valid session for db.
             new_objs: A list of list of db objects to put in database.
         """
-        for cls in self.db_classes:
-            session.query(cls).delete()
-            session.commit()
+        self.drop_db_entries(session)
 
         for objs in new_objs:
             session.add_all(objs)
@@ -342,23 +347,13 @@ class UMScanner(FortScanner):
 
         self.flush_to_db(session, (users, systems, holds))
 
-    def flush_to_db(self, session, new_objs):
+    def drop_db_entries(self, session):
         """
-        Flush the parsed values directly into the database.
-        Ensure ONLY the correct sheet_src dropped.
-
-        Args:
-            session: A valid session for db.
-            new_objs: A list of list of db objects to put in database.
+        Drop the main um entries in the um part of the database.
         """
         for cls in self.db_classes:
-            session.query(cls).filter(cls.sheet_src == self.sheet_src).delete()
+            session.query(cls).filter(cls.id < SNIPE_FIRST_ID).delete()
             session.commit()
-
-        for objs in new_objs:
-            session.add_all(objs)
-            session.flush()
-        session.commit()
 
     def users(self, *, row_cnt=None, first_id=1, cls=UMUser):
         """
@@ -641,6 +636,14 @@ class SnipeScanner(UMScanner):
 
     def __repr__(self):
         return super().__repr__().replace('FortScanner', 'SnipeScanner')
+
+    def drop_db_entries(self, session):
+        """
+        Drop the snipe entries in the um part of the database.
+        """
+        for cls in self.db_classes:
+            session.query(cls).filter(cls.id >= SNIPE_FIRST_ID).delete()
+            session.commit()
 
     def users(self, *, row_cnt=None, first_id=SNIPE_FIRST_ID, cls=UMUser):
         """

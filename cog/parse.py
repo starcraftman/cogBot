@@ -364,7 +364,7 @@ Examples:
 and 130% opposition.
     """.format(prefix=prefix)
     sub = subs.add_parser(prefix + 'shold', description=desc, formatter_class=RawHelp)
-    sub.set_defaults(cmd='Hold', sheet_src=EUMSheet.snipe)
+    sub.set_defaults(cmd='SnipeHold', sheet_src=EUMSheet.snipe)
     sub.add_argument('amount', nargs='?', type=int, help='The amount of merits held.')
     sub.add_argument('system', nargs='*', help='The system merits are held in.')
     sub.add_argument('-r', '--redeem', action='store_true', help='Redeem all held merits.')
@@ -680,7 +680,7 @@ Examples:
         List powerplay NPC ships by alligence.
     """.format(prefix=prefix)
     sub = subs.add_parser(prefix + 'snipe', description=desc, formatter_class=RawHelp)
-    sub.set_defaults(cmd='UM', sheet_src=EUMSheet.snipe)
+    sub.set_defaults(cmd='Snipe', sheet_src=EUMSheet.snipe)
     sub.add_argument('system', nargs='*', help='The system to update or show.')
     sub.add_argument('-s', '--set',
                      help='Set the status of the system, us:them. Example-> --set 3500:200')

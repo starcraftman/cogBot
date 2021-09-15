@@ -183,7 +183,7 @@ class CogBot(discord.Client):
                 self.sched.register('hudson_undermine', scanners['hudson_undermine'],
                                     ('Hold', 'UM', 'User'))
                 self.sched.register('hudson_snipe', scanners['hudson_snipe'],
-                                    ('Hold', 'UM', 'User'))
+                                    ('SnipeHold', 'Snipe'))
                 self.sched.register('hudson_kos', scanners['hudson_kos'], ('KOS'))
                 self.sched.register('hudson_ocr', scanners['hudson_ocr'], ('OCR'))
                 self.sched.schedule_all(delay=1)
