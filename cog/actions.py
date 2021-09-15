@@ -1877,6 +1877,8 @@ class WhoIs(Action):
         cmdr = await cog.inara.api.search_with_api(' '.join(self.args.cmdr), self.msg)
         if cmdr and cmdr != (None, None):
             returned_from_api = False
+            if isinstance(cmdr, tuple):
+                returned_from_api = cmdr[1]
             squad = "Unknown"
             if "req_id" in cmdr:
                 returned_from_api, squad = await cog.inara.api.reply_with_api_result(cmdr["req_id"], cmdr["event_data"], self.msg)
