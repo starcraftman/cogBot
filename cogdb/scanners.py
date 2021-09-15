@@ -1037,7 +1037,7 @@ async def init_scanners():
         A dict where key is name of scanner and value is the scanner.
     """
     scanners, init_coros = {}, []
-    paths = cog.util.paths.unwrap
+    paths = cog.util.CONF.paths.unwrap
     cog.sheets.AGCM = cog.sheets.init_agcm(
         cog.util.rel_to_abs(paths['service_json']),
     )

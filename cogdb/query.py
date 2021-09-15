@@ -22,9 +22,6 @@ from cogdb.schema import (DiscordUser, FortSystem, FortPrep, FortDrop, FortUser,
                           OCRPrep, Global, Vote)
 from cogdb.scanners import FortScanner
 
-DEFER_MISSING = cog.util.CONF.defer_missing
-MAX_DROP = cog.util.CONF.max_drop
-
 
 def fuzzy_find(needle, stack, obj_attr='zzzz', ignore_case=True):
     """
@@ -208,7 +205,7 @@ def fort_get_medium_systems(session):
         filter(FortSystem.is_medium, FortSystem.skip == 0).\
         all()
     unforted = [med for med in mediums if not med.is_fortified
-                and not med.missing < DEFER_MISSING]
+                and not med.is_deferred]
     return unforted
 
 
@@ -247,7 +244,7 @@ def fort_find_current_index(session):
         NoMoreTargets - No more targets left OR a serious problem with data.
     """
     for ind, system in enumerate(fort_get_systems(session)):
-        if system.is_fortified or system.skip or system.missing < DEFER_MISSING:
+        if system.is_fortified or system.skip or system.is_deferred:
             continue
 
         return ind
@@ -302,7 +299,7 @@ def fort_get_systems_by_state(session):
             states['fortified'].append(system)
         elif system.skip:
             states['skipped'].append(system)
-        elif system.missing > 0 and system.missing <= DEFER_MISSING:
+        elif system.is_deferred:
             states['almost_done'].append(system)
         else:
             states['left'].append(system)
@@ -334,7 +331,7 @@ def fort_get_next_targets(session, *, offset=0, count=4):
 
     targets = []
     for system in systems[start:]:
-        if system.is_fortified or system.priority or system.skip or system.missing < DEFER_MISSING:
+        if system.is_fortified or system.priority or system.skip or system.is_deferred:
             continue
 
         targets.append(system)
@@ -359,7 +356,7 @@ def fort_get_priority_targets(session):
 
         if 'priority' in system.notes.lower():
             priority += [system]
-        elif system.missing < DEFER_MISSING:
+        elif system.is_deferred:
             deferred += [system]
 
     return priority, deferred
@@ -378,8 +375,9 @@ def fort_add_drop(session, *, user, system, amount):
     Raises:
         InvalidCommandArgs: User requested an amount outside bounds [-MAX_DROP, MAX_DROP]
     """
-    if amount not in range(-1 * MAX_DROP, MAX_DROP + 1):
-        raise cog.exc.InvalidCommandArgs('Drop amount must be in range [-{num}, {num}]'.format(num=MAX_DROP))
+    max_drop = cog.util.CONF.constants.max_drop
+    if amount not in range(-1 * max_drop, max_drop + 1):
+        raise cog.exc.InvalidCommandArgs('Drop amount must be in range [-{num}, {num}]'.format(num=max_drop))
 
     try:
         drop = session.query(FortDrop).\
@@ -406,7 +404,7 @@ def fort_order_remove_finished(session):
     Deletions will be comitted.
     """
     for fort_order in session.query(FortOrder).order_by(FortOrder.order):
-        if fort_order.system.is_fortified or fort_order.system.missing < DEFER_MISSING:
+        if fort_order.system.is_fortified or fort_order.system.is_deferred:
             session.delete(fort_order)
 
     session.commit()

@@ -500,7 +500,7 @@ class Message(FakeObject):
 
     # def __repr__(self):
         # return super().__repr__() + "\n  Content: {}\n  Author: {}\n  Channel: {}\n  Server: {}".format(
-            # self.content, self.author, self.channel, self.server)
+        # self.content, self.author, self.channel, self.server)
 
     @property
     def created_at(self):
@@ -524,7 +524,7 @@ def fake_servers():
         Channel("feedback", srv=srv, id=10),
         Channel("live_hudson", srv=srv, id=11),
         Channel("private_dev", srv=srv, id=12),
-        Channel("carrier_channel", srv=srv, id=cog.util.CONF.carrier_channel)
+        Channel("ops_channel", srv=srv, id=cog.util.CONF.channels.ops)
     ]
     for cha in channels:
         srv.add(cha)

@@ -500,14 +500,13 @@ def next_weekly_tick(a_date, offset=0):
 
     Returns: The weekly tick represented as a native utc date object (no timezone).
     """
-    a_date = a_date.replace(microsecond=0) + datetime.timedelta(weeks=offset)
-    weekly_tick = a_date.replace(hour=7, minute=0, second=0)  # pylint: disable=unexpected-keyword-arg
+    weekly_tick = a_date.replace(hour=7, minute=0, second=0, microsecond=0)  # pylint: disable=unexpected-keyword-arg
 
     a_day = datetime.timedelta(days=1)
     while weekly_tick.strftime('%A') != 'Thursday' or weekly_tick < a_date:
         weekly_tick += a_day
 
-    return weekly_tick
+    return weekly_tick + datetime.timedelta(weeks=offset)
 
 
 # TODO: Use later.

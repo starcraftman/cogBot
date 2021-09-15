@@ -201,6 +201,7 @@ class CogBot(discord.Client):
             asyncio.ensure_future(asyncio.gather(
                 presence_task(self),
                 simple_heartbeat(),
+                cog.util.CONF.monitor(),
                 cog.actions.monitor_carrier_events(self, next_summary=next_summary, delay=60),
                 cog.actions.monitor_ocr_sheet(self),
                 cog.actions.monitor_snipe_merits(self),
@@ -407,7 +408,7 @@ class CogBot(discord.Client):
         try:
             ttl = kwargs.pop('ttl')
         except KeyError:
-            ttl = cog.util.CONF.ttl
+            ttl = cog.util.CONF.constants.ttl
 
         content += '\n\n__This message will be deleted in {} seconds__'.format(ttl)
         message = await self.send_message(destination, content, **kwargs)
@@ -498,9 +499,10 @@ def main():  # pragma: no cover
 
     intents = discord.Intents.default()
     intents.members = True
-    cog.util.BOT = CogBot("!", scheduler_delay=cog.util.CONF.scheduler_delay, intents=intents)
+    cog.util.BOT = CogBot("!", scheduler_delay=cog.util.CONF.constants.scheduler_delay,
+                          intents=intents)
 
-    token = cog.util.CONF.discor.unwrap.get(os.environ.get('COG_TOKEN', 'dev'))
+    token = cog.util.CONF.discord.unwrap.get(os.environ.get('COG_TOKEN', 'dev'))
     print("Waiting on connection to Discord ...")
     try:
         loop = asyncio.get_event_loop()

@@ -1131,7 +1131,7 @@ class KOS(Action):
 
     async def send_to_moderation(self, cmdr, faction, reason, is_friendly):
         # Request approval
-        chan = self.msg.guild.get_channel(cog.util.CONF.carrier_channel)
+        chan = self.msg.guild.get_channel(cog.util.CONF.channels.ops)
         sent = await chan.send(
             embed=cog.inara.kos_report_cmdr_embed(
                 self.msg.author.name, cmdr, faction, reason, is_friendly,
@@ -1475,11 +1475,7 @@ class Time(Action):
     """
     async def execute(self):
         now = datetime.datetime.utcnow().replace(microsecond=0)
-        today = now.replace(hour=0, minute=0, second=0)  # pylint: disable=unexpected-keyword-arg
-
-        weekly_tick = today + datetime.timedelta(hours=7)
-        while weekly_tick < now or weekly_tick.strftime('%A') != 'Thursday':
-            weekly_tick += datetime.timedelta(days=1)
+        weekly_tick = cog.util.next_weekly_tick(now)
 
         try:
             with cogdb.session_scope(cogdb.SideSession) as side_session:
@@ -1557,7 +1553,7 @@ class Track(Action):
 
     async def channel(self):
         """ Subcmd channel for track command. """
-        await cog.util.CONF.aupdate("carrier_channel", value=self.msg.channel.id)
+        await cog.util.CONF.aupdate("channels", "ops", value=self.msg.channel.id)
         return "Channel set to: {}".format(self.msg.channel.name)
 
     async def scan(self):
@@ -1631,10 +1627,7 @@ class UM(Action):
 
         if self.args.list:
             now = datetime.datetime.utcnow().replace(microsecond=0)
-            today = now.replace(hour=0, minute=0, second=0)  # pylint: disable=unexpected-keyword-arg
-            weekly_tick = today + datetime.timedelta(hours=7)
-            while weekly_tick < now or weekly_tick.strftime('%A') != 'Thursday':
-                weekly_tick += datetime.timedelta(days=1)
+            weekly_tick = cog.util.next_weekly_tick(now)
 
             prefix = "**Held Merits**\n\n{}\n".format('DEADLINE **{}**'.format(weekly_tick - now))
             held_merits = cogdb.query.um_all_held_merits(self.session, sheet_src=self.args.sheet_src)
@@ -1865,7 +1858,7 @@ class WhoIs(Action):
     """
     async def send_to_moderation(self, cmdr, faction, reason, is_friendly):
         # Request approval
-        chan = self.msg.guild.get_channel(cog.util.CONF.carrier_channel)
+        chan = self.msg.guild.get_channel(cog.util.CONF.channels.ops)
         reason, _ = reason
         sent = await chan.send(
             embed=cog.inara.kos_report_cmdr_embed(
@@ -1920,12 +1913,10 @@ def is_near_tick():
     Check if we are within the window configured for
     showing deferred systems.
     """
-    hours_to_tick = cog.util.CONF.hours_to_tick_priority
+    hours_to_tick = cog.util.CONF.constants.show_priority_x_hours_before_tick
 
     now = datetime.datetime.utcnow().replace(microsecond=0)
-    weekly_tick = now.replace(hour=7, minute=0, second=0)  # pylint: disable=unexpected-keyword-arg
-    while weekly_tick < now or weekly_tick.strftime('%A') != 'Thursday':
-        weekly_tick += datetime.timedelta(days=1)
+    weekly_tick = cog.util.next_weekly_tick(now)
     tick_diff = (weekly_tick - now)
     hours_left = tick_diff.seconds // 3600 + tick_diff.days * 24
 
@@ -2135,7 +2126,7 @@ async def monitor_snipe_merits(client, *, repeat=True):  # pragma: no cover
     guild = [x for x in client.guilds if x.name == FUC_GUILD]
     if guild:
         guild = guild[0]
-    chan_id = cog.util.CONF.snipe_channel
+    chan_id = cog.util.CONF.channels.snipe
     if not guild or not chan_id:  # Don't bother if not set
         return
     snipe_chan = client.get_channel(chan_id)
@@ -2188,7 +2179,7 @@ async def report_to_leadership(client, msgs):  # pragma: no cover
         client: The bot client.
         msgs: A list of messages, each should be under discord char limit.
     """
-    chan_id = cog.util.CONF.carrier_channel
+    chan_id = cog.util.CONF.channels.ops
     if msgs and chan_id:
         chan = client.get_channel(chan_id)
         for msg in msgs:

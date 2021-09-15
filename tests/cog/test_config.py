@@ -10,8 +10,6 @@ import pytest
 import cog.config
 import cog.util
 
-CONF_PATH = cog.util.rel_to_abs('data', 'config.yml')
-
 
 @pytest.fixture
 def f_config(session):
@@ -21,8 +19,8 @@ def f_config(session):
     """
     with tempfile.NamedTemporaryFile() as tfile:
         test_data = copy.deepcopy(cog.config.CONFIG_DEFAULTS)
-        test_data['defer_missing'] = 4 * cog.config.CONFIG_DEFAULTS['defer_missing']
-        test_data['ttl'] = 2 * cog.config.CONFIG_DEFAULTS['ttl']
+        test_data['constants']['defer_missing'] = 4 * cog.config.CONFIG_DEFAULTS['constants']['defer_missing']
+        test_data['constants']['ttl'] = 2 * cog.config.CONFIG_DEFAULTS['constants']['ttl']
         with open(tfile.name, 'w') as fout:
             fout.write(str(test_data))
 
@@ -48,13 +46,13 @@ def test_config_unwrap(f_config):
 
 
 def test_config_read(f_config):
-    assert f_config.ttl == cog.config.CONFIG_DEFAULTS['ttl']
+    assert f_config.constants.ttl == cog.config.CONFIG_DEFAULTS['constants']['ttl']
     f_config.read()
-    assert f_config.ttl == 120
+    assert f_config.constants.ttl == 120
 
 
 def test_config_write(f_config):
-    f_config.conf['ttl'] = 300
+    f_config.conf['constants']['ttl'] = 300
     f_config.write()
 
     with open(f_config.fname) as fin:
@@ -72,14 +70,14 @@ def test_config_update(f_config):
 
 @pytest.mark.asyncio
 async def test_config_aread(f_config):
-    assert f_config.ttl == cog.config.CONFIG_DEFAULTS['ttl']
+    assert f_config.constants.ttl == cog.config.CONFIG_DEFAULTS['constants']['ttl']
     await f_config.aread()
-    assert f_config.ttl == 120
+    assert f_config.constants.ttl == 120
 
 
 @pytest.mark.asyncio
 async def test_config_awrite(f_config):
-    f_config.conf['ttl'] = 300
+    f_config.conf['constants']['ttl'] = 300
     await f_config.awrite()
 
     async with aiofiles.open(f_config.fname) as fin:

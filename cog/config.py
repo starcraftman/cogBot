@@ -17,13 +17,17 @@ except ImportError:
 
 # This is the default values expected
 CONFIG_DEFAULTS = {
-    'carrier_channel': 13,
-    'snipe_channel': 14,
-    'defer_missing': 650,
-    'hours_to_tick_priority': 36,
-    'max_drop': 1000,
-    'scheduler_delay': 10,
-    'ttl': 60,
+    'constants': {
+        'defer_missing': 650,
+        'show_priority_x_hours_before_tick': 48,
+        'max_drop': 1000,
+        'scheduler_delay': 10,  # Seconds
+        'ttl': 60,  # Seconds a time to live message remains posted
+    },
+    'channels': {
+        'ops': 13,
+        'snipe': 14,
+    },
     'emojis': {
         '_no': "\u274C",
         '_yes': "\u2705",
@@ -121,7 +125,10 @@ class Config():
 
     def read(self):
         """
-        Load the config.
+        Load the config from the file.
+        This will replace the existing configuration with ...
+
+            The contents of CONFIG_DEFAULTS dictionary updated with the contents of the file load.
         """
         self.conf = copy.deepcopy(CONFIG_DEFAULTS)
         with open(self.fname) as fin:
@@ -130,7 +137,7 @@ class Config():
 
     def write(self):
         """
-        Load the config.
+        Write the current config to the file.
         """
         with open(self.fname, 'w') as fout:
             yaml.dump(self.conf, fout, Dumper=Dumper,
@@ -178,4 +185,4 @@ class Config():
         with Inotify() as inotify:
             inotify.add_watch(self.fname, Mask.MODIFY)
             async for _ in inotify:
-                self.read()
+                await self.aread()

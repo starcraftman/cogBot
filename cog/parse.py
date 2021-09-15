@@ -227,7 +227,7 @@ def subs_drop(subs, prefix):
 **{prefix}drop 600 Rana --set 4560:2000**
 **{prefix}drop 600 Rana -s 4560:2000**
         Drop 600 supplies at Rana for yourself, set fort status to 4500 and UM status to 2000.
-    """.format(prefix=prefix, num=cog.util.CONF.max_drop)
+    """.format(prefix=prefix, num=cog.util.CONF.constants.max_drop)
     sub = subs.add_parser(prefix + 'drop', description=desc, formatter_class=RawHelp)
     sub.set_defaults(cmd='Drop')
     sub.add_argument('amount', type=int, help='The amount to drop.')

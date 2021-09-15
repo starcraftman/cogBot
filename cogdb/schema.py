@@ -14,6 +14,7 @@ from sqlalchemy.ext.hybrid import hybrid_property
 
 import cog.exc
 import cog.tbl
+import cog.util
 import cogdb
 
 
@@ -302,6 +303,11 @@ class FortSystem(Base):
     def is_undermined(self):
         """ The system has been undermined """
         return self.undermine >= 1.00
+
+    @property
+    def is_deferred(self):
+        """ The system should be deferred. """
+        return self.missing > 0 and self.missing <= cog.util.CONF.constants.defer_missing
 
     @property
     def missing(self):
