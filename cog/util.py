@@ -19,9 +19,9 @@ import re
 import aiohttp
 import yaml
 try:
-    from yaml import CLoader as Loader, CDumper as Dumper
+    from yaml import CLoader as Loader
 except ImportError:
-    from yaml import Loader, Dumper
+    from yaml import Loader
 
 import cog.config
 import cog.exc
@@ -656,6 +656,5 @@ class TimestampMixin():
 
 
 ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-YAML_FILE = rel_to_abs('data', 'config.yml')
 CONF = cog.config.Config(rel_to_abs('data', 'config.yml'))
 CONF.read()

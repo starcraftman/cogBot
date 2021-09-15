@@ -3,8 +3,6 @@ Test util the grab all module.
 """
 import datetime
 import os
-import shutil
-import tempfile
 
 import pytest
 
