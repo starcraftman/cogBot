@@ -444,6 +444,9 @@ class InaraApi():
         return await self.friendly_detector(cmdr, with_squad, returned_embed, msg)
 
     async def friendly_detector(self, cmdr, with_squad, returned_embed, msg):
+        """
+        Detect is a commander is friendly or not.
+        """
         if not returned_embed:
             returned_addition, is_friendly = await self.adding_to_kos(cmdr, msg)
             if returned_addition is None:
@@ -455,6 +458,9 @@ class InaraApi():
         return None, None
 
     async def adding_to_kos(self, cmdr, msg):
+        """
+        Add a message with reaction to give the user the choice of report he wants to do.
+        """
         req_id = self.req_counter
         sent = [await cog.util.BOT.send_message(
             msg.channel,
