@@ -737,6 +737,8 @@ def subs_whois(subs, prefix):
         Find out who this GearsandCogs fellow is ...
 **{prefix}whois gears**
         Search for all CMDRs with 'gears' in their name
+**{prefix}whois \\\\--hypehnCmdr--**
+        Search for a CMDR with a hyphen at the front of their name.
     """.format(prefix=prefix)
     sub = subs.add_parser(prefix + 'whois', description=desc, formatter_class=RawHelp)
     sub.set_defaults(cmd='WhoIs')
