@@ -92,7 +92,7 @@ async def test_friendly_detector_already_in_kos(f_bot):
 async def test_friendly_detector_canceled(f_bot):
     api = cog.inara.InaraApi()
     f_msg = fake_msg_gears('!whois Prozer')
-    emoji_cancel = "\u274C"
+    emoji_cancel = cog.util.CONF.emojis._no
     f_bot.wait_for.async_return_value = emoji_cancel, None
     cmdr = {"name": "Prozer", "allegiance": "Federation"}
     is_friendly_returned, squad_returned = await api.friendly_detector(cmdr, False, [], f_msg)
@@ -104,7 +104,7 @@ async def test_friendly_detector_canceled(f_bot):
 async def test_friendly_detector_friendly_no_squad(f_bot):
     api = cog.inara.InaraApi()
     f_msg = fake_msg_gears('!whois Prozer')
-    emoji_friendly = "\U0001F7E2"
+    emoji_friendly = cog.util.CONF.emojis._friendly
     f_bot.wait_for.async_return_value = emoji_friendly, None
     cmdr = {"name": "Prozer", "allegiance": "Federation"}
     is_friendly_returned, squad_returned = await api.friendly_detector(cmdr, False, [], f_msg)
@@ -116,7 +116,7 @@ async def test_friendly_detector_friendly_no_squad(f_bot):
 @pytest.mark.asyncio
 async def test_friendly_detector_hostile_with_squad(f_bot):
     api = cog.inara.InaraApi()
-    emoji_hostile = "\U0001F534"
+    emoji_hostile = cog.util.CONF.emojis._hostile
     f_bot.wait_for.async_return_value = emoji_hostile, None
     f_msg = fake_msg_gears('!whois Akeno')
     cmdr = {"name": "Akeno", "allegiance": "Empire", "squad": "Test"}

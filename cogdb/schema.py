@@ -67,11 +67,19 @@ class DiscordUser(Base):
     )
     um_user = sqla.orm.relationship(
         'UMUser', uselist=False, viewonly=True,
-        primaryjoin='foreign(DiscordUser.pref_name) == UMUser.name'
+        primaryjoin="and_(foreign(DiscordUser.pref_name) == UMUser.name, UMUser.sheet_src == 'main')"
     )
     um_merits = sqla_orm.relationship(
         'UMHold', lazy='select', uselist=True, viewonly=True,
-        primaryjoin='and_(foreign(DiscordUser.pref_name) == remote(UMUser.name), foreign(UMUser.id) == UMHold.user_id)'
+        primaryjoin="and_(foreign(DiscordUser.pref_name) == remote(UMUser.name), foreign(UMUser.id) == UMHold.user_id, UMUser.sheet_src == 'main')"
+    )
+    snipe_user = sqla.orm.relationship(
+        'UMUser', uselist=False, viewonly=True,
+        primaryjoin="and_(foreign(DiscordUser.pref_name) == UMUser.name, UMUser.sheet_src == 'snipe')"
+    )
+    snipe_merits = sqla_orm.relationship(
+        'UMHold', lazy='select', uselist=True, viewonly=True,
+        primaryjoin="and_(foreign(DiscordUser.pref_name) == remote(UMUser.name), foreign(UMUser.id) == UMHold.user_id, UMUser.sheet_src == 'snipe')"
     )
 
     def __repr__(self):

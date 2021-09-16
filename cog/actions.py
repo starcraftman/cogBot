@@ -73,7 +73,7 @@ async def check_mentions(coro, *args, **kwargs):
         await coro(*args, **kwargs)
 
 
-def check_sheet(scanner_name, attr, user_cls):
+def check_sheet(scanner_name, attr, user_cls, sheet_src=None):
     """ Check if user present in sheet. """
     @decorator.decorator
     async def inner(coro, *args, **kwargs):
@@ -86,6 +86,8 @@ def check_sheet(scanner_name, attr, user_cls):
                 self.session, cls=user_cls, discord_user=self.duser,
                 start_row=get_scanner(scanner_name).user_row
             )
+            if sheet_src:
+                sheet.sheet_src = sheet_src
 
             self.payloads += get_scanner(scanner_name).__class__.update_sheet_user_dict(
                 sheet.row, sheet.cry, sheet.name)
@@ -1110,7 +1112,10 @@ class SnipeHold(Hold):
     """
     SnipeHold, same as Hold but for snipe sheet.
     """
-    pass
+    @check_mentions
+    @check_sheet('hudson_snipe', 'snipe_user', UMUser, sheet_src=EUMSheet.snipe)
+    async def execute(self):
+        await super().execute()
 
 
 class KOS(Action):
