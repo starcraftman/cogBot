@@ -1298,20 +1298,16 @@ class Recruits(Action):
     Manage recruits in the recruit sheet.
     """
     def duplicate_verifier(self, r_scanner, cmdr_name, discord_name):
+        """Looks in the sheet for duplicated names"""
         all_cmdr_names = r_scanner.cells_col_major[0]
         all_discord_names = r_scanner.cells_col_major[1]
 
         index = 0
-        for sheet_cmdr_name in all_cmdr_names:
-            distance = textdistance.hamming(sheet_cmdr_name, cmdr_name)
-            if distance <= 1:
+        for sheet_names in set(all_cmdr_names + all_discord_names):
+            distance = textdistance.hamming(sheet_names, cmdr_name)
+            if distance <= 3:
                 return index
-            index += 1
-
-        index = 0
-        for sheet_discord_name in all_discord_names:
-            distance = textdistance.hamming(sheet_discord_name, discord_name)
-            if distance <= 0:
+            if sheet_names == discord_name:
                 return index
             index += 1
         return 0
