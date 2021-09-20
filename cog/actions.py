@@ -1298,19 +1298,34 @@ class Recruits(Action):
     Manage recruits in the recruit sheet.
     """
     def duplicate_verifier(self, r_scanner, cmdr_name, discord_name):
-        """Looks in the sheet for duplicated names"""
-        all_cmdr_names = r_scanner.cells_col_major[0]
-        all_discord_names = r_scanner.cells_col_major[1]
+        """
+        Looks in the sheet for similar names. Names are similar if:
+          - Identical to either cmdr name or discord name on sheet.
+          - Hamming distance is close enough to warrant flagging.
 
-        index = 0
-        for sheet_names in set(all_cmdr_names + all_discord_names):
-            distance = textdistance.hamming(sheet_names, cmdr_name)
-            if distance <= 3:
-                return index
-            if sheet_names == discord_name:
-                return index
-            index += 1
-        return 0
+        Args:
+            r_scanner: The Recruits scanner object.
+            cmdr_name: The name of the commander to look for.
+            discord_name: The discord name of the commander to look for.
+
+        Returns:
+            (row, similar_cmdr) - If a close match is found amongst names, return row and cmdr name similar.
+            (None, None) - No similar cmdr exists in the sheet.
+        """
+        # Repetition required due to wanting to know row + second column may be empty for a given row
+        all_cmdr_names = r_scanner.cells_col_major[0]
+        for row, sheet_name in enumerate(all_cmdr_names, start=1):
+            if sheet_name and sheet_name in (cmdr_name, discord_name) or \
+                    textdistance.hamming(sheet_name, cmdr_name) <= 3:
+                return row, sheet_name
+
+        all_discord_names = r_scanner.cells_col_major[1]
+        for row, sheet_name in enumerate(all_discord_names, start=1):
+            if sheet_name and sheet_name in (cmdr_name, discord_name) or \
+                    textdistance.hamming(sheet_name, cmdr_name) <= 3:
+                return row, sheet_name
+
+        return None, None
 
     async def execute(self):
         try:
@@ -1328,12 +1343,17 @@ class Recruits(Action):
         if not re.match(r'.*-\s*\S+$', notes):
             notes += " -{}".format(self.msg.author.name)
 
-        index = self.duplicate_verifier(r_scanner, cmdr, discord_name)
-        to_mention = cog.util.BOT.get_member_by_substr(self.msg.author.display_name).mention
+        row = None  # By default there's no similar cmdr.
+        if not self.args.force:
+            row, similar_cmdr = self.duplicate_verifier(r_scanner, cmdr, discord_name)
+        if row:
+            dupe_msg = """CMDR {cmdr} is similar to {similar} in row {row}.
+Please manually check the recruits sheet {author}.
 
-        response = "CMDR {} has been detected as duplicate. Row {} in sheet. Please Manual check {}.".\
-            format(cmdr, index+1, to_mention)
-        if index == 0:
+To bypass this check use the `--force` flag. See `{prefix}recruits -h for information."""
+            response = dupe_msg.format(cmdr=cmdr, similar=similar_cmdr, row=row,
+                                       author=self.msg.author.mention, prefix=self.bot.prefix)
+        else:
             await r_scanner.send_batch(r_scanner.add_recruit_dict(
                 cmdr=cmdr,
                 discord_name=discord_name,
@@ -1344,6 +1364,7 @@ class Recruits(Action):
             ))
 
             response = "CMDR {} has been added to row: {}".format(cmdr, r_scanner.first_free - 1)
+
         await self.bot.send_message(self.msg.channel, response)
 
 

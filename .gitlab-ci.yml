@@ -30,7 +30,7 @@ before_script:
 test:
   script:
     - ALL_TESTS=True python -m pytest --cov=cog --cov=cogdb
-    - coveralls
+    - coveralls || true
 pylint:
   script:
     - tox -e pylint

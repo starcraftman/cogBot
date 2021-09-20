@@ -477,6 +477,8 @@ def subs_recruits(subs, prefix):
         Will add the commander with PMF field to: Some PMF Group
 **{prefix}recruits add CMDR Name Here --notes Any notes go here**
         Will add the commander with notes field to: Any notes go here
+**{prefix}recruits add CMDR Similar --force
+        Will add the commander that is similar to an existing one, bypasses similarity check.
     """.format(prefix=prefix)
     sub = subs.add_parser(prefix + 'recruits', description=desc, formatter_class=RawHelp)
     sub.set_defaults(cmd='Recruits')
@@ -489,6 +491,7 @@ def subs_recruits(subs, prefix):
     subcmd.add_argument('-p', '--platform', default='1', choices=['1', '2', '3', '1+2', '1+3', '2+3', '1+2+3'], help='The platform, PC=1, Xbox=2, PS4=3. Combine with +')
     subcmd.add_argument('--pmf', nargs='+', default=[''], help='The player minor faction.')
     subcmd.add_argument('--notes', nargs='+', default=[''], help='The notes field.')
+    subcmd.add_argument('--force', action='store_true', help='Force a similar user past similarity check.')
 
 
 @register_parser

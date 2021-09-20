@@ -53,8 +53,11 @@ def patch_scanners():
     scanner.get_batch = get_batch_
     scanner.update_cells = update_cells_
     cog.actions.SCANNERS = {
+        'hudson_carriers': scanner,
         'hudson_cattle': scanner,
         'hudson_kos': scanner,
+        'hudson_recruits': scanner,
+        'hudson_snipe': scanner,
         'hudson_undermine': scanner,
     }
 
@@ -989,6 +992,79 @@ async def test_cmd_recruits_not_admin(f_bot, db_cleanup):
 
     with pytest.raises(cog.exc.InvalidPerms):
         await action_map(msg, f_bot).execute()
+
+
+@pytest.mark.asyncio
+async def test_cmd_recruits_similar_cmdr(f_bot, f_admins, f_dusers, db_cleanup, patch_scanners):
+    patch_scanners.cells_col_major = [
+        [
+            "CMDR Names",
+            "CMDR 1",
+            "CMDR 2",
+            "CMDR Cookies",
+        ],
+        [
+            "Discord Names",
+            "Discord CMDR 1",
+            "",
+            "",
+        ],
+    ]
+    msg = fake_msg_gears("!recruits add CMDR Cookie")
+
+    await action_map(msg, f_bot).execute()
+    expected = "CMDR CMDR Cookie is similar to CMDR Cookies in row 4"
+    result = str(f_bot.send_message.call_args).replace("\\n", "\n")
+    assert expected in result
+
+
+@pytest.mark.asyncio
+async def test_cmd_recruits_similar_cmdr_force(f_bot, f_admins, f_dusers, db_cleanup, patch_scanners):
+    patch_scanners.first_free = 200
+    patch_scanners.cells_col_major = [
+        [
+            "CMDR Names",
+            "CMDR 1",
+            "CMDR 2",
+            "CMDR Cookies",
+        ],
+        [
+            "Discord Names",
+            "Discord CMDR 1",
+            "",
+            "",
+        ],
+    ]
+    msg = fake_msg_gears("!recruits add CMDR Cookie --force")
+
+    await action_map(msg, f_bot).execute()
+    expected = "CMDR CMDR Cookie has been added to row: 199"
+    result = str(f_bot.send_message.call_args).replace("\\n", "\n")
+    assert expected in result
+
+
+@pytest.mark.asyncio
+async def test_cmd_recruits_unique_cmdr(f_bot, f_admins, f_dusers, db_cleanup, patch_scanners):
+    patch_scanners.first_free = 200
+    patch_scanners.cells_col_major = [
+        [
+            "CMDR Names",
+            "CMDR 1",
+            "CMDR 2",
+            "CMDR Cookies",
+        ],
+        [
+            "Discord Names",
+            "Discord CMDR 1",
+            "",
+            "",
+        ],
+    ]
+    msg = fake_msg_gears("!recruits add CMDR Not There -d Discord Name -p 1 -r R")
+
+    await action_map(msg, f_bot).execute()
+    expected = "CMDR CMDR Not There has been added to row: 199"
+    assert expected in str(f_bot.send_message.call_args).replace("\\n", "\n")
 
 
 @pytest.mark.asyncio
