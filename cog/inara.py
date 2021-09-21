@@ -32,6 +32,7 @@ except ImportError:
 import aiohttp
 import bs4
 import discord
+import discord_components as dcom
 
 import cog
 import cog.exc
@@ -87,6 +88,11 @@ INARA_STATION_SEARCH = "https://inara.cz/galaxy-station/?search={}%20[{}]"  # sy
 INARA_FACTION_SEARCH = "https://inara.cz/galaxy-minorfaction/?search={}"
 RATE_MAX = 12
 RATE_RESUME = 9
+BUT_CANCEL = 'Cancel'
+BUT_FRIENDLY = 'Friendly'
+BUT_HOSTILE = 'Hostile'
+BUT_APPROVE = 'Approve'
+BUT_DENY = 'Deny'
 
 
 class InaraApiInput():
@@ -460,32 +466,33 @@ class InaraApi():
         Add a message with reaction to give the user the choice of report he wants to do.
         """
         req_id = self.req_counter
-        sent = [await cog.util.BOT.send_message(
-            msg.channel,
-            "Should the CMDR {} be added as friendly or hostile? Use reactions below to select. Use X to ignore."
-                .format(cmdr["name"]))]
 
-        self.waiting_messages[req_id] = sent[0]
-        friendly_emote = cog.util.CONF.emojis._friendly
-        canceled_emote = cog.util.CONF.emojis._no
-        await sent[0].add_reaction(friendly_emote)
-        await sent[0].add_reaction(cog.util.CONF.emojis._hostile)
-        await sent[0].add_reaction(canceled_emote)
+        components = [
+            dcom.Button(label=BUT_FRIENDLY, style=dcom.ButtonStyle.green),
+            dcom.Button(label=BUT_HOSTILE, style=dcom.ButtonStyle.red),
+            dcom.Button(label=BUT_CANCEL, style=dcom.ButtonStyle.grey),
+        ]
+        text = f"Should the CMDR {cmdr['name']} be added as friendly or hostile? Use buttons below."
+        sent = await cog.util.BOT.send_message(msg.channel, text, components=components)
+        self.waiting_messages[req_id] = sent
 
-        def check(reaction, user):
-            return user == msg.author and reaction.message == sent[0]
-
-        react, _ = await cog.util.BOT.wait_for('reaction_add', check=check)
+        def check(inter):
+            return inter.message == sent
+        inter = await cog.util.BOT.wait_for('button_click', check=check)
 
         # Approved update
-        response = "Command ignored."
         reason, is_friendly = None, None
-        if str(react) != canceled_emote:
-            is_friendly = str(react) == friendly_emote
+        if inter.component.label == BUT_CANCEL:
+            resp = "This report will be cancelled. Have a nice day!"
+
+        else:
+            resp = """You selected {}
+
+Leadership will review your report. Thank you.""".format(inter.component.label)
+            is_friendly = inter.component.label == BUT_FRIENDLY
             reason = "Manual report after a !whois in {channel} by cmdr {reported_by}" \
                 .format(channel=msg.channel, reported_by=msg.author)
-            response = "CMDR has been reported to Leadership."
-        await cog.util.BOT.send_message(msg.channel, response)
+        await inter.send(resp)
         await self.delete_waiting_message(req_id)
         return reason, is_friendly
 

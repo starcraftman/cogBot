@@ -51,6 +51,7 @@ import cogdb
 import cogdb.scanners
 import cogdb.query
 import cogdb.eddb
+import discord_components as dc
 
 
 SYNC_NOTICE = """Synchronizing sheet changes.
@@ -164,6 +165,7 @@ class CogBot(discord.Client):
         """
         Event triggered when connection established to discord and bot ready.
         """
+        dc.DiscordComponents(self)
         log = logging.getLogger(__name__)
         log.info('Logged in as: %s', self.user.name)
         log.info('Available on following guilds:')
@@ -374,7 +376,7 @@ class CogBot(discord.Client):
             logging.getLogger(__name__).info('Command %s released lock.', msg.content)
 
     # TODO: Signature changed in library, update later.
-    async def send_message(self, destination, content=None, *, tts=False, embed=None):
+    async def send_message(self, destination, content=None, *, tts=False, embed=None, components=None):
         """
         Behaves excactly like Client.send_message except it:
 
@@ -390,7 +392,7 @@ class CogBot(discord.Client):
         attempts = 4
         while attempts:
             try:
-                return await destination.send(content, tts=tts, embed=embed)
+                return await destination.send(content, tts=tts, embed=embed, components=components)
             except discord.HTTPException:
                 # Catching these due to infrequent issues with discord remote.
                 await asyncio.sleep(1.5)
