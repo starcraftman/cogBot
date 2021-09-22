@@ -6,14 +6,15 @@ Fetch the latest EDDB dump automatically.
 This is used to pre-seed EDDB database. See cogdb.eddb
 """
 import asyncio
+import glob
 import os
-import subprocess
 import sys
 
 import aiofiles
 import aiohttp
 
 
+CHUNK_LIMIT = 10000
 EDDB_URLS = [
     #  "https://eddb.io/archive/v6/attractions.json",  # Beacons, abandoned bases
     "https://eddb.io/archive/v6/commodities.json",
@@ -26,9 +27,20 @@ EDDB_URLS = [
 ]
 
 
-def pretty_json(fname):
-    with open(fname + 'l', 'w') as fout:
-        subprocess.run(['jq', '.', '-S', fname], stdout=fout)
+async def a_jq_post_process(fname):
+    """
+    Use jq command line to reprocess fname (a json) into ...
+        - A pretty printed jsonl file for easy reading.
+        - A ONE object per line file for parallel processing.
+    """
+    async with aiofiles.open(fname + 'l', "w") as fout_l:
+        async with aiofiles.open(fname + '_per_line', "w") as fout_line:
+            await asyncio.gather(
+                asyncio.create_subprocess_shell(f'jq . -S {fname}', stdout=fout_l),
+                asyncio.create_subprocess_shell(f'jq -c .[] {fname}', stdout=fout_line),
+            )
+    print("Created PRETTY file", fname + 'l')
+    print("Created object PER LINE file", fname + '_per_line')
 
 
 # Directed Header: Accept-Encoding: gzip, deflate, sdch
@@ -42,17 +54,14 @@ async def fetch(url, fname, sort=True):
     async with aiofiles.open(fname, "wb") as fout,\
             aiohttp.ClientSession(headers=headers) as session:
         async with session.get(url) as resp:
-            chunk = await resp.content.read(1000)
+            chunk = await resp.content.read(CHUNK_LIMIT)
             while chunk:
                 await fout.write(chunk)
-                chunk = await resp.content.read(1000)
+                chunk = await resp.content.read(CHUNK_LIMIT)
 
     print("Downloaded to", fname)
-
     if sort and fname.endswith(".json"):
-        print("Using jq to pretty print:", fname)
-        await asyncio.get_event_loop().run_in_executor(None, pretty_json, fname)
-        print("Created pretty file", fname + 'l')
+        await a_jq_post_process(fname)
 
 
 def main():
@@ -77,9 +86,20 @@ def main():
     except OSError:
         pass
 
+    # Cleanup files before writing
+    to_remove = glob.glob(os.path.join(eddb_d, '*.json'))
+    if sort:
+        to_remove += glob.glob(os.path.join(eddb_d, '*.jsonl'))
+        to_remove += glob.glob(os.path.join(eddb_d, '*per_line'))
+    for fname in to_remove:
+        try:
+            os.remove(fname)
+        except OSError:
+            print(f"Could not remove: {fname}")
+
     jobs = [fetch(url, os.path.join(eddb_d, os.path.basename(url)), sort) for url in EDDB_URLS]
     asyncio.get_event_loop().run_until_complete(asyncio.gather(*jobs))
-    print("All files updated in", eddb_d)
+    print("\n\nAll files updated in", eddb_d)
 
 
 if __name__ == "__main__":

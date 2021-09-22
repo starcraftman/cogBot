@@ -39,18 +39,18 @@ else:
     CUR_DB = os.environ.get('COG_TOKEN', 'dev')
     CREDS['db'] = CUR_DB
 
-engine = sqlalchemy.create_engine(MYSQL_SPEC.format(**CREDS), echo=False, pool_recycle=3600, pool_size=20)
+engine = sqlalchemy.create_engine(MYSQL_SPEC.format(**CREDS), echo=False, pool_pre_ping=True, pool_recycle=3600, pool_size=20)
 Session = sqlalchemy.orm.sessionmaker(bind=engine)
 logging.getLogger(__name__).error('Main Engine Selected: %s', engine)
 
 # Local eddb server
 CREDS['db'] = "eddb"
-eddb_engine = sqlalchemy.create_engine(MYSQL_SPEC.format(**CREDS), echo=False, pool_recycle=3600, pool_size=20)
+eddb_engine = sqlalchemy.create_engine(MYSQL_SPEC.format(**CREDS), echo=False, pool_pre_ping=True, pool_recycle=3600, pool_size=20)
 EDDBSession = sqlalchemy.orm.sessionmaker(bind=eddb_engine)
 
 # Remote server tracking bgs
 CREDS = cog.util.CONF.dbs.side.unwrap
-side_engine = sqlalchemy.create_engine(MYSQL_SPEC.format(**CREDS), echo=False, pool_recycle=3600, pool_size=10)
+side_engine = sqlalchemy.create_engine(MYSQL_SPEC.format(**CREDS), echo=False, pool_recycle=900, pool_size=10)
 SideSession = sqlalchemy.orm.sessionmaker(bind=side_engine)
 
 CREDS = None

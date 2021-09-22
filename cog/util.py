@@ -509,6 +509,46 @@ def next_weekly_tick(a_date, offset=0):
     return weekly_tick + datetime.timedelta(weeks=offset)
 
 
+def chunk_file(fname, *, limit=5000, start_num=0):
+    """
+    This function is inexorably tied to extras.fetch_eddb.jq_post_process.
+    Importantly jq doesn't wrap in list brackets or end in ','
+
+    Take any file with fname. Chunk that file out with limit lines per file.
+    Each chunk will be written to a file with name of form fname_001, fname_002, ...
+
+    Args:
+        fname: The filename to open and chunk based on limit.
+
+    Kwargs:
+        limit: This many lines of input file will be written to each file.
+        start_num: This is the starting number for chunks, appended to end of fname.
+
+    Returns: The last number used to generate chunk.
+    """
+    lines = ['[\n']
+    with open(fname, 'r', encoding='utf8') as fin:
+        for ind, line in enumerate(fin):
+            if ind and (ind % limit) == 0:
+                with open(f'{fname}_{start_num:03}', 'w', encoding='utf8') as fout:
+                    last_line = lines[-1][:-2] + '\n'
+                    lines = lines[:-1] + [last_line, ']']
+                    fout.writelines(lines)
+                    lines = ['[\n']
+                    start_num += 1
+
+            lines += [line.rstrip() + ',\n']
+
+    if lines:
+        with open(f'{fname}_{start_num:03}', 'w') as fout:
+            last_line = lines[-1][:-2] + '\n'
+            lines = lines[:-1] + [last_line, ']']
+            fout.writelines(lines)
+            lines.clear()
+
+    return start_num
+
+
 # TODO: Use later.
 class TimestampMixin():
     """

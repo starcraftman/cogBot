@@ -231,109 +231,61 @@ def test_eddb_make_parser():
     assert args.preload
 
 
-def test_load_commodities(eddb_session):
+def test_load_commodities():
     fname = cog.util.rel_to_abs("tests", "eddb_fake", "commodities.jsonl")
-    try:
-        cogdb.eddb.load_commodities(eddb_session, fname)
-        assert eddb_session.query(Commodity).filter(Commodity.id == 20000).one()
-        assert eddb_session.query(CommodityCat).filter(CommodityCat.id == 10000).one()
-    finally:
-        eddb_session.rollback()
-        try:
-            eddb_session.query(Commodity).filter(Commodity.id == 20000).delete()
-        except NoResultFound:
-            pass
-        try:
-            eddb_session.query(CommodityCat).filter(CommodityCat.id == 10000).delete()
-        except NoResultFound:
-            pass
+    objs = cogdb.eddb.load_commodities(fname)
+    expected = (
+        {CommodityCat(id=10000, name='FakeCategory')},
+        [Commodity(id=20000, category_id=10000, name='FakeProdut', average_price=108, is_rare=0)]
+    )
+    assert objs == expected
 
 
-def test_load_modules(eddb_session):
+def test_load_modules():
     fname = cog.util.rel_to_abs("tests", "eddb_fake", "modules.jsonl")
-    try:
-        cogdb.eddb.load_modules(eddb_session, fname)
-        assert eddb_session.query(Module).filter(Module.id == 10000).one()
-        assert eddb_session.query(ModuleGroup).filter(ModuleGroup.id == 1000).one()
-    finally:
-        eddb_session.rollback()
-        try:
-            eddb_session.query(Module).filter(Module.id == 10000).delete()
-        except NoResultFound:
-            pass
-        try:
-            eddb_session.query(ModuleGroup).filter(ModuleGroup.id == 1000).delete()
-        except NoResultFound:
-            pass
+    objs = cogdb.eddb.load_modules(fname)
+    expected = (
+        {ModuleGroup(id=1000, name='Lightweight Alloy', category='Bulkhead', category_id=40)},
+        [Module(id=10000, name=None, group_id=1000, size=1, rating='I', mass=None, price=None, ship='Sidewinder Mk. I', weapon_mode=None)]
+    )
+    assert objs == expected
 
 
 def test_load_systems(eddb_session):
+    power_ids = {x.text: x.id for x in eddb_session.query(cogdb.eddb.Power).all()}
+    power_ids[None] = power_ids["None"]
+
     fname = cog.util.rel_to_abs("tests", "eddb_fake", "systems_populated.jsonl")
-    try:
-        cogdb.eddb.load_systems(eddb_session, fname)
-        assert eddb_session.query(Influence).filter(Influence.system_id == FAKE_ID1).all()
-        assert eddb_session.query(FactionActiveState).filter(FactionActiveState.system_id == FAKE_ID1).all()
-        assert eddb_session.query(System).filter(System.id == FAKE_ID1).one()
-    finally:
-        eddb_session.rollback()
-        try:
-            eddb_session.query(FactionActiveState).filter(FactionActiveState.system_id == FAKE_ID1).delete()
-        except NoResultFound:
-            pass
-        try:
-            eddb_session.query(Influence).filter(Influence.system_id == FAKE_ID1).delete()
-        except NoResultFound:
-            pass
-        try:
-            eddb_session.query(System).filter(System.id == FAKE_ID1).delete()
-        except NoResultFound:
-            pass
+    objs = cogdb.eddb.load_systems(fname, power_ids)
+    assert len(objs) == 3
+    assert objs[0][0].name == "FakeSystem"
 
 
-def test_load_factions(eddb_session):
+def test_load_factions():
     fname = cog.util.rel_to_abs("tests", "eddb_fake", "factions.jsonl")
-    try:
-        cogdb.eddb.load_factions(eddb_session, fname, preload=False)
-        assert eddb_session.query(Faction).filter(Faction.id == FAKE_ID1).one()
-        assert eddb_session.query(Allegiance).filter(Allegiance.id == 1000).one()
-        assert eddb_session.query(Government).filter(Government.id == 1000).one()
-    finally:
-        eddb_session.rollback()
-        try:
-            eddb_session.query(Faction).filter(Faction.id == FAKE_ID1).delete()
-        except NoResultFound:
-            pass
-        try:
-            eddb_session.query(Allegiance).filter(Allegiance.id == 1000).delete()
-        except NoResultFound:
-            pass
-        try:
-            eddb_session.query(Government).filter(Government.id == 1000).delete()
-        except NoResultFound:
-            pass
+
+    objs = cogdb.eddb.load_factions(fname, preload=False)
+    expected = (
+        {Allegiance(id=1000, text='FakeAllegiance', eddn=None)},
+        {Government(id=1000, text='FakeGovernment', eddn=None)},
+        [Faction(id=942834121, name='FakeFactionName', state_id=None, government_id=1000, allegiance_id=1000, home_system_id=None, is_player_faction=False, updated_at=1546622499)]
+    )
+    assert objs == expected
 
 
 def test_load_stations(eddb_session):
+    economy_ids = {x.text: x.id for x in eddb_session.query(cogdb.eddb.Economy).all()}
+    economy_ids[None] = economy_ids['None']
+
     fname = cog.util.rel_to_abs("tests", "eddb_fake", "stations.jsonl")
-    try:
-        cogdb.eddb.load_stations(eddb_session, fname)
-        assert eddb_session.query(StationEconomy).filter(StationEconomy.id == FAKE_ID1).one()
-        assert eddb_session.query(StationFeatures).filter(StationFeatures.id == FAKE_ID1).one()
-        assert eddb_session.query(Station).filter(Station.id == FAKE_ID1).one()
-    finally:
-        eddb_session.rollback()
-        try:
-            eddb_session.query(StationEconomy).filter(StationEconomy.id == FAKE_ID1).delete()
-        except NoResultFound:
-            pass
-        try:
-            eddb_session.query(StationFeatures).filter(StationFeatures.id == FAKE_ID1).delete()
-        except NoResultFound:
-            pass
-        try:
-            eddb_session.query(Station).filter(Station.id == FAKE_ID1).delete()
-        except NoResultFound:
-            pass
+    objs = cogdb.eddb.load_stations(fname, economy_ids)
+    expected = (
+        [],
+        [Station(id=942834121, name='Porta', distance_to_star=995, max_landing_pad_size='L', type_id=8, system_id=189, controlling_minor_faction_id=13968, updated_at=1621238405)],
+        [StationEconomy(id=942834121, economy_id=7, primary=True, proportion=None)],
+        [StationFeatures(id=942834121, blackmarket=False, market=True, refuel=True, repair=True, rearm=True, outfitting=True, shipyard=True, dock=True, commodities=True)]
+    )
+    assert objs == expected
 
 
 def test_get_controls_of_power(eddb_session):

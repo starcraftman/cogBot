@@ -3,6 +3,7 @@ Test util the grab all module.
 """
 import datetime
 import os
+import tempfile
 
 import pytest
 
@@ -291,3 +292,25 @@ def test_next_weekly_tick():
     # Calculate tick just past hour
     tick = cog.util.next_weekly_tick(tick + datetime.timedelta(hours=1), 0)
     assert tick == datetime.datetime(2021, 9, 9, 7, 0)
+
+
+def test_chunk_file():
+    lines = [(str(x) + '\n').encode() for x in range(1, 5002)]
+
+    with tempfile.NamedTemporaryFile() as tfile:
+        tfile.writelines(lines)
+        tfile.flush()
+        assert os.path.exists(tfile.name)
+
+        file_1 = tfile.name + '_000'
+        file_2 = tfile.name + '_001'
+        try:
+            cog.util.chunk_file(tfile.name)
+            with open(file_2, 'r') as fin:
+                assert fin.read() == '[\n5001\n]'
+        finally:
+            for fname in [file_1, file_2]:
+                try:
+                    os.remove(fname)
+                except OSError:
+                    pass

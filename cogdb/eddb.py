@@ -8,10 +8,13 @@ This module is for internal use.
 N.B. Don't put subqueries in FROM of views for now, doesn't work on test docker.
 """
 import asyncio
+import concurrent.futures as cfut
 import copy
 import datetime
+import glob
 import inspect
 import math
+import os
 import string
 import sys
 
@@ -55,6 +58,7 @@ LEN = {  # Lengths for strings stored in the db
     "system": 30,
     "weapon_mode": 6,
 }
+JOB_LIMIT=10
 TIME_FMT = "%d/%m/%y %H:%M:%S"
 # These are the faction types strong/weak verse.
 HUDSON_BGS = [['Feudal', 'Patronage'], ["Dictatorship"]]
@@ -1289,8 +1293,7 @@ def preload_tables(session):
     session.commit()
 
 
-# TODO: Test these load functions
-def load_commodities(session, fname):
+def load_commodities(fname):
     """ Parse standard eddb dump commodities.json and enter into database. """
     # High level mapppings direct data flow by path in json
     # Mappings should be mutually exclusive
@@ -1304,7 +1307,7 @@ def load_commodities(session, fname):
         'item.category.name': [('commodity_cat', 'name')],
     }
 
-    print("Parsing commodities ... ", end='', flush=True)
+    print(f"Parsing commodities in {fname}")
     categories, commodities = set(), []
     commodity, commodity_cat = {}, {}
     with open(fname, 'rb') as fin:
@@ -1331,17 +1334,11 @@ def load_commodities(session, fname):
             except KeyError:
                 pass
 
-    #  print("Parsed following categories:")
-    #  __import__('pprint').pprint(categories)
-    print("Finished.")
-    session.add_all(categories)
-    session.flush()
-    session.add_all(commodities)
-    session.commit()
-    print("Flushed to db.")
+    print(f"FIN: Parsing commodities in {fname}")
+    return categories, commodities
 
 
-def load_modules(session, fname):
+def load_modules(fname):
     """ Parse standard eddb dump modules.json and enter into database. """
     # High level mapppings direct data flow by path in json
     # Mappings should be mutually exclusive
@@ -1361,7 +1358,7 @@ def load_modules(session, fname):
         'item.group.category_id': [('module_group', 'category_id')],
     }
 
-    print("Parsing modules ... ", end='', flush=True)
+    print(f"Parsing modules in {fname}")
     module_groups, modules = set(), []
     module_base = {'size': None, 'mass': None}
     module_group, module = {}, copy.deepcopy(module_base)
@@ -1389,17 +1386,11 @@ def load_modules(session, fname):
             except KeyError:
                 pass
 
-    #  print("Parsed following module groups:")
-    #  __import__('pprint').pprint(module_groups)
-    print("Finished")
-    session.add_all(module_groups)
-    session.flush()
-    session.add_all(modules)
-    session.commit()
-    print("Flushed to db.")
+    print(f"FIN: Parsing modules in {fname}")
+    return module_groups, modules
 
 
-def load_factions(session, fname, preload=True):
+def load_factions(fname, preload=True):
     """ Parse standard eddb dump modules.json and enter into database. """
     # High level mapppings direct data flow by path in json
     # Mappings should be mutually exclusive
@@ -1416,7 +1407,7 @@ def load_factions(session, fname, preload=True):
         'item.allegiance': [('allegiance', 'text')],
     }
 
-    print("Parsing factions, takes a while ... ", end='', flush=True)
+    print(f"Parsing factions in {fname}")
     allegiances, governments, factions = set(), set(), []
     faction, allegiance, government = {}, {}, {}
     with open(fname, 'rb') as fin:
@@ -1448,29 +1439,16 @@ def load_factions(session, fname, preload=True):
             except KeyError:
                 pass
 
-    #  print("Parsed following allegiances:")
-    #  __import__('pprint').pprint(allegiances)
-    #  print("Parsed following governments:")
-    #  __import__('pprint').pprint(governments)
-    if not preload:
-        allegiances = [x for x in allegiances if x.id]
-        governments = [x for x in governments if x.id]
-        session.add_all(allegiances)
-        session.add_all(governments)
-        session.flush()
+        if preload:
+            allegiances = []
+            governments = []
 
-    print("Finished")
-    session.add_all(factions)
-    session.commit()
-    print("Flushed to db.")
+    print(f"FIN: Parsing factions in {fname}")
+    return allegiances, governments, factions
 
 
-def load_systems(session, fname):
+def load_systems(fname, power_ids):
     """ Parse standard eddb dump populated_systems.json and enter into database. """
-    # Reverse mapping to determine id based on text
-    powers_ids = {x.text: x.id for x in session.query(Power).all()}
-    powers_ids[None] = powers_ids["None"]
-
     # High level mapppings direct data flow by path in json
     # Mappings should be mutually exclusive
     # Format prefix, [(target_dictionary, key_in_dict), (target_dictionary, key_in_dict), ...]
@@ -1494,7 +1472,7 @@ def load_systems(session, fname):
         'item.minor_faction_presences.item.happiness_id': [('faction', 'happiness_id')],
     }
 
-    print("Parsing systems, takes a while ... ", end='', flush=True)
+    print(f"Parsing systems in {fname}")
     systems, influences, states = [], [], []
     faction_base = {'active_states': [], 'pending_states': [], 'recovering_states': []}
     system, factions, faction = {}, [], copy.deepcopy(faction_base)
@@ -1518,7 +1496,7 @@ def load_systems(session, fname):
 
             elif (prefix, the_type, value) == ('item', 'end_map', None):
                 # JSON Item terminated
-                system['power_id'] = powers_ids[system.pop('power')]
+                system['power_id'] = power_ids[system.pop('power')]
                 for faction in factions:
                     for val in faction.pop('active_states'):
                         states += [FactionActiveState(system_id=system['id'], faction_id=faction['faction_id'], state_id=val)]
@@ -1547,21 +1525,12 @@ def load_systems(session, fname):
             except KeyError:
                 pass
 
-    print("Finished")
-    session.add_all(systems)
-    session.flush()
-    session.add_all(influences)
-    session.add_all(states)
-    session.commit()
-    print("Flushed to db.")
+    print(f"FIN: Parsing systems in {fname}")
+    return systems, influences, states
 
 
-def load_stations(session, fname, preload=True):
+def load_stations(fname, economy_ids, preload=True):
     """ Parse standard eddb dump stations.json and enter into database. """
-    # Map eceonomies back onto ids
-    economy_ids = {x.text: x.id for x in session.query(Economy).all()}
-    economy_ids[None] = economy_ids['None']
-
     # High level mapppings direct data flow by path in json
     # Mappings should be mutually exclusive
     # Format prefix, [(target_dictionary, key_in_dict), (target_dictionary, key_in_dict), ...]
@@ -1587,7 +1556,7 @@ def load_stations(session, fname, preload=True):
         'item.type': [('st_type', 'text')],
     }
 
-    print("Parsing stations, takes a while ... ", end='', flush=True)
+    print(f"Parsing stations in {fname}")
     station_features, station_types, stations, economies = [], set(), [], []
     station, st_features, st_type, st_econs = {}, {}, {}, []
     with open(fname, 'rb') as fin:
@@ -1626,17 +1595,11 @@ def load_stations(session, fname, preload=True):
             except KeyError:
                 pass
 
-    print("Finished")
-    if not preload:
-        __import__('pprint').pprint(station_types)
-        session.add_all(station_types)
-        session.flush()
-    session.add_all(stations)
-    session.flush()
-    session.add_all(economies)
-    session.add_all(station_features)
-    session.commit()
-    print("Flushed to db.")
+    if preload:
+        station_types = []
+
+    print(f"FIN: Parsing stations in {fname}")
+    return station_types, stations, economies, station_features
 
 
 def get_systems(session, system_names):
@@ -2145,6 +2108,97 @@ def make_parser():
     return parser
 
 
+def chunk_jobs(initial_jobs, *, limit=5000):  # pragma: no cover
+    """
+    Take a list of jobs being prepared and take each fname inside the list
+    and chunk that file out in the existing directory with limit lines per file.
+
+    Args:
+        initial_jobs: A list that contains a description of functions to be mapped onto args. It is of
+        the form:
+            [[func, fname, arg1, arg2],
+             [func2, fname2, arg3,],
+             ]
+
+    Kwargs:
+        limit: The limit of lines to chunk into each file.
+    """
+    jobs = {}
+    for tup in initial_jobs:
+        fname = tup[1]
+        cog.util.chunk_file(fname, limit=limit)
+        for globbed in sorted(glob.glob(fname + '_*')):
+            jobs[globbed] = [tup[0], globbed] + tup[2:]
+
+    return jobs
+
+
+def pool_loader(preload=True):  # pragma: no cover
+    """
+    Use a ProcessPoolExecutor to run jobs that parse parts of the json files
+    and return objects to be inserted into the db.
+
+    Assuming extras.fetch_eddb has been run with 'sort' option, then:
+        - Chunk the large json files to create units of work.
+        - Submit jobs to ProcessPoolExecutor to be completed.
+        - Jobs return db objects to be inserted into the database.
+        - Multiple rounds allow different parts to be processed once all parts in last
+        round completed.
+
+    Args:
+        preload: The preload has already been done.
+    """
+    with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
+        # Map eceonomies back onto ids
+        economy_ids = {x.text: x.id for x in eddb_session.query(Economy).all()}
+        economy_ids[None] = economy_ids['None']
+        # Map power names onto their ids
+        power_ids = {x.text: x.id for x in eddb_session.query(Power).all()}
+        power_ids[None] = power_ids["None"]
+
+    # Top level map of functions, to the files that take them.
+    # Things in later rounds have foreign keys to previous ones.
+    rounds = {
+        1: [
+            [load_commodities, cog.util.rel_to_abs("data", "eddb", "commodities.json_per_line")],
+            [load_modules, cog.util.rel_to_abs("data", "eddb", "modules.json_per_line")],
+            [load_factions, cog.util.rel_to_abs("data", "eddb", "factions.json_per_line"), preload],
+        ],
+        2: [
+            [load_systems, cog.util.rel_to_abs("data", "eddb", "systems_populated.json_per_line"), power_ids],
+        ],
+        3: [
+            [load_stations, cog.util.rel_to_abs("data", "eddb", "stations.json_per_line"), economy_ids, preload],
+        ]
+    }
+
+    try:
+        with cfut.ProcessPoolExecutor(max_workers=JOB_LIMIT) as pool:
+            for key, limit in [(1, 4000), (2, 1500), (3, 2500)]:
+                jobs = chunk_jobs(rounds.get(key), limit=limit)
+
+                futures = {pool.submit(*job) for job in jobs.values()}
+                for fut in cfut.as_completed(futures, 60):
+                    for objs in fut.result():
+                        if objs:
+                            # TODO: Potential for further speedup, move this into load functions.
+                            # Current problem: Lock contention on shared table during updates holding conns too long I think.
+                            with cogdb.session_scope(cogdb.EDDBSession) as session:
+                                try:
+                                    session.add_all(objs)
+                                    session.commit()
+                                except sqla.exc.IntegrityError:
+                                    # Just in case, shouldn't trigger
+                                    session.rollback()
+    finally:
+        match = cog.util.rel_to_abs('data', 'eddb', '*_line_0*')
+        for fname in glob.glob(match):
+            try:
+                os.remove(fname)
+            except OSError:
+                print(f"Could not remove: {fname}")
+
+
 def import_eddb(eddb_session):  # pragma: no cover
     """ Allows the seeding of db from eddb dumps. """
     args = make_parser().parse_args()
@@ -2168,13 +2222,7 @@ def import_eddb(eddb_session):  # pragma: no cover
         preload_tables(eddb_session)
         print('EDDB tables preloaded.')
 
-    load_commodities(eddb_session, cog.util.rel_to_abs("data", "eddb", "commodities.jsonl"))
-    load_modules(eddb_session, cog.util.rel_to_abs("data", "eddb", "modules.jsonl"))
-    load_factions(eddb_session, cog.util.rel_to_abs("data", "eddb", "factions.jsonl"),
-                  preload=args.preload)
-    load_systems(eddb_session, cog.util.rel_to_abs("data", "eddb", "systems_populated.jsonl"))
-    load_stations(eddb_session, cog.util.rel_to_abs("data", "eddb", "stations.jsonl"),
-                  preload=args.preload)
+    pool_loader(args.preload)
 
 
 async def monitor_eddb_caches(*, delay_hours=4):  # pragma: no cover
@@ -2260,11 +2308,17 @@ def main():  # pragma: no cover
     with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
         print("Module count:", eddb_session.query(Module).count())
         print("Commodity count:", eddb_session.query(Commodity).count())
-        print("Faction count:", eddb_session.query(Faction).count())
+        obj_count = eddb_session.query(Faction).count()
+        assert obj_count > 77500
+        print("Faction count:", obj_count)
         print("Faction States count:", eddb_session.query(FactionActiveState).count() + eddb_session.query(FactionPendingState).count() + eddb_session.query(FactionRecoveringState).count())
         print("Influence count:", eddb_session.query(Influence).count())
-        print("Populated System count:", eddb_session.query(System).count())
-        print("Station count:", eddb_session.query(Station).count())
+        obj_count = eddb_session.query(System).count()
+        assert obj_count > 20500
+        print("Populated System count:", obj_count)
+        obj_count = eddb_session.query(Station).count()
+        assert obj_count > 135000
+        print("Station count:", obj_count)
         print("Contested count:", eddb_session.query(SystemContestedV).count())
         print("Time taken:", datetime.datetime.utcnow() - start)
         #  main_test_area(eddb_session)
@@ -2281,7 +2335,7 @@ try:
             init_session.query(Power).filter(Power.text != 'None').all()
         }
     del init_session
-except (sqla_orm.exc.NoResultFound, sqla.exc.ProgrammingError):  # pragma: no cover
+except (AttributeError, sqla_orm.exc.NoResultFound, sqla.exc.ProgrammingError):  # pragma: no cover
     PLANETARY_TYPE_IDS = None
     HQS = None
 
