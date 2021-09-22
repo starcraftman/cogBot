@@ -58,7 +58,7 @@ LEN = {  # Lengths for strings stored in the db
     "system": 30,
     "weapon_mode": 6,
 }
-JOB_LIMIT=10
+JOB_LIMIT=os.cpu_count()
 TIME_FMT = "%d/%m/%y %H:%M:%S"
 # These are the faction types strong/weak verse.
 HUDSON_BGS = [['Feudal', 'Patronage'], ["Dictatorship"]]
