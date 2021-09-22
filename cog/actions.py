@@ -1941,7 +1941,8 @@ class WhoIs(Action):
         await chan.send(response)
 
     async def execute(self):
-        cmdr = await cog.inara.api.search_with_api(' '.join(self.args.cmdr), self.msg)
+        cmdr_name = ' '.join(self.args.cmdr)
+        cmdr = await cog.inara.api.search_with_api(cmdr_name, self.msg)
         if cmdr and cmdr != (None, None):
             returned_from_api = False
             if isinstance(cmdr, tuple):
@@ -1952,7 +1953,7 @@ class WhoIs(Action):
                 cmdr = "Manual report after a !whois in {channel} by cmdr {reported_by}" \
                     .format(channel=self.msg.channel, reported_by=self.msg.author), True
             if returned_from_api is not None:
-                await self.send_to_moderation(self.args.cmdr[0], squad, cmdr, returned_from_api)
+                await self.send_to_moderation(cmdr_name, squad, cmdr, returned_from_api)
                 return None
 
 
