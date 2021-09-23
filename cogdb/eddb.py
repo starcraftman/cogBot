@@ -58,7 +58,7 @@ LEN = {  # Lengths for strings stored in the db
     "system": 30,
     "weapon_mode": 6,
 }
-JOB_LIMIT=os.cpu_count()
+JOB_LIMIT = os.cpu_count()
 TIME_FMT = "%d/%m/%y %H:%M:%S"
 # These are the faction types strong/weak verse.
 HUDSON_BGS = [['Feudal', 'Patronage'], ["Dictatorship"]]
@@ -2104,6 +2104,8 @@ def make_parser():
                         help='Dump existing database to /tmp/eddb_dump')
     parser.add_argument('--yes', '-y', action="store_true",
                         help='Skip confirmation.')
+    parser.add_argument('--jobs', '-j', type=int,
+                        help='The max number of jobs to run.')
 
     return parser
 
@@ -2178,7 +2180,7 @@ def pool_loader(preload=True):  # pragma: no cover
                 jobs = chunk_jobs(rounds.get(key), limit=limit)
 
                 futures = {pool.submit(*job) for job in jobs.values()}
-                for fut in cfut.as_completed(futures, 60):
+                for fut in cfut.as_completed(futures, 600):
                     for objs in fut.result():
                         if objs:
                             # TODO: Potential for further speedup, move this into load functions.
@@ -2202,6 +2204,9 @@ def pool_loader(preload=True):  # pragma: no cover
 def import_eddb(eddb_session):  # pragma: no cover
     """ Allows the seeding of db from eddb dumps. """
     args = make_parser().parse_args()
+    if args.jobs:
+        global JOB_LIMIT
+        JOB_LIMIT = args.jobs
 
     if not args.yes:
         confirm = input("Reimport EDDB Database? (y/n) ").strip().lower()
