@@ -816,10 +816,7 @@ class Fort(Action):
     def find_missing(self, left):
         """ Show systems with 'left' remaining. """
         lines = ['__Systems Missing {} Supplies__'.format(left)]
-
-        for system in cogdb.query.fort_get_systems(self.session):
-            if not system.is_fortified and not system.skip and system.missing <= left:
-                lines.append(system.display(miss=True))
+        lines += [x.display(miss=True) for x in cogdb.query.fort_get_systems_x_left(self.session, left)]
 
         return '\n'.join(lines)
 

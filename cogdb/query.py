@@ -16,7 +16,7 @@ import cog.util
 import cogdb.eddb
 from cog.util import substr_match
 from cogdb.schema import (DiscordUser, FortSystem, FortPrep, FortDrop, FortUser, FortOrder,
-                          UMSystem, UMUser, UMHold, EUMSheet, KOS,
+                          EFortType, UMSystem, UMUser, UMHold, EUMSheet, KOS,
                           AdminPerm, ChannelPerm, RolePerm,
                           TrackSystem, TrackSystemCached, TrackByID, OCRTracker, OCRTrigger,
                           OCRPrep, Global, Vote)
@@ -111,7 +111,7 @@ def users_with_all_merits(session):
     Returns:
         A list of objects of form: [[DiscordUser, total_merits], ... ]
     """
-    return session.query(DiscordUser, (sqla.func.ifnull(FortUser.dropped, 0) + sqla.func.ifnull(UMUser.combo, 0)).label('total')).\
+    return session.query(DiscordUser, (FortUser.dropped + UMUser.held + UMUser.redeemed).label('total')).\
         outerjoin(FortUser, DiscordUser.pref_name == FortUser.name).\
         outerjoin(UMUser, DiscordUser.pref_name == UMUser.name).\
         order_by(sqla.desc("total")).\
@@ -144,10 +144,10 @@ def users_with_um_merits(session):
     Returns:
         A list of objects of form: [[DiscordUser, um_merits], ... ]
     """
-    return session.query(DiscordUser, UMUser.combo).\
+    return session.query(DiscordUser, (UMUser.held + UMUser.redeemed).label('um_merits')).\
         join(UMUser, UMUser.name == DiscordUser.pref_name).\
         filter(UMUser.sheet_src == EUMSheet.main).\
-        order_by(UMUser.combo.desc()).\
+        order_by(sqla.desc('um_merits')).\
         all()
 
 
@@ -166,7 +166,7 @@ def check_pref_name(session, new_name):
     except sqla_oexc.NoResultFound:
         pass
 
-
+# TODO: Do this
 def next_sheet_row(session, *, cls, start_row):
     """
     Find the next available row to add in the sheet based on entries.
@@ -201,12 +201,12 @@ def fort_get_medium_systems(session):
     """
     Return unfortified systems designated for small/medium ships.
     """
-    mediums = session.query(FortSystem).\
-        filter(FortSystem.is_medium, FortSystem.skip == 0).\
+    return session.query(FortSystem).\
+        filter(FortSystem.is_medium,
+               sqla.not_(FortSystem.is_skipped),
+               sqla.not_(FortSystem.is_fortified),
+               sqla.not_(FortSystem.is_deferred)).\
         all()
-    unforted = [med for med in mediums if not med.is_fortified
-                and not med.is_deferred]
-    return unforted
 
 
 def fort_get_systems(session, *, mediums=True, ignore_skips=True):
@@ -221,10 +221,9 @@ def fort_get_systems(session, *, mediums=True, ignore_skips=True):
     query = session.query(FortSystem).filter(FortSystem.type != 'prep')
 
     if ignore_skips:
-        query = query.filter(sqla.not_(FortSystem.skip))
+        query = query.filter(sqla.not_(FortSystem.is_skipped))
     if not mediums:
-        med_names = [med.name for med in fort_get_medium_systems(session)]
-        query = query.filter(FortSystem.name.notin_(med_names))
+        query = query.filter(sqla.not_(FortSystem.is_medium))
 
     return query.all()
 
@@ -243,13 +242,15 @@ def fort_find_current_index(session):
     Raises:
         NoMoreTargets - No more targets left OR a serious problem with data.
     """
-    for ind, system in enumerate(fort_get_systems(session)):
-        if system.is_fortified or system.skip or system.is_deferred:
-            continue
-
-        return ind
-
-    raise cog.exc.NoMoreTargets('No more fort targets at this time.')
+    try:
+        system_id = session.query(FortSystem.id).\
+            filter(sqla.not_(FortSystem.is_fortified),
+                   sqla.not_(FortSystem.is_skipped),
+                   sqla.not_(FortSystem.is_deferred)).\
+            first()
+        return system_id[0] - 1
+    except sqla_oexc.NoResultFound as exc:
+        raise cog.exc.NoMoreTargets('No more fort targets at this time.') from exc
 
 
 def fort_find_system(session, system_name, search_all=True):
@@ -297,7 +298,7 @@ def fort_get_systems_by_state(session):
             states['undermined'].append(system)
         elif system.is_fortified:
             states['fortified'].append(system)
-        elif system.skip:
+        elif system.is_skipped:
             states['skipped'].append(system)
         elif system.is_deferred:
             states['almost_done'].append(system)
@@ -322,25 +323,42 @@ def fort_get_next_targets(session, *, offset=0, count=4):
         offset: If set, start offset forward from current active fort target. Default 0
         count: Return this many targets. Default 4
     """
-    systems = fort_order_get(session)
-    start = 0
-    if not systems:
-        systems = fort_get_systems(session)
-        start = fort_find_current_index(session)
-    start += offset
+    targets = fort_order_get(session)
+    if not targets:
+        targets = session.query(FortSystem).\
+            filter(sqla.not_(FortSystem.is_skipped),
+                   sqla.not_(FortSystem.is_priority),
+                   sqla.not_(FortSystem.is_fortified),
+                   sqla.not_(FortSystem.is_deferred)).\
+            limit(count + offset).\
+            all()
 
-    targets = []
-    for system in systems[start:]:
-        if system.is_fortified or system.priority or system.skip or system.is_deferred:
-            continue
+    return targets[offset:]
 
-        targets.append(system)
-        count -= 1
 
-        if count <= 0:
-            break
+def fort_get_systems_x_left(session, left=None, *, include_preps=False):
+    """
+    Return all systems that have merits missing and
+    less than or equal to left.
 
-    return targets
+    Args:
+        session: A session to the db.
+        left: The amount that should be missing or less. If not passed, defer_missing constant.
+
+    Kwargs:
+        include_preps: By default preps not included, allows to override.
+    """
+    if not left:
+        left = cog.util.CONF.defer_missing
+
+    query = session.query(FortSystem).\
+        filter(sqla.not_(FortSystem.is_skipped),
+               sqla.not_(FortSystem.is_fortified),
+               FortSystem.missing <= left)
+    if not include_preps:
+        query = query.filter(FortSystem.type != EFortType.prep)
+
+    return query.all()
 
 
 def fort_get_priority_targets(session):
@@ -348,16 +366,14 @@ def fort_get_priority_targets(session):
     Return all deferred targets under deferal amount.
     This will also return any systems that are prioritized.
     """
-    deferred, priority = [], []
-
-    for system in fort_get_systems(session):
-        if system.is_fortified:
-            continue
-
-        if 'priority' in system.notes.lower():
-            priority += [system]
-        elif system.is_deferred:
-            deferred += [system]
+    priority = session.query(FortSystem).\
+        filter(sqla.not_(FortSystem.is_skipped),
+               FortSystem.is_priority).\
+        all()
+    deferred = session.query(FortSystem).\
+        filter(sqla.not_(FortSystem.is_skipped),
+               FortSystem.is_deferred).\
+        all()
 
     return priority, deferred
 
@@ -482,12 +498,11 @@ def um_get_systems(session, exclude_finished=True, *, sheet_src=EUMSheet.main):
         finished: Return just the finished targets.
     """
     systems = session.query(UMSystem).\
-        filter(UMSystem.sheet_src == sheet_src).\
-        all()
+        filter(UMSystem.sheet_src == sheet_src)
     if exclude_finished:
-        systems = [system for system in systems if not system.is_undermined]
+        systems = systems.filter(sqla.not_(UMSystem.is_undermined))
 
-    return systems
+    return systems.all()
 
 
 def um_reset_held(session, user, *, sheet_src=EUMSheet.main):
@@ -514,7 +529,7 @@ def um_redeem_merits(session, user, *, sheet_src=EUMSheet.main):
         all()
     for hold in holds:
         total += hold.held
-        hold.redeemed = hold.redeemed + hold.held
+        hold.redeemed += hold.held
         hold.held = 0
 
     session.commit()

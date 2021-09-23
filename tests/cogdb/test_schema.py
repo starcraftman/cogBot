@@ -150,6 +150,16 @@ def test_duser_total_merits(f_dusers, f_um_testbed, f_fort_testbed):
     assert f_dusers[0].total_merits == 15050
 
 
+def test_duser_mention(f_dusers):
+    duser = f_dusers[0]
+    assert duser.mention == "<@1>"
+
+
+def test_duser_mention_expression(session, f_dusers):
+    result = session.query(DiscordUser.id).filter(DiscordUser.mention.ilike("%1>")).scalar()
+    assert result == 1
+
+
 def test_fortuser__eq__(f_dusers, f_fort_testbed):
     f_user = f_fort_testbed[0][0]
     equal = FortUser(id=1, name='User1', row=22, cry='')
@@ -248,14 +258,6 @@ Fort Status | 4910/4910
 UM Status   | 0 (0.00%)
 Notes       |```"""
 
-    #  system.fort_status = 4000
-    #  assert system.display_details() == """**Frey**
-#  ```Completion  | 81.5% (910 left)
-#  CMDR Merits | 3700/4910
-#  Fort Status | 4000/4910
-#  UM Status   | 0 (0.00%)
-#  Notes       |```"""
-
 
 def test_fortsystem_set_status(f_dusers, f_fort_testbed):
     system = f_fort_testbed[1][0]
@@ -276,30 +278,39 @@ def test_fortsystem_current_status(f_dusers, f_fort_testbed):
     assert system.current_status == 4910
 
 
+def test_fortsystem_current_status_expression(session, f_dusers, f_fort_testbed):
+    systems = session.query(FortSystem).\
+        filter(FortSystem.current_status >= 4000).\
+        order_by(FortSystem.id).\
+        all()
+    assert len(systems) == 4
+    assert systems[0].current_status == 4910
+
+
 def test_fortsystem_priority(f_dusers, f_fort_testbed):
     system = f_fort_testbed[1][0]
-    assert system.priority is False
+    assert system.is_priority is False
 
     system.notes = 'Priority for small ships'
-    assert system.priority is True
+    assert system.is_priority is True
 
 
 def test_fortsystem_priority_expression(session, f_dusers, f_fort_testbed):
-    skips = session.query(FortSystem.name).filter(FortSystem.priority).all()
+    priorities = session.query(FortSystem.name).filter(FortSystem.is_priority).all()
 
-    assert [x[0] for x in skips] == ["Othime"]
+    assert [x[0] for x in priorities] == ["Othime"]
 
 
 def test_fortsystem_skip(f_dusers, f_fort_testbed):
     system = f_fort_testbed[1][0]
-    assert system.skip is False
+    assert system.is_skipped is False
 
     system.notes = 'Leave for now.'
-    assert system.skip is True
+    assert system.is_skipped is True
 
 
 def test_fortsystem_skip_expression(session, f_dusers, f_fort_testbed):
-    skips = session.query(FortSystem.name).filter(FortSystem.skip).all()
+    skips = session.query(FortSystem.name).filter(FortSystem.is_skipped).all()
 
     assert [x[0] for x in skips] == ["Sol", "Phra Mool"]
 
@@ -327,6 +338,12 @@ def test_fortsystem_is_fortified(f_dusers, f_fort_testbed):
     assert system.is_fortified is False
 
 
+def test_fortsystem_is_fortified_expression(session, f_dusers, f_fort_testbed):
+    sys = session.query(FortSystem).filter(FortSystem.is_fortified).first()
+    assert sys.name == 'Frey'
+    assert sys.is_fortified
+
+
 def test_fortsystem_is_undermined(f_dusers, f_fort_testbed):
     system = f_fort_testbed[1][0]
 
@@ -339,8 +356,17 @@ def test_fortsystem_is_undermined(f_dusers, f_fort_testbed):
 
 def test_fortsystem_is_undermined_expression(session, f_dusers, f_fort_testbed):
     umed = session.query(FortSystem.name).filter(FortSystem.is_undermined).all()
-
     assert [x[0] for x in umed] == ["WW Piscis Austrini", "LPM 229"]
+
+
+def test_fortsystem_is_deferred(session, f_dusers, f_fort_testbed):
+    system = session.query(FortSystem).filter(FortSystem.name == 'Dongkum').one()
+    assert system.is_deferred
+
+
+def test_fortsystem_is_deferred_expression(session, f_dusers, f_fort_testbed):
+    deferred = session.query(FortSystem.name).filter(FortSystem.is_deferred).all()
+    assert deferred[0][0] == 'Dongkum'
 
 
 def test_fortsystem_missing(f_dusers, f_fort_testbed):
@@ -354,6 +380,14 @@ def test_fortsystem_missing(f_dusers, f_fort_testbed):
 
     system.fort_status = system.trigger + 1000
     assert system.missing == 0
+
+
+def test_fortsystem_missing_expression(session, f_dusers, f_fort_testbed):
+    result = session.query(FortSystem.name, FortSystem.missing).\
+        filter(FortSystem.missing > 1000).\
+        first()
+    assert result[0] == 'Nurundere'
+    assert result[1] == 3003
 
 
 def test_fortsystem_completion(f_dusers, f_fort_testbed):
@@ -521,6 +555,13 @@ def test_umsystem_missing(f_dusers, f_um_testbed):
     assert system.missing == -122
 
 
+def test_umsystem_missing_expression(session, f_dusers, f_um_testbed):
+    systems = session.query(UMSystem.name, UMSystem.missing).\
+        filter(UMSystem.missing == 10000).\
+        all()
+    assert systems == [('Empty', 10000)]
+
+
 def test_umsystem_is_undermined(session, f_dusers, f_um_testbed):
     control = f_um_testbed[1][1]
     assert not control.is_undermined
@@ -529,6 +570,13 @@ def test_umsystem_is_undermined(session, f_dusers, f_um_testbed):
 
     exp = f_um_testbed[1][-1]
     assert not exp.is_undermined
+
+
+def test_umsystem_is_undermined_expression(session, f_dusers, f_um_testbed):
+    systems = session.query(UMSystem.name, UMSystem.is_undermined).\
+        filter(UMSystem.is_undermined).\
+        all()
+    assert systems == [('Cemplangpa', True)]
 
 
 def test_umsystem_set_status(f_dusers, f_um_testbed):

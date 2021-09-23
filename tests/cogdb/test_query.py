@@ -199,6 +199,23 @@ def test_fort_get_next_targets(session, f_dusers, f_fort_testbed):
     assert [sys.name for sys in targets] == ["LHS 3749", "Alpha Fornacis"]
 
 
+def test_fort_get_systems_x_left(session, f_dusers, f_fort_testbed):
+    systems = cogdb.query.fort_get_systems_x_left(session, 5000)
+    assert systems[0].name == 'Nurundere'
+    assert len(systems) == 3
+
+    systems = cogdb.query.fort_get_systems_x_left(session, 5000, include_preps=True)
+    assert len(systems) == 4
+
+
+def test_fort_get_priority_targets(session, f_dusers, f_fort_testbed):
+    priority, deferred = cogdb.query.fort_get_priority_targets(session)
+    assert priority[0].name == 'Othime'
+    assert len(priority) == 1
+    assert deferred[0].name == 'Dongkum'
+    assert len(deferred) == 1
+
+
 def test_fort_add_drop(session, f_dusers, f_fort_testbed, db_cleanup):
     system = session.query(FortSystem).filter(FortSystem.name == 'Sol').one()
     user = f_fort_testbed[0][-1]

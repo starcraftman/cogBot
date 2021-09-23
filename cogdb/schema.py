@@ -94,24 +94,20 @@ class DiscordUser(Base):
     def __hash__(self):
         return hash(self.id)
 
-    @property
+    @hybrid_property
     def mention(self):
         """ Mention this user in a response. """
         return "<@{}>".format(self.id)
 
-    @property
+    @mention.expression
+    def mention(cls):
+        """ Mention this user in a response. """
+        return sqla.func.concat("<@", sqla.func.cast(cls.id, sqla.String), ">")
+
+    @hybrid_property
     def total_merits(self):
         """ The total merits a user has done this cycle. """
-        try:
-            tot = self.fort_user.dropped
-        except AttributeError:
-            tot = 0
-        try:
-            tot += self.um_user.combo
-        except AttributeError:
-            pass
-
-        return tot
+        return self.fort_user.dropped + self.um_user.held + self.um_user.redeemed
 
 
 class FortUser(Base):
@@ -149,9 +145,15 @@ class FortUser(Base):
     @dropped.expression
     def dropped(self):
         """ Total merits dropped by cmdrs """
-        return sqla.select([sqla.func.sum(FortDrop.amount)]).\
-            where(FortDrop.user_id == self.id).\
-            label('dropped')
+        return sqla.func.cast(
+            sqla.func.ifnull(
+                sqla.select(sqla.func.sum(FortDrop.amount)).
+                    where(FortDrop.user_id == self.id).
+                    label('dropped'),
+                0
+            ),
+            sqla.Integer
+        )
 
     def __repr__(self):
         keys = ['id', 'name', 'row', 'cry']
@@ -254,41 +256,67 @@ class FortSystem(Base):
         return total
 
     @cmdr_merits.expression
-    def cmdr_merits(self):
+    def cmdr_merits(cls):
         """ Total merits dropped by cmdrs """
-        return sqla.select([sqla.func.sum(FortDrop.amount)]).\
-            where(FortDrop.system_id == self.id).\
-            label('cmdr_merits')
+        return sqla.func.cast(
+            sqla.func.ifnull(
+                sqla.select(sqla.func.sum(FortDrop.amount)).
+                    where(FortDrop.system_id == cls.id).
+                    label('cmdr_merits'),
+                0
+            ),
+            sqla.Integer
+        )
 
-    @property
+    @hybrid_property
     def ump(self):
         """ Return the undermine percentage, stored as decimal. """
         return '{:.1f}'.format(self.undermine * 100)
 
-    @property
+    @ump.expression
+    def ump(cls):
+        """ Return the undermine percentage, stored as decimal. """
+        return sqla.func.round(cls.undermine * 100, 1)
+
+    @hybrid_property
     def current_status(self):
         """ Simply return max fort status reported. """
         return max(self.fort_status, self.cmdr_merits)
 
+    @current_status.expression
+    def current_status(cls):
+        """ Simply return max fort status reported. """
+        return sqla.func.greatest(cls.fort_status, cls.cmdr_merits)
+
     @hybrid_property
-    def priority(self):
+    def missing(self):
+        """ The remaining supplies to fortify. """
+        return max(0, self.trigger - self.current_status)
+
+    @missing.expression
+    def missing(cls):
+        """ The remaining supplies to fortify. """
+        return sqla.func.greatest(0, cls.trigger - cls.current_status)
+
+    @hybrid_property
+    def is_priority(self):
         """ The system should be priority. """
         notes = self.notes.lower()
         return 'priority' in notes
 
-    @priority.expression
-    def priority(cls):
+    @is_priority.expression
+    def is_priority(cls):
         """ The system should be priority. """
         return cls.notes.ilike("%priority%")
 
     @hybrid_property
-    def skip(self):
+    def is_skipped(self):
         """ The system should be skipped. """
         notes = self.notes.lower()
         return 'leave' in notes or 'skip' in notes
 
-    @skip.expression
-    def skip(cls):
+    @is_skipped.expression
+    def is_skipped(cls):
         """ The system should be skipped. """
         return or_(cls.notes.ilike("%leave%"), cls.notes.ilike("%skip%"))
 
@@ -302,29 +330,34 @@ class FortSystem(Base):
         """ The system should be skipped. """
         return cls.notes.ilike("%s/m%")
 
-    @property
+    @hybrid_property
     def is_fortified(self):
-        """ The remaining supplies to fortify """
+        """ Check if the system is fortified. """
         return self.fort_override >= 1.0 or self.current_status >= self.trigger
+
+    @is_fortified.expression
+    def is_fortified(cls):
+        """ Check if the system is fortified. Expression. """
+        return sqla.or_(cls.fort_override >= 1.0, cls.current_status >= cls.trigger)
 
     @hybrid_property
     def is_undermined(self):
-        """ The system has been undermined """
+        """ Check if the system is undermined. """
         return self.undermine >= 1.00
 
-    @property
+    @hybrid_property
     def is_deferred(self):
-        """ The system should be deferred. """
+        """ Check if the system is deferred. """
         return self.missing > 0 and self.missing <= cog.util.CONF.constants.defer_missing
 
-    @property
-    def missing(self):
-        """ The remaining supplies to fortify """
-        return max(0, self.trigger - self.current_status)
+    @is_deferred.expression
+    def is_deferred(cls):
+        """ Check if the system is deferred. """
+        return sqla.and_(cls.missing > 0, cls.missing <= cog.util.CONF.constants.defer_missing)
 
     @property
     def completion(self):
-        """ The fort completion percentage """
+        """ The fort completion percentage. """
         try:
             comp_cent = self.current_status / self.trigger * 100
         except ZeroDivisionError:
@@ -417,7 +450,7 @@ class FortPrep(FortSystem):
         primaryjoin='foreign(FortSystem.name) == remote(OCRPrep.system)',
     )
 
-    @property
+    @hybrid_property
     def is_fortified(self):
         """ Prep systems never get finished. """
         return False
@@ -545,12 +578,18 @@ class UMUser(Base):
         return total
 
     @held.expression
-    def held(self):
+    def held(cls):
         """ Total merits held by this cmdr. """
-        return sqla.select([sqla.func.sum(UMHold.held)]).\
-            where(sqla.and_(UMHold.user_id == self.id,
-                            UMHold.sheet_src != EUMSheet.snipe)).\
-            label('held')
+        return sqla.func.cast(
+            sqla.func.ifnull(
+                sqla.select(sqla.func.sum(UMHold.held)).
+                    where(sqla.and_(UMHold.user_id == cls.id,
+                                    UMHold.sheet_src != EUMSheet.snipe)).
+                    label('held'),
+                0
+            ),
+            sqla.Integer
+        )
 
     @hybrid_property
     def redeemed(self):
@@ -562,25 +601,17 @@ class UMUser(Base):
         return total
 
     @redeemed.expression
-    def redeemed(self):
+    def redeemed(cls):
         """ Total merits redeemed by this cmdr. """
-        return sqla.select([sqla.func.sum(UMHold.redeemed)]).\
-            where(sqla.and_(UMHold.user_id == self.id,
-                            UMHold.sheet_src != EUMSheet.snipe)).\
-            label('redeemed')
-
-    @hybrid_property
-    def combo(self):
-        """ Total merits undermined by this cmdr. """
-        return self.held + self.redeemed
-
-    @combo.expression
-    def combo_exp(self):
-        """ Total merits undermined by this cmdr. """
-        return sqla.func.sum(
-            sqla.select([sqla.func.sum(UMHold.redeemed, UMHold.held)]).
-            where(UMHold.user_id == self.id).
-            label('combo')
+        return sqla.func.cast(
+            sqla.func.ifnull(
+                sqla.select(sqla.func.sum(UMHold.redeemed)).
+                    where(sqla.and_(UMHold.user_id == cls.id,
+                                    UMHold.sheet_src != EUMSheet.snipe)).
+                    label('redeemed'),
+                0
+            ),
+            sqla.Integer
         )
 
     def __repr__(self):
@@ -693,23 +724,34 @@ class UMSystem(Base):
         return total
 
     @cmdr_merits.expression
-    def cmdr_merits(self):
-        """ Total merits dropped by cmdrs """
-        return sqla.select([sqla.func.sum(UMHold.held + UMHold.redeemed)]).\
-            where(UMHold.system_id == self.id).\
-            label('cmdr_merits')
+    def cmdr_merits(cls):
+        """ Total merits held or redeemd by cmdrs """
+        return sqla.func.cast(
+            sqla.func.ifnull(
+                sqla.select(sqla.func.sum(UMHold.held + UMHold.redeemed)).
+                    where(UMHold.system_id == cls.id).
+                    label('cmdr_merits'),
+                0
+            ),
+            sqla.Integer
+        )
 
-    @property
+    @hybrid_property
     def missing(self):
-        """ The remaining supplies to fortify """
+        """ The remaining merites targetted to undermine. """
         return self.goal - max(self.cmdr_merits + self.map_offset, self.progress_us)
+
+    @missing.expression
+    def missing(cls):
+        """ The remaining merites targetted to undermine. """
+        return cls.goal - sqla.func.greatest(cls.cmdr_merits + cls.map_offset, cls.progress_us)
 
     @property
     def descriptor(self):
         """ Descriptive prefix for string. """
         return str(self.type).split('.')[-1].capitalize()
 
-    @property
+    @hybrid_property
     def is_undermined(self):
         """
         Return true only if the system is undermined.
@@ -759,7 +801,7 @@ class UMExpand(UMSystem):
         'polymorphic_identity': EUMType.expand,
     }
 
-    @property
+    @hybrid_property
     def is_undermined(self):
         """
         Expansions are never finished until tick.
@@ -1773,6 +1815,9 @@ def run_schema_queries(session):  # pragma: no cover
 
     sys = session.query(FortPrep).one()
     print(sys.ocr_prep)
+
+    res = session.query(FortSystem.name, FortSystem.cmdr_merits).filter(FortSystem.cmdr_merits > 1000).all()
+    print(res)
 
 
 if cogdb.TEST_DB:
