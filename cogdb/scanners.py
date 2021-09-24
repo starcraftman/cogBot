@@ -352,7 +352,7 @@ class UMScanner(FortScanner):
         Drop the main um entries in the um part of the database.
         """
         for cls in self.db_classes:
-            session.query(cls).filter(cls.id < SNIPE_FIRST_ID).delete()
+            session.query(cls).filter(cls.sheet_src == self.sheet_src).delete()
             session.commit()
 
     def users(self, *, row_cnt=None, first_id=1, cls=UMUser):
@@ -636,14 +636,6 @@ class SnipeScanner(UMScanner):
 
     def __repr__(self):
         return super().__repr__().replace('FortScanner', 'SnipeScanner')
-
-    def drop_db_entries(self, session):
-        """
-        Drop the snipe entries in the um part of the database.
-        """
-        for cls in self.db_classes:
-            session.query(cls).filter(cls.id >= SNIPE_FIRST_ID).delete()
-            session.commit()
 
     def users(self, *, row_cnt=None, first_id=SNIPE_FIRST_ID, cls=UMUser):
         """

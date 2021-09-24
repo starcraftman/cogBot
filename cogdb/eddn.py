@@ -5,6 +5,7 @@ Will have the following parts:
     - Pick out messages we want and parse them
     - Update relevant bits of EDDB database.
 """
+import argparse
 import datetime
 import logging
 import os
@@ -553,9 +554,13 @@ def log_fname(msg):
 def log_msg(obj, *, path, fname):
     """
     Log a msg to the right directory to track later if required.
+    Silently ignore if directory unavailable.
     """
-    with open(os.path.join(path, fname), 'a') as fout:
-        pprint.pprint(obj, stream=fout)
+    try:
+        with open(os.path.join(path, fname), 'a', encoding='utf-8') as fout:
+            pprint.pprint(obj, stream=fout)
+    except FileNotFoundError:
+        pass
 
 
 def timestamp_is_recent(msg, window=30):
@@ -645,14 +650,32 @@ def eddn_log(fname, stream_level="INFO"):
     log.addHandler(handler)
 
 
+def create_args_parser():  # pragma: no cover
+    """
+    Return parser for using this component on command line.
+    """
+    parser = argparse.ArgumentParser(description="EDDN Listener")
+    parser.add_argument('--level', '-l', nargs=1, default='DEBUG',
+                        help='Set the overall logging level..')
+    parser.add_argument('--all', '-a', action='store_true', dest='all_msgs',
+                        help='Capture all messages intercepted.')
+
+    return parser
+
+
 def main():  # pragma: no cover
     """
     Connect to EDDN and begin ....
         accepting messages and parsing the info
         updating database entries based on new information
     """
-    level = "DEBUG" if len(sys.argv) != 2 else sys.argv[1]
-    eddn_log(LOG_FILE, level)
+    args = create_args_parser().parse_args()
+    eddn_log(LOG_FILE, args.level)
+    if not args.all_msgs:
+        try:
+            shutil.rmtree(ALL_MSGS)
+        except OSError:
+            pass
 
     sub = zmq.Context().socket(zmq.SUB)
     sub.setsockopt(zmq.SUBSCRIBE, b'')
