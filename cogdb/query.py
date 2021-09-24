@@ -166,13 +166,17 @@ def check_pref_name(session, new_name):
     except sqla_oexc.NoResultFound:
         pass
 
-# TODO: Do this
-def next_sheet_row(session, *, cls, start_row):
+
+def next_sheet_row(session, *, cls, start_row, sheet_src=None):
     """
     Find the next available row to add in the sheet based on entries.
     """
+    rows_query = session.query(cls.row)
+    if sheet_src:
+        rows_query = rows_query.filter(cls.sheet_src == sheet_src)
+    rows = [x[0] for x in rows_query.order_by(cls.row).all()]
+
     next_row = start_row
-    rows = [x[0] for x in session.query(cls.row).order_by(cls.row).all()]
     if rows:
         complete_list = list(range(rows[0], rows[-1] + 2))
         next_row = sorted(list(set(complete_list) - set(rows)))[0]
@@ -180,7 +184,7 @@ def next_sheet_row(session, *, cls, start_row):
     return next_row
 
 
-def add_sheet_user(session, *, cls, discord_user, start_row):
+def add_sheet_user(session, *, cls, discord_user, start_row, sheet_src=None):
     """
     Add a fort sheet user to system based on a Member.
 
@@ -191,6 +195,8 @@ def add_sheet_user(session, *, cls, discord_user, start_row):
     """
     next_row = next_sheet_row(session, cls=cls, start_row=start_row)
     user = cls(name=discord_user.pref_name, cry=discord_user.pref_cry, row=next_row)
+    if sheet_src:
+        user.sheet_src = sheet_src
     session.add(user)
     session.commit()
 

@@ -85,10 +85,8 @@ def check_sheet(scanner_name, attr, user_cls, sheet_src=None):
                           self.duser.display_name, user_cls.__name__, self.duser.pref_name)
             sheet = cogdb.query.add_sheet_user(
                 self.session, cls=user_cls, discord_user=self.duser,
-                start_row=get_scanner(scanner_name).user_row
+                start_row=get_scanner(scanner_name).user_row, sheet_src=sheet_src
             )
-            if sheet_src:
-                sheet.sheet_src = sheet_src
 
             self.payloads += get_scanner(scanner_name).__class__.update_sheet_user_dict(
                 sheet.row, sheet.cry, sheet.name)

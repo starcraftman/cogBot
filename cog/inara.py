@@ -79,9 +79,7 @@ COMBAT_RANKS = [
     'Expert',
     'Master',
     'Dangerous',
-    'Deadly',
-    'Elite'
-]
+    'Deadly'] + ['Elite' + x for x in ('', ' I', ' II', ' III', ' IV', ' V')]
 EMPTY_IMG = "https://upload.wikimedia.org/wikipedia/commons/5/59/Empty.png"
 EMPTY_INARA = 'unknown'
 INARA_SYSTEM_SEARCH = "https://inara.cz/galaxy-starsystem/?search={}"

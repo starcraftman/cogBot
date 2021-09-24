@@ -128,11 +128,23 @@ def test_add_sheet_user_fort(session, f_dusers, db_cleanup):
 def test_add_sheet_user_um(session, f_dusers, db_cleanup):
     duser = mock.Mock(id=999999999999999999999999, pref_name='UM User1', pref_cry='No cry')
 
-    cogdb.query.add_sheet_user(session, cls=UMUser, discord_user=duser, start_row=5)
+    cogdb.query.add_sheet_user(session, cls=UMUser, discord_user=duser, start_row=5, sheet_src=EUMSheet.main)
 
     latest = session.query(UMUser).all()[-1]
     assert latest.name == duser.pref_name
     assert latest.row == 5
+    assert latest.sheet_src == EUMSheet.main
+
+
+def test_add_sheet_snipe_um(session, f_dusers, db_cleanup):
+    duser = mock.Mock(id=999999999999999999999999, pref_name='Snipe User1', pref_cry='No cry')
+
+    cogdb.query.add_sheet_user(session, cls=UMUser, discord_user=duser, start_row=5, sheet_src=EUMSheet.snipe)
+
+    latest = session.query(UMUser).all()[-1]
+    assert latest.name == duser.pref_name
+    assert latest.row == 5
+    assert latest.sheet_src == EUMSheet.snipe
 
 
 def test_fort_get_medium_systems(session, f_dusers, f_fort_testbed):
