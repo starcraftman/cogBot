@@ -1730,7 +1730,7 @@ class UM(Action):
 
         else:
             systems = cogdb.query.um_get_systems(self.session, sheet_src=self.args.sheet_src)
-            response = '__Current UM Targets__\n\n' + '\n'.join(
+            response = '__Current Combat / Undermining Targets__\n\n' + '\n'.join(
                 [system.display() for system in systems])
 
         await self.bot.send_message(self.msg.channel, response)

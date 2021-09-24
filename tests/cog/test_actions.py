@@ -1344,7 +1344,7 @@ async def test_cmd_um(f_bot, f_testbed):
 
     await action_map(msg, f_bot).execute()
 
-    expect = """__Current UM Targets__
+    expect = """__Current Combat / Undermining Targets__
 
 ```Control            | Pequen [A sec]
 84%                | Merits Missing 2000
