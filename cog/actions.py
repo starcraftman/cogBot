@@ -18,6 +18,7 @@ import aiofiles
 import decorator
 import discord
 import googleapiclient.errors
+import gspread
 import sqlalchemy.exc
 import textdistance
 
@@ -379,7 +380,13 @@ class Admin(Action):
             for name in ['hudson_cattle', 'hudson_undermine']:
                 new_page = cog.util.number_increment(scanner_configs[name]['page'])
                 scanner_configs[name]['page'] = new_page
-                await SCANNERS[name].asheet.change_worksheet(new_page)
+
+                try:
+                    await SCANNERS[name].asheet.change_worksheet(new_page)
+                except gspread.exceptions.WorksheetNotFound as exc:
+                    msg = f"Missing **{new_page}** worksheet on {name}. Please fix and rerun cycle. No change made."
+                    raise cog.exc.InvalidCommandArgs(msg) from exc
+
                 self.bot.sched.schedule(name, delay=1)
                 lines += [[await SCANNERS[name].asheet.title(), new_page]]
 
@@ -2130,7 +2137,7 @@ async def monitor_carrier_events(client, *, next_summary, last_timestamp=None, d
     )
 
 
-async def monitor_ocr_sheet(client, *, delay=1800, repeat=True):  # pragma: no cover
+async def monitor_ocr_sheet(client, *, delay=300, repeat=True):  # pragma: no cover
     """
     Simple async task that just checks for changes to the OCR sheet.
     This task will schedule itself infinitely on a delay.

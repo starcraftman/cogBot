@@ -68,6 +68,15 @@ def test_config_update(f_config):
         assert "zmq: 9" in fin.read()
 
 
+def test_config_update_top_val(f_config):
+    assert f_config.zzz is None
+    f_config.update('zzz', value=9)
+
+    assert f_config.zzz == 9
+    with open(f_config.fname) as fin:
+        assert "zzz: 9" in fin.read()
+
+
 @pytest.mark.asyncio
 async def test_config_aread(f_config):
     assert f_config.constants.ttl == cog.config.CONFIG_DEFAULTS['constants']['ttl']
@@ -91,6 +100,17 @@ async def test_config_aupdate(f_config):
     await f_config.aupdate('ports', 'zmq', value=9)
 
     assert f_config.ports.zmq == 9
+    async with aiofiles.open(f_config.fname) as fin:
+        text = await fin.read()
+        assert "zmq: 9" in text
+
+
+@pytest.mark.asyncio
+async def test_config_aupdate_top_val(f_config):
+    assert f_config.zzz is None
+    f_config.update('zzz', value=9)
+
+    assert f_config.zzz == 9
     async with aiofiles.open(f_config.fname) as fin:
         text = await fin.read()
         assert "zmq: 9" in text

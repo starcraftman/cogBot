@@ -116,9 +116,9 @@ class Config():
         Kwargs:
             value: The new value to set for this key.
         """
-        temp = None
+        temp = self.conf
         for key in keys[:-1]:
-            temp = self.conf[key]
+            temp = temp[key]
 
         temp[keys[-1]] = value
         self.write()
@@ -149,9 +149,9 @@ class Config():
         """
         Async version of update.
         """
-        temp = None
+        temp = self.conf
         for key in keys[:-1]:
-            temp = self.conf[key]
+            temp = temp[key]
 
         temp[keys[-1]] = value
         await self.awrite()
