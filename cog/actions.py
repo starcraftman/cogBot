@@ -225,7 +225,7 @@ class Admin(Action):
         """
         Show all rules currently in effect for the guild.
         """
-        return cogdb.query.show_guild_perms(self.session, self.msg.guild)
+        return cogdb.query.show_guild_perms(self.session, self.msg.guild, prefix=self.bot.prefix)
 
     async def active(self):  # pragma: no cover
         """
