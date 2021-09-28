@@ -12,6 +12,7 @@ import cog.util
 from cogdb.schema import EUMSheet
 
 PARSERS = []
+CMD_MAP = {}  # Maps the command names in either direction.
 
 
 class ThrowArggumentParser(argparse.ArgumentParser):
@@ -71,6 +72,8 @@ def subs_admin(subs, prefix):
         Whitelist bgs command for members with role mentioned FRC Member.
 **{prefix}admin remove Drop FRC Member**
         Remove whitelist for bgs command of users with role "FRC Member".
+**{prefix}admin show_rules**
+        Show all active rules limiting commands.
 **{prefix}admin active -d 90 #hudson_operations #hudson_bgs**
         Generate an activity report on cmdrs in listed channels,
         look back over last 90 days of messages.
@@ -99,14 +102,14 @@ def subs_admin(subs, prefix):
     """.format(prefix=prefix)
     sub = subs.add_parser(prefix + 'admin', description=desc, formatter_class=RawHelp)
     sub.set_defaults(cmd='Admin')
+    CMD_MAP['Admin'] = 'admin'
     subcmds = sub.add_subparsers(title='subcommands',
                                  description='Admin subcommands', dest='subcmd')
     subcmd = subcmds.add_parser('add', help='Add an admin or permission.')
-    subcmd.add_argument('rule_cmd', nargs='?', help='The the command to restrict.')
-    subcmd.add_argument('role', nargs='*', help='The role name, if a role restriction.')
+    subcmd.add_argument('rule_cmds', nargs='*', help='The the command to restrict.')
     subcmd = subcmds.add_parser('remove', help='Remove an admin or permission.')
-    subcmd.add_argument('rule_cmd', nargs='?', help='The the command to restrict.')
-    subcmd.add_argument('role', nargs='*', help='The role name, if a role restriction.')
+    subcmd.add_argument('rule_cmds', nargs='*', help='The the command to restrict.')
+    subcmds.add_parser('show_rules', help='Show existing command rules.')
     subcmd = subcmds.add_parser('cast', help='Broadcast a message to all channels.')
     subcmd.add_argument('content', nargs='+', help='The message to send, no hyphens.')
     subcmds.add_parser('cycle', help='Roll sheets to new cycle.')
@@ -168,6 +171,7 @@ def subs_bgs(subs, prefix):
     """.format(prefix=prefix)
     sub = subs.add_parser(prefix + 'bgs', description=desc, formatter_class=RawHelp)
     sub.set_defaults(cmd='BGS', system=[])
+    CMD_MAP['BGS'] = 'bgs'
     subcmds = sub.add_subparsers(title='subcommands',
                                  description='BGS subcommands', dest='subcmd')
     subcmd = subcmds.add_parser('age', help='Get the age of exploiteds around a control.')
@@ -205,6 +209,7 @@ def subs_dist(subs, prefix):
         Display the distance from Sol to Frey and Rana.
     """.format(prefix=prefix)
     sub = subs.add_parser(prefix + 'dist', description=desc, formatter_class=RawHelp)
+    CMD_MAP['Dist'] = 'dist'
     sub.set_defaults(cmd='Dist')
     sub.add_argument('system', nargs='+', help='The systems in question.')
 
@@ -230,6 +235,7 @@ def subs_drop(subs, prefix):
     """.format(prefix=prefix, num=cog.util.CONF.constants.max_drop)
     sub = subs.add_parser(prefix + 'drop', description=desc, formatter_class=RawHelp)
     sub.set_defaults(cmd='Drop')
+    CMD_MAP['Drop'] = 'drop'
     sub.add_argument('amount', type=int, help='The amount to drop.')
     sub.add_argument('system', nargs='+', help='The system to drop at.')
     sub.add_argument('-s', '--set',
@@ -246,6 +252,7 @@ def subs_feedback(subs, prefix):
     """.format(prefix=prefix)
     sub = subs.add_parser(prefix + 'feedback', description=desc, formatter_class=RawHelp)
     sub.set_defaults(cmd='Feedback')
+    CMD_MAP['Feedback'] = 'feedback'
     sub.add_argument('content', nargs='+', help='The bug description or feedback.')
 
 
@@ -280,6 +287,7 @@ def subs_fort(subs, prefix):
     """.format(prefix=prefix)
     sub = subs.add_parser(prefix + 'fort', description=desc, formatter_class=RawHelp)
     sub.set_defaults(cmd='Fort')
+    CMD_MAP['Fort'] = 'fort'
     sub.add_argument('system', nargs='*', help='Select this system.')
     sub.add_argument('-s', '--set',
                      help='Set the fort:um status of system. Example-> --set 3400:200')
@@ -303,6 +311,7 @@ def subs_help(subs, prefix):
     """ Subcommand parsing for help """
     sub = subs.add_parser(prefix + 'help', description='Show overall help message.')
     sub.set_defaults(cmd='Help')
+    CMD_MAP['Help'] = 'help'
 
 
 @register_parser
@@ -329,6 +338,7 @@ and 130% opposition.
     """.format(prefix=prefix)
     sub = subs.add_parser(prefix + 'hold', description=desc, formatter_class=RawHelp)
     sub.set_defaults(cmd='Hold', sheet_src=EUMSheet.main)
+    CMD_MAP['Hold'] = 'hold'
     sub.add_argument('amount', nargs='?', type=int, help='The amount of merits held.')
     sub.add_argument('system', nargs='*', help='The system merits are held in.')
     sub.add_argument('-r', '--redeem', action='store_true', help='Redeem all held merits.')
@@ -365,6 +375,7 @@ and 130% opposition.
     """.format(prefix=prefix)
     sub = subs.add_parser(prefix + 'shold', description=desc, formatter_class=RawHelp)
     sub.set_defaults(cmd='SnipeHold', sheet_src=EUMSheet.snipe)
+    CMD_MAP['SnipeHold'] = 'shold'
     sub.add_argument('amount', nargs='?', type=int, help='The amount of merits held.')
     sub.add_argument('system', nargs='*', help='The system merits are held in.')
     sub.add_argument('-r', '--redeem', action='store_true', help='Redeem all held merits.')
@@ -390,6 +401,7 @@ def subs_kos(subs, prefix):
     """.format(prefix=prefix)
     sub = subs.add_parser(prefix + 'kos', description=desc, formatter_class=RawHelp)
     sub.set_defaults(cmd='KOS', system=[])
+    CMD_MAP['KOS'] = 'kos'
     subcmds = sub.add_subparsers(title='subcommands',
                                  description='KOS subcommands', dest='subcmd')
     subcmd = subcmds.add_parser('report', help='Report user to KOS.')
@@ -418,6 +430,7 @@ def subs_near(subs, prefix):
     """.format(prefix=prefix)
     sub = subs.add_parser(prefix + 'near', description=desc, formatter_class=RawHelp)
     sub.set_defaults(cmd='Near')
+    CMD_MAP['Near'] = 'near'
     subcmds = sub.add_subparsers(title='subcommands',
                                  description='Near subcommands', dest='subcmd')
 
@@ -435,6 +448,7 @@ def subs_ocr(subs, prefix):
     """ Subcommand parsing for ocr """
     sub = subs.add_parser(prefix + 'ocr', description='Manage the OCR system and query things.')
     sub.set_defaults(cmd='OCR')
+    CMD_MAP['OCR'] = 'ocr'
     subcmds = sub.add_subparsers(title='subcommands',
                                  description='OCR Subcommands', dest='subcmd')
 
@@ -447,6 +461,7 @@ def subs_pin(subs, prefix):
     """ Subcommand parsing for pin """
     sub = subs.add_parser(prefix + 'pin', description='Make an objectives pin and keep updating.')
     sub.set_defaults(cmd='Pin')
+    CMD_MAP['Pin'] = 'pin'
 
 
 @register_parser
@@ -482,6 +497,7 @@ def subs_recruits(subs, prefix):
     """.format(prefix=prefix)
     sub = subs.add_parser(prefix + 'recruits', description=desc, formatter_class=RawHelp)
     sub.set_defaults(cmd='Recruits')
+    CMD_MAP['Recruits'] = 'recruits'
     subcmds = sub.add_subparsers(title='subcommands',
                                  description='Recruits subcommands', dest='subcmd')
     subcmd = subcmds.add_parser('add', help='Report user to KOS.')
@@ -513,6 +529,7 @@ def subs_repair(subs, prefix):
     """.format(prefix=prefix)
     sub = subs.add_parser(prefix + 'repair', description=desc, formatter_class=RawHelp)
     sub.set_defaults(cmd='Repair')
+    CMD_MAP['Repair'] = 'repair'
     sub.add_argument('system', nargs="+", help='The reference system.')
     sub.add_argument('-a', '--arrival', type=int, default=1000, help='Station must be within arrival ls.')
     sub.add_argument('-d', '--distance', type=int, default=15, help='Max system distance')
@@ -532,6 +549,7 @@ def subs_route(subs, prefix):
     """.format(prefix=prefix)
     sub = subs.add_parser(prefix + 'route', description=desc, formatter_class=RawHelp)
     sub.set_defaults(cmd='Route')
+    CMD_MAP['Route'] = 'route'
     sub.add_argument('system', nargs="+", help='The systems to plot.')
     sub.add_argument('-o', '--optimum', action="store_true", help="Determine the optimum solution.")
 
@@ -549,6 +567,7 @@ def subs_scout(subs, prefix):
     """.format(prefix=prefix)
     sub = subs.add_parser(prefix + 'scout', description=desc, formatter_class=RawHelp)
     sub.set_defaults(cmd='Scout')
+    CMD_MAP['Scout'] = 'scout'
     sub.add_argument('-r', '--round', type=int, help='The round to run.', choices=[1, 2, 3])
     sub.add_argument('-c', '--custom', nargs='+', help='Run a custom scout of systems.')
 
@@ -558,6 +577,7 @@ def subs_status(subs, prefix):
     """ Subcommand parsing for status """
     sub = subs.add_parser(prefix + 'status', description='Info about this bot.')
     sub.set_defaults(cmd='Status')
+    CMD_MAP['Status'] = 'status'
 
 
 @register_parser
@@ -565,6 +585,7 @@ def subs_time(subs, prefix):
     """ Subcommand parsing for time """
     sub = subs.add_parser(prefix + 'time', description='Time in game and to ticks.')
     sub.set_defaults(cmd='Time')
+    CMD_MAP['Time'] = 'time'
 
 
 @register_parser
@@ -591,6 +612,7 @@ def subs_track(subs, prefix):
     """.format(prefix=prefix)
     sub = subs.add_parser(prefix + 'track', description=desc, formatter_class=RawHelp)
     sub.set_defaults(cmd='Track')
+    CMD_MAP['Track'] = 'track'
     subcmds = sub.add_subparsers(title='subcommands',
                                  description='Track subcommands', dest='subcmd')
     subcmd = subcmds.add_parser('channel', help='Set the channel to send notifications to of important changes.')
@@ -621,6 +643,7 @@ def subs_trigger(subs, prefix):
     """.format(prefix=prefix)
     sub = subs.add_parser(prefix + 'trigger', description=desc, formatter_class=RawHelp)
     sub.set_defaults(cmd='Trigger')
+    CMD_MAP['Trigger'] = 'trigger'
     sub.add_argument('system', nargs='+', help='The system(s) to calculate triggers for.')
     sub.add_argument('-p', '--power', nargs='+', default=["hudson"], help='The power to calculate from.')
 
@@ -649,6 +672,7 @@ def subs_um(subs, prefix):
     """.format(prefix=prefix)
     sub = subs.add_parser(prefix + 'um', description=desc, formatter_class=RawHelp)
     sub.set_defaults(cmd='UM', sheet_src=EUMSheet.main)
+    CMD_MAP['UM'] = 'um'
     sub.add_argument('system', nargs='*', help='The system to update or show.')
     sub.add_argument('-s', '--set',
                      help='Set the status of the system, us:them. Example-> --set 3500:200')
@@ -684,6 +708,7 @@ Examples:
     """.format(prefix=prefix)
     sub = subs.add_parser(prefix + 'snipe', description=desc, formatter_class=RawHelp)
     sub.set_defaults(cmd='Snipe', sheet_src=EUMSheet.snipe)
+    CMD_MAP['Snipe'] = 'snipe'
     sub.add_argument('system', nargs='*', help='The system to update or show.')
     sub.add_argument('-s', '--set',
                      help='Set the status of the system, us:them. Example-> --set 3500:200')
@@ -706,6 +731,7 @@ def subs_user(subs, prefix):
     """.format(prefix=prefix)
     sub = subs.add_parser(prefix + 'user', description=desc, formatter_class=RawHelp)
     sub.set_defaults(cmd='User')
+    CMD_MAP['User'] = 'user'
     sub.add_argument('--cry', nargs='+', help='Set your tag/cry in the sheets.')
     sub.add_argument('--name', nargs='+', help='Set your name in the sheets.')
 
@@ -725,6 +751,7 @@ def subs_vote(subs, prefix):
     """.format(prefix=prefix)
     sub = subs.add_parser(prefix + 'vote', description=desc, formatter_class=RawHelp)
     sub.set_defaults(cmd='Voting')
+    CMD_MAP['Voting'] = 'vote'
     sub.add_argument('vote_type', nargs='?', help='Vote type, either Cons or Prep', choices=['cons', 'prep'])
     sub.add_argument('amount', nargs='?', type=int, help='Vote power (either 1 or a multiple of 5)')
     sub.add_argument('--set', '-s', type=int, help='Set vote goal.')
@@ -745,4 +772,5 @@ def subs_whois(subs, prefix):
     """.format(prefix=prefix)
     sub = subs.add_parser(prefix + 'whois', description=desc, formatter_class=RawHelp)
     sub.set_defaults(cmd='WhoIs')
+    CMD_MAP['WhoIs'] = 'whois'
     sub.add_argument('cmdr', nargs='+', help='Commander name.')

@@ -149,12 +149,19 @@ class Admin(Action):
     """
     def check_cmd(self):
         """ Sanity check that cmd exists. """
-        cmd_set = sorted([cls.__name__ for cls in cog.actions.Action.__subclasses__()]
-                         + ['Snipe', 'SnipeHold'])
-        cmd_set.remove('Admin')  # Admin cannot be restricted even by admins
-        if not self.args.rule_cmd or self.args.rule_cmd not in cmd_set:
-            raise cog.exc.InvalidCommandArgs("Rules require a command in following set: \n\n%s"
-                                             % str(cmd_set))
+        self.args.rule_cmds = [x.replace(',', '') for x in self.args.rule_cmds]
+        cmd_set = set(cog.parse.CMD_MAP.values())
+        cmd_set.remove('admin')
+        not_found = set(self.args.rule_cmds) - cmd_set
+        if not self.args.rule_cmds or len(not_found) != 0:
+            msg = """Rules require a command in following set:
+
+            {cmds}
+
+            The following were not matched:
+            {not_found}
+            """.format(cmds=str(sorted(list(cmd_set))), not_found=', '.join(list(not_found)))
+            raise cog.exc.InvalidCommandArgs(msg)
 
     async def add(self):
         """
@@ -163,7 +170,7 @@ class Admin(Action):
             2) Add a single channel rule
             3) Add a single role rule
         """
-        if not self.args.rule_cmd and self.msg.mentions:
+        if not self.args.rule_cmds and self.msg.mentions:
             for member in self.msg.mentions:
                 cogdb.query.add_admin(self.session, member)
             response = "Admins added:\n\n" + '\n'.join([member.name for member in self.msg.mentions])
@@ -172,15 +179,15 @@ class Admin(Action):
             self.check_cmd()
 
             if self.msg.channel_mentions:
-                cogdb.query.add_channel_perm(self.session, self.args.rule_cmd,
-                                             self.msg.channel.guild,
-                                             self.msg.channel_mentions[0])
+                cogdb.query.add_channel_perms(self.session, self.args.rule_cmds,
+                                              self.msg.channel.guild,
+                                              self.msg.channel_mentions)
                 response = "Channel permission added."
 
             else:
-                cogdb.query.add_role_perm(self.session, self.args.rule_cmd,
-                                          self.msg.channel.guild,
-                                          self.msg.role_mentions[0])
+                cogdb.query.add_role_perms(self.session, self.args.rule_cmds,
+                                           self.msg.channel.guild,
+                                           self.msg.role_mentions)
                 response = "Role permission added."
 
         return response
@@ -192,7 +199,7 @@ class Admin(Action):
             2) Remove a single channel rule
             3) Remove a single role rule
         """
-        if not self.args.rule_cmd and self.msg.mentions:
+        if not self.args.rule_cmds and self.msg.mentions:
             for member in self.msg.mentions:
                 admin.remove(self.session, cogdb.query.get_admin(self.session, member))
             response = "Admins removed:\n\n" + '\n'.join([member.name for member in self.msg.mentions])
@@ -201,18 +208,24 @@ class Admin(Action):
             self.check_cmd()
 
             if self.msg.channel_mentions:
-                cogdb.query.remove_channel_perm(self.session, self.args.rule_cmd,
-                                                self.msg.channel.guild,
-                                                self.msg.channel_mentions[0])
+                cogdb.query.remove_channel_perms(self.session, self.args.rule_cmds,
+                                                 self.msg.channel.guild,
+                                                 self.msg.channel_mentions)
                 response = "Channel permission removed."
 
             else:
-                cogdb.query.remove_role_perm(self.session, self.args.rule_cmd,
-                                             self.msg.channel.guild,
-                                             self.msg.role_mentions[0])
+                cogdb.query.remove_role_perms(self.session, self.args.rule_cmds,
+                                              self.msg.channel.guild,
+                                              self.msg.role_mentions)
                 response = "Role permission removed."
 
         return response
+
+    async def show_rules(self):
+        """
+        Show all rules currently in effect for the guild.
+        """
+        return cogdb.query.show_guild_perms(self.session, self.msg.guild)
 
     async def active(self):  # pragma: no cover
         """

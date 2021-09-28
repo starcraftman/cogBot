@@ -71,34 +71,34 @@ def test_admin__eq__(session, f_dusers, f_admins):
 
 def test_channelperm__repr__(session, f_cperms):
     perm = f_cperms[0]
-    assert repr(perm) == "ChannelPerm(cmd='Drop', server_id=10, channel_id=2001)"
+    assert repr(perm) == "ChannelPerm(cmd='drop', guild_id=10, channel_id=2001)"
 
 
 def test_channelperm__str__(session, f_cperms):
     perm = f_cperms[0]
-    assert str(perm) == "ChannelPerm(cmd='Drop', server_id=10, channel_id=2001)"
+    assert str(perm) == "ChannelPerm(cmd='drop', guild_id=10, channel_id=2001)"
 
 
 def test_channelperm__eq__(session, f_cperms):
     perm = f_cperms[0]
-    assert perm == ChannelPerm(cmd=perm.cmd, server_id=perm.server_id, channel_id=perm.channel_id)
-    assert perm != ChannelPerm(cmd=perm.cmd, server_id=perm.server_id, channel_id=999999)
+    assert perm == ChannelPerm(cmd=perm.cmd, guild_id=perm.guild_id, channel_id=perm.channel_id)
+    assert perm != ChannelPerm(cmd=perm.cmd, guild_id=perm.guild_id, channel_id=999999)
 
 
 def test_roleperm__repr__(session, f_rperms):
     perm = f_rperms[0]
-    assert repr(perm) == "RolePerm(cmd='Drop', server_id=10, role_id=3001)"
+    assert repr(perm) == "RolePerm(cmd='drop', guild_id=10, role_id=3001)"
 
 
 def test_roleperm__str__(session, f_rperms):
     perm = f_rperms[0]
-    assert str(perm) == "RolePerm(cmd='Drop', server_id=10, role_id=3001)"
+    assert str(perm) == "RolePerm(cmd='drop', guild_id=10, role_id=3001)"
 
 
 def test_roleperm__eq__(session, f_rperms):
     perm = f_rperms[0]
-    assert perm == RolePerm(cmd=perm.cmd, server_id=perm.server_id, role_id=perm.role_id)
-    assert perm != RolePerm(cmd=perm.cmd, server_id=perm.server_id, role_id=999999)
+    assert perm == RolePerm(cmd=perm.cmd, guild_id=perm.guild_id, role_id=perm.role_id)
+    assert perm != RolePerm(cmd=perm.cmd, guild_id=perm.guild_id, role_id=999999)
 
 
 def test_fortorder__repr__(session, f_fortorders):

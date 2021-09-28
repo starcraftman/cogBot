@@ -280,7 +280,7 @@ def f_admins(session):
 def f_cperms(session):
     """ Channel perms fixture. """
     perms = (
-        ChannelPerm(cmd="Drop", server_id=10, channel_id=2001),
+        ChannelPerm(cmd="drop", guild_id=10, channel_id=2001),
     )
     session.add_all(perms)
     session.commit()
@@ -296,7 +296,7 @@ def f_cperms(session):
 def f_rperms(session):
     """ Role perms fixture. """
     perms = (
-        RolePerm(cmd="Drop", server_id=10, role_id=3001),
+        RolePerm(cmd="drop", guild_id=10, role_id=3001),
     )
     session.add_all(perms)
     session.commit()
@@ -399,6 +399,7 @@ class Guild(FakeObject):
     def __init__(self, name, id=None):
         super().__init__(name, id)
         self.channels = []
+        self.roles = []
         self.emojis = []
         self.mapped = {
             1: Member('User1', [Role('FRC Recruit'), Role("Test")]),
@@ -416,8 +417,11 @@ class Guild(FakeObject):
     def members(self):
         return list(self.mapped.values())
 
-    def get_channel(self, channel):
-        return [guild_channel for guild_channel in self.channels if guild_channel.id == channel][0]
+    def get_channel(self, channel_id):
+        return [channel for channel in self.channels if channel.id == channel_id][0]
+
+    def get_role(self, role_id):
+        return [role for role in self.roles if role.id == role_id][0]
 
     def get_member_named(self, nick):
         """
@@ -450,6 +454,10 @@ class Channel(FakeObject):
 
     # def __repr__(self):
         # return super().__repr__() + ", Server: {}".format(self.server.name)
+
+    @property
+    def mention(self):
+        return self.name
 
     async def delete_messages(self, messages):
         for msg in messages:

@@ -960,11 +960,11 @@ class ChannelPerm(Base):
     __tablename__ = 'perms_channels'
 
     cmd = sqla.Column(sqla.String(LEN_CMD), primary_key=True)
-    server_id = sqla.Column(sqla.BigInteger, primary_key=True)
+    guild_id = sqla.Column(sqla.BigInteger, primary_key=True)
     channel_id = sqla.Column(sqla.BigInteger, primary_key=True)
 
     def __repr__(self):
-        keys = ['cmd', 'server_id', 'channel_id']
+        keys = ['cmd', 'guild_id', 'channel_id']
         kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
 
         return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
@@ -973,7 +973,7 @@ class ChannelPerm(Base):
         return isinstance(other, ChannelPerm) and hash(self) == hash(other)
 
     def __hash__(self):
-        return hash("{}_{}_{}".format(self.cmd, self.server_id, self.channel_id))
+        return hash("{}_{}_{}".format(self.cmd, self.guild_id, self.channel_id))
 
 
 class RolePerm(Base):
@@ -983,11 +983,11 @@ class RolePerm(Base):
     __tablename__ = 'perms_roles'
 
     cmd = sqla.Column(sqla.String(LEN_CMD), primary_key=True)
-    server_id = sqla.Column(sqla.BigInteger, primary_key=True)
+    guild_id = sqla.Column(sqla.BigInteger, primary_key=True)
     role_id = sqla.Column(sqla.BigInteger, primary_key=True)
 
     def __repr__(self):
-        keys = ['cmd', 'server_id', 'role_id']
+        keys = ['cmd', 'guild_id', 'role_id']
         kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
 
         return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
@@ -996,7 +996,7 @@ class RolePerm(Base):
         return isinstance(other, RolePerm) and hash(self) == hash(other)
 
     def __hash__(self):
-        return hash("{}_{}_{}".format(self.cmd, self.server_id, self.role_id))
+        return hash("{}_{}_{}".format(self.cmd, self.guild_id, self.role_id))
 
 
 class TrackSystem(Base):

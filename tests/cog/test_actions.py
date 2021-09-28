@@ -170,13 +170,13 @@ async def test_cmd_admin_remove_admin(f_dusers, f_admins, f_bot, db_cleanup, ses
 async def test_cmd_admin_add_chan(f_dusers, f_admins, f_bot, db_cleanup, session):
     srv = tc.fake_servers()[0]
     chan = srv.channels[1]
-    msg = fake_msg_gears("!admin add BGS", channel_mentions=[chan])
+    msg = fake_msg_gears("!admin add bgs", channel_mentions=[chan])
 
     await action_map(msg, f_bot).execute()
 
     session.close()
-    added = session.query(ChannelPerm).filter(ChannelPerm.cmd == 'BGS').one()
-    assert added.cmd == "BGS"
+    added = session.query(ChannelPerm).filter(ChannelPerm.cmd == 'bgs').one()
+    assert added.cmd == "bgs"
 
 
 @pytest.mark.asyncio
@@ -194,14 +194,14 @@ async def test_cmd_admin_remove_chan(f_dusers, f_admins, f_bot, db_cleanup, sess
     srv = tc.fake_servers()[0]
     chan = srv.channels[1]
 
-    msg = fake_msg_gears("!admin add BGS", channel_mentions=[chan])
+    msg = fake_msg_gears("!admin add bgs", channel_mentions=[chan])
     await action_map(msg, f_bot).execute()
-    msg = fake_msg_gears("!admin remove BGS", channel_mentions=[chan])
+    msg = fake_msg_gears("!admin remove bgs", channel_mentions=[chan])
     await action_map(msg, f_bot).execute()
 
     session.close()
     with pytest.raises(sqla.exc.NoResultFound):
-        session.query(ChannelPerm).filter(ChannelPerm.cmd == 'BGS').one()
+        session.query(ChannelPerm).filter(ChannelPerm.cmd == 'bgs').one()
 
 
 @pytest.mark.asyncio
@@ -209,12 +209,12 @@ async def test_cmd_admin_add_role(f_dusers, f_admins, f_bot, db_cleanup, session
     srv = tc.fake_servers()[0]
     role = srv.get_member(1).roles[0]
     role.id = 90
-    msg = fake_msg_gears("!admin add BGS", role_mentions=[role])
+    msg = fake_msg_gears("!admin add bgs", role_mentions=[role])
 
     await action_map(msg, f_bot).execute()
 
     session.close()
-    added = session.query(RolePerm).filter(RolePerm.cmd == 'BGS').one()
+    added = session.query(RolePerm).filter(RolePerm.cmd == 'bgs').one()
     assert added.role_id == role.id
 
 
@@ -235,14 +235,14 @@ async def test_cmd_admin_remove_role(f_dusers, f_admins, f_bot, db_cleanup, sess
     role = srv.get_member(1).roles[0]
     role.id = 90
 
-    msg = fake_msg_gears("!admin add BGS", role_mentions=[role])
+    msg = fake_msg_gears("!admin add bgs", role_mentions=[role])
     await action_map(msg, f_bot).execute()
-    msg = fake_msg_gears("!admin remove BGS", role_mentions=[role])
+    msg = fake_msg_gears("!admin remove bgs", role_mentions=[role])
     await action_map(msg, f_bot).execute()
 
     session.close()
     with pytest.raises(sqla.exc.NoResultFound):
-        session.query(ChannelPerm).filter(ChannelPerm.cmd == 'BGS').one()
+        session.query(ChannelPerm).filter(ChannelPerm.cmd == 'bgs').one()
 
 
 @pytest.mark.asyncio

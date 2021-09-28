@@ -660,46 +660,131 @@ def add_admin(session, member):
         raise cog.exc.InvalidCommandArgs("Member {} is already an admin.".format(member.display_name)) from exc
 
 
-def add_channel_perm(session, cmd, server, channel):
-    try:
-        session.add(ChannelPerm(cmd=cmd, server_id=server.id, channel_id=channel.id))
-        session.commit()
-    except (sqla_exc.IntegrityError, sqla_oexc.FlushError) as exc:
-        raise cog.exc.InvalidCommandArgs("Channel permission already exists.") from exc
+def show_guild_perms(session, guild, prefix='!'):
+    """
+    Find all existing rules and format a summary to display.
+
+    Args:
+        session: A session onto the db.
+        guild: The guild that set restrictions.
+
+    Returns: A formatted string summarizing rules for guild.
+    """
+    msg = f"__Existing Rules For {guild.name}__"
+
+    rules = session.query(ChannelPerm).filter(ChannelPerm.guild_id == guild.id).all()
+    if rules:
+        msg += "\n\n__Channel Rules__\n"
+        for rule in rules:
+            msg += "`{prefix}{cmd}` limited to channel: {chan}\n".format(prefix=prefix, cmd=rule.cmd, chan=guild.get_channel(rule.channel_id).mention)
+
+    rules = session.query(RolePerm). filter(RolePerm.guild_id == guild.id).all()
+    if rules:
+        msg += "\n\n__Role Rules__\n"
+        for rule in rules:
+            msg += "`{prefix}{cmd}` limited to role: {role}\n".format(prefix=prefix, cmd=rule.cmd, role=guild.get_role(rule.role_id).name)
+
+    return msg.rstrip()
 
 
-def add_role_perm(session, cmd, server, role):
-    try:
-        session.add(RolePerm(cmd=cmd, server_id=server.id, role_id=role.id))
-        session.commit()
-    except (sqla_exc.IntegrityError, sqla_oexc.FlushError) as exc:
-        raise cog.exc.InvalidCommandArgs("Role permission already exists.") from exc
+def add_channel_perms(session, cmds, guild, channels):
+    """
+    Add channel restrictions to an existing commands.
+
+    Args:
+        session: A session onto the db.
+        cmds: A list of command names, as seen by user (i.e. ['fort', 'um']).
+        guild: The guild to set restrictions.
+        channels: A list of Channels on the guild where the commands should be restricted.
+
+    Raises:
+        InvalidCommandArgs: Tells user of any existing rules, adds all others.
+    """
+    msg = ""
+    for cmd in cmds:
+        for channel in channels:
+            try:
+                session.add(ChannelPerm(cmd=cmd, guild_id=guild.id, channel_id=channel.id))
+                session.commit()
+            except (sqla_exc.IntegrityError, sqla_oexc.FlushError):
+                msg += f"Channel permission exists for: {cmd} on {channel.name}\n"
+
+    if msg:
+        raise cog.exc.InvalidCommandArgs("Existing rules below, remaining rules added:\n\n" + msg)
 
 
-def remove_channel_perm(session, cmd, server, channel):
-    try:
-        perm = session.query(ChannelPerm).\
-            filter(ChannelPerm.cmd == cmd,
-                   ChannelPerm.server_id == server.id,
-                   ChannelPerm.channel_id == channel.id).\
-            one()
-        session.delete(perm)
-        session.commit()
-    except sqla_oexc.NoResultFound as exc:
-        raise cog.exc.InvalidCommandArgs("Channel permission does not exist.") from exc
+def add_role_perms(session, cmds, guild, roles):
+    """
+    Add role restrictions to existing commands.
+
+    Args:
+        session: A session onto the db.
+        cmds: A list of command names, as seen by user (i.e. ['fort', 'um']).
+        guild: The guild to set restrictions.
+        roles: A list of Roles on the guild where the commands should be restricted.
+
+    Raises:
+        InvalidCommandArgs: Tells user of any existing rules, adds all others.
+    """
+    msg = ""
+    for cmd in cmds:
+        for role in roles:
+            try:
+                session.add(RolePerm(cmd=cmd, guild_id=guild.id, role_id=role.id))
+                session.commit()
+            except (sqla_exc.IntegrityError, sqla_oexc.FlushError):
+                msg += f"Role permission exists for: {cmd} on {role.name}\n"
+
+    if msg:
+        raise cog.exc.InvalidCommandArgs("Existing rules below, remaining rules added:\n\n" + msg)
 
 
-def remove_role_perm(session, cmd, server, role):
-    try:
-        perm = session.query(RolePerm).\
-            filter(RolePerm.cmd == cmd,
-                   RolePerm.server_id == server.id,
-                   RolePerm.role_id == role.id).\
-            one()
-        session.delete(perm)
-        session.commit()
-    except sqla_oexc.NoResultFound as exc:
-        raise cog.exc.InvalidCommandArgs("Role permission does not exist.") from exc
+def remove_channel_perms(session, cmds, guild, channels):
+    """
+    Remove channel restrictions to existing commands.
+    Attempting to remove non existant rules is ignored silently.
+
+    Args:
+        session: A session onto the db.
+        cmds: A list of command names, as seen by user (i.e. ['fort', 'um']).
+        guild: The guild to set restrictions.
+        roles: A list of Roles on the guild where the commands should be restricted.
+    """
+    for cmd in cmds:
+        for channel in channels:
+            try:
+                session.query(ChannelPerm).\
+                    filter(ChannelPerm.cmd == cmd,
+                           ChannelPerm.guild_id == guild.id,
+                           ChannelPerm.channel_id == channel.id).\
+                    delete()
+            except sqla_oexc.NoResultFound:
+                pass
+    session.commit()
+
+
+def remove_role_perms(session, cmds, guild, roles):
+    """
+    Remove role restrictions to existing commands.
+    Attempting to remove non existant rules is ignored silently.
+
+    Args:
+        session: A session onto the db.
+        cmds: A list of command names, as seen by user (i.e. ['fort', 'um']).
+        guild: The guild to set restrictions.
+        roles: A list of Roles on the guild where the commands should be restricted.
+    """
+    for cmd in cmds:
+        for role in roles:
+            try:
+                session.query(RolePerm).\
+                    filter(RolePerm.cmd == cmd,
+                           RolePerm.guild_id == guild.id,
+                           RolePerm.role_id == role.id).\
+                    delete()
+            except sqla_oexc.NoResultFound:
+                pass
+    session.commit()
 
 
 def check_perms(session, msg, args):
@@ -709,8 +794,9 @@ def check_perms(session, msg, args):
 
     Raises InvalidPerms if any permission issue.
     """
-    check_channel_perms(session, args.cmd, msg.channel.guild, msg.channel)
-    check_role_perms(session, args.cmd, msg.channel.guild, msg.author.roles)
+    cmd = cog.parse.CMD_MAP[args.cmd]
+    check_channel_perms(session, cmd, msg.channel.guild, msg.channel)
+    check_role_perms(session, cmd, msg.channel.guild, msg.author.roles)
 
 
 def check_channel_perms(session, cmd, server, channel):
@@ -723,7 +809,7 @@ def check_channel_perms(session, cmd, server, channel):
     """
     perms = session.query(ChannelPerm).\
         filter(ChannelPerm.cmd == cmd,
-               ChannelPerm.server_id == server.id).\
+               ChannelPerm.guild_id == server.id).\
         all()
     channels = [perm.channel_id for perm in perms]
     if channels and channel.id not in channels:
@@ -741,7 +827,7 @@ def check_role_perms(session, cmd, server, member_roles):
     """
     perms = session.query(RolePerm).\
         filter(RolePerm.cmd == cmd,
-               RolePerm.server_id == server.id).\
+               RolePerm.guild_id == server.id).\
         all()
     perm_roles = {perm.role_id for perm in perms}
     member_roles = {role.id for role in member_roles}
