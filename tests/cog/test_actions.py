@@ -3,7 +3,9 @@ Tests against the cog.actions module.
 These tests act as integration tests, checking almost the whole path.
 Importantly, I have stubbed/mocked everything to do with discord.py and the gsheets calls.
 """
+import os
 import re
+import shutil
 
 import aiomock
 import pytest
@@ -1610,6 +1612,27 @@ async def test_cmd_dist_invalid_args(f_bot):
     msg = fake_msg_gears("!dist sol, freyyyyy")
     with pytest.raises(cog.exc.InvalidCommandArgs):
         await action_map(msg, f_bot).execute()
+
+
+@pytest.mark.asyncio
+async def test_cmd_donate(f_bot):
+    expected = "This is the donation message.\n"
+    d_file = cog.util.CONF.paths.donate
+    try:
+        if os.path.exists(d_file):
+            shutil.copyfile(d_file, d_file + '.bak')
+        with open(d_file, 'w') as fout:
+            fout.write(expected)
+
+        msg = fake_msg_gears("!donate")
+        await action_map(msg, f_bot).execute()
+
+        f_bot.send_message.assert_called_with(msg.channel, expected)
+    finally:
+        try:
+            os.rename(d_file + '.bak', d_file)
+        except (OSError, FileNotFoundError):
+            os.remove(d_file)
 
 
 @pytest.mark.asyncio

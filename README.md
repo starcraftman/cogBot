@@ -18,6 +18,13 @@ There is a [github repo] and a [gitlab repo]. While the project started on githu
 will continue on gitlab at present and github will remain a mirror.
 If people want to make forks and discuss issues that's fine but PRs are likely to be done on gitlab.
 
+### Donate To Project
+
+If you'd like to help cover server costs or buy me a coffe for development, see these buttons.
+
+<a href="https://www.buymeacoffee.com/starcraftman" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-blue.png" width="11%" height="11%" alt="Buy Me A Coffee" style="height: 60px !important;width: 217px !important;" ></a>
+<noscript><a href="https://liberapay.com/starcraftman/donate"><img alt="Donate using Liberapay" src="https://liberapay.com/assets/widgets/donate.svg"></a></noscript>
+
 ### Install
 
 This bot requires python >= 3.7. I suggest using pyenv to provide python and isolate from system.

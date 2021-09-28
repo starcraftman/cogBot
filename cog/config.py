@@ -35,6 +35,7 @@ CONFIG_DEFAULTS = {
         '_hostile': "\U0001F534",
     },
     'paths': {
+        'donate': 'data/donate.txt',
         'log_conf': 'data/log.yml',
         'service_json': 'data/service_sheets.json',
     },

@@ -754,6 +754,15 @@ class Dist(Action):
             await self.bot.send_message(self.msg.channel, msg)
 
 
+class Donate(Action):
+    """
+    Information on how to donate. Command will not actually process anything here.
+    """
+    async def execute(self):
+        with open(cog.util.CONF.paths.donate, 'r', encoding='utf-8') as fin:
+            await self.bot.send_message(self.msg.channel, fin.read())
+
+
 class Drop(Action):
     """
     Handle the logic of dropping a fort at a target.

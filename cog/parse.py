@@ -215,6 +215,19 @@ def subs_dist(subs, prefix):
 
 
 @register_parser
+def subs_donate(subs, prefix):
+    """ Subcommand parsing for drop """
+    desc = """Information on how to donate to the project.
+
+**{prefix}donate**
+        Information on how to donate funds to support development and server costs.
+    """.format(prefix=prefix)
+    sub = subs.add_parser(prefix + 'donate', description=desc, formatter_class=RawHelp)
+    sub.set_defaults(cmd='Donate')
+    CMD_MAP['Donate'] = 'donate'
+
+
+@register_parser
 def subs_drop(subs, prefix):
     """ Subcommand parsing for drop """
     desc = """Update the cattle sheet when you drop at a system.
