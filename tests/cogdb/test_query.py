@@ -221,6 +221,10 @@ def test_fort_get_systems_x_left(session, f_dusers, f_fort_testbed):
 
 
 def test_fort_get_priority_targets(session, f_dusers, f_fort_testbed):
+    session.add(
+        FortSystem(id=11, name='PriorityForted', fort_status=9000, trigger=8563, notes='Priority For S/M Ships', sheet_col='BZ', sheet_order=58)
+    )
+    session.commit()
     priority, deferred = cogdb.query.fort_get_priority_targets(session)
     assert priority[0].name == 'Othime'
     assert len(priority) == 1

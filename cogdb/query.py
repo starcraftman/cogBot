@@ -374,10 +374,12 @@ def fort_get_priority_targets(session):
     """
     priority = session.query(FortSystem).\
         filter(sqla.not_(FortSystem.is_skipped),
+               sqla.not_(FortSystem.is_fortified),
                FortSystem.is_priority).\
         all()
     deferred = session.query(FortSystem).\
         filter(sqla.not_(FortSystem.is_skipped),
+               sqla.not_(FortSystem.is_fortified),
                FortSystem.is_deferred).\
         all()
 
