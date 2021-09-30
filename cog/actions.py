@@ -1020,6 +1020,7 @@ class Help(Action):
             ['{prefix}admin', 'Admin commands'],
             ['{prefix}bgs', 'Display information related to BGS work'],
             ['{prefix}dist', 'Determine the distance from the first system to all others'],
+            ['{prefix}donate', 'Information on supporting the dev.'],
             ['{prefix}drop', 'Drop forts into the fort sheet'],
             ['{prefix}feedback', 'Give feedback or report a bug'],
             ['{prefix}fort', 'Get information about our fort systems'],
