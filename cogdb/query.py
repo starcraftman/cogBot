@@ -193,7 +193,7 @@ def add_sheet_user(session, *, cls, discord_user, start_row, sheet_src=None):
         duser: The DiscordUser object of the requesting user.
         start_row: Starting row if none inserted.
     """
-    next_row = next_sheet_row(session, cls=cls, start_row=start_row)
+    next_row = next_sheet_row(session, cls=cls, start_row=start_row, sheet_src=sheet_src)
     user = cls(name=discord_user.pref_name, cry=discord_user.pref_cry, row=next_row)
     if sheet_src:
         user.sheet_src = sheet_src

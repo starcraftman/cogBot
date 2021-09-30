@@ -1076,8 +1076,14 @@ class Hold(Action):
         return ([hold], response)
 
     @check_mentions
-    @check_sheet('hudson_undermine', 'um_user', UMUser)
+    @check_sheet('hudson_undermine', 'um_user', UMUser, sheet_src=EUMSheet.main)
+    async def check_sheet_user(self):
+        """
+        Decorate this function to prevent duplicate decorator running.
+        """
+
     async def execute(self):
+        await self.check_sheet_user()
         self.log.info('HOLD %s - Matched self.duser with id %s and sheet name %s.',
                       self.duser.display_name, self.duser.id, self.undermine)
 
@@ -1130,8 +1136,10 @@ class SnipeHold(Hold):
     """
     @check_mentions
     @check_sheet('hudson_snipe', 'snipe_user', UMUser, sheet_src=EUMSheet.snipe)
-    async def execute(self):
-        await super().execute()
+    async def check_sheet_user(self):
+        """
+        Decorate this function to prevent duplicate decorator running.
+        """
 
 
 class KOS(Action):
