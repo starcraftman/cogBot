@@ -498,19 +498,23 @@ def um_find_system(session, system_name, *, sheet_src=EUMSheet.main):
         return systems[0]
 
 
-def um_get_systems(session, exclude_finished=True, *, sheet_src=EUMSheet.main):
+def um_get_systems(session, *, exclude_finished=True, sheet_src=EUMSheet.main):
     """
     Return a list of all current undermining targets.
 
     kwargs:
-        finished: Return just the finished targets.
+        exclude_finished: Return only active UM targets.
+        sheet_src: Select UM targets from sheet_src, default main.
     """
     systems = session.query(UMSystem).\
-        filter(UMSystem.sheet_src == sheet_src)
-    if exclude_finished:
-        systems = systems.filter(sqla.not_(UMSystem.is_undermined))
+        filter(UMSystem.sheet_src == sheet_src).\
+        all()
 
-    return systems.all()
+    if exclude_finished:
+        # Force in memory check, due to differing implementation of is_undermined
+        systems = [x for x in systems if not x.is_undermined]
+
+    return systems
 
 
 def um_reset_held(session, user, *, sheet_src=EUMSheet.main):

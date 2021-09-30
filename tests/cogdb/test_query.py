@@ -313,10 +313,14 @@ def test_um_find_system(session, f_dusers, f_um_testbed):
 def test_um_get_systems(session, f_dusers, f_um_testbed):
     systems = [system.name for system in cogdb.query.um_get_systems(session)]
     assert 'Cemplangpa' not in systems
+    assert 'Burr' in systems
+    assert 'AF Leopris' in systems
 
     systems = [system.name for system in
                cogdb.query.um_get_systems(session, exclude_finished=False)]
     assert 'Cemplangpa' in systems
+    assert 'Burr' in systems
+    assert 'AF Leopris' in systems
 
 
 def test_um_reset_held(session, f_dusers, f_um_testbed):

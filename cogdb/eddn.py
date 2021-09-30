@@ -628,25 +628,25 @@ def connect_loop(sub):  # pragma: no cover
             time.sleep(5)
 
 
-def eddn_log(fname, stream_level="INFO"):
+def eddn_log(fname, log_level="INFO"):
     """
     Create a simple file and stream logger for eddn separate from main bot's logging.
     """
     log = logging.getLogger(__name__)
     for hand in log.handlers:
         log.removeHandler(hand)
-    log.setLevel("DEBUG")
+    log.setLevel(log_level)
 
     log_fmt = logging.Formatter(fmt="[%(levelname)-5.5s] %(asctime)s %(name)s.%(funcName)s()::%(lineno)s | %(message)s")
     handler = logging.handlers.RotatingFileHandler(fname, maxBytes=2 ** 20, backupCount=3, encoding='utf8')
     handler.setFormatter(log_fmt)
-    handler.setLevel("DEBUG")
+    handler.setLevel(log_level)
     handler.doRollover()
     log.addHandler(handler)
 
     handler = logging.StreamHandler(sys.stdout)
     handler.setFormatter(log_fmt)
-    handler.setLevel(stream_level)
+    handler.setLevel(log_level)
     log.addHandler(handler)
 
 
@@ -655,7 +655,7 @@ def create_args_parser():  # pragma: no cover
     Return parser for using this component on command line.
     """
     parser = argparse.ArgumentParser(description="EDDN Listener")
-    parser.add_argument('--level', '-l', nargs=1, default='DEBUG',
+    parser.add_argument('--level', '-l', default='DEBUG',
                         help='Set the overall logging level..')
     parser.add_argument('--all', '-a', action='store_true', dest='all_msgs',
                         help='Capture all messages intercepted.')
