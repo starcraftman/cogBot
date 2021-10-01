@@ -3,6 +3,7 @@ Tests for cog.inara
 """
 import os
 
+import aiomock
 import discord
 try:
     import rapidjson as json
@@ -13,7 +14,7 @@ import pytest
 import cog.inara
 import cog.util
 
-from tests.conftest import Message, fake_msg_gears
+from tests.conftest import Interaction, Message, fake_msg_gears, fake_msg_newuser
 
 REASON_INARA = 'Prevent temp inara ban due flooding. To enable, ensure os.environ ALL_TESTS=True'
 INARA_TEST = pytest.mark.skipif(not os.environ.get('ALL_TESTS'), reason=REASON_INARA)
@@ -33,6 +34,17 @@ def test_inara_api_input():
     }
     assert events == expect
     assert actual["header"]["APIkey"].startswith("3")
+
+
+def mock_inter(values):
+    inter = aiomock.AIOMock(values=values, sent=[])
+    inter.component.label = inter.values[0]
+
+    async def send_(resp):
+        inter.sent += [resp]
+    inter.send = send_
+
+    return inter
 
 
 @pytest.mark.asyncio
@@ -92,8 +104,7 @@ async def test_friendly_detector_already_in_kos(f_bot):
 async def test_friendly_detector_canceled(f_bot):
     api = cog.inara.InaraApi()
     f_msg = fake_msg_gears('!whois Prozer')
-    emoji_cancel = cog.util.CONF.emojis._no
-    f_bot.wait_for.async_return_value = emoji_cancel, None
+    f_bot.wait_for.async_return_value = mock_inter([cog.inara.BUT_CANCEL])
     cmdr = {"name": "Prozer", "allegiance": "Federation"}
     is_friendly_returned, squad_returned = await api.friendly_detector(cmdr, False, [], f_msg)
 
@@ -104,8 +115,7 @@ async def test_friendly_detector_canceled(f_bot):
 async def test_friendly_detector_friendly_no_squad(f_bot):
     api = cog.inara.InaraApi()
     f_msg = fake_msg_gears('!whois Prozer')
-    emoji_friendly = cog.util.CONF.emojis._friendly
-    f_bot.wait_for.async_return_value = emoji_friendly, None
+    f_bot.wait_for.async_return_value = mock_inter([cog.inara.BUT_FRIENDLY])
     cmdr = {"name": "Prozer", "allegiance": "Federation"}
     is_friendly_returned, squad_returned = await api.friendly_detector(cmdr, False, [], f_msg)
 
@@ -116,8 +126,7 @@ async def test_friendly_detector_friendly_no_squad(f_bot):
 @pytest.mark.asyncio
 async def test_friendly_detector_hostile_with_squad(f_bot):
     api = cog.inara.InaraApi()
-    emoji_hostile = cog.util.CONF.emojis._hostile
-    f_bot.wait_for.async_return_value = emoji_hostile, None
+    f_bot.wait_for.async_return_value = mock_inter([cog.inara.BUT_HOSTILE])
     f_msg = fake_msg_gears('!whois Akeno')
     cmdr = {"name": "Akeno", "allegiance": "Empire", "squad": "Test"}
     is_friendly_returned, squad_returned = await api.friendly_detector(cmdr, True, [], f_msg)
@@ -178,19 +187,20 @@ async def test_inara_squad_details(f_bot):
     assert result == expect
 
 
-def test_check_reply():
-    with pytest.raises(cog.exc.CmdAborted):
-        cog.inara.check_reply(None)
+def test_check_inter_orig_user_or_admin(f_dusers, f_admins):
+    message = fake_msg_gears('hello')
+    message2 = fake_msg_newuser('goodbye')
+    inter = Interaction('inter1', user=message2.author, message=message2)
 
-    with pytest.raises(cog.exc.CmdAborted):
-        cog.inara.check_reply(Message('!status', None, None, None))
+    # Same everything
+    assert cog.inara.check_inter_orig_user_or_admin(message2.author, message2, inter)
 
-    with pytest.raises(cog.exc.CmdAborted):
-        cog.inara.check_reply(Message('stop', None, None, None))
+    # Different messages, always reject
+    assert not cog.inara.check_inter_orig_user_or_admin(message.author, message, inter)
 
-    assert cog.inara.check_reply(Message('2', None, None, None)) == 2
-
-    assert cog.inara.check_reply(Message('cmdr 5', None, None, None)) == 5
+    # Same message, author is admin
+    inter = Interaction('inter1', user=message.author, message=message2)
+    assert cog.inara.check_inter_orig_user_or_admin(message2.author, message2, inter)
 
 
 def test_extract_inara_systems():

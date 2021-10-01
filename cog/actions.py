@@ -18,6 +18,7 @@ import traceback
 import aiofiles
 import decorator
 import discord
+import discord_components as dcom
 import googleapiclient.errors
 import gspread
 import sqlalchemy.exc
@@ -136,6 +137,42 @@ class Action():
     def undermine(self):
         """ User's current undermining sheet. """
         return self.duser.um_user
+
+    async def send_to_moderation(self, *, cmdr, faction, reason, is_friendly):
+        """
+        Send a request to approve or deny aa KOS addition.
+        """
+        # Request approval
+        chan = self.msg.guild.get_channel(cog.util.CONF.channels.ops)
+        sent = await chan.send(
+            embed=cog.inara.kos_report_cmdr_embed(
+                self.msg.author.name, cmdr, faction, reason, is_friendly,
+            ),
+            components=[
+                dcom.Button(label=cog.inara.BUT_APPROVE, style=dcom.ButtonStyle.green),
+                dcom.Button(label=cog.inara.BUT_DENY, style=dcom.ButtonStyle.red),
+            ],
+        )
+
+        check = functools.partial(cog.inara.check_inter_orig_user_or_admin, self.msg.author, sent)
+        inter = await self.bot.wait_for('button_click', check=check)
+
+        response = "No change to KOS made."
+        if inter.component.label == cog.inara.BUT_APPROVE:
+            scanner = get_scanner('hudson_kos')
+            await scanner.update_cells()
+            payload = scanner.add_report_dict(
+                cmdr, faction, reason, is_friendly
+            )
+            await scanner.send_batch(payload)
+            cogdb.query.kos_add_cmdr(self.session, cmdr, faction, reason, is_friendly)
+            self.session.commit()
+            response = "CMDR has been added to KOS."
+
+        await asyncio.gather(
+            sent.delete(),
+            chan.send(response),
+        )
 
     async def execute(self):
         """
@@ -1168,42 +1205,7 @@ class KOS(Action):
         reason = ' '.join(self.args.reason) + " -{}".format(self.msg.author.name)
         is_friendly = self.args.is_friendly
         await self.msg.channel.send('CMDR {} has been reported for moderation.'.format(cmdr))
-        await self.send_to_moderation(cmdr, faction, reason, is_friendly)
-
-    async def send_to_moderation(self, cmdr, faction, reason, is_friendly):
-        # Request approval
-        chan = self.msg.guild.get_channel(cog.util.CONF.channels.ops)
-        sent = await chan.send(
-            embed=cog.inara.kos_report_cmdr_embed(
-                self.msg.author.name, cmdr, faction, reason, is_friendly,
-            )
-        )
-        yes_emoji = cog.util.CONF.emojis._yes
-        await sent.add_reaction(yes_emoji)
-        await sent.add_reaction(cog.util.CONF.emojis._no)
-
-        def check(_, user):
-            try:
-                return cogdb.query.get_admin(self.session, user)
-            except cog.exc.NoMatch:
-                return False
-
-        react, _ = await self.bot.wait_for('reaction_add', check=check)
-
-        # Approved update
-        response = "No change to KOS made."
-        if str(react) == yes_emoji:
-            scanner = get_scanner('hudson_kos')
-            await scanner.update_cells()
-            payload = scanner.add_report_dict(
-                cmdr, faction, reason, is_friendly
-            )
-            await scanner.send_batch(payload)
-            cogdb.query.kos_add_cmdr(self.session, cmdr, faction, reason, is_friendly)
-            self.session.commit()
-            response = "CMDR has been added to KOS."
-
-        await chan.send(response)
+        await self.send_to_moderation(cmdr=cmdr, faction=faction, reason=reason, is_friendly=is_friendly)
 
     async def execute(self):
         msg = 'KOS: Invalid subcommand'
@@ -1942,42 +1944,6 @@ class WhoIs(Action):
     """
     Who is request to Inara for CMDR info.
     """
-    async def send_to_moderation(self, cmdr, faction, reason, is_friendly):
-        # Request approval
-        chan = self.msg.guild.get_channel(cog.util.CONF.channels.ops)
-        reason, _ = reason
-        sent = await chan.send(
-            embed=cog.inara.kos_report_cmdr_embed(
-                self.msg.author.name, cmdr, faction, reason, is_friendly,
-            )
-        )
-        yes_emoji = cog.util.CONF.emojis._yes
-        await sent.add_reaction(yes_emoji)
-        await sent.add_reaction(cog.util.CONF.emojis._no)
-
-        def check(_, user):
-            try:
-                return cogdb.query.get_admin(self.session, user)
-            except cog.exc.NoMatch:
-                return False
-
-        react, _ = await self.bot.wait_for('reaction_add', check=check)
-
-        # Approved update
-        response = "No change to KOS made."
-        if str(react) == yes_emoji:
-            scanner = get_scanner('hudson_kos')
-            await scanner.update_cells()
-            payload = scanner.add_report_dict(
-                cmdr, faction, reason, is_friendly
-            )
-            await scanner.send_batch(payload)
-            cogdb.query.kos_add_cmdr(self.session, cmdr, faction, reason, is_friendly)
-            self.session.commit()
-            response = "CMDR has been added to KOS."
-
-        await chan.send(response)
-
     async def execute(self):
         cmdr_name = ' '.join(self.args.cmdr)
         cmdr = await cog.inara.api.search_with_api(cmdr_name, self.msg)
@@ -1991,7 +1957,8 @@ class WhoIs(Action):
                 cmdr = "Manual report after a !whois in {channel} by cmdr {reported_by}" \
                     .format(channel=self.msg.channel, reported_by=self.msg.author), True
             if returned_from_api is not None:
-                await self.send_to_moderation(cmdr_name, squad, cmdr, returned_from_api)
+                await self.send_to_moderation(cmdr=cmdr_name, faction=squad,
+                                              reason=cmdr[0], is_friendly=returned_from_api)
                 return None
 
 

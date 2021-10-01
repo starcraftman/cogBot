@@ -525,6 +525,13 @@ class Message(FakeObject):
         self.reaction.append(emote)
 
 
+class Interaction(FakeObject):
+    def __init__(self, name, *, id=None, user=None, message=None):
+        super().__init__(name, id)
+        self.message = message
+        self.user = user
+
+
 def fake_servers():
     """ Generate fake discord servers for testing. """
     srv = Guild("Gears' Hideout", id=1)

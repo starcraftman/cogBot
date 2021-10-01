@@ -20,8 +20,8 @@ Example of how header should look. Now pulled directly from config.
 '''
 import asyncio
 import datetime
+import functools
 import logging
-import math
 import re
 import sys
 try:
@@ -287,40 +287,26 @@ class InaraApi():
         Raises:
             CmdAborted - Cmdr either requested abort or failed to respond.
         """
-        fmt = '{:' + str(math.ceil(len(cmdrs) / 10)) + '}) {}'
-        cmdr_list = [fmt.format(ind, cmdr) for ind, cmdr in enumerate(cmdrs, 1)]
+        reply = "Please select a possible match from the list. Cancel with last option."
+        components = [
+            dcom.Select(
+                placeholder="CMDRs here",
+                options=[dcom.SelectOption(label=x, value=x) for x in cmdrs + [BUT_CANCEL]],
+                custom_id='select_cmdrs',
+            ),
+        ]
 
-        reply = '\n'.join([
-            'No exact match for CMDR **{}**'.format(name),
-            'Possible matches:',
-            '    ' + '\n    '.join(cmdr_list),
-            '\nTo select choice 2 reply with: **2**',
-            'To abort, reply: **stop**',
-            '\n__This message will delete itself on success or 30s timeout.__',
-        ])
-
-        user_select = None
-        while True:
-            try:
-                responses = [await cog.util.BOT.send_message(msg.channel, reply)]
-                try:
-                    user_select = await cog.util.BOT.wait_for(
-                        'message',
-                        check=lambda m: m.author == msg.author and m.channel == msg.channel,
-                        timeout=30)
-                except asyncio.TimeoutError:  # TODO: Temp hack
-                    user_select = None
-                if user_select:
-                    responses += [user_select]
-
-                cmdrs_dict = dict(enumerate(cmdrs, 1))
-                key = check_reply(user_select)
-                return cmdrs_dict[key]
-            except (KeyError, ValueError) as exc:
-                if user_select:
-                    responses += [await cog.util.BOT.send_message(msg.channel, str(exc))]
-            finally:
-                asyncio.ensure_future(responses[0].channel.delete_messages(responses))
+        sent = await cog.util.BOT.send_message(msg.channel, reply, components=components)
+        check = functools.partial(check_inter_orig_user_or_admin, msg.author, sent)
+        try:
+            inter = await cog.util.BOT.wait_for('select_option', check=check, timeout=30)
+            if inter.values[0] == BUT_CANCEL:
+                raise cog.exc.CmdAborted("WhoIs lookup aborted, user cancelled.")
+            return inter.values[0]
+        except asyncio.TimeoutError:
+            raise cog.exc.CmdAborted("WhoIs lookup aborted, timeout from inactivity.")
+        finally:
+            asyncio.ensure_future(sent.delete())
 
     async def squad_details(self, event_data, cmdr):
         """
@@ -472,12 +458,11 @@ class InaraApi():
             dcom.Button(label=BUT_HOSTILE, style=dcom.ButtonStyle.red),
             dcom.Button(label=BUT_CANCEL, style=dcom.ButtonStyle.grey),
         ]
-        text = f"Should the CMDR {cmdr['name']} be added as friendly or hostile? Use buttons below."
+        text = f"Should the CMDR {cmdr['name']} be added as friendly or hostile?"
         sent = await cog.util.BOT.send_message(msg.channel, text, components=components)
         self.waiting_messages[req_id] = sent
 
-        def check(inter):
-            return inter.message == sent
+        check = functools.partial(check_inter_orig_user_or_admin, msg.author, sent)
         inter = await cog.util.BOT.wait_for('button_click', check=check)
 
         # Approved update
@@ -497,27 +482,29 @@ Leadership will review your report. Thank you.""".format(inter.component.label)
         return reason, is_friendly
 
 
-def check_reply(msg, prefix='!'):
+def check_inter_orig_user_or_admin(orig_author, sent, inter):
     """
-    When user responds, validate his response.
+    Check if a user is the original requesting author
+    or if the responding user to interaction is an admin.
+    Use functools.partial to leave only inter arg.
 
-    Response should be form: cmdr x, where x in [1, n)
+    Args:
+        orig_author: The original author who made request.
+        sent: The message sent with options/buttons.
+        inter: The interaction argument to check.
 
-    Raises:
-        CmdAborted - Timeout reached or user requested abort.
-        ValueError - Bad message.
-
-    Returns: Parsed index of cmdrs dict.
+    Returns: True ONLY if responding to same message and user allowed.
     """
-    # If msg is None, the wait_for_message timed out.
-    if not msg or re.match(r'\s*stop\s*', msg.content.lower()) or msg.content.startswith(prefix):
-        raise cog.exc.CmdAborted('Timeout or user aborted command.')
+    user_allowed = inter.user == orig_author
+    if not user_allowed:
+        with cogdb.session_scope(cogdb.Session) as session:
+            try:
+                cogdb.query.get_admin(session, inter.user)
+                user_allowed = True
+            except cog.exc.NoMatch:
+                pass
 
-    match = re.search(r'\s*(\d+)\s*', msg.content.lower())
-    if not match:
-        raise ValueError('Bad response.\n\nPlease choose a **number** or **stop**')
-
-    return int(match.group(1))
+    return inter.message == sent and user_allowed
 
 
 def wrap_json_loads(string):
