@@ -285,8 +285,14 @@ class CogBot(discord.Client):
         try:
             edit_time = message.edited_at
             content = re.sub(r'<[#@]\S+>', '', content).strip()  # Strip mentions from text
-            args = self.parser.parse_args(re.split(r'\s+', content))
-            await self.dispatch_command(args=args, bot=self, msg=message)
+
+            with cogdb.session_scope(cogdb.Session) as session:
+                # Check permissions before full parsing
+                cmd = content[len(self.prefix):content.find(' ')]
+                cogdb.query.check_perms(session, message, cmd)
+
+                args = self.parser.parse_args(re.split(r'\s+', content))
+                await self.dispatch_command(args=args, bot=self, msg=message, session=session)
 
         except cog.exc.ArgumentParseError as exc:
             log.exception("Failed to parse command. '%s' | %s", author.name, content)
@@ -361,12 +367,8 @@ class CogBot(discord.Client):
         try:
             await self.sched.wait_for(args.cmd, wait_cb)
             logging.getLogger(__name__).info('Command %s aquired lock.', msg.content)
-
-            with cogdb.session_scope(cogdb.Session) as session:
-                cogdb.query.check_perms(session, msg, args)
-                cls = getattr(cog.actions, args.cmd)
-                kwargs['session'] = session
-                await cls(**kwargs).execute()
+            cls = getattr(cog.actions, args.cmd)
+            await cls(**kwargs).execute()
         finally:
             await self.sched.unwait_for(args.cmd)
             logging.getLogger(__name__).info('Command %s released lock.', msg.content)

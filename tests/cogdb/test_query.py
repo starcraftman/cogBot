@@ -457,17 +457,17 @@ def test_check_perms(session, f_cperms, f_rperms):
     msg.channel = ops_channel
     msg.channel.guild = server
 
-    cogdb.query.check_perms(session, msg, mock.Mock(cmd='Drop'))  # Silent pass
+    cogdb.query.check_perms(session, msg, 'drop')  # Silent pass
 
     with pytest.raises(cog.exc.InvalidPerms):
         msg.author.roles = [Role('Winters', id=3002)]
-        cogdb.query.check_perms(session, msg, mock.Mock(cmd='Drop'))
+        cogdb.query.check_perms(session, msg, 'drop')
 
     with pytest.raises(cog.exc.InvalidPerms):
         msg.author.roles = roles
         msg.channel.name = 'Not Operations'
         msg.channel.id = 9999
-        cogdb.query.check_perms(session, msg, mock.Mock(cmd='Drop'))
+        cogdb.query.check_perms(session, msg, 'drop')
 
 
 def test_check_channel_perms(session, f_cperms):
