@@ -357,10 +357,7 @@ User1             | 13950  | User2            | 6050
 
 @pytest.mark.asyncio
 async def test_cmd_bgs_age(side_session, eddb_session, f_bot, f_dusers, f_fort_testbed):
-    hudson_controls = cogdb.eddb.get_controls_of_power(eddb_session, power='%hudson')
     row = side_session.query(SystemAge).\
-        filter(SystemAge.control.in_(hudson_controls)).\
-        order_by(SystemAge.system.asc()).\
         first()
     msg = fake_msg_gears("!bgs age " + row.control)
 
