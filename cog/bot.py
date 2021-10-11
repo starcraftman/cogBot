@@ -418,7 +418,7 @@ class CogBot(discord.Client):
         await asyncio.sleep(ttl)
         try:
             await message.delete()
-        except discord.NotFound:
+        except discord.HTTPException:
             pass
 
     async def broadcast(self, content, ttl=False, channels=None, **kwargs):

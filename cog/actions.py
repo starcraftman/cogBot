@@ -1046,7 +1046,10 @@ class Help(Action):
 
         response = overview + cog.tbl.format_table(lines, header=True)[0]
         await self.bot.send_ttl_message(self.msg.channel, response)
-        await self.msg.delete()
+        try:
+            await self.msg.delete()
+        except discord.HTTPException:
+            pass
 
 
 class Hold(Action):
