@@ -420,7 +420,7 @@ def subs_kos(subs, prefix):
     subcmd = subcmds.add_parser('report', help='Report user to KOS.')
     subcmd.add_argument('-c', '--cmdr', nargs='+', help='The cmdr reported.')
     subcmd.add_argument('-f', '--faction', nargs='+', default=['Indy'], help='The faction of the cmdr reported.')
-    subcmd.add_argument('-r', '--reason', nargs='+', help='The reason reported.')
+    subcmd.add_argument('-r', '--reason', nargs='+', default=['No reason given, assuming hostile.'], help='The reason reported.')
     subcmd.add_argument('--friendly', dest='is_friendly', default=False, action='store_true', help='Report user to kill.')
     subcmd = subcmds.add_parser('search', help='Search for a user.')
     subcmd.add_argument('term', help='The username to look for.')
