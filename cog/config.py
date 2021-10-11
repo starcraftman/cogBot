@@ -131,10 +131,13 @@ class Config():
 
             The contents of CONFIG_DEFAULTS dictionary updated with the contents of the file load.
         """
-        self.conf = copy.deepcopy(CONFIG_DEFAULTS)
+        conf = copy.deepcopy(CONFIG_DEFAULTS)
         with open(self.fname) as fin:
             loaded = yaml.load(fin, Loader=Loader)
-        self.conf.update(loaded)
+
+            if loaded:
+                conf.update(loaded)
+                self.conf = conf
 
     def write(self):
         """
@@ -161,10 +164,15 @@ class Config():
         """
         Async version of read.
         """
-        self.conf = copy.deepcopy(CONFIG_DEFAULTS)
-        async with aiofiles.open(self.fname) as fin:
-            loaded = yaml.load(await fin.read(), Loader=Loader)
-        self.conf.update(loaded)
+        conf = copy.deepcopy(CONFIG_DEFAULTS)
+        async with aiofiles.open(self.fname, 'r', encoding='utf-8') as fin:
+            text = await fin.read()
+            print(text)
+            loaded = yaml.load(text, Loader=Loader)
+
+            if loaded:
+                conf.update(loaded)
+                self.conf = conf
 
     async def awrite(self):
         """

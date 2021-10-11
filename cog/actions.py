@@ -317,7 +317,6 @@ class Admin(Action):
 
     async def top(self, limit=5):
         """ Schedule all sheets for update. """
-        # TODO: Fetch cycle from Global.
         cycle = cog.util.CONF.scanners.hudson_cattle.page
         prefix = "__Top Merits for {}__\n\n".format(cycle)
         try:
@@ -369,7 +368,6 @@ class Admin(Action):
             InternalException - No parseable numeric component found in tab.
             RemoteError - The sheet/tab combination could not be resolved. Tab needs creating.
         """
-        await self.top(5)
         # Zero trackers for new ocr data
         cogdb.query.post_cycle_db_cleanup(self.session)
         self.bot.deny_commands = True
