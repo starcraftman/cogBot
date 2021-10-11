@@ -19,7 +19,7 @@ import cogdb.eddb
 from cogdb.side import SystemAge
 from cogdb.schema import (DiscordUser, FortSystem, FortDrop, FortUser,
                           FortOrder, UMSystem, UMUser, UMHold,
-                          AdminPerm, RolePerm, ChannelPerm,
+                          AdminPerm, RolePerm, ChannelPerm, Global,
                           TrackSystem, TrackSystemCached, TrackByID)
 
 from tests.conftest import fake_msg_gears, fake_msg_newuser
@@ -1687,6 +1687,20 @@ async def test_cmd_vote_cons(f_bot, f_dusers, f_global_testbed, f_vote_testbed):
 
     await action_map(msg, f_bot).execute()
     f_bot.send_message.assert_called_with(msg.channel, "**User1**: voted 6 Cons.")
+
+
+@pytest.mark.asyncio
+async def test_cmd_vote_near(f_bot, f_global_testbed, f_vote_testbed):
+    with cogdb.session_scope(cogdb.Session) as session:
+        globe = session.query(Global).one()
+        globe.show_vote_goal = True
+        globe.consolidation = 25
+        globe.vote_goal = 26
+
+    msg = fake_msg_gears("!vote")
+    await action_map(msg, f_bot).execute()
+
+    assert "Hold your vote (<=1%" in str(f_bot.send_message.call_args).replace("\\n", "\n")
 
 
 @pytest.mark.asyncio

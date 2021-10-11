@@ -9,6 +9,7 @@ import concurrent.futures as cfut
 import datetime
 import functools
 import logging
+import math
 import re
 import string
 import tempfile
@@ -1919,7 +1920,9 @@ class Voting(Action):
     def vote_direction(self, globe):
         """Display vote direction"""
         if globe.show_vote_goal or is_near_tick():
-            if globe.consolidation > globe.vote_goal:
+            if math.fabs(globe.vote_goal - globe.consolidation) <= 1.0:
+                vote_choice = 'Hold your vote (<=1% of goal)'
+            elif globe.consolidation > globe.vote_goal:
                 vote_choice = 'vote Preparation'
             elif globe.consolidation < globe.vote_goal:
                 vote_choice = 'vote Consolidation'
@@ -1931,6 +1934,7 @@ class Voting(Action):
                 )
         else:
             msg = "Please hold your vote for now. A ping will be sent once we have a final decision."
+
         return msg
 
 
