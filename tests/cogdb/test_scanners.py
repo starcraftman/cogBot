@@ -361,6 +361,17 @@ async def test_kosscanner_update_cells(f_asheet_kos):
 
 
 @pytest.mark.asyncio
+async def test_kosscanner_find_dupe(f_asheet_kos):
+    fscan = KOSScanner(f_asheet_kos)
+
+    await fscan.update_cells()
+    cnt, row = fscan.find_dupe('Silas Kruge')
+    assert cnt == 1467
+
+    assert not fscan.find_dupe('NotThere')[0]
+
+
+@pytest.mark.asyncio
 async def test_kosscanner_kos_entries(f_asheet_kos):
     fscan = KOSScanner(f_asheet_kos)
 

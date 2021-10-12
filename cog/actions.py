@@ -142,6 +142,13 @@ class Action():
         """
         Send a request to approve or deny aa KOS addition.
         """
+        # Check for dupes before bothering, KOS list should have unique cmdr names.
+        scanner = get_scanner('hudson_kos')
+        await scanner.update_cells()
+        cnt, row = scanner.find_dupe(cmdr)
+        if cnt:
+            raise cog.exc.InvalidCommandArgs(f'Duplicate "{cmdr}" reported as {row[2]} on row {cnt} with reason: {row[-1]}.\n\nCheck sheet. KOS addition aborted.')
+
         # Request approval
         chan = self.msg.guild.get_channel(cog.util.CONF.channels.ops)
         sent = await chan.send(
@@ -159,7 +166,6 @@ class Action():
 
         response = "No change to KOS made."
         if inter.component.label == cog.inara.BUT_APPROVE:
-            scanner = get_scanner('hudson_kos')
             await scanner.update_cells()
             payload = scanner.add_report_dict(
                 cmdr, faction, reason, is_friendly

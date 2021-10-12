@@ -718,6 +718,20 @@ class KOSScanner(FortScanner):
 
         self.flush_to_db(session, (entries,))
 
+    def find_dupe(self, cmdr_name):
+        """
+        Check for the same cmdr being reported.
+
+        Returns:
+            None, no duplicate found.
+            A number, the matching row number.
+        """
+        for cnt, row in enumerate(self.cells_row_major[1:], 2):
+            if cmdr_name == row[0]:
+                return cnt, row
+
+        return None, None
+
     def kos_entries(self):
         """
         Process all the entries in the sheet into KOS objects for db.
