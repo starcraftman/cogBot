@@ -22,7 +22,7 @@ from cogdb.schema import (DiscordUser, FortSystem, FortDrop, FortUser,
                           AdminPerm, RolePerm, ChannelPerm, Global,
                           TrackSystem, TrackSystemCached, TrackByID)
 
-from tests.conftest import fake_msg_gears, fake_msg_newuser
+from tests.conftest import fake_msg_gears, fake_msg_newuser, Interaction
 import tests.conftest as tc
 from tests.cog.test_inara import INARA_TEST
 
@@ -46,6 +46,9 @@ def patch_scanners():
     async def update_cells_():
         return True
 
+    def find_dupe_(_):
+        return None, None
+
     mock_cls = aiomock.Mock()
     mock_cls.update_sheet_user_dict.return_value = [
         {'range': 'A20:B20', 'values': [['test cry', 'test name']]},
@@ -53,6 +56,7 @@ def patch_scanners():
     scanner.__class__ = mock_cls
     scanner.send_batch = send_batch_
     scanner.get_batch = get_batch_
+    scanner.find_dupe = find_dupe_
     scanner.update_cells = update_cells_
     cog.actions.SCANNERS = {
         'hudson_carriers': scanner,
@@ -1736,35 +1740,41 @@ async def test_cmd_vote_display(f_bot, f_admins, f_dusers, f_global_testbed, f_v
 
 @INARA_TEST
 @pytest.mark.asyncio
-async def test_cmd_whois_canceled(f_bot, f_asheet_kos, f_kos):
-    emoji_no = "\u274C"
+async def test_cmd_whois_cancelled(f_bot, f_asheet_kos, f_kos):
     msg = fake_msg_gears("!whois Prozer")
-    f_bot.wait_for.async_return_value = emoji_no, None
+    f_bot.wait_for.async_side_effect = (
+        Interaction('cmd_who_friendly', message=msg, user=msg.author, comp_label=cog.inara.BUT_CANCEL),
+        Interaction('cmd_who_friendly', message=msg, user=msg.author, comp_label=cog.inara.BUT_DENY),
+    )
 
     await action_map(msg, f_bot).execute()
-    f_bot.send_message.assert_called_with(msg.channel, 'Command ignored.')
+    assert "Should the CMDR Prozer be added as friendly or hostile?" in str(f_bot.send_message.call_args).replace("\\n", "\n")
 
 
 @INARA_TEST
 @pytest.mark.asyncio
 async def test_cmd_whois_friendly(f_bot, f_asheet_kos, f_kos):
-    emoji_friendly = "\u1F7E2"
-    f_bot.wait_for.async_return_value = emoji_friendly, None
-    msg = fake_msg_gears("!whois Prozer")
+    msg = fake_msg_gears('!whois Prozer')
+    f_bot.wait_for.async_side_effect = (
+        Interaction('cmd_who_friendly', message=msg, user=msg.author, comp_label=cog.inara.BUT_FRIENDLY),
+        Interaction('cmd_who_friendly', message=msg, user=msg.author, comp_label=cog.inara.BUT_DENY),
+    )
 
     await action_map(msg, f_bot).execute()
-    f_bot.send_message.assert_called_with(msg.channel, 'CMDR has been reported to Leadership.')
+    assert "Should the CMDR Prozer be added as friendly or hostile?" in str(f_bot.send_message.call_args).replace("\\n", "\n")
 
 
 @INARA_TEST
 @pytest.mark.asyncio
-async def test_cmd_whois_hostile(f_bot, f_asheet_kos, f_kos):
-    emoji_hostile = "\u1F534"
-    f_bot.wait_for.async_return_value = emoji_hostile, None
+async def test_cmd_whois_hostile(f_bot, f_asheet_kos, f_kos, patch_scanners):
     msg = fake_msg_gears("!whois Prozer")
+    f_bot.wait_for.async_side_effect = (
+        Interaction('cmd_who_friendly', message=msg, user=msg.author, comp_label=cog.inara.BUT_FRIENDLY),
+        Interaction('cmd_who_friendly', message=msg, user=msg.author, comp_label=cog.inara.BUT_APPROVE),
+    )
 
     await action_map(msg, f_bot).execute()
-    f_bot.send_message.assert_called_with(msg.channel, 'CMDR has been reported to Leadership.')
+    assert "Should the CMDR Prozer be added as friendly or hostile?" in str(f_bot.send_message.call_args).replace("\\n", "\n")
 
 
 def test_process_system_args():

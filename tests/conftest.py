@@ -464,7 +464,7 @@ class Channel(FakeObject):
             msg.is_deleted = True
         self.all_delete_messages += messages
 
-    async def send(self, embed):
+    async def send(self, embed, **kwargs):
         return Message(embed, None, self.guild, None)
 
 
@@ -526,10 +526,25 @@ class Message(FakeObject):
 
 
 class Interaction(FakeObject):
-    def __init__(self, name, *, id=None, user=None, message=None):
+    """
+    Fake interaction object for discord components.
+    """
+    def __init__(self, name, *, id=None, user=None, message=None, component=None, values=None, comp_label=None):
         super().__init__(name, id)
         self.message = message
         self.user = user
+        self.sent = []
+
+        if comp_label:
+            component = aiomock.Mock()
+            print('label', comp_label)
+            component.label = comp_label
+
+        self.component = component
+        self.values = [component.label] if component and not values else values
+
+    async def send(self, *args, **kwargs):
+        self.sent += args
 
 
 def fake_servers():

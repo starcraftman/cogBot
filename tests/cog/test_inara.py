@@ -79,7 +79,11 @@ async def test_search_with_api(f_bot):
 @pytest.mark.asyncio
 async def test_reply_with_api_result(f_bot):
     api = cog.inara.InaraApi()
-    f_bot.wait_for.async_return_value = (fake_msg_gears('stop'), None)
+    msg = fake_msg_gears('stop')
+    comp = aiomock.Mock()
+    comp.label = cog.inara.BUT_CANCEL
+    f_bot.wait_for.async_return_value = Interaction('reply_api', message=msg, user=msg.author, component=comp)
+
     f_bot.send_message.async_return_value = fake_msg_gears("A message to send.")
     cog.util.BOT = f_bot
     f_msg = fake_msg_gears('!whois gearsandcogs')
@@ -87,7 +91,7 @@ async def test_reply_with_api_result(f_bot):
     await api.reply_with_api_result(cmdr["req_id"], cmdr["event_data"], f_msg)
 
     # TODO: Very lazy check :/
-    assert "CMDR has been reported to Leadership." in str(f_bot.send_message.call_args)
+    assert 'Should the CMDR GearsandCogs be added as friendly or hostile?' in str(f_bot.send_message.call_args)
 
 
 @pytest.mark.asyncio
@@ -139,8 +143,11 @@ async def test_friendly_detector_hostile_with_squad(f_bot):
 @pytest.mark.asyncio
 async def test_select_from_multiple_exact(f_bot):
     api = cog.inara.InaraApi()
-    # 7 is not guaranteed, based on external inara cmdr names order in results
-    f_bot.wait_for.async_return_value = fake_msg_gears('cmdr 9')
+    msg = fake_msg_gears('stop')
+    f_bot.wait_for.async_side_effect = [
+        Interaction('reply_api', message=msg, user=msg.author, comp_label='GearsandCogs'),
+        Interaction('reply_api', message=msg, user=msg.author, comp_label=cog.inara.BUT_DENY),
+    ]
     cog.util.BOT = f_bot
     cmdr = await api.search_with_api('gears', fake_msg_gears('!whois gears'))
     assert cmdr["name"] == "GearsandCogs"
@@ -152,7 +159,8 @@ async def test_select_from_multiple_exact(f_bot):
 @pytest.mark.asyncio
 async def test_select_from_multiple_stop(f_bot):
     api = cog.inara.InaraApi()
-    f_bot.wait_for.async_return_value = fake_msg_gears('stop')
+    msg = fake_msg_gears(cog.inara.BUT_CANCEL)
+    f_bot.wait_for.async_return_value = Interaction('multiple_stop', message=msg, user=msg.author, comp_label=cog.inara.BUT_CANCEL)
     cog.util.BOT = f_bot
     with pytest.raises(cog.exc.CmdAborted):
         await api.search_with_api('gears', fake_msg_gears('!whois gears'))

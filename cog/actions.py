@@ -1953,19 +1953,23 @@ class WhoIs(Action):
     async def execute(self):
         cmdr_name = ' '.join(self.args.cmdr)
         cmdr = await cog.inara.api.search_with_api(cmdr_name, self.msg)
+        squad = "Unknown"
+
         if cmdr and cmdr != (None, None):
             returned_from_api = False
             if isinstance(cmdr, tuple):
                 returned_from_api = cmdr[1]
-            squad = "Unknown"
+
             if "req_id" in cmdr:
+                cmdr_name = cmdr['name']
                 returned_from_api, squad = await cog.inara.api.reply_with_api_result(cmdr["req_id"], cmdr["event_data"], self.msg)
-                cmdr = "Manual report after a !whois in {channel} by cmdr {reported_by}" \
-                    .format(channel=self.msg.channel, reported_by=self.msg.author), True
+
+            reason = "Manual report after a !whois in {channel} by cmdr {reported_by}" \
+                .format(channel=self.msg.channel, reported_by=self.msg.author)
+
             if returned_from_api is not None:
                 await self.send_to_moderation(cmdr=cmdr_name, faction=squad,
-                                              reason=cmdr[0], is_friendly=returned_from_api)
-                return None
+                                              reason=reason, is_friendly=returned_from_api)
 
 
 def is_near_tick():
