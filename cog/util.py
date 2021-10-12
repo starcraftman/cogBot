@@ -34,6 +34,8 @@ LOG_MSG = """See main.log for general traces.
 Rolling over existing file logs as listed below.
     module_name -> output_file
     =========================="""
+# This date is the first week of Elite's Powerplay cycles
+WEEK_ZERO = datetime.datetime(2015, 8, 6, 7, 0)
 
 
 class RWLockWrite():
@@ -547,6 +549,13 @@ def chunk_file(fname, *, limit=5000, start_num=0):
             lines.clear()
 
     return start_num
+
+
+def current_cycle():
+    """
+    Returns: The current cycle of Powerplay, based on first week of play.
+    """
+    return (datetime.datetime.utcnow() - WEEK_ZERO).days // 7
 
 
 # TODO: Use later.

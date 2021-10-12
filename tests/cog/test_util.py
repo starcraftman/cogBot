@@ -5,6 +5,7 @@ import datetime
 import os
 import tempfile
 
+import mock
 import pytest
 
 import cog.util
@@ -314,3 +315,9 @@ def test_chunk_file():
                     os.remove(fname)
                 except OSError:
                     pass
+
+
+@mock.patch('cog.util.datetime')
+def test_current_cycle(mock_date):
+    mock_date.datetime.utcnow.return_value = datetime.datetime(2021, 10, 10, 2, 43, 22, 828086)
+    assert cog.util.current_cycle() == 322
