@@ -51,7 +51,7 @@ import cogdb
 import cogdb.scanners
 import cogdb.query
 import cogdb.eddb
-import discord_components as dc
+import discord_components as dcom
 
 
 SYNC_NOTICE = """Synchronizing sheet changes.
@@ -165,7 +165,7 @@ class CogBot(discord.Client):
         """
         Event triggered when connection established to discord and bot ready.
         """
-        dc.DiscordComponents(self)
+        dcom.DiscordComponents(self)
         log = logging.getLogger(__name__)
         log.info('Logged in as: %s', self.user.name)
         log.info('Available on following guilds:')

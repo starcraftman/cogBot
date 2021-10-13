@@ -132,6 +132,48 @@ class InaraApiInput():
                                             lvl='exception') from exc
 
 
+class RateCheck():
+    """
+    Implement a simple rate limiter.
+    Rate of requests will be limited to max_rate within window seconds.
+    Requests once they exceed maximum will resume when they hit the resume_rate.
+    """
+    def __init__(self, *, max_rate, resume_rate, window=60):
+        self.window = window  # Window of the rate limiter in seconds
+        self.rate = 0  # Rate of requests in last 60 seconds
+        self.max_rate = max_rate
+        self.resume_rate = resume_rate
+        self.rate_event = asyncio.Event()
+
+    async def increment(self, bot_client, channel):
+        """
+        Will increment the current rate.
+        While the current rate exceeds the max, wait for event from decrement.
+        """
+        self.rate += 1
+        msg = None
+
+        if self.rate >= self.max_rate:
+            msg = await bot_client.send_message(
+                channel, "Approaching inara rate limit, please wait a moment until we are under.")
+
+        while self.rate >= self.max_rate:
+            await self.rate_event.wait()
+            self.rate_event.clear()
+
+        if msg:
+            await msg.delete()
+
+    async def decrement(self):
+        """
+        Will decrement the rate after delay and notify anyone waiting to resume via an event.
+        """
+        await asyncio.sleep(self.window)
+        self.rate -= 1
+        if self.rate < self.resume_rate:
+            self.rate_event.set()
+
+
 class InaraApi():
     """
     Inara CMDR lookups done with aiohttp module.
@@ -140,9 +182,7 @@ class InaraApi():
     def __init__(self):
         self.req_counter = 0  # count how many searches done with search_in_inara
         self.waiting_messages = {}  # 'Searching in inara.cz' messages. keys are req_id.
-
-        self.rate = 0  # Rate of requests in last 60 seconds
-        self.rate_event = asyncio.Event()
+        self.rate_check = RateCheck(max_rate=RATE_MAX, resume_rate=RATE_RESUME)
 
     async def delete_waiting_message(self, req_id):  # pragma: no cover
         """ Delete the message which informs user about start of search """
@@ -150,7 +190,13 @@ class InaraApi():
             await self.waiting_messages[req_id].delete()
             del self.waiting_messages[req_id]
 
-    async def search_with_api(self, cmdr_name, msg, ignore_multiple_match=False):
+
+    async def search_for_cmdr(self, cmdr_name, msg):
+        """
+        Top level wrapper to search for a cmdr.
+        """
+
+    async def search_with_api(self, looking_for_cmdr, msg, ignore_multiple_match=False):
         """
         Search for a commander on Inara.
 
@@ -160,7 +206,7 @@ class InaraApi():
             InternalException - JSON serialization failed.
 
         Returns:
-            Dictionary in full success.
+            Dictionary if full success.
             None if disabled or not found.
         """
         # keep search disabled if there is no API_KEY
@@ -171,31 +217,22 @@ class InaraApi():
 
         # request id
         req_id = self.req_counter
-        self.req_counter += 1 % 1000
-
+        self.req_counter = (self.req_counter + 1) % 1000
         try:
+            # Ensure we don't flood inara, they have low rate.
+            await self.rate_check.increment(cog.util.BOT, msg.channel)
+
             # inform user about initiating the search.
             self.waiting_messages[req_id] = await cog.util.BOT.send_message(msg.channel,
                                                                             "Searching inara.cz ...")
 
             api_input = InaraApiInput()
-            api_input.add_event("getCommanderProfile", {"searchName": cmdr_name})
+            api_input.add_event("getCommanderProfile", {"searchName": looking_for_cmdr})
 
             # search for commander
             async with aiohttp.ClientSession() as http:
-                while self.rate >= RATE_MAX:
-                    msg = await cog.util.BOT.send_message(
-                        msg.channel, "Approaching inara rate, please wait a moment until we are under.")
-
-                    self.rate_event.clear()
-                    await self.rate_event.wait()
-                    await msg.delete()
-                self.rate += 1
-
                 async with http.post(API_ENDPOINT, data=api_input.serialize(),
                                      headers=API_HEADERS) as resp:
-                    asyncio.ensure_future(delay_and_rate_check(self))
-
                     if resp.status != 200:
                         raise cog.exc.RemoteError("Inara search failed. HTTP Response code bad: %s"
                                                   % str(resp.status))
@@ -213,13 +250,13 @@ class InaraApi():
 
             event = response_json["events"][0]
             if event["eventStatus"] == API_RESPONSE_CODES["no result"]:
-                response = "__Inara__ Could not find CMDR **{}**".format(cmdr_name)
+                response = "__Inara__ Could not find CMDR **{}**".format(looking_for_cmdr)
                 futs = []
                 # Even if not on inara.cz, lookup in kos
                 with cogdb.session_scope(cogdb.Session) as session:
-                    embeds = kos_lookup_cmdr_embeds(session, cmdr_name)
+                    embeds = kos_lookup_cmdr_embeds(session, looking_for_cmdr)
                     if not embeds:
-                        response += "\n\n__KOS__ Could not find CMDR **{}**".format(cmdr_name)
+                        response += "\n\n__KOS__ Could not find CMDR **{}**".format(looking_for_cmdr)
                     else:
                         futs += [cog.util.BOT.send_message(msg.channel, embed=embed) for embed in embeds]
                         futs += [self.delete_waiting_message(req_id)]
@@ -228,61 +265,56 @@ class InaraApi():
                 for fut in futs:
                     await fut
                 if not embeds:
-                    cmdr = {"name": cmdr_name}
+                    cmdr = {"name": looking_for_cmdr}
                     return await self.adding_to_kos(cmdr, msg)  # No reason to go further
                 return None
 
             event_data = event["eventData"]
 
             # fetch commander name, use userName if there is no commanderName set
-            commander_name = event_data.get("commanderName", event_data["userName"])
+            inara_cmdr_name = event_data.get("commanderName", event_data["userName"])
+            inara_result = {
+                "req_id": req_id,
+                "inara_cmdr_url": event_data["inaraURL"],
+                "name": inara_cmdr_name,
+                "event_data": event_data
+            }
 
             # other possible cmdr matches
             cmdrs = event_data.get("otherNamesFound", [])
 
             # return if exact match and no alternatives or selected
-            if commander_name.lower() == cmdr_name.lower() and (
+            if inara_cmdr_name.lower() == looking_for_cmdr.lower() and (
                     not cmdrs or ignore_multiple_match):
-
-                return {
-                    "req_id": req_id,
-                    "inara_cmdr_url": event_data["inaraURL"],
-                    "name": commander_name,
-                    "event_data": event_data
-                }
+                return inara_result
 
             # not an exact match or multiple matches passing, will prompt user a list for selection.
             # list will come up, delete waiting message
             await self.delete_waiting_message(req_id)
-            cmdrs.insert(0, commander_name)
-            cmdr = await self.select_from_choices(cmdr_name, cmdrs, msg)
+            cmdrs.insert(0, inara_cmdr_name)
+            selected_cmdr = await self.select_from_choices(looking_for_cmdr, cmdrs, msg)
 
-            if cmdr == commander_name:
-                return {
-                    "req_id": req_id,
-                    "imara_cmdr_url": event_data["inaraURL"],
-                    "name": commander_name,
-                    "event_data": event_data
-                }
+            if selected_cmdr == inara_cmdr_name:
+                return inara_result
 
             # selected from otherNamesFound, run it again for selected commander.
             # it will search using returned names, so ignore multiple match this time.
-            return await self.search_with_api(cmdr, msg, ignore_multiple_match=True)
+            return await self.search_with_api(selected_cmdr, msg, ignore_multiple_match=True)
         finally:
-            # delete waiting message on exception.
+            asyncio.ensure_future(self.rate_check.decrement())
+            # Delete waiting message regardless of what happens.
             await self.delete_waiting_message(req_id)
 
         return None
 
     async def select_from_choices(self, name, cmdrs, msg):
         """
-        Present the loosely matched choices and wait for user selection.
+        Present a discord selection drop down and allow users to
+        select a choice, none of them or timeout if inactive.
 
         Returns:
-            Present choices and await a valid numeric reply.
-            None if any of the following true:
-                1) Timesout waiting for user response.
-                2) Invalid response from user (i.e. text, invalid number).
+            One of the choices if user selected in time.
+            None if the bot timed out user interaction.
 
         Raises:
             CmdAborted - Cmdr either requested abort or failed to respond.
@@ -298,10 +330,12 @@ class InaraApi():
 
         sent = await cog.util.BOT.send_message(msg.channel, reply, components=components)
         check = functools.partial(check_inter_orig_user_or_admin, msg.author, sent)
+
         try:
             inter = await cog.util.BOT.wait_for('select_option', check=check, timeout=30)
             if inter.values[0] == BUT_CANCEL:
                 raise cog.exc.CmdAborted("WhoIs lookup aborted, user cancelled.")
+
             return inter.values[0]
         except asyncio.TimeoutError:
             raise cog.exc.CmdAborted("WhoIs lookup aborted, timeout from inactivity.")
@@ -515,9 +549,6 @@ def wrap_json_loads(string):
         raise cog.exc.RemoteError('Inara API responded with bad JSON.') from exc
 
 
-api = InaraApi()  # use as module, needs "bot" to be set. pylint: disable=C0103
-
-
 async def inara_squad_parse(url):
     """
     Fetch information directly from the squadron page to supplement the missing info
@@ -575,24 +606,6 @@ async def inara_squad_parse(url):
     ]
 
 
-async def delay_and_rate_check(api_client, delay=60):
-    """
-    After delay check the new rate against original.
-    If rate is acceptable then notify those waiting event.
-
-    Args:
-        api: An InaraApi client.
-        delay: The delay before decrementing counter. Default 60s
-    """
-    original = api_client.rate
-    await asyncio.sleep(delay)
-
-    api_client.rate -= 1
-    if (original < RATE_MAX and api_client.rate < RATE_MAX) or \
-            (original >= RATE_MAX and api_client.rate <= RATE_RESUME):
-        api_client.rate_event.set()
-
-
 def extract_inara_systems(message):
     """
     Take a message (str or discord.Message object) and extract all possible
@@ -624,6 +637,10 @@ def generate_bgs_embed(sys_list, faction_list):
     """
     Generate an embed with links required based on input lists.
 
+    Args:
+        sys_list: List of system names to search on Inara.
+        faction_list: List of faction names to search on Inara.
+
     Returns: A discord Embed.
     """
     fields = []
@@ -654,6 +671,8 @@ def generate_bgs_embed(sys_list, faction_list):
 
 
 def kos_lookup_cmdr_embeds(session, cmdr_name, cmdr_pic=None):
+    """
+    """
     if not cmdr_pic:
         cmdr_pic = EMPTY_IMG
 
@@ -713,6 +732,9 @@ def main():  # pragma: no cover
     loop = asyncio.new_event_loop()
     for n in sys.argv[1:]:
         loop.run_until_complete(inara_squad_parse('https://inara.cz/squadron/{}/'.format(n)))
+
+
+api = InaraApi()  # use as module, needs "bot" to be set. pylint: disable=C0103
 
 
 if __name__ == "__main__":
