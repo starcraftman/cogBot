@@ -2019,7 +2019,7 @@ class WhoIs(Action):
     """
     async def execute(self):
         cmdr_name = ' '.join(self.args.cmdr)
-        cmdr = await cog.inara.api.search_with_api(cmdr_name, self.msg)
+        cmdr = await cog.inara.api.search_inara_and_kos(cmdr_name, self.msg)
         squad = "Unknown"
 
         if cmdr and cmdr != (None, None):

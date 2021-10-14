@@ -1,6 +1,7 @@
 """
 Tests for cog.inara
 """
+import asyncio
 import os
 
 import aiomock
@@ -20,6 +21,18 @@ REASON_INARA = 'Prevent temp inara ban due flooding. To enable, ensure os.enviro
 INARA_TEST = pytest.mark.skipif(not os.environ.get('ALL_TESTS'), reason=REASON_INARA)
 
 
+def mock_inter(values):
+    inter = aiomock.AIOMock(values=values, sent=[])
+    inter.component.label = inter.values[0]
+    inter.sent = []
+
+    async def send_(resp):
+        inter.sent += [resp]
+    inter.send = send_
+
+    return inter
+
+
 def test_inara_api_input():
     api_input = cog.inara.InaraApiInput()
     api_input.add_event("fakeEvent", {"fakeKey": "fakeData"})
@@ -36,15 +49,52 @@ def test_inara_api_input():
     assert actual["header"]["APIkey"].startswith("3")
 
 
-def mock_inter(values):
-    inter = aiomock.AIOMock(values=values, sent=[])
-    inter.component.label = inter.values[0]
+@pytest.mark.asyncio
+async def test_rate_limiter_increment(f_bot):
+    msg = fake_msg_gears("!fort")
+    rate_limit = cog.inara.RateLimiter(max_rate=12, resume_rate=9)
 
-    async def send_(resp):
-        inter.sent += [resp]
-    inter.send = send_
+    await rate_limit.increment(f_bot, msg.channel)
+    assert rate_limit.rate == 1
 
-    return inter
+
+@pytest.mark.asyncio
+async def test_rate_limiter_increment_wait(f_bot):
+    msg = fake_msg_gears("!fort")
+    rate_limit = cog.inara.RateLimiter(max_rate=2, resume_rate=1)
+
+    await rate_limit.increment(f_bot, msg.channel)
+    assert rate_limit.rate == 1
+    asyncio.ensure_future(rate_limit.increment(f_bot, msg.channel))
+    await asyncio.sleep(1)
+    assert rate_limit.rate == 2
+
+
+@pytest.mark.asyncio
+async def test_rate_limiter_decrement(f_bot):
+    msg = fake_msg_gears("!fort")
+    rate_limit = cog.inara.RateLimiter(max_rate=12, resume_rate=9)
+    await rate_limit.increment(f_bot, msg.channel)
+    assert rate_limit.rate == 1
+
+    await rate_limit.decrement(delay=1)
+    assert rate_limit.rate == 0
+
+
+@pytest.mark.asyncio
+async def test_rate_limiter_decrement_wait(f_bot):
+    rate_limit = cog.inara.RateLimiter(max_rate=2, resume_rate=1)
+    msg = fake_msg_gears("!fort")
+
+    async def run_test():
+        await rate_limit.increment(f_bot, msg.channel)
+        await rate_limit.decrement(delay=2)
+
+    await asyncio.gather(
+        run_test(),
+        run_test(),
+    )
+    assert rate_limit.rate == 0
 
 
 @pytest.mark.asyncio
