@@ -15,7 +15,7 @@ import pytest
 import cog.inara
 import cog.util
 
-from tests.conftest import Interaction, Message, fake_msg_gears, fake_msg_newuser
+from tests.conftest import Interaction, fake_msg_gears, fake_msg_newuser
 
 REASON_INARA = 'Prevent temp inara ban due flooding. To enable, ensure os.environ ALL_TESTS=True'
 INARA_TEST = pytest.mark.skipif(not os.environ.get('ALL_TESTS'), reason=REASON_INARA)
@@ -110,6 +110,66 @@ async def test_inara_api_key_unset(f_bot):
         assert "!whois is currently disabled." in str(f_bot.send_message.call_args)
     finally:
         cog.inara.HEADER_PROTO = old_key
+
+
+@INARA_TEST
+@pytest.mark.asyncio
+async def test_search_inara_and_kos_match_exact(f_bot):
+    api = cog.inara.InaraApi()
+    cog.util.BOT = f_bot
+    f_bot.wait_for.async_side_effect = [mock_inter([cog.inara.BUT_CANCEL])]
+
+    msg = fake_msg_gears('!whois gearsandcogs')
+    result = await api.search_inara_and_kos('gearsandcogs', msg)
+
+    expect = {
+        'add': False,
+        'cmdr': 'GearsandCogs',
+        'is_friendly': False,
+        'reason': 'unknown',
+        'squad': 'Federal Republic Command - Hudson Powerplay'
+    }
+    assert result == expect
+
+
+@INARA_TEST
+@pytest.mark.asyncio
+async def test_search_inara_and_kos_match_select(f_bot):
+    api = cog.inara.InaraApi()
+    cog.util.BOT = f_bot
+    f_bot.wait_for.async_side_effect = [mock_inter(['Gearsprud']), mock_inter([cog.inara.BUT_FRIENDLY])]
+
+    msg = fake_msg_gears('!whois gearsandcogs')
+    result = await api.search_inara_and_kos('gears', msg)
+
+    expect = {
+        'add': True,
+        'cmdr': 'Gearsprud',
+        'is_friendly': True,
+        'reason': 'Manual report after a !whois in Channel: live_hudson by cmdr Member: User1',
+        'squad': 'unknown'
+    }
+    assert result == expect
+
+
+@INARA_TEST
+@pytest.mark.asyncio
+async def test_search_inara_and_kos_no_match(f_bot):
+    api = cog.inara.InaraApi()
+    cog.util.BOT = f_bot
+    f_bot.wait_for.async_side_effect = [mock_inter([cog.inara.BUT_HOSTILE])]
+
+    msg = fake_msg_gears('!whois gearsandcogs')
+    result = await api.search_inara_and_kos('notInInaraForSure', msg)
+
+    expect = {
+        'add': True,
+        'cmdr': 'notInInaraForSure',
+        'is_friendly': False,
+        'reason': 'Manual report after a !whois in Channel: live_hudson by cmdr Member: User1',
+        'squad': 'unknown'
+    }
+    assert result == expect
 
 
 @INARA_TEST
@@ -263,8 +323,22 @@ Alone <:Small-1:3210582> Any Station
     assert cog.inara.extract_inara_systems(msg) == expect
 
 
+def test_generate_bgs_embed():
+    systems = [('System1', 'System1'), ('System2', 'System2')]
+    factions = [('Faction1', 'Faction1')]
+    embed = cog.inara.generate_bgs_embed(systems, factions)
+
+    field1 = embed.fields[0]
+    assert field1.value == "[System1](System1)"
+
+
 def test_kos_lookup_cmdr_embeds(session, f_kos):
     results = cog.inara.kos_lookup_cmdr_embeds(session, "good_guy")
     assert len(results) == 2
     assert isinstance(results[0], discord.Embed)
     assert results[0].fields[0].value == 'good_guy'
+
+
+def test_wrap_json_loads():
+    with pytest.raises(cog.exc.RemoteError):
+        cog.inara.wrap_json_loads(None)

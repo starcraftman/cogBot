@@ -537,7 +537,6 @@ class Interaction(FakeObject):
 
         if comp_label:
             component = aiomock.Mock()
-            print('label', comp_label)
             component.label = comp_label
 
         self.component = component

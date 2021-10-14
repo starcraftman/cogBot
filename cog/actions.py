@@ -152,7 +152,7 @@ class Action():
             ],
         )
 
-        check = functools.partial(cog.inara.check_response, self.msg.author, sent)
+        check = functools.partial(cog.inara.check_interaction_response, self.msg.author, sent)
         inter = await self.bot.wait_for('button_click', check=check)
 
         response = "No change to KOS made."
@@ -1212,7 +1212,7 @@ class KOS(Action):
         reason = ' '.join(self.args.reason) + " -{}".format(self.msg.author.name)
         is_friendly = self.args.is_friendly
         await self.msg.channel.send('CMDR {} has been reported for moderation.'.format(cmdr))
-        await self.send_to_moderation(cmdr=cmdr, squad=squad, reason=reason, is_friendly=is_friendly)
+        await self.moderate_kos_report(cmdr=cmdr, squad=squad, reason=reason, is_friendly=is_friendly)
 
     async def execute(self):
         msg = 'KOS: Invalid subcommand'
@@ -2020,17 +2020,10 @@ class WhoIs(Action):
     """
     async def execute(self):
         cmdr_name = ' '.join(self.args.cmdr)
-        cmdr = await cog.inara.api.search_inara_and_kos(cmdr_name, self.msg)
-        __import__('pprint').pprint(cmdr)
+        kos_info = await cog.inara.api.search_inara_and_kos(cmdr_name, self.msg)
 
-        if cmdr:
-            cmdr_name = cmdr['name']
-            kos_info = await cog.inara.api.reply_with_api_result(cmdr["req_id"], cmdr["event_data"], self.msg)
-            __import__('pprint').pprint(kos_info)
-            kos_info['reason'] = f"Manual report after a !whois in {self.msg.channel} by cmdr {self.msg.author}"
-
-            if kos_info.pop('add'):
-                await self.send_to_moderation(**kos_info)
+        if kos_info and kos_info.pop('add'):
+            await self.moderate_kos_report(**kos_info)
 
 
 def is_near_tick():

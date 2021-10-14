@@ -221,31 +221,31 @@ class InaraApi():
             msg: The message the user sent, tracks the channel/author to respond to.
 
         Returns:
-            The matched cmdr object or None if not matched.
+            kos_info: The information on if a report for kos addition should be made to moderation.
         """
         try:
-            return await self.search_with_api(looking_for_cmdr, msg, ignore_multiple_match=False)
+            cmdr_info = await self.search_with_api(looking_for_cmdr, msg, ignore_multiple_match=False)
+            return await cog.inara.api.reply_with_api_result(cmdr_info["req_id"], cmdr_info["event_data"], msg)
         except InaraNoResult as exc:
+            futs = []
+            response = f"__Inara__ Could not find CMDR **{looking_for_cmdr}**"
+
             # Even if not on inara.cz, lookup in kos
             with cogdb.session_scope(cogdb.Session) as session:
                 kos_embeds = kos_lookup_cmdr_embeds(session, looking_for_cmdr)
 
             if kos_embeds:
-                futs = [cog.util.BOT.send_message(msg.channel, embed=embed) for embed in kos_embeds]
+                futs += [cog.util.BOT.send_message(msg.channel, embed=embed) for embed in kos_embeds]
                 futs += [self.delete_waiting_message(exc.req_id)]
-                response = ""
             else:
-                futs = []
-                response = f"\n\n__KOS__ Could not find CMDR **{looking_for_cmdr}**"
+                response += f"\n\n__KOS__ Could not find CMDR **{looking_for_cmdr}**"
 
-            response = f"__Inara__ Could not find CMDR **{looking_for_cmdr}**" + response
-            futs = [cog.util.BOT.send_message(msg.channel, response)] + futs
-
-            for fut in futs:
+            for fut in [cog.util.BOT.send_message(msg.channel, response)] + futs:
                 await fut
 
+            # Not found in KOS, will ask if should be added.
             if not kos_embeds:
-                return await self.should_cmdr_be_on_kos(looking_for_cmdr, msg, copy.deepcopy(KOS_INFO_PROTO))
+                return await self.should_cmdr_be_on_kos(exc.req_id, looking_for_cmdr, msg, copy.deepcopy(KOS_INFO_PROTO))
 
     async def search_with_api(self, looking_for_cmdr, msg, ignore_multiple_match=False):
         """
@@ -260,9 +260,9 @@ class InaraApi():
         Returns:
             Dictionary with information below if a matching cmdr found on Inara.
                 {
-                    "req_id": req_id,  # The number of the request.
-                    "inara_cmdr_url": URL_ON_INARA,
-                    "name": INARA_CMDR_NAME,
+                    "req_id": int,  # The number of the request.
+                    "inara_cmdr_url": String, # Url of cmdr on Inara.
+                    "name": string, # The name of the cmr.
                     "event_data": event_data  # The raw event data returned from inara.
                 }
             None if component disabled or not found on Inara.
@@ -308,7 +308,6 @@ class InaraApi():
 
             event = response_json["events"][0]
             if event["eventStatus"] == API_RESPONSE_CODES["no result"]:
-                asyncio.ensure_future(self.delete_waiting_message(req_id))
                 raise InaraNoResult(f"No matching CMDR on Inara for: {looking_for_cmdr}", req_id)
 
             event_data = event["eventData"]
@@ -344,8 +343,11 @@ class InaraApi():
             return await self.search_with_api(selected_cmdr, msg, ignore_multiple_match=True)
         finally:
             asyncio.ensure_future(self.rate_limit.decrement())
-            # Delete waiting message regardless of what happens.
-            await self.delete_waiting_message(req_id)
+            try:
+                # Delete waiting message regardless of what happens.
+                await self.delete_waiting_message(req_id)
+            except discord.errors.NotFound:
+                pass
 
     async def reply_with_api_result(self, req_id, event_data, msg):
         """
@@ -441,12 +443,12 @@ class InaraApi():
         kos_info = copy.deepcopy(KOS_INFO_PROTO)
         if not kos_embeds:
             # Not found in KOS db, ask if should be added
-            await self.should_cmdr_be_on_kos(cmdr['name'], msg, kos_info)
+            await self.should_cmdr_be_on_kos(req_id, cmdr['name'], msg, kos_info)
             kos_info['squad'] = cmdr.get('squad', EMPTY_INARA)
 
         return kos_info
 
-    async def should_cmdr_be_on_kos(self, cmdr_name, msg, kos_info):
+    async def should_cmdr_be_on_kos(self, req_id, cmdr_name, msg, kos_info):
         """
         Send a message with buttons to the user asking if the cmdr should be reported.
 
@@ -465,8 +467,6 @@ class InaraApi():
                 'squad': String, # The squadron of the cmdr if known.
             }
         """
-        req_id = self.req_counter
-
         components = [
             dcom.Button(label=BUT_FRIENDLY, style=dcom.ButtonStyle.green),
             dcom.Button(label=BUT_HOSTILE, style=dcom.ButtonStyle.red),
