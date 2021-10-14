@@ -144,51 +144,6 @@ async def test_reply_with_api_result(f_bot):
     assert 'Should the CMDR GearsandCogs be added as friendly or hostile?' in str(f_bot.send_message.call_args)
 
 
-@pytest.mark.asyncio
-async def test_friendly_detector_already_in_kos(f_bot):
-    api = cog.inara.InaraApi()
-    f_msg = fake_msg_gears('!whois Prozer')
-    f_bot.wait_for.async_return_value = True, None
-    is_friendly_returned, squad_returned = await api.friendly_detector(None, False, ["test embed"], f_msg)
-
-    assert is_friendly_returned is None and squad_returned is None
-
-
-@pytest.mark.asyncio
-async def test_friendly_detector_canceled(f_bot):
-    api = cog.inara.InaraApi()
-    f_msg = fake_msg_gears('!whois Prozer')
-    f_bot.wait_for.async_return_value = mock_inter([cog.inara.BUT_CANCEL])
-    cmdr = {"name": "Prozer", "allegiance": "Federation"}
-    is_friendly_returned, squad_returned = await api.friendly_detector(cmdr, False, [], f_msg)
-
-    assert is_friendly_returned is None and squad_returned is None
-
-
-@pytest.mark.asyncio
-async def test_friendly_detector_friendly_no_squad(f_bot):
-    api = cog.inara.InaraApi()
-    f_msg = fake_msg_gears('!whois Prozer')
-    f_bot.wait_for.async_return_value = mock_inter([cog.inara.BUT_FRIENDLY])
-    cmdr = {"name": "Prozer", "allegiance": "Federation"}
-    is_friendly_returned, squad_returned = await api.friendly_detector(cmdr, False, [], f_msg)
-
-    assert is_friendly_returned
-    assert squad_returned == "Unknown"
-
-
-@pytest.mark.asyncio
-async def test_friendly_detector_hostile_with_squad(f_bot):
-    api = cog.inara.InaraApi()
-    f_bot.wait_for.async_return_value = mock_inter([cog.inara.BUT_HOSTILE])
-    f_msg = fake_msg_gears('!whois Akeno')
-    cmdr = {"name": "Akeno", "allegiance": "Empire", "squad": "Test"}
-    is_friendly_returned, squad_returned = await api.friendly_detector(cmdr, True, [], f_msg)
-
-    assert not is_friendly_returned
-    assert squad_returned == "Test"
-
-
 @INARA_TEST
 @pytest.mark.asyncio
 async def test_select_from_multiple_exact(f_bot):
@@ -245,20 +200,20 @@ async def test_inara_squad_details(f_bot):
     assert result == expect
 
 
-def test_check_inter_orig_user_or_admin(f_dusers, f_admins):
+def test_check_interaction_response(f_dusers, f_admins):
     message = fake_msg_gears('hello')
     message2 = fake_msg_newuser('goodbye')
     inter = Interaction('inter1', user=message2.author, message=message2)
 
     # Same everything
-    assert cog.inara.check_inter_orig_user_or_admin(message2.author, message2, inter)
+    assert cog.inara.check_interaction_response(message2.author, message2, inter)
 
     # Different messages, always reject
-    assert not cog.inara.check_inter_orig_user_or_admin(message.author, message, inter)
+    assert not cog.inara.check_interaction_response(message.author, message, inter)
 
     # Same message, author is admin
     inter = Interaction('inter1', user=message.author, message=message2)
-    assert cog.inara.check_inter_orig_user_or_admin(message2.author, message2, inter)
+    assert cog.inara.check_interaction_response(message2.author, message2, inter)
 
 
 def test_extract_inara_systems():

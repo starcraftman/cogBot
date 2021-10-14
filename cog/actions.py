@@ -128,7 +128,7 @@ class Action():
 
         return self.__duser
 
-    async def send_to_moderation(self, *, cmdr, faction, reason, is_friendly):
+    async def send_to_moderation(self, *, cmdr, squad, reason, is_friendly):
         """
         Send a request to approve or deny aa KOS addition.
         """
@@ -141,9 +141,10 @@ class Action():
 
         # Request approval
         chan = self.msg.guild.get_channel(cog.util.CONF.channels.ops)
+        squad = squad.capitalize() if squad == cog.inara.EMPTY_INARA else squad
         sent = await chan.send(
             embed=cog.inara.kos_report_cmdr_embed(
-                self.msg.author.name, cmdr, faction, reason, is_friendly,
+                self.msg.author.name, cmdr=cmdr, squad=squad, reason=reason, is_friendly=is_friendly,
             ),
             components=[
                 dcom.Button(label=cog.inara.BUT_APPROVE, style=dcom.ButtonStyle.green),
@@ -151,17 +152,17 @@ class Action():
             ],
         )
 
-        check = functools.partial(cog.inara.check_inter_orig_user_or_admin, self.msg.author, sent)
+        check = functools.partial(cog.inara.check_response, self.msg.author, sent)
         inter = await self.bot.wait_for('button_click', check=check)
 
         response = "No change to KOS made."
         if inter.component.label == cog.inara.BUT_APPROVE:
             await scanner.update_cells()
             payload = scanner.add_report_dict(
-                cmdr, faction, reason, is_friendly
+                cmdr, squad, reason, is_friendly
             )
             await scanner.send_batch(payload)
-            cogdb.query.kos_add_cmdr(self.session, cmdr, faction, reason, is_friendly)
+            cogdb.query.kos_add_cmdr(self.session, cmdr, squad, reason, is_friendly)
             self.session.commit()
             response = "CMDR has been added to KOS."
 
@@ -1207,11 +1208,11 @@ class KOS(Action):
         First ask for approval of addition, then add to kos list.
         """
         cmdr = ' '.join(self.args.cmdr)
-        faction = ' '.join(self.args.faction)
+        squad = ' '.join(self.args.faction)
         reason = ' '.join(self.args.reason) + " -{}".format(self.msg.author.name)
         is_friendly = self.args.is_friendly
         await self.msg.channel.send('CMDR {} has been reported for moderation.'.format(cmdr))
-        await self.send_to_moderation(cmdr=cmdr, faction=faction, reason=reason, is_friendly=is_friendly)
+        await self.send_to_moderation(cmdr=cmdr, squad=squad, reason=reason, is_friendly=is_friendly)
 
     async def execute(self):
         msg = 'KOS: Invalid subcommand'
@@ -2020,23 +2021,16 @@ class WhoIs(Action):
     async def execute(self):
         cmdr_name = ' '.join(self.args.cmdr)
         cmdr = await cog.inara.api.search_inara_and_kos(cmdr_name, self.msg)
-        squad = "Unknown"
+        __import__('pprint').pprint(cmdr)
 
-        if cmdr and cmdr != (None, None):
-            returned_from_api = False
-            if isinstance(cmdr, tuple):
-                returned_from_api = cmdr[1]
+        if cmdr:
+            cmdr_name = cmdr['name']
+            kos_info = await cog.inara.api.reply_with_api_result(cmdr["req_id"], cmdr["event_data"], self.msg)
+            __import__('pprint').pprint(kos_info)
+            kos_info['reason'] = f"Manual report after a !whois in {self.msg.channel} by cmdr {self.msg.author}"
 
-            if "req_id" in cmdr:
-                cmdr_name = cmdr['name']
-                returned_from_api, squad = await cog.inara.api.reply_with_api_result(cmdr["req_id"], cmdr["event_data"], self.msg)
-
-            reason = "Manual report after a !whois in {channel} by cmdr {reported_by}" \
-                .format(channel=self.msg.channel, reported_by=self.msg.author)
-
-            if returned_from_api is not None:
-                await self.send_to_moderation(cmdr=cmdr_name, faction=squad,
-                                              reason=reason, is_friendly=returned_from_api)
+            if kos_info.pop('add'):
+                await self.send_to_moderation(**kos_info)
 
 
 def is_near_tick():
