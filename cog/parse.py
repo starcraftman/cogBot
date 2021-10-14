@@ -727,6 +727,7 @@ Examples:
                      help='Set the status of the system, us:them. Example-> --set 3500:200')
     sub.add_argument('-o', '--offset', type=int, help='Set the system galmap offset.')
     sub.add_argument('-l', '--list', action='store_true', help='Show all outstanding merits on sheet.')
+    sub.add_argument('--cycle', help='Set the cycle for snipe. Admins only.')
     sub.add_argument('--npcs', action='store_true', help='List powerplay NPC ships by alligence.')
 
 

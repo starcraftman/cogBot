@@ -1790,7 +1790,34 @@ class Snipe(UM):
     """
     Snipe, same as UM but for snipe sheet.
     """
-    pass
+    async def execute(self):
+        if (self.args.cycle):
+            # Limit cycle change to admins
+            try:
+                cogdb.query.get_admin(self.session, self.duser)
+            except cog.exc.NoMatch as exc:
+                raise cog.exc.InvalidPerms("{} You are not an admin!".format(self.msg.author.mention)) from exc
+
+            # Set the cycle if it exists
+            try:
+                scanner_name ='hudson_snipe'
+                new_page = self.args.cycle
+
+                try:
+                    await SCANNERS[scanner_name].asheet.change_worksheet(new_page)
+                except gspread.exceptions.WorksheetNotFound as exc:
+                    msg = f"Missing **{new_page}** worksheet on {scanner_name}. Please fix and rerun cycle. No change made."
+                    raise cog.exc.InvalidCommandArgs(msg) from exc
+
+                await cog.util.CONF.aupdate("scanners", "hudson_snipe", "page", value=new_page)
+                self.bot.sched.schedule(scanner_name, delay=1)
+                response = f"Snipe tab set to {new_page}. Snipe scanner scheduled for update.\n\n"
+                await self.bot.send_message(self.msg.channel, response)
+            except (AssertionError, googleapiclient.errors.HttpError) as exc:
+                raise cog.exc.RemoteError(f"The sheet {scanner_name} with tab {new_page} does not exist!") from exc
+
+        else:
+            await super().execute()
 
 
 class User(Action):
