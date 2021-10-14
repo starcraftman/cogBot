@@ -895,7 +895,10 @@ class OCRScanner(FortScanner):
 
         # Update consolidation vote
         globe = cogdb.query.get_current_global(session)
-        globe.consolidation = int(self.cells_row_major[self.prep_consolidation_row][self.prep_col])
+        try:
+            globe.consolidation = int(self.cells_row_major[self.prep_consolidation_row][self.prep_col])
+        except ValueError:
+            pass
 
         # Date in format: 2021-08-22 20:33:07
         sheet_date = datetime.datetime.strptime(self.cells_row_major[0][2], "%Y-%m-%d %H:%M:%S")
