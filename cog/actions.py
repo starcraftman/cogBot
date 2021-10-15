@@ -128,16 +128,6 @@ class Action():
 
         return self.__duser
 
-    @property
-    def cattle(self):
-        """ User's current cattle sheet. """
-        return self.duser.fort_user
-
-    @property
-    def undermine(self):
-        """ User's current undermining sheet. """
-        return self.duser.um_user
-
     async def send_to_moderation(self, *, cmdr, faction, reason, is_friendly):
         """
         Send a request to approve or deny aa KOS addition.
@@ -848,14 +838,14 @@ class Drop(Action):
         Drop forts at the fortification target.
         """
         self.log.info('DROP %s - Matched duser with id %s and sheet name %s.',
-                      self.duser.display_name, self.duser.id, self.cattle)
+                      self.duser.display_name, self.duser.id, self.duser.fort_user)
 
         system = cogdb.query.fort_find_system(self.session, ' '.join(self.args.system))
         self.log.info('DROP %s - Matched system %s from: \n%s.',
                       self.duser.display_name, system.name, system)
 
         drop = cogdb.query.fort_add_drop(self.session, system=system,
-                                         user=self.cattle, amount=self.args.amount)
+                                         user=self.duser.fort_user, amount=self.args.amount)
         if self.args.set:
             system.set_status(self.args.set)
         self.log.info('DROP %s - After drop, Drop: %s\nSystem: %s.',
@@ -1100,6 +1090,10 @@ class Hold(Action):
     """
     Update a user's held merits.
     """
+    @property
+    def um_user(self):
+        return self.duser.um_user
+
     async def set_hold(self):
         """ Set the hold on a system. """
         if not self.args.system:
@@ -1110,7 +1104,7 @@ class Hold(Action):
         self.log.info('HOLD %s - Matched system name %s: \n%s.',
                       self.duser.display_name, self.args.system, system)
         hold = cogdb.query.um_add_hold(self.session, system=system,
-                                       user=self.undermine, held=self.args.amount,
+                                       user=self.um_user, held=self.args.amount,
                                        sheet_src=self.args.sheet_src)
 
         if self.args.set:
@@ -1142,34 +1136,34 @@ class Hold(Action):
     async def execute(self):
         await self.check_sheet_user()
         self.log.info('HOLD %s - Matched self.duser with id %s and sheet name %s.',
-                      self.duser.display_name, self.duser.id, self.undermine)
+                      self.duser.display_name, self.duser.id, self.um_user)
 
         if self.args.died:
-            holds = cogdb.query.um_reset_held(self.session, self.undermine,
+            holds = cogdb.query.um_reset_held(self.session, self.um_user,
                                               sheet_src=self.args.sheet_src)
             self.log.info('HOLD %s - User reset merits.', self.duser.display_name)
             response = 'Sorry you died :(. Held merits reset.'
 
         elif self.args.redeem:
-            holds, redeemed = cogdb.query.um_redeem_merits(self.session, self.undermine,
+            holds, redeemed = cogdb.query.um_redeem_merits(self.session, self.um_user,
                                                            sheet_src=self.args.sheet_src)
             self.log.info('HOLD %s - Redeemed %d merits.', self.duser.display_name, redeemed)
 
             response = '**Redeemed Now** {}\n\n__Cycle Summary__\n'.format(redeemed)
             lines = [['System', 'Hold', 'Redeemed']]
             lines += [[merit.system.name, merit.held, merit.redeemed] for merit
-                      in self.undermine.merits if merit.held + merit.redeemed > 0]
+                      in self.um_user.merits if merit.held + merit.redeemed > 0]
             response += cog.tbl.format_table(lines, header=True)[0]
 
         elif self.args.redeem_systems:
             system_strs = " ".join(self.args.redeem_systems).split(",")
-            holds, redeemed = cogdb.query.um_redeem_systems(self.session, self.undermine, system_strs,
+            holds, redeemed = cogdb.query.um_redeem_systems(self.session, self.um_user, system_strs,
                                                             sheet_src=self.args.sheet_src)
 
             response = '**Redeemed Now** {}\n\n__Cycle Summary__\n'.format(redeemed)
             lines = [['System', 'Hold', 'Redeemed']]
             lines += [[merit.system.name, merit.held, merit.redeemed] for merit
-                      in self.undermine.merits if merit.held + merit.redeemed > 0]
+                      in self.um_user.merits if merit.held + merit.redeemed > 0]
             response += cog.tbl.format_table(lines, header=True)[0]
 
         else:  # Default case, update the hold for a system
@@ -1191,6 +1185,10 @@ class SnipeHold(Hold):
     """
     SnipeHold, same as Hold but for snipe sheet.
     """
+    @property
+    def um_user(self):
+        return self.duser.snipe_user
+
     @check_mentions
     @check_sheet('hudson_snipe', 'snipe_user', UMUser, sheet_src=EUMSheet.snipe)
     async def check_sheet_user(self):
@@ -1832,15 +1830,15 @@ class User(Action):
 
         coros = []
         if self.args.name or self.args.cry:
-            if self.cattle:
-                sheet = self.cattle
+            if self.duser.fort_user:
+                sheet = self.duser.fort_user
                 self.payloads += cogdb.scanners.FortScanner.update_sheet_user_dict(
                     sheet.row, sheet.cry, sheet.name)
                 scanner = get_scanner("hudson_cattle")
                 coros += [scanner.send_batch(self.payloads)]
 
-            if self.undermine:
-                sheet = self.undermine
+            if self.duser.um_user:
+                sheet = self.duser.um_user
                 self.payloads += cogdb.scanners.UMScanner.update_sheet_user_dict(
                     sheet.row, sheet.cry, sheet.name)
                 scanner = get_scanner("hudson_undermine")
@@ -1854,25 +1852,25 @@ class User(Action):
             'Default Cry:{}\n'.format(' ' + self.duser.pref_cry if self.duser.pref_cry else ''),
             '',
         ])]
-        if self.cattle:
+        if self.duser.fort_user:
             prefix = "\n".join([
                 '__Fortification__',
-                '    Cry: {}'.format(self.cattle.cry),
-                '    Total: {}\n'.format(self.cattle.merit_summary()),
+                '    Cry: {}'.format(self.duser.fort_user.cry),
+                '    Total: {}\n'.format(self.duser.fort_user.merit_summary()),
             ])
             lines = [['System', 'Amount']]
-            lines += [[merit.system.name, merit.amount] for merit in self.cattle.merits
+            lines += [[merit.system.name, merit.amount] for merit in self.duser.fort_user.merits
                       if merit.amount > 0]
             msgs += cog.tbl.format_table(lines, header=True, prefix=prefix)
-        if self.undermine:
+        if self.duser.um_user:
             prefix = "\n".join([
                 '\n__Undermining__',
-                '    Cry: {}'.format(self.undermine.cry),
-                '    Total: {}\n'.format(self.undermine.merit_summary()),
+                '    Cry: {}'.format(self.duser.um_user.cry),
+                '    Total: {}\n'.format(self.duser.um_user.merit_summary()),
             ])
             lines = [['System', 'Hold', 'Redeemed']]
             lines += [[merit.system.name, merit.held, merit.redeemed] for merit
-                      in self.undermine.merits if merit.held + merit.redeemed > 0]
+                      in self.duser.um_user.merits if merit.held + merit.redeemed > 0]
             msgs += cog.tbl.format_table(lines, header=True, prefix=prefix)
 
         for msg in cog.util.merge_msgs_to_least(msgs):
@@ -1886,10 +1884,10 @@ class User(Action):
         cogdb.query.check_pref_name(self.session, new_name)
 
         try:
-            if self.cattle:
-                self.cattle.name = new_name
-            if self.undermine:
-                self.undermine.name = new_name
+            if self.duser.fort_user:
+                self.duser.fort_user.name = new_name
+            if self.duser.um_user:
+                self.duser.um_user.name = new_name
             self.session.commit()
         except sqlalchemy.exc.IntegrityError as exc:
             raise cog.exc.InvalidCommandArgs("Please try another name, a possible name collision was detected.") from exc
@@ -1904,10 +1902,10 @@ class User(Action):
         self.log.info('USER %s - DUser.pref_cry from %s -> %s',
                       self.duser.display_name, self.duser.pref_cry, new_cry)
 
-        if self.cattle:
-            self.cattle.cry = new_cry
-        if self.undermine:
-            self.undermine.cry = new_cry
+        if self.duser.fort_user:
+            self.duser.fort_user.cry = new_cry
+        if self.duser.um_user:
+            self.duser.um_user.cry = new_cry
         self.session.commit()
 
         nduser = cogdb.query.get_duser(self.session, self.duser.id)
