@@ -1939,7 +1939,7 @@ class Voting(Action):
             msg = self.display(globe)
 
         elif self.args.summary:
-            msg = await self.summary()
+            msg = await self.summary(globe)
 
         else:
             msg = self.vote_direction(globe)
@@ -1958,19 +1958,38 @@ class Voting(Action):
         show_msg = "SHOW" if globe.show_vote_goal else "NOT show"
         return "Will now {} the vote goal.".format(show_msg)
 
-    async def summary(self):
+    async def summary(self, globe):  # pragma: no cover
         """ Show an executive/complete summary of votes. """
-        lines = [["CMDR", "Type", "Strength", "Date"]]
-        lines += [[duser.pref_name, vote.vote_type, vote.amount, vote.updated_at]
-                  for vote, duser in cogdb.query.get_all_votes(self.session)]
+        try:
+            cogdb.query.get_admin(self.session, self.duser)
+        except cog.exc.NoMatch as exc:
+            raise cog.exc.InvalidPerms("{} You are not an admin!".format(self.msg.author.mention)) from exc
 
-        prefix = f'__All Votes Cycle {cog.util.current_cycle()}__\n\n'
+        lines = [["CMDR", "Type", "Strength", "Date"]]
+        cons_tally, prep_tally = 0, 0
+        for vote, duser in cogdb.query.get_all_votes(self.session):
+            lines += [[duser.pref_name, vote.vote_type, vote.amount, vote.updated_at]]
+            if vote.vote == cogdb.schema.EVoteType.cons:
+                cons_tally += vote.amount
+            else:
+                prep_tally += vote.amount
+        now = datetime.datetime.utcnow()
+
+        prefix = f"""__All Votes Cycle {cog.util.current_cycle()}__
+
+Cons: {cons_tally}
+Prep: {prep_tally}
+Goal: {globe.vote_goal}
+Current Consolidation: {globe.consolidation}
+Date (UTC): {now}
+
+"""
         with tempfile.NamedTemporaryFile(mode='r') as tfile:
             async with aiofiles.open(tfile.name, 'w') as fout:
                 await fout.write('\n'.join(cog.tbl.format_table(lines, prefix=prefix, wrap_msgs=False)))
 
             await self.msg.channel.send("All votes summary.",
-                                        file=discord.File(fp=tfile.name, filename="AllVotes.txt"))
+                                        file=discord.File(fp=tfile.name, filename=f"AllVotes.{now.day}_{now.month}_{now.hour}{now.minute}.txt"))
 
 
     def vote_direction(self, globe):
