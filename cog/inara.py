@@ -88,6 +88,7 @@ INARA_STATION_SEARCH = "https://inara.cz/galaxy-station/?search={}%20[{}]"  # sy
 INARA_FACTION_SEARCH = "https://inara.cz/galaxy-minorfaction/?search={}"
 RATE_MAX = 12
 RATE_RESUME = 9
+RATE_WINDOW = 60  # seconds of the rate window
 BUT_CANCEL = 'Cancel'
 BUT_FRIENDLY = 'Friendly'
 BUT_HOSTILE = 'Hostile'
@@ -154,7 +155,7 @@ class RateLimiter():
     Rate of requests will be limited to max_rate within window seconds.
     Requests once they exceed maximum will resume when they hit the resume_rate.
     """
-    def __init__(self, *, max_rate, resume_rate, window=60):
+    def __init__(self, *, max_rate, resume_rate, window=RATE_WINDOW):
         self.window = window  # Window of the rate limiter in seconds
         self.rate = 0  # Rate of requests in last 60 seconds
         self.max_rate = max_rate
@@ -245,7 +246,7 @@ class InaraApi():
 
             # Not found in KOS, will ask if should be added.
             if not kos_embeds:
-                return await self.should_cmdr_be_on_kos(exc.req_id, looking_for_cmdr, msg, copy.deepcopy(KOS_INFO_PROTO))
+                return await self.should_cmdr_be_on_kos(exc.req_id, looking_for_cmdr, msg)
 
     async def search_with_api(self, looking_for_cmdr, msg, ignore_multiple_match=False):
         """
@@ -440,22 +441,21 @@ class InaraApi():
         for fut in futs:
             await fut
 
-        kos_info = copy.deepcopy(KOS_INFO_PROTO)
         if not kos_embeds:
             # Not found in KOS db, ask if should be added
-            await self.should_cmdr_be_on_kos(req_id, cmdr['name'], msg, kos_info)
+            kos_info = await self.should_cmdr_be_on_kos(req_id, cmdr['name'], msg)
             kos_info['squad'] = cmdr.get('squad', EMPTY_INARA)
 
         return kos_info
 
-    async def should_cmdr_be_on_kos(self, req_id, cmdr_name, msg, kos_info):
+    async def should_cmdr_be_on_kos(self, req_id, cmdr_name, msg):
         """
         Send a message with buttons to the user asking if the cmdr should be reported.
 
         Args:
+            req_id: The request id.
             cmdr_name: The name of the commander being reported.
             msg: The original message with the channel/author reporting the cmdr.
-            kos_info: A data object, copy the prototype KOS_INFO_PROTO.
 
         Returns:
             A dictionary with the information to add user to KOS. Format follows:
@@ -480,6 +480,7 @@ class InaraApi():
         inter = await cog.util.BOT.wait_for('button_click', check=check)
 
         # Approved update
+        kos_info = copy.deepcopy(KOS_INFO_PROTO)
         kos_info['cmdr'] = cmdr_name
         if inter.component.label == BUT_CANCEL:
             response = "This report will be cancelled. Have a nice day!"
@@ -740,7 +741,7 @@ def kos_lookup_cmdr_embeds(session, cmdr_name, cmdr_pic=None):
             },
             "fields": [
                 {'name': 'Name', 'value': kos.cmdr, 'inline': True},
-                {'name': 'Reg Squadron', 'value': kos.faction if kos.faction else "Indy", 'inline': True},
+                {'name': 'Reg Squadron', 'value': kos.squad if kos.squad else "Indy", 'inline': True},
                 {'name': 'Is Friendly ?', 'value': kos.friendly, 'inline': True},
                 {'name': 'Reason', 'value': kos.reason if kos.reason else "No reason.", 'inline': False},
             ],
@@ -749,13 +750,13 @@ def kos_lookup_cmdr_embeds(session, cmdr_name, cmdr_pic=None):
     return embeds
 
 
-def kos_report_cmdr_embed(reporter, cmdr, squad, reason, is_friendly=False):
+def kos_report_cmdr_embed(reporter, kos_info):
     """
     Return an embed that be used to inform of a report.
 
     Returns: A discord embed.
     """
-    kill = "FRIENDLY" if is_friendly else "KILL"
+    kill = "FRIENDLY" if kos_info['is_friendly'] else "KILL"
 
     return discord.Embed.from_dict({
         'color': KOS_COLORS[kill],
@@ -773,10 +774,10 @@ def kos_report_cmdr_embed(reporter, cmdr, squad, reason, is_friendly=False):
             'text': "Review this information and use thumbs to decide if allowed.",
         },
         "fields": [
-            {'name': 'CMDR', 'value': cmdr, 'inline': True},
-            {'name': 'Squad', 'value': squad, 'inline': True},
+            {'name': 'CMDR', 'value': kos_info['cmdr'], 'inline': True},
+            {'name': 'Squad', 'value': kos_info['squad'], 'inline': True},
             {'name': 'Kill', 'value': kill, 'inline': True},
-            {'name': 'Reason', 'value': reason, 'inline': False},
+            {'name': 'Reason', 'value': kos_info['reason'], 'inline': False},
         ],
     })
 

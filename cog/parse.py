@@ -404,9 +404,9 @@ def subs_kos(subs, prefix):
     """ Subcommand parsing for kos """
     desc = """KOS related commands. Examples:
 
-**{prefix}kos report -c CMDR Name -f The Faction -r Explain why he is reported here.**
+**{prefix}kos report -c CMDR Name -s The Squad -r Explain why he is reported here.**
         Report an enemy PP user for KOS addition.
-**{prefix}kos report --friendly -c CMDR Name -f The Faction -r Explain why he is reported here.**
+**{prefix}kos report --friendly -c CMDR Name -s The Squad -r Explain why he is reported here.**
         Request whitelisting a friendly.
 **{prefix}kos search user_name**
         Search for a user, list all possible matching users.
@@ -420,7 +420,7 @@ def subs_kos(subs, prefix):
                                  description='KOS subcommands', dest='subcmd')
     subcmd = subcmds.add_parser('report', help='Report user to KOS.')
     subcmd.add_argument('-c', '--cmdr', nargs='+', help='The cmdr reported.')
-    subcmd.add_argument('-f', '--faction', nargs='+', default=['Indy'], help='The faction of the cmdr reported.')
+    subcmd.add_argument('-s', '--squad', nargs='+', default=['Indy'], help='The squad of the cmdr reported.')
     subcmd.add_argument('-r', '--reason', nargs='+', default=['No reason given, assuming hostile.'], help='The reason reported.')
     subcmd.add_argument('--friendly', dest='is_friendly', default=False, action='store_true', help='Report user to kill.')
     subcmd = subcmds.add_parser('search', help='Search for a user.')

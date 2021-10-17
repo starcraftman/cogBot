@@ -899,12 +899,12 @@ class KOS(Base):
 
     id = sqla.Column(sqla.Integer, primary_key=True)
     cmdr = sqla.Column(sqla.String(LEN_NAME), index=True, nullable=False)
-    faction = sqla.Column(sqla.String(LEN_NAME), nullable=False)
+    squad = sqla.Column(sqla.String(LEN_NAME), nullable=False)
     reason = sqla.Column(sqla.String(LEN_REASON), nullable=False)
     is_friendly = sqla.Column(sqla.Boolean, default=False)
 
     def __repr__(self):
-        keys = ['id', 'cmdr', 'faction', 'reason', 'is_friendly']
+        keys = ['id', 'cmdr', 'squad', 'reason', 'is_friendly']
         kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
 
         return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))

@@ -860,7 +860,7 @@ def kos_search_cmdr(session, term):
     return session.query(KOS).filter(KOS.cmdr.ilike(term)).all()
 
 
-def kos_add_cmdr(session, cmdr, faction, reason, is_friendly=False):
+def kos_add_cmdr(session, kos_info):
     """
     Add a kos entry to the local database.
 
@@ -870,7 +870,8 @@ def kos_add_cmdr(session, cmdr, faction, reason, is_friendly=False):
         reason: The reason for addition if provided.
         is_friendly: If this user should be treated as friendly.
     """
-    return session.add(KOS(cmdr=cmdr, faction=faction, reason=reason, is_friendly=is_friendly))
+    return session.add(KOS(cmdr=kos_info['cmdr'], squad=kos_info['squad'],
+                           reason=kos_info['reason'], is_friendly=kos_info['is_friendly']))
 
 
 def track_add_systems(session, systems, distance):

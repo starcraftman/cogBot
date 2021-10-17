@@ -332,9 +332,9 @@ def f_kos(session):
     Fixture to insert some test SheetRows.
     """
     kos_rows = (
-        KOS(id=1, cmdr='good_guy', faction="Hudson", reason="Very good", is_friendly=1),
-        KOS(id=2, cmdr='good_guy_pvp', faction="Hudson", reason="Very good pvp", is_friendly=1),
-        KOS(id=3, cmdr='bad_guy', faction="Hudson", reason="Pretty bad guy", is_friendly=0),
+        KOS(id=1, cmdr='good_guy', squad="Hudson", reason="Very good", is_friendly=1),
+        KOS(id=2, cmdr='good_guy_pvp', squad="Hudson", reason="Very good pvp", is_friendly=1),
+        KOS(id=3, cmdr='bad_guy', squad="Hudson", reason="Pretty bad guy", is_friendly=0),
     )
     session.add_all(kos_rows)
     session.commit()

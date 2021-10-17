@@ -128,24 +128,31 @@ class Action():
 
         return self.__duser
 
-    async def send_to_moderation(self, *, cmdr, squad, reason, is_friendly):
+    async def moderate_kos_report(self, kos_info):
         """
-        Send a request to approve or deny aa KOS addition.
+        Send a request to approve or deny a KOS addition.
+
+        Args:
+            kos_info: A dictionary of the form below, same as kos_info from should_cmdr_be_on_kos in cog.inara.
+                {
+                    'is_friendly': True | False, # If the user is friendly or hostile,
+                    'cmdr': String, # The name of cmdr.
+                    'reason': String, # Reason to add cmdr,
+                    'squad': String, # The squadron of the cmdr if known.
+                }
         """
         # Check for dupes before bothering, KOS list should have unique cmdr names.
         scanner = get_scanner('hudson_kos')
         await scanner.update_cells()
-        cnt, row = scanner.find_dupe(cmdr)
+        cnt, row = scanner.find_dupe(kos_info['cmdr'])
         if cnt:
-            raise cog.exc.InvalidCommandArgs(f'Duplicate "{cmdr}" reported as {row[2]} on row {cnt} with reason: {row[-1]}.\n\nCheck sheet. KOS addition aborted.')
+            raise cog.exc.InvalidCommandArgs(f"Duplicate *{kos_info['cmdr']}* reported as {row[2]} on row {cnt} with reason: {row[-1]}.\n\nCheck sheet. KOS addition aborted.")
 
         # Request approval
         chan = self.msg.guild.get_channel(cog.util.CONF.channels.ops)
-        squad = squad.capitalize() if squad == cog.inara.EMPTY_INARA else squad
+        kos_info['squad'] = kos_info['squad'].capitalize() if kos_info['squad'] == cog.inara.EMPTY_INARA else kos_info['squad']
         sent = await chan.send(
-            embed=cog.inara.kos_report_cmdr_embed(
-                self.msg.author.name, cmdr=cmdr, squad=squad, reason=reason, is_friendly=is_friendly,
-            ),
+            embed=cog.inara.kos_report_cmdr_embed(self.msg.author.name, kos_info),
             components=[
                 dcom.Button(label=cog.inara.BUT_APPROVE, style=dcom.ButtonStyle.green),
                 dcom.Button(label=cog.inara.BUT_DENY, style=dcom.ButtonStyle.red),
@@ -158,11 +165,9 @@ class Action():
         response = "No change to KOS made."
         if inter.component.label == cog.inara.BUT_APPROVE:
             await scanner.update_cells()
-            payload = scanner.add_report_dict(
-                cmdr, squad, reason, is_friendly
-            )
+            payload = scanner.add_report_dict(kos_info)
             await scanner.send_batch(payload)
-            cogdb.query.kos_add_cmdr(self.session, cmdr, squad, reason, is_friendly)
+            cogdb.query.kos_add_cmdr(self.session, kos_info)
             self.session.commit()
             response = "CMDR has been added to KOS."
 
@@ -1208,11 +1213,13 @@ class KOS(Action):
         First ask for approval of addition, then add to kos list.
         """
         cmdr = ' '.join(self.args.cmdr)
-        squad = ' '.join(self.args.faction)
-        reason = ' '.join(self.args.reason) + " -{}".format(self.msg.author.name)
-        is_friendly = self.args.is_friendly
         await self.msg.channel.send('CMDR {} has been reported for moderation.'.format(cmdr))
-        await self.moderate_kos_report(cmdr=cmdr, squad=squad, reason=reason, is_friendly=is_friendly)
+        await self.moderate_kos_report({
+            'cmdr': cmdr,
+            'squad': ' '.join(self.args.squad),
+            'reason': ' '.join(self.args.reason) + " -{}".format(self.msg.author.name),
+            'is_friendly': self.args.is_friendly,
+        })
 
     async def execute(self):
         msg = 'KOS: Invalid subcommand'
@@ -1233,7 +1240,7 @@ class KOS(Action):
             cmdrs = cogdb.query.kos_search_cmdr(self.session, self.args.term)
             if cmdrs:
                 lines = [['CMDR Name', 'Faction', 'Is Friendly?', 'Reason']]
-                lines += [[x.cmdr, x.faction, x.friendly, x.reason] for x in cmdrs]
+                lines += [[x.cmdr, x.squad, x.friendly, x.reason] for x in cmdrs]
                 msg += cog.tbl.format_table(lines, header=True)[0]
             else:
                 msg += "No matches!"
@@ -2023,7 +2030,7 @@ class WhoIs(Action):
         kos_info = await cog.inara.api.search_inara_and_kos(cmdr_name, self.msg)
 
         if kos_info and kos_info.pop('add'):
-            await self.moderate_kos_report(**kos_info)
+            await self.moderate_kos_report(kos_info)
 
 
 def is_near_tick():
