@@ -28,7 +28,7 @@ from cogdb.schema import (DiscordUser, FortSystem, FortPrep, FortDrop, FortUser,
                           UMSystem, UMExpand, UMOppose, UMUser, UMHold, EUMSheet, KOS,
                           AdminPerm, ChannelPerm, RolePerm,
                           TrackSystem, TrackSystemCached, TrackByID,
-                          OCRTracker, OCRTrigger, OCRPrep, Global, Vote, VoteType)
+                          OCRTracker, OCRTrigger, OCRPrep, Global, Vote, EVoteType)
 from tests.data import CELLS_FORT, CELLS_FORT_FMT, CELLS_UM
 
 
@@ -834,7 +834,7 @@ def f_vote_testbed(session):
     """
     updated_at = datetime.datetime(2021, 8, 25, 2, 33, 0)
     votes = (
-        Vote(id=1, vote=VoteType.cons, amount=1, updated_at=updated_at),
+        Vote(id=1, vote=EVoteType.cons, amount=1, updated_at=updated_at),
     )
     session.add_all(votes)
     session.commit()

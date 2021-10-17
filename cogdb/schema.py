@@ -1447,7 +1447,7 @@ class Global(Base):
         return value
 
 
-class VoteType(enum.Enum):
+class EVoteType(enum.Enum):
     """ Type of vote. """
     cons = 1
     prep = 2
@@ -1460,7 +1460,7 @@ class Vote(Base):
     __tablename__ = 'powerplay_votes'
 
     id = sqla.Column(sqla.BigInteger, primary_key=True)
-    vote = sqla.Column(sqla.Enum(VoteType), default=VoteType.cons, primary_key=True)
+    vote = sqla.Column(sqla.Enum(EVoteType), default=EVoteType.cons, primary_key=True)
     amount = sqla.Column(sqla.Integer, default=0)
     updated_at = sqla.Column(sqla.DateTime, default=datetime.datetime.utcnow())  # All dates UTC
 
@@ -1478,17 +1478,19 @@ class Vote(Base):
 
     def __str__(self):
         """ A pretty one line to give all information. """
-        vote_type = str(self.vote).split('.')[-1].capitalize()
-
         return "**{name}**: voted {amount} {vote}.".format(
-            name=self.discord_user.display_name,
-            amount=self.amount, vote=vote_type)
+            name=self.discord_user.display_name if self.discord_user else "You",
+            amount=self.amount, vote=self.vote_type)
 
     def __eq__(self, other):
         return isinstance(other, Vote) and hash(self) == hash(other)
 
     def __hash__(self):
         return hash("{}-{}".format(self.id, self.vote))
+
+    @property
+    def vote_type(self):
+        return str(self.vote).split('.')[-1].capitalize()
 
     def update_amount(self, amount):
         """

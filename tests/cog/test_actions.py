@@ -1687,14 +1687,14 @@ async def test_cmd_vote_prep(f_bot, f_dusers, f_global_testbed, f_vote_testbed):
 
 @pytest.mark.asyncio
 async def test_cmd_vote_cons(f_bot, f_dusers, f_global_testbed, f_vote_testbed):
-    msg = fake_msg_gears("!vote cons 5")
+    msg = fake_msg_gears("!vote 5 cons")
 
     await action_map(msg, f_bot).execute()
     f_bot.send_message.assert_called_with(msg.channel, "**User1**: voted 6 Cons.")
 
 
 @pytest.mark.asyncio
-async def test_cmd_vote_near(f_bot, f_global_testbed, f_vote_testbed):
+async def test_cmd_vote_near(f_bot, f_global_testbed, f_vote_testbed, db_cleanup):
     with cogdb.session_scope(cogdb.Session) as session:
         globe = session.query(Global).one()
         globe.show_vote_goal = True
@@ -1708,7 +1708,7 @@ async def test_cmd_vote_near(f_bot, f_global_testbed, f_vote_testbed):
 
 
 @pytest.mark.asyncio
-async def test_cmd_vote(f_bot, f_global_testbed, f_vote_testbed):
+async def test_cmd_vote(f_bot, f_global_testbed, f_vote_testbed, db_cleanup):
     msg = fake_msg_gears("!vote")
 
     await action_map(msg, f_bot).execute()
@@ -1723,7 +1723,7 @@ async def test_cmd_vote(f_bot, f_global_testbed, f_vote_testbed):
 
 
 @pytest.mark.asyncio
-async def test_cmd_vote_set_goal(f_bot, f_admins, f_dusers, f_global_testbed, f_vote_testbed):
+async def test_cmd_vote_set_goal(f_bot, f_admins, f_dusers, f_global_testbed, f_vote_testbed, db_cleanup):
     msg = fake_msg_gears("!vote -s 75")
 
     await action_map(msg, f_bot).execute()
@@ -1731,7 +1731,7 @@ async def test_cmd_vote_set_goal(f_bot, f_admins, f_dusers, f_global_testbed, f_
 
 
 @pytest.mark.asyncio
-async def test_cmd_vote_display(f_bot, f_admins, f_dusers, f_global_testbed, f_vote_testbed):
+async def test_cmd_vote_display(f_bot, f_admins, f_dusers, f_global_testbed, f_vote_testbed, db_cleanup):
     msg = fake_msg_gears("!vote --display")
 
     await action_map(msg, f_bot).execute()

@@ -11,7 +11,7 @@ import cogdb
 from cogdb.schema import (DiscordUser, FortSystem, FortUser, FortOrder,
                           UMUser, UMHold, EUMSheet, AdminPerm, ChannelPerm, RolePerm,
                           KOS, TrackSystem, TrackSystemCached, TrackByID,
-                          OCRTracker, OCRTrigger, OCRPrep, Global, Vote, VoteType)
+                          OCRTracker, OCRTrigger, OCRPrep, Global, Vote, EVoteType)
 import cogdb.query
 
 from tests.data import SYSTEMS, USERS
@@ -883,21 +883,27 @@ def test_vote_add(session, f_dusers, f_vote_testbed, f_global_testbed):
     expected_message = "**{}**: voted 1 Prep.".format(f_dusers[1].display_name)
     assert str(returned_message) == expected_message
 
-    the_vote = cogdb.query.add_vote(session, f_dusers[1].id, VoteType.cons, 5)
+    the_vote = cogdb.query.add_vote(session, f_dusers[1].id, EVoteType.cons, 5)
     expect = "**{}**: voted 5 Cons.".format(f_dusers[1].display_name)
     assert str(the_vote) == expect
 
 
 def test_vote_get(session, f_dusers, f_vote_testbed):
     # Existing
-    the_vote = cogdb.query.get_vote(session, f_dusers[1].id, VoteType.cons)
+    the_vote = cogdb.query.get_vote(session, f_dusers[1].id, EVoteType.cons)
     assert the_vote.id == f_dusers[1].id
-    assert the_vote.vote == VoteType.cons
+    assert the_vote.vote == EVoteType.cons
 
     # Doesn't exist
-    the_vote = cogdb.query.get_vote(session, f_dusers[2].id, VoteType.prep)
+    the_vote = cogdb.query.get_vote(session, f_dusers[2].id, EVoteType.prep)
     assert the_vote.id == f_dusers[2].id
-    assert the_vote.vote == VoteType.prep
+    assert the_vote.vote == EVoteType.prep
+
+
+def test_track_get_all_votes(session, f_dusers, f_vote_testbed):
+    votes = cogdb.query.get_all_votes(session)
+
+    assert votes[0][0] == f_vote_testbed[0]
 
 
 def test_get_all_snipe_holds(session, f_bot, f_dusers, f_um_testbed):

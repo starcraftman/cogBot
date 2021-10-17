@@ -6,6 +6,7 @@ import pytest
 import cog.exc
 import cog.parse
 import cog.util
+from cogdb.schema import EVoteType
 
 
 def test_throw_argument_parser():
@@ -35,3 +36,26 @@ def test_make_parser():
     parser = cog.parse.make_parser('!')
     args = parser.parse_args('!fort --next 5'.split())
     assert args.next == 5
+
+
+def test_parse_vote_tuple():
+    """
+    Multiple cases here due to simplicity of function.
+    """
+    with pytest.raises(cog.parse.ThrowArggumentParser):
+        cog.parse.parse_vote_tuple(['wrong', 'wrong', 'wrong'])
+
+    with pytest.raises(cog.parse.ThrowArggumentParser):
+        cog.parse.parse_vote_tuple(['wrong', 'wrong'])
+
+    with pytest.raises(cog.parse.ThrowArggumentParser):
+        cog.parse.parse_vote_tuple(['wrong', 'prep'])
+
+    with pytest.raises(cog.parse.ThrowArggumentParser):
+        cog.parse.parse_vote_tuple(['cons', 'wrong'])
+
+    with pytest.raises(cog.parse.ThrowArggumentParser):
+        cog.parse.parse_vote_tuple(['cons', '-5'])
+
+    assert cog.parse.parse_vote_tuple(['cons', '5']) == (EVoteType.cons, 5)
+    assert cog.parse.parse_vote_tuple(['1', 'prep']) == (EVoteType.prep, 1)

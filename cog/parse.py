@@ -9,13 +9,14 @@ from argparse import RawDescriptionHelpFormatter as RawHelp
 
 import cog.exc
 import cog.util
-from cogdb.schema import EUMSheet
+from cogdb.schema import EUMSheet, EVoteType
 
 PARSERS = []
-CMD_MAP = {}  # Maps the command names in either direction.
+CMD_MAP = {}  # Maps the command names from Class onto command.
+VALID_VOTE_TYPES = ['cons', 'prep']
 
 
-class ThrowArggumentParser(argparse.ArgumentParser):
+class ThrowArggumentParser(argparse.ArgumentParser, Exception):
     """
     ArgumentParser subclass that does NOT terminate the program.
     """
@@ -766,10 +767,10 @@ def subs_vote(subs, prefix):
     sub = subs.add_parser(prefix + 'vote', description=desc, formatter_class=RawHelp)
     sub.set_defaults(cmd='Voting')
     CMD_MAP['Voting'] = 'vote'
-    sub.add_argument('vote_type', nargs='?', help='Vote type, either Cons or Prep', choices=['cons', 'prep'])
-    sub.add_argument('amount', nargs='?', type=int, help='Vote power (either 1 or a multiple of 5)')
+    sub.add_argument('vote_tuple', nargs='*', help='format either: cons 1 or 5 prep')
     sub.add_argument('--set', '-s', type=int, help='Set vote goal.')
     sub.add_argument('--display', '-d', action='store_true', help='Display the current vote goal.')
+    sub.add_argument('--summary', action='store_true', help='Display the admin summary of votes this cycle.')
 
 
 @register_parser
@@ -788,3 +789,36 @@ def subs_whois(subs, prefix):
     sub.set_defaults(cmd='WhoIs')
     CMD_MAP['WhoIs'] = 'whois'
     sub.add_argument('cmdr', nargs='+', help='Commander name.')
+
+
+def parse_vote_tuple(vote_tuple):
+    """
+    Parse the vote tuple, it was requested position be ignored.
+    Validate both input values.
+
+    Returns: (vote_type, amount)
+        vote_type: The enum EVoteType that matches user invocation.
+        amount: The integer value of vote.
+
+    Raises:
+        ThrowArggumentParser: Anything went wrong with parsing.
+    """
+    try:
+        if len(vote_tuple) != 2:
+            raise ValueError("Tuple should be of length 2.")
+
+        if vote_tuple[0] in VALID_VOTE_TYPES:
+            vote_type, amount = vote_tuple
+        elif vote_tuple[1] in VALID_VOTE_TYPES:
+            amount, vote_type = vote_tuple
+        else:
+            raise ValueError("Values in tuple were invalid.")
+
+        vote_type = EVoteType.cons if vote_type == 'cons' else EVoteType.prep
+        amount = int(amount)
+        if amount < 1:
+            raise ValueError("Vote amount must be greater than 0.")
+    except ValueError as exc:
+        raise ThrowArggumentParser from exc
+
+    return vote_type, amount

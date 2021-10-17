@@ -1413,6 +1413,16 @@ def get_vote(session, discord_id, vote_type):
     return the_vote
 
 
+def get_all_votes(session):
+    """
+    Get all current votes, ordered by name.
+    """
+    return session.query(Vote, DiscordUser).\
+        join(DiscordUser, Vote.id == DiscordUser.id).\
+        order_by(Vote.updated_at.desc()).\
+        all()
+
+
 def get_all_snipe_holds(session):
     """
     Args:

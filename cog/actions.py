@@ -1918,7 +1918,9 @@ class Voting(Action):
     Cast a vote based on CMDR discord ID.
     """
     async def execute(self):
+        self.duser  # Ensure duser captured for db.
         globe = cogdb.query.get_current_global(self.session)
+
         if self.args.set:
             try:
                 cogdb.query.get_admin(self.session, self.duser)
@@ -1928,18 +1930,22 @@ class Voting(Action):
             msg = "New vote goal is **{goal}%**, current vote is {current_vote}%."\
                 .format(goal=self.args.set, current_vote=globe.consolidation)
 
-        elif self.args.vote_type:
-            vote = cogdb.query.add_vote(self.session, self.msg.author.id,
-                                        self.args.vote_type, self.args.amount)
+        elif self.args.vote_tuple:
+            vote_type, amount = cog.parse.parse_vote_tuple(self.args.vote_tuple)
+            vote = cogdb.query.add_vote(self.session, self.msg.author.id, vote_type, amount)
             msg = str(vote)
 
         elif self.args.display:
             msg = self.display(globe)
 
+        elif self.args.summary:
+            msg = await self.summary()
+
         else:
             msg = self.vote_direction(globe)
 
-        await self.bot.send_message(self.msg.channel, msg)
+        if msg:
+            await self.bot.send_message(self.msg.channel, msg)
 
     def display(self, globe):
         """Display vote goal"""
@@ -1951,6 +1957,21 @@ class Voting(Action):
         globe.show_vote_goal = not globe.show_vote_goal
         show_msg = "SHOW" if globe.show_vote_goal else "NOT show"
         return "Will now {} the vote goal.".format(show_msg)
+
+    async def summary(self):
+        """ Show an executive/complete summary of votes. """
+        lines = [["CMDR", "Type", "Strength", "Date"]]
+        lines += [[duser.pref_name, vote.vote_type, vote.amount, vote.updated_at]
+                  for vote, duser in cogdb.query.get_all_votes(self.session)]
+
+        prefix = f'__All Votes Cycle {cog.util.current_cycle()}__\n\n'
+        with tempfile.NamedTemporaryFile(mode='r') as tfile:
+            async with aiofiles.open(tfile.name, 'w') as fout:
+                await fout.write('\n'.join(cog.tbl.format_table(lines, prefix=prefix, wrap_msgs=False)))
+
+            await self.msg.channel.send("All votes summary.",
+                                        file=discord.File(fp=tfile.name, filename="AllVotes.txt"))
+
 
     def vote_direction(self, globe):
         """Display vote direction"""
