@@ -19,11 +19,11 @@ Example of how header should look. Now pulled directly from config.
 #  }
 '''
 import asyncio
+import copy
 import datetime
 import functools
 import logging
 import re
-import sys
 try:
     import rapidjson as json
 except ImportError:
@@ -88,11 +88,28 @@ INARA_STATION_SEARCH = "https://inara.cz/galaxy-station/?search={}%20[{}]"  # sy
 INARA_FACTION_SEARCH = "https://inara.cz/galaxy-minorfaction/?search={}"
 RATE_MAX = 12
 RATE_RESUME = 9
+RATE_WINDOW = 60  # seconds of the rate window
 BUT_CANCEL = 'Cancel'
 BUT_FRIENDLY = 'Friendly'
 BUT_HOSTILE = 'Hostile'
 BUT_APPROVE = 'Approve'
 BUT_DENY = 'Deny'
+KOS_INFO_PROTO = {
+    'add': False,
+    'is_friendly': False,
+    'cmdr': EMPTY_INARA,
+    'reason': EMPTY_INARA,
+    'squad': EMPTY_INARA,
+}
+
+
+class InaraNoResult(Exception):
+    """
+    No result was returned from Inara.
+    """
+    def __init__(self, msg, req_id=None):
+        super().__init__(msg)
+        self.req_id = req_id
 
 
 class InaraApiInput():
@@ -132,6 +149,52 @@ class InaraApiInput():
                                             lvl='exception') from exc
 
 
+class RateLimiter():
+    """
+    Implement a simple rate limiter.
+    Rate of requests will be limited to max_rate within window seconds.
+    Requests once they exceed maximum will resume when they hit the resume_rate.
+    """
+    def __init__(self, *, max_rate, resume_rate, window=RATE_WINDOW):
+        self.window = window  # Window of the rate limiter in seconds
+        self.rate = 0  # Rate of requests in last 60 seconds
+        self.max_rate = max_rate
+        self.resume_rate = resume_rate
+        self.rate_event = asyncio.Event()
+
+    async def increment(self, bot_client, channel):
+        """
+        Will increment the current rate.
+        While the current rate exceeds the max, wait for event from decrement.
+        """
+        self.rate += 1
+        msg = None
+
+        if self.rate >= self.max_rate:
+            msg = await bot_client.send_message(
+                channel, "Approaching inara rate limit, please wait a moment until we are under.")
+
+        while self.rate >= self.max_rate:
+            await self.rate_event.wait()
+            self.rate_event.clear()
+
+        if msg:
+            await msg.delete()
+
+    async def decrement(self, delay=None):
+        """
+        Will decrement the rate after delay and notify anyone waiting to resume via an event.
+        """
+        if not delay:
+            delay = self.window
+
+        await asyncio.sleep(delay)
+
+        self.rate -= 1
+        if self.rate <= self.resume_rate:
+            self.rate_event.set()
+
+
 class InaraApi():
     """
     Inara CMDR lookups done with aiohttp module.
@@ -140,9 +203,7 @@ class InaraApi():
     def __init__(self):
         self.req_counter = 0  # count how many searches done with search_in_inara
         self.waiting_messages = {}  # 'Searching in inara.cz' messages. keys are req_id.
-
-        self.rate = 0  # Rate of requests in last 60 seconds
-        self.rate_event = asyncio.Event()
+        self.rate_limit = RateLimiter(max_rate=RATE_MAX, resume_rate=RATE_RESUME)
 
     async def delete_waiting_message(self, req_id):  # pragma: no cover
         """ Delete the message which informs user about start of search """
@@ -150,18 +211,62 @@ class InaraApi():
             await self.waiting_messages[req_id].delete()
             del self.waiting_messages[req_id]
 
-    async def search_with_api(self, cmdr_name, msg, ignore_multiple_match=False):
+    async def search_inara_and_kos(self, looking_for_cmdr, msg):
+        """
+        Top level wrapper to search for a cmdr.
+        Search both Inara and local KOS db, respond with appropriate information.
+        Respond to user with information from both depending on what was found.
+
+        Args:
+            looking_for_cmdr: The cmdr's name to look on inara.
+            msg: The message the user sent, tracks the channel/author to respond to.
+
+        Returns:
+            kos_info: The information on if a report for kos addition should be made to moderation.
+        """
+        try:
+            cmdr_info = await self.search_with_api(looking_for_cmdr, msg, ignore_multiple_match=False)
+            return await cog.inara.api.reply_with_api_result(cmdr_info["req_id"], cmdr_info["event_data"], msg)
+        except InaraNoResult as exc:
+            futs = []
+            response = f"__Inara__ Could not find CMDR **{looking_for_cmdr}**"
+
+            # Even if not on inara.cz, lookup in kos
+            with cogdb.session_scope(cogdb.Session) as session:
+                kos_embeds = kos_lookup_cmdr_embeds(session, looking_for_cmdr)
+
+            if kos_embeds:
+                futs += [cog.util.BOT.send_message(msg.channel, embed=embed) for embed in kos_embeds]
+                futs += [self.delete_waiting_message(exc.req_id)]
+            else:
+                response += f"\n\n__KOS__ Could not find CMDR **{looking_for_cmdr}**"
+
+            for fut in [cog.util.BOT.send_message(msg.channel, response)] + futs:
+                await fut
+
+            # Not found in KOS, will ask if should be added.
+            if not kos_embeds:
+                return await self.should_cmdr_be_on_kos(exc.req_id, looking_for_cmdr, msg)
+
+    async def search_with_api(self, looking_for_cmdr, msg, ignore_multiple_match=False):
         """
         Search for a commander on Inara.
 
         Raises:
-            CmdAborted - User let timeout occur or cancelled loose match.
-            RemoteError - If response code invalid or remote unreachable.
+            CmdAborted - User let timeout occur or cancelled selection.
+            RemoteError - If response code invalid or remote unreachable (Inara itself).
             InternalException - JSON serialization failed.
+            InaraNoResult - No result returned from Inara.
 
         Returns:
-            Dictionary in full success.
-            None if disabled or not found.
+            Dictionary with information below if a matching cmdr found on Inara.
+                {
+                    "req_id": int,  # The number of the request.
+                    "inara_cmdr_url": String, # Url of cmdr on Inara.
+                    "name": string, # The name of the cmr.
+                    "event_data": event_data  # The raw event data returned from inara.
+                }
+            None if component disabled or not found on Inara.
         """
         # keep search disabled if there is no API_KEY
         if not HEADER_PROTO:
@@ -171,31 +276,22 @@ class InaraApi():
 
         # request id
         req_id = self.req_counter
-        self.req_counter += 1 % 1000
-
+        self.req_counter = (self.req_counter + 1) % 1000
         try:
+            # Ensure we don't flood inara, they have low rate.
+            await self.rate_limit.increment(cog.util.BOT, msg.channel)
+
             # inform user about initiating the search.
             self.waiting_messages[req_id] = await cog.util.BOT.send_message(msg.channel,
                                                                             "Searching inara.cz ...")
 
             api_input = InaraApiInput()
-            api_input.add_event("getCommanderProfile", {"searchName": cmdr_name})
+            api_input.add_event("getCommanderProfile", {"searchName": looking_for_cmdr})
 
             # search for commander
             async with aiohttp.ClientSession() as http:
-                while self.rate >= RATE_MAX:
-                    msg = await cog.util.BOT.send_message(
-                        msg.channel, "Approaching inara rate, please wait a moment until we are under.")
-
-                    self.rate_event.clear()
-                    await self.rate_event.wait()
-                    await msg.delete()
-                self.rate += 1
-
                 async with http.post(API_ENDPOINT, data=api_input.serialize(),
                                      headers=API_HEADERS) as resp:
-                    asyncio.ensure_future(delay_and_rate_check(self))
-
                     if resp.status != 200:
                         raise cog.exc.RemoteError("Inara search failed. HTTP Response code bad: %s"
                                                   % str(resp.status))
@@ -213,141 +309,59 @@ class InaraApi():
 
             event = response_json["events"][0]
             if event["eventStatus"] == API_RESPONSE_CODES["no result"]:
-                response = "__Inara__ Could not find CMDR **{}**".format(cmdr_name)
-                futs = []
-                # Even if not on inara.cz, lookup in kos
-                with cogdb.session_scope(cogdb.Session) as session:
-                    embeds = kos_lookup_cmdr_embeds(session, cmdr_name)
-                    if not embeds:
-                        response += "\n\n__KOS__ Could not find CMDR **{}**".format(cmdr_name)
-                    else:
-                        futs += [cog.util.BOT.send_message(msg.channel, embed=embed) for embed in embeds]
-                        futs += [self.delete_waiting_message(req_id)]
-
-                futs = [cog.util.BOT.send_message(msg.channel, response)] + futs
-                for fut in futs:
-                    await fut
-                if not embeds:
-                    cmdr = {"name": cmdr_name}
-                    return await self.adding_to_kos(cmdr, msg)  # No reason to go further
-                return None
+                raise InaraNoResult(f"No matching CMDR on Inara for: {looking_for_cmdr}", req_id)
 
             event_data = event["eventData"]
 
             # fetch commander name, use userName if there is no commanderName set
-            commander_name = event_data.get("commanderName", event_data["userName"])
+            inara_cmdr_name = event_data.get("commanderName", event_data["userName"])
+            inara_result = {
+                "req_id": req_id,
+                "inara_cmdr_url": event_data["inaraURL"],
+                "name": inara_cmdr_name,
+                "event_data": event_data
+            }
 
             # other possible cmdr matches
             cmdrs = event_data.get("otherNamesFound", [])
 
             # return if exact match and no alternatives or selected
-            if commander_name.lower() == cmdr_name.lower() and (
+            if inara_cmdr_name.lower() == looking_for_cmdr.lower() and (
                     not cmdrs or ignore_multiple_match):
-
-                return {
-                    "req_id": req_id,
-                    "inara_cmdr_url": event_data["inaraURL"],
-                    "name": commander_name,
-                    "event_data": event_data
-                }
+                return inara_result
 
             # not an exact match or multiple matches passing, will prompt user a list for selection.
             # list will come up, delete waiting message
             await self.delete_waiting_message(req_id)
-            cmdrs.insert(0, commander_name)
-            cmdr = await self.select_from_choices(cmdr_name, cmdrs, msg)
+            cmdrs.insert(0, inara_cmdr_name)
+            selected_cmdr = await select_from_choices(cmdrs, msg)
 
-            if cmdr == commander_name:
-                return {
-                    "req_id": req_id,
-                    "imara_cmdr_url": event_data["inaraURL"],
-                    "name": commander_name,
-                    "event_data": event_data
-                }
+            if selected_cmdr == inara_cmdr_name:
+                return inara_result
 
             # selected from otherNamesFound, run it again for selected commander.
             # it will search using returned names, so ignore multiple match this time.
-            return await self.search_with_api(cmdr, msg, ignore_multiple_match=True)
+            return await self.search_with_api(selected_cmdr, msg, ignore_multiple_match=True)
         finally:
-            # delete waiting message on exception.
-            await self.delete_waiting_message(req_id)
-
-        return None
-
-    async def select_from_choices(self, name, cmdrs, msg):
-        """
-        Present the loosely matched choices and wait for user selection.
-
-        Returns:
-            Present choices and await a valid numeric reply.
-            None if any of the following true:
-                1) Timesout waiting for user response.
-                2) Invalid response from user (i.e. text, invalid number).
-
-        Raises:
-            CmdAborted - Cmdr either requested abort or failed to respond.
-        """
-        reply = "Please select a possible match from the list. Cancel with last option."
-        components = [
-            dcom.Select(
-                placeholder="CMDRs here",
-                options=[dcom.SelectOption(label=x, value=x) for x in cmdrs + [BUT_CANCEL]],
-                custom_id='select_cmdrs',
-            ),
-        ]
-
-        sent = await cog.util.BOT.send_message(msg.channel, reply, components=components)
-        check = functools.partial(check_inter_orig_user_or_admin, msg.author, sent)
-        try:
-            inter = await cog.util.BOT.wait_for('select_option', check=check, timeout=30)
-            if inter.values[0] == BUT_CANCEL:
-                raise cog.exc.CmdAborted("WhoIs lookup aborted, user cancelled.")
-            return inter.values[0]
-        except asyncio.TimeoutError:
-            raise cog.exc.CmdAborted("WhoIs lookup aborted, timeout from inactivity.")
-        finally:
-            asyncio.ensure_future(sent.delete())
-
-    async def squad_details(self, event_data, cmdr):
-        """
-        Fill in wing details when requested.
-
-        Returns:
-            A Discord Embed for CMDR's squadron details.
-        """
-        squad_data = event_data["commanderSquadron"]
-        cmdr["squad_rank"] = squad_data.get("squadronMemberRank", cmdr["squad_rank"])
-        cmdr["squad_count"] = squad_data.get("squadronMembersCount", cmdr["squad_count"])
-
-        extra = await inara_squad_parse(squad_data['inaraURL'])
-        return discord.Embed.from_dict({
-            'color': PP_COLORS.get(extra[2]["value"], PP_COLORS['default']),
-            'author': {
-                'name': "{}'s Squadron".format(cmdr["name"]),
-                'icon_url': cmdr["profile_picture"],
-            },
-            'provider': {
-                'name': 'Inara',
-                'url': SITE,
-            },
-            'thumbnail': {
-                'url': EMPTY_IMG,
-            },
-            'title': squad_data['squadronName'],
-            'url': squad_data["inaraURL"],
-            'footer': {
-                'text': "Any unknown fields weren't present or failed to parse. See squad link.",
-            },
-            "fields": [
-                {'name': 'Squad Rank', 'value': cmdr["squad_rank"], 'inline': True},
-                {'name': 'Squad Count', 'value': cmdr["squad_count"], 'inline': True},
-            ] + extra,
-        })
+            asyncio.ensure_future(self.rate_limit.decrement())
+            try:
+                # Delete waiting message regardless of what happens.
+                await self.delete_waiting_message(req_id)
+            except discord.errors.NotFound:
+                pass
 
     async def reply_with_api_result(self, req_id, event_data, msg):
         """
         Reply using event_data from Inara API getCommanderProfile.
+        Send information to user based on Inara and KOS lookup.
 
+        Args:
+            req_id: The id of the request to search.
+            event_data: The event_data returned by Inara.
+            msg: The original message from a user requesting search.
+
+        Returns:
+            kos_info: A KOS info object explaining if searched cmdr should be added. See should_cmdr_be_on_kos method.
         """
         # cmdr prototype, only name guaranteed. Others will display if not found.
         # keeping original prototype from regex method.
@@ -388,13 +402,10 @@ class InaraApi():
                     cmdr["rank"] = 'Unknown Rank'
 
         embeds = []
-
-        with_squad = True
         try:
             cmdr["squad"] = event_data["commanderSquadron"].get("squadronName", cmdr["squad"])
-            embeds += [await self.squad_details(event_data, cmdr)]
+            embeds += [await squad_details_embed(event_data, cmdr)]
         except KeyError:
-            with_squad = False
             pass
 
         cmdr_embed = discord.Embed.from_dict({
@@ -419,103 +430,112 @@ class InaraApi():
                 {'name': 'Squadron', 'value': cmdr["squad"], 'inline': True},
             ],
         })
-
         embeds = [cmdr_embed] + embeds
 
         with cogdb.session_scope(cogdb.Session) as session:
-            returned_embed = kos_lookup_cmdr_embeds(session, cmdr['name'], cmdr['profile_picture'])
-            embeds += returned_embed
+            kos_embeds = kos_lookup_cmdr_embeds(session, cmdr['name'], cmdr['profile_picture'])
+            embeds += kos_embeds
 
         futs = [cog.util.BOT.send_message(msg.channel, embed=embed) for embed in embeds]
         futs += [self.delete_waiting_message(req_id)]
         for fut in futs:
             await fut
 
-        return await self.friendly_detector(cmdr, with_squad, returned_embed, msg)
+        if not kos_embeds:
+            # Not found in KOS db, ask if should be added
+            kos_info = await self.should_cmdr_be_on_kos(req_id, cmdr['name'], msg)
+            kos_info['squad'] = cmdr.get('squad', EMPTY_INARA)
 
-    async def friendly_detector(self, cmdr, with_squad, returned_embed, msg):
-        """
-        Detect is a commander is friendly or not.
-        """
-        if not returned_embed:
-            returned_addition, is_friendly = await self.adding_to_kos(cmdr, msg)
-            if returned_addition is None:
-                return None, None
-            cmdr_squad = "Unknown"
-            if with_squad:
-                cmdr_squad = cmdr["squad"]
-            return is_friendly, cmdr_squad
-        return None, None
+        return kos_info
 
-    async def adding_to_kos(self, cmdr, msg):
+    async def should_cmdr_be_on_kos(self, req_id, cmdr_name, msg):
         """
-        Add a message with reaction to give the user the choice of report he wants to do.
-        """
-        req_id = self.req_counter
+        Send a message with buttons to the user asking if the cmdr should be reported.
 
+        Args:
+            req_id: The request id.
+            cmdr_name: The name of the commander being reported.
+            msg: The original message with the channel/author reporting the cmdr.
+
+        Returns:
+            A dictionary with the information to add user to KOS. Format follows:
+            {
+                'add': True | False, # If True, add to the KOS. Otherwise, take no action.
+                'is_friendly': True | False, # If the user is friendly or hostile,
+                'cmdr': String, # The name of cmdr.
+                'reason': String, # Reason to add cmdr,
+                'squad': String, # The squadron of the cmdr if known.
+            }
+        """
         components = [
             dcom.Button(label=BUT_FRIENDLY, style=dcom.ButtonStyle.green),
             dcom.Button(label=BUT_HOSTILE, style=dcom.ButtonStyle.red),
             dcom.Button(label=BUT_CANCEL, style=dcom.ButtonStyle.grey),
         ]
-        text = f"Should the CMDR {cmdr['name']} be added as friendly or hostile?"
+        text = f"Should the CMDR {cmdr_name} be added as friendly or hostile?"
         sent = await cog.util.BOT.send_message(msg.channel, text, components=components)
         self.waiting_messages[req_id] = sent
 
-        check = functools.partial(check_inter_orig_user_or_admin, msg.author, sent)
+        check = functools.partial(check_interaction_response, msg.author, sent)
         inter = await cog.util.BOT.wait_for('button_click', check=check)
 
         # Approved update
-        reason, is_friendly = None, None
+        kos_info = copy.deepcopy(KOS_INFO_PROTO)
+        kos_info['cmdr'] = cmdr_name
         if inter.component.label == BUT_CANCEL:
-            resp = "This report will be cancelled. Have a nice day!"
+            response = "This report will be cancelled. Have a nice day!"
 
         else:
-            resp = """You selected {}
+            kos_info.update({
+                'add': True,
+                'is_friendly': inter.component.label == BUT_FRIENDLY,
+                'reason': f"Manual report after a !whois in {msg.channel} by cmdr {msg.author}",
+            })
+            response = """You selected {}
 
 Leadership will review your report. Thank you.""".format(inter.component.label)
-            is_friendly = inter.component.label == BUT_FRIENDLY
-            reason = "Manual report after a !whois in {channel} by cmdr {reported_by}" \
-                .format(channel=msg.channel, reported_by=msg.author)
-        await inter.send(resp)
+
+        await inter.send(response)
         await self.delete_waiting_message(req_id)
-        return reason, is_friendly
+
+        return kos_info
 
 
-def check_inter_orig_user_or_admin(orig_author, sent, inter):
+async def squad_details_embed(event_data, cmdr):
     """
-    Check if a user is the original requesting author
-    or if the responding user to interaction is an admin.
-    Use functools.partial to leave only inter arg.
+    Get the wing details based on event_data and the cmdr object.
 
-    Args:
-        orig_author: The original author who made request.
-        sent: The message sent with options/buttons.
-        inter: The interaction argument to check.
-
-    Returns: True ONLY if responding to same message and user allowed.
+    Returns:
+        A Discord Embed for CMDR's squadron details.
     """
-    user_allowed = inter.user == orig_author
-    if not user_allowed:
-        with cogdb.session_scope(cogdb.Session) as session:
-            try:
-                cogdb.query.get_admin(session, inter.user)
-                user_allowed = True
-            except cog.exc.NoMatch:
-                pass
+    squad_data = event_data["commanderSquadron"]
+    cmdr["squad_rank"] = squad_data.get("squadronMemberRank", cmdr["squad_rank"])
+    cmdr["squad_count"] = squad_data.get("squadronMembersCount", cmdr["squad_count"])
 
-    return inter.message == sent and user_allowed
-
-
-def wrap_json_loads(string):
-    """ Loads JSON. Make aiohttp use this function for custom exceptions. """
-    try:
-        return json.loads(string)
-    except TypeError as exc:
-        raise cog.exc.RemoteError('Inara API responded with bad JSON.') from exc
-
-
-api = InaraApi()  # use as module, needs "bot" to be set. pylint: disable=C0103
+    extra = await inara_squad_parse(squad_data['inaraURL'])
+    return discord.Embed.from_dict({
+        'color': PP_COLORS.get(extra[2]["value"], PP_COLORS['default']),
+        'author': {
+            'name': "{}'s Squadron".format(cmdr["name"]),
+            'icon_url': cmdr["profile_picture"],
+        },
+        'provider': {
+            'name': 'Inara',
+            'url': SITE,
+        },
+        'thumbnail': {
+            'url': EMPTY_IMG,
+        },
+        'title': squad_data['squadronName'],
+        'url': squad_data["inaraURL"],
+        'footer': {
+            'text': "Any unknown fields weren't present or failed to parse. See squad link.",
+        },
+        "fields": [
+            {'name': 'Squad Rank', 'value': cmdr["squad_rank"], 'inline': True},
+            {'name': 'Squad Count', 'value': cmdr["squad_count"], 'inline': True},
+        ] + extra,
+    })
 
 
 async def inara_squad_parse(url):
@@ -575,22 +595,65 @@ async def inara_squad_parse(url):
     ]
 
 
-async def delay_and_rate_check(api_client, delay=60):
+async def select_from_choices(cmdrs, msg):
     """
-    After delay check the new rate against original.
-    If rate is acceptable then notify those waiting event.
+    Present a discord selection drop down and allow users to
+    select a choice, none of them or timeout if inactive.
+
+    Returns:
+        One of the choices if user selected in time.
+        None if the bot timed out user interaction.
+
+    Raises:
+        CmdAborted - Cmdr either requested abort or failed to respond.
+    """
+    reply = "Please select a possible match from the list. Cancel with last option."
+    components = [
+        dcom.Select(
+            placeholder="CMDRs here",
+            options=[dcom.SelectOption(label=x, value=x) for x in cmdrs + [BUT_CANCEL]],
+            custom_id='select_cmdrs',
+        ),
+    ]
+
+    sent = await cog.util.BOT.send_message(msg.channel, reply, components=components)
+    check = functools.partial(check_interaction_response, msg.author, sent)
+
+    try:
+        inter = await cog.util.BOT.wait_for('select_option', check=check, timeout=30)
+        if inter.values[0] == BUT_CANCEL:
+            raise cog.exc.CmdAborted("WhoIs lookup aborted, user cancelled.")
+
+        return inter.values[0]
+    except asyncio.TimeoutError:
+        raise cog.exc.CmdAborted("WhoIs lookup aborted, timeout from inactivity.")
+    finally:
+        asyncio.ensure_future(sent.delete())
+
+
+def check_interaction_response(orig_author, sent, inter):
+    """
+    Check if a user is the original requesting author
+    or if the responding user to interaction is an admin.
+    Use functools.partial to leave only inter arg.
 
     Args:
-        api: An InaraApi client.
-        delay: The delay before decrementing counter. Default 60s
-    """
-    original = api_client.rate
-    await asyncio.sleep(delay)
+        orig_author: The original author who made request.
+        sent: The message sent with options/buttons.
+        inter: The interaction argument to check.
 
-    api_client.rate -= 1
-    if (original < RATE_MAX and api_client.rate < RATE_MAX) or \
-            (original >= RATE_MAX and api_client.rate <= RATE_RESUME):
-        api_client.rate_event.set()
+    Returns: True ONLY if responding to same message and user allowed.
+    """
+    user_allowed = inter.user == orig_author
+    if not user_allowed:
+        with cogdb.session_scope(cogdb.Session) as session:
+            try:
+                cogdb.query.get_admin(session, inter.user)
+                user_allowed = True
+            except cog.exc.NoMatch:
+                pass
+
+    return inter.message == sent and user_allowed
 
 
 def extract_inara_systems(message):
@@ -624,13 +687,16 @@ def generate_bgs_embed(sys_list, faction_list):
     """
     Generate an embed with links required based on input lists.
 
+    Args:
+        sys_list: List of system names to search on Inara.
+        faction_list: List of faction names to search on Inara.
+
     Returns: A discord Embed.
     """
-    fields = []
-    for system, sys_link in sys_list:
-        fields += [{'name': "System", 'value': "[{}]({})".format(system, sys_link), "inline": True}]
-    for faction, fact_link in faction_list:
-        fields += [{'name': "Faction", 'value': "[{}]({})".format(faction, fact_link), "inline": True}]
+    fields = [{'name': "System", 'value': f"[{system}]({sys_link})", "inline": True}
+              for system, sys_link in sys_list]
+    fields += [{'name': "Faction", 'value': "[{faction}]({fact_link})", "inline": True}
+               for faction, fact_link in faction_list]
 
     return discord.Embed.from_dict({
         'color': PP_COLORS.get("Federation"),
@@ -654,6 +720,13 @@ def generate_bgs_embed(sys_list, faction_list):
 
 
 def kos_lookup_cmdr_embeds(session, cmdr_name, cmdr_pic=None):
+    """
+    Look up the cmdr in the KOS db, if found return embeds that match (up to 3 closest).
+
+    Returns:
+        [embed, ...]: The discord.py embeds who match the cmdr_name.
+        [] : No matches in KOS db.
+    """
     if not cmdr_pic:
         cmdr_pic = EMPTY_IMG
 
@@ -668,7 +741,7 @@ def kos_lookup_cmdr_embeds(session, cmdr_name, cmdr_pic=None):
             },
             "fields": [
                 {'name': 'Name', 'value': kos.cmdr, 'inline': True},
-                {'name': 'Reg Squadron', 'value': kos.faction if kos.faction else "Indy", 'inline': True},
+                {'name': 'Reg Squadron', 'value': kos.squad if kos.squad else "Indy", 'inline': True},
                 {'name': 'Is Friendly ?', 'value': kos.friendly, 'inline': True},
                 {'name': 'Reason', 'value': kos.reason if kos.reason else "No reason.", 'inline': False},
             ],
@@ -677,13 +750,13 @@ def kos_lookup_cmdr_embeds(session, cmdr_name, cmdr_pic=None):
     return embeds
 
 
-def kos_report_cmdr_embed(reporter, cmdr, faction, reason, is_friendly=False):
+def kos_report_cmdr_embed(reporter, kos_info):
     """
     Return an embed that be used to inform of a report.
 
     Returns: A discord embed.
     """
-    kill = "FRIENDLY" if is_friendly else "KILL"
+    kill = "FRIENDLY" if kos_info['is_friendly'] else "KILL"
 
     return discord.Embed.from_dict({
         'color': KOS_COLORS[kill],
@@ -701,19 +774,20 @@ def kos_report_cmdr_embed(reporter, cmdr, faction, reason, is_friendly=False):
             'text': "Review this information and use thumbs to decide if allowed.",
         },
         "fields": [
-            {'name': 'cmdr', 'value': cmdr, 'inline': True},
-            {'name': 'faction', 'value': faction, 'inline': True},
-            {'name': 'kill', 'value': kill, 'inline': True},
-            {'name': 'reason', 'value': reason, 'inline': False},
+            {'name': 'CMDR', 'value': kos_info['cmdr'], 'inline': True},
+            {'name': 'Squad', 'value': kos_info['squad'], 'inline': True},
+            {'name': 'Kill', 'value': kill, 'inline': True},
+            {'name': 'Reason', 'value': kos_info['reason'], 'inline': False},
         ],
     })
 
 
-def main():  # pragma: no cover
-    loop = asyncio.new_event_loop()
-    for n in sys.argv[1:]:
-        loop.run_until_complete(inara_squad_parse('https://inara.cz/squadron/{}/'.format(n)))
+def wrap_json_loads(string):
+    """ Loads JSON. Make aiohttp use this function for custom exceptions. """
+    try:
+        return json.loads(string)
+    except TypeError as exc:
+        raise cog.exc.RemoteError('Inara API responded with bad JSON.') from exc
 
 
-if __name__ == "__main__":
-    main()
+api = InaraApi()  # use as module, needs "bot" to be set. pylint: disable=C0103

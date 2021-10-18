@@ -167,7 +167,6 @@ class Config():
         conf = copy.deepcopy(CONFIG_DEFAULTS)
         async with aiofiles.open(self.fname, 'r', encoding='utf-8') as fin:
             text = await fin.read()
-            print(text)
             loaded = yaml.load(text, Loader=Loader)
 
             if loaded:

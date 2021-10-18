@@ -510,7 +510,12 @@ def test_kos_search_cmdr(session, f_kos):
 
 
 def test_kos_add_cmdr(session, f_kos):
-    cogdb.query.kos_add_cmdr(session, 'cmdr', 'faction', 'A reason', False)
+    cogdb.query.kos_add_cmdr(session, {
+        'cmdr': 'cmdr',
+        'squad': 'squad',
+        'reason': 'A reason',
+        'is_friendly': False
+    })
     session.commit()
 
     results = session.query(KOS).all()

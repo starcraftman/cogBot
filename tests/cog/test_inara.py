@@ -1,6 +1,7 @@
 """
 Tests for cog.inara
 """
+import asyncio
 import os
 
 import aiomock
@@ -14,10 +15,22 @@ import pytest
 import cog.inara
 import cog.util
 
-from tests.conftest import Interaction, Message, fake_msg_gears, fake_msg_newuser
+from tests.conftest import Interaction, fake_msg_gears, fake_msg_newuser
 
 REASON_INARA = 'Prevent temp inara ban due flooding. To enable, ensure os.environ ALL_TESTS=True'
 INARA_TEST = pytest.mark.skipif(not os.environ.get('ALL_TESTS'), reason=REASON_INARA)
+
+
+def mock_inter(values):
+    inter = aiomock.AIOMock(values=values, sent=[])
+    inter.component.label = inter.values[0]
+    inter.sent = []
+
+    async def send_(resp):
+        inter.sent += [resp]
+    inter.send = send_
+
+    return inter
 
 
 def test_inara_api_input():
@@ -36,15 +49,52 @@ def test_inara_api_input():
     assert actual["header"]["APIkey"].startswith("3")
 
 
-def mock_inter(values):
-    inter = aiomock.AIOMock(values=values, sent=[])
-    inter.component.label = inter.values[0]
+@pytest.mark.asyncio
+async def test_rate_limiter_increment(f_bot):
+    msg = fake_msg_gears("!fort")
+    rate_limit = cog.inara.RateLimiter(max_rate=12, resume_rate=9)
 
-    async def send_(resp):
-        inter.sent += [resp]
-    inter.send = send_
+    await rate_limit.increment(f_bot, msg.channel)
+    assert rate_limit.rate == 1
 
-    return inter
+
+@pytest.mark.asyncio
+async def test_rate_limiter_increment_wait(f_bot):
+    msg = fake_msg_gears("!fort")
+    rate_limit = cog.inara.RateLimiter(max_rate=2, resume_rate=1)
+
+    await rate_limit.increment(f_bot, msg.channel)
+    assert rate_limit.rate == 1
+    asyncio.ensure_future(rate_limit.increment(f_bot, msg.channel))
+    await asyncio.sleep(1)
+    assert rate_limit.rate == 2
+
+
+@pytest.mark.asyncio
+async def test_rate_limiter_decrement(f_bot):
+    msg = fake_msg_gears("!fort")
+    rate_limit = cog.inara.RateLimiter(max_rate=12, resume_rate=9)
+    await rate_limit.increment(f_bot, msg.channel)
+    assert rate_limit.rate == 1
+
+    await rate_limit.decrement(delay=1)
+    assert rate_limit.rate == 0
+
+
+@pytest.mark.asyncio
+async def test_rate_limiter_decrement_wait(f_bot):
+    rate_limit = cog.inara.RateLimiter(max_rate=2, resume_rate=1)
+    msg = fake_msg_gears("!fort")
+
+    async def run_test():
+        await rate_limit.increment(f_bot, msg.channel)
+        await rate_limit.decrement(delay=2)
+
+    await asyncio.gather(
+        run_test(),
+        run_test(),
+    )
+    assert rate_limit.rate == 0
 
 
 @pytest.mark.asyncio
@@ -60,6 +110,66 @@ async def test_inara_api_key_unset(f_bot):
         assert "!whois is currently disabled." in str(f_bot.send_message.call_args)
     finally:
         cog.inara.HEADER_PROTO = old_key
+
+
+@INARA_TEST
+@pytest.mark.asyncio
+async def test_search_inara_and_kos_match_exact(f_bot):
+    api = cog.inara.InaraApi()
+    cog.util.BOT = f_bot
+    f_bot.wait_for.async_side_effect = [mock_inter([cog.inara.BUT_CANCEL])]
+
+    msg = fake_msg_gears('!whois gearsandcogs')
+    result = await api.search_inara_and_kos('gearsandcogs', msg)
+
+    expect = {
+        'add': False,
+        'cmdr': 'GearsandCogs',
+        'is_friendly': False,
+        'reason': 'unknown',
+        'squad': 'Federal Republic Command - Hudson Powerplay'
+    }
+    assert result == expect
+
+
+@INARA_TEST
+@pytest.mark.asyncio
+async def test_search_inara_and_kos_match_select(f_bot):
+    api = cog.inara.InaraApi()
+    cog.util.BOT = f_bot
+    f_bot.wait_for.async_side_effect = [mock_inter(['Gearsprud']), mock_inter([cog.inara.BUT_FRIENDLY])]
+
+    msg = fake_msg_gears('!whois gearsandcogs')
+    result = await api.search_inara_and_kos('gears', msg)
+
+    expect = {
+        'add': True,
+        'cmdr': 'Gearsprud',
+        'is_friendly': True,
+        'reason': 'Manual report after a !whois in Channel: live_hudson by cmdr Member: User1',
+        'squad': 'unknown'
+    }
+    assert result == expect
+
+
+@INARA_TEST
+@pytest.mark.asyncio
+async def test_search_inara_and_kos_no_match(f_bot):
+    api = cog.inara.InaraApi()
+    cog.util.BOT = f_bot
+    f_bot.wait_for.async_side_effect = [mock_inter([cog.inara.BUT_HOSTILE])]
+
+    msg = fake_msg_gears('!whois gearsandcogs')
+    result = await api.search_inara_and_kos('notInInaraForSure', msg)
+
+    expect = {
+        'add': True,
+        'cmdr': 'notInInaraForSure',
+        'is_friendly': False,
+        'reason': 'Manual report after a !whois in Channel: live_hudson by cmdr Member: User1',
+        'squad': 'unknown'
+    }
+    assert result == expect
 
 
 @INARA_TEST
@@ -92,51 +202,6 @@ async def test_reply_with_api_result(f_bot):
 
     # TODO: Very lazy check :/
     assert 'Should the CMDR GearsandCogs be added as friendly or hostile?' in str(f_bot.send_message.call_args)
-
-
-@pytest.mark.asyncio
-async def test_friendly_detector_already_in_kos(f_bot):
-    api = cog.inara.InaraApi()
-    f_msg = fake_msg_gears('!whois Prozer')
-    f_bot.wait_for.async_return_value = True, None
-    is_friendly_returned, squad_returned = await api.friendly_detector(None, False, ["test embed"], f_msg)
-
-    assert is_friendly_returned is None and squad_returned is None
-
-
-@pytest.mark.asyncio
-async def test_friendly_detector_canceled(f_bot):
-    api = cog.inara.InaraApi()
-    f_msg = fake_msg_gears('!whois Prozer')
-    f_bot.wait_for.async_return_value = mock_inter([cog.inara.BUT_CANCEL])
-    cmdr = {"name": "Prozer", "allegiance": "Federation"}
-    is_friendly_returned, squad_returned = await api.friendly_detector(cmdr, False, [], f_msg)
-
-    assert is_friendly_returned is None and squad_returned is None
-
-
-@pytest.mark.asyncio
-async def test_friendly_detector_friendly_no_squad(f_bot):
-    api = cog.inara.InaraApi()
-    f_msg = fake_msg_gears('!whois Prozer')
-    f_bot.wait_for.async_return_value = mock_inter([cog.inara.BUT_FRIENDLY])
-    cmdr = {"name": "Prozer", "allegiance": "Federation"}
-    is_friendly_returned, squad_returned = await api.friendly_detector(cmdr, False, [], f_msg)
-
-    assert is_friendly_returned
-    assert squad_returned == "Unknown"
-
-
-@pytest.mark.asyncio
-async def test_friendly_detector_hostile_with_squad(f_bot):
-    api = cog.inara.InaraApi()
-    f_bot.wait_for.async_return_value = mock_inter([cog.inara.BUT_HOSTILE])
-    f_msg = fake_msg_gears('!whois Akeno')
-    cmdr = {"name": "Akeno", "allegiance": "Empire", "squad": "Test"}
-    is_friendly_returned, squad_returned = await api.friendly_detector(cmdr, True, [], f_msg)
-
-    assert not is_friendly_returned
-    assert squad_returned == "Test"
 
 
 @INARA_TEST
@@ -195,20 +260,20 @@ async def test_inara_squad_details(f_bot):
     assert result == expect
 
 
-def test_check_inter_orig_user_or_admin(f_dusers, f_admins):
+def test_check_interaction_response(f_dusers, f_admins):
     message = fake_msg_gears('hello')
     message2 = fake_msg_newuser('goodbye')
     inter = Interaction('inter1', user=message2.author, message=message2)
 
     # Same everything
-    assert cog.inara.check_inter_orig_user_or_admin(message2.author, message2, inter)
+    assert cog.inara.check_interaction_response(message2.author, message2, inter)
 
     # Different messages, always reject
-    assert not cog.inara.check_inter_orig_user_or_admin(message.author, message, inter)
+    assert not cog.inara.check_interaction_response(message.author, message, inter)
 
     # Same message, author is admin
     inter = Interaction('inter1', user=message.author, message=message2)
-    assert cog.inara.check_inter_orig_user_or_admin(message2.author, message2, inter)
+    assert cog.inara.check_interaction_response(message2.author, message2, inter)
 
 
 def test_extract_inara_systems():
@@ -258,8 +323,22 @@ Alone <:Small-1:3210582> Any Station
     assert cog.inara.extract_inara_systems(msg) == expect
 
 
+def test_generate_bgs_embed():
+    systems = [('System1', 'System1'), ('System2', 'System2')]
+    factions = [('Faction1', 'Faction1')]
+    embed = cog.inara.generate_bgs_embed(systems, factions)
+
+    field1 = embed.fields[0]
+    assert field1.value == "[System1](System1)"
+
+
 def test_kos_lookup_cmdr_embeds(session, f_kos):
     results = cog.inara.kos_lookup_cmdr_embeds(session, "good_guy")
     assert len(results) == 2
     assert isinstance(results[0], discord.Embed)
     assert results[0].fields[0].value == 'good_guy'
+
+
+def test_wrap_json_loads():
+    with pytest.raises(cog.exc.RemoteError):
+        cog.inara.wrap_json_loads(None)

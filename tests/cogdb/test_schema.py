@@ -638,11 +638,11 @@ def test_hold__str__(f_dusers, f_um_testbed):
 
 
 def test_kos__repr__(f_kos):
-    assert repr(f_kos[0]) == "KOS(id=1, cmdr='good_guy', faction='Hudson', reason='Very good', is_friendly=True)"
+    assert repr(f_kos[0]) == "KOS(id=1, cmdr='good_guy', squad='Hudson', reason='Very good', is_friendly=True)"
 
 
 def test_kos__str__(f_kos):
-    assert str(f_kos[0]) == "KOS(id=1, cmdr='good_guy', faction='Hudson', reason='Very good', is_friendly=True)"
+    assert str(f_kos[0]) == "KOS(id=1, cmdr='good_guy', squad='Hudson', reason='Very good', is_friendly=True)"
 
 
 def test_kos__eq__(f_kos):

@@ -743,7 +743,7 @@ class KOSScanner(FortScanner):
 
         for cnt, row in enumerate(self.cells_row_major[1:], 1):
             is_friendly = row[2][0] in ('f', 'F')
-            found += [cogdb.schema.KOS(id=cnt, cmdr=row[0], faction=row[1], reason=row[3],
+            found += [cogdb.schema.KOS(id=cnt, cmdr=row[0], squad=row[1], reason=row[3],
                                        is_friendly=is_friendly)]
 
         return found
@@ -752,21 +752,17 @@ class KOSScanner(FortScanner):
         """ Return the next free kos row. """
         return len(self.cells_col_major[0]) + 1
 
-    def add_report_dict(self, cmdr, faction, reason, is_friendly=False):
+    def add_report_dict(self, kos_info):
         """
         Create an update system dict. See AsyncGSheet.batch_update
 
         Args:
-            cmdr: The cmdr name.
-            faction: The faction of the cmdr.
-            reason: The reason for adding this user
-
-        Kwargs:
-            is_friendly: If the cmdr is friendly or not.
+            kos_info: A kos_info object, see cog.inara
 
         Returns: A list of update dicts to pass to batch_update.
         """
-        values = [cmdr, faction, "FRIENDLY" if is_friendly else "KILL", reason]
+        values = [kos_info['cmdr'], kos_info['squad'],
+                  "FRIENDLY" if kos_info['is_friendly'] else "KILL", kos_info['reason']]
         cell_range = 'A{row}:D{row}'.format(row=self.next_free_row())
         return [{'range': cell_range, 'values': [values]}]
 
