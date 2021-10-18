@@ -25,8 +25,8 @@ function onChange(e) {
     email = ""
   }
 
-  // Ignore all changes by the actual bot account
-  if (email.search("federalelitebot@cogent") === -1) {
+  // Ignore all changes by the actual bot account, bot account doesn't report email atm
+  if (email != "") {
     UrlFetchApp.fetch('starcraftman.com/post', options);
   }
 
