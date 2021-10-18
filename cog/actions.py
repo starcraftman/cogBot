@@ -33,6 +33,7 @@ import cog.inara
 import cog.tbl
 import cog.util
 from cogdb.schema import FortUser, UMUser, EUMSheet
+from cogdb.scanners import get_scanner
 
 
 async def bot_shutdown(bot):  # pragma: no cover
@@ -408,6 +409,7 @@ class Admin(Action):
             InternalException - No parseable numeric component found in tab.
             RemoteError - The sheet/tab combination could not be resolved. Tab needs creating.
         """
+        scanners = cogdb.scanners.SCANNERS
         # Zero trackers for new ocr data
         cogdb.query.post_cycle_db_cleanup(self.session)
         self.bot.deny_commands = True
@@ -420,13 +422,13 @@ class Admin(Action):
                 scanner_configs[name]['page'] = new_page
 
                 try:
-                    await SCANNERS[name].asheet.change_worksheet(new_page)
+                    await scanners[name].asheet.change_worksheet(new_page)
                 except gspread.exceptions.WorksheetNotFound as exc:
                     msg = f"Missing **{new_page}** worksheet on {name}. Please fix and rerun cycle. No change made."
                     raise cog.exc.InvalidCommandArgs(msg) from exc
 
                 self.bot.sched.schedule(name, delay=1)
-                lines += [[await SCANNERS[name].asheet.title(), new_page]]
+                lines += [[await scanners[name].asheet.title(), new_page]]
 
             await cog.util.CONF.aupdate("scanners", value=scanner_configs)
 
@@ -2136,28 +2138,6 @@ def filter_top_dusers(guild, dusers, exclude_roles, limit=5):
     return top_recruits, top_members
 
 
-def init_scanner(name):
-    """
-    Initialize a scanner based on configuration.
-    """
-    print("Intializing scanner -> ", name)
-    logging.getLogger(__name__).info("Initializing the %s scanner.", name)
-    sheet = cog.util.CONF.scanners.get(name)
-    cls = getattr(cogdb.scanners, sheet["cls"])
-    scanner = cls(sheet)
-    SCANNERS[name] = scanner
-
-
-def get_scanner(name):
-    """
-    Store scanners in this module for shared use.
-    """
-    try:
-        return SCANNERS[name]
-    except KeyError as exc:
-        raise cog.exc.InvalidCommandArgs("The scanners are not ready. Please try again in 15 seconds.") from exc
-
-
 async def monitor_carrier_events(client, *, next_summary, last_timestamp=None, delay=60):  # pragma: no cover
     """
     Simple async task that just checks for new events every delay.
@@ -2202,46 +2182,6 @@ async def monitor_carrier_events(client, *, next_summary, last_timestamp=None, d
             last_timestamp=last_timestamp, delay=delay
         )
     )
-
-
-async def monitor_ocr_sheet(client, *, delay=300, repeat=True):  # pragma: no cover
-    """
-    Simple async task that just checks for changes to the OCR sheet.
-    This task will schedule itself infinitely on a delay.
-
-    Args:
-        client: The bot client itself.
-
-    Kwargs:
-        delay: The seconds between checking the sheet. Default 30 minutes.
-        repeat: If true, will schedule itself infinitely.
-    """
-    if delay >= 1:
-        await asyncio.sleep(delay)
-
-    # Update database by triggering manual refresh
-    ocr_scanner = get_scanner('hudson_ocr')
-    await ocr_scanner.update_cells()
-    with cfut.ProcessPoolExecutor(max_workers=1) as pool:
-        await client.loop.run_in_executor(
-            pool, ocr_scanner.scheduler_run,
-        )
-
-    # Data refreshed, analyse and update
-    with cogdb.session_scope(cogdb.Session) as session:
-        cell_updates = cogdb.query.ocr_update_fort_status(session)
-        if cell_updates:
-            await get_scanner('hudson_cattle').send_batch(cell_updates)
-            logging.getLogger(__name__).info("Sent update to sheet.")
-            logging.getLogger(__name__).info(str(cell_updates))
-
-    # A onetime flag to trigger for testing
-    if repeat:
-        asyncio.ensure_future(
-            monitor_ocr_sheet(
-                client, delay=delay, repeat=repeat
-            )
-        )
 
 
 async def monitor_snipe_merits(client, *, repeat=True):  # pragma: no cover
@@ -2317,7 +2257,6 @@ async def report_to_leadership(client, msgs):  # pragma: no cover
             await client.send_message(chan, msg)
 
 
-SCANNERS = {}
 SCOUT_RND = {  # TODO: Extract to data config or tables.
     1: [
         "Epsilon Scorpii",

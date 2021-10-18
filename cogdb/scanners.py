@@ -4,6 +4,7 @@ All sheet scanners are stored here for now
 Sheet scanners make heavy use of cog.sheets.AsyncGSheet
 """
 import asyncio
+import concurrent.futures as cfut
 import datetime
 import logging
 import re
@@ -20,6 +21,7 @@ from cogdb.schema import (FortSystem, FortPrep, FortDrop, FortUser,
 
 
 SNIPE_FIRST_ID = 10001
+SCANNERS = {}
 
 
 class FortScanner():
@@ -1057,3 +1059,39 @@ async def init_scanners():
     await asyncio.gather(*init_coros)
 
     return scanners
+
+
+async def handle_ocr_sheet_update(client):  # pragma: no cover
+    """
+    This task is to be run only when the OCR sheet has been updated.
+    Update the OCR information in the db and then take any actions
+    required with changes.
+
+    Args:
+        client: The bot client itself.
+    """
+    # Update database by triggering manual refresh
+    ocr_scanner = get_scanner('hudson_ocr')
+    await ocr_scanner.update_cells()
+    with cfut.ProcessPoolExecutor(max_workers=1) as pool:
+        await client.loop.run_in_executor(
+            pool, ocr_scanner.scheduler_run,
+        )
+
+    # Data refreshed, analyse and update
+    with cogdb.session_scope(cogdb.Session) as session:
+        cell_updates = cogdb.query.ocr_update_fort_status(session)
+        if cell_updates:
+            await get_scanner('hudson_cattle').send_batch(cell_updates)
+            logging.getLogger(__name__).info("Sent update to sheet.")
+            logging.getLogger(__name__).info(str(cell_updates))
+
+
+def get_scanner(name):
+    """
+    Store scanners in this module for shared use.
+    """
+    try:
+        return SCANNERS[name]
+    except KeyError as exc:
+        raise cog.exc.InvalidCommandArgs("The scanners are not ready. Please try again in 15 seconds.") from exc

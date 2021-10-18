@@ -175,10 +175,10 @@ class CogBot(discord.Client):
         self.emoji.update(self.guilds)
 
         # This block is effectively a one time setup.
-        if not cog.actions.SCANNERS:
+        if not cogdb.scanners.SCANNERS:
             async def scanner_startup_task():
                 scanners = await cogdb.scanners.init_scanners()
-                cog.actions.SCANNERS = scanners
+                cogdb.scanners.SCANNERS = scanners
 
                 self.sched.register('hudson_cattle', scanners['hudson_cattle'],
                                     ('Drop', 'Fort', 'User'))
@@ -205,7 +205,6 @@ class CogBot(discord.Client):
                 simple_heartbeat(),
                 cog.util.CONF.monitor(),
                 cog.actions.monitor_carrier_events(self, next_summary=next_summary, delay=60),
-                cog.actions.monitor_ocr_sheet(self),
                 cog.actions.monitor_snipe_merits(self),
                 cogdb.eddb.monitor_eddb_caches(),
                 cogdb.monitor_pools(),

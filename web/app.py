@@ -78,9 +78,8 @@ async def post(request):
         log = logging.getLogger('posts')
         log.info('%s %s', str(request), data)
 
-        RECV.append(data)
-        if len(RECV) > 20:
-            RECV.remove(RECV[0])
+        RECV.insert(0, data)
+        RECV = RECT[:20]
 
         try:
             log.info('Publishing for scanner %s', data['scanner'])

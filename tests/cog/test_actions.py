@@ -34,7 +34,7 @@ pytestmark = pytest.mark.usefixtures("patch_scanners")
 @pytest.fixture
 def patch_scanners():
     """ Patch the scanners. """
-    old_scanners = cog.actions.SCANNERS
+    old_scanners = cogdb.scanners.SCANNERS
     scanner = aiomock.Mock(user_row=5)
 
     async def send_batch_(payloads, *args, input_opt=''):
@@ -58,7 +58,7 @@ def patch_scanners():
     scanner.get_batch = get_batch_
     scanner.find_dupe = find_dupe_
     scanner.update_cells = update_cells_
-    cog.actions.SCANNERS = {
+    cogdb.scanners.SCANNERS = {
         'hudson_carriers': scanner,
         'hudson_cattle': scanner,
         'hudson_kos': scanner,
@@ -69,7 +69,7 @@ def patch_scanners():
 
     yield scanner
 
-    cog.actions.SCANNERS = old_scanners
+    cogdb.scanners.SCANNERS = old_scanners
 
 
 def action_map(fake_message, fake_bot):
@@ -264,7 +264,7 @@ async def test_cmd_admin_removeum_fail(f_admins, f_bot, db_cleanup):
 @pytest.mark.asyncio
 async def test_cmd_admin_removeum(f_bot, f_dusers, f_admins, f_um_testbed,
                                   f_umformula_values, patch_scanners, db_cleanup):
-    fake_um = cog.actions.SCANNERS['hudson_undermine']
+    fake_um = cogdb.scanners.SCANNERS['hudson_undermine']
     fake_um._values = [f_umformula_values[4:]]
 
     msg = fake_msg_gears("!admin removeum Pequen")
@@ -301,7 +301,7 @@ async def test_cmd_admin_addum_fail(f_admins, f_bot, db_cleanup):
 
 @pytest.mark.asyncio
 async def test_cmd_admin_addum(f_admins, f_bot, f_asheet_umscanner, patch_scanners, db_cleanup):
-    fake_um = cog.actions.SCANNERS['hudson_undermine']
+    fake_um = cogdb.scanners.SCANNERS['hudson_undermine']
     fake_cols = await f_asheet_umscanner.whole_sheet()
     fake_cols = fake_cols[:13]
     fake_cols = [[columns[i] for columns in fake_cols] for i in range(17)]
@@ -555,7 +555,7 @@ async def test_cmd_fort_set(session, f_bot, f_dusers, f_fort_testbed):
     expect = [
         {'range': 'H6:H7', 'values': [[7000], [222]]},
     ]
-    assert cog.actions.SCANNERS['hudson_cattle'].payloads == expect
+    assert cogdb.scanners.SCANNERS['hudson_cattle'].payloads == expect
 
 
 @pytest.mark.asyncio
@@ -680,7 +680,7 @@ async def test_cmd_drop_simple(session, f_bot, f_dusers, f_fort_testbed):
         {'range': 'H6:H7', 'values': [[6000], [0]]},
         {'range': 'H15:H15', 'values': [[978]]},
     ]
-    assert cog.actions.SCANNERS['hudson_cattle'].payloads == expect
+    assert cogdb.scanners.SCANNERS['hudson_cattle'].payloads == expect
 
 
 @pytest.mark.asyncio
@@ -702,7 +702,7 @@ async def test_cmd_drop_negative(session, f_bot, f_dusers, f_fort_testbed):
         {'range': 'H6:H7', 'values': [[5322], [0]]},
         {'range': 'H15:H15', 'values': [[300]]},
     ]
-    assert cog.actions.SCANNERS['hudson_cattle'].payloads == expect
+    assert cogdb.scanners.SCANNERS['hudson_cattle'].payloads == expect
 
 
 @pytest.mark.asyncio
@@ -728,7 +728,7 @@ async def test_cmd_drop_newuser(session, f_bot, f_dusers, f_fort_testbed):
         {'range': 'H6:H7', 'values': [[5922], [0]]},
         {'range': 'H18:H18', 'values': [[500]]},
     ]
-    assert cog.actions.SCANNERS['hudson_cattle'].payloads == expect
+    assert cogdb.scanners.SCANNERS['hudson_cattle'].payloads == expect
 
 
 @pytest.mark.asyncio
@@ -750,7 +750,7 @@ async def test_cmd_drop_set(session, f_bot, f_dusers, f_fort_testbed):
         {'range': 'H6:H7', 'values': [[6500], [0]]},
         {'range': 'H15:H15', 'values': [[978]]},
     ]
-    assert cog.actions.SCANNERS['hudson_cattle'].payloads == expect
+    assert cogdb.scanners.SCANNERS['hudson_cattle'].payloads == expect
 
 
 @pytest.mark.asyncio
@@ -779,7 +779,7 @@ Bonus for highest contribution:
         {'range': 'K6:K7', 'values': [[7400], [0]]},
         {'range': 'K15:K15', 'values': [[400]]},
     ]
-    assert cog.actions.SCANNERS['hudson_cattle'].payloads == expect
+    assert cogdb.scanners.SCANNERS['hudson_cattle'].payloads == expect
 
 
 @pytest.mark.asyncio
@@ -807,7 +807,7 @@ Power          |```"""
     expect = [
         {'range': 'K18:L18', 'values': [[2000, 0]]},
     ]
-    assert cog.actions.SCANNERS['hudson_undermine'].payloads == expect
+    assert cogdb.scanners.SCANNERS['hudson_undermine'].payloads == expect
 
 
 @pytest.mark.asyncio
@@ -837,7 +837,7 @@ Power          |```"""
         {'range': 'A20:B20', 'values': [['test cry', 'test name']]},
         {'range': 'K20:L20', 'values': [[1000, 0]]},
     ]
-    assert cog.actions.SCANNERS['hudson_undermine'].payloads == expect
+    assert cogdb.scanners.SCANNERS['hudson_undermine'].payloads == expect
 
 
 @pytest.mark.asyncio
@@ -868,7 +868,7 @@ Burr       | 0    | 8000```"""
         {'range': 'F18:G18', 'values': [[0, 1950]]},
         {'range': 'H18:I18', 'values': [[0, 8000]]},
     ]
-    assert cog.actions.SCANNERS['hudson_undermine'].payloads == expect
+    assert cogdb.scanners.SCANNERS['hudson_undermine'].payloads == expect
 
 
 @pytest.mark.asyncio
@@ -898,7 +898,7 @@ Power          |```
     expect = [
         {'range': 'K18:L18', 'values': [[10000, 0]]},
     ]
-    assert cog.actions.SCANNERS['hudson_undermine'].payloads == expect
+    assert cogdb.scanners.SCANNERS['hudson_undermine'].payloads == expect
 
 
 @pytest.mark.asyncio
@@ -921,7 +921,7 @@ async def test_cmd_hold_died(session, f_bot, f_dusers, f_um_testbed):
         {'range': 'F18:G18', 'values': [[0, 1550]]},
         {'range': 'H18:I18', 'values': [[0, 5800]]},
     ]
-    assert cog.actions.SCANNERS['hudson_undermine'].payloads == expect
+    assert cogdb.scanners.SCANNERS['hudson_undermine'].payloads == expect
 
 
 @pytest.mark.asyncio
@@ -956,7 +956,7 @@ Burr       | 2200 | 5800```"""
     expect = [
         {'range': 'F18:G18', 'values': [[0, 1950]]}
     ]
-    assert cog.actions.SCANNERS['hudson_undermine'].payloads == expect
+    assert cogdb.scanners.SCANNERS['hudson_undermine'].payloads == expect
 
 
 @pytest.mark.asyncio
@@ -1426,7 +1426,7 @@ Power              |```"""
     expect = [
         {'range': 'F10:F13', 'values': [[12000], [0.4], ['Hold Merits'], [600]]}
     ]
-    assert cog.actions.SCANNERS['hudson_undermine'].payloads == expect
+    assert cogdb.scanners.SCANNERS['hudson_undermine'].payloads == expect
 
 
 @pytest.mark.asyncio
@@ -1531,7 +1531,7 @@ Burr       | 2200 | 5800```"""
         {'range': 'A15:B15', 'values': [['User1 are forting late!', 'NotUser1']]},
         {'range': 'A18:B18', 'values': [['We go pew pew!', 'NotUser1']]}
     ]
-    assert cog.actions.SCANNERS['hudson_cattle'].payloads == expect
+    assert cogdb.scanners.SCANNERS['hudson_cattle'].payloads == expect
 
 
 @pytest.mark.asyncio
@@ -1572,7 +1572,7 @@ Burr       | 2200 | 5800```"""
         {'range': 'A15:B15', 'values': [['A new cry', 'User1']]},
         {'range': 'A18:B18', 'values': [['A new cry', 'User1']]}
     ]
-    assert cog.actions.SCANNERS['hudson_cattle'].payloads == expect
+    assert cogdb.scanners.SCANNERS['hudson_cattle'].payloads == expect
 
 
 @pytest.mark.asyncio

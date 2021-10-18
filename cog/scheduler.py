@@ -18,6 +18,7 @@ import aiozmq
 import aiozmq.rpc
 
 import cog.util
+import cogdb.scanners
 
 ADDR = 'tcp://127.0.0.1:{}'.format(cog.util.CONF.ports.zmq)
 POOL = cfut.ProcessPoolExecutor(max_workers=os.cpu_count())
@@ -139,8 +140,12 @@ class Scheduler(aiozmq.rpc.AttrHandler):
         self.count = (self.count + 1) % 1000
         logging.getLogger(__name__).info(
             'POST %d received: %s %s', self.count, scanner, timestamp)
-        self.schedule(scanner)
-        print('SCHEDULED: ', scanner, timestamp)
+        if scanner == 'hudson_ocr':
+            print("OCR")
+            asyncio.ensure_future(cogdb.scanners.handle_ocr_sheet_update(cog.util.BOT))
+        else:
+            self.schedule(scanner)
+            print('SCHEDULED: ', scanner, timestamp)
 
     def close(self):  # pragma: no cover
         """ Properly close pubsub connection on termination. """
