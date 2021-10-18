@@ -54,8 +54,5 @@ def test_parse_vote_tuple():
     with pytest.raises(cog.parse.ThrowArggumentParser):
         cog.parse.parse_vote_tuple(['cons', 'wrong'])
 
-    with pytest.raises(cog.parse.ThrowArggumentParser):
-        cog.parse.parse_vote_tuple(['cons', '-5'])
-
     assert cog.parse.parse_vote_tuple(['cons', '5']) == (EVoteType.cons, 5)
     assert cog.parse.parse_vote_tuple(['1', 'prep']) == (EVoteType.prep, 1)

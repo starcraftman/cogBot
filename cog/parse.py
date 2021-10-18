@@ -816,8 +816,6 @@ def parse_vote_tuple(vote_tuple):
 
         vote_type = EVoteType.cons if vote_type == 'cons' else EVoteType.prep
         amount = int(amount)
-        if amount < 1:
-            raise ValueError("Vote amount must be greater than 0.")
     except ValueError as exc:
         raise ThrowArggumentParser from exc
 
