@@ -9,7 +9,7 @@ import pytest
 import cog.exc
 import cogdb
 from cogdb.schema import (DiscordUser, FortSystem, FortUser, FortOrder,
-                          UMUser, UMHold, EUMSheet, AdminPerm, ChannelPerm, RolePerm,
+                          UMUser, UMSystem, UMHold, EUMSheet, AdminPerm, ChannelPerm, RolePerm,
                           KOS, TrackSystem, TrackSystemCached, TrackByID,
                           OCRTracker, OCRTrigger, OCRPrep, Global, Vote, EVoteType)
 import cogdb.query
@@ -335,6 +335,25 @@ def test_um_redeem_merits(session, f_dusers, f_um_testbed):
     assert user.merit_summary() == 'Holding 2600, Redeemed 11350'
     cogdb.query.um_redeem_merits(session, user)
     assert user.merit_summary() == 'Holding 0, Redeemed 13950'
+
+
+def test_um_add_system_targets(session, f_dusers, f_um_testbed):
+    um_systems = [{
+        "sys_name": "Ross 860",
+        "power": "Edmund Mahon",
+        "security": "Low",
+        "trigger": 15000,
+        "priority": "Normal",
+    }]
+
+    cogdb.query.um_add_system_targets(session, um_systems)
+    session.commit()
+    result = session.query(UMSystem).\
+        filter(UMSystem.name == um_systems[0]['sys_name']).\
+        one()
+
+    assert result
+    assert result.close_control == "Vega"
 
 
 def test_um_add_hold(session, f_dusers, f_um_testbed):

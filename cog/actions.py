@@ -483,16 +483,22 @@ class Admin(Action):
                             ["UM Trigger {}%".format(reinforcement_value), reinforced_trigger],
                             ["Priority", priority]
                         ])
-                        values.append({"sys_name": system.name, "power": power[0], "trigger": reinforced_trigger,
-                                      "priority": priority})
+                        values.append({
+                            "power": power[0],
+                            "priority": priority,
+                            "sys_name": system.name,
+                            "security": system.security.text,
+                            "trigger": reinforced_trigger,
+                        })
                     else:
                         found_list.append(system.name)
 
         if values:
+            cogdb.query.um_add_system_targets(self.session, values)
             um_sheet = await um_scanner.get_batch(['D1:13'], 'COLUMNS', 'FORMULA')
             data = cogdb.scanners.UMScanner.slide_templates(um_sheet, values)
             await um_scanner.send_batch(data, input_opt='USER_ENTERED')
-            self.bot.sched.schedule("hudson_undermine", 1)
+
             msgs = cog.util.merge_msgs_to_least(msgs)
             for msg in cog.util.merge_msgs_to_least(msgs):
                 await self.bot.send_message(self.msg.channel, msg)
@@ -1263,11 +1269,11 @@ class Near(Action):
             None,
             functools.partial(
                 cogdb.eddb.get_nearest_controls, eddb_session,
-                centre_name=centre.name, power='%' + self.args.power
+                centre_name=centre.name, power='%' + self.args.power, limit=10
             )
         )
 
-        lines = [['System', 'Distance']] + [[x.name, "{:.2f}".format(x.dist_to(centre))] for x in systems[:10]]
+        lines = [['System', 'Distance']] + [[x.name, "{:.2f}".format(x.dist_to(centre))] for x in systems]
         return "__Closest 10 Controls__\n\n" + \
             cog.tbl.format_table(lines, header=True)[0]
 

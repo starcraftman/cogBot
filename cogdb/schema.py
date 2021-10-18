@@ -657,9 +657,9 @@ class UMSystem(Base):
     security = sqla.Column(sqla.String(LEN_NAME), default='')
     notes = sqla.Column(sqla.String(LEN_NAME), default='')
     close_control = sqla.Column(sqla.String(LEN_NAME), default='')
-    priority = sqla.Column(sqla.String(LEN_NAME))
-    progress_us = sqla.Column(sqla.Integer)
-    progress_them = sqla.Column(sqla.Float)
+    priority = sqla.Column(sqla.String(LEN_NAME), default="Normal")
+    progress_us = sqla.Column(sqla.Integer, default=0)
+    progress_them = sqla.Column(sqla.Float, default=0.0)
     map_offset = sqla.Column(sqla.Integer, default=0)
     exp_trigger = sqla.Column(sqla.Integer, default=0)
 

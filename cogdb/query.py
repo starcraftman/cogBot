@@ -16,7 +16,7 @@ import cog.util
 import cogdb.eddb
 from cog.util import substr_match
 from cogdb.schema import (DiscordUser, FortSystem, FortPrep, FortDrop, FortUser, FortOrder,
-                          EFortType, UMSystem, UMUser, UMHold, EUMSheet, KOS,
+                          EFortType, UMSystem, UMUser, UMHold, EUMSheet, EUMType, KOS,
                           AdminPerm, ChannelPerm, RolePerm,
                           TrackSystem, TrackSystemCached, TrackByID, OCRTracker, OCRTrigger,
                           OCRPrep, Global, Vote)
@@ -566,6 +566,56 @@ def um_redeem_systems(session, user, systems, *, sheet_src=EUMSheet.main):
 
     session.commit()
     return (holds, total)
+
+
+def um_add_system_targets(session, um_systems):
+    """
+    Given a set of um targets, add them to the database.
+
+    Args:
+        session: A session onto the db.
+        um_systems: A list of dictionary objects of form:
+            {
+                "sys_name": system.name,
+                "power": power[0],
+                "security": security,
+                "trigger": reinforced_trigger,
+                "priority": priority,
+            }
+    """
+    last = session.query(UMSystem).\
+        filter(UMSystem.sheet_src == EUMSheet.main).\
+        order_by(UMSystem.id.desc()).\
+        limit(1).\
+        all()
+
+    last_id = 1
+    last_col = cog.sheets.Column("D")
+    if last:
+        last_id = last[0].id
+        last_col = cog.sheets.Column(last[0].sheet_col)
+
+    systems = []
+    with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
+        for sys in um_systems:
+            nearest_controls = cogdb.eddb.get_nearest_controls(
+                eddb_session, centre_name=sys['sys_name'], limit=1
+            )
+            last_id += 1
+            # Each new system uses 2 columns past the last
+            systems.append(UMSystem(
+                id=last_id,
+                sheet_src=EUMSheet.main,
+                type=EUMType.control,
+                name=sys['sys_name'],
+                sheet_col=last_col.offset(2),
+                close_control=nearest_controls[0].name,
+                security=sys.pop('security'),
+                goal=sys['trigger'],
+                notes=sys['power'],
+                priority=sys['priority'],
+            ))
+    session.add_all(systems)
 
 
 def um_add_hold(session, *, sheet_src=EUMSheet.main, **kwargs):

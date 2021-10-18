@@ -1772,7 +1772,7 @@ def find_route_closest_hq(session, systems):
     return find_route(session, start, systems)
 
 
-def get_nearest_controls(session, *, centre_name='sol', power='%hudson'):
+def get_nearest_controls(session, *, centre_name='sol', power='%hudson', limit=3):
     """
     Find nearest control systems of a particular power.
 
@@ -1782,16 +1782,19 @@ def get_nearest_controls(session, *, centre_name='sol', power='%hudson'):
     Kwargs:
         centre_name: The central system to find closest powers to.
         power: The power you are looking for.
+        limit: The number of nearest controls to return, default 3.
     """
     centre = session.query(System).filter(System.name == centre_name).one()
     results = session.query(SystemControlV.control_id, System).\
         distinct(SystemControlV.control_id).\
         filter(SystemControlV.power.ilike(power)).\
         join(System, System.id == SystemControlV.control_id).\
-        order_by(System.dist_to(centre)).\
-        all()
+        order_by(System.dist_to(centre))
 
-    return [x[1] for x in results]
+    if limit > 0:
+        results = results.limit(limit)
+
+    return [x[1] for x in results.all()]
 
 
 def get_controls_of_power(session, *, power='%hudson'):

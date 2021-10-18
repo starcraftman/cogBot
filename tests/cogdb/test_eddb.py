@@ -141,11 +141,11 @@ def test_find_best_route(eddb_session):
 
 
 def test_get_nearest_controls(eddb_session):
-    result = [x.name for x in cogdb.eddb.get_nearest_controls(eddb_session, power='%hudson')[0:3]]
+    result = [x.name for x in cogdb.eddb.get_nearest_controls(eddb_session, power='%hudson', limit=3)]
 
     assert result == ['Sol', 'Lung', 'Groombridge 1618']
 
-    result = [x.name for x in cogdb.eddb.get_nearest_controls(eddb_session, centre_name='cubeo', power='%hudson')[0:3]]
+    result = [x.name for x in cogdb.eddb.get_nearest_controls(eddb_session, centre_name='cubeo', power='%hudson', limit=3)]
 
     assert result == ['Caspatsuria', 'LTT 9472', 'Clayahu']
 
