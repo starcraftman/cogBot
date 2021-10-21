@@ -16,7 +16,7 @@ import cog.sheets
 import cog.util
 import cogdb
 from cogdb.schema import (FortSystem, FortPrep, FortDrop, FortUser,
-                          UMSystem, UMUser, UMHold, KOS, EUMSheet,
+                          UMSystem, UMUser, UMHold, KOS, EUMSheet, Consolidation,
                           kwargs_fort_system, kwargs_um_system)
 
 
@@ -895,6 +895,7 @@ class OCRScanner(FortScanner):
         globe = cogdb.query.get_current_global(session)
         try:
             globe.consolidation = int(self.cells_row_major[self.prep_consolidation_row][self.prep_col])
+            session.add(Consolidation(amount=globe.consolidation))
         except ValueError:
             pass
 

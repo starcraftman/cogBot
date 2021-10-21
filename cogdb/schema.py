@@ -1162,7 +1162,7 @@ class OCRTracker(Base):
     system = sqla.Column(sqla.String(LEN_NAME), index=True, nullable=False)
     fort = sqla.Column(sqla.Integer, default=0)
     um = sqla.Column(sqla.Integer, default=0)
-    updated_at = sqla.Column(sqla.DateTime(timezone=False), default=datetime.datetime.utcnow())  # All dates UTC
+    updated_at = sqla.Column(sqla.DateTime(timezone=False), default=datetime.datetime.utcnow)  # All dates UTC
 
     def __repr__(self):
         keys = ['id', 'system', 'fort', 'um', 'updated_at']
@@ -1240,7 +1240,7 @@ class OCRTrigger(Base):
     last_upkeep = sqla.Column(sqla.Integer, default=0)
     fort_trigger = sqla.Column(sqla.Integer, default=0)
     um_trigger = sqla.Column(sqla.Integer, default=0)
-    updated_at = sqla.Column(sqla.DateTime(timezone=False), default=datetime.datetime.utcnow())  # All dates UTC
+    updated_at = sqla.Column(sqla.DateTime(timezone=False), default=datetime.datetime.utcnow)  # All dates UTC
 
     def __repr__(self):
         keys = ['id', 'system', 'fort_trigger', 'um_trigger', 'base_income', 'last_upkeep', 'updated_at']
@@ -1324,7 +1324,7 @@ class OCRPrep(Base):
     id = sqla.Column(sqla.Integer, primary_key=True)
     system = sqla.Column(sqla.String(LEN_NAME), index=True, nullable=False)
     merits = sqla.Column(sqla.Integer, default=0)
-    updated_at = sqla.Column(sqla.DateTime(timezone=False), default=datetime.datetime.utcnow())  # All dates UTC
+    updated_at = sqla.Column(sqla.DateTime(timezone=False), default=datetime.datetime.utcnow)  # All dates UTC
 
     def __repr__(self):
         keys = ['id', 'system', 'merits', 'updated_at']
@@ -1393,7 +1393,7 @@ class Global(Base):
     show_almost_done = sqla.Column(sqla.Boolean, default=False)
     show_vote_goal = sqla.Column(sqla.Boolean, default=False)
     vote_goal = sqla.Column(sqla.Integer, default=0)
-    updated_at = sqla.Column(sqla.DateTime(timezone=False), default=datetime.datetime.utcnow())  # All dates UTC
+    updated_at = sqla.Column(sqla.DateTime(timezone=False), default=datetime.datetime.utcnow)  # All dates UTC
 
     def __repr__(self):
         keys = ['id', 'cycle', 'consolidation']
@@ -1489,7 +1489,7 @@ class Vote(Base):
     id = sqla.Column(sqla.BigInteger, primary_key=True)
     vote = sqla.Column(sqla.Enum(EVoteType), default=EVoteType.cons, primary_key=True)
     amount = sqla.Column(sqla.Integer, default=0)
-    updated_at = sqla.Column(sqla.DateTime, default=datetime.datetime.utcnow())  # All dates UTC
+    updated_at = sqla.Column(sqla.DateTime, default=datetime.datetime.utcnow)  # All dates UTC
 
     # Relationships
     discord_user = sqla.orm.relationship(
@@ -1538,6 +1538,43 @@ class Vote(Base):
     def validate_amount(self, key, value):
         try:
             if value < 0 or value > MAX_VOTE_VALUE:
+                raise cog.exc.ValidationFail("Bounds check failed for: {} with value {}".format(key, value))
+        except TypeError:
+            pass
+
+        return value
+
+
+class Consolidation(Base):
+    """
+    Track the consolidation vote changes over time.
+    """
+    __tablename__ = 'consolidation_tracker'
+
+    id = sqla.Column(sqla.BigInteger, primary_key=True)
+    amount = sqla.Column(sqla.Integer, default=0)
+    updated_at = sqla.Column(sqla.DateTime, default=datetime.datetime.utcnow)  # All dates UTC
+
+    def __repr__(self):
+        keys = ['id', 'amount', 'updated_at']
+        kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
+
+        return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
+
+    def __str__(self):
+        """ A pretty one line to give all information. """
+        return "Consolidation {amount}% at {date}.".format(amount=self.amount, date=self.updated_at)
+
+    def __eq__(self, other):
+        return isinstance(other, Consolidation) and hash(self) == hash(other)
+
+    def __hash__(self):
+        return hash("{}-{}".format(self.id, self.vote))
+
+    @sqla_orm.validates('amount')
+    def validate_amount(self, key, value):
+        try:
+            if value < 0 or value > 100:
                 raise cog.exc.ValidationFail("Bounds check failed for: {} with value {}".format(key, value))
         except TypeError:
             pass

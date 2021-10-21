@@ -2,6 +2,7 @@
 Module should handle logic related to querying/manipulating tables from a high level.
 """
 import copy
+import datetime
 import logging
 import os
 import tempfile
@@ -19,7 +20,7 @@ from cogdb.schema import (DiscordUser, FortSystem, FortPrep, FortDrop, FortUser,
                           EFortType, UMSystem, UMUser, UMHold, EUMSheet, EUMType, KOS,
                           AdminPerm, ChannelPerm, RolePerm,
                           TrackSystem, TrackSystemCached, TrackByID, OCRTracker, OCRTrigger,
-                          OCRPrep, Global, Vote)
+                          OCRPrep, Global, Vote, Consolidation)
 from cogdb.scanners import FortScanner
 
 
@@ -1527,3 +1528,15 @@ def get_snipe_members_holding(session, guild):
         reply += template_msg.format(mention, hold.held, hold.system.name)
 
     return reply
+
+
+def get_consolidation_this_week(session):
+    """
+    Return all consolidation tracking data since the last tick.
+    """
+    last_tick = cog.util.next_weekly_tick(datetime.datetime.utcnow(), -1)
+
+    return session.query(Consolidation.amount, Consolidation.updated_at).\
+        filter(Consolidation.updated_at > last_tick).\
+        order_by(Consolidation.updated_at.asc()).\
+        all()

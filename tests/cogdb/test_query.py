@@ -950,3 +950,8 @@ def test_get_snipe_members_holding(session, f_bot, f_dusers, f_um_testbed):
     expected = 'User3 is holding 5000 merits in ToSnipe\n'
     results = cogdb.query.get_snipe_members_holding(session, f_bot.guilds[0])
     assert results == expected
+
+
+def test_get_consolidation_this_week(session, f_cons_data):
+    values = cogdb.query.get_consolidation_this_week(session)
+    assert [x[0] for x in values] == [66, 67, 65, 64, 67, 68]

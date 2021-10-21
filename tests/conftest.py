@@ -28,7 +28,8 @@ from cogdb.schema import (DiscordUser, FortSystem, FortPrep, FortDrop, FortUser,
                           UMSystem, UMExpand, UMOppose, UMUser, UMHold, EUMSheet, KOS,
                           AdminPerm, ChannelPerm, RolePerm,
                           TrackSystem, TrackSystemCached, TrackByID,
-                          OCRTracker, OCRTrigger, OCRPrep, Global, Vote, EVoteType)
+                          OCRTracker, OCRTrigger, OCRPrep, Global, Vote, EVoteType,
+                          Consolidation)
 from tests.data import CELLS_FORT, CELLS_FORT_FMT, CELLS_UM
 
 
@@ -846,5 +847,32 @@ def f_vote_testbed(session):
 
     session.rollback()
     for cls in (Vote,):
+        session.query(cls).delete()
+    session.commit()
+
+
+@pytest.fixture
+def f_cons_data(session):
+    """
+    Setup the database with dummy data for consolidation tracker.
+    """
+    updated_at = datetime.datetime.utcnow()
+    delta = datetime.timedelta(hours=1)
+    three = datetime.timedelta(hours=3)
+    cons = (
+        Consolidation(id=1, amount=66, updated_at=updated_at),
+        Consolidation(id=2, amount=67, updated_at=updated_at + delta),
+        Consolidation(id=3, amount=65, updated_at=updated_at + delta + delta),
+        Consolidation(id=4, amount=64, updated_at=updated_at + three),
+        Consolidation(id=5, amount=67, updated_at=updated_at + three + delta),
+        Consolidation(id=6, amount=68, updated_at=updated_at + three + delta + delta),
+    )
+    session.add_all(cons)
+    session.commit()
+
+    yield cons
+
+    session.rollback()
+    for cls in (Consolidation,):
         session.query(cls).delete()
     session.commit()

@@ -1,0 +1,34 @@
+<head>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.5.0/Chart.min.js"></script>
+</head>
+<body>
+    <div id="line1" height="1000px">
+        <canvas id="voteChart"/>
+    </div>
+    <script type="text/javascript">
+        function lineChart(ele, data) {
+            new Chart(ele, {
+                type: 'line',
+                data: {
+                    labels: data['xvals'],
+                    datasets: [{
+                        label: "Consolidation",
+                        data: data['yvals'],
+                        borderColor: "red",
+                        fill: false
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    legend: { display: true },
+                    title: {
+                        display: true,
+                        text: "Hudson Consolidation Vote"
+                    }
+                }
+            })
+        }
+        lineChart(document.getElementById("voteChart"), {{data}});
+    </script>
+</body>

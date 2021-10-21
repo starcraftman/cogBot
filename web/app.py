@@ -15,6 +15,7 @@ Tutorial:
 """
 import asyncio
 import atexit
+import datetime
 import functools
 import logging
 import logging.handlers
@@ -25,6 +26,7 @@ import time
 
 import aiozmq
 import aiozmq.rpc
+from jinja2 import Template
 import sanic
 import sanic.response
 try:
@@ -34,12 +36,17 @@ except ImportError:
     print("Falling back to default python loop.")
 
 import cog.util
+import cogdb
+import cogdb.query
+
 
 app = sanic.Sanic('cog web')
 ADDR = 'tcp://127.0.0.1:{}'.format(cog.util.CONF.ports.zmq)
 LOG_FILE = os.path.join(tempfile.gettempdir(), 'posts')
 PUB = None
 RECV = []
+CHART_FMT = "%d/%m %H:%M:%S"
+TEMPLATES = {}
 
 
 def pub_close(pub):
@@ -63,6 +70,36 @@ def init_log():
     for hand in [handler, shandler]:
         hand.setFormatter(formatter)
         logger.addHandler(hand)
+
+
+@app.route('/vote', methods=['GET'])
+async def vote(request):
+    with cogdb.session_scope(cogdb.Session) as session:
+        cons_data = cogdb.query.get_consolidation_this_week(session)
+        data = {
+            "xvals": [],
+            "yvals": [],
+        }
+        for cons in cons_data:
+            data["xvals"].append(datetime.datetime.strftime(cons[1], CHART_FMT))
+            data["yvals"].append(cons[0])
+
+    return sanic.response.html(TEMPLATES['vote'].render(data=data))
+
+
+@app.route('/data/vote', methods=['GET'])
+async def vote_data(request):
+    with cogdb.session_scope(cogdb.Session) as session:
+        cons_data = cogdb.query.get_consolidation_this_week(session)
+        data = {
+            "xvals": [],
+            "yvals": [],
+        }
+        for cons in cons_data:
+            data["xvals"].append(datetime.datetime.strftime(cons[1], CHART_FMT))
+            data["yvals"].append(cons[0])
+
+    return sanic.response.json(data)
 
 
 @app.route('/post', methods=['GET', 'POST'])
@@ -102,7 +139,13 @@ def main():
     port = cog.util.CONF.ports.sanic
     print("Sanic server listening on:", port)
     print("ZMQ pub/sub binding on:", ADDR)
-    app.run(host='0.0.0.0', port=port)
+
+    # Populate a templates cache myself for use later to render html.
+    with open(cog.util.rel_to_abs('web', 'templates', 'vote.html'), 'r', encoding='utf-8') as fin:
+        TEMPLATES['vote'] = Template(fin.read())
+
+    debug = os.environ.get('DEBUG', False)
+    app.run(host='0.0.0.0', port=port, debug=debug)
 
 
 if __name__ == "__main__":
