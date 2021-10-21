@@ -78,6 +78,7 @@ async def post(request):
         log = logging.getLogger('posts')
         log.info('%s %s', str(request), data)
 
+        global RECV
         RECV.insert(0, data)
         RECV = RECV[:20]
 
