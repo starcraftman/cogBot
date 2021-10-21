@@ -79,7 +79,7 @@ async def post(request):
         log.info('%s %s', str(request), data)
 
         RECV.insert(0, data)
-        RECV = RECT[:20]
+        RECV = RECV[:20]
 
         try:
             log.info('Publishing for scanner %s', data['scanner'])
