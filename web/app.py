@@ -84,29 +84,38 @@ async def vote(request):
             "cons_totals": [],
             "prep_totals": [],
         }
-        for con in cogdb.query.get_consolidation_this_week(session):
+        for con in cogdb.query.get_consolidation_after(session):
             data["xvals"].append(datetime.datetime.strftime(con.updated_at, CHART_FMT))
             data["yvals"].append(con.amount)
             data["cons_totals"].append(con.cons_total)
             data["prep_totals"].append(con.prep_total)
 
-    return sanic.response.html(TEMPLATES['vote'].render(data=data))
+    # Populate a templates cache myself for use later to render html.
+    with open(cog.util.rel_to_abs('web', 'templates', 'vote.html'), 'r', encoding='utf-8') as fin:
+        TEMPLATES['vote'] = Template(fin.read())
+
+    return sanic.response.html(TEMPLATES['vote'].render(request=request, data=data))
 
 
-@app.route('/data/vote', methods=['GET'])
-async def vote_data(request):
+@app.route('/data/vote/<epoch:int>', methods=['GET'])
+async def vote_data(request, epoch):
     """
     Provide the data via direct request.
     Response is JSON.
     """
     with cogdb.session_scope(cogdb.Session) as session:
+        try:
+            epoch = datetime.datetime.utcfromtimestamp(epoch)
+        except ValueError:
+            epoch = None
+
         data = {
             "xvals": [],
             "yvals": [],
             "cons_totals": [],
             "prep_totals": [],
         }
-        for con in cogdb.query.get_consolidation_this_week(session):
+        for con in cogdb.query.get_consolidation_after(session, epoch):
             data["xvals"].append(datetime.datetime.strftime(con.updated_at, CHART_FMT))
             data["yvals"].append(con.amount)
             data["cons_totals"].append(con.cons_total)

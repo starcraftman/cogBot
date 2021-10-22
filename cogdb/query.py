@@ -1548,13 +1548,18 @@ def get_snipe_members_holding(session, guild):
     return reply
 
 
-def get_consolidation_this_week(session):
+def get_consolidation_after(session, a_datetime=None):
     """
     Return all consolidation tracking data since the last tick.
+
+    Args:
+        session: Session to the db.
+        a_datetime: If present, fetch only those votes after this datetime.
     """
-    last_tick = cog.util.next_weekly_tick(datetime.datetime.utcnow(), -1)
+    if not a_datetime:
+        a_datetime = cog.util.next_weekly_tick(datetime.datetime.utcnow(), -1)
 
     return session.query(Consolidation).\
-        filter(Consolidation.updated_at > last_tick).\
+        filter(Consolidation.updated_at > a_datetime).\
         order_by(Consolidation.updated_at.asc()).\
         all()

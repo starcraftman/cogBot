@@ -967,6 +967,6 @@ def test_get_snipe_members_holding(session, f_bot, f_dusers, f_um_testbed):
     assert results == expected
 
 
-def test_get_consolidation_this_week(session, f_cons_data):
-    values = cogdb.query.get_consolidation_this_week(session)
-    assert [x[0] for x in values] == [66, 67, 65, 64, 67, 68]
+def test_get_consolidation_after(session, f_cons_data):
+    values = cogdb.query.get_consolidation_after(session)
+    assert [x.amount for x in values] == [66, 67, 65, 64, 67, 68]

@@ -1,17 +1,20 @@
 <head>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.5.0/Chart.min.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"/></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.5.0/Chart.min.js"/></script>
+    <script src="https://cdn.jsdelivr.net/npm/luxon@2.0.2/build/global/luxon.min.js"/></script>
 </head>
 <body>
     <div id="line1" height="1000px">
         <canvas id="voteChart"/>
     </div>
+
     <script type="text/javascript">
         // String format function
-        const format = (str2Format, ...args) =>
-            str2Format.replace(/(\{\d+\})/g, a => args[+(a.substr(1, a.length - 2)) || 0] );
+        const format = (str2Format, ...args) => str2Format.replace(/(\{\d+\})/g, a => args[+(a.substr(1, a.length - 2)) || 0] );
 
-        function lineChart(ele, rdata) {
-            new Chart(ele, {
+        // TODO: Make use of timescales
+        function lineVoteChart(ele, rdata) {
+            return new Chart(ele, {
                 type: 'line',
                 data: {
                     labels: rdata['xvals'],
@@ -36,15 +39,56 @@
                         callbacks: {
                             <!-- Insert cons and prep totals per data item. -->
                             label: function (tooltipItems, data) {
-                                console.log(tooltipItems)
-                                console.log(data)
-                                return format("{0} C:{1} P:{2}", tooltipItems.yLabel, rdata["cons_totals"][tooltipItems.index], rdata["prep_totals"][tooltipItems.index])
+                                return format("{0} Cons: {1} Preps: {2}", tooltipItems.yLabel, rdata.cons_totals[tooltipItems.index], rdata.prep_totals[tooltipItems.index])
                             }
                         }
                     }
                 }
             })
         }
-        lineChart(document.getElementById("voteChart"), {{data}});
+        const voteChartData = {{ data }}; // JSON data injected
+        // Generate the chart.
+        const voteChart = lineVoteChart(document.getElementById("voteChart"), voteChartData);
+        const delay = 5; // Seconds between polling data
+        const dateFormat = "dd/MM HH:mm:ss"
+
+        // Take in new data, ensure it is in fact newer than last data in chart.
+        function updateData(chart, chartData, newData) {
+            const lastDate = chartData.xvals[chartData.xvals.length - 1];
+            const lastTimestamp = luxon.DateTime.fromFormat(lastDate, dateFormat, {'zone': 'UTC'}).toSeconds();
+
+            for (let i = 0; i < newData.xvals.length; i++) {
+                const parsedTimestamp = luxon.DateTime.fromFormat(newData.xvals[i], dateFormat, {'zone': 'UTC'}).toSeconds();
+                if (parsedTimestamp > lastTimestamp) {
+                    chartData.xvals.push(newData.xvals[i]);
+                    chartData.yvals.push(newData.yvals[i]);
+                    chartData.cons_totals.push(newData.cons_totals[i]);
+                    chartData.prep_totals.push(newData.prep_totals[i]);
+                }
+            }
+
+            chart.update();
+        }
+
+        function periodicCheck() {
+            // Format: 21/10 13:57:35, see web.app
+            const lastDate = voteChartData.xvals[voteChartData.xvals.length - 1];
+            const parsed = luxon.DateTime.fromFormat(lastDate, dateFormat, {'zone': 'UTC'}).toSeconds();
+
+            fetch("data/vote/" + parsed).then(function(data) {
+                return data.json();
+            }).catch(function(error) {
+                console.log(error)
+                console.log("Fail in periodicCheck()")
+            })
+            .then(newData => {
+                updateData(voteChart, voteChartData, newData);
+            });
+        }
+
+        // Check for new data asynchronously every delay seconds
+        setInterval(function() {
+            periodicCheck();
+        }, delay * 1000)
     </script>
 </body>
