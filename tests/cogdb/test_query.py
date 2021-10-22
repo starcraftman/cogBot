@@ -913,12 +913,13 @@ def test_post_cycle_db_cleanup(session, f_ocr_testbed, f_vote_testbed):
 
 
 def test_vote_add(session, f_dusers, f_vote_testbed, f_global_testbed):
-    returned_message = cogdb.query.add_vote(session, f_dusers[1].id, 'prep', 1)
-    expected_message = "**{}**: voted 1 Prep.".format(f_dusers[1].display_name)
+    last_duser = f_dusers[-1]
+    returned_message = cogdb.query.add_vote(session, last_duser.id, 'prep', 1)
+    expected_message = "**{}**: voted 1 Prep.".format(last_duser.display_name)
     assert str(returned_message) == expected_message
 
-    the_vote = cogdb.query.add_vote(session, f_dusers[1].id, EVoteType.cons, 5)
-    expect = "**{}**: voted 5 Cons.".format(f_dusers[1].display_name)
+    the_vote = cogdb.query.add_vote(session, last_duser.id, EVoteType.cons, 5)
+    expect = "**{}**: voted 5 Cons.".format(last_duser.display_name)
     assert str(the_vote) == expect
 
 
@@ -934,10 +935,24 @@ def test_vote_get(session, f_dusers, f_vote_testbed):
     assert the_vote.vote == EVoteType.prep
 
 
-def test_track_get_all_votes(session, f_dusers, f_vote_testbed):
+def test_get_all_votes(session, f_dusers, f_vote_testbed):
     votes = cogdb.query.get_all_votes(session)
 
-    assert votes[0][0] == f_vote_testbed[0]
+    assert votes[0][0] == f_vote_testbed[-1]  # Returned descending order
+
+
+def test_get_current_cons_prep_totals_empty(session, f_dusers):
+    cons, preps = cogdb.query.get_cons_prep_totals(session)
+
+    assert cons == 0
+    assert preps == 0
+
+
+def test_get_current_cons_prep_totals(session, f_dusers, f_vote_testbed):
+    cons, preps = cogdb.query.get_cons_prep_totals(session)
+
+    assert cons == 4
+    assert preps == 7
 
 
 def test_get_all_snipe_holds(session, f_bot, f_dusers, f_um_testbed):

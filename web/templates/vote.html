@@ -6,14 +6,18 @@
         <canvas id="voteChart"/>
     </div>
     <script type="text/javascript">
-        function lineChart(ele, data) {
+        // String format function
+        const format = (str2Format, ...args) =>
+            str2Format.replace(/(\{\d+\})/g, a => args[+(a.substr(1, a.length - 2)) || 0] );
+
+        function lineChart(ele, rdata) {
             new Chart(ele, {
                 type: 'line',
                 data: {
-                    labels: data['xvals'],
+                    labels: rdata['xvals'],
                     datasets: [{
                         label: "Consolidation",
-                        data: data['yvals'],
+                        data: rdata['yvals'],
                         borderColor: "red",
                         fill: false
                     }]
@@ -25,6 +29,18 @@
                     title: {
                         display: true,
                         text: "Hudson Consolidation Vote"
+                    },
+                    tooltips: {
+                        enabled: true,
+                        mode: 'single',
+                        callbacks: {
+                            <!-- Insert cons and prep totals per data item. -->
+                            label: function (tooltipItems, data) {
+                                console.log(tooltipItems)
+                                console.log(data)
+                                return format("{0} C:{1} P:{2}", tooltipItems.yLabel, rdata["cons_totals"][tooltipItems.index], rdata["prep_totals"][tooltipItems.index])
+                            }
+                        }
                     }
                 }
             })

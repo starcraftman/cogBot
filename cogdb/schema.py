@@ -1553,10 +1553,12 @@ class Consolidation(Base):
 
     id = sqla.Column(sqla.BigInteger, primary_key=True)
     amount = sqla.Column(sqla.Integer, default=0)
-    updated_at = sqla.Column(sqla.DateTime, default=datetime.datetime.utcnow)  # All dates UTC
+    cons_total = sqla.Column(sqla.Integer, default=0)
+    prep_total = sqla.Column(sqla.Integer, default=0)
+    updated_at = sqla.Column(sqla.DateTime, default=datetime.datetime.utcnow, unique=True)  # All dates UTC
 
     def __repr__(self):
-        keys = ['id', 'amount', 'updated_at']
+        keys = ['id', 'amount', 'cons_total', 'prep_total', 'updated_at']
         kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
 
         return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
@@ -1569,7 +1571,17 @@ class Consolidation(Base):
         return isinstance(other, Consolidation) and hash(self) == hash(other)
 
     def __hash__(self):
-        return hash("{}-{}".format(self.id, self.vote))
+        return hash(self.id)
+
+    @sqla_orm.validates('cons_total', 'prep_total')
+    def validate_totals(self, key, value):
+        try:
+            if value < 0:
+                raise cog.exc.ValidationFail("Bounds check failed for: {} with value {}".format(key, value))
+        except TypeError:
+            pass
+
+        return value
 
     @sqla_orm.validates('amount')
     def validate_amount(self, key, value):

@@ -895,7 +895,8 @@ class OCRScanner(FortScanner):
         globe = cogdb.query.get_current_global(session)
         try:
             globe.consolidation = int(self.cells_row_major[self.prep_consolidation_row][self.prep_col])
-            session.add(Consolidation(amount=globe.consolidation))
+            cons_total, prep_total = cogdb.query.get_cons_prep_totals(session)
+            session.add(Consolidation(amount=globe.consolidation, cons_total=cons_total, prep_total=prep_total))
         except ValueError:
             pass
 

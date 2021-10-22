@@ -74,30 +74,43 @@ def init_log():
 
 @app.route('/vote', methods=['GET'])
 async def vote(request):
+    """
+    The route to provide vote information via charts.
+    """
     with cogdb.session_scope(cogdb.Session) as session:
-        cons_data = cogdb.query.get_consolidation_this_week(session)
         data = {
             "xvals": [],
             "yvals": [],
+            "cons_totals": [],
+            "prep_totals": [],
         }
-        for cons in cons_data:
-            data["xvals"].append(datetime.datetime.strftime(cons[1], CHART_FMT))
-            data["yvals"].append(cons[0])
+        for con in cogdb.query.get_consolidation_this_week(session):
+            data["xvals"].append(datetime.datetime.strftime(con.updated_at, CHART_FMT))
+            data["yvals"].append(con.amount)
+            data["cons_totals"].append(con.cons_total)
+            data["prep_totals"].append(con.prep_total)
 
     return sanic.response.html(TEMPLATES['vote'].render(data=data))
 
 
 @app.route('/data/vote', methods=['GET'])
 async def vote_data(request):
+    """
+    Provide the data via direct request.
+    Response is JSON.
+    """
     with cogdb.session_scope(cogdb.Session) as session:
-        cons_data = cogdb.query.get_consolidation_this_week(session)
         data = {
             "xvals": [],
             "yvals": [],
+            "cons_totals": [],
+            "prep_totals": [],
         }
-        for cons in cons_data:
-            data["xvals"].append(datetime.datetime.strftime(cons[1], CHART_FMT))
-            data["yvals"].append(cons[0])
+        for con in cogdb.query.get_consolidation_this_week(session):
+            data["xvals"].append(datetime.datetime.strftime(con.updated_at, CHART_FMT))
+            data["yvals"].append(con.amount)
+            data["cons_totals"].append(con.cons_total)
+            data["prep_totals"].append(con.prep_total)
 
     return sanic.response.json(data)
 

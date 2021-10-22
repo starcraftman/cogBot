@@ -837,8 +837,12 @@ def f_vote_testbed(session):
     Setup the database with dummy data for vote tracker.
     """
     updated_at = datetime.datetime(2021, 8, 25, 2, 33, 0)
+    min = datetime.timedelta(minutes=1)
     votes = (
         Vote(id=1, vote=EVoteType.cons, amount=1, updated_at=updated_at),
+        Vote(id=1, vote=EVoteType.prep, amount=5, updated_at=updated_at + min),
+        Vote(id=2, vote=EVoteType.cons, amount=3, updated_at=updated_at + min + min),
+        Vote(id=2, vote=EVoteType.prep, amount=2, updated_at=updated_at + min + min + min),
     )
     session.add_all(votes)
     session.commit()

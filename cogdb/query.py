@@ -20,7 +20,7 @@ from cogdb.schema import (DiscordUser, FortSystem, FortPrep, FortDrop, FortUser,
                           EFortType, UMSystem, UMUser, UMHold, EUMSheet, EUMType, KOS,
                           AdminPerm, ChannelPerm, RolePerm,
                           TrackSystem, TrackSystemCached, TrackByID, OCRTracker, OCRTrigger,
-                          OCRPrep, Global, Vote, Consolidation)
+                          OCRPrep, Global, Vote, EVoteType, Consolidation)
 from cogdb.scanners import FortScanner
 
 
@@ -1492,6 +1492,24 @@ def get_all_votes(session):
         all()
 
 
+def get_cons_prep_totals(session):
+    """
+    Compute the current total of cons and prep votes by query.
+
+    Returns: cons_total, prep_total
+    """
+    try:
+        cons_total, prep_total = session.query(sqla.func.ifnull(sqla.func.sum(Vote.amount), 0)).\
+            group_by(Vote.vote).\
+            order_by(Vote.vote).\
+            all()
+        cons_total, prep_total = int(cons_total[0]), int(prep_total[0])
+    except ValueError:
+        cons_total, prep_total = 0, 0
+
+    return cons_total, prep_total
+
+
 def get_all_snipe_holds(session):
     """
     Args:
@@ -1536,7 +1554,7 @@ def get_consolidation_this_week(session):
     """
     last_tick = cog.util.next_weekly_tick(datetime.datetime.utcnow(), -1)
 
-    return session.query(Consolidation.amount, Consolidation.updated_at).\
+    return session.query(Consolidation).\
         filter(Consolidation.updated_at > last_tick).\
         order_by(Consolidation.updated_at.asc()).\
         all()
