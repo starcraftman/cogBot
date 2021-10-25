@@ -93,6 +93,10 @@
                 scales: {
                     x: {
                         type: 'time',
+                        ticks: {
+                            autoSkip: true,
+                            maxTicksLimit: 30,
+                        },
                         time: {
                             displayFormats: {
                                 second: "mm:ss",
@@ -133,7 +137,7 @@
                     }
                 }
             }
-            suitableUnit(voteConfig, voteChartData);
+            <!-- suitableUnit(voteConfig, voteChartData); -->
 
             return new Chart(ele, {
                 type: 'line',
@@ -155,7 +159,7 @@
                 }
             }
 
-            suitableUnit(chart.options, chartData);
+            <!-- suitableUnit(chart.options, chartData); -->
             chart.update();
         }
 

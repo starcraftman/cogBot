@@ -1692,7 +1692,7 @@ async def test_cmd_vote_prep(f_bot, f_dusers, f_global_testbed, f_vote_testbed):
     msg = fake_msg_gears("!vote prep 1")
 
     await action_map(msg, f_bot).execute()
-    f_bot.send_message.assert_called_with(msg.channel, "**User1**: voted 1 Prep.")
+    f_bot.send_message.assert_called_with(msg.channel, "**User1**: voted 6 Prep.")
 
 
 @pytest.mark.asyncio
