@@ -45,7 +45,7 @@ ADDR = 'tcp://127.0.0.1:{}'.format(cog.util.CONF.ports.zmq)
 LOG_FILE = os.path.join(tempfile.gettempdir(), 'posts')
 PUB = None
 RECV = []
-CHART_FMT = "%d/%m %H:%M:%S"
+CHART_FMT = "%y/%m/%d %H:%M:%S"
 TEMPLATES = {}
 
 
@@ -72,27 +72,33 @@ def init_log():
         logger.addHandler(hand)
 
 
+def get_vote_data(session, epoch=0):
+    """
+    Retrieve and format the vote data.
+    """
+    try:
+        epoch = datetime.datetime.utcfromtimestamp(epoch)
+    except ValueError:
+        epoch = 0
+
+    data = []
+    for con in cogdb.query.get_consolidation_after(session, epoch):
+        data += [{
+            "x": datetime.datetime.strftime(con.updated_at, CHART_FMT),
+            "y": con.amount,
+            "cons_total": con.cons_total,
+            "prep_total": con.prep_total,
+        }]
+
+    return data
+
 @app.route('/vote', methods=['GET'])
 async def vote(request):
     """
     The route to provide vote information via charts.
     """
     with cogdb.session_scope(cogdb.Session) as session:
-        data = {
-            "xvals": [],
-            "yvals": [],
-            "cons_totals": [],
-            "prep_totals": [],
-        }
-        for con in cogdb.query.get_consolidation_after(session):
-            data["xvals"].append(datetime.datetime.strftime(con.updated_at, CHART_FMT))
-            data["yvals"].append(con.amount)
-            data["cons_totals"].append(con.cons_total)
-            data["prep_totals"].append(con.prep_total)
-
-    # Populate a templates cache myself for use later to render html.
-    with open(cog.util.rel_to_abs('web', 'templates', 'vote.html'), 'r', encoding='utf-8') as fin:
-        TEMPLATES['vote'] = Template(fin.read())
+        data = get_vote_data(session)
 
     return sanic.response.html(TEMPLATES['vote'].render(request=request, data=data))
 
@@ -104,24 +110,7 @@ async def vote_data(request, epoch):
     Response is JSON.
     """
     with cogdb.session_scope(cogdb.Session) as session:
-        try:
-            epoch = datetime.datetime.utcfromtimestamp(epoch)
-        except ValueError:
-            epoch = None
-
-        data = {
-            "xvals": [],
-            "yvals": [],
-            "cons_totals": [],
-            "prep_totals": [],
-        }
-        for con in cogdb.query.get_consolidation_after(session, epoch):
-            data["xvals"].append(datetime.datetime.strftime(con.updated_at, CHART_FMT))
-            data["yvals"].append(con.amount)
-            data["cons_totals"].append(con.cons_total)
-            data["prep_totals"].append(con.prep_total)
-
-    return sanic.response.json(data)
+        return sanic.response.json(get_vote_data(session, epoch))
 
 
 @app.route('/post', methods=['GET', 'POST'])
