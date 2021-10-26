@@ -528,6 +528,22 @@ def test_umsystem__eq__(f_dusers, f_um_testbed):
     assert system == expect
 
 
+def test_umsystem_held_merits(session, f_dusers, f_um_testbed):
+    system = f_um_testbed[1][0]
+
+    assert system.held_merits == 450
+
+
+def test_umsystem_held_merits_expression(session, f_dusers, f_um_testbed):
+    system_names = session.query(UMSystem.name).\
+        filter(UMSystem.held_merits > 600,
+               UMSystem.sheet_src == EUMSheet.main).\
+        order_by(UMSystem.name).\
+        all()
+    result = [x[0] for x in system_names]
+    assert result == ['Burr', 'Pequen']
+
+
 def test_umsystem_cmdr_merits(session, f_dusers, f_um_testbed):
     system = f_um_testbed[1][0]
 
@@ -577,6 +593,22 @@ def test_umsystem_is_undermined_expression(session, f_dusers, f_um_testbed):
         filter(UMSystem.is_undermined).\
         all()
     assert systems == [('Cemplangpa', True)]
+
+
+def test_umsystem_is_skipped(f_dusers, f_um_testbed):
+    system_leave = [x for x in f_um_testbed[1] if 'Leave' in x.priority][0]
+    system_burr = [x for x in f_um_testbed[1] if x.name == 'Burr'][0]
+
+    assert system_leave.is_skipped
+    assert not system_burr.is_skipped
+
+
+def test_umsystem_is_skipped_expression(session, f_dusers, f_um_testbed):
+    system = session.query(UMSystem).\
+        filter(UMSystem.is_skipped).\
+        one()
+
+    assert system.name == 'LeaveIt'
 
 
 def test_umsystem_set_status(f_dusers, f_um_testbed):

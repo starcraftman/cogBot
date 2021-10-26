@@ -311,14 +311,24 @@ def test_um_find_system(session, f_dusers, f_um_testbed):
 
 
 def test_um_get_systems(session, f_dusers, f_um_testbed):
-    systems = [system.name for system in cogdb.query.um_get_systems(session)]
+    systems = [system.name for system in
+               cogdb.query.um_get_systems(session, exclude_finished=False, ignore_leave=False)]
+    assert 'LeaveIt' in systems
+    assert 'Cemplangpa' in systems
+    assert 'Burr' in systems
+    assert 'AF Leopris' in systems
+
+    systems = [system.name for system in
+               cogdb.query.um_get_systems(session, exclude_finished=True, ignore_leave=False)]
+    assert 'LeaveIt' in systems
     assert 'Cemplangpa' not in systems
     assert 'Burr' in systems
     assert 'AF Leopris' in systems
 
     systems = [system.name for system in
-               cogdb.query.um_get_systems(session, exclude_finished=False)]
-    assert 'Cemplangpa' in systems
+               cogdb.query.um_get_systems(session, exclude_finished=True, ignore_leave=True)]
+    assert 'LeaveIt' not in systems
+    assert 'Cemplangpa' not in systems
     assert 'Burr' in systems
     assert 'AF Leopris' in systems
 
@@ -931,7 +941,7 @@ def test_track_get_all_votes(session, f_dusers, f_vote_testbed):
 
 
 def test_get_all_snipe_holds(session, f_bot, f_dusers, f_um_testbed):
-    expected = [UMHold(id=7, sheet_src=EUMSheet.snipe, system_id=7, user_id=3, held=5000, redeemed=1200)]
+    expected = [UMHold(id=7, sheet_src=EUMSheet.snipe, system_id=10007, user_id=3, held=5000, redeemed=1200)]
     results = cogdb.query.get_all_snipe_holds(session)
     assert results == expected
 

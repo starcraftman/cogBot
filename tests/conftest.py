@@ -229,7 +229,10 @@ def f_um_testbed(session):
         UMSystem(id=5, name='Empty', sheet_col='K', goal=10000, security='Medium', notes='',
                  progress_us=0, progress_them=0.0, close_control='Rana', priority='Low',
                  map_offset=0),
-        UMSystem(id=7, name='ToSnipe', sheet_col='D', goal=100000, security='Medium', notes='',
+        UMSystem(id=6, name='LeaveIt', sheet_col='L', goal=10000, security='Medium', notes='',
+                 progress_us=9000, progress_them=0.0, close_control='Rana', priority='Leave For Now',
+                 map_offset=0, sheet_src=EUMSheet.main),
+        UMSystem(id=10007, name='ToSnipe', sheet_col='D', goal=100000, security='Medium', notes='',
                  progress_us=0, progress_them=0.0, close_control='Rana', priority='Low',
                  map_offset=0, sheet_src=EUMSheet.snipe),
     )

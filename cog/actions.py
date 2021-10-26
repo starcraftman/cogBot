@@ -1133,10 +1133,13 @@ class Hold(Action):
                       self.duser.display_name, hold, system)
 
         response = hold.system.display()
+        if hold.system.is_skipped:
+            response += '\n\nThis system should be left for now. Type `!um` for more targets.'
         if hold.system.is_undermined:
             response += '\n\nSystem is finished with held merits. Type `!um` for more targets.'
             response += '\n\n**{}** Have a :skull: for completing {}. Don\'t forget to redeem.'.format(
                 self.duser.display_name, system.name)
+
 
         return ([hold], response)
 
@@ -1321,7 +1324,7 @@ class OCR(Action):
             reply = cogdb.query.ocr_prep_report(self.session)
         elif self.args.subcmd == "refresh":  # pragma: no cover
             reply = "OCR Sheet has been read and update pushed to Fort"
-            await monitor_ocr_sheet(self.bot, delay=0, repeat=False)
+            await cogdb.scanners.handle_ocr_sheet_update(self.bot)
 
         if reply:
             await self.bot.send_message(self.msg.channel, reply)
@@ -1793,7 +1796,7 @@ class UM(Action):
             return
 
         else:
-            systems = cogdb.query.um_get_systems(self.session, sheet_src=self.args.sheet_src)
+            systems = cogdb.query.um_get_systems(self.session, sheet_src=self.args.sheet_src, exclude_finished=True)
             response = '__Current Combat / Undermining Targets__\n\n' + '\n'.join(
                 [system.display() for system in systems])
 

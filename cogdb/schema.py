@@ -716,6 +716,27 @@ class UMSystem(Base):
         return completion
 
     @hybrid_property
+    def held_merits(self):
+        """ Total merits held by cmdrs."""
+        total = 0
+        for hold in self.merits:
+            total += hold.held
+        return total
+
+    @held_merits.expression
+    def held_merits(cls):
+        """ Total merits held by cmdrs."""
+        return sqla.func.cast(
+            sqla.func.ifnull(
+                sqla.select(sqla.func.sum(UMHold.held)).
+                    where(UMHold.system_id == cls.id).
+                    label('cmdr_merits'),
+                0
+            ),
+            sqla.Integer
+        )
+
+    @hybrid_property
     def cmdr_merits(self):
         """ Total merits held and redeemed by cmdrs """
         total = 0
@@ -745,6 +766,17 @@ class UMSystem(Base):
     def missing(cls):
         """ The remaining merites targetted to undermine. """
         return cls.goal - sqla.func.greatest(cls.cmdr_merits + cls.map_offset, cls.progress_us)
+
+    @hybrid_property
+    def is_skipped(self):
+        """ The system should be skipped. """
+        priority = self.priority.lower()
+        return 'leave' in priority or 'skip' in priority
+
+    @is_skipped.expression
+    def is_skipped(cls):
+        """ The system should be skipped. """
+        return or_(cls.priority.ilike("%leave%"), cls.priority.ilike("%skip%"))
 
     @property
     def descriptor(self):

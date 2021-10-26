@@ -811,6 +811,16 @@ Power          |```"""
 
 
 @pytest.mark.asyncio
+async def test_cmd_hold_leave(session, f_bot, f_dusers, f_um_testbed):
+    msg = fake_msg_gears("!hold 2000 leave")
+
+    await action_map(msg, f_bot).execute()
+
+    expect = "This system should be left for now. Type `!um` for more targets."
+    assert expect in str(f_bot.send_message.call_args).replace("\\n", "\n")
+
+
+@pytest.mark.asyncio
 async def test_cmd_hold_newuser(session, f_bot, f_dusers, f_um_testbed):
     msg = fake_msg_newuser("!hold 1000 empty")
 

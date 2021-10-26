@@ -498,17 +498,21 @@ def um_find_system(session, system_name, *, sheet_src=EUMSheet.main):
         return systems[0]
 
 
-def um_get_systems(session, *, exclude_finished=True, sheet_src=EUMSheet.main):
+def um_get_systems(session, *, exclude_finished=True, sheet_src=EUMSheet.main, ignore_leave=True):
     """
     Return a list of all current undermining targets.
 
     kwargs:
         exclude_finished: Return only active UM targets.
         sheet_src: Select UM targets from sheet_src, default main.
+        ignore_leave: Ignore the systems with like "leave for now" in notes.
     """
     systems = session.query(UMSystem).\
-        filter(UMSystem.sheet_src == sheet_src).\
-        all()
+        filter(UMSystem.sheet_src == sheet_src)
+
+    if ignore_leave:
+        systems = systems.filter(sqla.not_(UMSystem.is_skipped))
+    systems = systems.all()
 
     if exclude_finished:
         # Force in memory check, due to differing implementation of is_undermined
@@ -656,6 +660,10 @@ def um_all_held_merits(session, *, sheet_src=EUMSheet.main):
     """
     Return a list of lists that show all users with merits still held.
 
+    Systems excluded if:
+        - System set to "Leave for now"
+        - No held merits & system is undermined.
+
     List of the form:
     [
         [CMDR, system_name_1, system_name_2, ...],
@@ -663,24 +671,30 @@ def um_all_held_merits(session, *, sheet_src=EUMSheet.main):
         [cmdrname, merits_system_1, merits_system_2, ...],
     ]
     """
-    c_dict = {}
+    systems = session.query(UMSystem).\
+        filter(UMSystem.sheet_src == EUMSheet.main,
+               sqla.not_(UMSystem.is_skipped),
+               sqla.or_(UMSystem.held_merits > 0,
+                        sqla.not_(UMSystem.is_undermined))).\
+        order_by(UMSystem.id).\
+        all()
+    system_ids = [x.id for x in systems]
     held_merits = session.query(UMHold).\
         filter(UMHold.held > 0,
-               UMHold.sheet_src == sheet_src).\
+               UMHold.sheet_src == sheet_src,
+               UMHold.system_id.in_(system_ids)).\
         order_by(UMHold.system_id).\
         all()
+
+    c_dict = {}
     for merit in held_merits:
         try:
             c_dict[merit.user.name][merit.system.name] = merit
         except KeyError:
             c_dict[merit.user.name] = {merit.system.name: merit}
 
-    systems = session.query(UMSystem).\
-        filter(UMSystem.sheet_src == EUMSheet.main).\
-        order_by(UMSystem.id).\
-        all()
-    system_names = [sys.name for sys in systems]
     rows = []
+    system_names = [sys.name for sys in systems]
     for cmdr in c_dict:
         row = [cmdr]
         for system_name in system_names:
@@ -688,7 +702,6 @@ def um_all_held_merits(session, *, sheet_src=EUMSheet.main):
                 row += [c_dict[cmdr][system_name].held]
             except KeyError:
                 row += [0]
-
         rows += [row]
 
     return [['CMDR'] + system_names] + rows
