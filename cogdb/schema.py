@@ -450,11 +450,6 @@ class FortPrep(FortSystem):
         primaryjoin='foreign(FortSystem.name) == remote(OCRPrep.system)',
     )
 
-    @hybrid_property
-    def is_fortified(self):
-        """ Prep systems never get finished. """
-        return False
-
     def display(self, *, miss=None):
         """
         Return a useful short representation of PrepSystem.

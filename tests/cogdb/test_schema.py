@@ -9,7 +9,7 @@ import pytest
 import cog.exc
 import cogdb
 import cogdb.schema
-from cogdb.schema import (DiscordUser, FortSystem, FortDrop, FortUser, FortOrder,
+from cogdb.schema import (DiscordUser, FortSystem, FortDrop, FortUser, FortOrder, EFortType,
                           UMSystem, UMExpand, UMOppose, UMUser, UMHold,
                           AdminPerm, ChannelPerm, RolePerm, EUMSheet,
                           kwargs_um_system, kwargs_fort_system)
@@ -280,10 +280,11 @@ def test_fortsystem_current_status(f_dusers, f_fort_testbed):
 
 def test_fortsystem_current_status_expression(session, f_dusers, f_fort_testbed):
     systems = session.query(FortSystem).\
-        filter(FortSystem.current_status >= 4000).\
+        filter(FortSystem.current_status >= 4000,
+               FortSystem.type != EFortType.prep).\
         order_by(FortSystem.id).\
         all()
-    assert len(systems) == 4
+    assert len(systems) == 3
     assert systems[0].current_status == 4910
 
 
@@ -404,14 +405,8 @@ def test_fortsystem_table_row(f_dusers, f_fort_testbed):
 
 
 def test_prepsystem_display(f_dusers, f_fort_testbed):
-    f_prep = f_fort_testbed[1][-1]
+    f_prep = f_fort_testbed[1][-2]
     assert f_prep.display() == "Prep: **Rhea** 5100/10000 :Fortifying: Atropos - 65.55Ly"
-
-
-def test_prepsystem_is_fortified(f_dusers, f_fort_testbed):
-    f_prep = f_fort_testbed[1][-1]
-    f_prep.fort_status = 10 * f_prep.trigger
-    assert not f_prep.is_fortified
 
 
 def test_drop__eq__(f_dusers, f_fort_testbed):

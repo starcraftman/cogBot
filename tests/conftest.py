@@ -176,7 +176,8 @@ def f_fort_testbed(session):
         FortSystem(id=8, name='Othime', fort_status=0, trigger=7367, um_status=0, undermine=0.0, distance=83.68, notes='Priority for S/M ships (no L pads)', sheet_col='AF', sheet_order=26),
         FortSystem(id=9, name='WW Piscis Austrini', fort_status=0, trigger=8563, um_status=0, undermine=1.2, distance=101.38, notes='', sheet_col='BK', sheet_order=57),
         FortSystem(id=10, name='LPM 229', fort_status=0, trigger=9479, um_status=0, undermine=1.0, distance=112.98, notes='', sheet_col='BL', sheet_order=58),
-        FortPrep(id=1000, name='Rhea', trigger=10000, fort_status=5100, um_status=0, undermine=0.0, distance=65.55, notes='Atropos', sheet_col='D', sheet_order=0)
+        FortPrep(id=1000, name='Rhea', trigger=10000, fort_status=5100, um_status=0, undermine=0.0, distance=65.55, notes='Atropos', sheet_col='D', sheet_order=0),
+        FortPrep(id=1001, name='PrepDone', trigger=10000, fort_status=12500, um_status=0, undermine=0.0, distance=65.55, notes='Atropos', sheet_col='E', sheet_order=0),
     )
     drops = (
         FortDrop(id=1, amount=700, user_id=users[0].id, system_id=systems[0].id),

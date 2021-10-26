@@ -238,7 +238,9 @@ def fort_get_preps(session):
     """
     Return a list of all PrepSystems.
     """
-    return session.query(FortPrep).all()
+    return session.query(FortPrep).\
+        filter(sqla.not_(FortPrep.is_fortified)).\
+        all()
 
 
 def fort_find_current_index(session):
@@ -375,11 +377,13 @@ def fort_get_priority_targets(session):
     priority = session.query(FortSystem).\
         filter(sqla.not_(FortSystem.is_skipped),
                sqla.not_(FortSystem.is_fortified),
+               FortSystem.type != EFortType.prep,
                FortSystem.is_priority).\
         all()
     deferred = session.query(FortSystem).\
         filter(sqla.not_(FortSystem.is_skipped),
                sqla.not_(FortSystem.is_fortified),
+               FortSystem.type != EFortType.prep,
                FortSystem.is_deferred).\
         all()
 
