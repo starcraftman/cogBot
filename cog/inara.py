@@ -695,7 +695,7 @@ def generate_bgs_embed(sys_list, faction_list):
     """
     fields = [{'name': "System", 'value': f"[{system}]({sys_link})", "inline": True}
               for system, sys_link in sys_list]
-    fields += [{'name': "Faction", 'value': "[{faction}]({fact_link})", "inline": True}
+    fields += [{'name': "Faction", 'value': f"[{faction}]({fact_link})", "inline": True}
                for faction, fact_link in faction_list]
 
     return discord.Embed.from_dict({
