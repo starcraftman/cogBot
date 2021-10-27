@@ -8,11 +8,28 @@
     #line1 {
         width: 1200px;
     }
+    .select-box {
+        width: auto
+    }
     </style>
 </head>
 <body>
     <div id="line1">
         <canvas id="voteChart"/>
+    </div>
+    <br/>
+    <div id="controls">
+    <form>
+        <label for="unit-select"> Force chart time unit: </label>
+        <select class="select-box" name="chart_unit" id="chart_unit">
+            <option value="noselect" disabled selected hidden> Time unit </option>
+            <option value="minute"> Minutes </option>
+            <option value="hour"> Hours </option>
+            <option value="day"> Days </option>
+            <option value="week"> Weeks </option>
+            <option value="month"> Months </option>
+        </select>
+    </form>
     </div>
     <script type="text/javascript">
         // String format function
@@ -99,14 +116,12 @@
                         },
                         time: {
                             displayFormats: {
-                                second: "mm:ss",
-                                minutes: "mm:ss",
+                                minute: "HH:mm:ss",
                                 hour: "LLL d HH:mm",
-                                day: "LLL d HH",
+                                day: "LLL d HH:00",
                                 week: "LLL d, y",
-                                month: "LLL d, y",
-                            },
-                            unit: 'hour'
+                                month: "LLLL y",
+                            }
                         }
                     },
                     y: {
@@ -137,7 +152,12 @@
                     }
                 }
             }
-            <!-- suitableUnit(voteConfig, voteChartData); -->
+
+            // Set handlers for manipulating unit of chart
+            $('.select-box').change(function() {
+                voteConfig.scales.x.time.unit = $(this).val();
+                voteChart.update();
+            });
 
             return new Chart(ele, {
                 type: 'line',
@@ -159,7 +179,6 @@
                 }
             }
 
-            <!-- suitableUnit(chart.options, chartData); -->
             chart.update();
         }
 

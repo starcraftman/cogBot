@@ -92,6 +92,7 @@ def get_vote_data(session, epoch=0):
 
     return data
 
+
 @app.route('/vote', methods=['GET'])
 async def vote(request):
     """
