@@ -456,6 +456,21 @@ class UMScanner(FortScanner):
         return [{'range': cell_range, 'values': values}]
 
     @staticmethod
+    def update_systemum_priority_dict(col, priority):
+        """
+        Create an update system dict. See AsyncGSheet.batch_update
+
+        Args:
+            col: The main (left most) column of the system in sheet.
+            priority: The new priority to set.
+
+        Returns: A list of update dicts to pass to batch_update.
+        """
+        column = cog.sheets.Column(col)
+        cell_range = '{col}8:{col}8'.format(col=column.fwd())
+        return [{'range': cell_range, 'values': [[priority]]}]
+
+    @staticmethod
     def update_hold_dict(system_col, user_row, held, redeemed):
         """
         Create an update hold dict. See AsyncGSheet.batch_update

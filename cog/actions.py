@@ -1749,16 +1749,24 @@ class UM(Action):
 
             if self.args.offset:
                 system.map_offset = self.args.offset
+            if self.args.priority:
+                try:
+                    cogdb.query.get_admin(self.session, self.duser)
+                except cog.exc.NoMatch as exc:
+                    raise cog.exc.InvalidPerms("{} You are not an admin!".format(self.msg.author.mention)) from exc
+                system.priority = " ".join(self.args.priority)
+                self.payloads += cogdb.scanners.UMScanner.update_systemum_priority_dict(system.sheet_col, system.priority)
             if self.args.set:
                 system.set_status(self.args.set)
             if self.args.set or self.args.offset:
-                self.session.commit()
-
                 # TODO: Same payload now, but will have to switch if diverge.
                 self.payloads += cogdb.scanners.UMScanner.update_systemum_dict(
                     system.sheet_col, system.progress_us,
                     system.progress_them, system.map_offset
                 )
+
+            if self.payloads:
+                self.session.commit()
                 scanner = get_scanner("hudson_undermine" if self.args.sheet_src == EUMSheet.main else "hudson_snipe")
                 await scanner.send_batch(self.payloads)
 

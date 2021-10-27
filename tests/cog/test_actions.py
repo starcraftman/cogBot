@@ -1475,6 +1475,19 @@ async def test_cmd_um_npcs(f_bot):
 
 
 @pytest.mark.asyncio
+async def test_cmd_um_priority(f_bot, f_dusers, f_um_testbed, f_admins, patch_scanners):
+    msg = fake_msg_gears("!um Burr --priority High")
+
+    await action_map(msg, f_bot).execute()
+
+    with cogdb.session_scope(cogdb.Session) as session:
+        burr = session.query(UMSystem).filter(UMSystem.name == "Burr").one()
+        assert burr.priority == 'High'
+
+    assert patch_scanners.payloads == [{'range': 'I8:I8', 'values': [['High']]}]
+
+
+@pytest.mark.asyncio
 async def test_cmd_user(f_bot, f_testbed):
     msg = fake_msg_gears("!user")
 

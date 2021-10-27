@@ -679,6 +679,9 @@ def subs_um(subs, prefix):
 **{prefix}um burr --offset 4000**
 **{prefix}um burr -o 4000**
         Set the offset difference of cmdr merits and galmap.
+**{prefix}um burr --priority Medium**
+**{prefix}um burr -p Medium**
+        Set the priority for the undermining system.
 **{prefix}um --list**
         Show all outstanding merits by users and system.
 **{prefix}um --npcs**
@@ -691,6 +694,7 @@ def subs_um(subs, prefix):
     sub.add_argument('-s', '--set',
                      help='Set the status of the system, us:them. Example-> --set 3500:200')
     sub.add_argument('-o', '--offset', type=int, help='Set the system galmap offset.')
+    sub.add_argument('-p', '--priority', nargs='+', help='The priority to set for the system.')
     sub.add_argument('-l', '--list', action='store_true', help='Show all outstanding merits on sheet.')
     sub.add_argument('--npcs', action='store_true', help='List powerplay NPC ships by alligence.')
 

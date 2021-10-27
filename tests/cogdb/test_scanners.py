@@ -225,6 +225,11 @@ async def test_umscanner_parse_sheet(f_asheet_umscanner, f_dusers_many, session,
     assert session.query(UMHold).all()
 
 
+def test_umscanner_update_systemsum_priority_dict():
+    data = UMScanner.update_systemum_priority_dict("G", "Medium Priority")
+    assert data == [{'range': 'H8:H8', 'values': [['Medium Priority']]}]
+
+
 def test_umscanner_update_systemsum_dict():
     data = UMScanner.update_systemum_dict("G", 7000, 500, 4300)
     assert data == [{"range": "G10:G13", "values": [[7000], [500], ["Hold Merits"], [4300]]}]
