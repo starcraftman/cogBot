@@ -9,7 +9,7 @@ import argparse
 import pprint
 import sys
 
-import ijson.backends.yajl2_cffi as ijson
+import ijson
 
 
 def parser():

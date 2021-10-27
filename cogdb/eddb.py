@@ -19,7 +19,9 @@ import string
 import sys
 
 import argparse
-import ijson.backends.yajl2_cffi as ijson
+# Backends tried IN ORDER on import: https://pypi.org/project/ijson/#id3
+# Selected backend set in ijson.backend as string.
+import ijson
 import sqlalchemy as sqla
 import sqlalchemy.orm as sqla_orm
 import sqlalchemy.orm.session
@@ -2349,4 +2351,9 @@ except (AttributeError, sqla_orm.exc.NoResultFound, sqla.exc.ProgrammingError): 
 
 
 if __name__ == "__main__":  # pragma: no cover
+    # Tell user when not using most efficient backend.
+    if ijson.backend != 'yajl2_c':
+        print("Failed to set backend to yajl2_c. Please check that yajl is installed. Parsing may slow down.")
+        print(f"Selected: {ijson.backend}")
+
     main()
