@@ -2,7 +2,6 @@
 Module should handle logic related to querying/manipulating tables from a high level.
 """
 import copy
-import datetime
 import logging
 import os
 import tempfile
@@ -1548,18 +1547,22 @@ def get_snipe_members_holding(session, guild):
     return reply
 
 
-def get_consolidation_after(session, a_datetime=None):
+def get_consolidation_in_range(session, start, end=None):
     """
     Return all consolidation tracking data since the last tick.
 
+    If start and end left bbank, return this cycle's votes.
+    Dates are inclusive on both sides.
+
     Args:
         session: Session to the db.
-        a_datetime: If present, fetch only those votes after this datetime.
+        start: Fetch only those entries after this datetime, this date required.
+        end: If present, fetch only those entries before this datetime.
     """
-    if not a_datetime:
-        a_datetime = cog.util.next_weekly_tick(datetime.datetime.utcnow(), -1)
+    query = session.query(Consolidation).\
+        filter(Consolidation.updated_at >= start)
 
-    return session.query(Consolidation).\
-        filter(Consolidation.updated_at > a_datetime).\
-        order_by(Consolidation.updated_at.asc()).\
-        all()
+    if end:
+        query = query.filter(Consolidation.updated_at <= end)
+
+    return query.order_by(Consolidation.updated_at.asc()).all()

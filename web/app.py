@@ -72,17 +72,12 @@ def init_log():
         logger.addHandler(hand)
 
 
-def get_vote_data(session, epoch=0):
+def get_vote_data(session, start=None, end=None):
     """
     Retrieve and format the vote data.
     """
-    try:
-        epoch = datetime.datetime.utcfromtimestamp(epoch)
-    except ValueError:
-        epoch = 0
-
     data = []
-    for con in cogdb.query.get_consolidation_after(session, epoch):
+    for con in cogdb.query.get_consolidation_in_range(session, start=start, end=end):
         data += [{
             "x": datetime.datetime.strftime(con.updated_at, CHART_FMT),
             "y": con.amount,
@@ -98,20 +93,42 @@ async def vote(request):
     """
     The route to provide vote information via charts.
     """
+    cur_cycle = cog.util.current_cycle()
+    start = cog.util.cycle_to_start(cur_cycle)
+    end = start + datetime.timedelta(weeks=1)
     with cogdb.session_scope(cogdb.Session) as session:
-        data = get_vote_data(session)
+        data = get_vote_data(session, start, end)
 
-    return sanic.response.html(TEMPLATES['vote'].render(request=request, data=data))
+    return sanic.response.html(TEMPLATES['vote'].render(request=request, data=data, cycle=cur_cycle))
 
 
-@app.route('/data/vote/<epoch:int>', methods=['GET'])
-async def vote_data(request, epoch):
+@app.route('/data/voteRange/<start:int>/<end:int>', methods=['GET'])
+async def vote_range(request, start, end):
+    """Provide voting information after a given datetime.
+
+    Args:
+        request: The request object for flask.
+        start: The timestamp (UTC) to get data after.
+        end: The timestamp (UTC) to get data before.
     """
-    Provide the data via direct request.
-    Response is JSON.
-    """
+    start = datetime.datetime.utcfromtimestamp(start)
+    end = datetime.datetime.utcfromtimestamp(end)
     with cogdb.session_scope(cogdb.Session) as session:
-        return sanic.response.json(get_vote_data(session, epoch))
+        return sanic.response.json(get_vote_data(session, start, end))
+
+
+@app.route('/data/voteCycle/<cycle:int>', methods=['GET'])
+async def vote_cycle(request, cycle):
+    """Provide vote consolidation data for a given cycle.
+
+    Args:
+        request: The request object for flask.
+        cycle: The cycle to get voting data for.
+    """
+    start = cog.util.cycle_to_start(cycle)
+    end = start + datetime.timedelta(weeks=1)
+    with cogdb.session_scope(cogdb.Session) as session:
+        return sanic.response.json(get_vote_data(session, start, end))
 
 
 @app.route('/post', methods=['GET', 'POST'])

@@ -320,4 +320,8 @@ def test_chunk_file():
 @mock.patch('cog.util.datetime')
 def test_current_cycle(mock_date):
     mock_date.datetime.utcnow.return_value = datetime.datetime(2021, 10, 10, 2, 43, 22, 828086)
-    assert cog.util.current_cycle() == 322
+    assert cog.util.current_cycle() == 332
+
+
+def test_cycle_to_start():
+    assert cog.util.cycle_to_start(334) == datetime.datetime(2021, 10, 21, 7, 0)

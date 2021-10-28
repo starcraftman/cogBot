@@ -967,6 +967,14 @@ def test_get_snipe_members_holding(session, f_bot, f_dusers, f_um_testbed):
     assert results == expected
 
 
-def test_get_consolidation_after(session, f_cons_data):
-    values = cogdb.query.get_consolidation_after(session)
+def test_get_consolidation_in_range_default(session, f_cons_data):
+    after = f_cons_data[0].updated_at - datetime.timedelta(minutes=5)
+    values = cogdb.query.get_consolidation_in_range(session, start=after)
     assert [x.amount for x in values] == [66, 67, 65, 64, 67, 68]
+
+
+def test_get_consolidation_in_range_both(session, f_cons_data):
+    after = f_cons_data[1]
+    before = f_cons_data[-3]
+    values = cogdb.query.get_consolidation_in_range(session, start=after.updated_at, end=before.updated_at)
+    assert [x.amount for x in values] == [67, 65, 64]

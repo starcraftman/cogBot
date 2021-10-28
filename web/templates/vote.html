@@ -20,56 +20,44 @@
     <br/>
     <div id="controls">
     <form>
-        <label for="unit-select"> Force chart time unit: </label>
-        <select class="select-box" name="chart_unit" id="chart_unit">
-            <option value="noselect" disabled selected hidden> Time unit </option>
+        <label for="unit-label"> Force chart time unit: </label>
+        <select class="select-box" name="unit-select" id="unit-select">
+            <option value="default" selected > Default </option>
             <option value="minute"> Minutes </option>
             <option value="hour"> Hours </option>
             <option value="day"> Days </option>
             <option value="week"> Weeks </option>
             <option value="month"> Months </option>
         </select>
+
+        <br/>
+
+        <label for="cycle-label"> Select the cycle: </label>
+        <select class="select-box" name="cycle-select" id="cycle-select">
+        </select>
     </form>
     </div>
     <script type="text/javascript">
         // String format function
         const format = (str2Format, ...args) => str2Format.replace(/(\{\d+\})/g, a => args[+(a.substr(1, a.length - 2)) || 0] );
+        const powerplayStart = luxon.DateTime.utc(2015, 5, 28, 7);
+        const chartTitleFMT = "Cycle {0} Consolidation Vote"
         const timeFormat = "yy/MM/dd HH:mm:ss";  // Luxon fmt to parse incoming dates.
         const luxonOpts = {
             setZone: true,
             zone: 'UTC',
         }
+        var currentCycle = {{ cycle }};  // The current cycle, update on new selection.
         const voteChartData = {{ data }}; // JSON data injected from template
         voteChartData.map(ele => {
             ele.x = luxon.DateTime.fromFormat(ele.x, timeFormat, luxonOpts);
         });
+        const periodicDelay = 120; // Seconds between polling data
+
         // Generate the chart.
         const voteChart = lineVoteChart(document.getElementById("voteChart").getContext('2d'), voteChartData);
-        const periodicDelay = 120; // Seconds between polling data
         // Check for new data asynchronously every delay seconds
-        setInterval(function() { periodicCheck(); }, periodicDelay * 1000)
-
-        // Given the existing data, find a suitable unit and step size.
-        // TODO: Is this needed? Test automated rescaling.
-        function suitableUnit(config, chartData) {
-            let currentUnit = config.scales.x.time.unit;
-            let lastDate = chartData[chartData.length - 1].x
-            let timeGap = lastDate.diff(chartData[0].x, ['months', 'weeks', 'days', 'hours', 'minutes']);
-
-            let unit = 'minute';
-            if (timeGap.months > 3) {
-                unit = 'month'
-            } else if (timeGap.weeks > 5) {
-                unit = 'week'
-            } else if (timeGap.days > 4) {
-                unit = 'day';
-            } else if (timeGap.hours > 5) {
-                unit = 'hour';
-            }
-            console.log(format("Selecting as time unit: {0}", unit));
-
-            config.scales.x.time.unit = unit;
-        }
+        setInterval(function() { periodicCheck(currentCycle); }, periodicDelay * 1000)
 
         // Function to generate and contain line config.
         function lineVoteChart(ele, rdata) {
@@ -110,6 +98,9 @@
                 scales: {
                     x: {
                         type: 'time',
+                        afterFit: (scale) => {
+                            scale.height = 120;
+                        },
                         ticks: {
                             autoSkip: true,
                             maxTicksLimit: 30,
@@ -136,7 +127,7 @@
                 plugins: {
                     title: {
                         display: true,
-                        text: "Hudson Consolidation Vote"
+                        text: format(chartTitleFMT, currentCycle),
                     },
                     tooltip: {
                         enabled: true,
@@ -153,12 +144,7 @@
                 }
             }
 
-            // Set handlers for manipulating unit of chart
-            $('.select-box').change(function() {
-                voteConfig.scales.x.time.unit = $(this).val();
-                voteChart.update();
-            });
-
+            setupSelects(voteConfig, currentCycle);
             return new Chart(ele, {
                 type: 'line',
                 data: voteData,
@@ -171,9 +157,13 @@
             newData.map(ele => {
                 ele.x = luxon.DateTime.fromFormat(ele.x, timeFormat, luxonOpts);
             });
+            let lastDate = cycleToDate(currentCycle);
 
             for (let i = 0; i < newData.length; i++) {
-                const lastDate = chartData[chartData.length - 1].x
+                if (chartData.length > 0) {
+                    lastDate = chartData[chartData.length - 1].x
+                }
+
                 if (newData[i].x > lastDate) {
                     chartData.push(newData[i]);
                 }
@@ -183,17 +173,67 @@
         }
 
         // Run this function periodically to check for new data on chart.
-        function periodicCheck() {
-            const timestamp = voteChartData[voteChartData.length - 1].x.toSeconds();
+        function periodicCheck(cycle) {
+            let start = cycleToDate(cycle);
+            const end = start.plus({weeks: 1});
+            if (voteChartData.length > 0) {
+                start = voteChartData[voteChartData.length - 1].x;
+            }
 
-            fetch("data/vote/" + timestamp).then(function(data) {
+            const url = format("data/voteRange/{0}/{1}", start.toSeconds(), end.toSeconds())
+            fetch(url).then(function(data) {
                 return data.json();
             }).catch(function(error) {
                 console.log(error)
             })
             .then(newData => {
-                updateData(voteChart, voteChartData, newData);
+                if (Array.isArray(newData) && newData.length > 0) {
+                    updateData(voteChart, voteChartData, newData);
+                }
             });
+        }
+
+        // Set handlers for manipulating unit of chart
+        function setupSelects(voteConfig, curCycle) {
+            $('#unit-select').change(function() {
+                if ($(this).val() == "default") {
+                    delete voteConfig.scales.x.time.unit
+                } else {
+                    voteConfig.scales.x.time.unit = $(this).val();
+                }
+                voteChart.update();
+            });
+
+            for (var i = 0; i != 5; i++) {
+                const cycle = format("{0}", curCycle - i);
+                $('#cycle-select').append($('<option>', {
+                    value: cycle,
+                    text: cycle,
+                }));
+            }
+
+            $('#cycle-select').change(function() {
+                console.log(format("Selected cycle: {0}", $(this).val()));
+
+                fetch("data/voteCycle/" + $(this).val()).then(function(data) {
+                    return data.json();
+                }).catch(function(error) {
+                    console.log(error)
+                })
+                .then(newData => {
+                    voteChartData.splice(0, voteChartData.length);
+                    updateData(voteChart, voteChartData, newData);
+                });
+
+                currentCycle = parseInt($(this).val());
+                voteConfig.plugins.title.text = format(chartTitleFMT, $(this).val());
+                voteChart.update();
+            });
+        }
+
+        // Simple converter from cycle number to datetime.
+        function cycleToDate(cycle) {
+            return powerplayStart.plus({weeks: cycle});
         }
     </script>
 </body>

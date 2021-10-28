@@ -35,7 +35,7 @@ Rolling over existing file logs as listed below.
     module_name -> output_file
     =========================="""
 # This date is the first week of Elite's Powerplay cycles
-WEEK_ZERO = datetime.datetime(2015, 8, 6, 7, 0)
+WEEK_ZERO = datetime.datetime(2015, 5, 28, 7, 0)
 
 
 class RWLockWrite():
@@ -556,6 +556,13 @@ def current_cycle():
     Returns: The current cycle of Powerplay, based on first week of play.
     """
     return (datetime.datetime.utcnow() - WEEK_ZERO).days // 7
+
+
+def cycle_to_start(cycle_number):
+    """
+    Returns: The starting datetime of cycle_number.
+    """
+    return WEEK_ZERO + datetime.timedelta(weeks=cycle_number)
 
 
 # TODO: Use later.
