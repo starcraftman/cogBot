@@ -9,6 +9,7 @@ import mock
 import pytest
 
 import cog.util
+from tests.data import SYSTEMS, USERS
 
 
 def test_dict_to_columns():
@@ -42,28 +43,18 @@ def test_rel_to_abs():
     assert cog.util.rel_to_abs('data', 'log.yml') == expect
 
 
-def test_substr_ind():
-    assert cog.util.substr_ind('ale', 'alex') == [0, 3]
-    assert cog.util.substr_ind('ALEX', 'Alexander') == [0, 4]
-    assert cog.util.substr_ind('nde', 'Alexander') == [5, 8]
+def test_fuzzy_find():
+    assert cog.util.fuzzy_find('Alex', USERS) == 'Alexander Astropath'
 
-    assert not cog.util.substr_ind('ALe', 'Alexander', ignore_case=False)
-    assert not cog.util.substr_ind('not', 'alex')
-    assert not cog.util.substr_ind('longneedle', 'alex')
+    with pytest.raises(cog.exc.MoreThanOneMatch):
+        cog.util.fuzzy_find('ric', USERS)
+    with pytest.raises(cog.exc.NoMatch):
+        cog.util.fuzzy_find('zzzz', SYSTEMS)
 
-    assert cog.util.substr_ind('16 cyg', '16 c y  gni') == [0, 9]
-
-
-def test_substr_match():
-    assert cog.util.substr_match('ale', 'alex')
-    assert cog.util.substr_match('ALEX', 'Alexander')
-    assert cog.util.substr_match('nde', 'Alexander')
-
-    assert not cog.util.substr_match('ALe', 'Alexander', ignore_case=False)
-    assert not cog.util.substr_match('not', 'alex')
-    assert not cog.util.substr_match('longneedle', 'alex')
-
-    assert cog.util.substr_ind('16 cyg', '16 c y  gni') == [0, 9]
+    assert cog.util.fuzzy_find('WW p', SYSTEMS) == 'WW Piscis Austrini'
+    with pytest.raises(cog.exc.MoreThanOneMatch):
+        cog.util.fuzzy_find('LHS', SYSTEMS)
+    assert cog.util.fuzzy_find('tun', SYSTEMS) == 'Tun'
 
 
 def test_transpose_table():

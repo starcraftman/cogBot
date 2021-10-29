@@ -778,7 +778,7 @@ If we should contact Gears or Sidewinder""".format(system_name)
         except AttributeError as exc:
             raise cog.exc.InvalidCommandArgs("Bad subcommand of `!bgs`, see `!bgs -h` for help.") from exc
         except (cog.exc.NoMoreTargets, cog.exc.RemoteError) as exc:
-            response = exc.reply()
+            response = str(exc)
 
 
 class Dist(Action):
@@ -1139,7 +1139,6 @@ class Hold(Action):
             response += '\n\nSystem is finished with held merits. Type `!um` for more targets.'
             response += '\n\n**{}** Have a :skull: for completing {}. Don\'t forget to redeem.'.format(
                 self.duser.display_name, system.name)
-
 
         return ([hold], response)
 
@@ -1592,7 +1591,7 @@ class Time(Action):
                 tick = await self.bot.loop.run_in_executor(
                     None, cogdb.side.next_bgs_tick, side_session, now)
         except (cog.exc.NoMoreTargets, cog.exc.RemoteError) as exc:
-            tick = exc.reply()
+            tick = str(exc)
         lines = [
             'Game Time: **{}**'.format(now.strftime('%H:%M:%S')),
             tick,
@@ -1825,11 +1824,11 @@ class Snipe(UM):
 
             # Set the cycle if it exists
             try:
-                scanner_name ='hudson_snipe'
+                scanner_name = 'hudson_snipe'
                 new_page = self.args.cycle
 
                 try:
-                    await SCANNERS[scanner_name].asheet.change_worksheet(new_page)
+                    await cogdb.scanners.SCANNERS[scanner_name].asheet.change_worksheet(new_page)
                 except gspread.exceptions.WorksheetNotFound as exc:
                     msg = f"Missing **{new_page}** worksheet on {scanner_name}. Please fix and rerun cycle. No change made."
                     raise cog.exc.InvalidCommandArgs(msg) from exc
@@ -2017,7 +2016,6 @@ Date (UTC): {now}
 
             await self.msg.channel.send("All votes summary.",
                                         file=discord.File(fp=tfile.name, filename=f"AllVotes.{now.day}_{now.month}_{now.hour}{now.minute}.txt"))
-
 
     def vote_direction(self, globe):
         """Display vote direction"""

@@ -14,22 +14,7 @@ from cogdb.schema import (DiscordUser, FortSystem, FortUser, FortOrder,
                           OCRTracker, OCRTrigger, OCRPrep, Global, Vote, EVoteType)
 import cogdb.query
 
-from tests.data import SYSTEMS, USERS
 from tests.conftest import Channel, Member, Message, Role, Guild
-
-
-def test_fuzzy_find():
-    assert cogdb.query.fuzzy_find('Alex', USERS) == 'Alexander Astropath'
-
-    with pytest.raises(cog.exc.MoreThanOneMatch):
-        cogdb.query.fuzzy_find('ric', USERS)
-    with pytest.raises(cog.exc.NoMatch):
-        cogdb.query.fuzzy_find('zzzz', SYSTEMS)
-
-    assert cogdb.query.fuzzy_find('WW p', SYSTEMS) == 'WW Piscis Austrini'
-    with pytest.raises(cog.exc.MoreThanOneMatch):
-        cogdb.query.fuzzy_find('LHS', SYSTEMS)
-    assert cogdb.query.fuzzy_find('tun', SYSTEMS) == 'Tun'
 
 
 def test_get_duser(session, f_dusers):

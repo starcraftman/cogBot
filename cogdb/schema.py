@@ -148,8 +148,8 @@ class FortUser(Base):
         return sqla.func.cast(
             sqla.func.ifnull(
                 sqla.select(sqla.func.sum(FortDrop.amount)).
-                    where(FortDrop.user_id == self.id).
-                    label('dropped'),
+                where(FortDrop.user_id == self.id).
+                label('dropped'),
                 0
             ),
             sqla.Integer
@@ -261,8 +261,8 @@ class FortSystem(Base):
         return sqla.func.cast(
             sqla.func.ifnull(
                 sqla.select(sqla.func.sum(FortDrop.amount)).
-                    where(FortDrop.system_id == cls.id).
-                    label('cmdr_merits'),
+                where(FortDrop.system_id == cls.id).
+                label('cmdr_merits'),
                 0
             ),
             sqla.Integer
@@ -578,9 +578,9 @@ class UMUser(Base):
         return sqla.func.cast(
             sqla.func.ifnull(
                 sqla.select(sqla.func.sum(UMHold.held)).
-                    where(sqla.and_(UMHold.user_id == cls.id,
-                                    UMHold.sheet_src != EUMSheet.snipe)).
-                    label('held'),
+                where(sqla.and_(UMHold.user_id == cls.id,
+                                UMHold.sheet_src != EUMSheet.snipe)).
+                label('held'),
                 0
             ),
             sqla.Integer
@@ -601,9 +601,9 @@ class UMUser(Base):
         return sqla.func.cast(
             sqla.func.ifnull(
                 sqla.select(sqla.func.sum(UMHold.redeemed)).
-                    where(sqla.and_(UMHold.user_id == cls.id,
-                                    UMHold.sheet_src != EUMSheet.snipe)).
-                    label('redeemed'),
+                where(sqla.and_(UMHold.user_id == cls.id,
+                                UMHold.sheet_src != EUMSheet.snipe)).
+                label('redeemed'),
                 0
             ),
             sqla.Integer
@@ -724,8 +724,8 @@ class UMSystem(Base):
         return sqla.func.cast(
             sqla.func.ifnull(
                 sqla.select(sqla.func.sum(UMHold.held)).
-                    where(UMHold.system_id == cls.id).
-                    label('cmdr_merits'),
+                where(UMHold.system_id == cls.id).
+                label('cmdr_merits'),
                 0
             ),
             sqla.Integer
@@ -745,8 +745,8 @@ class UMSystem(Base):
         return sqla.func.cast(
             sqla.func.ifnull(
                 sqla.select(sqla.func.sum(UMHold.held + UMHold.redeemed)).
-                    where(UMHold.system_id == cls.id).
-                    label('cmdr_merits'),
+                where(UMHold.system_id == cls.id).
+                label('cmdr_merits'),
                 0
             ),
             sqla.Integer

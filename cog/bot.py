@@ -305,26 +305,24 @@ class CogBot(discord.Client):
                     exc.message = 'Invalid command use. Check the command help.'
                     exc.message += '\n{}\n{}'.format(len(exc.message) * '-', exc2.message)
 
-            await self.send_ttl_message(channel, exc.reply())
+            await self.send_ttl_message(channel, str(exc))
             try:
                 if edit_time == message.edited_at:
                     await message.delete()
             except discord.DiscordException:
                 pass
 
-        except cog.exc.UserException as exc:
+        except cog.exc.CogException as exc:
             exc.write_log(log, content=content, author=author, channel=channel)
-
-            await self.send_ttl_message(channel, exc.reply())
-            try:
-                if edit_time == message.edited_at:
-                    await message.delete()
-            except discord.DiscordException:
-                pass
-
-        except cog.exc.InternalException as exc:
-            exc.write_log(log, content=content, author=author, channel=channel)
-            await self.send_message(channel, exc.reply())
+            if isinstance(exc, cog.exc.UserException):
+                await self.send_ttl_message(channel, str(exc))
+                try:
+                    if edit_time == message.edited_at:
+                        await message.delete()
+                except discord.DiscordException:
+                    pass
+            else:
+                await self.send_message(channel, str(exc))
 
         except discord.DiscordException as exc:
             if exc.args[0].startswith("BAD REQUEST (status code: 400"):

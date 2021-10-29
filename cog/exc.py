@@ -1,7 +1,9 @@
 """
 Common exceptions.
 """
-import cog.util
+import sqlalchemy.orm.exc as sqla_oexc
+
+from cog.matching import substr_ind, DUMMY_ATTRIBUTE
 
 
 class CogException(Exception):
@@ -11,26 +13,16 @@ class CogException(Exception):
         - Reply to the user with some relevant response.
     """
     def __init__(self, msg=None, lvl='info'):
-        super().__init__()
+        super().__init__(msg)
         self.log_level = lvl
-        self.message = msg
 
     def write_log(self, log, *, content, author, channel):
         """
         Log all relevant message about this session.
         """
         log_func = getattr(log, self.log_level)
-        header = '\n{}\n{}\n'.format(self.__class__.__name__ + ': ' + self.reply(), '=' * 20)
+        header = '\n{}\n{}\n'.format(self.__class__.__name__ + ': ' + str(self), '=' * 20)
         log_func(header + log_format(content=content, author=author, channel=channel))
-
-    def reply(self):
-        """
-        Construct a reponse to user.
-        """
-        return self.message
-
-    def __str__(self):
-        return str(self.reply())
 
 
 class UserException(CogException):
@@ -59,39 +51,37 @@ class InvalidPerms(UserException):
 
 class MoreThanOneMatch(UserException):
     """ Too many matches were found for sequence.  """
-    def __init__(self, sequence, matches, obj_attr=None):
-        super().__init__()
-        self.sequence = sequence
-        self.matches = matches
-        self.obj_attr = obj_attr if obj_attr else ''
+    def __init__(self, needle, haystack, type_name, obj_attr=DUMMY_ATTRIBUTE):
+        super().__init__('Empty')
+        self.needle = needle
+        self.haystack = haystack
+        self.type_name = type_name
+        self.obj_attr = obj_attr
 
-    def reply(self):
-        obj = self.matches[0]
-        if not obj or isinstance(obj, type('')):
-            cls = 'string'
-        else:
-            cls = self.matches[0].__class__.__name__
+    def __str__(self):
+        matches = [emphasize_match(self.needle, getattr(obj, self.obj_attr, obj))
+                   for obj in self.haystack]
+        matches = "    - " + "\n    - ".join(matches)
+        return f"""Unable to match exactly one result. Refine the search.
 
-        header = "Resubmit query with more specific criteria."
-        header += "\nToo many matches for '{}' in {}s:".format(
-            self.sequence, cls)
-        matched_strings = [emphasize_match(self.sequence, getattr(obj, self.obj_attr, obj))
-                           for obj in self.matches]
-        matched = "\n    - " + "\n    - ".join(matched_strings)
-        return header + matched
+Looked for __{self.needle}__ in {self.type_name}s. Potentially matched the following:
+
+{matches}"""
 
 
 class NoMatch(UserException):
     """
     No match was found for sequence.
     """
-    def __init__(self, sequence, obj_type):
-        super().__init__()
-        self.sequence = sequence
-        self.obj_type = obj_type
+    def __init__(self, needle, type_name):
+        super().__init__('Empty')
+        self.needle = needle
+        self.type_name = type_name
 
-    def reply(self):
-        return "No matches for '{}' in {}s.".format(self.sequence, self.obj_type)
+    def __str__(self):
+        return f"""No match when one was required. Refine the search.
+
+Looked for for __{self.needle}__ in {self.type_name}s."""
 
 
 class CmdAborted(UserException):
@@ -164,7 +154,7 @@ class NameCollisionError(SheetParsingError):
         self.sheet = sheet
         self.rows = rows
 
-    def reply(self):
+    def __str__(self):
         lines = [
             "**Critical Error**",
             "----------------",
@@ -182,9 +172,12 @@ def emphasize_match(seq, line, fmt='__{}__'):
     """
     Emphasize the matched portion of string.
     """
-    start, end = cog.util.substr_ind(seq, line)
-    matched = line[start:end]
-    return line.replace(matched, fmt.format(matched))
+    indices = substr_ind(seq.lower(), line.lower(), skip_spaces=True)
+    if indices:
+        matched = line[indices[0]:indices[1]]
+        line = line.replace(matched, fmt.format(matched))
+
+    return line
 
 
 def log_format(*, content, author, channel):

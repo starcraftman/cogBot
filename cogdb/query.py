@@ -14,38 +14,13 @@ import cog.exc
 import cog.sheets
 import cog.util
 import cogdb.eddb
-from cog.util import substr_match
+from cog.util import fuzzy_find
 from cogdb.schema import (DiscordUser, FortSystem, FortPrep, FortDrop, FortUser, FortOrder,
                           EFortType, UMSystem, UMUser, UMHold, EUMSheet, EUMType, KOS,
                           AdminPerm, ChannelPerm, RolePerm,
                           TrackSystem, TrackSystemCached, TrackByID, OCRTracker, OCRTrigger,
-                          OCRPrep, Global, Vote, EVoteType, Consolidation)
+                          OCRPrep, Global, Vote, Consolidation)
 from cogdb.scanners import FortScanner
-
-
-def fuzzy_find(needle, stack, obj_attr='zzzz', ignore_case=True):
-    """
-    Searches for needle in whole stack and gathers matches. Returns match if only 1.
-
-    Raise separate exceptions for NoMatch and MoreThanOneMatch.
-    """
-    matches = []
-    for obj in stack:
-        try:
-            if substr_match(needle, getattr(obj, obj_attr, obj), ignore_case=ignore_case):
-                matches.append(obj)
-        except cog.exc.NoMatch:
-            pass
-
-    num_matches = len(matches)
-    if num_matches == 1:
-        return matches[0]
-
-    if num_matches == 0:
-        cls = stack[0].__class__.__name__ if getattr(stack[0], '__class__') else 'string'
-        raise cog.exc.NoMatch(needle, cls)
-
-    raise cog.exc.MoreThanOneMatch(needle, matches, obj_attr)
 
 
 def dump_db(session):  # pragma: no cover
@@ -276,7 +251,7 @@ def fort_find_system(session, system_name, search_all=True):
     except (sqla_oexc.NoResultFound, sqla_oexc.MultipleResultsFound):
         index = 0 if search_all else fort_find_current_index(session)
         systems = fort_get_systems(session)[index:] + fort_get_preps(session)
-        return fuzzy_find(system_name, systems, 'name')
+        return fuzzy_find(system_name, systems, obj_attr='name', obj_type='System')
 
 
 def fort_get_systems_by_state(session):
@@ -916,7 +891,8 @@ def complete_control_name(partial, include_winters=False):
         if include_winters:
             systems += cogdb.eddb.get_controls_of_power(eddb_session, power='%winters')
 
-    return fuzzy_find(partial, systems)
+    obj_type = "Constrol Systems of Hudson" + " and Winters" if include_winters else ""
+    return fuzzy_find(partial, systems, obj_type=obj_type)
 
 
 def kos_search_cmdr(session, term):

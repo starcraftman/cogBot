@@ -25,6 +25,7 @@ except ImportError:
 
 import cog.config
 import cog.exc
+from cog.matching import substr_ind, DUMMY_ATTRIBUTE
 
 BOT = None
 MSG_LIMIT = 1950  # Number chars before message truncation
@@ -150,47 +151,41 @@ class WaitCB():
             await self.resume_cb()
 
 
-def substr_match(seq, line, *, skip_spaces=True, ignore_case=True):
-    """
-    True iff the substr is present in string. Ignore spaces and optionally case.
-    """
-    return substr_ind(seq, line, skip_spaces=skip_spaces,
-                      ignore_case=ignore_case) != []
+# TODO: Name? This isn't the fuzzy find but I crap at naming.
+def fuzzy_find(needle, stack, *, obj_attr=DUMMY_ATTRIBUTE, obj_type='String', ignore_case=True, skip_spaces=True):
+    """Search for needle in stack with optional flags.
 
+    This is essentially a `needle in stack` test except for the extra flags.
+    It is expected to return exactly __ONE__ object from the stack.
 
-def substr_ind(seq, line, *, skip_spaces=True, ignore_case=True):
-    """
-    Return the start and end + 1 index of a substring match of seq to line.
+    Args:
+        needle: What you are looking for.
+        stack: The collection of things you are looking in.
+        obj_attr: Optional attribute to look at on every object in the stack to match.
+                  If set, matches will still return the original object.
+        ignore_case: If true, ignore case in both the needle and stack.
+        skip_spaces: If true, ignore spaces in both the needle and stack.
 
-    Returns:
-        [start, end + 1] if needle found in line
-        [] if needle not found in line
+    Raises:
+        cog.exc.NoMatch: No match was found, expected to find one.
+        cog.exc.MoreThanOneMatch: Too many matches were found, expected to find one.
+                                  If you want all matches, exception has them in exc.matches.
     """
     if ignore_case:
-        seq = seq.lower()
-        line = line.lower()
+        needle = needle.lower()
 
-    if skip_spaces:
-        seq = seq.replace(' ', '')
+    matches = []
+    for obj in stack:
+        line = getattr(obj, obj_attr, obj)
+        if substr_ind(needle, line.lower() if ignore_case else line, skip_spaces=skip_spaces):
+            matches.append(obj)
 
-    start = None
-    count = 0
-    for ind, char in enumerate(line):
-        if skip_spaces and char == ' ':
-            continue
+    if len(matches) == 0:
+        raise cog.exc.NoMatch(needle, obj_type)
+    if len(matches) != 1:
+        raise cog.exc.MoreThanOneMatch(needle, matches, obj_type, obj_attr)
 
-        if char == seq[count]:
-            if count == 0:
-                start = ind
-            count += 1
-        else:
-            count = 0
-            start = None
-
-        if count == len(seq):
-            return [start, ind + 1]
-
-    return []
+    return matches[0]
 
 
 def rel_to_abs(*path_parts):
