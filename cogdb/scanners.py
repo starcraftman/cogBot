@@ -11,6 +11,8 @@ import re
 import sys
 from copy import deepcopy
 
+import sqlalchemy.exc as sqla_exc
+
 import cog.exc
 import cog.sheets
 import cog.util
@@ -111,7 +113,11 @@ class FortScanner():
         Drop the objects in the database that this scanner is responsible for.
         """
         for cls in self.db_classes:
-            session.query(cls).delete()
+            try:
+                session.query(cls).delete()
+            except sqla_exc.ProgrammingError:  # Table was deleted or some other problem, attempt to recreate
+                logging.getLogger(__name__).error("Drop DB Entries: Critical error, likely a table issue. Attempting to recreate if it was deleted.")
+                cls.__table__.create(cogdb.engine)
         session.commit()
 
     def flush_to_db(self, session, new_objs):
@@ -354,8 +360,12 @@ class UMScanner(FortScanner):
         Drop the main um entries in the um part of the database.
         """
         for cls in self.db_classes:
-            session.query(cls).filter(cls.sheet_src == self.sheet_src).delete()
-            session.commit()
+            try:
+                session.query(cls).filter(cls.sheet_src == self.sheet_src).delete()
+            except sqla_exc.ProgrammingError:  # Table was deleted or some other problem, attempt to recreate
+                logging.getLogger(__name__).error("Drop DB Entries: Critical error, likely a table issue. Attempting to recreate if it was deleted.")
+                cls.__table__.create(cogdb.engine)
+        session.commit()
 
     def users(self, *, row_cnt=None, first_id=1, cls=UMUser):
         """

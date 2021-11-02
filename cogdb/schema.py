@@ -1742,8 +1742,10 @@ def empty_tables(session, *, perm=False):
         classes += [DiscordUser]
 
     for cls in classes:
-        for matched in session.query(cls):
-            session.delete(matched)
+        try:
+            session.query(cls).delete()
+        except sqla.exc.ProgrammingError:  # Table was deleted or some other problem, attempt to recreate
+            pass
     session.commit()
 
 

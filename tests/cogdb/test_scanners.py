@@ -6,12 +6,13 @@ import os
 
 import aiomock
 import pytest
+import sqlalchemy as sqla
 
 import cog.exc
 import cogdb.scanners
 from cogdb.schema import (FortSystem, FortDrop, FortUser,
                           UMSystem, UMUser, UMHold, KOS, TrackByID,
-                          OCRTracker, OCRTrigger, OCRPrep, Global)
+                          OCRTracker, OCRTrigger, OCRPrep, Global, EUMSheet)
 from cogdb.scanners import (FortScanner, UMScanner, KOSScanner, RecruitsScanner, CarrierScanner,
                             OCRScanner)
 
@@ -26,6 +27,41 @@ async def test_fortscanner_update_cells(f_asheet_fortscanner):
 
     assert fscan.cells_row_major[2][0] == "Total Fortification Triggers:"
     assert fscan.cells_col_major[0][2] == "Total Fortification Triggers:"
+
+
+def test_fortscanner_drop_db_entries(session, f_asheet_fortscanner,
+                                     f_dusers, f_fort_testbed, db_cleanup):
+    fscan = FortScanner(f_asheet_fortscanner)
+    assert session.query(FortUser).all()
+    assert session.query(FortSystem).all()
+    assert session.query(FortDrop).all()
+
+    fscan.drop_db_entries(session)
+
+    assert not session.query(FortUser).all()
+    assert not session.query(FortSystem).all()
+    assert not session.query(FortDrop).all()
+
+
+def test_fortscanner_drop_db_entries_error(session, f_asheet_fortscanner,
+                                           f_dusers, f_fort_testbed, db_cleanup):
+    fscan = FortScanner(f_asheet_fortscanner)
+    assert session.query(FortUser).all()
+    assert session.query(FortSystem).all()
+    assert session.query(FortDrop).all()
+    session.close()
+
+    # Simulate drop from external source or some critical error!
+    sqla.orm.session.close_all_sessions()
+    with cogdb.engine.connect() as con:
+        con.execute(sqla.sql.text('drop table hudson_fort_merits'))
+
+    with cogdb.session_scope(cogdb.Session) as new_session:
+        fscan.drop_db_entries(new_session)
+
+    assert not session.query(FortUser).all()
+    assert not session.query(FortSystem).all()
+    assert not session.query(FortDrop).all()
 
 
 def test_fortscanner_flush_to_db(session, f_asheet_fortscanner,
@@ -157,6 +193,25 @@ def test_fortscanner_update_systems_dict():
 def test_fortscanner_update_drop_dict():
     data = FortScanner.update_drop_dict("G", 22, 7000)
     assert data == [{"range": "G22:G22", "values": [[7000]]}]
+
+
+def test_umscanner_drop_db_entries(session, f_asheet_umscanner, f_dusers, f_um_testbed):
+    umscan = UMScanner(f_asheet_umscanner)
+    assert session.query(UMUser).filter(UMUser.sheet_src == EUMSheet.main).all()
+    assert session.query(UMUser).filter(UMUser.sheet_src == EUMSheet.snipe).all()
+    assert session.query(UMSystem).filter(UMSystem.sheet_src == EUMSheet.main).all()
+    assert session.query(UMSystem).filter(UMSystem.sheet_src == EUMSheet.snipe).all()
+    assert session.query(UMHold).filter(UMHold.sheet_src == EUMSheet.main).all()
+    assert session.query(UMHold).filter(UMHold.sheet_src == EUMSheet.snipe).all()
+
+    umscan.drop_db_entries(session)
+
+    assert not session.query(UMUser).filter(UMUser.sheet_src == EUMSheet.main).all()
+    assert session.query(UMUser).filter(UMUser.sheet_src == EUMSheet.snipe).all()
+    assert not session.query(UMSystem).filter(UMSystem.sheet_src == EUMSheet.main).all()
+    assert session.query(UMSystem).filter(UMSystem.sheet_src == EUMSheet.snipe).all()
+    assert not session.query(UMHold).filter(UMHold.sheet_src == EUMSheet.main).all()
+    assert session.query(UMHold).filter(UMHold.sheet_src == EUMSheet.snipe).all()
 
 
 #  # Sanity check for fixture, I know not needed.
