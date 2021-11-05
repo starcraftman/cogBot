@@ -19,7 +19,7 @@ from cogdb.schema import (DiscordUser, FortSystem, FortPrep, FortDrop, FortUser,
                           EFortType, UMSystem, UMUser, UMHold, EUMSheet, EUMType, KOS,
                           AdminPerm, ChannelPerm, RolePerm,
                           TrackSystem, TrackSystemCached, TrackByID, OCRTracker, OCRTrigger,
-                          OCRPrep, Global, Vote, Consolidation)
+                          OCRPrep, Global, Vote, EVoteType, Consolidation)
 from cogdb.scanners import FortScanner
 
 
@@ -1473,14 +1473,17 @@ def get_cons_prep_totals(session):
 
     Returns: cons_total, prep_total
     """
-    try:
-        cons_total, prep_total = session.query(sqla.func.ifnull(sqla.func.sum(Vote.amount), 0)).\
-            group_by(Vote.vote).\
-            order_by(Vote.vote).\
-            all()
-        cons_total, prep_total = int(cons_total[0]), int(prep_total[0])
-    except ValueError:
-        cons_total, prep_total = 0, 0
+    cons_total, prep_total = 0, 0
+    results = session.query(Vote.vote, sqla.func.sum(Vote.amount)).\
+        group_by(Vote.vote).\
+        order_by(Vote.vote).\
+        all()
+
+    for result in results:
+        if result[0] == EVoteType.cons:
+            cons_total = int(result[1])
+        else:
+            prep_total = int(result[1])
 
     return cons_total, prep_total
 

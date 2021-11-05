@@ -926,14 +926,23 @@ def test_get_all_votes(session, f_dusers, f_vote_testbed):
     assert votes[0][0] == f_vote_testbed[-1]  # Returned descending order
 
 
-def test_get_current_cons_prep_totals_empty(session, f_dusers):
+def test_get_cons_prep_totals_empty(session, f_dusers):
     cons, preps = cogdb.query.get_cons_prep_totals(session)
 
     assert cons == 0
     assert preps == 0
 
 
-def test_get_current_cons_prep_totals(session, f_dusers, f_vote_testbed):
+def test_get_cons_prep_totals_only_cons(session, f_dusers, f_vote_testbed):
+    session.query(Vote).filter(Vote.vote == EVoteType.prep).delete()
+    session.commit()
+    cons, preps = cogdb.query.get_cons_prep_totals(session)
+
+    assert preps == 0
+    assert cons == 4
+
+
+def test_get_cons_prep_totals(session, f_dusers, f_vote_testbed):
     cons, preps = cogdb.query.get_cons_prep_totals(session)
 
     assert cons == 4
