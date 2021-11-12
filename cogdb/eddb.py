@@ -2004,6 +2004,36 @@ def get_system_closest_to_HQ(session, systems, *, power='hudson'):
         one()
 
 
+def get_closest_station_by_government(session, system, gov_type, *, limit=10):
+    """Find the closest pirson megaship to designated system.
+
+    Results will be a list of tuples of [(Station, System), ...] ordered by distance to system starting at.
+
+    Args:
+        session: A session onto the db.
+        system: The system to find prison megaships near.
+        limit: The number of matching stations to return.
+
+    Raises:
+        InvalidCommandArgs: Could not find the system.
+    """
+    try:
+        found = session.query(System).\
+            filter(System.name == system).\
+            one()
+    except sqla_orm.exc.NoResultFound as exc:
+        raise cog.exc.InvalidCommandArgs(f"Could not find system: {system}\n\nPlease check for typos.") from exc
+
+    return session.query(Station, System, System.dist_to(found)).\
+        join(System, Station.system_id == System.id).\
+        join(Faction, Station.controlling_minor_faction_id == Faction.id).\
+        join(Government, Faction.government_id == Government.id).\
+        filter(Government.text == gov_type).\
+        order_by(System.dist_to(found)).\
+        limit(limit).\
+        all()
+
+
 def populate_system_controls(session):
     """
     Compute all pairs of control and exploited systems

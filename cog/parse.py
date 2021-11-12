@@ -452,9 +452,12 @@ def subs_near(subs, prefix):
     subcmd.add_argument('power', help='A unique substring of power name.')
     subcmd.add_argument('system', nargs='+', help='The system to lookup.')
 
-    subcmd = subcmds.add_parser('if', help='Find interstellar factorsr.')
+    subcmd = subcmds.add_parser('if', help='Find nearest interstellar factors.')
     subcmd.add_argument('system', nargs='+', help='The system to lookup.')
     subcmd.add_argument('-m', '--medium', action='store_true', default=False, help='The include mpad only stations.')
+
+    subcmd = subcmds.add_parser('prison', help='Find nearest prison megaship.')
+    subcmd.add_argument('system', nargs='+', help='The system to centre on.')
 
 
 @register_parser

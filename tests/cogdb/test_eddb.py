@@ -327,3 +327,14 @@ def test_find_route_from_hq(eddb_session):
 
     dist, sorted_systems = cogdb.eddb.find_route_closest_hq(eddb_session, systems)
     assert [x.name for x in sorted_systems] == expected
+
+
+def test_get_closest_station_by_government(eddb_session):
+    results = cogdb.eddb.get_closest_station_by_government(eddb_session, 'Rana', 'Prison')
+    expect = 'The Pillar of Fortitude'
+    assert results[0][0].name == expect
+
+
+def test_get_closest_station_by_government_bad_system(eddb_session):
+    with pytest.raises(cog.exc.InvalidCommandArgs):
+        cogdb.eddb.get_closest_station_by_government(eddb_session, 'zxzxzx', 'Prison')

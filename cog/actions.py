@@ -1301,6 +1301,25 @@ class Near(Action):
             suffix="[L] Large pads.\n[M] M pads only."
         )[0]
 
+    async def prison(self, eddb_session):
+        """
+        Find nearest prison megaship.
+        """
+        sys_name = ' '.join(self.args.system)
+        stations = await self.bot.loop.run_in_executor(
+            None,
+            functools.partial(
+                cogdb.eddb.get_closest_station_by_government, eddb_session,
+                sys_name, "Prison", limit=10
+            )
+        )
+
+        lines = [['Station', 'System', 'Distance']]
+        lines += [[f"{station.name}", f"{system.name}", f"{dist:.2f}"] for station, system, dist in stations]
+        return f"__Closest 10 Prison Megaships__\nCentred on: {sys_name}\n\n" + \
+            cog.tbl.format_table(lines, header=True)[0]
+
+
     async def execute(self):
         msg = 'Invalid near sub command.'
         with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
@@ -1308,6 +1327,8 @@ class Near(Action):
                 msg = await self.control(eddb_session)
             elif self.args.subcmd == 'if':
                 msg = await self.ifactors(eddb_session)
+            elif self.args.subcmd == 'prison':
+                msg = await self.prison(eddb_session)
 
         await self.bot.send_message(self.msg.channel, msg)
 

@@ -1701,6 +1701,18 @@ async def test_cmd_near_if(f_bot):
 
 
 @pytest.mark.asyncio
+async def test_cmd_near_prison(f_bot):
+    msg = fake_msg_gears("!near prison Rana")
+
+    await action_map(msg, f_bot).execute()
+
+    actual = str(f_bot.send_message.call_args).replace("\\n", "\n")
+    assert "The Pillar of Fortitude" in actual
+    assert "SPF-LF 1" in actual
+    assert "29.34" in actual
+
+
+@pytest.mark.asyncio
 async def test_cmd_vote_prep(f_bot, f_dusers, f_global_testbed, f_vote_testbed):
     msg = fake_msg_gears("!vote prep 1")
 
