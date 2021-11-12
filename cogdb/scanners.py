@@ -824,8 +824,12 @@ class RecruitsScanner(FortScanner):
             if row.strip() == "":  # Overshot by 1
                 self.first_free -= 1
                 break
-
         self.first_free += 1
+
+        # Due to layout, entries start at row 3, something must have gone wrong
+        if self.first_free < 3:
+            raise cog.exc.InvalidCommandArgs("Could not detect the first free row in sheet. Please try again.")
+
         return self.first_free
 
     def add_recruit_dict(self, *, cmdr, discord_name, rank, platform, pmf, notes):
