@@ -1239,9 +1239,11 @@ class KOS(Action):
             msg = None
 
         elif self.args.subcmd == 'pull':
+            scanner = get_scanner('hudson_kos')
+            await scanner.update_cells()
             with cfut.ProcessPoolExecutor(max_workers=1) as pool:
                 await self.bot.loop.run_in_executor(
-                    pool, get_scanner('hudson_kos').scheduler_run
+                    pool, scanner.scheduler_run
                 )
             msg = 'KOS list refreshed from sheet.'
 
