@@ -441,6 +441,8 @@ class InaraApi():
         for fut in futs:
             await fut
 
+        # FIXME: Why was this not defined earlier? Odd flow
+        kos_info = None
         if not kos_embeds:
             # Not found in KOS db, ask if should be added
             kos_info = await self.should_cmdr_be_on_kos(req_id, cmdr['name'], msg)
@@ -544,7 +546,7 @@ async def inara_squad_parse(url):
     from the inara api.
 
     Args:
-        url: The link to a squardron's page.
+        url: The link to a squardron's main or about page page.
 
     Returns: A dict with information that can be added to squad details.
     """
@@ -555,34 +557,44 @@ async def inara_squad_parse(url):
         "age": EMPTY_INARA,
         "hq": EMPTY_INARA,
         "leader": EMPTY_INARA,
+        "members": EMPTY_INARA,
         "minor": EMPTY_INARA,
     }
+    # Squadron information moved to an about page, redirect request
+    url = url.replace('/squadron/', '/squadron-about/')
     async with aiohttp.ClientSession() as http:
         async with http.get(url) as resp:
-            soup = bs4.BeautifulSoup(await resp.text(), 'html.parser')
+            text = await resp.text()
 
-    for ele in soup.find('div', 'sidecontent2').find('div', 'mainblock'):
-        ele_str = str(ele)
-        if not ele_str:
-            continue
+            soup = bs4.BeautifulSoup(text, 'html.parser')
 
-        if 'Allegiance:</span>' in ele_str and ele.nextSibling.strip():
-            squad_data['allegiance'] = ele.nextSibling.strip()
-        elif 'Power:</span>' in ele_str and ele.nextSibling.strip():
-            squad_data['power'] = ele.nextSibling.string.strip()
-        elif 'Language:</span>' in ele_str and ele.nextSibling.strip():
-            squad_data['language'] = ele.nextSibling.strip()
-        elif 'Squadron age:</span>' in ele_str and ele.nextSibling.strip():
-            squad_data['age'] = ele.nextSibling.strip()
-        elif 'Headquarters:</span>' in ele_str and ele.nextSibling.nextSibling.string:
-            node = ele.nextSibling.nextSibling
-            squad_data['hq'] = "[{}]({})".format(node.string.strip(), SITE + node['href'])
-        elif 'Squadron commander:</span>' in ele_str and ele.nextSibling.nextSibling.string:
-            node = ele.nextSibling.nextSibling
-            squad_data['leader'] = "[{}]({})".format(node.string.strip(), SITE + node['href'])
-        elif 'Minor faction:</span>' in ele_str and ele.nextSibling.nextSibling.string:
-            node = ele.nextSibling.nextSibling
-            squad_data['minor'] = "[{}]({})".format(node.string.strip(), SITE + node['href'])
+    # Content seems split amongst divs, iterate them all
+    for div in soup.find_all('div', class_='incontent'):
+        for ele in div:
+            if not ele or not ele.nextSibling:
+                continue
+
+            ele_str = str(ele)
+            # FIXME: Hq and minor faction sometimes don't appear, need to investigate
+            if 'Allegiance:</span>' in ele_str and ele.nextSibling.strip():
+                squad_data['allegiance'] = ele.nextSibling.strip()
+            elif 'Power:</span>' in ele_str and ele.nextSibling.strip():
+                squad_data['power'] = ele.nextSibling.string.strip()
+            elif 'Language:</span>' in ele_str and ele.nextSibling.strip():
+                squad_data['language'] = ele.nextSibling.strip()
+            elif 'Squadron commander:</span>' in ele_str and ele.nextSibling.nextSibling.string:
+                node = ele.nextSibling.nextSibling
+                squad_data['leader'] = "[{}]({})".format(node.string.strip(), SITE + node['href'])
+            elif 'Members:</span>' in ele_str and ele.nextSibling.strip():
+                squad_data['members'] = ele.nextSibling.strip()
+            elif 'Squadron age:</span>' in ele_str and ele.nextSibling.strip():
+                squad_data['age'] = ele.nextSibling.strip()
+            elif 'Headquarters:</span>' in ele_str and ele.nextSibling.nextSibling.string:
+                node = ele.nextSibling.nextSibling
+                squad_data['hq'] = "[{}]({})".format(node.string.strip(), SITE + node['href'])
+            elif 'Related minor faction:</span>' in ele_str and ele.nextSibling.nextSibling.string:
+                node = ele.nextSibling.nextSibling
+                squad_data['minor'] = "[{}]({})".format(node.string.strip(), SITE + node['href'])
 
     return [
         {'name': 'Squad Leader', 'value': squad_data["leader"], 'inline': True},
