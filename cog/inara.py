@@ -565,7 +565,6 @@ async def inara_squad_parse(url):
     async with aiohttp.ClientSession() as http:
         async with http.get(url) as resp:
             text = await resp.text()
-
             soup = bs4.BeautifulSoup(text, 'html.parser')
 
     # Content seems split amongst divs, iterate them all

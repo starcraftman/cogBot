@@ -236,25 +236,25 @@ async def test_inara_squad_details(f_bot):
     expect = [
         {
             'name': 'Squad Leader',
-            'value': '[Extremofire](https://inara.cz/cmdr/12997/)',
+            'value': '[St Michael](https://inara.cz/elite/cmdr/138041/)',
             'inline': True
         },
         {'name': 'Allegiance', 'value': 'Empire', 'inline': True},
         {'name': 'Power', 'value': 'Arissa Lavigny-Duval', 'inline': True},
         {
             'name': 'Headquarters',
-            'value': '[Carthage [Marker Depot]](https://inara.cz/starsystem/18799/)',
+            'value': '[Carthage [Marker Depot]](https://inara.cz/elite/starsystem/18799/)',
             'inline': True
         },
         {
             'name': 'Minor Faction',
-            'value': "unknown",
+            'value': "[Lavigny's Legion](https://inara.cz/elite/minorfaction/19129/)",
             'inline': True
         },
         {'name': 'Language', 'value': 'English', 'inline': True}
     ]
 
-    result = [x for x in await cog.inara.inara_squad_parse('https://inara.cz/squadron/85/') if
+    result = [x for x in await cog.inara.inara_squad_parse('https://inara.cz/elite/squadron/85/') if
               x['name'] != 'Squad Age']
 
     assert result == expect

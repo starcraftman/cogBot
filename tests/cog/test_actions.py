@@ -374,11 +374,11 @@ async def test_cmd_bgs_age(side_session, eddb_session, f_bot, f_dusers, f_fort_t
 
 @pytest.mark.asyncio
 async def test_cmd_bgs_dash(f_bot, f_dusers, f_fort_testbed):
-    msg = fake_msg_gears("!bgs dash Othime")
+    msg = fake_msg_gears("!bgs dash Phanes")
 
     await action_map(msg, f_bot).execute()
 
-    assert 'Chelgit' in str(f_bot.send_message.call_args).replace("\\n", "\n")
+    assert 'Euripus' in str(f_bot.send_message.call_args).replace("\\n", "\n")
 
 
 @pytest.mark.asyncio

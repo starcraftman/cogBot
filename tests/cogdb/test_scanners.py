@@ -565,7 +565,7 @@ async def test_ocrscanner_generate_system_map(session, f_asheet_ocrscanner, f_oc
     await o_scanner.update_cells()
     sys_map = o_scanner.generate_system_map()
 
-    assert sys_map['HYADES SECTOR GH-V D2-135'] == 'Hyades Sector GH-V d2-135'
+    assert sys_map['NURUNDERE'] == 'Nurundere'
     assert sys_map['LALANDE 39866'] == 'Lalande 39866'
 
 
@@ -576,9 +576,9 @@ async def test_ocrscanner_parse_sheet(session, f_asheet_ocrscanner, f_ocr_testbe
     o_scanner.parse_sheet(session)
 
     with cogdb.session_scope(cogdb.Session) as new_session:
-        assert new_session.query(OCRTracker).filter(OCRTracker.system == 'Adeo').one().fort == 3576
+        assert new_session.query(OCRTracker).filter(OCRTracker.system == 'Phanes').one().fort == 765
         assert new_session.query(OCRPrep).filter(OCRPrep.system == 'Bolg').one().merits == 8592
-        assert new_session.query(OCRTrigger).filter(OCRTrigger.system == 'Adeo').one().fort_trigger == 3576
+        assert new_session.query(OCRTrigger).filter(OCRTrigger.system == 'Phanes').one().fort_trigger == 8238
         assert new_session.query(Global).all()[-1].consolidation == 76
 
 
@@ -620,14 +620,14 @@ async def test_ocrscanner_ocr_trackers(session, f_asheet_ocrscanner, f_ocr_testb
     sheet_date = datetime.datetime.strptime(o_scanner.cells_row_major[0][2], "%Y-%m-%d %H:%M:%S")
 
     expect = {
-        'fort': 3576,
-        'system': 'Adeo',
+        'fort': 765,
+        'system': 'Phanes',
         'um': 0,
         'updated_at': datetime.datetime(2021, 8, 23, 20, 32, 47)
     }
 
     result = o_scanner.ocr_trackers(sheet_date, o_scanner.generate_system_map())
-    assert result['Adeo'] == expect
+    assert result['Phanes'] == expect
 
 
 @pytest.mark.asyncio
@@ -637,15 +637,16 @@ async def test_ocrscanner_ocr_triggers(session, f_asheet_ocrscanner, f_ocr_testb
     sheet_date = datetime.datetime.strptime(o_scanner.cells_row_major[0][2], "%Y-%m-%d %H:%M:%S")
 
     expect = {
-        'base_income': 110,
-        'fort_trigger': 3576,
+        'base_income': 109,
+        'fort_trigger': 8238,
         'last_upkeep': 0,
-        'system': 'Adeo',
-        'um_trigger': 13260,
+        'system': 'Phanes',
+        'um_trigger': 23075,
         'updated_at': datetime.datetime(2021, 8, 23, 20, 32, 47)
     }
+
     result = o_scanner.ocr_triggers(sheet_date, o_scanner.generate_system_map())
-    assert result['Adeo'] == expect
+    assert result['Phanes'] == expect
 
 
 @pytest.mark.asyncio
