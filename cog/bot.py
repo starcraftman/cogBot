@@ -298,7 +298,10 @@ class CogBot(discord.Client):
         except cog.exc.ArgumentParseError as exc:
             log.exception("Failed to parse command. '%s' | %s", author.name, content)
             exc.write_log(log, content=content, author=author, channel=channel)
-            if 'invalid choice' not in exc.message:
+            if 'invalid choice' in str(exc) or 'argument {' in str(exc):
+                # Default show top level commands
+                await cog.actions.Help(args=None, bot=self, msg=message, session=None).execute()
+            else:
                 try:
                     self.parser.parse_args(content.split(' ')[0:1] + ['--help'])
                 except cog.exc.ArgumentHelpError as exc2:
