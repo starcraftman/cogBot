@@ -269,8 +269,10 @@ class UMLDocs(Command):
 SHORT_DESC = 'The Elite Federal Discord Bot'
 MY_NAME = 'Jeremy Pallats / starcraft.man'
 MY_EMAIL = 'N/A'
+# Important note: discord_components_mirror exists due to maintainer deleting package.
+#                 If anything breaks, fix on https://github.com/starcraftman/discord.py-components
 RUN_DEPS = ['aiofiles', 'aiozmq', 'argparse', 'asyncinotify', 'beautifulsoup4', 'cffi',
-            'decorator', 'discord.py', 'discord_components_mirror==2.1.3', 'google-api-python-client', 'gspread-asyncio',
+            'decorator', 'discord.py', 'discord_components_mirror', 'google-api-python-client', 'gspread-asyncio',
             'ijson', 'msgpack-python', 'pymysql', 'pyyaml', 'pyzmq', 'rapidjson',
             'Sanic', 'SQLalchemy', 'textdistance[Hamming]', 'uvloop']
 
