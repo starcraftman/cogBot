@@ -96,20 +96,21 @@ def eddb_session():
 
 
 @pytest.fixture
-def db_cleanup(session):
+def db_cleanup():
     """
     Clean the whole database. Guarantee it is empty.
     Used when tests don't use a fixture.
     """
     yield
 
-    cogdb.schema.empty_tables(session, perm=True)
+    with cogdb.session_scope(cogdb.Session) as session:
+        cogdb.schema.empty_tables(session, perm=True)
 
-    classes = [DiscordUser, FortUser, FortSystem, FortDrop, FortOrder, UMUser, UMSystem, UMHold,
-               KOS, TrackSystem, TrackSystemCached, TrackByID, AdminPerm, ChannelPerm, RolePerm,
-               OCRTracker, OCRTrigger, OCRPrep, Global]
-    for cls in classes:
-        assert session.query(cls).all() == []
+        classes = [DiscordUser, FortUser, FortSystem, FortDrop, FortOrder, UMUser, UMSystem, UMHold,
+                KOS, TrackSystem, TrackSystemCached, TrackByID, AdminPerm, ChannelPerm, RolePerm,
+                OCRTracker, OCRTrigger, OCRPrep, Global]
+        for cls in classes:
+            assert session.query(cls).all() == []
 
 
 @pytest.fixture

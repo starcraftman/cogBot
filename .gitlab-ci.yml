@@ -1,7 +1,6 @@
 ---
 image:
-  name: starcraftman/cogtest:latest
-  entrypoint: [""]
+  name: python:3.9-bullseye
 
 # Change pip's cache directory to be inside the project directory since we can
 # only cache local items.
@@ -15,21 +14,28 @@ variables:
 cache:
   paths:
     - .cache/pip
-    - venv/
+    - .tox
 
 before_script:
-  - /etc/init.d/mariadb start
-  - secrethub inject -i "tests/secrethub/secretConfig.yml" -o "data/config.yml"
-  - secrethub inject -i "tests/secrethub/secretSheets.json" -o "data/service_sheets.json"
+  - apt-get update && apt-get install -y apt-transport-https ca-certificates
+  - echo "deb [trusted=yes] https://apt.secrethub.io stable main" > /etc/apt/sources.list.d/secrethub.sources.list
+  - apt-get update && apt-get install -y git build-essential python3-dev python3-pip libyajl2 jq mariadb-client mariadb-server secrethub-cli
+  - python setup.py deps --force=yes
 
 test:
   script:
-    - ALL_TESTS=True python3 -m pytest --cov=cog --cov=cogdb
+    - /etc/init.d/mariadb start
+    - mysql -u root < "tests/mysql_tables.sql"
+    - curl "http://starcraftman.com/elite/eddb_v04.sql" > "eddb.sql"
+    - mysql -u root -D eddb < "eddb.sql"
+    - secrethub inject -i "tests/secrethub/secretConfig.yml" -o "data/config.yml"
+    - secrethub inject -i "tests/secrethub/secretSheets.json" -o "data/service_sheets.json"
+    - python -m tox -e coverage
     - coveralls || true
 pylint:
   script:
-    - tox -e pylint
+    - python -m tox -e pylint
 flake8:
   script:
-    - tox -e flake8
+    - python -m tox -e flake8
 ---

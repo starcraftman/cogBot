@@ -146,8 +146,10 @@ class Test(Command):
         old_cwd = os.getcwd()
 
         try:
+            sub_env = os.environ.copy()
+            sub_env['ALL_TESTS'] = 'True'
             os.chdir(ROOT)
-            sub.run(shlex.split('python -m pytest --cov=cog --cov=cogdb'), check=True)
+            sub.run(shlex.split('python -m pytest --cov=cog --cov=cogdb'), check=True, env=sub_env)
         finally:
             os.chdir(old_cwd)
 
@@ -197,10 +199,12 @@ class Coverage(Command):
             'xdg-open ' + report,
         ]
 
+        sub_env = os.environ.copy()
+        sub_env['ALL_TESTS'] = 'True'
         try:
             os.chdir(ROOT)
             for cmd in cmds:
-                sub.run(shlex.split(cmd), check=True)
+                sub.run(shlex.split(cmd), check=True, env=sub_env)
             print("Final report available at: ", report)
         except sub.CalledProcessError:
             print("Error occurred running: {}".format(cmd))

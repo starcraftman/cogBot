@@ -7,6 +7,7 @@ import aiofiles
 import gspread
 import gspread_asyncio
 import pytest
+import pytest_asyncio
 
 import cog.exc
 import cog.sheets
@@ -20,7 +21,7 @@ AGCM = None
 FORT_INPUT = cog.util.rel_to_abs('tests', 'test_input.unit_fort.txt')
 
 
-@pytest.fixture()
+@pytest_asyncio.fixture()
 async def f_fort_ws():
     """
     Yield fixture returns fort sheet.
@@ -36,7 +37,7 @@ async def f_fort_ws():
     yield asheet
 
 
-@pytest.fixture()
+@pytest_asyncio.fixture()
 async def f_um_ws():
     """
     Yield fixture returns fort sheet.
@@ -52,7 +53,7 @@ async def f_um_ws():
     yield asheet
 
 
-@pytest.fixture()
+@pytest_asyncio.fixture()
 async def f_fort_reset(f_fort_ws):
     """
     Yield fixture returns fort sheet and cleanups after running.
@@ -148,7 +149,7 @@ async def test_asheet_values_col(f_fort_ws):
 async def test_asheet_cells_get(f_fort_ws):
     result = await f_fort_ws.cells_get('F6:G6',)
 
-    assert isinstance(result[0], gspread.models.Cell)
+    assert isinstance(result[0], gspread.cell.Cell)
     assert result[0].value == '4,910'
     assert result[1].value == '2,671'
 
@@ -163,7 +164,7 @@ async def test_asheet_cells_update(f_fort_reset):
     await f_fort_reset.cells_update(cells)
 
     result = await f_fort_reset.cells_get('F6:G6',)
-    assert isinstance(result[0], gspread.models.Cell)
+    assert isinstance(result[0], gspread.cell.Cell)
     assert result[0].value == '2,222'
     assert result[1].value == '3,333'
 
