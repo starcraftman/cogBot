@@ -51,7 +51,7 @@ import cogdb
 import cogdb.scanners
 import cogdb.query
 import cogdb.eddb
-import discord_components as dcom
+import discord_components_mirror as dcom
 
 
 SYNC_NOTICE = """Synchronizing sheet changes.

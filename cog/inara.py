@@ -32,7 +32,7 @@ except ImportError:
 import aiohttp
 import bs4
 import discord
-import discord_components as dcom
+import discord_components_mirror as dcom
 
 import cog
 import cog.exc

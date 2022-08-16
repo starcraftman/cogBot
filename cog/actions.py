@@ -18,7 +18,7 @@ import traceback
 import aiofiles
 import decorator
 import discord
-import discord_components as dcom
+import discord_components_mirror as dcom
 import googleapiclient.errors
 import gspread
 import sqlalchemy.exc
