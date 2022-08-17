@@ -269,8 +269,8 @@ def f_admins(session):
     Depends on: f_dusers
     """
     admins = (
-        AdminPerm(id=1, date=datetime.datetime(2017, 9, 26, 13, 34, 39, 721018)),
-        AdminPerm(id=2, date=datetime.datetime(2017, 9, 26, 13, 34, 48, 327031)),
+        AdminPerm(id=1, date=datetime.datetime(2017, 9, 26, 13, 34, 39)),
+        AdminPerm(id=2, date=datetime.datetime(2017, 9, 26, 13, 34, 48)),
     )
     session.add_all(admins)
     session.commit()
