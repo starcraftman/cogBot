@@ -1737,7 +1737,7 @@ def empty_tables(session, *, perm=False):
     classes = [FortDrop, UMHold, FortSystem, UMSystem, FortUser, UMUser, KOS,
                KOS, TrackSystem, TrackSystemCached, TrackByID,
                AdminPerm, ChannelPerm, RolePerm,
-               OCRTracker, OCRTrigger, OCRPrep, Global]
+               OCRTracker, OCRTrigger, OCRPrep]
     if perm:
         classes += [DiscordUser]
 

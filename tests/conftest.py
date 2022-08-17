@@ -108,7 +108,7 @@ def db_cleanup():
 
         classes = [DiscordUser, FortUser, FortSystem, FortDrop, FortOrder, UMUser, UMSystem, UMHold,
                 KOS, TrackSystem, TrackSystemCached, TrackByID, AdminPerm, ChannelPerm, RolePerm,
-                OCRTracker, OCRTrigger, OCRPrep, Global]
+                OCRTracker, OCRTrigger, OCRPrep]
         for cls in classes:
             assert session.query(cls).all() == []
 

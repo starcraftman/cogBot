@@ -873,6 +873,8 @@ def test_ocr_update_forts(session, db_cleanup):
     expect = [{'range': 'G6:G7', 'values': [[5555], [2500]]}, {'range': 'H6:H7', 'values': [[5422], [1000]]}, {'range': 'J6:J7', 'values': [[4444], [2250]]}]
     assert cell_updates == expect
 
+    session.close()
+
 
 def test_ocr_prep_report(session, f_ocr_testbed, f_global_testbed):
     prep = f_ocr_testbed[2][0]

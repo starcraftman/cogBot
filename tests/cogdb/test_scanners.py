@@ -443,14 +443,14 @@ async def test_kosscanner_kos_entries(f_asheet_kos):
 
 @pytest.mark.asyncio
 async def test_kosscanner_parse_sheet(f_asheet_kos, session, db_cleanup):
-    fscan = KOSScanner(f_asheet_kos)
-
     assert not session.query(KOS).all()
 
+    fscan = KOSScanner(f_asheet_kos)
     await fscan.update_cells()
     fscan.parse_sheet(session)
 
     assert session.query(KOS).all()
+    session.close()
 
 
 @pytest.mark.asyncio
