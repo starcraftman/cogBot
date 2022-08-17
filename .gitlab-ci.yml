@@ -23,6 +23,8 @@ before_script:
   - python setup.py deps --force=yes
 
 test:
+  variables:
+    ALL_TESTS: "True"
   script:
     - /etc/init.d/mariadb start
     - mysql -u root < "tests/mysql_tables.sql"
@@ -30,7 +32,7 @@ test:
     - mysql -u root -D eddb < "eddb.sql"
     - secrethub inject -i "tests/secrethub/secretConfig.yml" -o "data/config.yml"
     - secrethub inject -i "tests/secrethub/secretSheets.json" -o "data/service_sheets.json"
-    - python -m tox -e coverage
+    - python -m pytest --cov=cog --cov=cogdb
     - coveralls || true
 pylint:
   script:
