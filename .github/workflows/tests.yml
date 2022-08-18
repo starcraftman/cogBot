@@ -38,4 +38,7 @@ jobs:
         secrethub inject -i "tests/secrethub/secretConfig.yml" -o "data/config.yml"
         secrethub inject -i "tests/secrethub/secretSheets.json" -o "data/service_sheets.json"
     - name: Run unit tests
-      run: ALL_TESTS=True python -m pytest --cov=cog --cov=cogdb
+      # env:
+        # ALL_TESTS: "True"
+      # Running without full tests due to rate limiting of inara. See gitlab for full run.
+      run: python -m pytest --cov=cog --cov=cogdb
