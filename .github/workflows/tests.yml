@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ["3.9"]
+        python-version: ["3.8", "3.9", "3.10"]
 
     # Example services for Mongodb, PostgreSQL and Redis can be found here:
     # https://github.com/actions/example-services/tree/master/.github/workflows
