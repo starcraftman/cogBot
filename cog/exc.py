@@ -1,8 +1,6 @@
 """
 Common exceptions.
 """
-import sqlalchemy.orm.exc as sqla_oexc
-
 from cog.matching import substr_ind, DUMMY_ATTRIBUTE
 
 

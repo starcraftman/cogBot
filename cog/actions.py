@@ -1321,7 +1321,6 @@ class Near(Action):
         return f"__Closest 10 Prison Megaships__\nCentred on: {sys_name}\n\n" + \
             cog.tbl.format_table(lines, header=True)[0]
 
-
     async def execute(self):
         msg = 'Invalid near sub command.'
         with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:

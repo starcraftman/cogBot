@@ -107,8 +107,8 @@ def db_cleanup():
         cogdb.schema.empty_tables(session, perm=True)
 
         classes = [DiscordUser, FortUser, FortSystem, FortDrop, FortOrder, UMUser, UMSystem, UMHold,
-                KOS, TrackSystem, TrackSystemCached, TrackByID, AdminPerm, ChannelPerm, RolePerm,
-                OCRTracker, OCRTrigger, OCRPrep]
+                   KOS, TrackSystem, TrackSystemCached, TrackByID, AdminPerm, ChannelPerm, RolePerm,
+                   OCRTracker, OCRTrigger, OCRPrep]
         for cls in classes:
             assert session.query(cls).all() == []
 
