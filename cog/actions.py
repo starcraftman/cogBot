@@ -398,7 +398,7 @@ class Admin(Action):
     # TODO: Increase level of automation:
     #   - Actually MAKE the new sheets, copy from templates.
     #   - Turn on import in new sheet, turn off import in older sheet.
-    async def cycle(self):
+    async def cycle(self, globe):
         """
         Rollover scanners to new sheets post cycle tick.
         Run the top 5 command and then cycle.
@@ -431,6 +431,9 @@ class Admin(Action):
                     msg = f"Missing **{new_page}** worksheet on {name}. Please fix and rerun cycle. No change made."
                     raise cog.exc.InvalidCommandArgs(msg) from exc
 
+                globe.show_vote_goal = False
+                globe.vote_goal = 75
+                
                 self.bot.sched.schedule(name, delay=1)
                 lines += [[await scanners[name].asheet.title(), new_page]]
 
@@ -545,6 +548,7 @@ class Admin(Action):
         return reply
 
     async def execute(self):
+        globe = cogdb.query.get_current_global(self.session)
         try:
             admin = cogdb.query.get_admin(self.session, self.duser)
         except cog.exc.NoMatch as exc:
@@ -554,6 +558,8 @@ class Admin(Action):
             func = getattr(self, self.args.subcmd)
             if self.args.subcmd == "remove":
                 response = await func(admin)
+            elif self.args.subcmd == "cycle":
+                response = await func(globe)
             else:
                 response = await func()
             if response:
