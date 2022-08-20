@@ -194,6 +194,9 @@ def test_fortscanner_update_drop_dict():
     data = FortScanner.update_drop_dict("G", 22, 7000)
     assert data == [{"range": "G22:G22", "values": [[7000]]}]
 
+def test_fortscanner_update_import_mode_dict():
+    data = FortScanner.update_import_mode_dict('FALSE')
+    assert data == [{"range": "B9:B9", "values": [['FALSE']]}]
 
 def test_umscanner_drop_db_entries(session, f_asheet_umscanner, f_dusers, f_um_testbed):
     umscan = UMScanner(f_asheet_umscanner)

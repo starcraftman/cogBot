@@ -321,6 +321,17 @@ class FortScanner():
         """
         cell_range = '{col}{row}:{col}{row}'.format(col=system_col, row=user_row)
         return [{'range': cell_range, 'values': [[amount]]}]
+    
+    @staticmethod
+    def update_import_mode_dict(import_mode):
+        """Change import mode from the sheet.
+
+        Args:
+            import_mode (string): Import mode, can only be True or False.
+        
+        Returns: A list of update dicts to pass to batch_update.
+        """
+        return [{'range': 'B9:B9', 'values': [[import_mode]]}]
 
 
 class UMScanner(FortScanner):
