@@ -315,6 +315,27 @@ class AsyncGSheet():
         #  values =  await self.batch_get(['A1:{}{}'.format(self.last_col_a1, self.last_row)],
         #                                  value_render=value_render)
 
+    async def duplicate_sheet(self, duplicate_sheet_page, new_name):
+        """Duplicate the given sheet page and rename it to the given page name.
+
+        Args:
+            duplicate_sheet_page (string): Sheet page name to duplicate.
+            new_name (string): Newly duplicated sheet page name.
+        """
+        await AGCM.authorize()
+        template_worksheet = await self.document.worksheet(duplicate_sheet_page)
+        return await self.document.duplicate_sheet(template_worksheet.id, new_sheet_name=new_name)
+    
+    
+    async def delete_page(self, page_name):
+        """delete the given sheet page.
+
+        Args:
+            page_name (string): Sheet page name to delete.
+        """
+        await AGCM.authorize()
+        delete_page = await self.document.worksheet(page_name)
+        return await self.document.del_worksheet(delete_page)
 
 def init_agcm(json_secret, loop=None):
     """

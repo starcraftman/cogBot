@@ -415,13 +415,15 @@ class Admin(Action):
         self.bot.deny_commands = True
         scanner_configs = cog.util.CONF.scanners.unwrap
         lines = [['Document', 'Active Page']]
-
+        template = 'New Template Fort'
         try:
             for name in ['hudson_cattle', 'hudson_undermine']:
                 new_page = cog.util.number_increment(scanner_configs[name]['page'])
                 scanner_configs[name]['page'] = new_page
-
+                if name == 'hudson_undermine':
+                    template = 'New Template UM'
                 try:
+                    await scanners[name].asheet.duplicate_sheet(template, new_page)
                     await scanners[name].asheet.change_worksheet(new_page)
                 except gspread.exceptions.WorksheetNotFound as exc:
                     msg = f"Missing **{new_page}** worksheet on {name}. Please fix and rerun cycle. No change made."
