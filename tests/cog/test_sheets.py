@@ -196,6 +196,17 @@ async def test_duplicate_sheet(f_fort_ws):
     await f_fort_ws.delete_page('Duplicated page')
     
     assert result.title == 'Duplicated page'
+    
+@SHEET_TEST
+@pytest.mark.asyncio
+async def test_delete_page(f_fort_ws):
+    duplicated_sheet = await f_fort_ws.duplicate_sheet('New Template Fort','Duplicated page')
+    
+    await f_fort_ws.delete_page('Duplicated page')
+    
+    with pytest.raises(gspread.exceptions.WorksheetNotFound):
+        await f_fort_ws.change_worksheet(duplicated_sheet)
+    
 
 def test_colcnt__init__():
     col1 = cog.sheets.ColCnt('A')
