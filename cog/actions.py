@@ -424,7 +424,10 @@ class Admin(Action):
                     template = 'New Template UM'
                 try:
                     await scanners[name].asheet.batch_update(scanners[name].update_import_mode_dict('FALSE'), 'USER_ENTERED')
-                    await scanners[name].asheet.duplicate_sheet(template, new_page)
+                    try:
+                        await scanners[name].asheet.duplicate_sheet(template, new_page)
+                    except gspread.exceptions.APIError:
+                        pass
                     await scanners[name].asheet.change_worksheet(new_page)
                     await scanners[name].asheet.batch_update(scanners[name].update_import_mode_dict('TRUE'), 'USER_ENTERED')
                 except gspread.exceptions.WorksheetNotFound as exc:
