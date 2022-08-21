@@ -613,6 +613,22 @@ async def test_galscanner_clear_cells(session):
     assert [['A3:C400', 'L3:P400', 'R3:S400']] == SENT
 
 
+@pytest.mark.asyncio
+async def test_galscanner_cycle_reset(session):
+    async def batch_clear_stub(x):
+        global SENT
+        SENT += [x]
+
+    global SENT
+    SENT.clear()
+    fake_sheet = aiomock.AIOMock()
+    fake_sheet.batch_clear = batch_clear_stub
+    r_scanner = GalScanner(fake_sheet)
+
+    await r_scanner.cycle_reset()
+    assert [['B3:K400', 'M3:P400', 'S3:S400']] == SENT
+
+
 @pytest.mark.skipif(not os.environ.get('ALL_TESTS'), reason="Slow scanner testing all scanners.")
 @pytest.mark.asyncio
 async def test_init_scanners():

@@ -421,6 +421,7 @@ class Admin(Action):
             InternalException - No parseable numeric component found in tab.
             RemoteError - The sheet/tab combination could not be resolved. Tab needs creating.
         """
+        await self.bot.send_message(self.msg.channel, "Cycling in progress ...")
         scanners = cogdb.scanners.SCANNERS
         # Zero trackers for new ocr data
         cogdb.query.post_cycle_db_cleanup(self.session)
@@ -446,7 +447,7 @@ class Admin(Action):
                         await scanners[name].asheet.duplicate_sheet(template, new_page)
                     except gspread.exceptions.APIError as exc:
                         logging.getLogger(__name__).error("Failed to duplicate sheet: %s\nExc: %s", name, str(exc))
-                        raise ValueError from exc
+                        # raise ValueError from exc
                     await scanners[name].asheet.change_worksheet(new_page)
 
                     if name == 'hudson_cattle':
@@ -463,6 +464,15 @@ class Admin(Action):
                 self.bot.sched.schedule(name, delay=1)
                 lines += [[await scanners[name].asheet.title(), new_page]]
 
+            gal_scanner = cogdb.scanners.get_scanner("hudson_gal")
+            with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
+                powers = eddb_session.query(cogdb.eddb.Power).\
+                    filter(cogdb.eddb.Power.text != "None").\
+                    order_by(cogdb.eddb.Power.eddn).\
+                    all()
+                for power in powers:
+                    await gal_scanner.asheet.change_worksheet(power.eddn.upper())
+                    await gal_scanner.cycle_reset()
             await cog.util.CONF.aupdate("scanners", value=confs)
 
             prefix = "Cycle incremented. Changed sheets scheduled for update.\n\n"
@@ -2551,13 +2561,28 @@ async def push_scrape_to_gal_scanner():  # pragma: no cover | tested elsewhere
 
         for power in powers:
             systems = eddb_session.query(spy.SpySystem).\
-                filter(spy.SpySystem.power_id == power.id).\
+                filter(spy.SpySystem.power_id == power.id,
+                       spy.SpySystem.power_state_id == 16).\
                 all()
+            # preps = eddb_session.query(spy.SpyPrep).\
+            #         filter(spy.SpyPrep.power_id == power.id).\
+            #         all()
+            # expansions = eddb_session.query(spy.SpySystem).\
+            #     filter(spy.SpySystem.power_id == power.id,
+            #            spy.SpySystem.power_state_id != 16).\
+            #     all()
+            # vote = eddb_session.query(spy.SpyVote).\
+            #     filter(spy.SpyVote.power_id == power.id).\
+            #     one()
+
             systems = sorted(systems, key=lambda x: x.system.name.lower())
+            #expansions = sorted(expansions, key=lambda x: x.system.name.lower())
+            #preps = sorted(preps, key=lambda x: x.system_name.lower())
 
             log.error("Updating sheet for: %s", power.eddn)
             await gal_scanner.asheet.change_worksheet(power.eddn.upper())
             await gal_scanner.clear_cells()
+            # await gal_scanner.send_batch(gal_scanner.update_dict(systems=systems, prepa=preps, exps=expansions, vote=vote))
             await gal_scanner.send_batch(gal_scanner.update_dict(systems=systems))
 
 

@@ -945,7 +945,7 @@ class GalScanner(FortScanner):
         """
         raise NotImplementedError
 
-    def update_dict(self, *, systems, row=3):
+    def update_dict(self, *, systems=[], preps=[], exps=[], vote=[], row=3):
         """
         Create an update payload to update all cells on a sheet.
 
@@ -953,17 +953,33 @@ class GalScanner(FortScanner):
         """
         now = datetime.datetime.utcnow().replace(microsecond=0)
         end_row = row + len(systems)
+        end_row_prep = row + len(preps)
+        end_row_exp = row + len(exps)
 
-        first, second, third = [], [], []
+        first, second, third, prep_systems, exp_systems_first, exp_systems_second = [], [], [], [], [], []
         for spy_system in systems:
             name = spy_system.system.name.upper()
             first += [[name, spy_system.fort, spy_system.um]]
             second += [[name, 0, 0, spy_system.fort_trigger, spy_system.um_trigger]]
             third += [[name, spy_system.held_merits]]
+
+        for spy_prep in preps:
+            name = spy_prep.system_name.upper()
+            prep_systems += [[name, spy_prep.merits]]
+
+        for spy_exp in exps:
+            name = spy_exp.system.name.upper()
+            exp_systems_first += [[name, spy_exp.fort, spy_exp.um]]
+            exp_systems_second += [[name, spy_exp.fort_trigger, spy_exp.um_trigger]]
+
         payload = [
             {'range': f'A{row}:C{end_row}', 'values': first},
             {'range': f'L{row}:P{end_row}', 'values': second},
             {'range': f'R{row}:S{end_row}', 'values': third},
+            {'range': f'D{row}:E{end_row_prep}', 'values': prep_systems},
+            {'range': f'F{row}:H{end_row_exp}', 'values': exp_systems_first},
+            {'range': f'I{row}:K{end_row_exp}', 'values': exp_systems_second},
+            {'range': 'D9:E9', 'values': [[str(vote.vote), str(100-vote.vote)]]},
             {'range': 'C1:C1', 'values': [[str(now)]]},
         ]
 
@@ -980,6 +996,18 @@ class GalScanner(FortScanner):
             f'A{row}:C{end_row}',
             f'L{row}:P{end_row}',
             f'R{row}:S{end_row}'
+        ]
+        await self.asheet.batch_clear(ranges)
+
+    async def cycle_reset(self, *, row=3):
+        """
+        Use batch_clear to wipe out all existing data in the sheet where we will re-write when scraping.
+        """
+        end_row = 400
+        ranges = [
+            f'B{row}:K{end_row}',
+            f'M{row}:P{end_row}',
+            f'S{row}:S{end_row}'
         ]
         await self.asheet.batch_clear(ranges)
 
