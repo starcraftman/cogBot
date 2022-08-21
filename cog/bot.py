@@ -306,7 +306,7 @@ class CogBot(discord.Client):
                     self.parser.parse_args(content.split(' ')[0:1] + ['--help'])
                 except cog.exc.ArgumentHelpError as exc2:
                     exc.message = 'Invalid command use. Check the command help.'
-                    exc.message += '\n{}\n{}'.format(len(exc.message) * '-', exc2.message)
+                    exc.message += '\n{}\n{}'.format(len(exc.message) * '-', exc.message)
 
             await self.send_ttl_message(channel, str(exc))
             try:

@@ -289,8 +289,6 @@ def subs_fort(subs, prefix):
         Set the fort order to: Sol -> Adeo -> Frey, then fallback to default.
 **{prefix}fort --order**
         Return the fort order to default sheet order.
-**{prefix}fort --summary**
-        Show a breakdown by states of our systems.
 **{prefix}fort alpha**
         Show the fortification status of Alpha Fornacis.
 **{prefix}fort alpha, sol, ran**
@@ -307,8 +305,6 @@ def subs_fort(subs, prefix):
                      help='Set the fort:um status of system. Example-> --set 3400:200')
     sub.add_argument('--order', action='store_true',
                      help='Set the fort order. Comma separate list of systems.')
-    sub.add_argument('--summary', action='store_true',
-                     help='Provide an overview of the fort systems.')
     sub.add_argument('--miss', type=int,
                      help='Show systems missing <= MISS merits.')
     # sub.add_argument('-l', '--long', action='store_true', help='Show systems in table format')
@@ -797,6 +793,19 @@ def subs_whois(subs, prefix):
     CMD_MAP['WhoIs'] = 'whois'
     sub.add_argument('cmdr', nargs='+', help='Commander name.')
 
+
+@register_parser
+def subs_sum(subs, prefix):
+    """ Subcommand parsing for sum """
+    desc = """Display the sum of all fort data in our sheets
+
+**{prefix}sum**
+        Display the command. Warning Veteran rank minimum required.
+    """.format(prefix=prefix)
+    sub = subs.add_parser(prefix + 'sum', description=desc, formatter_class=RawHelp)
+    sub.set_defaults(cmd='Summary')
+    CMD_MAP['Summary'] = 'sum'
+    
 
 def parse_vote_tuple(vote_tuple):
     """

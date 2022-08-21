@@ -490,19 +490,6 @@ __Almost Done__
 
 
 @pytest.mark.asyncio
-async def test_cmd_fort_summary(f_bot, f_dusers, f_fort_testbed):
-    msg = fake_msg_gears("!fort --summary")
-
-    await action_map(msg, f_bot).execute()
-
-    expect = """```Cancelled|Fortified|Undermined|Skipped|Left|Almost_done
----------|---------|----------|-------|----|-----------
-0/10     |1/10     |2/10      |2/10   |4/10|1/10```"""
-
-    f_bot.send_message.assert_called_with(msg.channel, expect)
-
-
-@pytest.mark.asyncio
 async def test_cmd_fort_next(f_bot, f_dusers, f_fort_testbed):
     msg = fake_msg_gears("!fort --next 2")
 
@@ -1893,3 +1880,24 @@ def test_route_systems_less_two(session, f_dusers, f_fort_testbed):
 
     expected = ['**Frey** 4910/4910 :Fortified: - 116.99Ly']
     assert cog.actions.route_systems(systems[:1]) == expected
+    
+@pytest.mark.asyncio
+async def test_cmd_summary(f_bot, f_dusers, f_admins, f_fort_testbed):
+    msg = fake_msg_gears("!sum")
+
+    await action_map(msg, f_bot).execute()
+
+    expect = """```Cancelled|Fortified|Undermined|Skipped|Left|Almost_done
+---------|---------|----------|-------|----|-----------
+0/10     |1/10     |2/10      |2/10   |4/10|1/10```"""
+
+    f_bot.send_message.assert_called_with(msg.channel, expect)
+
+
+@pytest.mark.asyncio
+async def test_cmd_summary_no_perms(f_bot, f_dusers, f_fort_testbed):
+    msg = fake_msg_gears("!sum")
+
+    with pytest.raises(cog.exc.InvalidPerms):
+        
+        await action_map(msg, f_bot).execute()

@@ -1004,10 +1004,8 @@ To unset override, simply set an empty list of systems.
     async def execute(self):
         cogdb.query.fort_order_remove_finished(self.session)
         manual = ' (Manual Order)' if cogdb.query.fort_order_get(self.session) else ''
-        if self.args.summary:
-            response = self.system_summary()
 
-        elif self.args.set:
+        if self.args.set:
             response = await self.set()
 
         elif self.args.miss:
@@ -2084,6 +2082,43 @@ class WhoIs(Action):
         if kos_info and kos_info.pop('add'):
             await self.moderate_kos_report(kos_info)
 
+
+class Summary(Action):
+    """
+    Replace Fort summary to have better control.
+    """
+    
+    def system_summary(self):
+        """ Provide a quick summary of systems. """
+        states = cogdb.query.fort_get_systems_by_state(self.session)
+
+        total = len(cogdb.query.fort_get_systems(self.session, ignore_skips=False))
+        keys = ['cancelled', 'fortified', 'undermined', 'skipped', 'left', 'almost_done']
+        lines = [
+            [key.capitalize() for key in keys],
+            ['{}/{}'.format(len(states[key]), total) for key in keys],
+        ]
+
+        return cog.tbl.format_table(lines, sep='|', header=True)[0]
+
+    
+    async def execute(self):
+        admin, response = None, None
+        try:
+            admin = cogdb.query.get_admin(self.session, self.duser)
+        except cog.exc.NoMatch:
+            pass
+        
+        member = self.msg.guild.get_member(self.duser.id)
+        role_names = [x.name for x in member.roles]
+        if ("FRC Veteran" in role_names) or (admin is not None):
+            response = self.system_summary()
+        if response:
+            await self.bot.send_message(self.msg.channel,
+                                        self.bot.emoji.fix(response, self.msg.guild))
+        else:
+            raise cog.exc.InvalidPerms("{} You are not allowed to use this command!".format(self.msg.author.mention))
+        
 
 def is_near_tick():
     """
