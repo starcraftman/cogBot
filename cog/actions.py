@@ -409,7 +409,10 @@ class Admin(Action):
         for part in cog.util.merge_msgs_to_least(parts):
             await self.bot.send_message(self.msg.channel, part)
 
-    async def cycle(self, globe):
+    # TODO: Increase level of automation:
+    #   - Actually MAKE the new sheets, copy from templates.
+    #   - Turn on import in new sheet, turn off import in older sheet.
+    async def cycle(self):
         """
         Rollover scanners to new sheets post cycle tick.
         Run the top 5 command and then cycle.
@@ -586,7 +589,7 @@ class Admin(Action):
         return reply
 
     async def execute(self):
-        globe = cogdb.query.get_current_global(self.session)
+        #globe = cogdb.query.get_current_global(self.session)
         try:
             admin = cogdb.query.get_admin(self.session, self.duser)
         except cog.exc.NoMatch as exc:
@@ -596,8 +599,8 @@ class Admin(Action):
             func = getattr(self, self.args.subcmd)
             if self.args.subcmd == "remove":
                 response = await func(admin)
-            elif self.args.subcmd == "cycle":
-                response = await func(globe)
+            #elif self.args.subcmd == "cycle":
+                #response = await func(globe)
             else:
                 response = await func()
             if response:
