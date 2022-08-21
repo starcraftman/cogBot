@@ -409,10 +409,7 @@ class Admin(Action):
         for part in cog.util.merge_msgs_to_least(parts):
             await self.bot.send_message(self.msg.channel, part)
 
-    # TODO: Increase level of automation:
-    #   - Actually MAKE the new sheets, copy from templates.
-    #   - Turn on import in new sheet, turn off import in older sheet.
-    async def cycle(self):
+    async def cycle(self, globe):
         """
         Rollover scanners to new sheets post cycle tick.
         Run the top 5 command and then cycle.
