@@ -188,19 +188,21 @@ async def test_asheet_whole_sheet(f_fort_ws):
     assert result[0] == expect[0]
     assert result[2] == expect[2]
 
+
 @SHEET_TEST
 @pytest.mark.asyncio
 async def test_duplicate_sheet(f_fort_ws):
-    result = await f_fort_ws.duplicate_sheet('New Template Fort','Duplicated page')
+    result = await f_fort_ws.duplicate_sheet('New Template Fort', 'Duplicated page')
 
     await f_fort_ws.delete_page('Duplicated page')
 
     assert result.title == 'Duplicated page'
 
+
 @SHEET_TEST
 @pytest.mark.asyncio
 async def test_delete_page(f_fort_ws):
-    duplicated_sheet = await f_fort_ws.duplicate_sheet('New Template Fort','Duplicated page')
+    duplicated_sheet = await f_fort_ws.duplicate_sheet('New Template Fort', 'Duplicated page')
 
     await f_fort_ws.delete_page('Duplicated page')
 

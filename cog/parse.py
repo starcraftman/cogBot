@@ -805,7 +805,7 @@ def subs_sum(subs, prefix):
     sub = subs.add_parser(prefix + 'sum', description=desc, formatter_class=RawHelp)
     sub.set_defaults(cmd='Summary')
     CMD_MAP['Summary'] = 'sum'
-    
+
 
 def parse_vote_tuple(vote_tuple):
     """

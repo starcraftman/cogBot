@@ -2087,7 +2087,7 @@ class Summary(Action):
     """
     Replace Fort summary to have better control.
     """
-    
+
     def system_summary(self):
         """ Provide a quick summary of systems. """
         states = cogdb.query.fort_get_systems_by_state(self.session)
@@ -2101,24 +2101,22 @@ class Summary(Action):
 
         return cog.tbl.format_table(lines, sep='|', header=True)[0]
 
-    
     async def execute(self):
-        admin, response = None, None
+        admin = None
         try:
             admin = cogdb.query.get_admin(self.session, self.duser)
         except cog.exc.NoMatch:
             pass
-        
+
         member = self.msg.guild.get_member(self.duser.id)
         role_names = [x.name for x in member.roles]
-        if ("FRC Veteran" in role_names) or (admin is not None):
+        if admin or ("FRC Veteran" in role_names):
             response = self.system_summary()
-        if response:
             await self.bot.send_message(self.msg.channel,
                                         self.bot.emoji.fix(response, self.msg.guild))
         else:
             raise cog.exc.InvalidPerms("{} You are not allowed to use this command!".format(self.msg.author.mention))
-        
+
 
 def is_near_tick():
     """

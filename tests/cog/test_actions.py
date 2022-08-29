@@ -1880,7 +1880,8 @@ def test_route_systems_less_two(session, f_dusers, f_fort_testbed):
 
     expected = ['**Frey** 4910/4910 :Fortified: - 116.99Ly']
     assert cog.actions.route_systems(systems[:1]) == expected
-    
+
+
 @pytest.mark.asyncio
 async def test_cmd_summary(f_bot, f_dusers, f_admins, f_fort_testbed):
     msg = fake_msg_gears("!sum")
@@ -1899,5 +1900,5 @@ async def test_cmd_summary_no_perms(f_bot, f_dusers, f_fort_testbed):
     msg = fake_msg_gears("!sum")
 
     with pytest.raises(cog.exc.InvalidPerms):
-        
+
         await action_map(msg, f_bot).execute()
