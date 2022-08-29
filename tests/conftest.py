@@ -10,6 +10,7 @@ import aiofiles
 import aiomock
 import mock
 import pytest
+import sqlalchemy.orm as sql_orm
 try:
     import uvloop
     LOOP = uvloop.new_event_loop
@@ -34,7 +35,7 @@ from tests.data import CELLS_FORT, CELLS_FORT_FMT, CELLS_UM
 
 
 @pytest.fixture(scope='function', autouse=True)
-def around_all_tests(session):
+def around_all_tests():
     """
     Executes before and after EVERY test.
 
@@ -45,13 +46,18 @@ def around_all_tests(session):
     yield
     print(" Time", datetime.datetime.utcnow() - start, end="")
 
+    # FIXME: Bit of a hack to prevent unclosed sessions from impeding assertions
+    sql_orm.close_all_sessions()
     classes = [DiscordUser, FortUser, FortSystem, FortDrop, FortOrder,
                UMSystem, UMUser, UMHold,
                KOS, AdminPerm, ChannelPerm, RolePerm,
                TrackSystem, TrackSystemCached, TrackByID,
-               OCRTracker, OCRTrigger, OCRPrep, Global]
-    for cls in classes:
-        assert not session.query(cls).all()
+               OCRTracker, OCRTrigger, OCRPrep]
+    with cogdb.session_scope(cogdb.Session) as session:
+        for cls in classes:
+            assert not session.query(cls).all()
+    session.query(Global).delete()
+    session.commit()
 
 
 REASON_SLOW = 'Slow as blocking to sheet. To enable, ensure os.environ ALL_TESTS=True'
