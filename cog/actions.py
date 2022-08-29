@@ -436,7 +436,7 @@ class Admin(Action):
 
                 globe.show_vote_goal = False
                 globe.vote_goal = 75
-                
+
                 self.bot.sched.schedule(name, delay=1)
                 lines += [[await scanners[name].asheet.title(), new_page]]
 

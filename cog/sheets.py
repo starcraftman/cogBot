@@ -325,8 +325,8 @@ class AsyncGSheet():
         await AGCM.authorize()
         template_worksheet = await self.document.worksheet(duplicate_sheet_page)
         return await self.document.duplicate_sheet(template_worksheet.id, new_sheet_name=new_name)
-    
-    
+
+
     async def delete_page(self, page_name):
         """delete the given sheet page.
 
