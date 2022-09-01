@@ -395,9 +395,6 @@ class Admin(Action):
         for part in cog.util.merge_msgs_to_least(parts):
             await self.bot.send_message(self.msg.channel, part)
 
-    # TODO: Increase level of automation:
-    #   - Actually MAKE the new sheets, copy from templates.
-    #   - Turn on import in new sheet, turn off import in older sheet.
     async def cycle(self, globe):
         """
         Rollover scanners to new sheets post cycle tick.
@@ -413,23 +410,29 @@ class Admin(Action):
         # Zero trackers for new ocr data
         cogdb.query.post_cycle_db_cleanup(self.session)
         self.bot.deny_commands = True
-        scanner_configs = cog.util.CONF.scanners.unwrap
+        confs = cog.util.CONF.scanners.unwrap
         lines = [['Document', 'Active Page']]
-        template = 'New Template Fort'
+
         try:
-            for name in ['hudson_cattle', 'hudson_undermine']:
-                new_page = cog.util.number_increment(scanner_configs[name]['page'])
-                scanner_configs[name]['page'] = new_page
-                if name == 'hudson_undermine':
-                    template = 'New Template UM'
+            for name, template in [['hudson_cattle', 'New Template Fort'],
+                                   ['hudson_undermine', 'New Template UM']]:
+                config = confs[name]
+                new_page = cog.util.number_increment(config['page'])
+                config['page'] = new_page
                 try:
-                    await scanners[name].asheet.batch_update(scanners[name].update_import_mode_dict('FALSE'), 'USER_ENTERED')
+                    if name == 'hudson_cattle':
+                        await scanners[name].asheet.batch_update(scanners[name].update_import_mode_dict('FALSE'), 'USER_ENTERED')
+
+                    # Copy template to new page and point asheet at it.
                     try:
                         await scanners[name].asheet.duplicate_sheet(template, new_page)
-                    except gspread.exceptions.APIError:
-                        pass
+                    except gspread.exceptions.APIError as exc:
+                        logging.getLogger(__name__).error("Failed to duplicate sheet: %s\nExc: %s", name, str(exc))
+                        raise ValueError from exc
                     await scanners[name].asheet.change_worksheet(new_page)
-                    await scanners[name].asheet.batch_update(scanners[name].update_import_mode_dict('TRUE'), 'USER_ENTERED')
+
+                    if name == 'hudson_cattle':
+                        await scanners[name].asheet.batch_update(scanners[name].update_import_mode_dict('TRUE'), 'USER_ENTERED')
                 except gspread.exceptions.WorksheetNotFound as exc:
                     msg = f"Missing **{new_page}** worksheet on {name}. Please fix and rerun cycle. No change made."
                     raise cog.exc.InvalidCommandArgs(msg) from exc
@@ -440,7 +443,7 @@ class Admin(Action):
                 self.bot.sched.schedule(name, delay=1)
                 lines += [[await scanners[name].asheet.title(), new_page]]
 
-            await cog.util.CONF.aupdate("scanners", value=scanner_configs)
+            await cog.util.CONF.aupdate("scanners", value=confs)
 
             prefix = "Cycle incremented. Changed sheets scheduled for update.\n\n"
             return cog.tbl.format_table(lines, header=True, prefix=prefix)[0]
@@ -448,7 +451,7 @@ class Admin(Action):
             raise cog.exc.InternalException("Impossible to increment scanner: {}".format(name)) from exc
         except (AssertionError, googleapiclient.errors.HttpError) as exc:
             raise cog.exc.RemoteError("The sheet {} with tab {} does not exist!".format(
-                name, scanner_configs[name]['page'])) from exc
+                name, confs[name]['page'])) from exc
         finally:
             self.bot.deny_commands = False
 
