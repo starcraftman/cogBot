@@ -4,11 +4,14 @@
 		"state": "control",
 		"systemAddr": {
 			"84053758698": {
+				"//comment 1^": "EDDB ID of system",
 				"income": 66,
 				"upkeepDefault": 21,
 				"upkeepCurrent": 0,
 				"thrFor": 5108,
-				"thrAgainst": 46670
+				"//comment 2^": "Fort trigger",
+				"thrAgainst": 46670,
+				"//comment 3^": "UM trigger"
 			},
 			"285372025195": {
 				"income": 91,

@@ -1,5 +1,5 @@
 """
-Tests for cogdb.json_api
+Tests for cogdb.spy
 """
 import json
 import os
@@ -7,7 +7,7 @@ import pathlib
 import pytest
 
 import cog.util
-import cogdb.json_api
+import cogdb.spy_squirrel as spy
 
 
 def load_json(fname):
@@ -56,15 +56,14 @@ def test_base_loads(base_json):
         'upkeep': 0,
         'upkeep_default': 0
     }
-    powers = cogdb.json_api.load_base_json(base_json)
+    powers = spy.load_base_json(base_json)
 
     assert expect_control in powers['Zachary Hudson']
     assert expect_taking in powers['Zachary Hudson']
 
 
 def test_refined_loads(refined_json):
-    expect = {'id': 2557887812314, 'total': 14140}
+    expect = spy.SpyPrep(power_id=9, system_id=2557887812314, merits=14140)
+    preps = spy.load_refined_json(refined_json)
 
-    preps = cogdb.json_api.load_refined_json(refined_json)
-
-    assert expect in preps['Zachary Hudson']
+    assert expect in preps

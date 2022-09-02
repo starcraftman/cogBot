@@ -1,6 +1,7 @@
 {
 	"preparation": [{
 		"power_id": 100000,
+		"//comment below": "prep systems for power",
 		"rankedSystems": [
 			[79230372211, 106477],
 			[7269365982657, 27235],
@@ -13,6 +14,7 @@
 			[2871587775913, 1805]
 		],
 		"consolidation": {
+			"//comment below": "vote%",
 			"rank": 81,
 			"bands": {
 				"75": 1,
@@ -337,6 +339,7 @@
 	"gainControl": [{
 		"power_id": 100040,
 		"systemAddr": 2106438158699,
+		"//comment below": "live fort and um merits",
 		"qtyFor": 1247,
 		"qtyAgainst": 53820
 	}, {
