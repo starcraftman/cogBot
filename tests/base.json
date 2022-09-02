@@ -1,0 +1,4817 @@
+{
+	"powers": [{
+		"powerId": 100000,
+		"state": "control",
+		"systemAddr": {
+			"84053758698": {
+				"income": 66,
+				"upkeepDefault": 21,
+				"upkeepCurrent": 0,
+				"thrFor": 5108,
+				"thrAgainst": 46670
+			},
+			"285372025195": {
+				"income": 91,
+				"upkeepDefault": 28,
+				"upkeepCurrent": 28,
+				"thrFor": 7565,
+				"thrAgainst": 12594
+			},
+			"525906970995": {
+				"income": 28,
+				"upkeepDefault": 21,
+				"upkeepCurrent": 0,
+				"thrFor": 2631,
+				"thrAgainst": 30724
+			},
+			"672296281529": {
+				"income": 49,
+				"upkeepDefault": 25,
+				"upkeepCurrent": 25,
+				"thrFor": 3269,
+				"thrAgainst": 14767
+			},
+			"869504354675": {
+				"income": 97,
+				"upkeepDefault": 25,
+				"upkeepCurrent": 0,
+				"thrFor": 3224,
+				"thrAgainst": 15075
+			},
+			"1453603146099": {
+				"income": 149,
+				"upkeepDefault": 27,
+				"upkeepCurrent": 0,
+				"thrFor": 3550,
+				"thrAgainst": 13360
+			},
+			"83986649834": {
+				"income": 93,
+				"upkeepDefault": 26,
+				"upkeepCurrent": 0,
+				"thrFor": 3344,
+				"thrAgainst": 14319
+			},
+			"633608245986": {
+				"income": 112,
+				"upkeepDefault": 38,
+				"upkeepCurrent": 0,
+				"thrFor": 5617,
+				"thrAgainst": 10212
+			},
+			"2008064856802": {
+				"income": 117,
+				"upkeepDefault": 30,
+				"upkeepCurrent": 0,
+				"thrFor": 4096,
+				"thrAgainst": 11867
+			},
+			"1733254091490": {
+				"income": 80,
+				"upkeepDefault": 25,
+				"upkeepCurrent": 0,
+				"thrFor": 6450,
+				"thrAgainst": 15070
+			},
+			"1900296505715": {
+				"income": 64,
+				"upkeepDefault": 21,
+				"upkeepCurrent": 0,
+				"thrFor": 5037,
+				"thrAgainst": 75943
+			},
+			"1183565386458": {
+				"income": 138,
+				"upkeepDefault": 23,
+				"upkeepCurrent": 0,
+				"thrFor": 2918,
+				"thrAgainst": 18492
+			},
+			"1183498310378": {
+				"income": 157,
+				"upkeepDefault": 31,
+				"upkeepCurrent": 0,
+				"thrFor": 4253,
+				"thrAgainst": 11588
+			},
+			"1797200497011": {
+				"income": 112,
+				"upkeepDefault": 28,
+				"upkeepCurrent": 0,
+				"thrFor": 3731,
+				"thrAgainst": 12743
+			},
+			"672564585921": {
+				"income": 74,
+				"upkeepDefault": 21,
+				"upkeepCurrent": 0,
+				"thrFor": 5175,
+				"thrAgainst": 37062
+			},
+			"672832955857": {
+				"income": 91,
+				"upkeepDefault": 21,
+				"upkeepCurrent": 0,
+				"thrFor": 5107,
+				"thrAgainst": 46777
+			},
+			"672833021385": {
+				"income": 28,
+				"upkeepDefault": 21,
+				"upkeepCurrent": 0,
+				"thrFor": 5125,
+				"thrAgainst": 43540
+			},
+			"908754555626": {
+				"income": 25,
+				"upkeepDefault": 22,
+				"upkeepCurrent": 0,
+				"thrFor": 5559,
+				"thrAgainst": 21839
+			},
+			"2415692581235": {
+				"income": 40,
+				"upkeepDefault": 20,
+				"upkeepCurrent": 20,
+				"thrFor": 5013,
+				"thrAgainst": 1000000000
+			},
+			"2656210749811": {
+				"income": 71,
+				"upkeepDefault": 23,
+				"upkeepCurrent": 0,
+				"thrFor": 2842,
+				"thrAgainst": 20067
+			},
+			"2832832795354": {
+				"income": 31,
+				"upkeepDefault": 22,
+				"upkeepCurrent": 0,
+				"thrFor": 5409,
+				"thrAgainst": 25040
+			},
+			"2832832926434": {
+				"income": 121,
+				"upkeepDefault": 50,
+				"upkeepCurrent": 0,
+				"thrFor": 7772,
+				"thrAgainst": 9356
+			},
+			"2869977294297": {
+				"income": 104,
+				"upkeepDefault": 38,
+				"upkeepCurrent": 0,
+				"thrFor": 5622,
+				"thrAgainst": 10209
+			},
+			"2870782666177": {
+				"income": 95,
+				"upkeepDefault": 26,
+				"upkeepCurrent": 26,
+				"thrFor": 6843,
+				"thrAgainst": 13916
+			},
+			"2871051429329": {
+				"income": 210,
+				"upkeepDefault": 42,
+				"upkeepCurrent": 0,
+				"thrFor": 6281,
+				"thrAgainst": 9860
+			},
+			"2871587972561": {
+				"income": 71,
+				"upkeepDefault": 23,
+				"upkeepCurrent": 0,
+				"thrFor": 5868,
+				"thrAgainst": 18216
+			},
+			"2871587972569": {
+				"income": 131,
+				"upkeepDefault": 23,
+				"upkeepCurrent": 0,
+				"thrFor": 2878,
+				"thrAgainst": 19256
+			},
+			"2871588038081": {
+				"income": 65,
+				"upkeepDefault": 24,
+				"upkeepCurrent": 24,
+				"thrFor": 3106,
+				"thrAgainst": 16051
+			},
+			"2896728918387": {
+				"income": 68,
+				"upkeepDefault": 22,
+				"upkeepCurrent": 0,
+				"thrFor": 5327,
+				"thrAgainst": 27693
+			},
+			"3107643593450": {
+				"income": 93,
+				"upkeepDefault": 24,
+				"upkeepCurrent": 0,
+				"thrFor": 3122,
+				"thrAgainst": 15902
+			},
+			"3171606841707": {
+				"income": 63,
+				"upkeepDefault": 25,
+				"upkeepCurrent": 25,
+				"thrFor": 3171,
+				"thrAgainst": 15484
+			},
+			"3205949786483": {
+				"income": 111,
+				"upkeepDefault": 26,
+				"upkeepCurrent": 0,
+				"thrFor": 3327,
+				"thrAgainst": 14410
+			},
+			"3652626385267": {
+				"income": 101,
+				"upkeepDefault": 30,
+				"upkeepCurrent": 0,
+				"thrFor": 4103,
+				"thrAgainst": 11855
+			},
+			"3657265255146": {
+				"income": 109,
+				"upkeepDefault": 46,
+				"upkeepCurrent": 0,
+				"thrFor": 7180,
+				"thrAgainst": 9523
+			},
+			"3893161331059": {
+				"income": 87,
+				"upkeepDefault": 22,
+				"upkeepCurrent": 0,
+				"thrFor": 2784,
+				"thrAgainst": 21695
+			},
+			"3932277347050": {
+				"income": 130,
+				"upkeepDefault": 30,
+				"upkeepCurrent": 0,
+				"thrFor": 4048,
+				"thrAgainst": 11963
+			},
+			"3996240562547": {
+				"income": 101,
+				"upkeepDefault": 30,
+				"upkeepCurrent": 0,
+				"thrFor": 4064,
+				"thrAgainst": 11931
+			},
+			"4030600284531": {
+				"income": 86,
+				"upkeepDefault": 21,
+				"upkeepCurrent": 0,
+				"thrFor": 2613,
+				"thrAgainst": 32885
+			},
+			"4207222362866": {
+				"income": 86,
+				"upkeepDefault": 27,
+				"upkeepCurrent": 27,
+				"thrFor": 7072,
+				"thrAgainst": 13413
+			},
+			"4207222461154": {
+				"income": 127,
+				"upkeepDefault": 41,
+				"upkeepCurrent": 0,
+				"thrFor": 12305,
+				"thrAgainst": 9920
+			},
+			"4207289471706": {
+				"income": 116,
+				"upkeepDefault": 26,
+				"upkeepCurrent": 0,
+				"thrFor": 3457,
+				"thrAgainst": 13747
+			},
+			"4207289504490": {
+				"income": 109,
+				"upkeepDefault": 25,
+				"upkeepCurrent": 0,
+				"thrFor": 3319,
+				"thrAgainst": 14458
+			},
+			"4482100237026": {
+				"income": 29,
+				"upkeepDefault": 21,
+				"upkeepCurrent": 0,
+				"thrFor": 5210,
+				"thrAgainst": 34045
+			},
+			"4482100302562": {
+				"income": 90,
+				"upkeepDefault": 25,
+				"upkeepCurrent": 25,
+				"thrFor": 6552,
+				"thrAgainst": 14722
+			},
+			"4757045252826": {
+				"income": 88,
+				"upkeepDefault": 23,
+				"upkeepCurrent": 0,
+				"thrFor": 5640,
+				"thrAgainst": 20619
+			},
+			"5031856050914": {
+				"income": 80,
+				"upkeepDefault": 22,
+				"upkeepCurrent": 0,
+				"thrFor": 2763,
+				"thrAgainst": 22422
+			},
+			"5070074226113": {
+				"income": 91,
+				"upkeepDefault": 24,
+				"upkeepCurrent": 24,
+				"thrFor": 6007,
+				"thrAgainst": 17198
+			},
+			"5070074291665": {
+				"income": 118,
+				"upkeepDefault": 23,
+				"upkeepCurrent": 0,
+				"thrFor": 2865,
+				"thrAgainst": 19527
+			},
+			"5070342596041": {
+				"income": 65,
+				"upkeepDefault": 22,
+				"upkeepCurrent": 0,
+				"thrFor": 5313,
+				"thrAgainst": 28285
+			},
+			"5070343120345": {
+				"income": 105,
+				"upkeepDefault": 40,
+				"upkeepCurrent": 0,
+				"thrFor": 5990,
+				"thrAgainst": 10000
+			},
+			"5070611162553": {
+				"income": 63,
+				"upkeepDefault": 22,
+				"upkeepCurrent": 22,
+				"thrFor": 2690,
+				"thrAgainst": 25912
+			},
+			"5306801197786": {
+				"income": 141,
+				"upkeepDefault": 44,
+				"upkeepCurrent": 0,
+				"thrFor": 6693,
+				"thrAgainst": 9690
+			},
+			"5856489902810": {
+				"income": 185,
+				"upkeepDefault": 50,
+				"upkeepCurrent": 0,
+				"thrFor": 7947,
+				"thrAgainst": 9312
+			},
+			"6131367678706": {
+				"income": 112,
+				"upkeepDefault": 24,
+				"upkeepCurrent": 24,
+				"thrFor": 3127,
+				"thrAgainst": 15862
+			},
+			"6681056514754": {
+				"income": 155,
+				"upkeepDefault": 73,
+				"upkeepCurrent": 0,
+				"thrFor": 12267,
+				"thrAgainst": 8684
+			},
+			"6955934356194": {
+				"income": 89,
+				"upkeepDefault": 29,
+				"upkeepCurrent": 0,
+				"thrFor": 3939,
+				"thrAgainst": 12198
+			},
+			"6956068541154": {
+				"income": 46,
+				"upkeepDefault": 21,
+				"upkeepCurrent": 0,
+				"thrFor": 2630,
+				"thrAgainst": 30826
+			},
+			"7269097285049": {
+				"income": 87,
+				"upkeepDefault": 27,
+				"upkeepCurrent": 27,
+				"thrFor": 3507,
+				"thrAgainst": 13532
+			},
+			"7269097743817": {
+				"income": 164,
+				"upkeepDefault": 27,
+				"upkeepCurrent": 0,
+				"thrFor": 3600,
+				"thrAgainst": 13171
+			},
+			"7269365982665": {
+				"income": 42,
+				"upkeepDefault": 22,
+				"upkeepCurrent": 0,
+				"thrFor": 5510,
+				"thrAgainst": 22716
+			},
+			"7269634352577": {
+				"income": 37,
+				"upkeepDefault": 21,
+				"upkeepCurrent": 0,
+				"thrFor": 5045,
+				"thrAgainst": 69490
+			},
+			"7269634418105": {
+				"income": 25,
+				"upkeepDefault": 23,
+				"upkeepCurrent": 0,
+				"thrFor": 2802,
+				"thrAgainst": 21141
+			},
+			"7269634614737": {
+				"income": 50,
+				"upkeepDefault": 26,
+				"upkeepCurrent": 26,
+				"thrFor": 10441,
+				"thrAgainst": 13645
+			},
+			"7270439658929": {
+				"income": 72,
+				"upkeepDefault": 27,
+				"upkeepCurrent": 27,
+				"thrFor": 3530,
+				"thrAgainst": 13438
+			},
+			"8330390999786": {
+				"income": 95,
+				"upkeepDefault": 25,
+				"upkeepCurrent": 0,
+				"thrFor": 3320,
+				"thrAgainst": 14456
+			},
+			"9468121326985": {
+				"income": 50,
+				"upkeepDefault": 77,
+				"upkeepCurrent": 77,
+				"thrFor": 26063,
+				"thrAgainst": 8621
+			},
+			"9468657935817": {
+				"income": 112,
+				"upkeepDefault": 31,
+				"upkeepCurrent": 0,
+				"thrFor": 4247,
+				"thrAgainst": 11598
+			},
+			"9468926109129": {
+				"income": 56,
+				"upkeepDefault": 21,
+				"upkeepCurrent": 0,
+				"thrFor": 5131,
+				"thrAgainst": 42560
+			},
+			"9468926698921": {
+				"income": 124,
+				"upkeepDefault": 68,
+				"upkeepCurrent": 0,
+				"thrFor": 11276,
+				"thrAgainst": 8781
+			},
+			"9704780600042": {
+				"income": 100,
+				"upkeepDefault": 47,
+				"upkeepCurrent": 0,
+				"thrFor": 7246,
+				"thrAgainst": 9503
+			},
+			"11668486235561": {
+				"income": 124,
+				"upkeepDefault": 31,
+				"upkeepCurrent": 0,
+				"thrFor": 4355,
+				"thrAgainst": 11427
+			},
+			"13865093637593": {
+				"income": 146,
+				"upkeepDefault": 37,
+				"upkeepCurrent": 0,
+				"thrFor": 5409,
+				"thrAgainst": 10349
+			},
+			"13865362400713": {
+				"income": 113,
+				"upkeepDefault": 53,
+				"upkeepCurrent": 53,
+				"thrFor": 16850,
+				"thrAgainst": 9205
+			},
+			"13866972751305": {
+				"income": 140,
+				"upkeepDefault": 23,
+				"upkeepCurrent": 0,
+				"thrFor": 2956,
+				"thrAgainst": 17869
+			},
+			"16065995875801": {
+				"income": 65,
+				"upkeepDefault": 23,
+				"upkeepCurrent": 0,
+				"thrFor": 2941,
+				"thrAgainst": 18111
+			},
+			"20463774213569": {
+				"income": 59,
+				"upkeepDefault": 31,
+				"upkeepCurrent": 0,
+				"thrFor": 4277,
+				"thrAgainst": 11549
+			},
+			"40565428996944": {
+				"income": 107,
+				"upkeepDefault": 40,
+				"upkeepCurrent": 0,
+				"thrFor": 5975,
+				"thrAgainst": 10008
+			}
+		}
+	}, {
+		"powerId": 100010,
+		"state": "control",
+		"systemAddr": {
+			"358797611722": {
+				"income": 98,
+				"upkeepDefault": 26,
+				"upkeepCurrent": 0,
+				"thrFor": 3371,
+				"thrAgainst": 14169
+			},
+			"628952680803": {
+				"income": 119,
+				"upkeepDefault": 24,
+				"upkeepCurrent": 0,
+				"thrFor": 3001,
+				"thrAgainst": 17237
+			},
+			"2007997944522": {
+				"income": 23,
+				"upkeepDefault": 22,
+				"upkeepCurrent": 22,
+				"thrFor": 2790,
+				"thrAgainst": 21496
+			},
+			"908419207882": {
+				"income": 100,
+				"upkeepDefault": 26,
+				"upkeepCurrent": 0,
+				"thrFor": 3374,
+				"thrAgainst": 14156
+			},
+			"908486349514": {
+				"income": 87,
+				"upkeepDefault": 25,
+				"upkeepCurrent": 25,
+				"thrFor": 3150,
+				"thrAgainst": 15652
+			},
+			"1384883702115": {
+				"income": 80,
+				"upkeepDefault": 26,
+				"upkeepCurrent": 26,
+				"thrFor": 3481,
+				"thrAgainst": 13643
+			},
+			"633675518674": {
+				"income": 76,
+				"upkeepDefault": 24,
+				"upkeepCurrent": 24,
+				"thrFor": 3043,
+				"thrAgainst": 16720
+			},
+			"1458309239506": {
+				"income": 73,
+				"upkeepDefault": 22,
+				"upkeepCurrent": 22,
+				"thrFor": 2650,
+				"thrAgainst": 28839
+			},
+			"83919672026": {
+				"income": 107,
+				"upkeepDefault": 26,
+				"upkeepCurrent": 0,
+				"thrFor": 3329,
+				"thrAgainst": 14398
+			},
+			"732015118691": {
+				"income": 86,
+				"upkeepDefault": 31,
+				"upkeepCurrent": 31,
+				"thrFor": 4296,
+				"thrAgainst": 11518
+			},
+			"908486349522": {
+				"income": 34,
+				"upkeepDefault": 22,
+				"upkeepCurrent": 22,
+				"thrFor": 2706,
+				"thrAgainst": 24983
+			},
+			"2008065053394": {
+				"income": 31,
+				"upkeepDefault": 22,
+				"upkeepCurrent": 22,
+				"thrFor": 2636,
+				"thrAgainst": 30163
+			},
+			"83919639258": {
+				"income": 112,
+				"upkeepDefault": 31,
+				"upkeepCurrent": 0,
+				"thrFor": 4393,
+				"thrAgainst": 11371
+			},
+			"1247444732267": {
+				"income": 111,
+				"upkeepDefault": 30,
+				"upkeepCurrent": 0,
+				"thrFor": 4205,
+				"thrAgainst": 11668
+			},
+			"147916343659": {
+				"income": 34,
+				"upkeepDefault": 22,
+				"upkeepCurrent": 22,
+				"thrFor": 5402,
+				"thrAgainst": 25245
+			},
+			"182276082027": {
+				"income": 46,
+				"upkeepDefault": 21,
+				"upkeepCurrent": 0,
+				"thrFor": 5118,
+				"thrAgainst": 44715
+			},
+			"2832631665362": {
+				"income": 55,
+				"upkeepDefault": 20,
+				"upkeepCurrent": 20,
+				"thrFor": 2506,
+				"thrAgainst": 1000000000
+			},
+			"633541333714": {
+				"income": 54,
+				"upkeepDefault": 22,
+				"upkeepCurrent": 22,
+				"thrFor": 2648,
+				"thrAgainst": 29038
+			},
+			"285355297131": {
+				"income": 16,
+				"upkeepDefault": 22,
+				"upkeepCurrent": 22,
+				"thrFor": 5410,
+				"thrAgainst": 25023
+			},
+			"1183297114834": {
+				"income": 25,
+				"upkeepDefault": 21,
+				"upkeepCurrent": 0,
+				"thrFor": 2524,
+				"thrAgainst": 67234
+			},
+			"78620132532": {
+				"income": 39,
+				"upkeepDefault": 22,
+				"upkeepCurrent": 22,
+				"thrFor": 2684,
+				"thrAgainst": 26290
+			},
+			"670149387681": {
+				"income": 58,
+				"upkeepDefault": 23,
+				"upkeepCurrent": 23,
+				"thrFor": 5646,
+				"thrAgainst": 20544
+			},
+			"1183431365346": {
+				"income": 104,
+				"upkeepDefault": 30,
+				"upkeepCurrent": 0,
+				"thrFor": 4204,
+				"thrAgainst": 11671
+			},
+			"1733120037594": {
+				"income": 43,
+				"upkeepDefault": 22,
+				"upkeepCurrent": 22,
+				"thrFor": 2668,
+				"thrAgainst": 27394
+			},
+			"1458309206754": {
+				"income": 147,
+				"upkeepDefault": 31,
+				"upkeepCurrent": 0,
+				"thrFor": 4403,
+				"thrAgainst": 11356
+			},
+			"83852563170": {
+				"income": 49,
+				"upkeepDefault": 25,
+				"upkeepCurrent": 25,
+				"thrFor": 3309,
+				"thrAgainst": 14519
+			},
+			"633608377058": {
+				"income": 90,
+				"upkeepDefault": 27,
+				"upkeepCurrent": 27,
+				"thrFor": 3661,
+				"thrAgainst": 12961
+			},
+			"633675453154": {
+				"income": 161,
+				"upkeepDefault": 37,
+				"upkeepCurrent": 0,
+				"thrFor": 5369,
+				"thrAgainst": 10378
+			},
+			"1458107912914": {
+				"income": 81,
+				"upkeepDefault": 27,
+				"upkeepCurrent": 27,
+				"thrFor": 3630,
+				"thrAgainst": 13065
+			},
+			"2869709383089": {
+				"income": 54,
+				"upkeepDefault": 24,
+				"upkeepCurrent": 24,
+				"thrFor": 6257,
+				"thrAgainst": 15846
+			},
+			"457137211763": {
+				"income": 86,
+				"upkeepDefault": 32,
+				"upkeepCurrent": 32,
+				"thrFor": 4495,
+				"thrAgainst": 11230
+			},
+			"869470833011": {
+				"income": 93,
+				"upkeepDefault": 32,
+				"upkeepCurrent": 32,
+				"thrFor": 4583,
+				"thrAgainst": 11117
+			},
+			"1733052895962": {
+				"income": 109,
+				"upkeepDefault": 25,
+				"upkeepCurrent": 0,
+				"thrFor": 3159,
+				"thrAgainst": 15579
+			},
+			"2282875818690": {
+				"income": 162,
+				"upkeepDefault": 31,
+				"upkeepCurrent": 0,
+				"thrFor": 4284,
+				"thrAgainst": 11537
+			},
+			"2553098013027": {
+				"income": 103,
+				"upkeepDefault": 22,
+				"upkeepCurrent": 0,
+				"thrFor": 2780,
+				"thrAgainst": 21822
+			},
+			"1213068249443": {
+				"income": 86,
+				"upkeepDefault": 28,
+				"upkeepCurrent": 28,
+				"thrFor": 3781,
+				"thrAgainst": 12598
+			},
+			"2484378552675": {
+				"income": 72,
+				"upkeepDefault": 23,
+				"upkeepCurrent": 23,
+				"thrFor": 2827,
+				"thrAgainst": 20447
+			},
+			"4481966248658": {
+				"income": 84,
+				"upkeepDefault": 26,
+				"upkeepCurrent": 26,
+				"thrFor": 3372,
+				"thrAgainst": 14167
+			},
+			"670686389665": {
+				"income": 7,
+				"upkeepDefault": 21,
+				"upkeepCurrent": 0,
+				"thrFor": 5195,
+				"thrAgainst": 35280
+			},
+			"3657265386194": {
+				"income": 12,
+				"upkeepDefault": 21,
+				"upkeepCurrent": 21,
+				"thrFor": 2537,
+				"thrAgainst": 55795
+			},
+			"1797183801707": {
+				"income": 90,
+				"upkeepDefault": 24,
+				"upkeepCurrent": 24,
+				"thrFor": 9269,
+				"thrAgainst": 16215
+			},
+			"1109989017963": {
+				"income": 155,
+				"upkeepDefault": 21,
+				"upkeepCurrent": 0,
+				"thrFor": 5241,
+				"thrAgainst": 31925
+			},
+			"3657332462298": {
+				"income": 97,
+				"upkeepDefault": 24,
+				"upkeepCurrent": 0,
+				"thrFor": 2998,
+				"thrAgainst": 17277
+			},
+			"1694121347443": {
+				"income": 123,
+				"upkeepDefault": 31,
+				"upkeepCurrent": 0,
+				"thrFor": 4301,
+				"thrAgainst": 11510
+			},
+			"2518755068267": {
+				"income": 76,
+				"upkeepDefault": 23,
+				"upkeepCurrent": 23,
+				"thrFor": 2893,
+				"thrAgainst": 18946
+			},
+			"1006909786475": {
+				"income": 194,
+				"upkeepDefault": 22,
+				"upkeepCurrent": 0,
+				"thrFor": 5329,
+				"thrAgainst": 27632
+			},
+			"2832631665370": {
+				"income": 32,
+				"upkeepDefault": 22,
+				"upkeepCurrent": 22,
+				"thrFor": 5334,
+				"thrAgainst": 27463
+			},
+			"4207021167330": {
+				"income": 81,
+				"upkeepDefault": 27,
+				"upkeepCurrent": 27,
+				"thrFor": 3647,
+				"thrAgainst": 13009
+			},
+			"2415642282339": {
+				"income": 152,
+				"upkeepDefault": 33,
+				"upkeepCurrent": 0,
+				"thrFor": 4599,
+				"thrAgainst": 11097
+			},
+			"2870246319521": {
+				"income": 95,
+				"upkeepDefault": 24,
+				"upkeepCurrent": 0,
+				"thrFor": 2976,
+				"thrAgainst": 17576
+			},
+			"11665802536353": {
+				"income": 39,
+				"upkeepDefault": 21,
+				"upkeepCurrent": 21,
+				"thrFor": 5140,
+				"thrAgainst": 41233
+			},
+			"5068732704161": {
+				"income": 113,
+				"upkeepDefault": 22,
+				"upkeepCurrent": 0,
+				"thrFor": 2657,
+				"thrAgainst": 28227
+			},
+			"5069001270697": {
+				"income": 18,
+				"upkeepDefault": 21,
+				"upkeepCurrent": 0,
+				"thrFor": 2570,
+				"thrAgainst": 41090
+			},
+			"5068732769705": {
+				"income": 37,
+				"upkeepDefault": 21,
+				"upkeepCurrent": 0,
+				"thrFor": 2533,
+				"thrAgainst": 58794
+			},
+			"5068464334249": {
+				"income": 58,
+				"upkeepDefault": 21,
+				"upkeepCurrent": 0,
+				"thrFor": 5239,
+				"thrAgainst": 32067
+			},
+			"7267487589801": {
+				"income": 29,
+				"upkeepDefault": 21,
+				"upkeepCurrent": 21,
+				"thrFor": 5230,
+				"thrAgainst": 32625
+			},
+			"671222998465": {
+				"income": 112,
+				"upkeepDefault": 28,
+				"upkeepCurrent": 0,
+				"thrFor": 3827,
+				"thrAgainst": 12473
+			},
+			"2869172577721": {
+				"income": 91,
+				"upkeepDefault": 25,
+				"upkeepCurrent": 25,
+				"thrFor": 6555,
+				"thrAgainst": 14714
+			},
+			"6131166515922": {
+				"income": 193,
+				"upkeepDefault": 23,
+				"upkeepCurrent": 0,
+				"thrFor": 2847,
+				"thrAgainst": 19940
+			},
+			"5068195833241": {
+				"income": 91,
+				"upkeepDefault": 24,
+				"upkeepCurrent": 24,
+				"thrFor": 6117,
+				"thrAgainst": 16542
+			},
+			"13864557290921": {
+				"income": 132,
+				"upkeepDefault": 23,
+				"upkeepCurrent": 0,
+				"thrFor": 2818,
+				"thrAgainst": 20667
+			},
+			"18263140672929": {
+				"income": 37,
+				"upkeepDefault": 22,
+				"upkeepCurrent": 22,
+				"thrFor": 2672,
+				"thrAgainst": 27112
+			},
+			"9467047716257": {
+				"income": 70,
+				"upkeepDefault": 21,
+				"upkeepCurrent": 0,
+				"thrFor": 2541,
+				"thrAgainst": 53106
+			},
+			"9467047650745": {
+				"income": 107,
+				"upkeepDefault": 24,
+				"upkeepCurrent": 0,
+				"thrFor": 2974,
+				"thrAgainst": 17596
+			},
+			"5068464334257": {
+				"income": 130,
+				"upkeepDefault": 22,
+				"upkeepCurrent": 0,
+				"thrFor": 2643,
+				"thrAgainst": 29450
+			},
+			"24859942004145": {
+				"income": 8,
+				"upkeepDefault": 22,
+				"upkeepCurrent": 22,
+				"thrFor": 5454,
+				"thrAgainst": 23901
+			},
+			"3932277478114": {
+				"income": 195,
+				"upkeepDefault": 33,
+				"upkeepCurrent": 0,
+				"thrFor": 4716,
+				"thrAgainst": 10961
+			},
+			"670686324145": {
+				"income": 24,
+				"upkeepDefault": 21,
+				"upkeepCurrent": 0,
+				"thrFor": 5112,
+				"thrAgainst": 45746
+			},
+			"671223260569": {
+				"income": 88,
+				"upkeepDefault": 23,
+				"upkeepCurrent": 0,
+				"thrFor": 2957,
+				"thrAgainst": 17858
+			},
+			"1458376315586": {
+				"income": 128,
+				"upkeepDefault": 35,
+				"upkeepCurrent": 0,
+				"thrFor": 5043,
+				"thrAgainst": 10637
+			},
+			"2832765915866": {
+				"income": 101,
+				"upkeepDefault": 27,
+				"upkeepCurrent": 0,
+				"thrFor": 3618,
+				"thrAgainst": 13108
+			},
+			"2868904207785": {
+				"income": 122,
+				"upkeepDefault": 25,
+				"upkeepCurrent": 0,
+				"thrFor": 3192,
+				"thrAgainst": 15315
+			},
+			"2869441209769": {
+				"income": 54,
+				"upkeepDefault": 22,
+				"upkeepCurrent": 22,
+				"thrFor": 2684,
+				"thrAgainst": 26252
+			},
+			"2869441209801": {
+				"income": 111,
+				"upkeepDefault": 29,
+				"upkeepCurrent": 0,
+				"thrFor": 3929,
+				"thrAgainst": 12221
+			},
+			"2869709645209": {
+				"income": 49,
+				"upkeepDefault": 22,
+				"upkeepCurrent": 0,
+				"thrFor": 2762,
+				"thrAgainst": 22447
+			},
+			"2869978015161": {
+				"income": 50,
+				"upkeepDefault": 23,
+				"upkeepCurrent": 23,
+				"thrFor": 8785,
+				"thrAgainst": 18312
+			},
+			"2870783124945": {
+				"income": 125,
+				"upkeepDefault": 40,
+				"upkeepCurrent": 0,
+				"thrFor": 6060,
+				"thrAgainst": 9964
+			},
+			"3107576681186": {
+				"income": 83,
+				"upkeepDefault": 31,
+				"upkeepCurrent": 31,
+				"thrFor": 4304,
+				"thrAgainst": 11505
+			},
+			"3171573320051": {
+				"income": 115,
+				"upkeepDefault": 28,
+				"upkeepCurrent": 0,
+				"thrFor": 3758,
+				"thrAgainst": 12664
+			},
+			"3686969395571": {
+				"income": 107,
+				"upkeepDefault": 25,
+				"upkeepCurrent": 0,
+				"thrFor": 3160,
+				"thrAgainst": 15570
+			},
+			"3721345894771": {
+				"income": 148,
+				"upkeepDefault": 29,
+				"upkeepCurrent": 0,
+				"thrFor": 3946,
+				"thrAgainst": 12183
+			},
+			"3932277510850": {
+				"income": 120,
+				"upkeepDefault": 30,
+				"upkeepCurrent": 0,
+				"thrFor": 4119,
+				"thrAgainst": 11824
+			},
+			"4206954123986": {
+				"income": 78,
+				"upkeepDefault": 23,
+				"upkeepCurrent": 0,
+				"thrFor": 2899,
+				"thrAgainst": 18830
+			},
+			"4206954123994": {
+				"income": 96,
+				"upkeepDefault": 23,
+				"upkeepCurrent": 0,
+				"thrFor": 2953,
+				"thrAgainst": 17914
+			},
+			"4481764889290": {
+				"income": 94,
+				"upkeepDefault": 30,
+				"upkeepCurrent": 30,
+				"thrFor": 8299,
+				"thrAgainst": 11767
+			},
+			"4482033291986": {
+				"income": 63,
+				"upkeepDefault": 27,
+				"upkeepCurrent": 27,
+				"thrFor": 3589,
+				"thrAgainst": 13212
+			},
+			"4717761530219": {
+				"income": 37,
+				"upkeepDefault": 26,
+				"upkeepCurrent": 26,
+				"thrFor": 3351,
+				"thrAgainst": 14278
+			},
+			"4855200483699": {
+				"income": 190,
+				"upkeepDefault": 39,
+				"upkeepCurrent": 0,
+				"thrFor": 5766,
+				"thrAgainst": 10122
+			},
+			"5031520703170": {
+				"income": 100,
+				"upkeepDefault": 34,
+				"upkeepCurrent": 0,
+				"thrFor": 4870,
+				"thrAgainst": 10799
+			},
+			"5067927397793": {
+				"income": 92,
+				"upkeepDefault": 26,
+				"upkeepCurrent": 26,
+				"thrFor": 6891,
+				"thrAgainst": 13801
+			},
+			"5068196095409": {
+				"income": 107,
+				"upkeepDefault": 26,
+				"upkeepCurrent": 0,
+				"thrFor": 6866,
+				"thrAgainst": 13860
+			},
+			"5068732835225": {
+				"income": 78,
+				"upkeepDefault": 21,
+				"upkeepCurrent": 0,
+				"thrFor": 2589,
+				"thrAgainst": 36707
+			},
+			"5069269706153": {
+				"income": 25,
+				"upkeepDefault": 22,
+				"upkeepCurrent": 22,
+				"thrFor": 2702,
+				"thrAgainst": 25160
+			},
+			"5306465719018": {
+				"income": 133,
+				"upkeepDefault": 31,
+				"upkeepCurrent": 0,
+				"thrFor": 4339,
+				"thrAgainst": 11451
+			},
+			"5306532827866": {
+				"income": 71,
+				"upkeepDefault": 22,
+				"upkeepCurrent": 22,
+				"thrFor": 5264,
+				"thrAgainst": 30612
+			},
+			"5581410734826": {
+				"income": 117,
+				"upkeepDefault": 35,
+				"upkeepCurrent": 0,
+				"thrFor": 4977,
+				"thrAgainst": 10697
+			},
+			"6955934421738": {
+				"income": 163,
+				"upkeepDefault": 45,
+				"upkeepCurrent": 0,
+				"thrFor": 6907,
+				"thrAgainst": 9613
+			},
+			"7266413847985": {
+				"income": 97,
+				"upkeepDefault": 32,
+				"upkeepCurrent": 0,
+				"thrFor": 4435,
+				"thrAgainst": 11311
+			},
+			"7267219154313": {
+				"income": 135,
+				"upkeepDefault": 29,
+				"upkeepCurrent": 0,
+				"thrFor": 4014,
+				"thrAgainst": 12034
+			},
+			"7267755959745": {
+				"income": 142,
+				"upkeepDefault": 24,
+				"upkeepCurrent": 0,
+				"thrFor": 3118,
+				"thrAgainst": 15945
+			},
+			"7267756090777": {
+				"income": 8,
+				"upkeepDefault": 22,
+				"upkeepCurrent": 22,
+				"thrFor": 2792,
+				"thrAgainst": 21431
+			},
+			"7267756156337": {
+				"income": 29,
+				"upkeepDefault": 21,
+				"upkeepCurrent": 21,
+				"thrFor": 7893,
+				"thrAgainst": 30698
+			},
+			"7268024591793": {
+				"income": 81,
+				"upkeepDefault": 23,
+				"upkeepCurrent": 23,
+				"thrFor": 5867,
+				"thrAgainst": 18225
+			},
+			"7268292830609": {
+				"income": 47,
+				"upkeepDefault": 26,
+				"upkeepCurrent": 26,
+				"thrFor": 3488,
+				"thrAgainst": 13613
+			},
+			"9154890568426": {
+				"income": 159,
+				"upkeepDefault": 40,
+				"upkeepCurrent": 0,
+				"thrFor": 5921,
+				"thrAgainst": 10036
+			},
+			"9465168602561": {
+				"income": 110,
+				"upkeepDefault": 40,
+				"upkeepCurrent": 0,
+				"thrFor": 5917,
+				"thrAgainst": 10039
+			},
+			"9466242409873": {
+				"income": 79,
+				"upkeepDefault": 25,
+				"upkeepCurrent": 25,
+				"thrFor": 3149,
+				"thrAgainst": 15668
+			},
+			"9467047847369": {
+				"income": 117,
+				"upkeepDefault": 29,
+				"upkeepCurrent": 0,
+				"thrFor": 3927,
+				"thrAgainst": 12227
+			},
+			"9467316151745": {
+				"income": 58,
+				"upkeepDefault": 26,
+				"upkeepCurrent": 26,
+				"thrFor": 3436,
+				"thrAgainst": 13846
+			},
+			"9467584652713": {
+				"income": 111,
+				"upkeepDefault": 24,
+				"upkeepCurrent": 0,
+				"thrFor": 3090,
+				"thrAgainst": 16213
+			},
+			"9704512164586": {
+				"income": 150,
+				"upkeepDefault": 41,
+				"upkeepCurrent": 0,
+				"thrFor": 6244,
+				"thrAgainst": 9877
+			},
+			"11664728663457": {
+				"income": 149,
+				"upkeepDefault": 29,
+				"upkeepCurrent": 0,
+				"thrFor": 7868,
+				"thrAgainst": 12210
+			},
+			"13866167838145": {
+				"income": 69,
+				"upkeepDefault": 37,
+				"upkeepCurrent": 37,
+				"thrFor": 10831,
+				"thrAgainst": 10345
+			},
+			"16065191028153": {
+				"income": 100,
+				"upkeepDefault": 38,
+				"upkeepCurrent": 0,
+				"thrFor": 5652,
+				"thrAgainst": 10190
+			}
+		}
+	}, {
+		"powerId": 100020,
+		"state": "control",
+		"systemAddr": {
+			"1384883652971": {
+				"income": 72,
+				"upkeepDefault": 24,
+				"upkeepCurrent": 24,
+				"thrFor": 3093,
+				"thrAgainst": 16180
+			},
+			"1831560251755": {
+				"income": 90,
+				"upkeepDefault": 24,
+				"upkeepCurrent": 0,
+				"thrFor": 2994,
+				"thrAgainst": 17323
+			},
+			"1968999205227": {
+				"income": 68,
+				"upkeepDefault": 24,
+				"upkeepCurrent": 24,
+				"thrFor": 3035,
+				"thrAgainst": 16815
+			},
+			"672027846057": {
+				"income": 68,
+				"upkeepDefault": 22,
+				"upkeepCurrent": 0,
+				"thrFor": 2726,
+				"thrAgainst": 23967
+			},
+			"10510911851": {
+				"income": 8,
+				"upkeepDefault": 23,
+				"upkeepCurrent": 0,
+				"thrFor": 5787,
+				"thrAgainst": 18942
+			},
+			"594609686891": {
+				"income": 59,
+				"upkeepDefault": 23,
+				"upkeepCurrent": 23,
+				"thrFor": 2852,
+				"thrAgainst": 19819
+			},
+			"1281821215083": {
+				"income": 38,
+				"upkeepDefault": 21,
+				"upkeepCurrent": 0,
+				"thrFor": 2622,
+				"thrAgainst": 31684
+			},
+			"1350540691819": {
+				"income": 104,
+				"upkeepDefault": 21,
+				"upkeepCurrent": 0,
+				"thrFor": 2629,
+				"thrAgainst": 30965
+			},
+			"1419243391331": {
+				"income": 105,
+				"upkeepDefault": 22,
+				"upkeepCurrent": 0,
+				"thrFor": 2795,
+				"thrAgainst": 21334
+			},
+			"1625401821539": {
+				"income": 88,
+				"upkeepDefault": 23,
+				"upkeepCurrent": 23,
+				"thrFor": 2934,
+				"thrAgainst": 18224
+			},
+			"766408378723": {
+				"income": 136,
+				"upkeepDefault": 25,
+				"upkeepCurrent": 0,
+				"thrFor": 3217,
+				"thrAgainst": 15123
+			},
+			"10510911843": {
+				"income": 20,
+				"upkeepDefault": 21,
+				"upkeepCurrent": 0,
+				"thrFor": 5082,
+				"thrAgainst": 52889
+			},
+			"48559547572": {
+				"income": 102,
+				"upkeepDefault": 22,
+				"upkeepCurrent": 0,
+				"thrFor": 2701,
+				"thrAgainst": 25213
+			},
+			"84120933066": {
+				"income": 108,
+				"upkeepDefault": 24,
+				"upkeepCurrent": 0,
+				"thrFor": 3105,
+				"thrAgainst": 16063
+			},
+			"633742561994": {
+				"income": 111,
+				"upkeepDefault": 30,
+				"upkeepCurrent": 0,
+				"thrFor": 4190,
+				"thrAgainst": 11696
+			},
+			"82919285940": {
+				"income": 87,
+				"upkeepDefault": 25,
+				"upkeepCurrent": 25,
+				"thrFor": 3188,
+				"thrAgainst": 15342
+			},
+			"1316180969835": {
+				"income": 84,
+				"upkeepDefault": 27,
+				"upkeepCurrent": 27,
+				"thrFor": 3643,
+				"thrAgainst": 13021
+			},
+			"1458443391706": {
+				"income": 100,
+				"upkeepDefault": 35,
+				"upkeepCurrent": 0,
+				"thrFor": 4982,
+				"thrAgainst": 10692
+			},
+			"672027780529": {
+				"income": 74,
+				"upkeepDefault": 24,
+				"upkeepCurrent": 24,
+				"thrFor": 3071,
+				"thrAgainst": 16405
+			},
+			"2008199140050": {
+				"income": 132,
+				"upkeepDefault": 22,
+				"upkeepCurrent": 0,
+				"thrFor": 2736,
+				"thrAgainst": 23493
+			},
+			"1458510500562": {
+				"income": 174,
+				"upkeepDefault": 29,
+				"upkeepCurrent": 0,
+				"thrFor": 3892,
+				"thrAgainst": 12309
+			},
+			"672027649441": {
+				"income": 102,
+				"upkeepDefault": 27,
+				"upkeepCurrent": 0,
+				"thrFor": 3606,
+				"thrAgainst": 13150
+			},
+			"672833217953": {
+				"income": 69,
+				"upkeepDefault": 22,
+				"upkeepCurrent": 0,
+				"thrFor": 2663,
+				"thrAgainst": 27730
+			},
+			"1733254157018": {
+				"income": 104,
+				"upkeepDefault": 26,
+				"upkeepCurrent": 26,
+				"thrFor": 3370,
+				"thrAgainst": 14173
+			},
+			"2008266183386": {
+				"income": 111,
+				"upkeepDefault": 27,
+				"upkeepCurrent": 0,
+				"thrFor": 3641,
+				"thrAgainst": 13027
+			},
+			"2832832828114": {
+				"income": 84,
+				"upkeepDefault": 22,
+				"upkeepCurrent": 22,
+				"thrFor": 2783,
+				"thrAgainst": 21715
+			},
+			"2832832828122": {
+				"income": 106,
+				"upkeepDefault": 23,
+				"upkeepCurrent": 0,
+				"thrFor": 2887,
+				"thrAgainst": 19063
+			},
+			"2832832860874": {
+				"income": 74,
+				"upkeepDefault": 22,
+				"upkeepCurrent": 0,
+				"thrFor": 2642,
+				"thrAgainst": 29586
+			},
+			"2870782666121": {
+				"income": 114,
+				"upkeepDefault": 27,
+				"upkeepCurrent": 0,
+				"thrFor": 3635,
+				"thrAgainst": 13047
+			},
+			"2871051036073": {
+				"income": 27,
+				"upkeepDefault": 22,
+				"upkeepCurrent": 22,
+				"thrFor": 2762,
+				"thrAgainst": 22452
+			},
+			"2871051167145": {
+				"income": 77,
+				"upkeepDefault": 22,
+				"upkeepCurrent": 22,
+				"thrFor": 5422,
+				"thrAgainst": 24702
+			},
+			"2871319668137": {
+				"income": 86,
+				"upkeepDefault": 22,
+				"upkeepCurrent": 22,
+				"thrFor": 5422,
+				"thrAgainst": 24702
+			},
+			"2871319733665": {
+				"income": 48,
+				"upkeepDefault": 22,
+				"upkeepCurrent": 22,
+				"thrFor": 5364,
+				"thrAgainst": 26396
+			},
+			"2871587841425": {
+				"income": 85,
+				"upkeepDefault": 25,
+				"upkeepCurrent": 25,
+				"thrFor": 3286,
+				"thrAgainst": 14657
+			},
+			"2872124908969": {
+				"income": 26,
+				"upkeepDefault": 24,
+				"upkeepCurrent": 24,
+				"thrFor": 3078,
+				"thrAgainst": 16337
+			},
+			"3107710767826": {
+				"income": 18,
+				"upkeepDefault": 21,
+				"upkeepCurrent": 0,
+				"thrFor": 2518,
+				"thrAgainst": 75646
+			},
+			"3137247086947": {
+				"income": 138,
+				"upkeepDefault": 22,
+				"upkeepCurrent": 0,
+				"thrFor": 2748,
+				"thrAgainst": 23006
+			},
+			"3382521598666": {
+				"income": 135,
+				"upkeepDefault": 25,
+				"upkeepCurrent": 0,
+				"thrFor": 3248,
+				"thrAgainst": 14907
+			},
+			"3382588674778": {
+				"income": 83,
+				"upkeepDefault": 23,
+				"upkeepCurrent": 23,
+				"thrFor": 2843,
+				"thrAgainst": 20046
+			},
+			"3382588707530": {
+				"income": 61,
+				"upkeepDefault": 23,
+				"upkeepCurrent": 23,
+				"thrFor": 2960,
+				"thrAgainst": 17815
+			},
+			"3446484732259": {
+				"income": 82,
+				"upkeepDefault": 26,
+				"upkeepCurrent": 26,
+				"thrFor": 3360,
+				"thrAgainst": 14227
+			},
+			"3515204225379": {
+				"income": 109,
+				"upkeepDefault": 26,
+				"upkeepCurrent": 0,
+				"thrFor": 3380,
+				"thrAgainst": 14125
+			},
+			"3657466614466": {
+				"income": 89,
+				"upkeepDefault": 27,
+				"upkeepCurrent": 27,
+				"thrFor": 3668,
+				"thrAgainst": 12938
+			},
+			"3932344455890": {
+				"income": 10,
+				"upkeepDefault": 21,
+				"upkeepCurrent": 21,
+				"thrFor": 2607,
+				"thrAgainst": 33690
+			},
+			"3932411564754": {
+				"income": 99,
+				"upkeepDefault": 22,
+				"upkeepCurrent": 0,
+				"thrFor": 2760,
+				"thrAgainst": 22546
+			},
+			"4064960055659": {
+				"income": 97,
+				"upkeepDefault": 32,
+				"upkeepCurrent": 0,
+				"thrFor": 4530,
+				"thrAgainst": 11184
+			},
+			"4305478224227": {
+				"income": 71,
+				"upkeepDefault": 27,
+				"upkeepCurrent": 27,
+				"thrFor": 3623,
+				"thrAgainst": 13089
+			},
+			"4408557439331": {
+				"income": 122,
+				"upkeepDefault": 31,
+				"upkeepCurrent": 0,
+				"thrFor": 4269,
+				"thrAgainst": 11561
+			},
+			"4756911035098": {
+				"income": 83,
+				"upkeepDefault": 26,
+				"upkeepCurrent": 26,
+				"thrFor": 3469,
+				"thrAgainst": 13697
+			},
+			"4756978209482": {
+				"income": 37,
+				"upkeepDefault": 22,
+				"upkeepCurrent": 22,
+				"thrFor": 2652,
+				"thrAgainst": 28627
+			},
+			"4756978209498": {
+				"income": 103,
+				"upkeepDefault": 24,
+				"upkeepCurrent": 0,
+				"thrFor": 3094,
+				"thrAgainst": 16174
+			},
+			"5031788974802": {
+				"income": 62,
+				"upkeepDefault": 21,
+				"upkeepCurrent": 0,
+				"thrFor": 2590,
+				"thrAgainst": 36649
+			},
+			"5031856116434": {
+				"income": 84,
+				"upkeepDefault": 20,
+				"upkeepCurrent": 20,
+				"thrFor": 2506,
+				"thrAgainst": 1000000000
+			},
+			"5031923290834": {
+				"income": 102,
+				"upkeepDefault": 34,
+				"upkeepCurrent": 0,
+				"thrFor": 4899,
+				"thrAgainst": 10771
+			},
+			"5070879597977": {
+				"income": 81,
+				"upkeepDefault": 24,
+				"upkeepCurrent": 24,
+				"thrFor": 3020,
+				"thrAgainst": 16990
+			},
+			"5439332813171": {
+				"income": 93,
+				"upkeepDefault": 38,
+				"upkeepCurrent": 38,
+				"thrFor": 5547,
+				"thrAgainst": 10257
+			},
+			"5581679006426": {
+				"income": 92,
+				"upkeepDefault": 23,
+				"upkeepCurrent": 0,
+				"thrFor": 2837,
+				"thrAgainst": 20194
+			},
+			"6131434820306": {
+				"income": 81,
+				"upkeepDefault": 24,
+				"upkeepCurrent": 24,
+				"thrFor": 9030,
+				"thrAgainst": 17116
+			},
+			"6406178542290": {
+				"income": 29,
+				"upkeepDefault": 21,
+				"upkeepCurrent": 0,
+				"thrFor": 2526,
+				"thrAgainst": 65341
+			},
+			"6406245618386": {
+				"income": 31,
+				"upkeepDefault": 21,
+				"upkeepCurrent": 0,
+				"thrFor": 2527,
+				"thrAgainst": 63957
+			},
+			"6406245651154": {
+				"income": 52,
+				"upkeepDefault": 21,
+				"upkeepCurrent": 21,
+				"thrFor": 2571,
+				"thrAgainst": 40821
+			},
+			"6406245749458": {
+				"income": 110,
+				"upkeepDefault": 36,
+				"upkeepCurrent": 0,
+				"thrFor": 5260,
+				"thrAgainst": 10459
+			},
+			"6406312760026": {
+				"income": 110,
+				"upkeepDefault": 24,
+				"upkeepCurrent": 0,
+				"thrFor": 3064,
+				"thrAgainst": 16484
+			},
+			"6681056449234": {
+				"income": 58,
+				"upkeepDefault": 22,
+				"upkeepCurrent": 22,
+				"thrFor": 2657,
+				"thrAgainst": 28234
+			},
+			"7268292306305": {
+				"income": 100,
+				"upkeepDefault": 34,
+				"upkeepCurrent": 0,
+				"thrFor": 4837,
+				"thrAgainst": 10832
+			},
+			"7268829504945": {
+				"income": 131,
+				"upkeepDefault": 30,
+				"upkeepCurrent": 0,
+				"thrFor": 4085,
+				"thrAgainst": 11888
+			},
+			"7269097612713": {
+				"income": 67,
+				"upkeepDefault": 22,
+				"upkeepCurrent": 22,
+				"thrFor": 2681,
+				"thrAgainst": 26447
+			},
+			"7269097809313": {
+				"income": 81,
+				"upkeepDefault": 23,
+				"upkeepCurrent": 23,
+				"thrFor": 5886,
+				"thrAgainst": 18070
+			},
+			"7269365982633": {
+				"income": 41,
+				"upkeepDefault": 22,
+				"upkeepCurrent": 22,
+				"thrFor": 2708,
+				"thrAgainst": 24830
+			},
+			"7270171157921": {
+				"income": 122,
+				"upkeepDefault": 28,
+				"upkeepCurrent": 0,
+				"thrFor": 3764,
+				"thrAgainst": 12648
+			},
+			"7270171813305": {
+				"income": 102,
+				"upkeepDefault": 40,
+				"upkeepCurrent": 40,
+				"thrFor": 5935,
+				"thrAgainst": 10029
+			},
+			"8055580201674": {
+				"income": 117,
+				"upkeepDefault": 25,
+				"upkeepCurrent": 0,
+				"thrFor": 3162,
+				"thrAgainst": 15555
+			},
+			"8055580201690": {
+				"income": 132,
+				"upkeepDefault": 28,
+				"upkeepCurrent": 0,
+				"thrFor": 3762,
+				"thrAgainst": 12651
+			},
+			"9467852563849": {
+				"income": 94,
+				"upkeepDefault": 26,
+				"upkeepCurrent": 26,
+				"thrFor": 3411,
+				"thrAgainst": 13964
+			},
+			"9467852629385": {
+				"income": 113,
+				"upkeepDefault": 28,
+				"upkeepCurrent": 0,
+				"thrFor": 3693,
+				"thrAgainst": 12860
+			},
+			"9468120868257": {
+				"income": 58,
+				"upkeepDefault": 21,
+				"upkeepCurrent": 21,
+				"thrFor": 2585,
+				"thrAgainst": 37627
+			},
+			"9468121195961": {
+				"income": 104,
+				"upkeepDefault": 32,
+				"upkeepCurrent": 0,
+				"thrFor": 4448,
+				"thrAgainst": 11293
+			},
+			"9468926371257": {
+				"income": 84,
+				"upkeepDefault": 26,
+				"upkeepCurrent": 26,
+				"thrFor": 3432,
+				"thrAgainst": 13865
+			},
+			"9468926502289": {
+				"income": 110,
+				"upkeepDefault": 30,
+				"upkeepCurrent": 0,
+				"thrFor": 4092,
+				"thrAgainst": 11875
+			},
+			"9469194675609": {
+				"income": 81,
+				"upkeepDefault": 23,
+				"upkeepCurrent": 23,
+				"thrFor": 2939,
+				"thrAgainst": 18132
+			},
+			"11667144189361": {
+				"income": 15,
+				"upkeepDefault": 22,
+				"upkeepCurrent": 22,
+				"thrFor": 5465,
+				"thrAgainst": 23656
+			},
+			"11667680994705": {
+				"income": 130,
+				"upkeepDefault": 22,
+				"upkeepCurrent": 0,
+				"thrFor": 2784,
+				"thrAgainst": 21697
+			},
+			"11667680994729": {
+				"income": 50,
+				"upkeepDefault": 22,
+				"upkeepCurrent": 22,
+				"thrFor": 7970,
+				"thrAgainst": 28262
+			},
+			"11667681060265": {
+				"income": 57,
+				"upkeepDefault": 21,
+				"upkeepCurrent": 21,
+				"thrFor": 2570,
+				"thrAgainst": 41150
+			},
+			"13866167510433": {
+				"income": 123,
+				"upkeepDefault": 21,
+				"upkeepCurrent": 0,
+				"thrFor": 2617,
+				"thrAgainst": 32332
+			},
+			"13866436208033": {
+				"income": 89,
+				"upkeepDefault": 31,
+				"upkeepCurrent": 31,
+				"thrFor": 8525,
+				"thrAgainst": 11572
+			},
+			"16065459201425": {
+				"income": 71,
+				"upkeepDefault": 23,
+				"upkeepCurrent": 23,
+				"thrFor": 5741,
+				"thrAgainst": 19409
+			},
+			"16066264507825": {
+				"income": 104,
+				"upkeepDefault": 26,
+				"upkeepCurrent": 0,
+				"thrFor": 3460,
+				"thrAgainst": 13733
+			},
+			"22663334471089": {
+				"income": 116,
+				"upkeepDefault": 32,
+				"upkeepCurrent": 0,
+				"thrFor": 4532,
+				"thrAgainst": 11181
+			},
+			"40562207771432": {
+				"income": 108,
+				"upkeepDefault": 26,
+				"upkeepCurrent": 0,
+				"thrFor": 3327,
+				"thrAgainst": 14412
+			}
+		}
+	}, {
+		"powerId": 100040,
+		"state": "control",
+		"systemAddr": {
+			"358864589538": {
+				"income": 42,
+				"upkeepDefault": 44,
+				"upkeepCurrent": 44,
+				"thrFor": 20091,
+				"thrAgainst": 6459
+			},
+			"2008132063954": {
+				"income": 93,
+				"upkeepDefault": 26,
+				"upkeepCurrent": 0,
+				"thrFor": 6790,
+				"thrAgainst": 9364
+			},
+			"903847348579": {
+				"income": 108,
+				"upkeepDefault": 24,
+				"upkeepCurrent": 24,
+				"thrFor": 3136,
+				"thrAgainst": 10521
+			},
+			"491547265379": {
+				"income": 130,
+				"upkeepDefault": 28,
+				"upkeepCurrent": 0,
+				"thrFor": 3737,
+				"thrAgainst": 8483
+			},
+			"1694121331043": {
+				"income": 42,
+				"upkeepDefault": 20,
+				"upkeepCurrent": 20,
+				"thrFor": 2506,
+				"thrAgainst": 1000000000
+			},
+			"560266725747": {
+				"income": 28,
+				"upkeepDefault": 38,
+				"upkeepCurrent": 0,
+				"thrFor": 16660,
+				"thrAgainst": 6835
+			},
+			"525890226539": {
+				"income": 37,
+				"upkeepDefault": 21,
+				"upkeepCurrent": 21,
+				"thrFor": 5233,
+				"thrAgainst": 21600
+			},
+			"972583602539": {
+				"income": 101,
+				"upkeepDefault": 31,
+				"upkeepCurrent": 0,
+				"thrFor": 4277,
+				"thrAgainst": 7699
+			},
+			"1183498408658": {
+				"income": 107,
+				"upkeepDefault": 23,
+				"upkeepCurrent": 0,
+				"thrFor": 2880,
+				"thrAgainst": 12814
+			},
+			"2518755051875": {
+				"income": 36,
+				"upkeepDefault": 21,
+				"upkeepCurrent": 0,
+				"thrFor": 2518,
+				"thrAgainst": 51219
+			},
+			"3382454555338": {
+				"income": 17,
+				"upkeepDefault": 21,
+				"upkeepCurrent": 0,
+				"thrFor": 5077,
+				"thrAgainst": 36272
+			},
+			"4207088276170": {
+				"income": 17,
+				"upkeepDefault": 22,
+				"upkeepCurrent": 22,
+				"thrFor": 5273,
+				"thrAgainst": 20091
+			},
+			"671759803809": {
+				"income": 38,
+				"upkeepDefault": 22,
+				"upkeepCurrent": 22,
+				"thrFor": 2642,
+				"thrAgainst": 19684
+			},
+			"1733254255306": {
+				"income": 101,
+				"upkeepDefault": 23,
+				"upkeepCurrent": 23,
+				"thrFor": 2911,
+				"thrAgainst": 12405
+			},
+			"2008132162250": {
+				"income": 114,
+				"upkeepDefault": 25,
+				"upkeepCurrent": 25,
+				"thrFor": 3222,
+				"thrAgainst": 10062
+			},
+			"3382454522570": {
+				"income": 58,
+				"upkeepDefault": 22,
+				"upkeepCurrent": 22,
+				"thrFor": 5331,
+				"thrAgainst": 18366
+			},
+			"671223129497": {
+				"income": 118,
+				"upkeepDefault": 22,
+				"upkeepCurrent": 0,
+				"thrFor": 2765,
+				"thrAgainst": 14904
+			},
+			"13865630967209": {
+				"income": 90,
+				"upkeepDefault": 22,
+				"upkeepCurrent": 0,
+				"thrFor": 2706,
+				"thrAgainst": 16632
+			},
+			"11666607646113": {
+				"income": 54,
+				"upkeepDefault": 21,
+				"upkeepCurrent": 0,
+				"thrFor": 2626,
+				"thrAgainst": 20813
+			},
+			"18263408977305": {
+				"income": 14,
+				"upkeepDefault": 22,
+				"upkeepCurrent": 22,
+				"thrFor": 7978,
+				"thrAgainst": 18696
+			},
+			"672296936873": {
+				"income": 126,
+				"upkeepDefault": 26,
+				"upkeepCurrent": 0,
+				"thrFor": 6734,
+				"thrAgainst": 9461
+			},
+			"1733388440266": {
+				"income": 119,
+				"upkeepDefault": 27,
+				"upkeepCurrent": 146,
+				"thrFor": 3668,
+				"thrAgainst": 8627
+			},
+			"2283077145306": {
+				"income": 100,
+				"upkeepDefault": 27,
+				"upkeepCurrent": 27,
+				"thrFor": 3605,
+				"thrAgainst": 8768
+			},
+			"2621834283355": {
+				"income": 7,
+				"upkeepDefault": 40,
+				"upkeepCurrent": 40,
+				"thrFor": 11954,
+				"thrAgainst": 6671
+			},
+			"2871051560353": {
+				"income": 28,
+				"upkeepDefault": 22,
+				"upkeepCurrent": 22,
+				"thrFor": 8108,
+				"thrAgainst": 16765
+			},
+			"3657466680034": {
+				"income": 96,
+				"upkeepDefault": 30,
+				"upkeepCurrent": 0,
+				"thrFor": 8322,
+				"thrAgainst": 7831
+			},
+			"3932277445322": {
+				"income": 59,
+				"upkeepDefault": 22,
+				"upkeepCurrent": 22,
+				"thrFor": 2714,
+				"thrAgainst": 16354
+			},
+			"4756911166170": {
+				"income": 104,
+				"upkeepDefault": 27,
+				"upkeepCurrent": 0,
+				"thrFor": 3563,
+				"thrAgainst": 8873
+			},
+			"4820857522531": {
+				"income": 51,
+				"upkeepDefault": 22,
+				"upkeepCurrent": 0,
+				"thrFor": 2646,
+				"thrAgainst": 19490
+			},
+			"5068733031857": {
+				"income": 35,
+				"upkeepDefault": 46,
+				"upkeepCurrent": 46,
+				"thrFor": 14143,
+				"thrAgainst": 6372
+			},
+			"5069806380433": {
+				"income": 69,
+				"upkeepDefault": 21,
+				"upkeepCurrent": 0,
+				"thrFor": 2608,
+				"thrAgainst": 22411
+			},
+			"5069806445977": {
+				"income": 58,
+				"upkeepDefault": 21,
+				"upkeepCurrent": 0,
+				"thrFor": 2550,
+				"thrAgainst": 32258
+			},
+			"5070074750361": {
+				"income": 27,
+				"upkeepDefault": 21,
+				"upkeepCurrent": 21,
+				"thrFor": 2590,
+				"thrAgainst": 24364
+			},
+			"5856422826714": {
+				"income": 156,
+				"upkeepDefault": 24,
+				"upkeepCurrent": 0,
+				"thrFor": 3014,
+				"thrAgainst": 11374
+			},
+			"6955934454482": {
+				"income": 96,
+				"upkeepDefault": 21,
+				"upkeepCurrent": 21,
+				"thrFor": 2614,
+				"thrAgainst": 21793
+			},
+			"7268561200505": {
+				"income": 139,
+				"upkeepDefault": 27,
+				"upkeepCurrent": 27,
+				"thrFor": 7339,
+				"thrAgainst": 8623
+			},
+			"7269098202545": {
+				"income": 134,
+				"upkeepDefault": 26,
+				"upkeepCurrent": 0,
+				"thrFor": 3395,
+				"thrAgainst": 9362
+			},
+			"8330323956434": {
+				"income": 101,
+				"upkeepDefault": 23,
+				"upkeepCurrent": 0,
+				"thrFor": 2924,
+				"thrAgainst": 12255
+			},
+			"8880213988066": {
+				"income": 114,
+				"upkeepDefault": 39,
+				"upkeepCurrent": 0,
+				"thrFor": 5844,
+				"thrAgainst": 6719
+			},
+			"9467852826017": {
+				"income": 24,
+				"upkeepDefault": 21,
+				"upkeepCurrent": 0,
+				"thrFor": 2535,
+				"thrAgainst": 37929
+			},
+			"9468926764473": {
+				"income": 125,
+				"upkeepDefault": 33,
+				"upkeepCurrent": 0,
+				"thrFor": 4772,
+				"thrAgainst": 7267
+			},
+			"11666876016033": {
+				"income": 31,
+				"upkeepDefault": 22,
+				"upkeepCurrent": 22,
+				"thrFor": 2709,
+				"thrAgainst": 16546
+			},
+			"11666876278193": {
+				"income": 101,
+				"upkeepDefault": 26,
+				"upkeepCurrent": 0,
+				"thrFor": 6736,
+				"thrAgainst": 9457
+			},
+			"11666876278233": {
+				"income": 121,
+				"upkeepDefault": 45,
+				"upkeepCurrent": 0,
+				"thrFor": 6876,
+				"thrAgainst": 6416
+			},
+			"11667144582545": {
+				"income": 82,
+				"upkeepDefault": 22,
+				"upkeepCurrent": 22,
+				"thrFor": 2642,
+				"thrAgainst": 19704
+			},
+			"11667412886977": {
+				"income": 71,
+				"upkeepDefault": 32,
+				"upkeepCurrent": 0,
+				"thrFor": 13599,
+				"thrAgainst": 7453
+			},
+			"11667681125777": {
+				"income": 28,
+				"upkeepDefault": 35,
+				"upkeepCurrent": 63,
+				"thrFor": 10221,
+				"thrAgainst": 7053
+			},
+			"13865899337129": {
+				"income": 23,
+				"upkeepDefault": 21,
+				"upkeepCurrent": 0,
+				"thrFor": 2623,
+				"thrAgainst": 21041
+			},
+			"16065459398097": {
+				"income": 46,
+				"upkeepDefault": 40,
+				"upkeepCurrent": 0,
+				"thrFor": 5954,
+				"thrAgainst": 6679
+			}
+		}
+	}, {
+		"powerId": 100040,
+		"state": "takingControl",
+		"systemAddr": {
+			"2106438158699": {
+				"income": 0,
+				"upkeepDefault": 0,
+				"upkeepCurrent": 0,
+				"thrFor": 15380,
+				"thrAgainst": 6251
+			}
+		}
+	}, {
+		"powerId": 100050,
+		"state": "control",
+		"systemAddr": {
+			"560249932139": {
+				"income": 77,
+				"upkeepDefault": 26,
+				"upkeepCurrent": 26,
+				"thrFor": 6876,
+				"thrAgainst": 13837
+			},
+			"835127839083": {
+				"income": 48,
+				"upkeepDefault": 22,
+				"upkeepCurrent": 22,
+				"thrFor": 2672,
+				"thrAgainst": 27058
+			},
+			"671490975145": {
+				"income": 41,
+				"upkeepDefault": 21,
+				"upkeepCurrent": 0,
+				"thrFor": 5044,
+				"thrAgainst": 69862
+			},
+			"83919540938": {
+				"income": 108,
+				"upkeepDefault": 23,
+				"upkeepCurrent": 23,
+				"thrFor": 5884,
+				"thrAgainst": 18084
+			},
+			"800768117091": {
+				"income": 107,
+				"upkeepDefault": 24,
+				"upkeepCurrent": 24,
+				"thrFor": 3105,
+				"thrAgainst": 16063
+			},
+			"83919540962": {
+				"income": 123,
+				"upkeepDefault": 28,
+				"upkeepCurrent": 0,
+				"thrFor": 3765,
+				"thrAgainst": 12643
+			},
+			"670417561001": {
+				"income": 8,
+				"upkeepDefault": 35,
+				"upkeepCurrent": 35,
+				"thrFor": 10153,
+				"thrAgainst": 10608
+			},
+			"2557753627354": {
+				"income": 56,
+				"upkeepDefault": 25,
+				"upkeepCurrent": 25,
+				"thrFor": 6563,
+				"thrAgainst": 14689
+			},
+			"1453603146091": {
+				"income": 122,
+				"upkeepDefault": 23,
+				"upkeepCurrent": 23,
+				"thrFor": 2819,
+				"thrAgainst": 20638
+			},
+			"3657265222362": {
+				"income": 89,
+				"upkeepDefault": 25,
+				"upkeepCurrent": 25,
+				"thrFor": 3317,
+				"thrAgainst": 14469
+			},
+			"3107509441242": {
+				"income": 115,
+				"upkeepDefault": 24,
+				"upkeepCurrent": 0,
+				"thrFor": 6046,
+				"thrAgainst": 16956
+			},
+			"671490975137": {
+				"income": 62,
+				"upkeepDefault": 21,
+				"upkeepCurrent": 21,
+				"thrFor": 5165,
+				"thrAgainst": 38147
+			},
+			"1831560268139": {
+				"income": 94,
+				"upkeepDefault": 21,
+				"upkeepCurrent": 0,
+				"thrFor": 2561,
+				"thrAgainst": 44062
+			},
+			"4481966084842": {
+				"income": 130,
+				"upkeepDefault": 30,
+				"upkeepCurrent": 0,
+				"thrFor": 4141,
+				"thrAgainst": 11783
+			},
+			"2346939550067": {
+				"income": 125,
+				"upkeepDefault": 29,
+				"upkeepCurrent": 29,
+				"thrFor": 4007,
+				"thrAgainst": 12049
+			},
+			"3932143162074": {
+				"income": 49,
+				"upkeepDefault": 23,
+				"upkeepCurrent": 23,
+				"thrFor": 2945,
+				"thrAgainst": 18039
+			},
+			"2690553727339": {
+				"income": 38,
+				"upkeepDefault": 23,
+				"upkeepCurrent": 23,
+				"thrFor": 8699,
+				"thrAgainst": 18825
+			},
+			"5370319752016": {
+				"income": 39,
+				"upkeepDefault": 28,
+				"upkeepCurrent": 28,
+				"thrFor": 7522,
+				"thrAgainst": 12655
+			},
+			"671491040657": {
+				"income": 131,
+				"upkeepDefault": 24,
+				"upkeepCurrent": 0,
+				"thrFor": 3004,
+				"thrAgainst": 17190
+			},
+			"671491106217": {
+				"income": 35,
+				"upkeepDefault": 21,
+				"upkeepCurrent": 21,
+				"thrFor": 5139,
+				"thrAgainst": 41409
+			},
+			"908553229010": {
+				"income": 109,
+				"upkeepDefault": 25,
+				"upkeepCurrent": 0,
+				"thrFor": 3252,
+				"thrAgainst": 14878
+			},
+			"1458241901274": {
+				"income": 119,
+				"upkeepDefault": 33,
+				"upkeepCurrent": 0,
+				"thrFor": 4732,
+				"thrAgainst": 10944
+			},
+			"2656193972579": {
+				"income": 146,
+				"upkeepDefault": 24,
+				"upkeepCurrent": 0,
+				"thrFor": 3053,
+				"thrAgainst": 16604
+			},
+			"2832564359898": {
+				"income": 116,
+				"upkeepDefault": 30,
+				"upkeepCurrent": 0,
+				"thrFor": 4143,
+				"thrAgainst": 11780
+			},
+			"3240309541227": {
+				"income": 27,
+				"upkeepDefault": 21,
+				"upkeepCurrent": 0,
+				"thrFor": 5058,
+				"thrAgainst": 62171
+			},
+			"3412108216675": {
+				"income": 99,
+				"upkeepDefault": 30,
+				"upkeepCurrent": 30,
+				"thrFor": 4199,
+				"thrAgainst": 11678
+			},
+			"3446451177835": {
+				"income": 143,
+				"upkeepDefault": 26,
+				"upkeepCurrent": 0,
+				"thrFor": 3485,
+				"thrAgainst": 13624
+			},
+			"3932277314250": {
+				"income": 93,
+				"upkeepDefault": 26,
+				"upkeepCurrent": 26,
+				"thrFor": 3338,
+				"thrAgainst": 14349
+			},
+			"3932277347018": {
+				"income": 95,
+				"upkeepDefault": 26,
+				"upkeepCurrent": 26,
+				"thrFor": 3326,
+				"thrAgainst": 14416
+			},
+			"3996240546155": {
+				"income": 107,
+				"upkeepDefault": 27,
+				"upkeepCurrent": 27,
+				"thrFor": 3645,
+				"thrAgainst": 13014
+			},
+			"4207088177874": {
+				"income": 98,
+				"upkeepDefault": 22,
+				"upkeepCurrent": 22,
+				"thrFor": 2730,
+				"thrAgainst": 23792
+			},
+			"4481831867106": {
+				"income": 144,
+				"upkeepDefault": 30,
+				"upkeepCurrent": 0,
+				"thrFor": 4151,
+				"thrAgainst": 11764
+			},
+			"5069000746409": {
+				"income": 104,
+				"upkeepDefault": 23,
+				"upkeepCurrent": 23,
+				"thrFor": 5629,
+				"thrAgainst": 20770
+			},
+			"5069269050801": {
+				"income": 35,
+				"upkeepDefault": 21,
+				"upkeepCurrent": 21,
+				"thrFor": 5234,
+				"thrAgainst": 32356
+			},
+			"5374614588216": {
+				"income": 89,
+				"upkeepDefault": 28,
+				"upkeepCurrent": 28,
+				"thrFor": 7420,
+				"thrAgainst": 12807
+			},
+			"5856422793946": {
+				"income": 83,
+				"upkeepDefault": 30,
+				"upkeepCurrent": 30,
+				"thrFor": 4132,
+				"thrAgainst": 11799
+			},
+			"6955800138458": {
+				"income": 136,
+				"upkeepDefault": 24,
+				"upkeepCurrent": 0,
+				"thrFor": 3073,
+				"thrAgainst": 16382
+			},
+			"7505623061218": {
+				"income": 100,
+				"upkeepDefault": 24,
+				"upkeepCurrent": 24,
+				"thrFor": 3128,
+				"thrAgainst": 15850
+			},
+			"7780501033674": {
+				"income": 118,
+				"upkeepDefault": 31,
+				"upkeepCurrent": 31,
+				"thrFor": 8569,
+				"thrAgainst": 11536
+			},
+			"8330256782042": {
+				"income": 50,
+				"upkeepDefault": 22,
+				"upkeepCurrent": 22,
+				"thrFor": 5269,
+				"thrAgainst": 30327
+			},
+			"9467315496377": {
+				"income": 131,
+				"upkeepDefault": 23,
+				"upkeepCurrent": 0,
+				"thrFor": 2920,
+				"thrAgainst": 18464
+			},
+			"9467584193937": {
+				"income": 80,
+				"upkeepDefault": 26,
+				"upkeepCurrent": 26,
+				"thrFor": 6993,
+				"thrAgainst": 13574
+			},
+			"9467852498337": {
+				"income": 102,
+				"upkeepDefault": 22,
+				"upkeepCurrent": 22,
+				"thrFor": 2642,
+				"thrAgainst": 29546
+			},
+			"11666338948513": {
+				"income": 149,
+				"upkeepDefault": 23,
+				"upkeepCurrent": 0,
+				"thrFor": 2845,
+				"thrAgainst": 19975
+			},
+			"13865630573993": {
+				"income": 44,
+				"upkeepDefault": 20,
+				"upkeepCurrent": 20,
+				"thrFor": 5013,
+				"thrAgainst": 1000000000
+			},
+			"16064385525185": {
+				"income": 120,
+				"upkeepDefault": 28,
+				"upkeepCurrent": 0,
+				"thrFor": 3791,
+				"thrAgainst": 12571
+			},
+			"20462163600857": {
+				"income": 113,
+				"upkeepDefault": 40,
+				"upkeepCurrent": 40,
+				"thrFor": 5915,
+				"thrAgainst": 10039
+			},
+			"40556839062304": {
+				"income": 116,
+				"upkeepDefault": 29,
+				"upkeepCurrent": 29,
+				"thrFor": 3983,
+				"thrAgainst": 12100
+			}
+		}
+	}, {
+		"powerId": 100060,
+		"state": "control",
+		"systemAddr": {
+			"10477373803": {
+				"income": 122,
+				"upkeepDefault": 21,
+				"upkeepCurrent": 0,
+				"thrFor": 5211,
+				"thrAgainst": 33998
+			},
+			"83852530386": {
+				"income": 40,
+				"upkeepDefault": 23,
+				"upkeepCurrent": 23,
+				"thrFor": 5636,
+				"thrAgainst": 20679
+			},
+			"7268292568489": {
+				"income": 56,
+				"upkeepDefault": 26,
+				"upkeepCurrent": 82,
+				"thrFor": 6813,
+				"thrAgainst": 13988
+			},
+			"2869977687449": {
+				"income": 95,
+				"upkeepDefault": 22,
+				"upkeepCurrent": 0,
+				"thrFor": 5333,
+				"thrAgainst": 27471
+			},
+			"2557753692874": {
+				"income": 102,
+				"upkeepDefault": 23,
+				"upkeepCurrent": 0,
+				"thrFor": 5837,
+				"thrAgainst": 18484
+			},
+			"1458242097866": {
+				"income": 109,
+				"upkeepDefault": 22,
+				"upkeepCurrent": 22,
+				"thrFor": 8238,
+				"thrAgainst": 23075
+			},
+			"1458309173978": {
+				"income": 99,
+				"upkeepDefault": 25,
+				"upkeepCurrent": 25,
+				"thrFor": 6617,
+				"thrAgainst": 14522
+			},
+			"2557686584026": {
+				"income": 61,
+				"upkeepDefault": 24,
+				"upkeepCurrent": 24,
+				"thrFor": 5948,
+				"thrAgainst": 17605
+			},
+			"2007930802898": {
+				"income": 60,
+				"upkeepDefault": 22,
+				"upkeepCurrent": 0,
+				"thrFor": 5297,
+				"thrAgainst": 28974
+			},
+			"2869440751025": {
+				"income": 24,
+				"upkeepDefault": 25,
+				"upkeepCurrent": 0,
+				"thrFor": 3162,
+				"thrAgainst": 15554
+			},
+			"2557753660122": {
+				"income": 89,
+				"upkeepDefault": 25,
+				"upkeepCurrent": 0,
+				"thrFor": 3269,
+				"thrAgainst": 14768
+			},
+			"1458242065106": {
+				"income": 41,
+				"upkeepDefault": 23,
+				"upkeepCurrent": 23,
+				"thrFor": 5790,
+				"thrAgainst": 18914
+			},
+			"2007997878994": {
+				"income": 41,
+				"upkeepDefault": 22,
+				"upkeepCurrent": 22,
+				"thrFor": 5489,
+				"thrAgainst": 23151
+			},
+			"2557686584018": {
+				"income": 130,
+				"upkeepDefault": 21,
+				"upkeepCurrent": 0,
+				"thrFor": 5105,
+				"thrAgainst": 47295
+			},
+			"3107442397898": {
+				"income": 140,
+				"upkeepDefault": 22,
+				"upkeepCurrent": 0,
+				"thrFor": 5491,
+				"thrAgainst": 23109
+			},
+			"1865920006507": {
+				"income": 92,
+				"upkeepDefault": 25,
+				"upkeepCurrent": 25,
+				"thrFor": 6476,
+				"thrAgainst": 14977
+			},
+			"2832564523714": {
+				"income": 112,
+				"upkeepDefault": 26,
+				"upkeepCurrent": 0,
+				"thrFor": 6686,
+				"thrAgainst": 14323
+			},
+			"4481899041490": {
+				"income": 39,
+				"upkeepDefault": 21,
+				"upkeepCurrent": 0,
+				"thrFor": 5037,
+				"thrAgainst": 75359
+			},
+			"5581410702034": {
+				"income": 79,
+				"upkeepDefault": 21,
+				"upkeepCurrent": 21,
+				"thrFor": 5180,
+				"thrAgainst": 36573
+			},
+			"1556665600363": {
+				"income": 59,
+				"upkeepDefault": 24,
+				"upkeepCurrent": 24,
+				"thrFor": 5973,
+				"thrAgainst": 17430
+			},
+			"301958431924": {
+				"income": 66,
+				"upkeepDefault": 21,
+				"upkeepCurrent": 21,
+				"thrFor": 5190,
+				"thrAgainst": 35671
+			},
+			"1659728038251": {
+				"income": 102,
+				"upkeepDefault": 24,
+				"upkeepCurrent": 0,
+				"thrFor": 6013,
+				"thrAgainst": 17159
+			},
+			"5856221467354": {
+				"income": 69,
+				"upkeepDefault": 26,
+				"upkeepCurrent": 26,
+				"thrFor": 6708,
+				"thrAgainst": 14261
+			},
+			"2827975919979": {
+				"income": 51,
+				"upkeepDefault": 26,
+				"upkeepCurrent": 26,
+				"thrFor": 6733,
+				"thrAgainst": 14194
+			},
+			"2869440882089": {
+				"income": 28,
+				"upkeepDefault": 22,
+				"upkeepCurrent": 22,
+				"thrFor": 5391,
+				"thrAgainst": 25544
+			},
+			"7268024198545": {
+				"income": 88,
+				"upkeepDefault": 23,
+				"upkeepCurrent": 0,
+				"thrFor": 5767,
+				"thrAgainst": 19144
+			},
+			"7267487458713": {
+				"income": 61,
+				"upkeepDefault": 22,
+				"upkeepCurrent": 22,
+				"thrFor": 5278,
+				"thrAgainst": 29849
+			},
+			"2724896704867": {
+				"income": 89,
+				"upkeepDefault": 24,
+				"upkeepCurrent": 0,
+				"thrFor": 6009,
+				"thrAgainst": 17188
+			},
+			"13864825660825": {
+				"income": 27,
+				"upkeepDefault": 21,
+				"upkeepCurrent": 0,
+				"thrFor": 5048,
+				"thrAgainst": 67606
+			},
+			"9466242278841": {
+				"income": 109,
+				"upkeepDefault": 25,
+				"upkeepCurrent": 0,
+				"thrFor": 6623,
+				"thrAgainst": 14504
+			},
+			"2243843590507": {
+				"income": 59,
+				"upkeepDefault": 25,
+				"upkeepCurrent": 25,
+				"thrFor": 6581,
+				"thrAgainst": 14630
+			},
+			"7266950522273": {
+				"income": 153,
+				"upkeepDefault": 24,
+				"upkeepCurrent": 0,
+				"thrFor": 2987,
+				"thrAgainst": 17419
+			},
+			"11665533773225": {
+				"income": 73,
+				"upkeepDefault": 24,
+				"upkeepCurrent": 0,
+				"thrFor": 3045,
+				"thrAgainst": 16695
+			},
+			"9466242147745": {
+				"income": 125,
+				"upkeepDefault": 23,
+				"upkeepCurrent": 0,
+				"thrFor": 5860,
+				"thrAgainst": 18283
+			},
+			"13865093899689": {
+				"income": 54,
+				"upkeepDefault": 25,
+				"upkeepCurrent": 25,
+				"thrFor": 6427,
+				"thrAgainst": 15150
+			},
+			"11665802274201": {
+				"income": 89,
+				"upkeepDefault": 22,
+				"upkeepCurrent": 0,
+				"thrFor": 5510,
+				"thrAgainst": 22722
+			},
+			"6405977314002": {
+				"income": 94,
+				"upkeepDefault": 22,
+				"upkeepCurrent": 0,
+				"thrFor": 5341,
+				"thrAgainst": 27172
+			},
+			"5068195702201": {
+				"income": 38,
+				"upkeepDefault": 25,
+				"upkeepCurrent": 25,
+				"thrFor": 6564,
+				"thrAgainst": 14686
+			},
+			"22660650116513": {
+				"income": 63,
+				"upkeepDefault": 22,
+				"upkeepCurrent": 22,
+				"thrFor": 5569,
+				"thrAgainst": 21671
+			},
+			"2827959142763": {
+				"income": 74,
+				"upkeepDefault": 26,
+				"upkeepCurrent": 26,
+				"thrFor": 6801,
+				"thrAgainst": 14018
+			},
+			"4442883623275": {
+				"income": 48,
+				"upkeepDefault": 21,
+				"upkeepCurrent": 21,
+				"thrFor": 5076,
+				"thrAgainst": 55021
+			},
+			"4511603100011": {
+				"income": 12,
+				"upkeepDefault": 22,
+				"upkeepCurrent": 22,
+				"thrFor": 5272,
+				"thrAgainst": 30172
+			},
+			"4752121268587": {
+				"income": 132,
+				"upkeepDefault": 20,
+				"upkeepCurrent": 20,
+				"thrFor": 5013,
+				"thrAgainst": 1000000000
+			},
+			"4820840745315": {
+				"income": 111,
+				"upkeepDefault": 24,
+				"upkeepCurrent": 0,
+				"thrFor": 3115,
+				"thrAgainst": 15968
+			},
+			"4820840745323": {
+				"income": 91,
+				"upkeepDefault": 22,
+				"upkeepCurrent": 0,
+				"thrFor": 2706,
+				"thrAgainst": 24937
+			},
+			"4855200483691": {
+				"income": 71,
+				"upkeepDefault": 23,
+				"upkeepCurrent": 23,
+				"thrFor": 5825,
+				"thrAgainst": 18589
+			},
+			"5198797867371": {
+				"income": 49,
+				"upkeepDefault": 22,
+				"upkeepCurrent": 22,
+				"thrFor": 5384,
+				"thrAgainst": 25758
+			},
+			"6680989405914": {
+				"income": 95,
+				"upkeepDefault": 24,
+				"upkeepCurrent": 24,
+				"thrFor": 6213,
+				"thrAgainst": 16052
+			},
+			"9154823459546": {
+				"income": 96,
+				"upkeepDefault": 24,
+				"upkeepCurrent": 24,
+				"thrFor": 6187,
+				"thrAgainst": 16178
+			},
+			"11664728597897": {
+				"income": 182,
+				"upkeepDefault": 30,
+				"upkeepCurrent": 0,
+				"thrFor": 4212,
+				"thrAgainst": 11656
+			},
+			"11665533904257": {
+				"income": 119,
+				"upkeepDefault": 26,
+				"upkeepCurrent": 0,
+				"thrFor": 6939,
+				"thrAgainst": 13692
+			},
+			"16063580415417": {
+				"income": 113,
+				"upkeepDefault": 24,
+				"upkeepCurrent": 0,
+				"thrFor": 2970,
+				"thrAgainst": 17662
+			}
+		}
+	}, {
+		"powerId": 100060,
+		"state": "takingControl",
+		"systemAddr": {
+			"11665533904241": {
+				"income": 0,
+				"upkeepDefault": 0,
+				"upkeepCurrent": 0,
+				"thrFor": 4872,
+				"thrAgainst": 7198
+			}
+		}
+	}, {
+		"powerId": 100070,
+		"state": "control",
+		"systemAddr": {
+			"1183229907658": {
+				"income": 37,
+				"upkeepDefault": 22,
+				"upkeepCurrent": 22,
+				"thrFor": 5421,
+				"thrAgainst": 24731
+			},
+			"1183296983754": {
+				"income": 14,
+				"upkeepDefault": 21,
+				"upkeepCurrent": 0,
+				"thrFor": 2593,
+				"thrAgainst": 36123
+			},
+			"800751339875": {
+				"income": 113,
+				"upkeepDefault": 22,
+				"upkeepCurrent": 0,
+				"thrFor": 2682,
+				"thrAgainst": 26377
+			},
+			"2557686551242": {
+				"income": 35,
+				"upkeepDefault": 21,
+				"upkeepCurrent": 0,
+				"thrFor": 2556,
+				"thrAgainst": 45937
+			},
+			"2007997813450": {
+				"income": 98,
+				"upkeepDefault": 25,
+				"upkeepCurrent": 0,
+				"thrFor": 3202,
+				"thrAgainst": 15237
+			},
+			"800734562651": {
+				"income": 60,
+				"upkeepDefault": 23,
+				"upkeepCurrent": 23,
+				"thrFor": 5831,
+				"thrAgainst": 18540
+			},
+			"1384866892131": {
+				"income": 116,
+				"upkeepDefault": 21,
+				"upkeepCurrent": 0,
+				"thrFor": 2588,
+				"thrAgainst": 37020
+			},
+			"1458174923458": {
+				"income": 8,
+				"upkeepDefault": 21,
+				"upkeepCurrent": 0,
+				"thrFor": 5126,
+				"thrAgainst": 43381
+			},
+			"633541169850": {
+				"income": 31,
+				"upkeepDefault": 22,
+				"upkeepCurrent": 22,
+				"thrFor": 2775,
+				"thrAgainst": 21981
+			},
+			"2007930737346": {
+				"income": 54,
+				"upkeepDefault": 21,
+				"upkeepCurrent": 0,
+				"thrFor": 2551,
+				"thrAgainst": 47930
+			},
+			"1591025322339": {
+				"income": 31,
+				"upkeepDefault": 22,
+				"upkeepCurrent": 22,
+				"thrFor": 2656,
+				"thrAgainst": 28306
+			},
+			"1733119939274": {
+				"income": 171,
+				"upkeepDefault": 25,
+				"upkeepCurrent": 0,
+				"thrFor": 3260,
+				"thrAgainst": 14827
+			},
+			"2007997846218": {
+				"income": 18,
+				"upkeepDefault": 23,
+				"upkeepCurrent": 0,
+				"thrFor": 2799,
+				"thrAgainst": 21208
+			},
+			"1183297016506": {
+				"income": 36,
+				"upkeepDefault": 23,
+				"upkeepCurrent": 23,
+				"thrFor": 5691,
+				"thrAgainst": 19970
+			},
+			"1458174956226": {
+				"income": 139,
+				"upkeepDefault": 24,
+				"upkeepCurrent": 0,
+				"thrFor": 3006,
+				"thrAgainst": 17165
+			},
+			"1865903229283": {
+				"income": 150,
+				"upkeepDefault": 23,
+				"upkeepCurrent": 0,
+				"thrFor": 5863,
+				"thrAgainst": 18263
+			},
+			"2869709317521": {
+				"income": 138,
+				"upkeepDefault": 27,
+				"upkeepCurrent": 27,
+				"thrFor": 7047,
+				"thrAgainst": 13463
+			},
+			"2557686518474": {
+				"income": 107,
+				"upkeepDefault": 23,
+				"upkeepCurrent": 0,
+				"thrFor": 2847,
+				"thrAgainst": 19951
+			},
+			"2175124097379": {
+				"income": 52,
+				"upkeepDefault": 22,
+				"upkeepCurrent": 22,
+				"thrFor": 5428,
+				"thrAgainst": 24539
+			},
+			"2553097996643": {
+				"income": 99,
+				"upkeepDefault": 22,
+				"upkeepCurrent": 0,
+				"thrFor": 2787,
+				"thrAgainst": 21582
+			},
+			"3107442365122": {
+				"income": 11,
+				"upkeepDefault": 21,
+				"upkeepCurrent": 0,
+				"thrFor": 5053,
+				"thrAgainst": 64450
+			},
+			"3171573287267": {
+				"income": 124,
+				"upkeepDefault": 24,
+				"upkeepCurrent": 0,
+				"thrFor": 3102,
+				"thrAgainst": 16097
+			},
+			"3652609624411": {
+				"income": 140,
+				"upkeepDefault": 27,
+				"upkeepCurrent": 0,
+				"thrFor": 3571,
+				"thrAgainst": 13279
+			},
+			"3927487531355": {
+				"income": 217,
+				"upkeepDefault": 25,
+				"upkeepCurrent": 0,
+				"thrFor": 3313,
+				"thrAgainst": 14497
+			},
+			"3657265287874": {
+				"income": 99,
+				"upkeepDefault": 24,
+				"upkeepCurrent": 0,
+				"thrFor": 6256,
+				"thrAgainst": 15849
+			},
+			"1316147431771": {
+				"income": 112,
+				"upkeepDefault": 27,
+				"upkeepCurrent": 0,
+				"thrFor": 3514,
+				"thrAgainst": 13504
+			},
+			"2037718714723": {
+				"income": 142,
+				"upkeepDefault": 32,
+				"upkeepCurrent": 0,
+				"thrFor": 4428,
+				"thrAgainst": 11320
+			},
+			"5068464006553": {
+				"income": 39,
+				"upkeepDefault": 23,
+				"upkeepCurrent": 23,
+				"thrFor": 2933,
+				"thrAgainst": 18242
+			},
+			"2869977687433": {
+				"income": 122,
+				"upkeepDefault": 25,
+				"upkeepCurrent": 0,
+				"thrFor": 6547,
+				"thrAgainst": 14738
+			},
+			"3549530409315": {
+				"income": 136,
+				"upkeepDefault": 22,
+				"upkeepCurrent": 0,
+				"thrFor": 2769,
+				"thrAgainst": 22218
+			},
+			"670417298817": {
+				"income": 13,
+				"upkeepDefault": 21,
+				"upkeepCurrent": 0,
+				"thrFor": 2575,
+				"thrAgainst": 39865
+			},
+			"671222605193": {
+				"income": 128,
+				"upkeepDefault": 26,
+				"upkeepCurrent": 0,
+				"thrFor": 3395,
+				"thrAgainst": 14045
+			},
+			"2381282543963": {
+				"income": 46,
+				"upkeepDefault": 27,
+				"upkeepCurrent": 27,
+				"thrFor": 3645,
+				"thrAgainst": 13014
+			},
+			"3657131102922": {
+				"income": 138,
+				"upkeepDefault": 26,
+				"upkeepCurrent": 0,
+				"thrFor": 3423,
+				"thrAgainst": 13908
+			},
+			"3790065371483": {
+				"income": 134,
+				"upkeepDefault": 32,
+				"upkeepCurrent": 0,
+				"thrFor": 4503,
+				"thrAgainst": 11219
+			},
+			"3824408316259": {
+				"income": 105,
+				"upkeepDefault": 20,
+				"upkeepCurrent": 20,
+				"thrFor": 2506,
+				"thrAgainst": 1000000000
+			},
+			"5068195439993": {
+				"income": 14,
+				"upkeepDefault": 22,
+				"upkeepCurrent": 22,
+				"thrFor": 5359,
+				"thrAgainst": 26557
+			},
+			"5068463875457": {
+				"income": 67,
+				"upkeepDefault": 21,
+				"upkeepCurrent": 0,
+				"thrFor": 5163,
+				"thrAgainst": 38352
+			},
+			"5068463941009": {
+				"income": 18,
+				"upkeepDefault": 21,
+				"upkeepCurrent": 0,
+				"thrFor": 2586,
+				"thrAgainst": 37392
+			},
+			"5069269181825": {
+				"income": 106,
+				"upkeepDefault": 26,
+				"upkeepCurrent": 0,
+				"thrFor": 6946,
+				"thrAgainst": 13677
+			},
+			"5361729555224": {
+				"income": 20,
+				"upkeepDefault": 21,
+				"upkeepCurrent": 0,
+				"thrFor": 2555,
+				"thrAgainst": 46257
+			},
+			"5581410669242": {
+				"income": 129,
+				"upkeepDefault": 28,
+				"upkeepCurrent": 0,
+				"thrFor": 3851,
+				"thrAgainst": 12411
+			},
+			"7267218695553": {
+				"income": 24,
+				"upkeepDefault": 21,
+				"upkeepCurrent": 0,
+				"thrFor": 5112,
+				"thrAgainst": 45778
+			},
+			"7505488843466": {
+				"income": 60,
+				"upkeepDefault": 21,
+				"upkeepCurrent": 0,
+				"thrFor": 2536,
+				"thrAgainst": 56458
+			},
+			"7780299641546": {
+				"income": 23,
+				"upkeepDefault": 22,
+				"upkeepCurrent": 22,
+				"thrFor": 5337,
+				"thrAgainst": 27316
+			},
+			"9466510452089": {
+				"income": 26,
+				"upkeepDefault": 22,
+				"upkeepCurrent": 22,
+				"thrFor": 5484,
+				"thrAgainst": 23242
+			},
+			"11665265206665": {
+				"income": 71,
+				"upkeepDefault": 21,
+				"upkeepCurrent": 0,
+				"thrFor": 2527,
+				"thrAgainst": 63594
+			},
+			"11665802077569": {
+				"income": 42,
+				"upkeepDefault": 21,
+				"upkeepCurrent": 0,
+				"thrFor": 2597,
+				"thrAgainst": 35285
+			},
+			"13864020026761": {
+				"income": 34,
+				"upkeepDefault": 22,
+				"upkeepCurrent": 22,
+				"thrFor": 5277,
+				"thrAgainst": 29896
+			},
+			"13864288527745": {
+				"income": 71,
+				"upkeepDefault": 21,
+				"upkeepCurrent": 0,
+				"thrFor": 5128,
+				"thrAgainst": 43059
+			},
+			"16062237975969": {
+				"income": 60,
+				"upkeepDefault": 32,
+				"upkeepCurrent": 0,
+				"thrFor": 4572,
+				"thrAgainst": 11131
+			},
+			"16063848588689": {
+				"income": 59,
+				"upkeepDefault": 22,
+				"upkeepCurrent": 22,
+				"thrFor": 2703,
+				"thrAgainst": 25129
+			},
+			"22953915599624": {
+				"income": 54,
+				"upkeepDefault": 21,
+				"upkeepCurrent": 0,
+				"thrFor": 2611,
+				"thrAgainst": 33237
+			},
+			"58141508913928": {
+				"income": 28,
+				"upkeepDefault": 21,
+				"upkeepCurrent": 21,
+				"thrFor": 5258,
+				"thrAgainst": 30925
+			}
+		}
+	}, {
+		"powerId": 100080,
+		"state": "control",
+		"systemAddr": {
+			"83986715354": {
+				"income": 16,
+				"upkeepDefault": 21,
+				"upkeepCurrent": 21,
+				"thrFor": 5191,
+				"thrAgainst": 35564
+			},
+			"560249948523": {
+				"income": 21,
+				"upkeepDefault": 22,
+				"upkeepCurrent": 22,
+				"thrFor": 5490,
+				"thrAgainst": 23116
+			},
+			"2557887910602": {
+				"income": 23,
+				"upkeepDefault": 30,
+				"upkeepCurrent": 30,
+				"thrFor": 12395,
+				"thrAgainst": 11800
+			},
+			"938223864163": {
+				"income": 80,
+				"upkeepDefault": 35,
+				"upkeepCurrent": 35,
+				"thrFor": 10155,
+				"thrAgainst": 10607
+			},
+			"2870514689441": {
+				"income": 49,
+				"upkeepDefault": 32,
+				"upkeepCurrent": 32,
+				"thrFor": 9180,
+				"thrAgainst": 11108
+			},
+			"869487593843": {
+				"income": 95,
+				"upkeepDefault": 24,
+				"upkeepCurrent": 0,
+				"thrFor": 3066,
+				"thrAgainst": 16462
+			},
+			"1384883669363": {
+				"income": 81,
+				"upkeepDefault": 23,
+				"upkeepCurrent": 0,
+				"thrFor": 2910,
+				"thrAgainst": 18643
+			},
+			"1733119906530": {
+				"income": 81,
+				"upkeepDefault": 25,
+				"upkeepCurrent": 25,
+				"thrFor": 6625,
+				"thrAgainst": 14496
+			},
+			"2832698675930": {
+				"income": 47,
+				"upkeepDefault": 23,
+				"upkeepCurrent": 0,
+				"thrFor": 2883,
+				"thrAgainst": 19147
+			},
+			"1659761576299": {
+				"income": 14,
+				"upkeepDefault": 21,
+				"upkeepCurrent": 21,
+				"thrFor": 5117,
+				"thrAgainst": 44801
+			},
+			"2557820801746": {
+				"income": 55,
+				"upkeepDefault": 25,
+				"upkeepCurrent": 25,
+				"thrFor": 6548,
+				"thrAgainst": 14736
+			},
+			"2931071912291": {
+				"income": 41,
+				"upkeepDefault": 35,
+				"upkeepCurrent": 35,
+				"thrFor": 10179,
+				"thrAgainst": 10597
+			},
+			"2209517406571": {
+				"income": 97,
+				"upkeepDefault": 29,
+				"upkeepCurrent": 0,
+				"thrFor": 7937,
+				"thrAgainst": 12132
+			},
+			"3932210303706": {
+				"income": 129,
+				"upkeepDefault": 22,
+				"upkeepCurrent": 0,
+				"thrFor": 2769,
+				"thrAgainst": 22191
+			},
+			"3382387380954": {
+				"income": 93,
+				"upkeepDefault": 24,
+				"upkeepCurrent": 0,
+				"thrFor": 3019,
+				"thrAgainst": 17000
+			},
+			"671491433873": {
+				"income": 57,
+				"upkeepDefault": 36,
+				"upkeepCurrent": 36,
+				"thrFor": 15843,
+				"thrAgainst": 10443
+			},
+			"2587474528619": {
+				"income": 34,
+				"upkeepDefault": 27,
+				"upkeepCurrent": 27,
+				"thrFor": 7121,
+				"thrAgainst": 13317
+			},
+			"5069806183865": {
+				"income": 104,
+				"upkeepDefault": 23,
+				"upkeepCurrent": 0,
+				"thrFor": 5691,
+				"thrAgainst": 19976
+			},
+			"2869709317585": {
+				"income": 118,
+				"upkeepDefault": 36,
+				"upkeepCurrent": 36,
+				"thrFor": 10535,
+				"thrAgainst": 10453
+			},
+			"2870782797233": {
+				"income": 72,
+				"upkeepDefault": 21,
+				"upkeepCurrent": 0,
+				"thrFor": 5055,
+				"thrAgainst": 63599
+			},
+			"3309029017971": {
+				"income": 89,
+				"upkeepDefault": 22,
+				"upkeepCurrent": 0,
+				"thrFor": 2739,
+				"thrAgainst": 23352
+			},
+			"3790065371499": {
+				"income": 64,
+				"upkeepDefault": 27,
+				"upkeepCurrent": 27,
+				"thrFor": 7225,
+				"thrAgainst": 13127
+			},
+			"4207155319522": {
+				"income": 84,
+				"upkeepDefault": 22,
+				"upkeepCurrent": 0,
+				"thrFor": 2705,
+				"thrAgainst": 25026
+			},
+			"4442917177707": {
+				"income": 63,
+				"upkeepDefault": 32,
+				"upkeepCurrent": 32,
+				"thrFor": 4463,
+				"thrAgainst": 11273
+			},
+			"4477260122483": {
+				"income": 83,
+				"upkeepDefault": 24,
+				"upkeepCurrent": 0,
+				"thrFor": 6167,
+				"thrAgainst": 16280
+			},
+			"5856355619546": {
+				"income": 83,
+				"upkeepDefault": 20,
+				"upkeepCurrent": 20,
+				"thrFor": 5013,
+				"thrAgainst": 1000000000
+			},
+			"6131233592018": {
+				"income": 46,
+				"upkeepDefault": 28,
+				"upkeepCurrent": 28,
+				"thrFor": 7454,
+				"thrAgainst": 12755
+			},
+			"7268560872889": {
+				"income": 20,
+				"upkeepDefault": 21,
+				"upkeepCurrent": 21,
+				"thrFor": 2536,
+				"thrAgainst": 56500
+			},
+			"7269097678257": {
+				"income": 66,
+				"upkeepDefault": 21,
+				"upkeepCurrent": 21,
+				"thrFor": 5165,
+				"thrAgainst": 38091
+			},
+			"9468121261481": {
+				"income": 24,
+				"upkeepDefault": 30,
+				"upkeepCurrent": 30,
+				"thrFor": 8439,
+				"thrAgainst": 11644
+			},
+			"11666607252921": {
+				"income": 89,
+				"upkeepDefault": 23,
+				"upkeepCurrent": 0,
+				"thrFor": 2847,
+				"thrAgainst": 19947
+			},
+			"11666876147105": {
+				"income": 6,
+				"upkeepDefault": 35,
+				"upkeepCurrent": 35,
+				"thrFor": 10079,
+				"thrAgainst": 10640
+			},
+			"11667681322369": {
+				"income": 128,
+				"upkeepDefault": 42,
+				"upkeepCurrent": 42,
+				"thrFor": 19325,
+				"thrAgainst": 9790
+			},
+			"13865899009465": {
+				"income": 58,
+				"upkeepDefault": 21,
+				"upkeepCurrent": 21,
+				"thrFor": 5086,
+				"thrAgainst": 51900
+			},
+			"20463505778097": {
+				"income": 135,
+				"upkeepDefault": 24,
+				"upkeepCurrent": 0,
+				"thrFor": 3135,
+				"thrAgainst": 15787
+			}
+		}
+	}, {
+		"powerId": 100080,
+		"state": "takingControl",
+		"systemAddr": {
+			"2243860367715": {
+				"income": 0,
+				"upkeepDefault": 0,
+				"upkeepCurrent": 0,
+				"thrFor": 4897,
+				"thrAgainst": 7182
+			}
+		}
+	}, {
+		"powerId": 100090,
+		"state": "control",
+		"systemAddr": {
+			"10460580203": {
+				"income": 43,
+				"upkeepDefault": 21,
+				"upkeepCurrent": 0,
+				"thrFor": 2538,
+				"thrAgainst": 54877
+			},
+			"670148928929": {
+				"income": 87,
+				"upkeepDefault": 22,
+				"upkeepCurrent": 22,
+				"thrFor": 2687,
+				"thrAgainst": 26089
+			},
+			"1458107781834": {
+				"income": 41,
+				"upkeepDefault": 21,
+				"upkeepCurrent": 21,
+				"thrFor": 5097,
+				"thrAgainst": 49075
+			},
+			"594576132451": {
+				"income": 65,
+				"upkeepDefault": 25,
+				"upkeepCurrent": 25,
+				"thrFor": 3245,
+				"thrAgainst": 14926
+			},
+			"1183229842114": {
+				"income": 78,
+				"upkeepDefault": 23,
+				"upkeepCurrent": 23,
+				"thrFor": 2883,
+				"thrAgainst": 19154
+			},
+			"525873416547": {
+				"income": 78,
+				"upkeepDefault": 26,
+				"upkeepCurrent": 26,
+				"thrFor": 6806,
+				"thrAgainst": 14005
+			},
+			"1183229973186": {
+				"income": 123,
+				"upkeepDefault": 38,
+				"upkeepCurrent": 0,
+				"thrFor": 5548,
+				"thrAgainst": 10256
+			},
+			"1732918678218": {
+				"income": 109,
+				"upkeepDefault": 34,
+				"upkeepCurrent": 0,
+				"thrFor": 4935,
+				"thrAgainst": 10736
+			},
+			"2007863661258": {
+				"income": 110,
+				"upkeepDefault": 27,
+				"upkeepCurrent": 0,
+				"thrFor": 3531,
+				"thrAgainst": 13435
+			},
+			"1458107781842": {
+				"income": 19,
+				"upkeepDefault": 21,
+				"upkeepCurrent": 0,
+				"thrFor": 2574,
+				"thrAgainst": 40068
+			},
+			"2007930737362": {
+				"income": 77,
+				"upkeepDefault": 23,
+				"upkeepCurrent": 23,
+				"thrFor": 2916,
+				"thrAgainst": 18534
+			},
+			"2007863595722": {
+				"income": 91,
+				"upkeepDefault": 21,
+				"upkeepCurrent": 21,
+				"thrFor": 5226,
+				"thrAgainst": 32922
+			},
+			"1694087760227": {
+				"income": 76,
+				"upkeepDefault": 23,
+				"upkeepCurrent": 23,
+				"thrFor": 2851,
+				"thrAgainst": 19837
+			},
+			"1762807236963": {
+				"income": 102,
+				"upkeepDefault": 24,
+				"upkeepCurrent": 0,
+				"thrFor": 3021,
+				"thrAgainst": 16981
+			},
+			"4756776882898": {
+				"income": 101,
+				"upkeepDefault": 27,
+				"upkeepCurrent": 27,
+				"thrFor": 3548,
+				"thrAgainst": 13366
+			},
+			"2007997780682": {
+				"income": 108,
+				"upkeepDefault": 24,
+				"upkeepCurrent": 0,
+				"thrFor": 3141,
+				"thrAgainst": 15736
+			},
+			"1316130638171": {
+				"income": 89,
+				"upkeepDefault": 26,
+				"upkeepCurrent": 26,
+				"thrFor": 3365,
+				"thrAgainst": 14203
+			},
+			"2381282527587": {
+				"income": 73,
+				"upkeepDefault": 25,
+				"upkeepCurrent": 0,
+				"thrFor": 3161,
+				"thrAgainst": 15567
+			},
+			"3932076085970": {
+				"income": 44,
+				"upkeepDefault": 22,
+				"upkeepCurrent": 22,
+				"thrFor": 2756,
+				"thrAgainst": 22667
+			},
+			"7267218826649": {
+				"income": 117,
+				"upkeepDefault": 23,
+				"upkeepCurrent": 0,
+				"thrFor": 5809,
+				"thrAgainst": 18734
+			},
+			"2869172381073": {
+				"income": 126,
+				"upkeepDefault": 26,
+				"upkeepCurrent": 0,
+				"thrFor": 3363,
+				"thrAgainst": 14214
+			},
+			"11665265337769": {
+				"income": 151,
+				"upkeepDefault": 25,
+				"upkeepCurrent": 0,
+				"thrFor": 3319,
+				"thrAgainst": 14459
+			},
+			"669343557025": {
+				"income": 80,
+				"upkeepDefault": 23,
+				"upkeepCurrent": 23,
+				"thrFor": 2828,
+				"thrAgainst": 20405
+			},
+			"669612058001": {
+				"income": 48,
+				"upkeepDefault": 21,
+				"upkeepCurrent": 21,
+				"thrFor": 2617,
+				"thrAgainst": 32385
+			},
+			"669880427937": {
+				"income": 67,
+				"upkeepDefault": 21,
+				"upkeepCurrent": 21,
+				"thrFor": 2549,
+				"thrAgainst": 48544
+			},
+			"2007796552402": {
+				"income": 136,
+				"upkeepDefault": 29,
+				"upkeepCurrent": 0,
+				"thrFor": 3906,
+				"thrAgainst": 12275
+			},
+			"2557485290194": {
+				"income": 98,
+				"upkeepDefault": 38,
+				"upkeepCurrent": 38,
+				"thrFor": 5688,
+				"thrAgainst": 10168
+			},
+			"2868367140241": {
+				"income": 115,
+				"upkeepDefault": 29,
+				"upkeepCurrent": 0,
+				"thrFor": 4010,
+				"thrAgainst": 12042
+			},
+			"2868904076745": {
+				"income": 108,
+				"upkeepDefault": 45,
+				"upkeepCurrent": 0,
+				"thrFor": 7012,
+				"thrAgainst": 9577
+			},
+			"2869171987865": {
+				"income": 72,
+				"upkeepDefault": 24,
+				"upkeepCurrent": 24,
+				"thrFor": 3046,
+				"thrAgainst": 16682
+			},
+			"2869172053409": {
+				"income": 85,
+				"upkeepDefault": 23,
+				"upkeepCurrent": 23,
+				"thrFor": 2900,
+				"thrAgainst": 18816
+			},
+			"2931038325099": {
+				"income": 114,
+				"upkeepDefault": 22,
+				"upkeepCurrent": 22,
+				"thrFor": 2761,
+				"thrAgainst": 22475
+			},
+			"3102870587739": {
+				"income": 73,
+				"upkeepDefault": 45,
+				"upkeepCurrent": 45,
+				"thrFor": 13679,
+				"thrAgainst": 9637
+			},
+			"3382186119890": {
+				"income": 109,
+				"upkeepDefault": 38,
+				"upkeepCurrent": 0,
+				"thrFor": 5680,
+				"thrAgainst": 10173
+			},
+			"4206886818506": {
+				"income": 58,
+				"upkeepDefault": 21,
+				"upkeepCurrent": 0,
+				"thrFor": 2599,
+				"thrAgainst": 34994
+			},
+			"5306398446282": {
+				"income": 61,
+				"upkeepDefault": 22,
+				"upkeepCurrent": 22,
+				"thrFor": 2676,
+				"thrAgainst": 26776
+			},
+			"5306398479042": {
+				"income": 80,
+				"upkeepDefault": 23,
+				"upkeepCurrent": 23,
+				"thrFor": 2808,
+				"thrAgainst": 20956
+			},
+			"6405977281210": {
+				"income": 122,
+				"upkeepDefault": 36,
+				"upkeepCurrent": 0,
+				"thrFor": 5300,
+				"thrAgainst": 10429
+			},
+			"6955598877402": {
+				"income": 85,
+				"upkeepDefault": 33,
+				"upkeepCurrent": 0,
+				"thrFor": 4753,
+				"thrAgainst": 10920
+			},
+			"7266682086841": {
+				"income": 84,
+				"upkeepDefault": 35,
+				"upkeepCurrent": 0,
+				"thrFor": 5096,
+				"thrAgainst": 10591
+			},
+			"7266950260129": {
+				"income": 68,
+				"upkeepDefault": 21,
+				"upkeepCurrent": 21,
+				"thrFor": 2610,
+				"thrAgainst": 33351
+			},
+			"7266950325665": {
+				"income": 106,
+				"upkeepDefault": 22,
+				"upkeepCurrent": 22,
+				"thrFor": 2710,
+				"thrAgainst": 24723
+			},
+			"7266950456697": {
+				"income": 96,
+				"upkeepDefault": 32,
+				"upkeepCurrent": 32,
+				"thrFor": 4570,
+				"thrAgainst": 11133
+			},
+			"9465436841345": {
+				"income": 105,
+				"upkeepDefault": 30,
+				"upkeepCurrent": 30,
+				"thrFor": 4189,
+				"thrAgainst": 11696
+			},
+			"9465705014681": {
+				"income": 16,
+				"upkeepDefault": 21,
+				"upkeepCurrent": 0,
+				"thrFor": 2527,
+				"thrAgainst": 63815
+			},
+			"9465705145761": {
+				"income": 12,
+				"upkeepDefault": 22,
+				"upkeepCurrent": 22,
+				"thrFor": 2705,
+				"thrAgainst": 25006
+			},
+			"11664728401297": {
+				"income": 66,
+				"upkeepDefault": 23,
+				"upkeepCurrent": 23,
+				"thrFor": 2825,
+				"thrAgainst": 20477
+			},
+			"11664996705689": {
+				"income": 94,
+				"upkeepDefault": 20,
+				"upkeepCurrent": 20,
+				"thrFor": 2506,
+				"thrAgainst": 1000000000
+			},
+			"13863483483577": {
+				"income": 102,
+				"upkeepDefault": 39,
+				"upkeepCurrent": 0,
+				"thrFor": 5798,
+				"thrAgainst": 10104
+			},
+			"13864288462233": {
+				"income": 67,
+				"upkeepDefault": 21,
+				"upkeepCurrent": 21,
+				"thrFor": 2574,
+				"thrAgainst": 40077
+			},
+			"13864288462241": {
+				"income": 24,
+				"upkeepDefault": 21,
+				"upkeepCurrent": 21,
+				"thrFor": 2544,
+				"thrAgainst": 51069
+			},
+			"16062506673569": {
+				"income": 89,
+				"upkeepDefault": 32,
+				"upkeepCurrent": 32,
+				"thrFor": 4480,
+				"thrAgainst": 11249
+			}
+		}
+	}, {
+		"powerId": 100100,
+		"state": "control",
+		"systemAddr": {
+			"1732918612698": {
+				"income": 100,
+				"upkeepDefault": 24,
+				"upkeepCurrent": 0,
+				"thrFor": 3011,
+				"thrAgainst": 17101
+			},
+			"594576132459": {
+				"income": 100,
+				"upkeepDefault": 22,
+				"upkeepCurrent": 0,
+				"thrFor": 2697,
+				"thrAgainst": 25442
+			},
+			"57141093556": {
+				"income": 12,
+				"upkeepDefault": 22,
+				"upkeepCurrent": 22,
+				"thrFor": 2643,
+				"thrAgainst": 29496
+			},
+			"358663230170": {
+				"income": 70,
+				"upkeepDefault": 25,
+				"upkeepCurrent": 25,
+				"thrFor": 3202,
+				"thrAgainst": 15236
+			},
+			"1041252731243": {
+				"income": 51,
+				"upkeepDefault": 22,
+				"upkeepCurrent": 22,
+				"thrFor": 2658,
+				"thrAgainst": 28164
+			},
+			"2282741502682": {
+				"income": 25,
+				"upkeepDefault": 22,
+				"upkeepCurrent": 22,
+				"thrFor": 2665,
+				"thrAgainst": 27609
+			},
+			"134450504884": {
+				"income": 61,
+				"upkeepDefault": 24,
+				"upkeepCurrent": 24,
+				"thrFor": 3102,
+				"thrAgainst": 16094
+			},
+			"669343622585": {
+				"income": 58,
+				"upkeepDefault": 21,
+				"upkeepCurrent": 21,
+				"thrFor": 5252,
+				"thrAgainst": 31272
+			},
+			"1797166975339": {
+				"income": 34,
+				"upkeepDefault": 21,
+				"upkeepCurrent": 21,
+				"thrFor": 2561,
+				"thrAgainst": 43989
+			},
+			"2243860351339": {
+				"income": 65,
+				"upkeepDefault": 23,
+				"upkeepCurrent": 23,
+				"thrFor": 5922,
+				"thrAgainst": 17790
+			},
+			"669612254673": {
+				"income": 150,
+				"upkeepDefault": 33,
+				"upkeepCurrent": 33,
+				"thrFor": 14172,
+				"thrAgainst": 10952
+			},
+			"670148666785": {
+				"income": 97,
+				"upkeepDefault": 25,
+				"upkeepCurrent": 0,
+				"thrFor": 3312,
+				"thrAgainst": 14499
+			},
+			"670148666817": {
+				"income": 80,
+				"upkeepDefault": 27,
+				"upkeepCurrent": 27,
+				"thrFor": 3630,
+				"thrAgainst": 13067
+			},
+			"2587440941419": {
+				"income": 113,
+				"upkeepDefault": 21,
+				"upkeepCurrent": 0,
+				"thrFor": 2601,
+				"thrAgainst": 34647
+			},
+			"2656160418155": {
+				"income": 40,
+				"upkeepDefault": 21,
+				"upkeepCurrent": 21,
+				"thrFor": 2556,
+				"thrAgainst": 45777
+			},
+			"2759239666027": {
+				"income": 112,
+				"upkeepDefault": 29,
+				"upkeepCurrent": 29,
+				"thrFor": 3984,
+				"thrAgainst": 12097
+			},
+			"2868635248057": {
+				"income": 28,
+				"upkeepDefault": 21,
+				"upkeepCurrent": 21,
+				"thrFor": 5199,
+				"thrAgainst": 34876
+			},
+			"2868635510217": {
+				"income": 173,
+				"upkeepDefault": 35,
+				"upkeepCurrent": 35,
+				"thrFor": 5007,
+				"thrAgainst": 10669
+			},
+			"3549513615723": {
+				"income": 89,
+				"upkeepDefault": 21,
+				"upkeepCurrent": 0,
+				"thrFor": 2547,
+				"thrAgainst": 49745
+			},
+			"3618249886059": {
+				"income": 109,
+				"upkeepDefault": 24,
+				"upkeepCurrent": 0,
+				"thrFor": 2987,
+				"thrAgainst": 17418
+			},
+			"3652609624427": {
+				"income": 119,
+				"upkeepDefault": 23,
+				"upkeepCurrent": 23,
+				"thrFor": 2861,
+				"thrAgainst": 19629
+			},
+			"3657063928538": {
+				"income": 52,
+				"upkeepDefault": 21,
+				"upkeepCurrent": 21,
+				"thrFor": 5242,
+				"thrAgainst": 31881
+			},
+			"3686952585587": {
+				"income": 107,
+				"upkeepDefault": 23,
+				"upkeepCurrent": 0,
+				"thrFor": 2956,
+				"thrAgainst": 17870
+			},
+			"3824391539059": {
+				"income": 99,
+				"upkeepDefault": 25,
+				"upkeepCurrent": 0,
+				"thrFor": 3245,
+				"thrAgainst": 14928
+			},
+			"3858768054635": {
+				"income": 58,
+				"upkeepDefault": 28,
+				"upkeepCurrent": 28,
+				"thrFor": 7596,
+				"thrAgainst": 12551
+			},
+			"4481764758234": {
+				"income": 115,
+				"upkeepDefault": 20,
+				"upkeepCurrent": 20,
+				"thrFor": 2506,
+				"thrAgainst": 1000000000
+			},
+			"5031453463258": {
+				"income": 33,
+				"upkeepDefault": 21,
+				"upkeepCurrent": 21,
+				"thrFor": 5216,
+				"thrAgainst": 33598
+			},
+			"5306398511842": {
+				"income": 146,
+				"upkeepDefault": 23,
+				"upkeepCurrent": 23,
+				"thrFor": 2944,
+				"thrAgainst": 18061
+			},
+			"5856221401826": {
+				"income": 120,
+				"upkeepDefault": 24,
+				"upkeepCurrent": 24,
+				"thrFor": 3064,
+				"thrAgainst": 16486
+			},
+			"5856221401834": {
+				"income": 113,
+				"upkeepDefault": 32,
+				"upkeepCurrent": 32,
+				"thrFor": 4485,
+				"thrAgainst": 11242
+			},
+			"6130965091026": {
+				"income": 66,
+				"upkeepDefault": 21,
+				"upkeepCurrent": 21,
+				"thrFor": 5116,
+				"thrAgainst": 45081
+			},
+			"6131032199906": {
+				"income": 6,
+				"upkeepDefault": 22,
+				"upkeepCurrent": 22,
+				"thrFor": 2716,
+				"thrAgainst": 24437
+			},
+			"6680787981018": {
+				"income": 13,
+				"upkeepDefault": 22,
+				"upkeepCurrent": 22,
+				"thrFor": 2674,
+				"thrAgainst": 26934
+			},
+			"7267487131065": {
+				"income": 137,
+				"upkeepDefault": 26,
+				"upkeepCurrent": 26,
+				"thrFor": 3449,
+				"thrAgainst": 13786
+			},
+			"9465168405953": {
+				"income": 102,
+				"upkeepDefault": 32,
+				"upkeepCurrent": 0,
+				"thrFor": 4546,
+				"thrAgainst": 11164
+			},
+			"9466241820089": {
+				"income": 24,
+				"upkeepDefault": 23,
+				"upkeepCurrent": 23,
+				"thrFor": 2952,
+				"thrAgainst": 17926
+			},
+			"11664728204713": {
+				"income": 30,
+				"upkeepDefault": 21,
+				"upkeepCurrent": 21,
+				"thrFor": 5050,
+				"thrAgainst": 66497
+			},
+			"11664728204729": {
+				"income": 62,
+				"upkeepDefault": 22,
+				"upkeepCurrent": 22,
+				"thrFor": 5310,
+				"thrAgainst": 28389
+			},
+			"13863483155905": {
+				"income": 90,
+				"upkeepDefault": 23,
+				"upkeepCurrent": 23,
+				"thrFor": 2897,
+				"thrAgainst": 18882
+			},
+			"16063311717825": {
+				"income": 104,
+				"upkeepDefault": 25,
+				"upkeepCurrent": 0,
+				"thrFor": 3290,
+				"thrAgainst": 14637
+			},
+			"18261798168009": {
+				"income": 84,
+				"upkeepDefault": 28,
+				"upkeepCurrent": 28,
+				"thrFor": 3778,
+				"thrAgainst": 12607
+			},
+			"20460552988113": {
+				"income": 91,
+				"upkeepDefault": 29,
+				"upkeepCurrent": 29,
+				"thrFor": 3943,
+				"thrAgainst": 12188
+			},
+			"22948546890624": {
+				"income": 116,
+				"upkeepDefault": 26,
+				"upkeepCurrent": 26,
+				"thrFor": 3483,
+				"thrAgainst": 13635
+			},
+			"40541806807904": {
+				"income": 91,
+				"upkeepDefault": 25,
+				"upkeepCurrent": 0,
+				"thrFor": 3315,
+				"thrAgainst": 14483
+			}
+		}
+	}, {
+		"powerId": 100120,
+		"state": "control",
+		"systemAddr": {
+			"670954366369": {
+				"income": 16,
+				"upkeepDefault": 26,
+				"upkeepCurrent": 26,
+				"thrFor": 6917,
+				"thrAgainst": 13741
+			},
+			"671491433905": {
+				"income": 85,
+				"upkeepDefault": 27,
+				"upkeepCurrent": 27,
+				"thrFor": 7206,
+				"thrAgainst": 13160
+			},
+			"285355280755": {
+				"income": 113,
+				"upkeepDefault": 27,
+				"upkeepCurrent": 0,
+				"thrFor": 3606,
+				"thrAgainst": 13148
+			},
+			"670417626577": {
+				"income": 101,
+				"upkeepDefault": 23,
+				"upkeepCurrent": 0,
+				"thrFor": 2854,
+				"thrAgainst": 19777
+			},
+			"422810995067": {
+				"income": 100,
+				"upkeepDefault": 34,
+				"upkeepCurrent": 34,
+				"thrFor": 4790,
+				"thrAgainst": 10881
+			},
+			"1522305862003": {
+				"income": 122,
+				"upkeepDefault": 21,
+				"upkeepCurrent": 0,
+				"thrFor": 7649,
+				"thrAgainst": 48405
+			},
+			"670149191105": {
+				"income": 129,
+				"upkeepDefault": 22,
+				"upkeepCurrent": 0,
+				"thrFor": 5363,
+				"thrAgainst": 26423
+			},
+			"2832564490978": {
+				"income": 97,
+				"upkeepDefault": 21,
+				"upkeepCurrent": 0,
+				"thrFor": 7691,
+				"thrAgainst": 43152
+			},
+			"358730371818": {
+				"income": 103,
+				"upkeepDefault": 28,
+				"upkeepCurrent": 0,
+				"thrFor": 3788,
+				"thrAgainst": 12579
+			},
+			"2869977687473": {
+				"income": 37,
+				"upkeepDefault": 23,
+				"upkeepCurrent": 23,
+				"thrFor": 5746,
+				"thrAgainst": 19354
+			},
+			"358730371810": {
+				"income": 124,
+				"upkeepDefault": 26,
+				"upkeepCurrent": 0,
+				"thrFor": 6944,
+				"thrAgainst": 13681
+			},
+			"358663295706": {
+				"income": 45,
+				"upkeepDefault": 22,
+				"upkeepCurrent": 22,
+				"thrFor": 5585,
+				"thrAgainst": 21418
+			},
+			"2072061675891": {
+				"income": 60,
+				"upkeepDefault": 21,
+				"upkeepCurrent": 0,
+				"thrFor": 5100,
+				"thrAgainst": 48247
+			},
+			"2243877128563": {
+				"income": 97,
+				"upkeepDefault": 29,
+				"upkeepCurrent": 29,
+				"thrFor": 3901,
+				"thrAgainst": 12288
+			},
+			"2312579828083": {
+				"income": 62,
+				"upkeepDefault": 21,
+				"upkeepCurrent": 21,
+				"thrFor": 5154,
+				"thrAgainst": 39387
+			},
+			"2832497382106": {
+				"income": 61,
+				"upkeepDefault": 25,
+				"upkeepCurrent": 25,
+				"thrFor": 6450,
+				"thrAgainst": 15068
+			},
+			"216059077820": {
+				"income": 133,
+				"upkeepDefault": 23,
+				"upkeepCurrent": 0,
+				"thrFor": 2889,
+				"thrAgainst": 19034
+			},
+			"2869709252017": {
+				"income": 55,
+				"upkeepDefault": 22,
+				"upkeepCurrent": 22,
+				"thrFor": 8184,
+				"thrAgainst": 23866
+			},
+			"7267755697569": {
+				"income": 76,
+				"upkeepDefault": 27,
+				"upkeepCurrent": 27,
+				"thrFor": 10521,
+				"thrAgainst": 13531
+			},
+			"9466242082225": {
+				"income": 120,
+				"upkeepDefault": 24,
+				"upkeepCurrent": 0,
+				"thrFor": 3067,
+				"thrAgainst": 16447
+			},
+			"11666339014065": {
+				"income": 122,
+				"upkeepDefault": 28,
+				"upkeepCurrent": 0,
+				"thrFor": 3735,
+				"thrAgainst": 12730
+			},
+			"1458040771306": {
+				"income": 149,
+				"upkeepDefault": 32,
+				"upkeepCurrent": 0,
+				"thrFor": 4423,
+				"thrAgainst": 11329
+			},
+			"1458174989042": {
+				"income": 133,
+				"upkeepDefault": 27,
+				"upkeepCurrent": 0,
+				"thrFor": 3620,
+				"thrAgainst": 13100
+			},
+			"1733119972082": {
+				"income": 98,
+				"upkeepDefault": 27,
+				"upkeepCurrent": 27,
+				"thrFor": 3541,
+				"thrAgainst": 13395
+			},
+			"2243860384115": {
+				"income": 123,
+				"upkeepDefault": 26,
+				"upkeepCurrent": 0,
+				"thrFor": 6701,
+				"thrAgainst": 14280
+			},
+			"2557619507946": {
+				"income": 103,
+				"upkeepDefault": 30,
+				"upkeepCurrent": 0,
+				"thrFor": 4157,
+				"thrAgainst": 11753
+			},
+			"2832564458218": {
+				"income": 153,
+				"upkeepDefault": 24,
+				"upkeepCurrent": 0,
+				"thrFor": 3103,
+				"thrAgainst": 16083
+			},
+			"2868635706801": {
+				"income": 109,
+				"upkeepDefault": 29,
+				"upkeepCurrent": 0,
+				"thrFor": 11753,
+				"thrAgainst": 12248
+			},
+			"2869440619985": {
+				"income": 101,
+				"upkeepDefault": 27,
+				"upkeepCurrent": 27,
+				"thrFor": 3542,
+				"thrAgainst": 13390
+			},
+			"2869709120961": {
+				"income": 66,
+				"upkeepDefault": 24,
+				"upkeepCurrent": 24,
+				"thrFor": 3045,
+				"thrAgainst": 16695
+			},
+			"2869709120993": {
+				"income": 101,
+				"upkeepDefault": 30,
+				"upkeepCurrent": 30,
+				"thrFor": 4059,
+				"thrAgainst": 11940
+			},
+			"3107442397938": {
+				"income": 67,
+				"upkeepDefault": 28,
+				"upkeepCurrent": 28,
+				"thrFor": 3775,
+				"thrAgainst": 12616
+			},
+			"3205916264819": {
+				"income": 91,
+				"upkeepDefault": 26,
+				"upkeepCurrent": 26,
+				"thrFor": 3420,
+				"thrAgainst": 13923
+			},
+			"3309012257139": {
+				"income": 76,
+				"upkeepDefault": 21,
+				"upkeepCurrent": 21,
+				"thrFor": 7636,
+				"thrAgainst": 50612
+			},
+			"3446434433395": {
+				"income": 139,
+				"upkeepDefault": 24,
+				"upkeepCurrent": 0,
+				"thrFor": 3048,
+				"thrAgainst": 16655
+			},
+			"4756844090098": {
+				"income": 113,
+				"upkeepDefault": 32,
+				"upkeepCurrent": 0,
+				"thrFor": 4500,
+				"thrAgainst": 11222
+			},
+			"5067658962321": {
+				"income": 109,
+				"upkeepDefault": 43,
+				"upkeepCurrent": 0,
+				"thrFor": 6598,
+				"thrAgainst": 9727
+			},
+			"5069269378497": {
+				"income": 130,
+				"upkeepDefault": 23,
+				"upkeepCurrent": 0,
+				"thrFor": 5686,
+				"thrAgainst": 20037
+			},
+			"5069537682873": {
+				"income": 35,
+				"upkeepDefault": 28,
+				"upkeepCurrent": 28,
+				"thrFor": 3843,
+				"thrAgainst": 12432
+			},
+			"5369245748144": {
+				"income": 139,
+				"upkeepDefault": 27,
+				"upkeepCurrent": 0,
+				"thrFor": 3515,
+				"thrAgainst": 13500
+			},
+			"5371393362840": {
+				"income": 107,
+				"upkeepDefault": 25,
+				"upkeepCurrent": 0,
+				"thrFor": 3296,
+				"thrAgainst": 14595
+			},
+			"5581343593186": {
+				"income": 94,
+				"upkeepDefault": 22,
+				"upkeepCurrent": 0,
+				"thrFor": 7977,
+				"thrAgainst": 28057
+			},
+			"6130965189346": {
+				"income": 119,
+				"upkeepDefault": 33,
+				"upkeepCurrent": 0,
+				"thrFor": 14171,
+				"thrAgainst": 10952
+			},
+			"6680922297058": {
+				"income": 213,
+				"upkeepDefault": 20,
+				"upkeepCurrent": 20,
+				"thrFor": 5013,
+				"thrAgainst": 1000000000
+			},
+			"6955800236778": {
+				"income": 130,
+				"upkeepDefault": 25,
+				"upkeepCurrent": 0,
+				"thrFor": 3246,
+				"thrAgainst": 14924
+			},
+			"7267218957785": {
+				"income": 122,
+				"upkeepDefault": 25,
+				"upkeepCurrent": 25,
+				"thrFor": 3249,
+				"thrAgainst": 14902
+			},
+			"7267487524305": {
+				"income": 116,
+				"upkeepDefault": 25,
+				"upkeepCurrent": 25,
+				"thrFor": 3183,
+				"thrAgainst": 15382
+			},
+			"7780433924834": {
+				"income": 57,
+				"upkeepDefault": 21,
+				"upkeepCurrent": 21,
+				"thrFor": 7709,
+				"thrAgainst": 41306
+			},
+			"11664996967865": {
+				"income": 128,
+				"upkeepDefault": 24,
+				"upkeepCurrent": 0,
+				"thrFor": 3099,
+				"thrAgainst": 16123
+			},
+			"11665533838809": {
+				"income": 57,
+				"upkeepDefault": 25,
+				"upkeepCurrent": 25,
+				"thrFor": 3212,
+				"thrAgainst": 15166
+			},
+			"11666070840777": {
+				"income": 69,
+				"upkeepDefault": 23,
+				"upkeepCurrent": 23,
+				"thrFor": 8903,
+				"thrAgainst": 17694
+			},
+			"11666339145185": {
+				"income": 101,
+				"upkeepDefault": 30,
+				"upkeepCurrent": 0,
+				"thrFor": 4149,
+				"thrAgainst": 11769
+			},
+			"16063580153305": {
+				"income": 50,
+				"upkeepDefault": 30,
+				"upkeepCurrent": 30,
+				"thrFor": 4125,
+				"thrAgainst": 11813
+			},
+			"18262603670977": {
+				"income": 57,
+				"upkeepDefault": 21,
+				"upkeepCurrent": 21,
+				"thrFor": 7633,
+				"thrAgainst": 51010
+			},
+			"20462700602841": {
+				"income": 95,
+				"upkeepDefault": 30,
+				"upkeepCurrent": 30,
+				"thrFor": 4078,
+				"thrAgainst": 11903
+			},
+			"22958210698120": {
+				"income": 96,
+				"upkeepDefault": 22,
+				"upkeepCurrent": 22,
+				"thrFor": 5296,
+				"thrAgainst": 29008
+			},
+			"22959284439960": {
+				"income": 84,
+				"upkeepDefault": 22,
+				"upkeepCurrent": 22,
+				"thrFor": 5569,
+				"thrAgainst": 21672
+			},
+			"75736916315048": {
+				"income": 81,
+				"upkeepDefault": 25,
+				"upkeepCurrent": 25,
+				"thrFor": 3166,
+				"thrAgainst": 15517
+			}
+		}
+	}, {
+		"powerId": 100120,
+		"state": "takingControl",
+		"systemAddr": {
+			"2869440685489": {
+				"income": 0,
+				"upkeepDefault": 0,
+				"upkeepCurrent": 0,
+				"thrFor": 6286,
+				"thrAgainst": 10477
+			}
+		}
+	}]
+}
