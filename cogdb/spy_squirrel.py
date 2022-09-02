@@ -26,6 +26,11 @@ POWER_ID_MAP = {
     100100: "Archon Delaine",
     100120: "Yuri Grom",
 }
+# Based on cogdb.eddb.PowerState values
+JSON_POWER_STATE_TO_EDDB = {
+    "control": 16,
+    "takingControl": 64,
+}
 MAX_SPY_MERITS = 99999
 
 
@@ -106,59 +111,28 @@ class SpyPrep(Base):
     def __hash__(self):
         return hash(f"{self.power_id}_{self.system_id}")
 
-    def update(self, **kwargs):
-        """
-        Update the object with expected kwargs.
-
-        kwargs:
-            merits: The current merits for the system.
-            updated_at: The new date time to set for this update. (Required)
-
-        Raises:
-            ValidationFail - The kwargs did not contain updated_at or it was not suitable.
-        """
-        if 'updated_at' not in kwargs:
-            raise cog.exc.ValidationFail("Expected key 'updated_at' is missing.")
-
-        self.updated_at = kwargs['updated_at']
-        try:
-            self.merits = kwargs['merits']
-        except (KeyError, cog.exc.ValidationFail):
-            pass
-
-    #  @sqla_orm.validates('merits')
-    #  def validate_merits(self, key, value):
-        #  try:
-            #  if value < 0 or value > MAX_SPY_MERITS:
-                #  raise cog.exc.ValidationFail("Bounds check failed for: {} with value {}".format(key, value))
-        #  except TypeError:
-            #  pass
-
-        #  return value
-
-    #  @sqla_orm.validates('updated_at')
-    #  def validate_updated_at(self, key, value):
-        #  if not value or not isinstance(value, datetime.datetime) or (self.updated_at and value < self.updated_at):
-            #  raise cog.exc.ValidationFail("Date invalid or was older than current value.")
-
-        #  return value
-
 
 class SpySystem(Base):
     """
-    Store information on active fort and um of systems.
+    Store the current important information of the system.
     """
     __tablename__ = 'spy_systems'
 
+    # ids
     id = sqla.Column(sqla.Integer, primary_key=True)
     system_id = sqla.Column(sqla.Integer, sqla.ForeignKey('systems.id'))
     power_id = sqla.Column(sqla.Integer, sqla.ForeignKey('powers.id'))
-    # Base
+    power_state_id = sqla.Column(sqla.Integer, sqla.ForeignKey('systems.id'), default=0)
 
-    # Refined
-    forts = sqla.Column(sqla.Integer, default=0)
-    um = sqla.Column(sqla.Integer, default=0)
+    # info
     is_expansion = sqla.Column(sqla.Boolean, default=False)
+    income = sqla.Column(sqla.Integer, default=0)
+    upkeep_current = sqla.Column(sqla.Integer, default=0)
+    upkeep_default = sqla.Column(sqla.Integer, default=0)
+    fort = sqla.Column(sqla.Integer, default=0)
+    fort_trigger = sqla.Column(sqla.Integer, default=0)
+    um = sqla.Column(sqla.Integer, default=0)
+    um_trigger = sqla.Column(sqla.Integer, default=0)
     updated_at = sqla.Column(sqla.Integer, onupdate=sqla.func.unix_timestamp())
 
     # Relationships
@@ -170,21 +144,29 @@ class SpySystem(Base):
         'Power', uselist=False, lazy='select', viewonly=True,
         primaryjoin='foreign(Power.id) == SpySystem.power_id',
     )
+    power_state = sqla.orm.relationship(
+        'PowerState', uselist=False, lazy='select', viewonly=True,
+        primaryjoin='foreign(PowerState.id) == SpySystem.power_state_id',
+    )
 
     def __repr__(self):
-        keys = ['id', 'power_id', 'system_id', 'forts', 'um', 'is_expansion', 'updated_at']
+        keys = ['id', 'system_id', 'power_id', 'power_state_id',
+                'is_expansion', 'income', 'upkeep_current', 'upkeep_default',
+                'fort', 'fort_trigger', 'um', 'um_trigger', 'updated_at']
         kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
 
         return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
 
     def __str__(self):
         """ A pretty one line to give all information. """
+        updated_at = datetime.datetime.utcfromtimestamp(self.updated_at)
+        status_text = f"{self.fort} | {self.um}, updated at {updated_at}"
         if self.is_expansion:
-            return "Expansion for {power} to {system}: {forts} | {um}, updated at {date}".format(
-                forts=self.forts, um=self.um, power=self.power.text, system=self.system.name, date=self.updated_at)
+            description = f"Expansion for {self.power.text} to {self.system.name}: {status_text}"
         else:
-            return "{power} {system}: {forts} | {um}, updated at {date}".format(
-                forts=self.forts, um=self.um, power=self.power.text, system=self.system.name, date=self.updated_at)
+            description = f"{self.power.text} {self.system.name}: {status_text}"
+
+        return description
 
     def __eq__(self, other):
         return isinstance(other, SpySystem) and hash(self) == hash(other)
@@ -193,6 +175,18 @@ class SpySystem(Base):
         return hash(f"{self.power_id}_{self.system_id}")
 
 
+def json_powers_to_eddb_map():
+    """
+    Returns a simple map FROM power_id in JSON messages TO Power.id in EDDB.
+    """
+    with cogdb.session_scope(cogdb.EDDBSession) as session:
+        eddb_power_names_to_id = {power.text: power.id for power in session.query(Power).all()}
+        json_powers_to_eddb_id = {
+            power_id: eddb_power_names_to_id[power_name]
+            for power_id, power_name in POWER_ID_MAP.items()
+        }
+
+    return json_powers_to_eddb_id
 
 
 def load_base_json(base):
@@ -204,31 +198,29 @@ def load_base_json(base):
     Returns:
         A dictionary mapping powers by name onto the systems they control and their status.
     """
-    systems_by_power = {}
-    powers = base['powers']
-    for bundle in powers:
-        power_name = POWER_ID_MAP[bundle['powerId']]
-        sys_state = bundle['state']
+    db_systems = []
+    json_powers_to_eddb_id = json_powers_to_eddb_map()
 
-        # TODO: Design db objects to hook
+    for bundle in base['powers']:
+        power_id = json_powers_to_eddb_id[bundle['powerId']]
+        #  power_name = POWER_ID_MAP[bundle['powerId']]
+
         for sys_addr, data in bundle['systemAddr'].items():
-            system = {
+            kwargs = {
                 'system_id': sys_addr,
-                'state': sys_state,
-                'um_trigger': data['thrAgainst'],
+                'power_id': power_id,
+                'power_state_id': JSON_POWER_STATE_TO_EDDB[bundle['state']],
+                'is_expansion': bundle['state'] == 'takingControl',
                 'fort_trigger': data['thrFor'],
+                'um_trigger': data['thrAgainst'],
                 'income': data['income'],
-                'upkeep': data['upkeepCurrent'],
+                'upkeep_current': data['upkeepCurrent'],
                 'upkeep_default': data['upkeepDefault'],
             }
 
-            try:
-                systems_by_power[power_name] += [system]
-            except KeyError:
-                systems_by_power[power_name] = [system]
+            db_systems += [SpySystem(**kwargs)]
 
-
-    return systems_by_power
+    return db_systems
 
 
 def load_refined_json(refined):
@@ -241,13 +233,7 @@ def load_refined_json(refined):
         A dictionary mapping powers by name onto the systems they control and their status.
     """
     updated_at = refined["lastModified"]
-
-    with cogdb.session_scope(cogdb.EDDBSession) as session:
-        eddb_power_names_to_id = {power.text: power.id for power in session.query(Power).all()}
-        json_powers_to_eddb_id = {
-            power_id: eddb_power_names_to_id[power_name]
-            for power_id, power_name in POWER_ID_MAP.items()
-        }
+    json_powers_to_eddb_id = json_powers_to_eddb_map()
 
     db_preps, db_votes, db_sys = [], [], []
     for bundle in refined["preparation"]:
@@ -260,20 +246,21 @@ def load_refined_json(refined):
 
     for bundle in refined["gainControl"]:
         db_sys += [SpySystem(
-            power_id=json_powers_to_eddb_id[bundle['power_id']],
             system_id=bundle['systemAddr'],
-            forts=bundle['qtyFor'],
+            power_id=json_powers_to_eddb_id[bundle['power_id']],
+            power_state_id=64,
+            fort=bundle['qtyFor'],
             um=bundle['qtyAgainst'],
             is_expansion=True,
             updated_at=updated_at,
         )]
     for bundle in refined["fortifyUndermine"]:
         db_sys += [SpySystem(
-            power_id=json_powers_to_eddb_id[bundle['power_id']],
             system_id=bundle['systemAddr'],
-            forts=bundle['qtyFor'],
+            power_id=json_powers_to_eddb_id[bundle['power_id']],
+            power_state_id=16,
+            fort=bundle['qtyFor'],
             um=bundle['qtyAgainst'],
-            is_expansion=False,
             updated_at=updated_at,
         )]
 
