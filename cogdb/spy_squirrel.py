@@ -1,5 +1,5 @@
 """
-Module to parse and import data from new json source.
+Module to parse and import data from spying squirrel.
 """
 import datetime
 import time
@@ -29,6 +29,42 @@ POWER_ID_MAP = {
 MAX_SPY_MERITS = 99999
 
 
+class SpyVote(Base):
+    """
+    Record current vote by power.
+    """
+    __tablename__ = 'spy_votes'
+
+    header = ["Power", "Consolidation"]
+
+    power_id = sqla.Column(sqla.Integer, sqla.ForeignKey('powers.id'), primary_key=True)
+    vote = sqla.Column(sqla.Integer, default=0)
+    updated_at = sqla.Column(sqla.Integer, onupdate=sqla.func.unix_timestamp())
+
+    # Relationships
+    power = sqla.orm.relationship(
+        'Power', uselist=False, lazy='select', viewonly=True,
+        primaryjoin='foreign(Power.id) == SpyVote.power_id',
+    )
+
+    def __repr__(self):
+        keys = ['power_id', 'vote', 'updated_at']
+        kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
+
+        return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
+
+    def __str__(self):
+        """ A pretty one line to give all information. """
+        return "{power}: {vote}%, updated at {date}".format(
+            vote=self.vote, power=self.power.text, date=self.updated_at)
+
+    def __eq__(self, other):
+        return isinstance(other, SpyVote) and hash(self) == hash(other)
+
+    def __hash__(self):
+        return hash(f"{self.power_id}")
+
+
 class SpyPrep(Base):
     """
     Store Prep triggers by systems.
@@ -38,18 +74,18 @@ class SpyPrep(Base):
     header = ["ID", "Power", "System", "Merits"]
 
     id = sqla.Column(sqla.Integer, primary_key=True)
-    system_id = sqla.Column(sqla.Integer, sqla.ForeignKey('systems.id'), primary_key=True)
-    power_id = sqla.Column(sqla.Integer, sqla.ForeignKey('powers.id'), primary_key=True)
+    system_id = sqla.Column(sqla.Integer, sqla.ForeignKey('systems.id'))
+    power_id = sqla.Column(sqla.Integer, sqla.ForeignKey('powers.id'))
     merits = sqla.Column(sqla.Integer, default=0)
     updated_at = sqla.Column(sqla.Integer, onupdate=sqla.func.unix_timestamp())
 
     # Relationships
     system = sqla.orm.relationship(
-        'System', uselist=False, lazy='select',
+        'System', uselist=False, lazy='select', viewonly=True,
         primaryjoin='foreign(System.id) == SpyPrep.system_id',
     )
     power = sqla.orm.relationship(
-        'Power', uselist=False, lazy='select',
+        'Power', uselist=False, lazy='select', viewonly=True,
         primaryjoin='foreign(Power.id) == SpyPrep.power_id',
     )
 
@@ -108,6 +144,57 @@ class SpyPrep(Base):
         #  return value
 
 
+class SpySystem(Base):
+    """
+    Store information on active fort and um of systems.
+    """
+    __tablename__ = 'spy_systems'
+
+    id = sqla.Column(sqla.Integer, primary_key=True)
+    system_id = sqla.Column(sqla.Integer, sqla.ForeignKey('systems.id'))
+    power_id = sqla.Column(sqla.Integer, sqla.ForeignKey('powers.id'))
+    # Base
+
+    # Refined
+    forts = sqla.Column(sqla.Integer, default=0)
+    um = sqla.Column(sqla.Integer, default=0)
+    is_expansion = sqla.Column(sqla.Boolean, default=False)
+    updated_at = sqla.Column(sqla.Integer, onupdate=sqla.func.unix_timestamp())
+
+    # Relationships
+    system = sqla.orm.relationship(
+        'System', uselist=False, lazy='select', viewonly=True,
+        primaryjoin='foreign(System.id) == SpySystem.system_id',
+    )
+    power = sqla.orm.relationship(
+        'Power', uselist=False, lazy='select', viewonly=True,
+        primaryjoin='foreign(Power.id) == SpySystem.power_id',
+    )
+
+    def __repr__(self):
+        keys = ['id', 'power_id', 'system_id', 'forts', 'um', 'is_expansion', 'updated_at']
+        kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
+
+        return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
+
+    def __str__(self):
+        """ A pretty one line to give all information. """
+        if self.is_expansion:
+            return "Expansion for {power} to {system}: {forts} | {um}, updated at {date}".format(
+                forts=self.forts, um=self.um, power=self.power.text, system=self.system.name, date=self.updated_at)
+        else:
+            return "{power} {system}: {forts} | {um}, updated at {date}".format(
+                forts=self.forts, um=self.um, power=self.power.text, system=self.system.name, date=self.updated_at)
+
+    def __eq__(self, other):
+        return isinstance(other, SpySystem) and hash(self) == hash(other)
+
+    def __hash__(self):
+        return hash(f"{self.power_id}_{self.system_id}")
+
+
+
+
 def load_base_json(base):
     """ Load the base json and parse all information from it.
 
@@ -126,11 +213,11 @@ def load_base_json(base):
         # TODO: Design db objects to hook
         for sys_addr, data in bundle['systemAddr'].items():
             system = {
-                'id': sys_addr,
+                'system_id': sys_addr,
                 'state': sys_state,
+                'um_trigger': data['thrAgainst'],
+                'fort_trigger': data['thrFor'],
                 'income': data['income'],
-                'tAgainst': data['thrAgainst'],
-                'tFor': data['thrFor'],
                 'upkeep': data['upkeepCurrent'],
                 'upkeep_default': data['upkeepDefault'],
             }
@@ -153,7 +240,7 @@ def load_refined_json(refined):
     Returns:
         A dictionary mapping powers by name onto the systems they control and their status.
     """
-    updated_at = time.time()
+    updated_at = refined["lastModified"]
 
     with cogdb.session_scope(cogdb.EDDBSession) as session:
         eddb_power_names_to_id = {power.text: power.id for power in session.query(Power).all()}
@@ -162,13 +249,32 @@ def load_refined_json(refined):
             for power_id, power_name in POWER_ID_MAP.items()
         }
 
-    db_preps = []
+    db_preps, db_votes, db_sys = [], [], []
     for bundle in refined["preparation"]:
         power_id = json_powers_to_eddb_id[bundle['power_id']]
-        preps = [
-            {'power_id': power_id, 'system_id': id, 'merits': total, 'updated_at': updated_at}
-            for id, total in bundle['rankedSystems']
+        db_votes += [SpyVote(power_id=power_id, vote=bundle['consolidation']['rank'], updated_at=updated_at)]
+        db_preps += [
+            SpyPrep(power_id=power_id, system_id=system_id, merits=merits, updated_at=updated_at)
+            for system_id, merits in bundle['rankedSystems']
         ]
-        db_preps += [SpyPrep(**kwargs) for kwargs in preps]
 
-    return db_preps
+    for bundle in refined["gainControl"]:
+        db_sys += [SpySystem(
+            power_id=json_powers_to_eddb_id[bundle['power_id']],
+            system_id=bundle['systemAddr'],
+            forts=bundle['qtyFor'],
+            um=bundle['qtyAgainst'],
+            is_expansion=True,
+            updated_at=updated_at,
+        )]
+    for bundle in refined["fortifyUndermine"]:
+        db_sys += [SpySystem(
+            power_id=json_powers_to_eddb_id[bundle['power_id']],
+            system_id=bundle['systemAddr'],
+            forts=bundle['qtyFor'],
+            um=bundle['qtyAgainst'],
+            is_expansion=False,
+            updated_at=updated_at,
+        )]
+
+    return db_preps, db_votes, db_sys

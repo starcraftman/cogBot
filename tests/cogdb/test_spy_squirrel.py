@@ -39,20 +39,20 @@ def refined_json():
 
 def test_base_loads(base_json):
     expect_control = {
-        'id': '10477373803',
+        'system_id': '10477373803',
         'income': 122,
         'state': 'control',
-        'tAgainst': 33998,
-        'tFor': 5211,
+        'um_trigger': 33998,
+        'fort_trigger': 5211,
         'upkeep': 0,
         'upkeep_default': 21
     }
     expect_taking = {
-        'id': '11665533904241',
+        'system_id': '11665533904241',
         'income': 0,
         'state': 'takingControl',
-        'tAgainst': 7198,
-        'tFor': 4872,
+        'um_trigger': 7198,
+        'fort_trigger': 4872,
         'upkeep': 0,
         'upkeep_default': 0
     }
@@ -63,7 +63,15 @@ def test_base_loads(base_json):
 
 
 def test_refined_loads(refined_json):
-    expect = spy.SpyPrep(power_id=9, system_id=2557887812314, merits=14140)
-    preps = spy.load_refined_json(refined_json)
+    expect_prep = spy.SpyPrep(power_id=9, system_id=2557887812314, merits=14140)
+    expect_vote = spy.SpyVote(power_id=11, vote=78)
+    expect_expo = spy.SpySystem(power_id=6, system_id=2106438158699, forts=1247, um=53820, is_expansion=True)
+    expect_sys = spy.SpySystem(power_id=11, system_id=22958210698120, forts=464, um=900, is_expansion=False)
 
-    assert expect in preps
+
+    preps, votes, systems = spy.load_refined_json(refined_json)
+
+    assert expect_prep in preps
+    assert expect_vote in votes
+    assert expect_expo in systems
+    assert expect_sys in systems
