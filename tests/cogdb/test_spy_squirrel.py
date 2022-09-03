@@ -58,7 +58,6 @@ def test_refined_loads(refined_json):
     expect_expo = spy.SpySystem(power_id=6, system_id=2106438158699, fort=1247, um=53820, is_expansion=True)
     expect_sys = spy.SpySystem(power_id=11, system_id=22958210698120, fort=464, um=900, is_expansion=False)
 
-
     preps, votes, systems = spy.load_refined_json(refined_json)
 
     assert expect_prep in preps

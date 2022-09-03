@@ -2,14 +2,11 @@
 Module to parse and import data from spying squirrel.
 """
 import datetime
-import time
 
 import sqlalchemy as sqla
-import sqlalchemy.orm as sqla_orm
 
-import cog.exc
 import cogdb.eddb
-from cogdb.eddb import Base, Power, System
+from cogdb.eddb import Base, Power
 
 
 # Map of powers used in incoming JSON messages
