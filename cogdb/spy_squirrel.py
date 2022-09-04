@@ -2,9 +2,15 @@
 Module to parse and import data from spying squirrel.
 """
 import datetime
+import json
+import os
+import pathlib
+import time
 
 import sqlalchemy as sqla
+import sqlalchemy.exc as sqla_e
 
+import cog.util
 import cogdb.eddb
 from cogdb.eddb import Base, Power
 
@@ -37,11 +43,9 @@ class SpyVote(Base):
     """
     __tablename__ = 'spy_votes'
 
-    header = ["Power", "Consolidation"]
-
     power_id = sqla.Column(sqla.Integer, sqla.ForeignKey('powers.id'), primary_key=True)
     vote = sqla.Column(sqla.Integer, default=0)
-    updated_at = sqla.Column(sqla.Integer, onupdate=sqla.func.unix_timestamp())
+    updated_at = sqla.Column(sqla.Integer, default=time.time, onupdate=time.time)
 
     # Relationships
     power = sqla.orm.relationship(
@@ -51,14 +55,13 @@ class SpyVote(Base):
 
     def __repr__(self):
         keys = ['power_id', 'vote', 'updated_at']
-        kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
+        kwargs = [f'{key}={getattr(self, key)!r}' for key in keys]
 
-        return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
+        return f"{self.__class__.__name__}({', '.join(kwargs)})"
 
     def __str__(self):
         """ A pretty one line to give all information. """
-        return "{power}: {vote}%, updated at {date}".format(
-            vote=self.vote, power=self.power.text, date=self.updated_at)
+        return f"{self.power.text}: {self.vote}%, updated at {self.updated_at}"
 
     def __eq__(self, other):
         return isinstance(other, SpyVote) and hash(self) == hash(other)
@@ -73,18 +76,20 @@ class SpyPrep(Base):
     """
     __tablename__ = 'spy_preps'
 
-    header = ["ID", "Power", "System", "Merits"]
+    __table_args__ = (
+        sqla.UniqueConstraint('ed_system_id', 'power_id', name='system_power_constraint'),
+    )
 
     id = sqla.Column(sqla.Integer, primary_key=True)
-    system_id = sqla.Column(sqla.Integer, sqla.ForeignKey('systems.id'))
+    ed_system_id = sqla.Column(sqla.BigInteger, sqla.ForeignKey('systems.ed_system_id'))
     power_id = sqla.Column(sqla.Integer, sqla.ForeignKey('powers.id'))
     merits = sqla.Column(sqla.Integer, default=0)
-    updated_at = sqla.Column(sqla.Integer, onupdate=sqla.func.unix_timestamp())
+    updated_at = sqla.Column(sqla.Integer, default=time.time, onupdate=time.time)
 
     # Relationships
     system = sqla.orm.relationship(
         'System', uselist=False, lazy='select', viewonly=True,
-        primaryjoin='foreign(System.id) == SpyPrep.system_id',
+        primaryjoin='foreign(System.ed_system_id) == SpyPrep.ed_system_id',
     )
     power = sqla.orm.relationship(
         'Power', uselist=False, lazy='select', viewonly=True,
@@ -92,21 +97,20 @@ class SpyPrep(Base):
     )
 
     def __repr__(self):
-        keys = ['id', 'power_id', 'system_id', 'merits', 'updated_at']
-        kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
+        keys = ['id', 'power_id', 'ed_system_id', 'merits', 'updated_at']
+        kwargs = [f'{key}={getattr(self, key)!r}' for key in keys]
 
-        return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
+        return f"{self.__class__.__name__}({', '.join(kwargs)})"
 
     def __str__(self):
         """ A pretty one line to give all information. """
-        return "{power} {system}: {merits}, updated at {date}".format(
-            merits=self.merits, power=self.power.text, system=self.system.name, date=self.updated_at)
+        return f"{self.powertext} {self.system.name}: {self.merits}, updated at {self.updated_at}"
 
     def __eq__(self, other):
         return isinstance(other, SpyPrep) and hash(self) == hash(other)
 
     def __hash__(self):
-        return hash(f"{self.power_id}_{self.system_id}")
+        return hash(f"{self.power_id}_{self.ed_system_id}")
 
 
 class SpySystem(Base):
@@ -115,9 +119,13 @@ class SpySystem(Base):
     """
     __tablename__ = 'spy_systems'
 
+    __table_args__ = (
+        sqla.UniqueConstraint('ed_system_id', 'power_id', name='system_power_constraint'),
+    )
+
     # ids
     id = sqla.Column(sqla.Integer, primary_key=True)
-    system_id = sqla.Column(sqla.Integer, sqla.ForeignKey('systems.id'))
+    ed_system_id = sqla.Column(sqla.BigInteger, sqla.ForeignKey('systems.ed_system_id'))
     power_id = sqla.Column(sqla.Integer, sqla.ForeignKey('powers.id'))
     power_state_id = sqla.Column(sqla.Integer, sqla.ForeignKey('systems.id'), default=0)
 
@@ -130,12 +138,12 @@ class SpySystem(Base):
     fort_trigger = sqla.Column(sqla.Integer, default=0)
     um = sqla.Column(sqla.Integer, default=0)
     um_trigger = sqla.Column(sqla.Integer, default=0)
-    updated_at = sqla.Column(sqla.Integer, onupdate=sqla.func.unix_timestamp())
+    updated_at = sqla.Column(sqla.Integer, default=time.time, onupdate=time.time)
 
     # Relationships
     system = sqla.orm.relationship(
         'System', uselist=False, lazy='select', viewonly=True,
-        primaryjoin='foreign(System.id) == SpySystem.system_id',
+        primaryjoin='foreign(System.ed_system_id) == SpySystem.ed_system_id',
     )
     power = sqla.orm.relationship(
         'Power', uselist=False, lazy='select', viewonly=True,
@@ -147,12 +155,12 @@ class SpySystem(Base):
     )
 
     def __repr__(self):
-        keys = ['id', 'system_id', 'power_id', 'power_state_id',
+        keys = ['id', 'ed_system_id', 'power_id', 'power_state_id',
                 'is_expansion', 'income', 'upkeep_current', 'upkeep_default',
                 'fort', 'fort_trigger', 'um', 'um_trigger', 'updated_at']
-        kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
+        kwargs = [f'{key}={getattr(self, key)!r}' for key in keys]
 
-        return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
+        return f"{self.__class__.__name__}({', '.join(kwargs)})"
 
     def __str__(self):
         """ A pretty one line to give all information. """
@@ -169,7 +177,15 @@ class SpySystem(Base):
         return isinstance(other, SpySystem) and hash(self) == hash(other)
 
     def __hash__(self):
-        return hash(f"{self.power_id}_{self.system_id}")
+        return hash(f"{self.power_id}_{self.ed_system_id}")
+
+    def update(self, **kwargs):
+        """
+        Simple kwargs update to this object.
+        Any key will be set against this db object with the value associated.
+        """
+        for key, val in kwargs.items():
+            setattr(self, key, val)
 
 
 def json_powers_to_eddb_map():
@@ -186,7 +202,7 @@ def json_powers_to_eddb_map():
     return json_powers_to_eddb_id
 
 
-def load_base_json(base):
+def load_base_json(base, eddb_session):
     """ Load the base json and parse all information from it.
 
     Args:
@@ -200,11 +216,10 @@ def load_base_json(base):
 
     for bundle in base['powers']:
         power_id = json_powers_to_eddb_id[bundle['powerId']]
-        #  power_name = POWER_ID_MAP[bundle['powerId']]
 
         for sys_addr, data in bundle['systemAddr'].items():
             kwargs = {
-                'system_id': sys_addr,
+                'ed_system_id': sys_addr,
                 'power_id': power_id,
                 'power_state_id': JSON_POWER_STATE_TO_EDDB[bundle['state']],
                 'is_expansion': bundle['state'] == 'takingControl',
@@ -214,51 +229,130 @@ def load_base_json(base):
                 'upkeep_current': data['upkeepCurrent'],
                 'upkeep_default': data['upkeepDefault'],
             }
-
+            try:
+                system = eddb_session.query(SpySystem).\
+                    filter(SpySystem.ed_system_id == sys_addr,
+                           SpySystem.power_id == power_id).\
+                    one()
+                system.update(**kwargs)
+            except sqla.orm.exc.NoResultFound:
+                system = SpySystem(**kwargs)
             db_systems += [SpySystem(**kwargs)]
 
     return db_systems
 
 
-def load_refined_json(refined):
+def load_refined_json(refined, eddb_session):
     """ Load the refined json and parse all information from it.
 
     Args:
         refined: The refined json to load.
+        systems: A map of ed_system_id -> SpySystem objects to be updated with info.
 
     Returns:
         A dictionary mapping powers by name onto the systems they control and their status.
     """
-    updated_at = refined["lastModified"]
+    updated_at = int(refined["lastModified"])
     json_powers_to_eddb_id = json_powers_to_eddb_map()
 
-    db_preps, db_votes, db_sys = [], [], []
+    db_preps, db_votes, db_systems = [], [], []
     for bundle in refined["preparation"]:
         power_id = json_powers_to_eddb_id[bundle['power_id']]
-        db_votes += [SpyVote(power_id=power_id, vote=bundle['consolidation']['rank'], updated_at=updated_at)]
-        db_preps += [
-            SpyPrep(power_id=power_id, system_id=system_id, merits=merits, updated_at=updated_at)
-            for system_id, merits in bundle['rankedSystems']
-        ]
+        try:
+            spyvote = eddb_session.query(SpyVote).\
+                filter(SpyVote.power_id == power_id).\
+                one()
+            spyvote.vote = bundle['consolidation']['rank']
+            spyvote.updated_at = updated_at
+        except sqla.orm.exc.NoResultFound:
+            spyvote = SpyVote(
+                power_id=power_id,
+                vote=bundle['consolidation']['rank'],
+                updated_at=updated_at
+            )
+        db_votes += [spyvote]
 
-    for bundle in refined["gainControl"]:
-        db_sys += [SpySystem(
-            system_id=bundle['systemAddr'],
-            power_id=json_powers_to_eddb_id[bundle['power_id']],
-            power_state_id=64,
-            fort=bundle['qtyFor'],
-            um=bundle['qtyAgainst'],
-            is_expansion=True,
-            updated_at=updated_at,
-        )]
-    for bundle in refined["fortifyUndermine"]:
-        db_sys += [SpySystem(
-            system_id=bundle['systemAddr'],
-            power_id=json_powers_to_eddb_id[bundle['power_id']],
-            power_state_id=16,
-            fort=bundle['qtyFor'],
-            um=bundle['qtyAgainst'],
-            updated_at=updated_at,
-        )]
+        for ed_system_id, merits in bundle['rankedSystems']:
+            try:
+                spyprep = eddb_session.query(SpySystem).\
+                    filter(SpySystem.ed_system_id == ed_system_id,
+                           SpySystem.power_id == power_id).\
+                    one()
+                spyprep.merits = merits
+                spyprep.updated_at = updated_at
+            except sqla.orm.exc.NoResultFound:
+                spyprep = SpyPrep(
+                    power_id=power_id,
+                    ed_system_id=ed_system_id,
+                    merits=merits,
+                    updated_at=updated_at
+                )
+            db_preps += [spyprep]
 
-    return db_preps, db_votes, db_sys
+    packs = [
+        [refined["gainControl"], 64, True],
+        [refined["fortifyUndermine"], 16, False]
+    ]
+    for bundle, state_id, is_expansion in packs:
+        bundle = bundle[0]
+        power_id = json_powers_to_eddb_id[bundle['power_id']]
+        ed_system_id = bundle['systemAddr']
+        kwargs = {
+            'power_id': power_id,
+            'ed_system_id': ed_system_id,
+            'power_state_id': state_id,
+            'fort': bundle['qtyFor'],
+            'um': bundle['qtyAgainst'],
+            'is_expansion': is_expansion,
+            'updated_at': updated_at,
+        }
+        try:
+            system = eddb_session.query(SpySystem).\
+                filter(SpySystem.ed_system_id == ed_system_id,
+                       SpySystem.power_id == power_id).\
+                one()
+            system.update(**kwargs)
+        except sqla.orm.exc.NoResultFound:
+            system = SpySystem(**kwargs)
+        db_systems += [system]
+
+    return db_preps, db_votes, db_systems
+
+
+def recreate_tables():  # pragma: no cover | destructive to test
+    """
+    Recreate all tables in the database, mainly for schema changes and testing.
+    """
+    sqla.orm.session.close_all_sessions()
+
+    for table in [SpyPrep, SpyVote, SpySystem]:
+        try:
+            table.__table__.drop(cogdb.eddb_engine)
+        except sqla_e.OperationalError:
+            pass
+
+    Base.metadata.create_all(cogdb.eddb_engine)
+
+
+def main():
+    """
+    Main function to load the test data during development.
+    """
+    recreate_tables()
+    base_f = pathlib.Path(os.path.join(cog.util.ROOT_DIR, 'tests', 'base.json'))
+    refined_f = pathlib.Path(os.path.join(cog.util.ROOT_DIR, 'tests', 'refined.json'))
+
+    with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
+        with open(base_f, encoding='utf-8') as fin:
+            sys_objs = load_base_json(json.load(fin), eddb_session)
+            eddb_session.add_all(sys_objs)
+            eddb_session.commit()
+
+        with open(refined_f, encoding='utf-8') as fin:
+            preps, votes, systems = load_refined_json(json.load(fin), eddb_session)
+            eddb_session.add_all(preps + votes + systems)
+            eddb_session.commit()
+
+
+if __name__ == "__main__":
+    main()

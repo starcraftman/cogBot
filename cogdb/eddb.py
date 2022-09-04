@@ -729,6 +729,7 @@ class System(Base):
     __tablename__ = "systems"
 
     id = sqla.Column(sqla.Integer, primary_key=True)
+    ed_system_id = sqla.Column(sqla.BigInteger, index=True)
     name = sqla.Column(sqla.String(LEN["system"]), index=True)
     population = sqla.Column(sqla.BigInteger)
     needs_permit = sqla.Column(sqla.Integer)
@@ -1456,6 +1457,7 @@ def load_systems(fname, power_ids):
     # Format prefix, [(target_dictionary, key_in_dict), (target_dictionary, key_in_dict), ...]
     mappings = {
         'item.id': [('system', 'id')],
+        'item.ed_system_address': [('system', 'ed_system_id')],
         'item.updated_at': [('system', 'updated_at')],
         'item.name': [('system', 'name')],
         'item.population': [('system', 'population')],
