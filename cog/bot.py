@@ -187,7 +187,8 @@ class CogBot(discord.Client):
                 self.sched.register('hudson_snipe', scanners['hudson_snipe'],
                                     ('SnipeHold', 'Snipe'))
                 self.sched.register('hudson_kos', scanners['hudson_kos'], ('KOS'))
-                self.sched.register('hudson_ocr', scanners['hudson_ocr'], ('OCR'))
+                # FIXME: Enable when needed in future.
+                #  self.sched.register('hudson_ocr', scanners['hudson_ocr'], ('OCR'))
                 self.sched.schedule_all(delay=1)
                 self.scanners_not_ready = False
 

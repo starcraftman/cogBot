@@ -12,7 +12,7 @@ import cog.exc
 import cogdb.scanners
 from cogdb.schema import (FortSystem, FortDrop, FortUser,
                           UMSystem, UMUser, UMHold, KOS, TrackByID,
-                          OCRTracker, OCRTrigger, OCRPrep, Global, EUMSheet)
+                          Global, EUMSheet)
 from cogdb.scanners import (FortScanner, UMScanner, KOSScanner, RecruitsScanner, CarrierScanner,
                             OCRScanner)
 
@@ -564,110 +564,110 @@ async def test_carrierscanner_parse_sheet(session, f_track_testbed):
     assert len(found) == 2
 
 
-@pytest.mark.asyncio
-async def test_ocrscanner_generate_system_map(session, f_asheet_ocrscanner, f_ocr_testbed):
-    o_scanner = OCRScanner(f_asheet_ocrscanner)
-    await o_scanner.update_cells()
-    sys_map = o_scanner.generate_system_map()
+#  @pytest.mark.asyncio
+#  async def test_ocrscanner_generate_system_map(session, f_asheet_ocrscanner, f_ocr_testbed):
+    #  o_scanner = OCRScanner(f_asheet_ocrscanner)
+    #  await o_scanner.update_cells()
+    #  sys_map = o_scanner.generate_system_map()
 
-    assert sys_map['NURUNDERE'] == 'Nurundere'
-    assert sys_map['LALANDE 39866'] == 'Lalande 39866'
-
-
-@pytest.mark.asyncio
-async def test_ocrscanner_parse_sheet(session, f_asheet_ocrscanner, f_ocr_testbed, f_global_testbed):
-    o_scanner = OCRScanner(f_asheet_ocrscanner)
-    await o_scanner.update_cells()
-    o_scanner.parse_sheet(session)
-
-    with cogdb.session_scope(cogdb.Session) as new_session:
-        assert new_session.query(OCRTracker).filter(OCRTracker.system == 'Phanes').one().fort == 765
-        assert new_session.query(OCRPrep).filter(OCRPrep.system == 'Bolg').one().merits == 8592
-        assert new_session.query(OCRTrigger).filter(OCRTrigger.system == 'Phanes').one().fort_trigger == 8238
-        assert new_session.query(Global).all()[-1].consolidation == 76
+    #  assert sys_map['NURUNDERE'] == 'Nurundere'
+    #  assert sys_map['LALANDE 39866'] == 'Lalande 39866'
 
 
-@pytest.mark.asyncio
-async def test_ocrscanner_should_update_triggers_none(session, f_asheet_ocrscanner, f_ocr_testbed):
-    o_scanner = OCRScanner(f_asheet_ocrscanner)
-    await o_scanner.update_cells()
-    sheet_date = datetime.datetime.strptime(o_scanner.cells_row_major[0][2], "%Y-%m-%d %H:%M:%S")
-    assert o_scanner.should_update_trigger(None, sheet_date)
+#  @pytest.mark.asyncio
+#  async def test_ocrscanner_parse_sheet(session, f_asheet_ocrscanner, f_ocr_testbed, f_global_testbed):
+    #  o_scanner = OCRScanner(f_asheet_ocrscanner)
+    #  await o_scanner.update_cells()
+    #  o_scanner.parse_sheet(session)
+
+    #  with cogdb.session_scope(cogdb.Session) as new_session:
+        #  assert new_session.query(OCRTracker).filter(OCRTracker.system == 'Phanes').one().fort == 765
+        #  assert new_session.query(OCRPrep).filter(OCRPrep.system == 'Bolg').one().merits == 8592
+        #  assert new_session.query(OCRTrigger).filter(OCRTrigger.system == 'Phanes').one().fort_trigger == 8238
+        #  assert new_session.query(Global).all()[-1].consolidation == 76
 
 
-@pytest.mark.asyncio
-async def test_ocrscanner_should_update_triggers_stale(session, f_asheet_ocrscanner, f_ocr_testbed):
-    trigger = f_ocr_testbed[0][0]
-    old_trigger = OCRTrigger(system='Adeo', updated_at=(trigger.updated_at - datetime.timedelta(days=14)))
-
-    o_scanner = OCRScanner(f_asheet_ocrscanner)
-    await o_scanner.update_cells()
-    sheet_date = datetime.datetime.strptime(o_scanner.cells_row_major[0][2], "%Y-%m-%d %H:%M:%S")
-    assert o_scanner.should_update_trigger(old_trigger, sheet_date)
+#  @pytest.mark.asyncio
+#  async def test_ocrscanner_should_update_triggers_none(session, f_asheet_ocrscanner, f_ocr_testbed):
+    #  o_scanner = OCRScanner(f_asheet_ocrscanner)
+    #  await o_scanner.update_cells()
+    #  sheet_date = datetime.datetime.strptime(o_scanner.cells_row_major[0][2], "%Y-%m-%d %H:%M:%S")
+    #  assert o_scanner.should_update_trigger(None, sheet_date)
 
 
-@pytest.mark.asyncio
-async def test_ocrscanner_should_update_triggers_near_tick(session, f_asheet_ocrscanner, f_ocr_testbed):
-    trigger = f_ocr_testbed[0][0]
+#  @pytest.mark.asyncio
+#  async def test_ocrscanner_should_update_triggers_stale(session, f_asheet_ocrscanner, f_ocr_testbed):
+    #  trigger = f_ocr_testbed[0][0]
+    #  old_trigger = OCRTrigger(system='Adeo', updated_at=(trigger.updated_at - datetime.timedelta(days=14)))
 
-    o_scanner = OCRScanner(f_asheet_ocrscanner)
-    await o_scanner.update_cells()
-    sheet_date = datetime.datetime.strptime(o_scanner.cells_row_major[0][2], "%Y-%m-%d %H:%M:%S")
-    next_tick = cog.util.next_weekly_tick(sheet_date)
-    just_past = next_tick + datetime.timedelta(hours=1)
-    assert o_scanner.should_update_trigger(trigger, just_past)
-
-
-@pytest.mark.asyncio
-async def test_ocrscanner_ocr_trackers(session, f_asheet_ocrscanner, f_ocr_testbed):
-    o_scanner = OCRScanner(f_asheet_ocrscanner)
-    await o_scanner.update_cells()
-    sheet_date = datetime.datetime.strptime(o_scanner.cells_row_major[0][2], "%Y-%m-%d %H:%M:%S")
-
-    expect = {
-        'fort': 765,
-        'system': 'Phanes',
-        'um': 0,
-        'updated_at': datetime.datetime(2021, 8, 23, 20, 32, 47)
-    }
-
-    result = o_scanner.ocr_trackers(sheet_date, o_scanner.generate_system_map())
-    assert result['Phanes'] == expect
+    #  o_scanner = OCRScanner(f_asheet_ocrscanner)
+    #  await o_scanner.update_cells()
+    #  sheet_date = datetime.datetime.strptime(o_scanner.cells_row_major[0][2], "%Y-%m-%d %H:%M:%S")
+    #  assert o_scanner.should_update_trigger(old_trigger, sheet_date)
 
 
-@pytest.mark.asyncio
-async def test_ocrscanner_ocr_triggers(session, f_asheet_ocrscanner, f_ocr_testbed):
-    o_scanner = OCRScanner(f_asheet_ocrscanner)
-    await o_scanner.update_cells()
-    sheet_date = datetime.datetime.strptime(o_scanner.cells_row_major[0][2], "%Y-%m-%d %H:%M:%S")
+#  @pytest.mark.asyncio
+#  async def test_ocrscanner_should_update_triggers_near_tick(session, f_asheet_ocrscanner, f_ocr_testbed):
+    #  trigger = f_ocr_testbed[0][0]
 
-    expect = {
-        'base_income': 109,
-        'fort_trigger': 8238,
-        'last_upkeep': 0,
-        'system': 'Phanes',
-        'um_trigger': 23075,
-        'updated_at': datetime.datetime(2021, 8, 23, 20, 32, 47)
-    }
-
-    result = o_scanner.ocr_triggers(sheet_date, o_scanner.generate_system_map())
-    assert result['Phanes'] == expect
+    #  o_scanner = OCRScanner(f_asheet_ocrscanner)
+    #  await o_scanner.update_cells()
+    #  sheet_date = datetime.datetime.strptime(o_scanner.cells_row_major[0][2], "%Y-%m-%d %H:%M:%S")
+    #  next_tick = cog.util.next_weekly_tick(sheet_date)
+    #  just_past = next_tick + datetime.timedelta(hours=1)
+    #  assert o_scanner.should_update_trigger(trigger, just_past)
 
 
-@pytest.mark.asyncio
-async def test_ocrscanner_ocr_preps(session, f_asheet_ocrscanner, f_ocr_testbed):
-    o_scanner = OCRScanner(f_asheet_ocrscanner)
-    await o_scanner.update_cells()
-    sheet_date = datetime.datetime.strptime(o_scanner.cells_row_major[0][2], "%Y-%m-%d %H:%M:%S")
+#  @pytest.mark.asyncio
+#  async def test_ocrscanner_ocr_trackers(session, f_asheet_ocrscanner, f_ocr_testbed):
+    #  o_scanner = OCRScanner(f_asheet_ocrscanner)
+    #  await o_scanner.update_cells()
+    #  sheet_date = datetime.datetime.strptime(o_scanner.cells_row_major[0][2], "%Y-%m-%d %H:%M:%S")
 
-    expect = {
-        'merits': 8592,
-        'system': 'Bolg',
-        'updated_at': datetime.datetime(2021, 8, 23, 20, 32, 47)
-    }
-    sys_map = o_scanner.generate_system_map()
-    result = o_scanner.ocr_preps(sheet_date, sys_map)
-    assert result['Bolg'] == expect
+    #  expect = {
+        #  'fort': 765,
+        #  'system': 'Phanes',
+        #  'um': 0,
+        #  'updated_at': datetime.datetime(2021, 8, 23, 20, 32, 47)
+    #  }
+
+    #  result = o_scanner.ocr_trackers(sheet_date, o_scanner.generate_system_map())
+    #  assert result['Phanes'] == expect
+
+
+#  @pytest.mark.asyncio
+#  async def test_ocrscanner_ocr_triggers(session, f_asheet_ocrscanner, f_ocr_testbed):
+    #  o_scanner = OCRScanner(f_asheet_ocrscanner)
+    #  await o_scanner.update_cells()
+    #  sheet_date = datetime.datetime.strptime(o_scanner.cells_row_major[0][2], "%Y-%m-%d %H:%M:%S")
+
+    #  expect = {
+        #  'base_income': 109,
+        #  'fort_trigger': 8238,
+        #  'last_upkeep': 0,
+        #  'system': 'Phanes',
+        #  'um_trigger': 23075,
+        #  'updated_at': datetime.datetime(2021, 8, 23, 20, 32, 47)
+    #  }
+
+    #  result = o_scanner.ocr_triggers(sheet_date, o_scanner.generate_system_map())
+    #  assert result['Phanes'] == expect
+
+
+#  @pytest.mark.asyncio
+#  async def test_ocrscanner_ocr_preps(session, f_asheet_ocrscanner, f_ocr_testbed):
+    #  o_scanner = OCRScanner(f_asheet_ocrscanner)
+    #  await o_scanner.update_cells()
+    #  sheet_date = datetime.datetime.strptime(o_scanner.cells_row_major[0][2], "%Y-%m-%d %H:%M:%S")
+
+    #  expect = {
+        #  'merits': 8592,
+        #  'system': 'Bolg',
+        #  'updated_at': datetime.datetime(2021, 8, 23, 20, 32, 47)
+    #  }
+    #  sys_map = o_scanner.generate_system_map()
+    #  result = o_scanner.ocr_preps(sheet_date, sys_map)
+    #  assert result['Bolg'] == expect
 
 
 @pytest.mark.skipif(not os.environ.get('ALL_TESTS'), reason="Slow scanner testing all scanners.")

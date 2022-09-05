@@ -29,7 +29,7 @@ from cogdb.schema import (DiscordUser, FortSystem, FortPrep, FortDrop, FortUser,
                           UMSystem, UMExpand, UMOppose, UMUser, UMHold, EUMSheet, KOS,
                           AdminPerm, ChannelPerm, RolePerm,
                           TrackSystem, TrackSystemCached, TrackByID,
-                          OCRTracker, OCRTrigger, OCRPrep, Global, Vote, EVoteType,
+                          Global, Vote, EVoteType,
                           Consolidation)
 from tests.data import CELLS_FORT, CELLS_FORT_FMT, CELLS_UM
 
@@ -51,8 +51,7 @@ def around_all_tests():
     classes = [DiscordUser, FortUser, FortSystem, FortDrop, FortOrder,
                UMSystem, UMUser, UMHold,
                KOS, AdminPerm, ChannelPerm, RolePerm,
-               TrackSystem, TrackSystemCached, TrackByID,
-               OCRTracker, OCRTrigger, OCRPrep]
+               TrackSystem, TrackSystemCached, TrackByID]
     with cogdb.session_scope(cogdb.Session) as session:
         for cls in classes:
             assert not session.query(cls).all()
@@ -113,8 +112,7 @@ def db_cleanup():
         cogdb.schema.empty_tables(session, perm=True)
 
         classes = [DiscordUser, FortUser, FortSystem, FortDrop, FortOrder, UMUser, UMSystem, UMHold,
-                   KOS, TrackSystem, TrackSystemCached, TrackByID, AdminPerm, ChannelPerm, RolePerm,
-                   OCRTracker, OCRTrigger, OCRPrep]
+                   KOS, TrackSystem, TrackSystemCached, TrackByID, AdminPerm, ChannelPerm, RolePerm]
         for cls in classes:
             assert session.query(cls).all() == []
 
@@ -784,36 +782,6 @@ def f_track_testbed(session):
 
     session.rollback()
     for cls in (TrackSystem, TrackSystemCached, TrackByID):
-        session.query(cls).delete()
-    session.commit()
-
-
-@pytest.fixture
-def f_ocr_testbed(session):
-    """
-    Setup the database with dummy data for track tests.
-    """
-    date = datetime.datetime(2021, 8, 25, 2, 33, 0)
-    ocr_tracks = (
-        OCRTracker(id=1, system="Frey", fort=0, um=0, updated_at=date),
-        OCRTracker(id=2, system="Nurundere", fort=0, um=0, updated_at=date),
-        OCRTracker(id=3, system="Sol", fort=0, um=0, updated_at=date),
-    )
-    ocr_preps = (
-        OCRPrep(id=1, system="Rhea", merits=0, updated_at=date),
-    )
-    ocr_triggers = (
-        OCRTrigger(id=1, system="Frey", fort_trigger=500, um_trigger=1000, base_income=50, last_upkeep=24, updated_at=date),
-        OCRTrigger(id=2, system="Nurundere", fort_trigger=500, um_trigger=1000, base_income=50, last_upkeep=24, updated_at=date),
-        OCRTrigger(id=3, system="Sol", fort_trigger=500, um_trigger=1000, base_income=50, last_upkeep=24, updated_at=date),
-    )
-    session.add_all(ocr_tracks + ocr_preps + ocr_triggers)
-    session.commit()
-
-    yield ocr_tracks, ocr_triggers, ocr_preps
-
-    session.rollback()
-    for cls in (OCRPrep, OCRTrigger, OCRTracker):
         session.query(cls).delete()
     session.commit()
 

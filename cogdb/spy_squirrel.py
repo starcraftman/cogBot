@@ -374,7 +374,10 @@ def main():
 
 SPY_TABLES = [SpyPrep, SpyVote, SpySystem]
 # Ensure the tables are created before use when this imported
-Base.metadata.create_all(cogdb.eddb_engine)
+if cogdb.TEST_DB:
+    recreate_tables()
+else:
+    Base.metadata.create_all(cogdb.engine)
 
 
 if __name__ == "__main__":

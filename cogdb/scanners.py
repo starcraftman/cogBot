@@ -906,10 +906,7 @@ class CarrierScanner(FortScanner):
         return found
 
 
-# TODO: Correct possible corruption of system names from OCR
-#       Use some string similarity algorithm vs known controls.
-#       Examples: 16 CYGN = 16 CYGNI
-#       At present bot will ignore updates where system name is corrupted.
+# FIXME: Currently doesn't insert into db pending move to spy_squirrel
 class OCRScanner(FortScanner):
     """
     Scanner for the Hudson OCR sheet.
@@ -947,15 +944,15 @@ class OCRScanner(FortScanner):
         ocr_preps = self.ocr_preps(sheet_date, sys_map)
 
         # flush to db
-        cogdb.query.update_ocr_live(session, ocr_trackers)
-        cogdb.query.update_ocr_prep(session, ocr_preps)
+        #  cogdb.query.update_ocr_live(session, ocr_trackers)
+        #  cogdb.query.update_ocr_prep(session, ocr_preps)
 
         # TODO: Enable weekly limit when fully tested.
         #  oldest_trigger = cogdb.query.get_oldest_ocr_trigger(session)
         #  if self.should_update_trigger(oldest_trigger, sheet_date):
         ocr_triggers = self.ocr_triggers(sheet_date, sys_map)
-        cogdb.query.update_ocr_trigger(session, ocr_triggers)
-        session.commit()
+        #  cogdb.query.update_ocr_trigger(session, ocr_triggers)
+        #  session.commit()
 
     def generate_system_map(self):
         """

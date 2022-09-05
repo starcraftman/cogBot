@@ -23,8 +23,6 @@ LEN_NAME = 100
 LEN_REASON = 400
 LEN_SHEET_COL = 5
 LEN_CARRIER = 7
-MAX_OCR_MERITS = 150000
-SENSIBLE_OCR_INCOME = 250
 MAX_VOTE_VALUE = 50
 EVENT_CARRIER = """
 CREATE EVENT IF NOT EXISTS clean_carriers
@@ -206,15 +204,6 @@ class FortSystem(Base):
     sheet_col = sqla.Column(sqla.String(LEN_SHEET_COL), default='', unique=True)
     sheet_order = sqla.Column(sqla.Integer)
     manual_order = sqla.Column(sqla.Integer, nullable=True)
-
-    ocr_tracker = sqla.orm.relationship(
-        'OCRTracker', lazy='select', uselist=False, viewonly=True,
-        primaryjoin='foreign(FortSystem.name) == remote(OCRTracker.system)',
-    )
-    ocr_trigger = sqla.orm.relationship(
-        'OCRTrigger', lazy='select', uselist=False, viewonly=True,
-        primaryjoin='foreign(FortSystem.name) == remote(OCRTrigger.system)',
-    )
 
     __mapper_args__ = {
         'polymorphic_identity': EFortType.fort,
@@ -444,11 +433,6 @@ class FortPrep(FortSystem):
     __mapper_args__ = {
         'polymorphic_identity': EFortType.prep,
     }
-
-    ocr_prep = sqla.orm.relationship(
-        'OCRPrep', lazy='select', uselist=False, viewonly=True,
-        primaryjoin='foreign(FortSystem.name) == remote(OCRPrep.system)',
-    )
 
     def display(self, *, miss=None):
         """
@@ -1152,235 +1136,6 @@ class TrackByID(Base):
         self.system = new_system
 
 
-class OCRTracker(Base):
-    """
-    Track systems' Fort and UM from OCR.
-    """
-    __tablename__ = 'ocr_live_tracker'
-
-    id = sqla.Column(sqla.Integer, primary_key=True)
-    system = sqla.Column(sqla.String(LEN_NAME), index=True, nullable=False)
-    fort = sqla.Column(sqla.Integer, default=0)
-    um = sqla.Column(sqla.Integer, default=0)
-    updated_at = sqla.Column(sqla.DateTime(timezone=False), default=datetime.datetime.utcnow)  # All dates UTC
-
-    def __repr__(self):
-        keys = ['id', 'system', 'fort', 'um', 'updated_at']
-        kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
-
-        return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
-
-    def __str__(self):
-        """ A pretty one line to give all information. """
-        return "{system}: **Fort {fort}**  **UM {um}**, updated at {date}".format(
-            um=self.um, fort=self.fort, system=self.system, date=self.updated_at
-        )
-
-    def __eq__(self, other):
-        return isinstance(other, OCRTracker) and hash(self) == hash(other)
-
-    def __lt__(self, other):
-        return self.fort < other.fort and self.um < other.um
-
-    def __hash__(self):
-        return hash("{}".format(self.system))
-
-    def update(self, **kwargs):
-        """
-        Update the object with expected kwargs.
-
-        kwargs:
-            fort: The new fort merit value.
-            um: The new um merit value.
-            updated_at: The new date time to set for this update. (Required)
-
-        Raises:
-            ValidationFail - The kwargs did not contain updated_at or it was not suitable.
-        """
-        if 'updated_at' not in kwargs:
-            raise cog.exc.ValidationFail("Expected key 'updated_at' is missing.")
-
-        self.updated_at = kwargs['updated_at']
-        for key in ['fort', 'um']:
-            try:
-                setattr(self, key, kwargs[key])
-            except (KeyError, cog.exc.ValidationFail):
-                pass
-
-    @sqla_orm.validates('fort', 'um')
-    def validate_merits(self, key, value):
-        try:
-            if value < 0 or value > MAX_OCR_MERITS:
-                raise cog.exc.ValidationFail("Bounds check failed for: {} with value {}".format(key, value))
-        except TypeError:
-            pass
-
-        return value
-
-    @sqla_orm.validates('updated_at')
-    def validate_updated_at(self, key, value):
-        if not value or not isinstance(value, datetime.datetime) or (
-                self.updated_at and value < self.updated_at):
-            raise cog.exc.ValidationFail("Date invalid or was older than current value.")
-
-        return value
-
-
-class OCRTrigger(Base):
-    """
-    Store Fort / Um triggers by systems.
-    """
-    __tablename__ = 'ocr_trigger_tracker'
-
-    header = ["ID", "System", "Fort Trigger", "UM Trigger"]
-
-    id = sqla.Column(sqla.Integer, primary_key=True)
-    system = sqla.Column(sqla.String(LEN_NAME), index=True, nullable=False)
-    base_income = sqla.Column(sqla.Integer, default=0)
-    last_upkeep = sqla.Column(sqla.Integer, default=0)
-    fort_trigger = sqla.Column(sqla.Integer, default=0)
-    um_trigger = sqla.Column(sqla.Integer, default=0)
-    updated_at = sqla.Column(sqla.DateTime(timezone=False), default=datetime.datetime.utcnow)  # All dates UTC
-
-    def __repr__(self):
-        keys = ['id', 'system', 'fort_trigger', 'um_trigger', 'base_income', 'last_upkeep', 'updated_at']
-        kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
-
-        return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
-
-    def __str__(self):
-        """ A pretty one line to give all information. """
-        return "{system}: {fort_trigger}:{um_trigger} with income of {base_income} and upkeep {last_upkeep}, updated at {date}".format(
-            um_trigger=self.um_trigger, fort_trigger=self.fort_trigger,
-            base_income=self.base_income, last_upkeep=self.last_upkeep,
-            system=self.system, date=self.updated_at)
-
-    def __eq__(self, other):
-        return isinstance(other, OCRTrigger) and hash(self) == hash(other)
-
-    def __hash__(self):
-        return hash("{}".format(self.system))
-
-    def update(self, **kwargs):
-        """
-        Update the object with expected kwargs.
-
-        kwargs:
-            fort_trigger: The new fort trigger.
-            um_trigger: The new um trigger.
-            base_income: The new base income of the system.
-            last_upkeep: The last cycle upkeep of this system.
-            updated_at: The new date time to set for this update. (Required)
-
-        Raises:
-            ValidationFail - The kwargs did not contain updated_at or it was not suitable.
-        """
-        if 'updated_at' not in kwargs:
-            raise cog.exc.ValidationFail("Expected key 'updated_at' is missing.")
-
-        self.updated_at = kwargs['updated_at']
-        for key in ['fort_trigger', 'um_trigger', 'base_income', 'last_upkeep']:
-            try:
-                setattr(self, key, kwargs[key])
-            except (KeyError, cog.exc.ValidationFail):
-                pass
-
-    @sqla_orm.validates('fort_trigger', 'um_trigger')
-    def validate_triggers(self, key, value):
-        try:
-            if value < 0 or value > MAX_OCR_MERITS:
-                raise cog.exc.ValidationFail("Bounds check failed for: {} with value {}".format(key, value))
-        except TypeError:
-            pass
-
-        return value
-
-    @sqla_orm.validates('base_income', 'last_upkeep')
-    def validate_incomes(self, key, value):
-        try:
-            if value < 0 or value > SENSIBLE_OCR_INCOME:
-                raise cog.exc.ValidationFail("Bounds check failed for: {} with value {}".format(key, value))
-        except TypeError:
-            pass
-
-        return value
-
-    @sqla_orm.validates('updated_at')
-    def validate_updated_at(self, key, value):
-        if not value or not isinstance(value, datetime.datetime) or (self.updated_at and value < self.updated_at):
-            raise cog.exc.ValidationFail("Date invalid or was older than current value.")
-
-        return value
-
-
-class OCRPrep(Base):
-    """
-    Store Prep triggers by systems.
-    """
-    __tablename__ = 'ocr_prep_tracker'
-
-    header = ["ID", "System", "Merits"]
-
-    id = sqla.Column(sqla.Integer, primary_key=True)
-    system = sqla.Column(sqla.String(LEN_NAME), index=True, nullable=False)
-    merits = sqla.Column(sqla.Integer, default=0)
-    updated_at = sqla.Column(sqla.DateTime(timezone=False), default=datetime.datetime.utcnow)  # All dates UTC
-
-    def __repr__(self):
-        keys = ['id', 'system', 'merits', 'updated_at']
-        kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
-
-        return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
-
-    def __str__(self):
-        """ A pretty one line to give all information. """
-        return "{system}: {merits}, updated at {date}".format(
-            merits=self.merits, system=self.system, date=self.updated_at)
-
-    def __eq__(self, other):
-        return isinstance(other, OCRPrep) and hash(self) == hash(other)
-
-    def __hash__(self):
-        return hash("{}".format(self.system))
-
-    def update(self, **kwargs):
-        """
-        Update the object with expected kwargs.
-
-        kwargs:
-            merits: The current merits for the system.
-            updated_at: The new date time to set for this update. (Required)
-
-        Raises:
-            ValidationFail - The kwargs did not contain updated_at or it was not suitable.
-        """
-        if 'updated_at' not in kwargs:
-            raise cog.exc.ValidationFail("Expected key 'updated_at' is missing.")
-
-        self.updated_at = kwargs['updated_at']
-        try:
-            self.merits = kwargs['merits']
-        except (KeyError, cog.exc.ValidationFail):
-            pass
-
-    @sqla_orm.validates('merits')
-    def validate_merits(self, key, value):
-        try:
-            if value < 0 or value > MAX_OCR_MERITS:
-                raise cog.exc.ValidationFail("Bounds check failed for: {} with value {}".format(key, value))
-        except TypeError:
-            pass
-
-        return value
-
-    @sqla_orm.validates('updated_at')
-    def validate_updated_at(self, key, value):
-        if not value or not isinstance(value, datetime.datetime) or (self.updated_at and value < self.updated_at):
-            raise cog.exc.ValidationFail("Date invalid or was older than current value.")
-
-        return value
-
-
 class Global(Base):
     """
     A simple storage table for any globals per cycle.
@@ -1736,8 +1491,7 @@ def empty_tables(session, *, perm=False):
     """
     classes = [FortDrop, UMHold, FortSystem, UMSystem, FortUser, UMUser, KOS,
                KOS, TrackSystem, TrackSystemCached, TrackByID,
-               AdminPerm, ChannelPerm, RolePerm,
-               OCRTracker, OCRTrigger, OCRPrep]
+               AdminPerm, ChannelPerm, RolePerm]
     if perm:
         classes += [DiscordUser]
 
@@ -1871,31 +1625,6 @@ def run_schema_queries(session):  # pragma: no cover
 
     #  print(session.query(FortSystem).filter(FortSystem.cmdr_merits > 100).all())
     print(session.query(FortUser).filter(FortUser.dropped > 100).all())
-
-    date = datetime.datetime.utcnow()
-    ocrs_systems = (
-        OCRTracker(system="Frey", updated_at=date),
-        OCRTracker(system="Adeo"),
-        OCRTracker(system="Sol"),
-        OCRPrep(system="Rhea"),
-        OCRTrigger(system="Frey")
-    )
-    session.add_all(ocrs_systems)
-    session.commit()
-
-    print("\n\nOCR Relationships and Objects")
-    print(session.query(OCRTracker).filter(OCRTracker.system == "Frey").one())
-    print(session.query(OCRPrep).one())
-    print(session.query(OCRTrigger).one())
-
-    sys = session.query(FortSystem).filter(FortSystem.name == "Frey").one()
-    print(sys)
-    print(sys.ocr_tracker)
-    print(sys.ocr_trigger)
-
-    sys = session.query(FortPrep).one()
-    print(sys.ocr_prep)
-
     res = session.query(FortSystem.name, FortSystem.cmdr_merits).filter(FortSystem.cmdr_merits > 1000).all()
     print(res)
 

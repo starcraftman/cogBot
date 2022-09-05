@@ -996,17 +996,18 @@ Burr       | 2200 | 5800```"""
     assert cogdb.scanners.SCANNERS['hudson_undermine'].payloads == expect
 
 
-@pytest.mark.asyncio
-async def test_cmd_ocr_preps(session, f_bot, f_dusers, f_fort_testbed, f_ocr_testbed):
-    msg = fake_msg_gears("!ocr preps")
+# FIXME: To remove or update.
+#  @pytest.mark.asyncio
+#  async def test_cmd_ocr_preps(session, f_bot, f_dusers, f_fort_testbed, f_ocr_testbed):
+    #  msg = fake_msg_gears("!ocr preps")
 
-    await action_map(msg, f_bot).execute()
-    expected = """__Hudson Preps Report__
+    #  await action_map(msg, f_bot).execute()
+    #  expected = """__Hudson Preps Report__
 
-Current Consolidation: 0%
+#  Current Consolidation: 0%
 
-Rhea: 0, updated at 2021-08-25 02:33:00"""
-    f_bot.send_message.assert_called_with(msg.channel, expected)
+#  Rhea: 0, updated at 2021-08-25 02:33:00"""
+    #  f_bot.send_message.assert_called_with(msg.channel, expected)
 
 
 @pytest.mark.asyncio
