@@ -9,6 +9,7 @@ import time
 
 import sqlalchemy as sqla
 import sqlalchemy.exc as sqla_e
+from sqlalchemy.ext.hybrid import hybrid_property
 
 import cog.util
 import cogdb.eddb
@@ -61,7 +62,8 @@ class SpyVote(Base):
 
     def __str__(self):
         """ A pretty one line to give all information. """
-        return f"{self.power.text}: {self.vote}%, updated at {self.updated_at}"
+        date = datetime.datetime.utcfromtimestamp(self.updated_at)
+        return f"{self.power.text}: {self.vote}%, updated at {date}"
 
     def __eq__(self, other):
         return isinstance(other, SpyVote) and hash(self) == hash(other)
@@ -104,7 +106,8 @@ class SpyPrep(Base):
 
     def __str__(self):
         """ A pretty one line to give all information. """
-        return f"{self.powertext} {self.system.name}: {self.merits}, updated at {self.updated_at}"
+        date = datetime.datetime.utcfromtimestamp(self.updated_at)
+        return f"{self.power.text} {self.system.name}: {self.merits}, updated at {date}"
 
     def __eq__(self, other):
         return isinstance(other, SpyPrep) and hash(self) == hash(other)
@@ -130,7 +133,6 @@ class SpySystem(Base):
     power_state_id = sqla.Column(sqla.Integer, sqla.ForeignKey('systems.id'), default=0)
 
     # info
-    is_expansion = sqla.Column(sqla.Boolean, default=False)
     income = sqla.Column(sqla.Integer, default=0)
     upkeep_current = sqla.Column(sqla.Integer, default=0)
     upkeep_default = sqla.Column(sqla.Integer, default=0)
@@ -156,7 +158,7 @@ class SpySystem(Base):
 
     def __repr__(self):
         keys = ['id', 'ed_system_id', 'power_id', 'power_state_id',
-                'is_expansion', 'income', 'upkeep_current', 'upkeep_default',
+                'income', 'upkeep_current', 'upkeep_default',
                 'fort', 'fort_trigger', 'um', 'um_trigger', 'updated_at']
         kwargs = [f'{key}={getattr(self, key)!r}' for key in keys]
 
@@ -165,7 +167,7 @@ class SpySystem(Base):
     def __str__(self):
         """ A pretty one line to give all information. """
         updated_at = datetime.datetime.utcfromtimestamp(self.updated_at)
-        status_text = f"{self.fort} | {self.um}, updated at {updated_at}"
+        status_text = f"{self.fort}/{self.fort_trigger} | {self.um}/{self.um_trigger}, updated at {updated_at}"
         if self.is_expansion:
             description = f"Expansion for {self.power.text} to {self.system.name}: {status_text}"
         else:
@@ -178,6 +180,11 @@ class SpySystem(Base):
 
     def __hash__(self):
         return hash(f"{self.power_id}_{self.ed_system_id}")
+
+    @hybrid_property
+    def is_expansion(self):
+        """ Is this an expansion system? """
+        return self.power_state_id != 16
 
     def update(self, **kwargs):
         """
@@ -222,7 +229,6 @@ def load_base_json(base, eddb_session):
                 'ed_system_id': sys_addr,
                 'power_id': power_id,
                 'power_state_id': JSON_POWER_STATE_TO_EDDB[bundle['state']],
-                'is_expansion': bundle['state'] == 'takingControl',
                 'fort_trigger': data['thrFor'],
                 'um_trigger': data['thrAgainst'],
                 'income': data['income'],
@@ -237,6 +243,7 @@ def load_base_json(base, eddb_session):
                 system.update(**kwargs)
             except sqla.orm.exc.NoResultFound:
                 system = SpySystem(**kwargs)
+                eddb_session.add(system)
             db_systems += [SpySystem(**kwargs)]
 
     return db_systems
@@ -255,7 +262,7 @@ def load_refined_json(refined, eddb_session):
     updated_at = int(refined["lastModified"])
     json_powers_to_eddb_id = json_powers_to_eddb_map()
 
-    db_preps, db_votes, db_systems = [], [], []
+    db_objs = []
     for bundle in refined["preparation"]:
         power_id = json_powers_to_eddb_id[bundle['power_id']]
         try:
@@ -270,7 +277,8 @@ def load_refined_json(refined, eddb_session):
                 vote=bundle['consolidation']['rank'],
                 updated_at=updated_at
             )
-        db_votes += [spyvote]
+            eddb_session.add(spyvote)
+        db_objs += [spyvote]
 
         for ed_system_id, merits in bundle['rankedSystems']:
             try:
@@ -287,23 +295,18 @@ def load_refined_json(refined, eddb_session):
                     merits=merits,
                     updated_at=updated_at
                 )
-            db_preps += [spyprep]
+                eddb_session.add(spyprep)
+            db_objs += [spyprep]
 
-    packs = [
-        [refined["gainControl"], 64, True],
-        [refined["fortifyUndermine"], 16, False]
-    ]
-    for bundle, state_id, is_expansion in packs:
-        bundle = bundle[0]
+    for bundle, pstate_id in [[refined["gainControl"][0], 64], [refined["fortifyUndermine"][0], 16]]:
         power_id = json_powers_to_eddb_id[bundle['power_id']]
         ed_system_id = bundle['systemAddr']
         kwargs = {
             'power_id': power_id,
             'ed_system_id': ed_system_id,
-            'power_state_id': state_id,
+            'power_state_id': pstate_id,
             'fort': bundle['qtyFor'],
             'um': bundle['qtyAgainst'],
-            'is_expansion': is_expansion,
             'updated_at': updated_at,
         }
         try:
@@ -314,23 +317,40 @@ def load_refined_json(refined, eddb_session):
             system.update(**kwargs)
         except sqla.orm.exc.NoResultFound:
             system = SpySystem(**kwargs)
-        db_systems += [system]
+            eddb_session.add(system)
+        db_objs += [system]
 
-    return db_preps, db_votes, db_systems
+    return db_objs
 
 
-def recreate_tables():  # pragma: no cover | destructive to test
+def drop_tables():  # pragma: no cover | destructive to test
     """
-    Recreate all tables in the database, mainly for schema changes and testing.
+    Drop the spy tables entirely.
     """
     sqla.orm.session.close_all_sessions()
-
-    for table in [SpyPrep, SpyVote, SpySystem]:
+    for table in SPY_TABLES:
         try:
             table.__table__.drop(cogdb.eddb_engine)
         except sqla_e.OperationalError:
             pass
 
+
+def empty_tables():
+    """
+    Ensure all spy tables are empty.
+    """
+    sqla.orm.session.close_all_sessions()
+    with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
+        for table in SPY_TABLES:
+            eddb_session.query(table).delete()
+
+
+def recreate_tables():  # pragma: no cover | destructive to test
+    """
+    Recreate all tables in the related to this module, mainly for schema changes and testing.
+    """
+    sqla.orm.session.close_all_sessions()
+    drop_tables()
     Base.metadata.create_all(cogdb.eddb_engine)
 
 
@@ -344,14 +364,17 @@ def main():
 
     with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
         with open(base_f, encoding='utf-8') as fin:
-            sys_objs = load_base_json(json.load(fin), eddb_session)
-            eddb_session.add_all(sys_objs)
-            eddb_session.commit()
+            load_base_json(json.load(fin), eddb_session)
 
         with open(refined_f, encoding='utf-8') as fin:
-            preps, votes, systems = load_refined_json(json.load(fin), eddb_session)
-            eddb_session.add_all(preps + votes + systems)
-            eddb_session.commit()
+            load_refined_json(json.load(fin), eddb_session)
+
+        eddb_session.commit()
+
+
+SPY_TABLES = [SpyPrep, SpyVote, SpySystem]
+# Ensure the tables are created before use when this imported
+Base.metadata.create_all(cogdb.eddb_engine)
 
 
 if __name__ == "__main__":
