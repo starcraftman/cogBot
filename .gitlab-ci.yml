@@ -28,7 +28,7 @@ test:
   script:
     - /etc/init.d/mariadb start
     - mysql -u root < "tests/mysql_tables.sql"
-    - curl "http://starcraftman.com/elite/eddb_v04.sql" > "eddb.sql"
+    - curl "http://starcraftman.com/elite/eddb_v05.sql" > "eddb.sql"
     - mysql -u root -D eddb < "eddb.sql"
     - secrethub inject -i "tests/secrethub/secretConfig.yml" -o "data/config.yml"
     - secrethub inject -i "tests/secrethub/secretSheets.json" -o "data/service_sheets.json"

@@ -29,7 +29,7 @@ jobs:
       run: |
         sudo /etc/init.d/mysql start
         mysql -u${{ env.DB_USER }} -p${{ env.DB_PASSWORD }} < "tests/mysql_tables.sql"
-        curl "http://starcraftman.com/elite/eddb_v04.sql" > "eddb.sql"
+        curl "http://starcraftman.com/elite/eddb_v05.sql" > "eddb.sql"
         mysql -u${{ env.DB_USER }} -p${{ env.DB_PASSWORD }} -D eddb < "eddb.sql"
     - name: Generate secret config files
       env:

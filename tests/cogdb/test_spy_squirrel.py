@@ -16,6 +16,7 @@ FIXED_TIMESTAMP = 1662390092
 # Empty tables before running tests.
 spy.empty_tables()
 
+
 def load_json(fname):
     """Load a json file example for API testing.
 
