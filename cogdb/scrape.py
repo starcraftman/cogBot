@@ -172,6 +172,14 @@ def scrape_all_powerplay(driver, held_merits=False):  # pragma: no cover | Depen
     driver.get(url)
     time.sleep(LONG_GAP)
 
+    # Push refine button to get latest fort and um data
+    buttons = driver.find_elements(By.CSS_SELECTOR, "button.btn-primary")
+    ref_button = buttons[-1]
+    ref_button.click()
+    time.sleep(LONGEST_GAP)
+    while ref_button.text != "Refine":
+        time.sleep(5)
+
     # Expand all blocks for information
     switch = driver.find_element(By.CLASS_NAME, "input-switch")
     switch.click()

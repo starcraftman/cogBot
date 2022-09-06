@@ -10,6 +10,25 @@ import cog.util
 import cogdb.scrape
 
 
+HELD_UNKNOWN = """
+<div class="powerplay-result-box"><!--!--><!--!--><div class="accordion-item"><h2 class="accordion-header"><button type="button" aria-expanded="true" data-bs-toggle="collapse" class="accordion-button " _bl_20634afa-abeb-4fd8-811c-ffb4e8e50b71=""><div style="display: table;"><input type="checkbox" class="checkmark"><!--!-->
+                    <p style="display: table-cell; vertical-align: middle; padding-left: 1em;">Aowica</p></div></button></h2><!--!-->
+<div class="accordion-collapse collapse show" data-blazorstrap="434678de-c20e-4f09-8230-7ef4ac4ce688" _bl_8f7632f8-0a9c-48f1-983f-afdcce3f8793="" style=""><div class="accordion-body"><!--!--><!--!-->Fortification: 4464 / 4247<br>Undermining: 0 / 11598<br><br>Held Merits: unknown.<!--!-->
+"""
+HELD_RECENT = """
+<div class="powerplay-result-box"><!--!--><!--!--><div class="accordion-item"><h2 class="accordion-header"><button type="button" aria-expanded="true" data-bs-toggle="collapse" class="accordion-button " _bl_20634afa-abeb-4fd8-811c-ffb4e8e50b71=""><div style="display: table;"><input type="checkbox" class="checkmark"><!--!-->
+                    <p style="display: table-cell; vertical-align: middle; padding-left: 1em;">Aowica</p></div></button></h2><!--!-->
+<div class="accordion-collapse collapse show" data-blazorstrap="434678de-c20e-4f09-8230-7ef4ac4ce688" _bl_8f7632f8-0a9c-48f1-983f-afdcce3f8793="" style=""><div class="accordion-body"><!--!--><!--!-->Fortification: 4464 / 4247<br>Undermining: 0 / 11598<br><br>Held Merits: 0 stolen and 0 held (+ 0 = 0 / 11598) as of 11 minutes, 33 seconds ago.<!--!-->
+"""
+HELD_OLD = """
+<div class="powerplay-result-box"><!--!--><!--!--><div class="accordion-item"><h2 class="accordion-header"><button type="button" aria-expanded="true" data-bs-toggle="collapse" class="accordion-button " _bl_20634afa-abeb-4fd8-811c-ffb4e8e50b71=""><div style="display: table;"><input type="checkbox" class="checkmark"><!--!-->
+                    <p style="display: table-cell; vertical-align: middle; padding-left: 1em;">Aowica</p></div></button></h2><!--!-->
+<div class="accordion-collapse collapse show" data-blazorstrap="434678de-c20e-4f09-8230-7ef4ac4ce688" _bl_8f7632f8-0a9c-48f1-983f-afdcce3f8793="" style=""><div class="accordion-body"><!--!--><!--!-->Fortification: 4464 / 4247<br>Undermining: 0 / 11598<br><br>Held Merits: 0 stolen and 0 held (+ 0 = 0 / 11598) as of 1 hours, 11 minutes, 33 seconds ago.<!--!-->
+"""
+with open(os.path.join(cog.util.ROOT_DIR, 'tests', 'cogdb', 'whole_page.html')) as fin:
+    WHOLE_PAGE = fin.read()
+
+
 @pytest.fixture
 def now():
     yield datetime.datetime.utcfromtimestamp(1662490449)
@@ -79,22 +98,3 @@ def test_parse_powerplay_page(now):
     parsed = cogdb.scrape.parse_powerplay_page(WHOLE_PAGE, start=now)
     assert expect_held == parsed['Aowica']
     assert expect_unknown == parsed['Zhao']
-
-
-HELD_UNKNOWN = """
-<div class="powerplay-result-box"><!--!--><!--!--><div class="accordion-item"><h2 class="accordion-header"><button type="button" aria-expanded="true" data-bs-toggle="collapse" class="accordion-button " _bl_20634afa-abeb-4fd8-811c-ffb4e8e50b71=""><div style="display: table;"><input type="checkbox" class="checkmark"><!--!-->
-                    <p style="display: table-cell; vertical-align: middle; padding-left: 1em;">Aowica</p></div></button></h2><!--!-->
-<div class="accordion-collapse collapse show" data-blazorstrap="434678de-c20e-4f09-8230-7ef4ac4ce688" _bl_8f7632f8-0a9c-48f1-983f-afdcce3f8793="" style=""><div class="accordion-body"><!--!--><!--!-->Fortification: 4464 / 4247<br>Undermining: 0 / 11598<br><br>Held Merits: unknown.<!--!-->
-"""
-HELD_RECENT = """
-<div class="powerplay-result-box"><!--!--><!--!--><div class="accordion-item"><h2 class="accordion-header"><button type="button" aria-expanded="true" data-bs-toggle="collapse" class="accordion-button " _bl_20634afa-abeb-4fd8-811c-ffb4e8e50b71=""><div style="display: table;"><input type="checkbox" class="checkmark"><!--!-->
-                    <p style="display: table-cell; vertical-align: middle; padding-left: 1em;">Aowica</p></div></button></h2><!--!-->
-<div class="accordion-collapse collapse show" data-blazorstrap="434678de-c20e-4f09-8230-7ef4ac4ce688" _bl_8f7632f8-0a9c-48f1-983f-afdcce3f8793="" style=""><div class="accordion-body"><!--!--><!--!-->Fortification: 4464 / 4247<br>Undermining: 0 / 11598<br><br>Held Merits: 0 stolen and 0 held (+ 0 = 0 / 11598) as of 11 minutes, 33 seconds ago.<!--!-->
-"""
-HELD_OLD = """
-<div class="powerplay-result-box"><!--!--><!--!--><div class="accordion-item"><h2 class="accordion-header"><button type="button" aria-expanded="true" data-bs-toggle="collapse" class="accordion-button " _bl_20634afa-abeb-4fd8-811c-ffb4e8e50b71=""><div style="display: table;"><input type="checkbox" class="checkmark"><!--!-->
-                    <p style="display: table-cell; vertical-align: middle; padding-left: 1em;">Aowica</p></div></button></h2><!--!-->
-<div class="accordion-collapse collapse show" data-blazorstrap="434678de-c20e-4f09-8230-7ef4ac4ce688" _bl_8f7632f8-0a9c-48f1-983f-afdcce3f8793="" style=""><div class="accordion-body"><!--!--><!--!-->Fortification: 4464 / 4247<br>Undermining: 0 / 11598<br><br>Held Merits: 0 stolen and 0 held (+ 0 = 0 / 11598) as of 1 hours, 11 minutes, 33 seconds ago.<!--!-->
-"""
-with open(os.path.join(cog.util.ROOT_DIR, 'tests', 'cogdb', 'whole_page.html')) as fin:
-    WHOLE_PAGE = fin.read()
