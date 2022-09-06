@@ -7,6 +7,7 @@ Scrape the json site. This is a stopgap.
     2) Fetch corresponding chromedriver
         https://chromedriver.chromium.org/downloads
     3) Configure 'scrape.url' and 'scrape.driver' in the config.
+    4) Ensure you have required pip packages, run: python setup.py deps
 """
 import contextlib
 import datetime
