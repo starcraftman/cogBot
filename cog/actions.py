@@ -31,7 +31,7 @@ import cogdb.query
 import cogdb.scanners
 import cogdb.scrape
 import cogdb.side
-import cogdb.spy_squirrel
+import cogdb.spy_squirrel as spy
 import cog.inara
 import cog.tbl
 import cog.util
@@ -2397,7 +2397,7 @@ def scrape_all_in_background():  # pragma: no cover | tested elsewhere
         log.error("Start scrape in background.")
         data = cogdb.scrape.scrape_all_powerplay(driver)
         log.error("Pushing to database.")
-        cogdb.spy_squirrel.process_scrape_data(data)
+        spy.process_scrape_data(data)
         log.error("End scrape in background.")
 
 
@@ -2414,8 +2414,8 @@ async def push_scrape_to_gal_scanner():  # pragma: no cover | tested elsewhere
             all()
 
         for power in powers:
-            systems = eddb_session.query(cogdb.spy_squirrel.SpySystem).\
-                filter(cogdb.spy_squirrel.SpySystem.power_id == power.id).\
+            systems = eddb_session.query(spy.SpySystem).\
+                filter(spy.SpySystem.power_id == power.id).\
                 all()
             systems = sorted(systems, key=lambda x: x.system.name)
 
@@ -2425,8 +2425,38 @@ async def push_scrape_to_gal_scanner():  # pragma: no cover | tested elsewhere
             await gal_scanner.send_batch(gal_scanner.update_dict(systems=systems))
 
 
+async def push_scrape_to_sheets():  # pragma: no cover | tested elsewhere
+    """
+    Push the new information into the fort and um sheets if needed.
+    """
+    log = logging.getLogger(__name__)
+
+    with cogdb.session_scope(cogdb.Session) as session,\
+        cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
+
+        log.error("Processing scrape results to sheets")
+        forts = spy.compare_sheet_fort_systems_to_spy(session, eddb_session)
+        if forts:
+            scanner = cogdb.scanners.get_scanner("hudson_cattle")
+            payloads = scanner.bulk_update_fort_status(forts)
+            log.error("Fort sheet will be updated.")
+            __import__('pprint').pprint(forts)
+            await scanner.send_batch(payloads)
+
+        # FIXME: Test this code later
+        #  ums = spy.compare_sheet_um_systems_to_spy(session, eddb_session)
+        #  if ums:
+            #  scanner = cogdb.scanners.get_scanner("hudson_undermine")
+            #  payloads = [scanner.update_systemum_dict(x['sheet_col'], x['progress_us'], x['progress_them'], x['map_offset'])
+                        #  for x in ums]
+            #  log.error("Operations sheet will be updated.")
+            #  await scanner.send_batch(payloads)
+
+
 async def monitor_powerplay_page(client, *, repeat=True, delay=1800):
     """Poll the powerplay page for info every delay seconds.
+
+    N.B. This depends on multiple scanners being operable. Start this task on a delay.
 
     Args:
         client: The discord.py client.
@@ -2443,6 +2473,7 @@ async def monitor_powerplay_page(client, *, repeat=True, delay=1800):
                         pool, scrape_all_in_background
                     )
                 await push_scrape_to_gal_scanner()
+                await push_scrape_to_sheets()
 
     await asyncio.sleep(delay)
 

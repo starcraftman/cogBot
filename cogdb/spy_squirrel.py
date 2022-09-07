@@ -14,6 +14,7 @@ from sqlalchemy.ext.hybrid import hybrid_property
 import cog.util
 import cogdb.eddb
 from cogdb.eddb import Base, Power, System
+from cogdb.schema import FortSystem, UMSystem, EFortType, EUMType, EUMSheet
 
 
 # Map of powers used in incoming JSON messages
@@ -355,6 +356,91 @@ def process_scrape_data(data_json):
     eddb_session.commit()
 
 
+def compare_sheet_fort_systems_to_spy(session, eddb_session):
+    """Compare the fort systems to the spy systems and determine the
+       intersection, then take the SpySystem.fort and SpySystem.um values if they are greater.
+
+    Args:
+        session: A session onto the db.
+        eddb_session: A session onto the EDDB db.
+    """
+    fort_targets = session.query(FortSystem).\
+        filter(FortSystem.type == EFortType.fort).\
+        all()
+    fort_names = [x.name for x in fort_targets]
+
+    systems = {}
+    for system in fort_targets:
+        systems.update({
+            system.name: {
+                'sheet_col': system.sheet_col,
+                'sheet_order': system.sheet_order,
+                'fort': system.fort_status,
+                'um': system.um_status,
+            }
+        })
+
+    spy_systems = eddb_session.query(SpySystem).\
+        join(System, System.ed_system_id == SpySystem.ed_system_id).\
+        filter(System.name.in_(fort_names)).\
+        all()
+    for spy_sys in spy_systems:
+        if spy_sys.fort > systems[spy_sys.system.name]['fort']:
+            systems[spy_sys.system.name]['fort'] = spy_sys.fort
+        if spy_sys.um > systems[spy_sys.system.name]['um']:
+            systems[spy_sys.system.name]['um'] = spy_sys.um
+
+    return list(sorted(systems.values(), key=lambda x: x['sheet_order']))
+
+
+def compare_sheet_um_systems_to_spy(session, eddb_session):
+    """Compare the um systems to the spy systems and determine the
+       intersection, then find the new progress_us and progress_them values.
+
+    Args:
+        session: A session onto the db.
+        eddb_session: A session onto the EDDB db.
+    """
+    um_targets = session.query(UMSystem).\
+        filter(UMSystem.type == EUMType.control,
+               UMSystem.sheet_src == EUMSheet.main).\
+        all()
+    um_names = [x.name for x in um_targets]
+
+    systems = {}
+    for system in um_targets:
+        systems.update({
+            system.name: {
+                'sheet_col': system.sheet_col,
+                'progress_us': system.progress_us,
+                'progress_them': system.progress_them,
+                'map_offset': system.map_offset,
+            }
+        })
+
+    spy_systems = eddb_session.query(SpySystem).\
+        join(System, System.ed_system_id == SpySystem.ed_system_id).\
+        filter(System.name.in_(um_names)).\
+        all()
+    for spy_sys in spy_systems:
+
+        changed = False
+        if spy_sys.um > systems[spy_sys.system.name]['progress_us']:
+            systems[spy_sys.system.name]['progress_us'] = spy_sys.um
+            changed = True
+
+        spy_progress_them = spy_sys.fort / spy_sys.fort_trigger
+        if spy_progress_them > systems[spy_sys.system.name]['progress_them']:
+            systems[spy_sys.system.name]['progress_them'] = spy_progress_them
+            changed = True
+
+        # Prune all unchanged systems, UM sheet isn't guaranteed contiguous
+        if not changed:
+            del systems[spy_sys.system.name]
+
+    return list(sorted(systems.values(), key=lambda x: x['sheet_col']))
+
+
 def drop_tables():  # pragma: no cover | destructive to test
     """
     Drop the spy tables entirely.
@@ -402,6 +488,14 @@ def main():
             load_refined_json(json.load(fin), eddb_session)
 
         eddb_session.commit()
+
+    # FIXME: For testing. Can delete soon.
+    #
+    #  with cogdb.session_scope(cogdb.Session) as session, cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
+        #  fall = compare_sheet_fort_systems_to_spy(session, eddb_session)
+        #  __import__('pprint').pprint(fall)
+        #  fall = compare_sheet_um_systems_to_spy(session, eddb_session)
+        #  __import__('pprint').pprint(fall)
 
 
 SPY_TABLES = [SpyPrep, SpyVote, SpySystem]

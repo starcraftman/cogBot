@@ -100,6 +100,14 @@ class EmojiResolver():
         return content
 
 
+async def delayed_start(coro, delay=60):
+    """
+    Start this coro after a delay of delay seconds.
+    """
+    await asyncio.sleep(delay)
+    asyncio.ensure_future(coro)
+
+
 class CogBot(discord.Client):
     """
     The main bot, hooks onto on_message primarily and waits for commands.
@@ -204,7 +212,7 @@ class CogBot(discord.Client):
                 cog.util.CONF.monitor(),
                 cog.actions.monitor_carrier_events(self, next_summary=next_summary, delay=60),
                 cog.actions.monitor_snipe_merits(self),
-                cog.actions.monitor_powerplay_page(self),
+                delayed_start(cog.actions.monitor_powerplay_page(self)),
                 cogdb.eddb.monitor_eddb_caches(),
                 cogdb.monitor_pools(),
             ))

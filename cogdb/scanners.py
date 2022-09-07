@@ -334,6 +334,27 @@ class FortScanner():
         """
         return [{'range': str(range), 'values': [[import_mode]]}]
 
+    @staticmethod
+    def bulk_update_fort_status(systems):
+        """Create a payload to bulk update the fort and um status.
+
+        The systems should already be in sorted order.
+
+        Args:
+            systems: List of objects of form:
+                {'um': 0, 'fort': 0, 'sheet_col': 'A', 'sheet_order': 3}
+
+        Returns: A list of update dicts to pass to batch_update.
+        """
+        start = systems[0]['sheet_col']
+        end = systems[-1]['sheet_col']
+        forts, ums = [], []
+        for sys in systems:
+            forts += [sys['fort']]
+            ums += [sys['um']]
+
+        return [{'range': f'{start}6:{end}7', 'values': [forts, ums]}]
+
 
 class UMScanner(FortScanner):
     """
