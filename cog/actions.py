@@ -16,6 +16,7 @@ import tempfile
 import traceback
 
 import aiofiles
+import aiohttp
 import decorator
 import discord
 import discord_components_mirror as dcom
@@ -1633,22 +1634,15 @@ class Scrape(Action):
         await self.bot.send_message(self.msg.channel,
                                     "Initiated the scrape in the background.")
 
-        gal_scanner = cogdb.scanners.get_scanner("hudson_gal")
-        empty_payload = gal_scanner.clear_dict()
-        __import__('pprint').pprint(empty_payload)
-
-        with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
-            powers = eddb_session.query(cogdb.eddb.Power).\
-                filter(cogdb.eddb.Power.text != "None").\
-                order_by(cogdb.eddb.Power.eddn).\
-                all()
-            for power in powers:
-                systems = eddb_session.query(cogdb.spy_squirrel.SpySystem).\
-                    filter(cogdb.spy_squirrel.SpySystem.power_id == power.id).\
-                    all()
-                systems = sorted(systems, key=lambda x: x.system.name)
-                update_payload = gal_scanner.update_dict(systems)
-                __import__('pprint').pprint(update_payload)
+        url = cog.util.CONF.scrape.url
+        async with aiohttp.ClientSession() as http:
+            async with http.get(url) as resp:
+                if resp.status == 200:
+                    with cfut.ProcessPoolExecutor(max_workers=1) as pool:
+                        await self.bot.loop.run_in_executor(
+                            pool, scrape_all_in_background
+                        )
+                    await push_scrape_to_gal_scanner()
 
         await self.bot.send_message(self.msg.channel,
                                     "Finished the scrape.")
@@ -2399,13 +2393,38 @@ def scrape_all_in_background():  # pragma: no cover | tested elsewhere
     Perform a complete scrape of fort and um, push into db.
     """
     with cogdb.scrape.get_chrome_driver(dev=False) as driver:
+        log = logging.getLogger(__name__)
+        log.info("Start scrape in background.")
         data = cogdb.scrape.scrape_all_powerplay(driver)
         cogdb.spy_squirrel.process_scrape_data(data)
+        log.info("End scrape in background.")
 
-        # FIXME: Add function push into sheets
+
+async def push_scrape_to_gal_scanner():  # pragma: no cover | tested elsewhere
+    """
+    Perform a complete scrape of fort and um, push into db.
+    """
+    log = logging.getLogger(__name__)
+    gal_scanner = cogdb.scanners.get_scanner("hudson_gal")
+    with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
+        powers = eddb_session.query(cogdb.eddb.Power).\
+            filter(cogdb.eddb.Power.text != "None").\
+            order_by(cogdb.eddb.Power.eddn).\
+            all()
+
+        for power in powers:
+            systems = eddb_session.query(cogdb.spy_squirrel.SpySystem).\
+                filter(cogdb.spy_squirrel.SpySystem.power_id == power.id).\
+                all()
+            systems = sorted(systems, key=lambda x: x.system.name)
+
+            log.info("Updating sheet for: %s", power.eddn)
+            await gal_scanner.asheet.change_worksheet(power.eddn.upper())
+            await gal_scanner.clear_cells()
+            await gal_scanner.send_batch(gal_scanner.update_dict(systems=systems))
 
 
-async def monitor_json_page(client, *, repeat=True, delay=1800):
+async def monitor_powerplay_page(client, *, repeat=True, delay=1800):
     """Poll the powerplay page for info every delay seconds.
 
     Args:
@@ -2413,10 +2432,16 @@ async def monitor_json_page(client, *, repeat=True, delay=1800):
         repeat: If True schedule self at end of execution to run again.
         delay: The delay in seconds between checks.
     """
-    with cfut.ProcessPoolExecutor(max_workers=1) as pool:
-        await client.loop.run_in_executor(
-            pool, scrape_all_in_background
-        )
+    # confirm page is up and working BEFORE asking for complete scrape
+    url = cog.util.CONF.scrape.url
+    async with aiohttp.ClientSession() as http:
+        async with http.get(url) as resp:
+            if resp.status == 200:
+                with cfut.ProcessPoolExecutor(max_workers=1) as pool:
+                    await client.loop.run_in_executor(
+                        pool, scrape_all_in_background
+                    )
+                await push_scrape_to_gal_scanner()
 
     await asyncio.sleep(delay)
 

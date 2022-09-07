@@ -217,6 +217,16 @@ class AsyncGSheet():
         await AGCM.authorize()
         self.worksheet = await self.document.worksheet(self.sheet_page)
 
+    async def batch_clear(self, cells):
+        """
+        Pass through to clear all cells in the ranges listed. Blocks until done.
+
+        Args:
+            cells: List of A1 format like [A1:B2, C12, C4:D8, ...]
+        """
+        await AGCM.authorize()
+        return await self.worksheet.batch_clear(cells)
+
     async def batch_get(self, cells, dim='ROWS', value_render='UNFORMATTED_VALUE'):
         """
         This is exactly the same as the batch_get available via gspread.

@@ -391,8 +391,8 @@ def main():
     Main function to load the test data during development.
     """
     recreate_tables()
-    base_f = pathlib.Path(os.path.join(cog.util.ROOT_DIR, 'tests', 'base.json'))
-    refined_f = pathlib.Path(os.path.join(cog.util.ROOT_DIR, 'tests', 'refined.json'))
+    base_f = pathlib.Path(os.path.join(cog.util.ROOT_DIR, 'tests', 'cogdb', 'base.json'))
+    refined_f = pathlib.Path(os.path.join(cog.util.ROOT_DIR, 'tests', 'cogdb', 'refined.json'))
 
     with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
         with open(base_f, encoding='utf-8') as fin:

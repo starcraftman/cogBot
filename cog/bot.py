@@ -178,7 +178,6 @@ class CogBot(discord.Client):
         if not cogdb.scanners.SCANNERS:
             async def scanner_startup_task():
                 scanners = await cogdb.scanners.init_scanners()
-                cogdb.scanners.SCANNERS = scanners
 
                 self.sched.register('hudson_cattle', scanners['hudson_cattle'],
                                     ('Drop', 'Fort', 'User'))
@@ -205,6 +204,7 @@ class CogBot(discord.Client):
                 cog.util.CONF.monitor(),
                 cog.actions.monitor_carrier_events(self, next_summary=next_summary, delay=60),
                 cog.actions.monitor_snipe_merits(self),
+                cog.actions.monitor_powerplay_page(self),
                 cogdb.eddb.monitor_eddb_caches(),
                 cogdb.monitor_pools(),
             ))

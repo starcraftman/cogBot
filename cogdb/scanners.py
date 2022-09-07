@@ -972,39 +972,33 @@ class GalScanner(FortScanner):
         end_row = row + len(systems)
 
         first, second, third = [], [], []
-        for system in systems:
-            name = system.systemtem.name.upper()
-            first += [[name, system.fort, system.um]]
-            second += [[name, 0, 0, system.fort_trigger, system.um_trigger]]
-            third += [[name, system.held_merits]]
+        for spy_system in systems:
+            name = spy_system.system.name.upper()
+            first += [[name, spy_system.fort, spy_system.um]]
+            second += [[name, 0, 0, spy_system.fort_trigger, spy_system.um_trigger]]
+            third += [[name, spy_system.held_merits]]
         payload = [
             {'range': f'A{row}:C{end_row}', 'values': first},
             {'range': f'L{row}:P{end_row}', 'values': second},
             {'range': f'R{row}:S{end_row}', 'values': third},
-            {'range': 'C1:C1', 'values': [str(now)]},
+            {'range': 'C1:C1', 'values': [[str(now)]]},
         ]
 
         return payload
 
-    def clear_dict(self, *, row=3):
+    async def clear_cells(self, *, row=3):
         """
-        Create a payload to wipe out all existing information in the sheet.
+        Use batch_clear to wipe out all existing data in the sheet where we will write.
 
         Returns: A list of update dicts to pass to batch_update.
         """
         end_row = 400
-        times = end_row - row + 1
-
-        first = [['', '', ''] for x in range(0, times)]
-        second = [['', '', '', '', ''] for x in range(0, times)]
-        third = [['', ''] for x in range(0, times)]
-        payload = [
-            {'range': f'A{row}:C{end_row}', 'values': first},
-            {'range': f'L{row}:P{end_row}', 'values': second},
-            {'range': f'R{row}:S{end_row}', 'values': third},
+        ranges = [
+            f'A{row}:C{end_row}',
+            f'L{row}:P{end_row}',
+            f'R{row}:S{end_row}'
         ]
-
-        return payload
+        await self.asheet.batch_clear(ranges)
 
 
 class FortTracker(FortScanner):
@@ -1040,6 +1034,7 @@ async def init_scanners():
         asheet = cog.sheets.AsyncGSheet(s_config['id'], s_config['page'])
         init_coros += [asheet.init_sheet()]
         scanners[key] = getattr(sys.modules[__name__], s_config['cls'])(asheet)
+        SCANNERS[key] = scanners[key]
 
     await asyncio.gather(*init_coros)
 
