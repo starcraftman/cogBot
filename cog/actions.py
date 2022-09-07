@@ -28,7 +28,9 @@ import cogdb
 import cogdb.eddb
 import cogdb.query
 import cogdb.scanners
+import cogdb.scrape
 import cogdb.side
+import cogdb.spy_squirrel
 import cog.inara
 import cog.tbl
 import cog.util
@@ -1390,7 +1392,7 @@ class OCR(Action):
             reply = cogdb.query.ocr_prep_report(self.session)
         elif self.args.subcmd == "refresh":  # pragma: no cover
             reply = "OCR Sheet has been read and update pushed to Fort"
-            await cogdb.scanners.handle_ocr_sheet_update(self.bot)
+            #  await cogdb.scanners.handle_ocr_sheet_update(self.bot)
 
         if reply:
             await self.bot.send_message(self.msg.channel, reply)
@@ -1621,6 +1623,35 @@ class Scout(Action):
                 now.day, now.year + 1286, system_list)
 
         await self.bot.send_message(self.msg.channel, lines)
+
+
+class Scrape(Action):
+    """
+    Interface with the spy_squirrel stuff.
+    """
+    async def execute(self):
+        await self.bot.send_message(self.msg.channel,
+                                    "Initiated the scrape in the background.")
+
+        gal_scanner = cogdb.scanners.get_scanner("hudson_gal")
+        empty_payload = gal_scanner.clear_dict()
+        __import__('pprint').pprint(empty_payload)
+
+        with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
+            powers = eddb_session.query(cogdb.eddb.Power).\
+                filter(cogdb.eddb.Power.text != "None").\
+                order_by(cogdb.eddb.Power.eddn).\
+                all()
+            for power in powers:
+                systems = eddb_session.query(cogdb.spy_squirrel.SpySystem).\
+                    filter(cogdb.spy_squirrel.SpySystem.power_id == power.id).\
+                    all()
+                systems = sorted(systems, key=lambda x: x.system.name)
+                update_payload = gal_scanner.update_dict(systems)
+                __import__('pprint').pprint(update_payload)
+
+        await self.bot.send_message(self.msg.channel,
+                                    "Finished the scrape.")
 
 
 class Status(Action):
@@ -2359,6 +2390,39 @@ async def monitor_snipe_merits(client, *, repeat=True):  # pragma: no cover
     if repeat:
         asyncio.ensure_future(
             monitor_snipe_merits(client, repeat=repeat)
+        )
+
+
+# Simple helper to run scrape in executor
+def scrape_all_in_background():  # pragma: no cover | tested elsewhere
+    """
+    Perform a complete scrape of fort and um, push into db.
+    """
+    with cogdb.scrape.get_chrome_driver(dev=False) as driver:
+        data = cogdb.scrape.scrape_all_powerplay(driver)
+        cogdb.spy_squirrel.process_scrape_data(data)
+
+        # FIXME: Add function push into sheets
+
+
+async def monitor_json_page(client, *, repeat=True, delay=1800):
+    """Poll the powerplay page for info every delay seconds.
+
+    Args:
+        client: The discord.py client.
+        repeat: If True schedule self at end of execution to run again.
+        delay: The delay in seconds between checks.
+    """
+    with cfut.ProcessPoolExecutor(max_workers=1) as pool:
+        await client.loop.run_in_executor(
+            pool, scrape_all_in_background
+        )
+
+    await asyncio.sleep(delay)
+
+    if repeat:
+        asyncio.ensure_future(
+            monitor_json_page(client, repeat=repeat)
         )
 
 

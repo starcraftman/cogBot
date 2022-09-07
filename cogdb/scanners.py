@@ -907,7 +907,7 @@ class CarrierScanner(FortScanner):
 
 
 # FIXME: Currently doesn't insert into db pending move to spy_squirrel
-class OCRScanner(FortScanner):
+class GalScanner(FortScanner):
     """
     Scanner for the Hudson OCR sheet.
 
@@ -924,35 +924,13 @@ class OCRScanner(FortScanner):
         self.trigger_col = 11  # Col where trigger info starts
 
     def __repr__(self):
-        return super().__repr__().replace('FortScanner', 'OCRScanner')
+        return super().__repr__().replace('FortScanner', 'GalScanner')
 
-    def parse_sheet(self, session):
-        sys_map = self.generate_system_map()
-
-        # Update consolidation vote
-        globe = cogdb.query.get_current_global(session)
-        try:
-            globe.consolidation = int(self.cells_row_major[self.prep_consolidation_row][self.prep_col])
-            cons_total, prep_total = cogdb.query.get_cons_prep_totals(session)
-            session.add(Consolidation(amount=globe.consolidation, cons_total=cons_total, prep_total=prep_total))
-        except ValueError:
-            pass
-
-        # Date in format: 2021-08-22 20:33:07
-        sheet_date = datetime.datetime.strptime(self.cells_row_major[0][2], "%Y-%m-%d %H:%M:%S")
-        ocr_trackers = self.ocr_trackers(sheet_date, sys_map)
-        ocr_preps = self.ocr_preps(sheet_date, sys_map)
-
-        # flush to db
-        #  cogdb.query.update_ocr_live(session, ocr_trackers)
-        #  cogdb.query.update_ocr_prep(session, ocr_preps)
-
-        # TODO: Enable weekly limit when fully tested.
-        #  oldest_trigger = cogdb.query.get_oldest_ocr_trigger(session)
-        #  if self.should_update_trigger(oldest_trigger, sheet_date):
-        ocr_triggers = self.ocr_triggers(sheet_date, sys_map)
-        #  cogdb.query.update_ocr_trigger(session, ocr_triggers)
-        #  session.commit()
+    def parse_sheet(self, _):
+        """
+        Will not parse, only pushing data.
+        """
+        pass
 
     def generate_system_map(self):
         """
@@ -984,96 +962,49 @@ class OCRScanner(FortScanner):
         return {x: mapping_eddb[x.lower()] for x in systems_in_sheets
                 if x.lower() in mapping_eddb}
 
-    def should_update_trigger(self, oldest_trigger, sheet_date):
+    def update_dict(self, *, systems, row=3):
         """
-        Triggers are updated exactly ONCE post tick.
-        Returns True if and only if either of these:
-            1) The oldest trigger is 7 or more days older than sheet_date.
-            2) Oldest trigger is None, means none were in DB.
-            3) The sheet update is being processed in first 2 hours post tick.
+        Create an update payload to update all cells on a sheet.
+
+        Returns: A list of update dicts to pass to batch_update.
         """
-        sheet_date = sheet_date.replace(microsecond=0)
-        weekly_tick = cog.util.next_weekly_tick(sheet_date)
+        now = datetime.datetime.utcnow().replace(microsecond=0)
+        end_row = row + len(systems)
 
-        if not oldest_trigger:
-            trigger_stale = True
-        else:
-            trigger_stale = (sheet_date - oldest_trigger.updated_at).days >= 7
-        tick_diff = (weekly_tick - sheet_date)
-        just_past_tick = tick_diff.days == 6 and (tick_diff.seconds // 3600) >= 22
+        first, second, third = [], [], []
+        for system in systems:
+            name = system.systemtem.name.upper()
+            first += [[name, system.fort, system.um]]
+            second += [[name, 0, 0, system.fort_trigger, system.um_trigger]]
+            third += [[name, system.held_merits]]
+        payload = [
+            {'range': f'A{row}:C{end_row}', 'values': first},
+            {'range': f'L{row}:P{end_row}', 'values': second},
+            {'range': f'R{row}:S{end_row}', 'values': third},
+            {'range': 'C1:C1', 'values': [str(now)]},
+        ]
 
-        return trigger_stale or just_past_tick
+        return payload
 
-    def ocr_trackers(self, sheet_date, sys_map):
+    def clear_dict(self, *, row=3):
         """
-        Parse and return all OCR Tracking information for current forts.
+        Create a payload to wipe out all existing information in the sheet.
 
-        Args:
-            sheet_date: The date of the last sheet update.
-
-        Returns: All parsed trackers.
+        Returns: A list of update dicts to pass to batch_update.
         """
-        trackers = {}
-        for row in self.cells_row_major[self.start_row:]:
-            try:
-                system = sys_map[row[0]]
-                trackers[system] = {
-                    'system': system,
-                    'fort': int(row[1]),
-                    'um': int(row[2]),
-                    'updated_at': sheet_date,
-                }
-            except (KeyError, ValueError):
-                logging.getLogger(__name__).info("Failed to parse row: %s", str(row))
+        end_row = 400
+        times = end_row - row + 1
 
-        return trackers
+        first = [['', '', ''] for x in range(0, times)]
+        second = [['', '', '', '', ''] for x in range(0, times)]
+        third = [['', ''] for x in range(0, times)]
+        payload = [
+            {'range': f'A{row}:C{end_row}', 'values': first},
+            {'range': f'L{row}:P{end_row}', 'values': second},
+            {'range': f'R{row}:S{end_row}', 'values': third},
+        ]
 
-    def ocr_preps(self, sheet_date, sys_map):
-        """
-        Parse and return all OCR Preps listed.
-        """
-        preps = {}
-        for row in self.cells_row_major[self.start_row:]:
-            try:
-                system = row[self.prep_col]
-                if not system:
-                    break
-                system = sys_map[system]
-                preps[system] = {
-                    'system': system,
-                    'merits': int(row[self.prep_col + 1]),
-                    'updated_at': sheet_date,
-                }
-            except (KeyError, ValueError):
-                logging.getLogger(__name__).info("Failed to parse row: %s", str(row))
-
-        return preps
-
-    def ocr_triggers(self, sheet_date, sys_map):
-        """
-        Parse and return all OCR Triggers listed for the cycle.
-
-        IMPORTANT:
-        Triggers are updated EXACTLY once a week. Only update them in the few hours after tick.
-
-        Returns:k
-        """
-        triggers = {}
-        for row in self.cells_row_major[self.start_row:]:
-            try:
-                system = sys_map[row[self.trigger_col]]
-                triggers[system] = {
-                    'system': system,
-                    'last_upkeep': int(row[self.trigger_col + 1]),
-                    'base_income': int(row[self.trigger_col + 2]),
-                    'fort_trigger': int(row[self.trigger_col + 3]),
-                    'um_trigger': int(row[self.trigger_col + 4]),
-                    'updated_at': sheet_date,
-                }
-            except (KeyError, ValueError):
-                logging.getLogger(__name__).info("Failed to parse row: %s", str(row))
-
-        return triggers
+        return payload
 
 
 class FortTracker(FortScanner):
@@ -1115,30 +1046,30 @@ async def init_scanners():
     return scanners
 
 
-async def handle_ocr_sheet_update(client):  # pragma: no cover
-    """
-    This task is to be run only when the OCR sheet has been updated.
-    Update the OCR information in the db and then take any actions
-    required with changes.
+#  async def handle_ocr_sheet_update(client):  # pragma: no cover
+    #  """
+    #  This task is to be run only when the OCR sheet has been updated.
+    #  Update the OCR information in the db and then take any actions
+    #  required with changes.
 
-    Args:
-        client: The bot client itself.
-    """
-    # Update database by triggering manual refresh
-    ocr_scanner = get_scanner('hudson_ocr')
-    await ocr_scanner.update_cells()
-    with cfut.ProcessPoolExecutor(max_workers=1) as pool:
-        await client.loop.run_in_executor(
-            pool, ocr_scanner.scheduler_run,
-        )
+    #  Args:
+        #  client: The bot client itself.
+    #  """
+    #  # Update database by triggering manual refresh
+    #  ocr_scanner = get_scanner('hudson_gal')
+    #  await ocr_scanner.update_cells()
+    #  with cfut.ProcessPoolExecutor(max_workers=1) as pool:
+        #  await client.loop.run_in_executor(
+            #  pool, ocr_scanner.scheduler_run,
+        #  )
 
-    # Data refreshed, analyse and update
-    with cogdb.session_scope(cogdb.Session) as session:
-        cell_updates = cogdb.query.ocr_update_fort_status(session)
-        if cell_updates:
-            await get_scanner('hudson_cattle').send_batch(cell_updates)
-            logging.getLogger(__name__).info("Sent update to sheet.")
-            logging.getLogger(__name__).info(str(cell_updates))
+    #  # Data refreshed, analyse and update
+    #  with cogdb.session_scope(cogdb.Session) as session:
+        #  cell_updates = cogdb.query.ocr_update_fort_status(session)
+        #  if cell_updates:
+            #  await get_scanner('hudson_cattle').send_batch(cell_updates)
+            #  logging.getLogger(__name__).info("Sent update to sheet.")
+            #  logging.getLogger(__name__).info(str(cell_updates))
 
 
 def get_scanner(name):

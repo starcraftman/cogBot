@@ -10,6 +10,7 @@ import sqlalchemy as sqla
 
 import cog.util
 import cogdb.spy_squirrel as spy
+import cogdb.eddb
 
 FIXED_TIMESTAMP = 1662390092
 
@@ -26,7 +27,7 @@ def load_json(fname):
     Raises:
         FileNotFoundError: The file required is missing.
     """
-    path = pathlib.Path(os.path.join(cog.util.ROOT_DIR, 'tests', fname))
+    path = pathlib.Path(os.path.join(cog.util.ROOT_DIR, 'tests', 'cogdb', fname))
     if not path.exists():
         raise FileNotFoundError(f"Missing required json file: {str(path)}")
 
@@ -36,12 +37,17 @@ def load_json(fname):
 
 @pytest.fixture()
 def base_json():
-    return load_json('base.json')
+    yield load_json('base.json')
 
 
 @pytest.fixture()
 def refined_json():
-    return load_json('refined.json')
+    yield load_json('refined.json')
+
+
+@pytest.fixture()
+def scrape_json():
+    yield load_json('scrape.json')
 
 
 @pytest.fixture()
@@ -220,3 +226,17 @@ def test_refined_loads(empty_spy, base_json, refined_json, eddb_session):
     assert expect_sys == eddb_session.query(spy.SpySystem).\
         filter(spy.SpySystem.ed_system_id == 22958210698120).\
         one()
+
+
+def test_process_scrape_data(empty_spy, scrape_json, eddb_session):
+    spy.process_scrape_data(scrape_json)
+
+    eddb_sys = eddb_session.query(cogdb.eddb.System).\
+        filter(cogdb.eddb.System.name == 'Aowica').\
+        one()
+    sys = eddb_session.query(spy.SpySystem).\
+        filter(spy.SpySystem.ed_system_id == eddb_sys.ed_system_id).\
+        one()
+    assert sys.system.name == 'Aowica'
+    assert sys.fort == 4464
+    assert sys.um_trigger == 11598

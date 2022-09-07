@@ -77,24 +77,24 @@ def test_parse_powerplay_page(now):
     expect_held = {
         'fort': 4464,
         'fort_trigger': 4247,
-        'held': 0,
+        'held_merits': 0,
         'held_date': 1662504156,
         'name': 'Aowica',
-        'redeemed': 0,
         'um': 0,
-        'um_trigger': 11598
+        'um_trigger': 11598,
+        'updated_at': 1662504155,
     }
     expect_unknown = {
         'fort': 2976,
         'fort_trigger': 2842,
-        'held': 0,
+        'held_merits': 0,
         'held_date': 0,
         'name': 'Zhao',
-        'redeemed': 0,
         'um': 0,
-        'um_trigger': 20067
+        'um_trigger': 20067,
+        'updated_at': 1662504155,
     }
 
-    parsed = cogdb.scrape.parse_powerplay_page(WHOLE_PAGE, start=now)
+    parsed = cogdb.scrape.parse_powerplay_page(WHOLE_PAGE, start=now, updated_at=now - 1)
     assert expect_held == parsed['Aowica']
     assert expect_unknown == parsed['Zhao']

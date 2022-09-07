@@ -13,7 +13,7 @@ from sqlalchemy.ext.hybrid import hybrid_property
 
 import cog.util
 import cogdb.eddb
-from cogdb.eddb import Base, Power
+from cogdb.eddb import Base, Power, System
 
 
 # Map of powers used in incoming JSON messages
@@ -140,7 +140,9 @@ class SpySystem(Base):
     fort_trigger = sqla.Column(sqla.Integer, default=0)
     um = sqla.Column(sqla.Integer, default=0)
     um_trigger = sqla.Column(sqla.Integer, default=0)
-    updated_at = sqla.Column(sqla.Integer, default=time.time, onupdate=time.time)
+    updated_at = sqla.Column(sqla.Integer, default=time.time)
+    held_merits = sqla.Column(sqla.Integer, default=0)
+    held_updated_at = sqla.Column(sqla.Integer, default=time.time)
 
     # Relationships
     system = sqla.orm.relationship(
@@ -321,6 +323,36 @@ def load_refined_json(refined, eddb_session):
         db_objs += [system]
 
     return db_objs
+
+
+def process_scrape_data(data_json):
+    """Process the scrape data and put it into the db.
+
+    This includes dumping existing tables first before loading.
+
+    Args:
+        data_json: The JSON object with all the data.
+    """
+    empty_tables()
+
+    with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
+        for powerplay_leader, systems in data_json.items():
+            power_id = eddb_session.query(Power).\
+                filter(Power.text == powerplay_leader).\
+                one().id
+            for system_name, system_info in systems.items():
+                eddb_system = eddb_session.query(System).\
+                    filter(System.name == system_name).\
+                    one()
+                del system_info['name']
+                system_info.update({
+                    'ed_system_id': eddb_system.ed_system_id,
+                    'power_id': power_id,
+                    'power_state_id': 16,  # Assuming controls
+                })
+                eddb_session.add(SpySystem(**system_info))
+
+    eddb_session.commit()
 
 
 def drop_tables():  # pragma: no cover | destructive to test

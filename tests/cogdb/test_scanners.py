@@ -14,7 +14,7 @@ from cogdb.schema import (FortSystem, FortDrop, FortUser,
                           UMSystem, UMUser, UMHold, KOS, TrackByID,
                           Global, EUMSheet)
 from cogdb.scanners import (FortScanner, UMScanner, KOSScanner, RecruitsScanner, CarrierScanner,
-                            OCRScanner)
+                            GalScanner)
 
 
 @pytest.mark.asyncio

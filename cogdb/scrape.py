@@ -111,7 +111,7 @@ def parse_date(text, *, start):
     return start - datetime.timedelta(**kwargs)
 
 
-def powerplay_leader(driver, leader_index, held_merits=False):
+def powerplay_leader(driver, leader_index, *, updated_at=0, held_merits=False):
     """Scrape the powerplay page for the spy site.
 
     Expectation: Driver is already loaded and pointed at powerplay page.
@@ -150,7 +150,7 @@ def powerplay_leader(driver, leader_index, held_merits=False):
         print("Wait diff:", str(end - now))
 
     # Parse all information on the page
-    info = parse_powerplay_page(driver.page_source, start=now)
+    info = parse_powerplay_page(driver.page_source, start=now, updated_at=updated_at)
 
     # Clear the selection for next time.
     clear = driver.find_element(By.CLASS_NAME, "blazored-typeahead__clear")
@@ -180,12 +180,17 @@ def scrape_all_powerplay(driver, held_merits=False):  # pragma: no cover | Depen
     while ref_button.text != "Refine":
         time.sleep(5)
 
+    # Determine the updated_at time for general fort/um data
+    now = datetime.datetime.utcnow()
+    spans = driver.find_elements(By.TAG_NAME, "span")
+    updated_at = int(parse_date("as of" + spans[4].text, start=now).timestamp())
+
     # Expand all blocks for information
     switch = driver.find_element(By.CLASS_NAME, "input-switch")
     switch.click()
 
     return {
-        leader: powerplay_leader(driver, ind, held_merits=held_merits)
+        leader: powerplay_leader(driver, ind, held_merits=held_merits, updated_at=updated_at)
         for ind, leader in enumerate(powerplay_names())
     }
 
@@ -215,7 +220,7 @@ def check_held_recent(page_source, *, start):
     return True
 
 
-def parse_powerplay_page(page_source, *, start):
+def parse_powerplay_page(page_source, *, start, updated_at):
     """Parse the systems and information from the current powerplay page.
 
     Args:
@@ -234,18 +239,16 @@ def parse_powerplay_page(page_source, *, start):
     bodies = soup.find_all("div", {"class": "accordion-body"})
     for ind, body in enumerate(bodies):
         info = {
-            'held': 0,
-            'redeemed': 0,
-            'held_date': 0,
+            'held_merits': 0,
+            'held_updated_at': 0,
         }
 
         # If the held merits available parse them out
         mat = MAT_MERITS.match(str(body))
         if mat:
             info = {
-                'held': int(mat.group(5)) + int(mat.group(6)),
-                'redeemed': int(mat.group(7)),
-                'held_date': int(parse_date(str(body), start=start).timestamp()),
+                'held_merits': int(mat.group(5)) + int(mat.group(6)),
+                'held_updated_at': int(parse_date(str(body), start=start).timestamp()),
             }
         else:  # Held merits were not available.
             logging.getLogger(__name__).error("Held Merits missing: %s", systems[ind]['name'])
@@ -256,6 +259,7 @@ def parse_powerplay_page(page_source, *, start):
             "fort_trigger": int(mat.group(2)),
             "um": int(mat.group(3)),
             "um_trigger": int(mat.group(4)),
+            "updated_at": updated_at,
         })
         systems[ind].update(info)
 

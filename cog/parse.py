@@ -586,6 +586,58 @@ def subs_scout(subs, prefix):
 
 
 @register_parser
+def subs_scrape(subs, prefix):
+    """ Subcommand parsing for scrape """
+    desc = """Perform manual scraping functions.
+
+**{prefix}scrape Hudson --held**
+        Scrape all held merits from Hudson.
+    """.format(prefix=prefix)
+    sub = subs.add_parser(prefix + 'scrape', description=desc, formatter_class=RawHelp)
+    sub.set_defaults(cmd='Scrape')
+    CMD_MAP['Scrape'] = 'scrape'
+    sub.add_argument('powerplay_leader', nargs="+", help='The powerplay leader.')
+    sub.add_argument('--held', action='store_true', help='Scrape the held merits too.')
+
+
+@register_parser
+def subs_snipe(subs, prefix):
+    """ Subcommand parsing for snipe, the snipe variant of um """
+    desc = """Get undermining targets and update their galmap status.
+IMPORTANT: This is the __SNIPE__ sheet.
+
+Examples:
+
+**{prefix}snipe**
+        Show current active undermining targets.
+**{prefix}snipe burr**
+        Show the current status and information on Burr.
+**{prefix}snipe afl**
+        Show the current status and information on AF Leopris, matched search.
+**{prefix}snipe burr --set 60000:130**
+**{prefix}snipe burr -s 60000:130**
+        Set the galmap status of Burr to 60000 and opposition to 130%.
+**{prefix}snipe burr --offset 4000**
+**{prefix}snipe burr -o 4000**
+        Set the offset difference of cmdr merits and galmap.
+**{prefix}snipe --list**
+        Show all outstanding merits by users and system.
+**{prefix}snipe --npcs**
+        List powerplay NPC ships by alligence.
+    """.format(prefix=prefix)
+    sub = subs.add_parser(prefix + 'snipe', description=desc, formatter_class=RawHelp)
+    sub.set_defaults(cmd='Snipe', sheet_src=EUMSheet.snipe)
+    CMD_MAP['Snipe'] = 'snipe'
+    sub.add_argument('system', nargs='*', help='The system to update or show.')
+    sub.add_argument('-s', '--set',
+                     help='Set the status of the system, us:them. Example-> --set 3500:200')
+    sub.add_argument('-o', '--offset', type=int, help='Set the system galmap offset.')
+    sub.add_argument('-l', '--list', action='store_true', help='Show all outstanding merits on sheet.')
+    sub.add_argument('--cycle', help='Set the cycle for snipe. Admins only.')
+    sub.add_argument('--npcs', action='store_true', help='List powerplay NPC ships by alligence.')
+
+
+@register_parser
 def subs_status(subs, prefix):
     """ Subcommand parsing for status """
     sub = subs.add_parser(prefix + 'status', description='Info about this bot.')
@@ -695,43 +747,6 @@ def subs_um(subs, prefix):
     sub.add_argument('-o', '--offset', type=int, help='Set the system galmap offset.')
     sub.add_argument('-p', '--priority', nargs='+', help='The priority to set for the system.')
     sub.add_argument('-l', '--list', action='store_true', help='Show all outstanding merits on sheet.')
-    sub.add_argument('--npcs', action='store_true', help='List powerplay NPC ships by alligence.')
-
-
-@register_parser
-def subs_snipe(subs, prefix):
-    """ Subcommand parsing for snipe, the snipe variant of um """
-    desc = """Get undermining targets and update their galmap status.
-IMPORTANT: This is the __SNIPE__ sheet.
-
-Examples:
-
-**{prefix}snipe**
-        Show current active undermining targets.
-**{prefix}snipe burr**
-        Show the current status and information on Burr.
-**{prefix}snipe afl**
-        Show the current status and information on AF Leopris, matched search.
-**{prefix}snipe burr --set 60000:130**
-**{prefix}snipe burr -s 60000:130**
-        Set the galmap status of Burr to 60000 and opposition to 130%.
-**{prefix}snipe burr --offset 4000**
-**{prefix}snipe burr -o 4000**
-        Set the offset difference of cmdr merits and galmap.
-**{prefix}snipe --list**
-        Show all outstanding merits by users and system.
-**{prefix}snipe --npcs**
-        List powerplay NPC ships by alligence.
-    """.format(prefix=prefix)
-    sub = subs.add_parser(prefix + 'snipe', description=desc, formatter_class=RawHelp)
-    sub.set_defaults(cmd='Snipe', sheet_src=EUMSheet.snipe)
-    CMD_MAP['Snipe'] = 'snipe'
-    sub.add_argument('system', nargs='*', help='The system to update or show.')
-    sub.add_argument('-s', '--set',
-                     help='Set the status of the system, us:them. Example-> --set 3500:200')
-    sub.add_argument('-o', '--offset', type=int, help='Set the system galmap offset.')
-    sub.add_argument('-l', '--list', action='store_true', help='Show all outstanding merits on sheet.')
-    sub.add_argument('--cycle', help='Set the cycle for snipe. Admins only.')
     sub.add_argument('--npcs', action='store_true', help='List powerplay NPC ships by alligence.')
 
 
