@@ -2394,10 +2394,11 @@ def scrape_all_in_background():  # pragma: no cover | tested elsewhere
     """
     with cogdb.scrape.get_chrome_driver(dev=False) as driver:
         log = logging.getLogger(__name__)
-        log.info("Start scrape in background.")
+        log.error("Start scrape in background.")
         data = cogdb.scrape.scrape_all_powerplay(driver)
+        log.error("Pushing to database.")
         cogdb.spy_squirrel.process_scrape_data(data)
-        log.info("End scrape in background.")
+        log.error("End scrape in background.")
 
 
 async def push_scrape_to_gal_scanner():  # pragma: no cover | tested elsewhere
@@ -2418,7 +2419,7 @@ async def push_scrape_to_gal_scanner():  # pragma: no cover | tested elsewhere
                 all()
             systems = sorted(systems, key=lambda x: x.system.name)
 
-            log.info("Updating sheet for: %s", power.eddn)
+            log.error("Updating sheet for: %s", power.eddn)
             await gal_scanner.asheet.change_worksheet(power.eddn.upper())
             await gal_scanner.clear_cells()
             await gal_scanner.send_batch(gal_scanner.update_dict(systems=systems))
@@ -2447,7 +2448,7 @@ async def monitor_powerplay_page(client, *, repeat=True, delay=1800):
 
     if repeat:
         asyncio.ensure_future(
-            monitor_json_page(client, repeat=repeat)
+            monitor_powerplay_page(client, repeat=repeat, delay=delay)
         )
 
 
