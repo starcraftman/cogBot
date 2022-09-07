@@ -2417,7 +2417,7 @@ async def push_scrape_to_gal_scanner():  # pragma: no cover | tested elsewhere
             systems = eddb_session.query(spy.SpySystem).\
                 filter(spy.SpySystem.power_id == power.id).\
                 all()
-            systems = sorted(systems, key=lambda x: x.system.name)
+            systems = sorted(systems, key=lambda x: x.system.name.lower())
 
             log.error("Updating sheet for: %s", power.eddn)
             await gal_scanner.asheet.change_worksheet(power.eddn.upper())
