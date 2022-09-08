@@ -396,7 +396,8 @@ def compare_sheet_fort_systems_to_spy(session, eddb_session):
         })
 
     spy_systems = eddb_session.query(SpySystem).\
-        filter(SpySystem.name.in_(fort_names)).\
+        join(System, System.ed_system_id == SpySystem.ed_system_id).\
+        filter(System.name.in_(fort_names)).\
         all()
     for spy_sys in spy_systems:
         if spy_sys.fort > systems[spy_sys.system.name]['fort']:
@@ -433,7 +434,8 @@ def compare_sheet_um_systems_to_spy(session, eddb_session):
         })
 
     spy_systems = eddb_session.query(SpySystem).\
-        filter(SpySystem.name.in_(um_names)).\
+        join(System, System.ed_system_id == SpySystem.ed_system_id).\
+        filter(System.name.in_(um_names)).\
         all()
     for spy_sys in spy_systems:
 
