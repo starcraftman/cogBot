@@ -234,7 +234,7 @@ def parse_powerplay_page(page_source, *, start, updated_at):
 
     # Find all names of the systems
     headers = soup.find_all("h2", {"class": "accordion-header"})
-    systems = [{"name": header.text.strip()} for header in headers]
+    systems = [{"system_name": header.text.strip()} for header in headers]
 
     # Extract info by regex from all expanded info blocks
     bodies = soup.find_all("div", {"class": "accordion-body"})
@@ -252,7 +252,7 @@ def parse_powerplay_page(page_source, *, start, updated_at):
                 'held_updated_at': int(parse_date(str(body), start=start).timestamp()),
             }
         else:  # Held merits were not available.
-            logging.getLogger(__name__).error("Held Merits missing: %s", systems[ind]['name'])
+            logging.getLogger(__name__).error("Held Merits missing: %s", systems[ind]['system_name'])
             mat = MAT_UKNOWN.match(str(body))
 
         info.update({
@@ -264,7 +264,7 @@ def parse_powerplay_page(page_source, *, start, updated_at):
         })
         systems[ind].update(info)
 
-    return {x['name']: x for x in systems}
+    return {x['system_name']: x for x in systems}
 
 
 def main():

@@ -2440,17 +2440,16 @@ async def push_scrape_to_sheets():  # pragma: no cover | tested elsewhere
             scanner = cogdb.scanners.get_scanner("hudson_cattle")
             payloads = scanner.bulk_update_fort_status(forts)
             log.error("Fort sheet will be updated.")
-            __import__('pprint').pprint(forts)
             await scanner.send_batch(payloads)
 
-        # FIXME: Test this code later
-        #  ums = spy.compare_sheet_um_systems_to_spy(session, eddb_session)
-        #  if ums:
-            #  scanner = cogdb.scanners.get_scanner("hudson_undermine")
-            #  payloads = [scanner.update_systemum_dict(x['sheet_col'], x['progress_us'], x['progress_them'], x['map_offset'])
-                        #  for x in ums]
-            #  log.error("Operations sheet will be updated.")
-            #  await scanner.send_batch(payloads)
+        ums = spy.compare_sheet_um_systems_to_spy(session, eddb_session)
+        if ums:
+            scanner = cogdb.scanners.get_scanner("hudson_undermine")
+            payloads = []
+            for x in ums:
+                payloads += scanner.update_systemum_dict(x['sheet_col'], x['progress_us'], x['progress_them'], x['map_offset'])
+            log.error("Operations sheet will be updated.")
+            await scanner.send_batch(payloads)
 
 
 async def monitor_powerplay_page(client, *, repeat=True, delay=1800):

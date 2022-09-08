@@ -360,7 +360,6 @@ def process_scrape_data(data_json):
                 eddb_system = eddb_session.query(System).\
                     filter(System.name == system_name).\
                     one()
-                del system_info['name']
                 system_info.update({
                     'ed_system_id': eddb_system.ed_system_id,
                     'power_id': power_id,

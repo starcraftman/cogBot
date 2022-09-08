@@ -5,7 +5,7 @@
       "fort_trigger": 4247,
       "held_merits": 0,
       "held_updated_at": 1662487687,
-      "name": "Aowica",
+      "system_name": "Aowica",
       "um": 0,
       "um_trigger": 11598,
       "updated_at": 1662530894
@@ -15,7 +15,7 @@
       "fort_trigger": 26063,
       "held_merits": 0,
       "held_updated_at": 1662487713,
-      "name": "Areklici",
+      "system_name": "Areklici",
       "um": 0,
       "um_trigger": 8621,
       "updated_at": 1662530894
@@ -25,7 +25,7 @@
       "fort_trigger": 16850,
       "held_merits": 0,
       "held_updated_at": 1662487736,
-      "name": "Asurasairu",
+      "system_name": "Asurasairu",
       "um": 150,
       "um_trigger": 9205,
       "updated_at": 1662530894
@@ -35,7 +35,7 @@
       "fort_trigger": 2941,
       "held_merits": 0,
       "held_updated_at": 1662487759,
-      "name": "Asvincegin",
+      "system_name": "Asvincegin",
       "um": 0,
       "um_trigger": 18111,
       "updated_at": 1662530894
@@ -45,7 +45,7 @@
       "fort_trigger": 2956,
       "held_merits": 0,
       "held_updated_at": 1662487783,
-      "name": "Aurawala",
+      "system_name": "Aurawala",
       "um": 0,
       "um_trigger": 17869,
       "updated_at": 1662530894
@@ -55,7 +55,7 @@
       "fort_trigger": 4355,
       "held_merits": 0,
       "held_updated_at": 1662487807,
-      "name": "Bellaung",
+      "system_name": "Bellaung",
       "um": 0,
       "um_trigger": 11427,
       "updated_at": 1662530894
@@ -65,7 +65,7 @@
       "fort_trigger": 4048,
       "held_merits": 0,
       "held_updated_at": 1662487830,
-      "name": "Cailli",
+      "system_name": "Cailli",
       "um": 0,
       "um_trigger": 11963,
       "updated_at": 1662530894
@@ -75,7 +75,7 @@
       "fort_trigger": 3600,
       "held_merits": 0,
       "held_updated_at": 1662487853,
-      "name": "Cari",
+      "system_name": "Cari",
       "um": 0,
       "um_trigger": 13171,
       "updated_at": 1662530894
@@ -85,7 +85,7 @@
       "fort_trigger": 3457,
       "held_merits": 0,
       "held_updated_at": 1662487877,
-      "name": "Cartoi",
+      "system_name": "Cartoi",
       "um": 0,
       "um_trigger": 13747,
       "updated_at": 1662530894
@@ -95,7 +95,7 @@
       "fort_trigger": 5327,
       "held_merits": 0,
       "held_updated_at": 1662487901,
-      "name": "Ch'eng",
+      "system_name": "Ch'eng",
       "um": 0,
       "um_trigger": 27693,
       "updated_at": 1662530894
@@ -105,7 +105,7 @@
       "fort_trigger": 5990,
       "held_merits": 0,
       "held_updated_at": 1662487924,
-      "name": "Chankates",
+      "system_name": "Chankates",
       "um": 0,
       "um_trigger": 10000,
       "updated_at": 1662530894
@@ -115,7 +115,7 @@
       "fort_trigger": 5210,
       "held_merits": 0,
       "held_updated_at": 1662487947,
-      "name": "Chnumar",
+      "system_name": "Chnumar",
       "um": 0,
       "um_trigger": 34045,
       "updated_at": 1662530894
@@ -125,7 +125,7 @@
       "fort_trigger": 12305,
       "held_merits": 0,
       "held_updated_at": 1662487971,
-      "name": "Chontaiko",
+      "system_name": "Chontaiko",
       "um": 0,
       "um_trigger": 9920,
       "updated_at": 1662530894
@@ -135,7 +135,7 @@
       "fort_trigger": 2802,
       "held_merits": 0,
       "held_updated_at": 1662487994,
-      "name": "Clido Pi",
+      "system_name": "Clido Pi",
       "um": 0,
       "um_trigger": 21141,
       "updated_at": 1662530894
@@ -145,7 +145,7 @@
       "fort_trigger": 3127,
       "held_merits": 0,
       "held_updated_at": 1662488018,
-      "name": "Conii",
+      "system_name": "Conii",
       "um": 0,
       "um_trigger": 15862,
       "updated_at": 1662530894
@@ -155,7 +155,7 @@
       "fort_trigger": 5013,
       "held_merits": 0,
       "held_updated_at": 1662488041,
-      "name": "Cubeo",
+      "system_name": "Cubeo",
       "um": 0,
       "um_trigger": 1000000000,
       "updated_at": 1662530894
@@ -165,7 +165,7 @@
       "fort_trigger": 5559,
       "held_merits": 0,
       "held_updated_at": 1662488065,
-      "name": "Daibo",
+      "system_name": "Daibo",
       "um": 0,
       "um_trigger": 21839,
       "updated_at": 1662530894
@@ -175,7 +175,7 @@
       "fort_trigger": 2763,
       "held_merits": 0,
       "held_updated_at": 1662488088,
-      "name": "Di Yomi",
+      "system_name": "Di Yomi",
       "um": 0,
       "um_trigger": 22422,
       "updated_at": 1662530894
@@ -185,7 +185,7 @@
       "fort_trigger": 2613,
       "held_merits": 0,
       "held_updated_at": 1662488111,
-      "name": "Doolona",
+      "system_name": "Doolona",
       "um": 0,
       "um_trigger": 32885,
       "updated_at": 1662530894
@@ -195,7 +195,7 @@
       "fort_trigger": 7072,
       "held_merits": 0,
       "held_updated_at": 1662488135,
-      "name": "Duro",
+      "system_name": "Duro",
       "um": 0,
       "um_trigger": 13413,
       "updated_at": 1662530894
@@ -205,7 +205,7 @@
       "fort_trigger": 3320,
       "held_merits": 0,
       "held_updated_at": 1662488158,
-      "name": "Duryampas",
+      "system_name": "Duryampas",
       "um": 0,
       "um_trigger": 14456,
       "updated_at": 1662530894
@@ -215,7 +215,7 @@
       "fort_trigger": 3327,
       "held_merits": 0,
       "held_updated_at": 1662488182,
-      "name": "Ekono",
+      "system_name": "Ekono",
       "um": 0,
       "um_trigger": 14410,
       "updated_at": 1662530894
@@ -225,7 +225,7 @@
       "fort_trigger": 2784,
       "held_merits": 0,
       "held_updated_at": 1662488205,
-      "name": "Gabjaujis",
+      "system_name": "Gabjaujis",
       "um": 0,
       "um_trigger": 21695,
       "updated_at": 1662530894
@@ -235,7 +235,7 @@
       "fort_trigger": 5975,
       "held_merits": 0,
       "held_updated_at": 1662488229,
-      "name": "Gally Bese",
+      "system_name": "Gally Bese",
       "um": 0,
       "um_trigger": 10008,
       "updated_at": 1662530894
@@ -245,7 +245,7 @@
       "fort_trigger": 5409,
       "held_merits": 0,
       "held_updated_at": 1662488252,
-      "name": "Grebegus",
+      "system_name": "Grebegus",
       "um": 0,
       "um_trigger": 25040,
       "updated_at": 1662530894
@@ -255,7 +255,7 @@
       "fort_trigger": 6843,
       "held_merits": 0,
       "held_updated_at": 1662488275,
-      "name": "Grovichun",
+      "system_name": "Grovichun",
       "um": 210,
       "um_trigger": 13916,
       "updated_at": 1662530894
@@ -265,7 +265,7 @@
       "fort_trigger": 3106,
       "held_merits": 0,
       "held_updated_at": 1662488299,
-      "name": "Guuguyni",
+      "system_name": "Guuguyni",
       "um": 0,
       "um_trigger": 16051,
       "updated_at": 1662530894
@@ -275,7 +275,7 @@
       "fort_trigger": 3550,
       "held_merits": 0,
       "held_updated_at": 1662488370,
-      "name": "HIP 107010",
+      "system_name": "HIP 107010",
       "um": 0,
       "um_trigger": 13360,
       "updated_at": 1662530894
@@ -285,7 +285,7 @@
       "fort_trigger": 2631,
       "held_merits": 0,
       "held_updated_at": 1662488393,
-      "name": "HIP 10786",
+      "system_name": "HIP 10786",
       "um": 0,
       "um_trigger": 30724,
       "updated_at": 1662530894
@@ -295,7 +295,7 @@
       "fort_trigger": 3344,
       "held_merits": 0,
       "held_updated_at": 1662488417,
-      "name": "HIP 109203",
+      "system_name": "HIP 109203",
       "um": 0,
       "um_trigger": 14319,
       "updated_at": 1662530894
@@ -305,7 +305,7 @@
       "fort_trigger": 5617,
       "held_merits": 0,
       "held_updated_at": 1662488440,
-      "name": "HIP 109468",
+      "system_name": "HIP 109468",
       "um": 0,
       "um_trigger": 10212,
       "updated_at": 1662530894
@@ -315,7 +315,7 @@
       "fort_trigger": 3731,
       "held_merits": 0,
       "held_updated_at": 1662488464,
-      "name": "HIP 114709",
+      "system_name": "HIP 114709",
       "um": 0,
       "um_trigger": 12743,
       "updated_at": 1662530894
@@ -325,7 +325,7 @@
       "fort_trigger": 4096,
       "held_merits": 0,
       "held_updated_at": 1662488487,
-      "name": "HIP 116045",
+      "system_name": "HIP 116045",
       "um": 0,
       "um_trigger": 11867,
       "updated_at": 1662530894
@@ -335,7 +335,7 @@
       "fort_trigger": 3224,
       "held_merits": 0,
       "held_updated_at": 1662488510,
-      "name": "HIP 24722",
+      "system_name": "HIP 24722",
       "um": 0,
       "um_trigger": 15075,
       "updated_at": 1662530894
@@ -345,7 +345,7 @@
       "fort_trigger": 4253,
       "held_merits": 0,
       "held_updated_at": 1662488535,
-      "name": "HIP 97196",
+      "system_name": "HIP 97196",
       "um": 0,
       "um_trigger": 11588,
       "updated_at": 1662530894
@@ -355,7 +355,7 @@
       "fort_trigger": 5868,
       "held_merits": 0,
       "held_updated_at": 1662488322,
-      "name": "Halbara",
+      "system_name": "Halbara",
       "um": 0,
       "um_trigger": 18216,
       "updated_at": 1662530894
@@ -365,7 +365,7 @@
       "fort_trigger": 6281,
       "held_merits": 0,
       "held_updated_at": 1662488346,
-      "name": "Haroingori",
+      "system_name": "Haroingori",
       "um": 0,
       "um_trigger": 9860,
       "updated_at": 1662530894
@@ -375,7 +375,7 @@
       "fort_trigger": 2865,
       "held_merits": 0,
       "held_updated_at": 1662488557,
-      "name": "Hotototo",
+      "system_name": "Hotototo",
       "um": 0,
       "um_trigger": 19527,
       "updated_at": 1662530894
@@ -385,7 +385,7 @@
       "fort_trigger": 3171,
       "held_merits": 0,
       "held_updated_at": 1662488580,
-      "name": "Ienpalang",
+      "system_name": "Ienpalang",
       "um": 0,
       "um_trigger": 15484,
       "updated_at": 1662530894
@@ -395,7 +395,7 @@
       "fort_trigger": 10441,
       "held_merits": 0,
       "held_updated_at": 1662488605,
-      "name": "Jaaka",
+      "system_name": "Jaaka",
       "um": 0,
       "um_trigger": 13645,
       "updated_at": 1662530894
@@ -405,7 +405,7 @@
       "fort_trigger": 2878,
       "held_merits": 0,
       "held_updated_at": 1662488628,
-      "name": "Kapoongzi",
+      "system_name": "Kapoongzi",
       "um": 0,
       "um_trigger": 19256,
       "updated_at": 1662530894
@@ -415,7 +415,7 @@
       "fort_trigger": 5045,
       "held_merits": 0,
       "held_updated_at": 1662488651,
-      "name": "Karsuki Ti",
+      "system_name": "Karsuki Ti",
       "um": 0,
       "um_trigger": 69490,
       "updated_at": 1662530894
@@ -425,7 +425,7 @@
       "fort_trigger": 5175,
       "held_merits": 0,
       "held_updated_at": 1662488675,
-      "name": "Kaukamal",
+      "system_name": "Kaukamal",
       "um": 0,
       "um_trigger": 37062,
       "updated_at": 1662530894
@@ -435,7 +435,7 @@
       "fort_trigger": 4277,
       "held_merits": 0,
       "held_updated_at": 1662488698,
-      "name": "Kaukhe",
+      "system_name": "Kaukhe",
       "um": 0,
       "um_trigger": 11549,
       "updated_at": 1662530894
@@ -445,7 +445,7 @@
       "fort_trigger": 3122,
       "held_merits": 0,
       "held_updated_at": 1662488721,
-      "name": "Kauruku",
+      "system_name": "Kauruku",
       "um": 0,
       "um_trigger": 15902,
       "updated_at": 1662530894
@@ -455,7 +455,7 @@
       "fort_trigger": 5409,
       "held_merits": 0,
       "held_updated_at": 1662488745,
-      "name": "Kavalliyala",
+      "system_name": "Kavalliyala",
       "um": 0,
       "um_trigger": 10349,
       "updated_at": 1662530894
@@ -465,7 +465,7 @@
       "fort_trigger": 7772,
       "held_merits": 0,
       "held_updated_at": 1662488769,
-      "name": "Kherthaje",
+      "system_name": "Kherthaje",
       "um": 0,
       "um_trigger": 9356,
       "updated_at": 1662530894
@@ -475,7 +475,7 @@
       "fort_trigger": 2630,
       "held_merits": 0,
       "held_updated_at": 1662488792,
-      "name": "Koyans",
+      "system_name": "Koyans",
       "um": 0,
       "um_trigger": 30826,
       "updated_at": 1662530894
@@ -485,7 +485,7 @@
       "fort_trigger": 5125,
       "held_merits": 0,
       "held_updated_at": 1662488816,
-      "name": "Kuki An",
+      "system_name": "Kuki An",
       "um": 0,
       "um_trigger": 43540,
       "updated_at": 1662530894
@@ -495,7 +495,7 @@
       "fort_trigger": 5640,
       "held_merits": 0,
       "held_updated_at": 1662488839,
-      "name": "Kurichime",
+      "system_name": "Kurichime",
       "um": 0,
       "um_trigger": 20619,
       "updated_at": 1662530894
@@ -505,7 +505,7 @@
       "fort_trigger": 6007,
       "held_merits": 0,
       "held_updated_at": 1662488862,
-      "name": "Kwelegus",
+      "system_name": "Kwelegus",
       "um": 0,
       "um_trigger": 17198,
       "updated_at": 1662530894
@@ -515,7 +515,7 @@
       "fort_trigger": 6450,
       "held_merits": 0,
       "held_updated_at": 1662488909,
-      "name": "LHS 4031",
+      "system_name": "LHS 4031",
       "um": 210,
       "um_trigger": 15070,
       "updated_at": 1662530894
@@ -525,7 +525,7 @@
       "fort_trigger": 2918,
       "held_merits": 0,
       "held_updated_at": 1662488933,
-      "name": "LTT 1289",
+      "system_name": "LTT 1289",
       "um": 0,
       "um_trigger": 18492,
       "updated_at": 1662530894
@@ -535,7 +535,7 @@
       "fort_trigger": 5037,
       "held_merits": 0,
       "held_updated_at": 1662488886,
-      "name": "Lambda-1 Tucanae",
+      "system_name": "Lambda-1 Tucanae",
       "um": 0,
       "um_trigger": 75943,
       "updated_at": 1662530894
@@ -545,7 +545,7 @@
       "fort_trigger": 7947,
       "held_merits": 0,
       "held_updated_at": 1662488956,
-      "name": "Mahiko",
+      "system_name": "Mahiko",
       "um": 0,
       "um_trigger": 9312,
       "updated_at": 1662530894
@@ -555,7 +555,7 @@
       "fort_trigger": 5313,
       "held_merits": 0,
       "held_updated_at": 1662488979,
-      "name": "Maiki",
+      "system_name": "Maiki",
       "um": 0,
       "um_trigger": 28285,
       "updated_at": 1662530894
@@ -565,7 +565,7 @@
       "fort_trigger": 3939,
       "held_merits": 60,
       "held_updated_at": 1662489004,
-      "name": "Maityan",
+      "system_name": "Maityan",
       "um": 0,
       "um_trigger": 12198,
       "updated_at": 1662530894
@@ -575,7 +575,7 @@
       "fort_trigger": 3269,
       "held_merits": 0,
       "held_updated_at": 1662489027,
-      "name": "Munshin",
+      "system_name": "Munshin",
       "um": 0,
       "um_trigger": 14767,
       "updated_at": 1662530894
@@ -585,7 +585,7 @@
       "fort_trigger": 5510,
       "held_merits": 0,
       "held_updated_at": 1662489050,
-      "name": "Okua'gsa",
+      "system_name": "Okua'gsa",
       "um": 0,
       "um_trigger": 22716,
       "updated_at": 1662530894
@@ -595,7 +595,7 @@
       "fort_trigger": 3319,
       "held_merits": 0,
       "held_updated_at": 1662489074,
-      "name": "Pardis",
+      "system_name": "Pardis",
       "um": 0,
       "um_trigger": 14458,
       "updated_at": 1662530894
@@ -605,7 +605,7 @@
       "fort_trigger": 11276,
       "held_merits": 0,
       "held_updated_at": 1662489097,
-      "name": "Perktomen",
+      "system_name": "Perktomen",
       "um": 0,
       "um_trigger": 8781,
       "updated_at": 1662530894
@@ -615,7 +615,7 @@
       "fort_trigger": 3530,
       "held_merits": 0,
       "held_updated_at": 1662489121,
-      "name": "Qi Yun Cech",
+      "system_name": "Qi Yun Cech",
       "um": 0,
       "um_trigger": 13438,
       "updated_at": 1662530894
@@ -625,7 +625,7 @@
       "fort_trigger": 6693,
       "held_merits": 0,
       "held_updated_at": 1662489144,
-      "name": "Reieni",
+      "system_name": "Reieni",
       "um": 0,
       "um_trigger": 9690,
       "updated_at": 1662530894
@@ -635,7 +635,7 @@
       "fort_trigger": 7246,
       "held_merits": 0,
       "held_updated_at": 1662489168,
-      "name": "Runapa",
+      "system_name": "Runapa",
       "um": 90,
       "um_trigger": 9503,
       "updated_at": 1662530894
@@ -645,7 +645,7 @@
       "fort_trigger": 7565,
       "held_merits": 0,
       "held_updated_at": 1662489191,
-      "name": "Runo",
+      "system_name": "Runo",
       "um": 0,
       "um_trigger": 12594,
       "updated_at": 1662530894
@@ -655,7 +655,7 @@
       "fort_trigger": 5622,
       "held_merits": 0,
       "held_updated_at": 1662489215,
-      "name": "Rutujil",
+      "system_name": "Rutujil",
       "um": 0,
       "um_trigger": 10209,
       "updated_at": 1662530894
@@ -665,7 +665,7 @@
       "fort_trigger": 12267,
       "held_merits": 0,
       "held_updated_at": 1662489237,
-      "name": "Simyr",
+      "system_name": "Simyr",
       "um": 0,
       "um_trigger": 8684,
       "updated_at": 1662530894
@@ -675,7 +675,7 @@
       "fort_trigger": 4103,
       "held_merits": 0,
       "held_updated_at": 1662489261,
-      "name": "Syntheng",
+      "system_name": "Syntheng",
       "um": 0,
       "um_trigger": 11855,
       "updated_at": 1662530894
@@ -685,7 +685,7 @@
       "fort_trigger": 5108,
       "held_merits": 0,
       "held_updated_at": 1662489284,
-      "name": "Theta Octantis",
+      "system_name": "Theta Octantis",
       "um": 0,
       "um_trigger": 46670,
       "updated_at": 1662530894
@@ -695,7 +695,7 @@
       "fort_trigger": 7180,
       "held_merits": 0,
       "held_updated_at": 1662489308,
-      "name": "Ts'ai Shai",
+      "system_name": "Ts'ai Shai",
       "um": 0,
       "um_trigger": 9523,
       "updated_at": 1662530894
@@ -705,7 +705,7 @@
       "fort_trigger": 5131,
       "held_merits": 0,
       "held_updated_at": 1662489332,
-      "name": "Tumuzgo",
+      "system_name": "Tumuzgo",
       "um": 0,
       "um_trigger": 42560,
       "updated_at": 1662530894
@@ -715,7 +715,7 @@
       "fort_trigger": 6552,
       "held_merits": 0,
       "held_updated_at": 1662489355,
-      "name": "Untun",
+      "system_name": "Untun",
       "um": 0,
       "um_trigger": 14722,
       "updated_at": 1662530894
@@ -725,7 +725,7 @@
       "fort_trigger": 5107,
       "held_merits": 0,
       "held_updated_at": 1662489378,
-      "name": "Wababa",
+      "system_name": "Wababa",
       "um": 0,
       "um_trigger": 46777,
       "updated_at": 1662530894
@@ -735,7 +735,7 @@
       "fort_trigger": 2690,
       "held_merits": 0,
       "held_updated_at": 1662489402,
-      "name": "Wonomi",
+      "system_name": "Wonomi",
       "um": 0,
       "um_trigger": 25912,
       "updated_at": 1662530894
@@ -745,7 +745,7 @@
       "fort_trigger": 4064,
       "held_merits": 0,
       "held_updated_at": 1662489427,
-      "name": "Yan Musu",
+      "system_name": "Yan Musu",
       "um": 0,
       "um_trigger": 11931,
       "updated_at": 1662530894
@@ -755,7 +755,7 @@
       "fort_trigger": 3507,
       "held_merits": 0,
       "held_updated_at": 1662489449,
-      "name": "Yen Hsini",
+      "system_name": "Yen Hsini",
       "um": 0,
       "um_trigger": 13532,
       "updated_at": 1662530894
@@ -765,7 +765,7 @@
       "fort_trigger": 2842,
       "held_merits": 0,
       "held_updated_at": 1662489472,
-      "name": "Zhao",
+      "system_name": "Zhao",
       "um": 0,
       "um_trigger": 20067,
       "updated_at": 1662530894
@@ -777,7 +777,7 @@
       "fort_trigger": 3102,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "10 Kappa Pegasi",
+      "system_name": "10 Kappa Pegasi",
       "um": 30,
       "um_trigger": 16094,
       "updated_at": 1662530894
@@ -787,7 +787,7 @@
       "fort_trigger": 2561,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "34 Pegasi",
+      "system_name": "34 Pegasi",
       "um": 150,
       "um_trigger": 43989,
       "updated_at": 1662530894
@@ -797,7 +797,7 @@
       "fort_trigger": 3290,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Adenates",
+      "system_name": "Adenates",
       "um": 150,
       "um_trigger": 14637,
       "updated_at": 1662530894
@@ -807,7 +807,7 @@
       "fort_trigger": 2952,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Anedjete",
+      "system_name": "Anedjete",
       "um": 0,
       "um_trigger": 17926,
       "updated_at": 1662530894
@@ -817,7 +817,7 @@
       "fort_trigger": 5242,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Apteti",
+      "system_name": "Apteti",
       "um": 0,
       "um_trigger": 31881,
       "updated_at": 1662530894
@@ -827,7 +827,7 @@
       "fort_trigger": 3943,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Arakwibut",
+      "system_name": "Arakwibut",
       "um": 0,
       "um_trigger": 12188,
       "updated_at": 1662530894
@@ -837,7 +837,7 @@
       "fort_trigger": 2987,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Arawere",
+      "system_name": "Arawere",
       "um": 1110,
       "um_trigger": 17418,
       "updated_at": 1662530894
@@ -847,7 +847,7 @@
       "fort_trigger": 2665,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "BD-00 4461",
+      "system_name": "BD-00 4461",
       "um": 0,
       "um_trigger": 27609,
       "updated_at": 1662530894
@@ -857,7 +857,7 @@
       "fort_trigger": 3245,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Badjarans",
+      "system_name": "Badjarans",
       "um": 0,
       "um_trigger": 14928,
       "updated_at": 1662530894
@@ -867,7 +867,7 @@
       "fort_trigger": 2556,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Birreti",
+      "system_name": "Birreti",
       "um": 1290,
       "um_trigger": 45777,
       "updated_at": 1662530894
@@ -877,7 +877,7 @@
       "fort_trigger": 2897,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Candra",
+      "system_name": "Candra",
       "um": 0,
       "um_trigger": 18882,
       "updated_at": 1662530894
@@ -887,7 +887,7 @@
       "fort_trigger": 14172,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Col 285 Sector CY-N b21-0",
+      "system_name": "Col 285 Sector CY-N b21-0",
       "um": 0,
       "um_trigger": 10952,
       "updated_at": 1662530894
@@ -897,7 +897,7 @@
       "fort_trigger": 4546,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Devata Baru",
+      "system_name": "Devata Baru",
       "um": 0,
       "um_trigger": 11164,
       "updated_at": 1662530894
@@ -907,7 +907,7 @@
       "fort_trigger": 3312,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Dhak",
+      "system_name": "Dhak",
       "um": 0,
       "um_trigger": 14499,
       "updated_at": 1662530894
@@ -917,7 +917,7 @@
       "fort_trigger": 4485,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Djabijabus",
+      "system_name": "Djabijabus",
       "um": 0,
       "um_trigger": 11242,
       "updated_at": 1662530894
@@ -927,7 +927,7 @@
       "fort_trigger": 2643,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Eta Aquarii",
+      "system_name": "Eta Aquarii",
       "um": 0,
       "um_trigger": 29496,
       "updated_at": 1662530894
@@ -937,7 +937,7 @@
       "fort_trigger": 5310,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Fan Cechehe",
+      "system_name": "Fan Cechehe",
       "um": 0,
       "um_trigger": 28389,
       "updated_at": 1662530894
@@ -947,7 +947,7 @@
       "fort_trigger": 3011,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "HIP 106072",
+      "system_name": "HIP 106072",
       "um": 0,
       "um_trigger": 17101,
       "updated_at": 1662530894
@@ -957,7 +957,7 @@
       "fort_trigger": 5252,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "HIP 108822",
+      "system_name": "HIP 108822",
       "um": 0,
       "um_trigger": 31272,
       "updated_at": 1662530894
@@ -967,7 +967,7 @@
       "fort_trigger": 3202,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "HIP 112400",
+      "system_name": "HIP 112400",
       "um": 0,
       "um_trigger": 15236,
       "updated_at": 1662530894
@@ -977,7 +977,7 @@
       "fort_trigger": 2861,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Halbangaay",
+      "system_name": "Halbangaay",
       "um": 0,
       "um_trigger": 19629,
       "updated_at": 1662530894
@@ -987,7 +987,7 @@
       "fort_trigger": 2506,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Harma",
+      "system_name": "Harma",
       "um": 0,
       "um_trigger": 1000000000,
       "updated_at": 1662530894
@@ -997,7 +997,7 @@
       "fort_trigger": 2956,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Huaich",
+      "system_name": "Huaich",
       "um": 0,
       "um_trigger": 17870,
       "updated_at": 1662530894
@@ -1007,7 +1007,7 @@
       "fort_trigger": 7596,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Huichi",
+      "system_name": "Huichi",
       "um": 360,
       "um_trigger": 12551,
       "updated_at": 1662530894
@@ -1017,7 +1017,7 @@
       "fort_trigger": 3630,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Itzamnets",
+      "system_name": "Itzamnets",
       "um": 0,
       "um_trigger": 13067,
       "updated_at": 1662530894
@@ -1027,7 +1027,7 @@
       "fort_trigger": 3984,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Jormor",
+      "system_name": "Jormor",
       "um": 0,
       "um_trigger": 12097,
       "updated_at": 1662530894
@@ -1037,7 +1037,7 @@
       "fort_trigger": 5216,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Kachirigin",
+      "system_name": "Kachirigin",
       "um": 0,
       "um_trigger": 33598,
       "updated_at": 1662530894
@@ -1047,7 +1047,7 @@
       "fort_trigger": 2547,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Kakmbutan",
+      "system_name": "Kakmbutan",
       "um": 0,
       "um_trigger": 49745,
       "updated_at": 1662530894
@@ -1057,7 +1057,7 @@
       "fort_trigger": 3449,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Kartam",
+      "system_name": "Kartam",
       "um": 0,
       "um_trigger": 13786,
       "updated_at": 1662530894
@@ -1067,7 +1067,7 @@
       "fort_trigger": 3778,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Kelie",
+      "system_name": "Kelie",
       "um": 0,
       "um_trigger": 12607,
       "updated_at": 1662530894
@@ -1077,7 +1077,7 @@
       "fort_trigger": 2697,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "LTT 16548",
+      "system_name": "LTT 16548",
       "um": 0,
       "um_trigger": 25442,
       "updated_at": 1662530894
@@ -1087,7 +1087,7 @@
       "fort_trigger": 2658,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Lalande 45165",
+      "system_name": "Lalande 45165",
       "um": 0,
       "um_trigger": 28164,
       "updated_at": 1662530894
@@ -1097,7 +1097,7 @@
       "fort_trigger": 5007,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Madyanmana",
+      "system_name": "Madyanmana",
       "um": 0,
       "um_trigger": 10669,
       "updated_at": 1662530894
@@ -1107,7 +1107,7 @@
       "fort_trigger": 5199,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Mandii",
+      "system_name": "Mandii",
       "um": 0,
       "um_trigger": 34876,
       "updated_at": 1662530894
@@ -1117,7 +1117,7 @@
       "fort_trigger": 2601,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Matucanth",
+      "system_name": "Matucanth",
       "um": 0,
       "um_trigger": 34647,
       "updated_at": 1662530894
@@ -1127,7 +1127,7 @@
       "fort_trigger": 3064,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Nirros",
+      "system_name": "Nirros",
       "um": 0,
       "um_trigger": 16486,
       "updated_at": 1662530894
@@ -1137,7 +1137,7 @@
       "fort_trigger": 2716,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Paijao",
+      "system_name": "Paijao",
       "um": 0,
       "um_trigger": 24437,
       "updated_at": 1662530894
@@ -1147,7 +1147,7 @@
       "fort_trigger": 5116,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Pandinus",
+      "system_name": "Pandinus",
       "um": 0,
       "um_trigger": 45081,
       "updated_at": 1662530894
@@ -1157,7 +1157,7 @@
       "fort_trigger": 2944,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Penty",
+      "system_name": "Penty",
       "um": 0,
       "um_trigger": 18061,
       "updated_at": 1662530894
@@ -1167,7 +1167,7 @@
       "fort_trigger": 3315,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Quikindji",
+      "system_name": "Quikindji",
       "um": 780,
       "um_trigger": 14483,
       "updated_at": 1662530894
@@ -1177,7 +1177,7 @@
       "fort_trigger": 5922,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Sigma Pegasi",
+      "system_name": "Sigma Pegasi",
       "um": 0,
       "um_trigger": 17790,
       "updated_at": 1662530894
@@ -1187,7 +1187,7 @@
       "fort_trigger": 2674,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Tehuevi",
+      "system_name": "Tehuevi",
       "um": 0,
       "um_trigger": 26934,
       "updated_at": 1662530894
@@ -1197,7 +1197,7 @@
       "fort_trigger": 3483,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Wikanawal",
+      "system_name": "Wikanawal",
       "um": 0,
       "um_trigger": 13635,
       "updated_at": 1662530894
@@ -1207,7 +1207,7 @@
       "fort_trigger": 5050,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Wirnako",
+      "system_name": "Wirnako",
       "um": 0,
       "um_trigger": 66497,
       "updated_at": 1662530894
@@ -1219,7 +1219,7 @@
       "fort_trigger": 3188,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "24 G. Carinae",
+      "system_name": "24 G. Carinae",
       "um": 0,
       "um_trigger": 15342,
       "updated_at": 1662530894
@@ -1229,7 +1229,7 @@
       "fort_trigger": 2736,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "AB Pictoris",
+      "system_name": "AB Pictoris",
       "um": 0,
       "um_trigger": 23493,
       "updated_at": 1662530894
@@ -1239,7 +1239,7 @@
       "fort_trigger": 2681,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Acokwang",
+      "system_name": "Acokwang",
       "um": 0,
       "um_trigger": 26447,
       "updated_at": 1662530894
@@ -1249,7 +1249,7 @@
       "fort_trigger": 2518,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Adan",
+      "system_name": "Adan",
       "um": 0,
       "um_trigger": 75646,
       "updated_at": 1662530894
@@ -1259,7 +1259,7 @@
       "fort_trigger": 2837,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Amenta",
+      "system_name": "Amenta",
       "um": 0,
       "um_trigger": 20194,
       "updated_at": 1662530894
@@ -1269,7 +1269,7 @@
       "fort_trigger": 3071,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Annwn",
+      "system_name": "Annwn",
       "um": 0,
       "um_trigger": 16405,
       "updated_at": 1662530894
@@ -1279,7 +1279,7 @@
       "fort_trigger": 5935,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Antliae Sector RD-T b3-3",
+      "system_name": "Antliae Sector RD-T b3-3",
       "um": 0,
       "um_trigger": 10029,
       "updated_at": 1662530894
@@ -1289,7 +1289,7 @@
       "fort_trigger": 2663,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Anum",
+      "system_name": "Anum",
       "um": 0,
       "um_trigger": 27730,
       "updated_at": 1662530894
@@ -1299,7 +1299,7 @@
       "fort_trigger": 5465,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Apathaam",
+      "system_name": "Apathaam",
       "um": 0,
       "um_trigger": 23656,
       "updated_at": 1662530894
@@ -1309,7 +1309,7 @@
       "fort_trigger": 7970,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Arugh",
+      "system_name": "Arugh",
       "um": 0,
       "um_trigger": 28262,
       "updated_at": 1662530894
@@ -1319,7 +1319,7 @@
       "fort_trigger": 3248,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Biliri",
+      "system_name": "Biliri",
       "um": 0,
       "um_trigger": 14907,
       "updated_at": 1662530894
@@ -1329,7 +1329,7 @@
       "fort_trigger": 3693,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Binjia",
+      "system_name": "Binjia",
       "um": 0,
       "um_trigger": 12860,
       "updated_at": 1662530894
@@ -1339,7 +1339,7 @@
       "fort_trigger": 2652,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Blido Piru",
+      "system_name": "Blido Piru",
       "um": 0,
       "um_trigger": 28627,
       "updated_at": 1662530894
@@ -1349,7 +1349,7 @@
       "fort_trigger": 3892,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "CD-49 3617",
+      "system_name": "CD-49 3617",
       "um": 0,
       "um_trigger": 12309,
       "updated_at": 1662530894
@@ -1359,7 +1359,7 @@
       "fort_trigger": 2622,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "CD-62 136",
+      "system_name": "CD-62 136",
       "um": 0,
       "um_trigger": 31684,
       "updated_at": 1662530894
@@ -1369,7 +1369,7 @@
       "fort_trigger": 2852,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Calhuacan",
+      "system_name": "Calhuacan",
       "um": 0,
       "um_trigger": 19819,
       "updated_at": 1662530894
@@ -1379,7 +1379,7 @@
       "fort_trigger": 3635,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Caria",
+      "system_name": "Caria",
       "um": 0,
       "um_trigger": 13047,
       "updated_at": 1662530894
@@ -1389,7 +1389,7 @@
       "fort_trigger": 2748,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Carverda",
+      "system_name": "Carverda",
       "um": 0,
       "um_trigger": 23006,
       "updated_at": 1662530894
@@ -1399,7 +1399,7 @@
       "fort_trigger": 4092,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Celtibitou",
+      "system_name": "Celtibitou",
       "um": 0,
       "um_trigger": 11875,
       "updated_at": 1662530894
@@ -1409,7 +1409,7 @@
       "fort_trigger": 5547,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Ch'iang Fei",
+      "system_name": "Ch'iang Fei",
       "um": 0,
       "um_trigger": 10257,
       "updated_at": 1662530894
@@ -1419,7 +1419,7 @@
       "fort_trigger": 3035,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Cockaigne",
+      "system_name": "Cockaigne",
       "um": 0,
       "um_trigger": 16815,
       "updated_at": 1662530894
@@ -1429,7 +1429,7 @@
       "fort_trigger": 8525,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Cofalyawa",
+      "system_name": "Cofalyawa",
       "um": 0,
       "um_trigger": 11572,
       "updated_at": 1662530894
@@ -1439,7 +1439,7 @@
       "fort_trigger": 2960,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Copityar",
+      "system_name": "Copityar",
       "um": 0,
       "um_trigger": 17815,
       "updated_at": 1662530894
@@ -1449,7 +1449,7 @@
       "fort_trigger": 3764,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Damoorai",
+      "system_name": "Damoorai",
       "um": 0,
       "um_trigger": 12648,
       "updated_at": 1662530894
@@ -1459,7 +1459,7 @@
       "fort_trigger": 2701,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Delta Doradus",
+      "system_name": "Delta Doradus",
       "um": 0,
       "um_trigger": 25213,
       "updated_at": 1662530894
@@ -1469,7 +1469,7 @@
       "fort_trigger": 5422,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Dvorsi",
+      "system_name": "Dvorsi",
       "um": 0,
       "um_trigger": 24702,
       "updated_at": 1662530894
@@ -1479,7 +1479,7 @@
       "fort_trigger": 3623,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Dyaushibi",
+      "system_name": "Dyaushibi",
       "um": 0,
       "um_trigger": 13089,
       "updated_at": 1662530894
@@ -1489,7 +1489,7 @@
       "fort_trigger": 3093,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Facece",
+      "system_name": "Facece",
       "um": 0,
       "um_trigger": 16180,
       "updated_at": 1662530894
@@ -1499,7 +1499,7 @@
       "fort_trigger": 3078,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Fu Haras",
+      "system_name": "Fu Haras",
       "um": 0,
       "um_trigger": 16337,
       "updated_at": 1662530894
@@ -1509,7 +1509,7 @@
       "fort_trigger": 2590,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Gende",
+      "system_name": "Gende",
       "um": 0,
       "um_trigger": 36649,
       "updated_at": 1662530894
@@ -1519,7 +1519,7 @@
       "fort_trigger": 2526,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Guathiti",
+      "system_name": "Guathiti",
       "um": 0,
       "um_trigger": 65341,
       "updated_at": 1662530894
@@ -1529,7 +1529,7 @@
       "fort_trigger": 2760,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Gui Xian",
+      "system_name": "Gui Xian",
       "um": 0,
       "um_trigger": 22546,
       "updated_at": 1662530894
@@ -1539,7 +1539,7 @@
       "fort_trigger": 2629,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "HIP 16460",
+      "system_name": "HIP 16460",
       "um": 0,
       "um_trigger": 30965,
       "updated_at": 1662530894
@@ -1549,7 +1549,7 @@
       "fort_trigger": 2795,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "HIP 17483",
+      "system_name": "HIP 17483",
       "um": 0,
       "um_trigger": 21334,
       "updated_at": 1662530894
@@ -1559,7 +1559,7 @@
       "fort_trigger": 2934,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "HIP 20524",
+      "system_name": "HIP 20524",
       "um": 0,
       "um_trigger": 18224,
       "updated_at": 1662530894
@@ -1569,7 +1569,7 @@
       "fort_trigger": 3217,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "HIP 21778",
+      "system_name": "HIP 21778",
       "um": 0,
       "um_trigger": 15123,
       "updated_at": 1662530894
@@ -1579,7 +1579,7 @@
       "fort_trigger": 7623,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "HIP 22006",
+      "system_name": "HIP 22006",
       "um": 0,
       "um_trigger": 52889,
       "updated_at": 1662530894
@@ -1589,7 +1589,7 @@
       "fort_trigger": 3105,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "HIP 32812",
+      "system_name": "HIP 32812",
       "um": 0,
       "um_trigger": 16063,
       "updated_at": 1662530894
@@ -1599,7 +1599,7 @@
       "fort_trigger": 3643,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "HIP 39391",
+      "system_name": "HIP 39391",
       "um": 0,
       "um_trigger": 13021,
       "updated_at": 1662530894
@@ -1609,7 +1609,7 @@
       "fort_trigger": 4982,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "HIP 53719",
+      "system_name": "HIP 53719",
       "um": 0,
       "um_trigger": 10692,
       "updated_at": 1662530894
@@ -1619,7 +1619,7 @@
       "fort_trigger": 2994,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "HR 571",
+      "system_name": "HR 571",
       "um": 0,
       "um_trigger": 17323,
       "updated_at": 1662530894
@@ -1629,7 +1629,7 @@
       "fort_trigger": 9030,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Heilelang",
+      "system_name": "Heilelang",
       "um": 0,
       "um_trigger": 17116,
       "updated_at": 1662530894
@@ -1639,7 +1639,7 @@
       "fort_trigger": 4532,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Hrun",
+      "system_name": "Hrun",
       "um": 0,
       "um_trigger": 11181,
       "updated_at": 1662530894
@@ -1649,7 +1649,7 @@
       "fort_trigger": 3162,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Itzamni",
+      "system_name": "Itzamni",
       "um": 0,
       "um_trigger": 15555,
       "updated_at": 1662530894
@@ -1659,7 +1659,7 @@
       "fort_trigger": 3432,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Ju Shiva",
+      "system_name": "Ju Shiva",
       "um": 0,
       "um_trigger": 13865,
       "updated_at": 1662530894
@@ -1669,7 +1669,7 @@
       "fort_trigger": 2506,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Kamadhenu",
+      "system_name": "Kamadhenu",
       "um": 0,
       "um_trigger": 1000000000,
       "updated_at": 1662530894
@@ -1679,7 +1679,7 @@
       "fort_trigger": 3411,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Kamito",
+      "system_name": "Kamito",
       "um": 0,
       "um_trigger": 13964,
       "updated_at": 1662530894
@@ -1689,7 +1689,7 @@
       "fort_trigger": 3668,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Koine",
+      "system_name": "Koine",
       "um": 0,
       "um_trigger": 12938,
       "updated_at": 1662530894
@@ -1699,7 +1699,7 @@
       "fort_trigger": 3380,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Krinbea",
+      "system_name": "Krinbea",
       "um": 0,
       "um_trigger": 14125,
       "updated_at": 1662530894
@@ -1709,7 +1709,7 @@
       "fort_trigger": 2726,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "LTT 1345",
+      "system_name": "LTT 1345",
       "um": 0,
       "um_trigger": 23967,
       "updated_at": 1662530894
@@ -1719,7 +1719,7 @@
       "fort_trigger": 4190,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "LTT 2667",
+      "system_name": "LTT 2667",
       "um": 780,
       "um_trigger": 11696,
       "updated_at": 1662530894
@@ -1729,7 +1729,7 @@
       "fort_trigger": 2585,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Laur",
+      "system_name": "Laur",
       "um": 0,
       "um_trigger": 37627,
       "updated_at": 1662530894
@@ -1739,7 +1739,7 @@
       "fort_trigger": 2708,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Lesovik",
+      "system_name": "Lesovik",
       "um": 0,
       "um_trigger": 24830,
       "updated_at": 1662530894
@@ -1749,7 +1749,7 @@
       "fort_trigger": 5260,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Lopocares",
+      "system_name": "Lopocares",
       "um": 0,
       "um_trigger": 10459,
       "updated_at": 1662530894
@@ -1759,7 +1759,7 @@
       "fort_trigger": 2617,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Lutni",
+      "system_name": "Lutni",
       "um": 0,
       "um_trigger": 32332,
       "updated_at": 1662530894
@@ -1769,7 +1769,7 @@
       "fort_trigger": 3327,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Malaikudi",
+      "system_name": "Malaikudi",
       "um": 0,
       "um_trigger": 14412,
       "updated_at": 1662530894
@@ -1779,7 +1779,7 @@
       "fort_trigger": 3064,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Martio",
+      "system_name": "Martio",
       "um": 0,
       "um_trigger": 16484,
       "updated_at": 1662530894
@@ -1789,7 +1789,7 @@
       "fort_trigger": 4085,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Mazahuanses",
+      "system_name": "Mazahuanses",
       "um": 0,
       "um_trigger": 11888,
       "updated_at": 1662530894
@@ -1799,7 +1799,7 @@
       "fort_trigger": 3606,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Mool",
+      "system_name": "Mool",
       "um": 0,
       "um_trigger": 13150,
       "updated_at": 1662530894
@@ -1809,7 +1809,7 @@
       "fort_trigger": 2784,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Nagi",
+      "system_name": "Nagi",
       "um": 0,
       "um_trigger": 21697,
       "updated_at": 1662530894
@@ -1819,7 +1819,7 @@
       "fort_trigger": 2571,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Narakapani",
+      "system_name": "Narakapani",
       "um": 0,
       "um_trigger": 40821,
       "updated_at": 1662530894
@@ -1829,7 +1829,7 @@
       "fort_trigger": 2939,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Neites",
+      "system_name": "Neites",
       "um": 0,
       "um_trigger": 18132,
       "updated_at": 1662530894
@@ -1839,7 +1839,7 @@
       "fort_trigger": 3762,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Ngarawe",
+      "system_name": "Ngarawe",
       "um": 0,
       "um_trigger": 12651,
       "updated_at": 1662530894
@@ -1849,7 +1849,7 @@
       "fort_trigger": 2657,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Niu Lang O",
+      "system_name": "Niu Lang O",
       "um": 0,
       "um_trigger": 28234,
       "updated_at": 1662530894
@@ -1859,7 +1859,7 @@
       "fort_trigger": 3094,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Nukama",
+      "system_name": "Nukama",
       "um": 0,
       "um_trigger": 16174,
       "updated_at": 1662530894
@@ -1869,7 +1869,7 @@
       "fort_trigger": 2843,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Ocairi",
+      "system_name": "Ocairi",
       "um": 0,
       "um_trigger": 20046,
       "updated_at": 1662530894
@@ -1879,7 +1879,7 @@
       "fort_trigger": 2607,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Odins",
+      "system_name": "Odins",
       "um": 0,
       "um_trigger": 33690,
       "updated_at": 1662530894
@@ -1889,7 +1889,7 @@
       "fort_trigger": 4899,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Ostyat",
+      "system_name": "Ostyat",
       "um": 0,
       "um_trigger": 10771,
       "updated_at": 1662530894
@@ -1899,7 +1899,7 @@
       "fort_trigger": 3020,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Ovini",
+      "system_name": "Ovini",
       "um": 0,
       "um_trigger": 16990,
       "updated_at": 1662530894
@@ -1909,7 +1909,7 @@
       "fort_trigger": 2527,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Phracani",
+      "system_name": "Phracani",
       "um": 0,
       "um_trigger": 63957,
       "updated_at": 1662530894
@@ -1919,7 +1919,7 @@
       "fort_trigger": 3370,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Priva",
+      "system_name": "Priva",
       "um": 0,
       "um_trigger": 14173,
       "updated_at": 1662530894
@@ -1929,7 +1929,7 @@
       "fort_trigger": 4530,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Puntin",
+      "system_name": "Puntin",
       "um": 180,
       "um_trigger": 11184,
       "updated_at": 1662530894
@@ -1939,7 +1939,7 @@
       "fort_trigger": 5364,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Rabh",
+      "system_name": "Rabh",
       "um": 0,
       "um_trigger": 26396,
       "updated_at": 1662530894
@@ -1949,7 +1949,7 @@
       "fort_trigger": 3469,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Samburitja",
+      "system_name": "Samburitja",
       "um": 0,
       "um_trigger": 13697,
       "updated_at": 1662530894
@@ -1959,7 +1959,7 @@
       "fort_trigger": 2887,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Sekh",
+      "system_name": "Sekh",
       "um": 0,
       "um_trigger": 19063,
       "updated_at": 1662530894
@@ -1969,7 +1969,7 @@
       "fort_trigger": 4448,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Shatrites",
+      "system_name": "Shatrites",
       "um": 0,
       "um_trigger": 11293,
       "updated_at": 1662530894
@@ -1979,7 +1979,7 @@
       "fort_trigger": 2642,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Teliadjali",
+      "system_name": "Teliadjali",
       "um": 0,
       "um_trigger": 29586,
       "updated_at": 1662530894
@@ -1989,7 +1989,7 @@
       "fort_trigger": 5741,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Tenchih",
+      "system_name": "Tenchih",
       "um": 0,
       "um_trigger": 19409,
       "updated_at": 1662530894
@@ -1999,7 +1999,7 @@
       "fort_trigger": 3460,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Tiburnat",
+      "system_name": "Tiburnat",
       "um": 0,
       "um_trigger": 13733,
       "updated_at": 1662530894
@@ -2009,7 +2009,7 @@
       "fort_trigger": 3641,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Tujing",
+      "system_name": "Tujing",
       "um": 0,
       "um_trigger": 13027,
       "updated_at": 1662530894
@@ -2019,7 +2019,7 @@
       "fort_trigger": 2570,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Ugrivirii",
+      "system_name": "Ugrivirii",
       "um": 0,
       "um_trigger": 41150,
       "updated_at": 1662530894
@@ -2029,7 +2029,7 @@
       "fort_trigger": 3286,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Vaipuna",
+      "system_name": "Vaipuna",
       "um": 0,
       "um_trigger": 14657,
       "updated_at": 1662530894
@@ -2039,7 +2039,7 @@
       "fort_trigger": 2783,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Vish",
+      "system_name": "Vish",
       "um": 0,
       "um_trigger": 21715,
       "updated_at": 1662530894
@@ -2049,7 +2049,7 @@
       "fort_trigger": 5886,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Vodyanes",
+      "system_name": "Vodyanes",
       "um": 0,
       "um_trigger": 18070,
       "updated_at": 1662530894
@@ -2059,7 +2059,7 @@
       "fort_trigger": 5787,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Wakea",
+      "system_name": "Wakea",
       "um": 0,
       "um_trigger": 18942,
       "updated_at": 1662530894
@@ -2069,7 +2069,7 @@
       "fort_trigger": 3360,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Waras",
+      "system_name": "Waras",
       "um": 0,
       "um_trigger": 14227,
       "updated_at": 1662530894
@@ -2079,7 +2079,7 @@
       "fort_trigger": 4269,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Xinca",
+      "system_name": "Xinca",
       "um": 0,
       "um_trigger": 11561,
       "updated_at": 1662530894
@@ -2089,7 +2089,7 @@
       "fort_trigger": 5422,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Yab Cameni",
+      "system_name": "Yab Cameni",
       "um": 0,
       "um_trigger": 24702,
       "updated_at": 1662530894
@@ -2099,7 +2099,7 @@
       "fort_trigger": 4837,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Yanerones",
+      "system_name": "Yanerones",
       "um": 0,
       "um_trigger": 10832,
       "updated_at": 1662530894
@@ -2109,7 +2109,7 @@
       "fort_trigger": 2762,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Zvaithhogg",
+      "system_name": "Zvaithhogg",
       "um": 0,
       "um_trigger": 22452,
       "updated_at": 1662530894
@@ -2121,7 +2121,7 @@
       "fort_trigger": 4007,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "23 Delta Piscis Austrini",
+      "system_name": "23 Delta Piscis Austrini",
       "um": 0,
       "um_trigger": 12049,
       "updated_at": 1662530894
@@ -2131,7 +2131,7 @@
       "fort_trigger": 5058,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Agastariya",
+      "system_name": "Agastariya",
       "um": 0,
       "um_trigger": 62171,
       "updated_at": 1662530894
@@ -2141,7 +2141,7 @@
       "fort_trigger": 4199,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Albisiyatae",
+      "system_name": "Albisiyatae",
       "um": 0,
       "um_trigger": 11678,
       "updated_at": 1662530894
@@ -2151,7 +2151,7 @@
       "fort_trigger": 8699,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Atfero",
+      "system_name": "Atfero",
       "um": 0,
       "um_trigger": 18825,
       "updated_at": 1662530894
@@ -2161,7 +2161,7 @@
       "fort_trigger": 3053,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Bang",
+      "system_name": "Bang",
       "um": 0,
       "um_trigger": 16604,
       "updated_at": 1662530894
@@ -2171,7 +2171,7 @@
       "fort_trigger": 3105,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Beta Caeli",
+      "system_name": "Beta Caeli",
       "um": 12,
       "um_trigger": 16063,
       "updated_at": 1662530894
@@ -2181,7 +2181,7 @@
       "fort_trigger": 3073,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Buricasses",
+      "system_name": "Buricasses",
       "um": 0,
       "um_trigger": 16382,
       "updated_at": 1662530894
@@ -2191,7 +2191,7 @@
       "fort_trigger": 5044,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "CF 464",
+      "system_name": "CF 464",
       "um": 0,
       "um_trigger": 69862,
       "updated_at": 1662530894
@@ -2201,7 +2201,7 @@
       "fort_trigger": 6993,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Cama Zotz",
+      "system_name": "Cama Zotz",
       "um": 0,
       "um_trigger": 13574,
       "updated_at": 1662530894
@@ -2211,7 +2211,7 @@
       "fort_trigger": 3252,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Cemplangpa",
+      "system_name": "Cemplangpa",
       "um": 210,
       "um_trigger": 14878,
       "updated_at": 1662530894
@@ -2221,7 +2221,7 @@
       "fort_trigger": 5139,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Chapsugaibo",
+      "system_name": "Chapsugaibo",
       "um": 0,
       "um_trigger": 41409,
       "updated_at": 1662530894
@@ -2231,7 +2231,7 @@
       "fort_trigger": 4132,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Coma",
+      "system_name": "Coma",
       "um": 0,
       "um_trigger": 11799,
       "updated_at": 1662530894
@@ -2241,7 +2241,7 @@
       "fort_trigger": 4732,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Contie",
+      "system_name": "Contie",
       "um": 0,
       "um_trigger": 10944,
       "updated_at": 1662530894
@@ -2251,7 +2251,7 @@
       "fort_trigger": 3485,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Cuchua",
+      "system_name": "Cuchua",
       "um": 330,
       "um_trigger": 13624,
       "updated_at": 1662530894
@@ -2261,7 +2261,7 @@
       "fort_trigger": 5013,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Eotienses",
+      "system_name": "Eotienses",
       "um": 0,
       "um_trigger": 1000000000,
       "updated_at": 1662530894
@@ -2271,7 +2271,7 @@
       "fort_trigger": 5884,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Gliese 76",
+      "system_name": "Gliese 76",
       "um": 0,
       "um_trigger": 18084,
       "updated_at": 1662530894
@@ -2281,7 +2281,7 @@
       "fort_trigger": 7522,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Gwaelod",
+      "system_name": "Gwaelod",
       "um": 0,
       "um_trigger": 12655,
       "updated_at": 1662530894
@@ -2291,7 +2291,7 @@
       "fort_trigger": 4141,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "HIP 101846",
+      "system_name": "HIP 101846",
       "um": 0,
       "um_trigger": 11783,
       "updated_at": 1662530894
@@ -2301,7 +2301,7 @@
       "fort_trigger": 3765,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "HIP 108598",
+      "system_name": "HIP 108598",
       "um": 0,
       "um_trigger": 12643,
       "updated_at": 1662530894
@@ -2311,7 +2311,7 @@
       "fort_trigger": 3317,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "HIP 117865",
+      "system_name": "HIP 117865",
       "um": 0,
       "um_trigger": 14469,
       "updated_at": 1662530894
@@ -2321,7 +2321,7 @@
       "fort_trigger": 6876,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "HIP 3603",
+      "system_name": "HIP 3603",
       "um": 0,
       "um_trigger": 13837,
       "updated_at": 1662530894
@@ -2331,7 +2331,7 @@
       "fort_trigger": 2561,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "HR 706",
+      "system_name": "HR 706",
       "um": 0,
       "um_trigger": 44062,
       "updated_at": 1662530894
@@ -2341,7 +2341,7 @@
       "fort_trigger": 3004,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Kaliki",
+      "system_name": "Kaliki",
       "um": 0,
       "um_trigger": 17190,
       "updated_at": 1662530894
@@ -2351,7 +2351,7 @@
       "fort_trigger": 7420,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Kokatese",
+      "system_name": "Kokatese",
       "um": 0,
       "um_trigger": 12807,
       "updated_at": 1662530894
@@ -2361,7 +2361,7 @@
       "fort_trigger": 5165,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "LP 940-115",
+      "system_name": "LP 940-115",
       "um": 0,
       "um_trigger": 38147,
       "updated_at": 1662530894
@@ -2371,7 +2371,7 @@
       "fort_trigger": 6563,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "LTT 9397",
+      "system_name": "LTT 9397",
       "um": 0,
       "um_trigger": 14689,
       "updated_at": 1662530894
@@ -2381,7 +2381,7 @@
       "fort_trigger": 6046,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "LTT 9795",
+      "system_name": "LTT 9795",
       "um": 0,
       "um_trigger": 16956,
       "updated_at": 1662530894
@@ -2391,7 +2391,7 @@
       "fort_trigger": 5915,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Lunduwalaya",
+      "system_name": "Lunduwalaya",
       "um": 0,
       "um_trigger": 10039,
       "updated_at": 1662530894
@@ -2401,7 +2401,7 @@
       "fort_trigger": 2920,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Maorsi",
+      "system_name": "Maorsi",
       "um": 0,
       "um_trigger": 18464,
       "updated_at": 1662530894
@@ -2411,7 +2411,7 @@
       "fort_trigger": 2819,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Omicron Gruis",
+      "system_name": "Omicron Gruis",
       "um": 0,
       "um_trigger": 20638,
       "updated_at": 1662530894
@@ -2421,7 +2421,7 @@
       "fort_trigger": 2730,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Orannika",
+      "system_name": "Orannika",
       "um": 0,
       "um_trigger": 23792,
       "updated_at": 1662530894
@@ -2431,7 +2431,7 @@
       "fort_trigger": 8569,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Oto",
+      "system_name": "Oto",
       "um": 0,
       "um_trigger": 11536,
       "updated_at": 1662530894
@@ -2441,7 +2441,7 @@
       "fort_trigger": 4143,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Paesi",
+      "system_name": "Paesi",
       "um": 0,
       "um_trigger": 11780,
       "updated_at": 1662530894
@@ -2451,7 +2451,7 @@
       "fort_trigger": 3338,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Pequen",
+      "system_name": "Pequen",
       "um": 0,
       "um_trigger": 14349,
       "updated_at": 1662530894
@@ -2461,7 +2461,7 @@
       "fort_trigger": 2845,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Picaurukan",
+      "system_name": "Picaurukan",
       "um": 0,
       "um_trigger": 19975,
       "updated_at": 1662530894
@@ -2471,7 +2471,7 @@
       "fort_trigger": 3791,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Regira",
+      "system_name": "Regira",
       "um": 0,
       "um_trigger": 12571,
       "updated_at": 1662530894
@@ -2481,7 +2481,7 @@
       "fort_trigger": 3983,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Shokondii",
+      "system_name": "Shokondii",
       "um": 0,
       "um_trigger": 12100,
       "updated_at": 1662530894
@@ -2491,7 +2491,7 @@
       "fort_trigger": 4151,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Smei Tsu",
+      "system_name": "Smei Tsu",
       "um": 0,
       "um_trigger": 11764,
       "updated_at": 1662530894
@@ -2501,7 +2501,7 @@
       "fort_trigger": 2672,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Thule",
+      "system_name": "Thule",
       "um": 0,
       "um_trigger": 27058,
       "updated_at": 1662530894
@@ -2511,7 +2511,7 @@
       "fort_trigger": 5629,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Tsim Binba",
+      "system_name": "Tsim Binba",
       "um": 0,
       "um_trigger": 20770,
       "updated_at": 1662530894
@@ -2521,7 +2521,7 @@
       "fort_trigger": 3645,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Tuareg",
+      "system_name": "Tuareg",
       "um": 0,
       "um_trigger": 13014,
       "updated_at": 1662530894
@@ -2531,7 +2531,7 @@
       "fort_trigger": 3128,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Turir",
+      "system_name": "Turir",
       "um": 0,
       "um_trigger": 15850,
       "updated_at": 1662530894
@@ -2541,7 +2541,7 @@
       "fort_trigger": 10153,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "V374 Pegasi",
+      "system_name": "V374 Pegasi",
       "um": 0,
       "um_trigger": 10608,
       "updated_at": 1662530894
@@ -2551,7 +2551,7 @@
       "fort_trigger": 2945,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Vaka",
+      "system_name": "Vaka",
       "um": 0,
       "um_trigger": 18039,
       "updated_at": 1662530894
@@ -2561,7 +2561,7 @@
       "fort_trigger": 2642,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Wong Guin",
+      "system_name": "Wong Guin",
       "um": 0,
       "um_trigger": 29546,
       "updated_at": 1662530894
@@ -2571,7 +2571,7 @@
       "fort_trigger": 5234,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Wuru",
+      "system_name": "Wuru",
       "um": 0,
       "um_trigger": 32356,
       "updated_at": 1662530894
@@ -2581,7 +2581,7 @@
       "fort_trigger": 5269,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Zelano",
+      "system_name": "Zelano",
       "um": 0,
       "um_trigger": 30327,
       "updated_at": 1662530894
@@ -2591,7 +2591,7 @@
       "fort_trigger": 3326,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Zemetii",
+      "system_name": "Zemetii",
       "um": 0,
       "um_trigger": 14416,
       "updated_at": 1662530894
@@ -2603,7 +2603,7 @@
       "fort_trigger": 3001,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "19 Leonis Minoris",
+      "system_name": "19 Leonis Minoris",
       "um": 0,
       "um_trigger": 17237,
       "updated_at": 1662530894
@@ -2613,7 +2613,7 @@
       "fort_trigger": 3661,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "37 Librae",
+      "system_name": "37 Librae",
       "um": 0,
       "um_trigger": 12961,
       "updated_at": 1662530894
@@ -2623,7 +2623,7 @@
       "fort_trigger": 4583,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "44 b Ophiuchi",
+      "system_name": "44 b Ophiuchi",
       "um": 0,
       "um_trigger": 11117,
       "updated_at": 1662530894
@@ -2633,7 +2633,7 @@
       "fort_trigger": 5230,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Akheilos",
+      "system_name": "Akheilos",
       "um": 0,
       "um_trigger": 32625,
       "updated_at": 1662530894
@@ -2643,7 +2643,7 @@
       "fort_trigger": 5241,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Alioth",
+      "system_name": "Alioth",
       "um": 0,
       "um_trigger": 31925,
       "updated_at": 1662530894
@@ -2653,7 +2653,7 @@
       "fort_trigger": 2684,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Alkaid",
+      "system_name": "Alkaid",
       "um": 0,
       "um_trigger": 26290,
       "updated_at": 1662530894
@@ -2663,7 +2663,7 @@
       "fort_trigger": 2648,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Anayol",
+      "system_name": "Anayol",
       "um": 0,
       "um_trigger": 29038,
       "updated_at": 1662530894
@@ -2673,7 +2673,7 @@
       "fort_trigger": 6907,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Ao Kond",
+      "system_name": "Ao Kond",
       "um": 570,
       "um_trigger": 9613,
       "updated_at": 1662530894
@@ -2683,7 +2683,7 @@
       "fort_trigger": 3192,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Arabh",
+      "system_name": "Arabh",
       "um": 0,
       "um_trigger": 15315,
       "updated_at": 1662530894
@@ -2693,7 +2693,7 @@
       "fort_trigger": 10831,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Aranbarahun",
+      "system_name": "Aranbarahun",
       "um": 0,
       "um_trigger": 10345,
       "updated_at": 1662530894
@@ -2703,7 +2703,7 @@
       "fort_trigger": 2636,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Ashtart",
+      "system_name": "Ashtart",
       "um": 0,
       "um_trigger": 30163,
       "updated_at": 1662530894
@@ -2713,7 +2713,7 @@
       "fort_trigger": 5917,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Audusiani",
+      "system_name": "Audusiani",
       "um": 0,
       "um_trigger": 10039,
       "updated_at": 1662530894
@@ -2723,7 +2723,7 @@
       "fort_trigger": 2668,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "BD+22 2742",
+      "system_name": "BD+22 2742",
       "um": 0,
       "um_trigger": 27394,
       "updated_at": 1662530894
@@ -2733,7 +2733,7 @@
       "fort_trigger": 3374,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "BD+66 696",
+      "system_name": "BD+66 696",
       "um": 0,
       "um_trigger": 14156,
       "updated_at": 1662530894
@@ -2743,7 +2743,7 @@
       "fort_trigger": 4301,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "BD-22 3573",
+      "system_name": "BD-22 3573",
       "um": 0,
       "um_trigger": 11510,
       "updated_at": 1662530894
@@ -2753,7 +2753,7 @@
       "fort_trigger": 5334,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "BPM 89444",
+      "system_name": "BPM 89444",
       "um": 0,
       "um_trigger": 27463,
       "updated_at": 1662530894
@@ -2763,7 +2763,7 @@
       "fort_trigger": 2702,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Bielonti",
+      "system_name": "Bielonti",
       "um": 0,
       "um_trigger": 25160,
       "updated_at": 1662530894
@@ -2773,7 +2773,7 @@
       "fort_trigger": 5118,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Bilfrost",
+      "system_name": "Bilfrost",
       "um": 0,
       "um_trigger": 44715,
       "updated_at": 1662530894
@@ -2783,7 +2783,7 @@
       "fort_trigger": 3589,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Bingui",
+      "system_name": "Bingui",
       "um": 0,
       "um_trigger": 13212,
       "updated_at": 1662530894
@@ -2793,7 +2793,7 @@
       "fort_trigger": 2541,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Boreas",
+      "system_name": "Boreas",
       "um": 0,
       "um_trigger": 53106,
       "updated_at": 1662530894
@@ -2803,7 +2803,7 @@
       "fort_trigger": 2953,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Bukurnabal",
+      "system_name": "Bukurnabal",
       "um": 0,
       "um_trigger": 17914,
       "updated_at": 1662530894
@@ -2813,7 +2813,7 @@
       "fort_trigger": 3149,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Caraceni",
+      "system_name": "Caraceni",
       "um": 0,
       "um_trigger": 15668,
       "updated_at": 1662530894
@@ -2823,7 +2823,7 @@
       "fort_trigger": 3946,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Cartoq",
+      "system_name": "Cartoq",
       "um": 0,
       "um_trigger": 12183,
       "updated_at": 1662530894
@@ -2833,7 +2833,7 @@
       "fort_trigger": 2780,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Circios",
+      "system_name": "Circios",
       "um": 0,
       "um_trigger": 21822,
       "updated_at": 1662530894
@@ -2843,7 +2843,7 @@
       "fort_trigger": 4205,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Codorain",
+      "system_name": "Codorain",
       "um": 0,
       "um_trigger": 11668,
       "updated_at": 1662530894
@@ -2853,7 +2853,7 @@
       "fort_trigger": 5921,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Contien",
+      "system_name": "Contien",
       "um": 0,
       "um_trigger": 10036,
       "updated_at": 1662530894
@@ -2863,7 +2863,7 @@
       "fort_trigger": 4284,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Crowfor",
+      "system_name": "Crowfor",
       "um": 0,
       "um_trigger": 11537,
       "updated_at": 1662530894
@@ -2873,7 +2873,7 @@
       "fort_trigger": 2998,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Cybele",
+      "system_name": "Cybele",
       "um": 0,
       "um_trigger": 17277,
       "updated_at": 1662530894
@@ -2883,7 +2883,7 @@
       "fort_trigger": 3927,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Daha",
+      "system_name": "Daha",
       "um": 0,
       "um_trigger": 12227,
       "updated_at": 1662530894
@@ -2893,7 +2893,7 @@
       "fort_trigger": 5043,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Dahambwe",
+      "system_name": "Dahambwe",
       "um": 0,
       "um_trigger": 10637,
       "updated_at": 1662530894
@@ -2903,7 +2903,7 @@
       "fort_trigger": 5867,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Dao Zi",
+      "system_name": "Dao Zi",
       "um": 0,
       "um_trigger": 18225,
       "updated_at": 1662530894
@@ -2913,7 +2913,7 @@
       "fort_trigger": 2589,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Dhanhopi",
+      "system_name": "Dhanhopi",
       "um": 0,
       "um_trigger": 36707,
       "updated_at": 1662530894
@@ -2923,7 +2923,7 @@
       "fort_trigger": 3436,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Esien Ming",
+      "system_name": "Esien Ming",
       "um": 0,
       "um_trigger": 13846,
       "updated_at": 1662530894
@@ -2933,7 +2933,7 @@
       "fort_trigger": 5402,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "FAUST 3566",
+      "system_name": "FAUST 3566",
       "um": 0,
       "um_trigger": 25245,
       "updated_at": 1662530894
@@ -2943,7 +2943,7 @@
       "fort_trigger": 2893,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Fedmich",
+      "system_name": "Fedmich",
       "um": 0,
       "um_trigger": 18946,
       "updated_at": 1662530894
@@ -2953,7 +2953,7 @@
       "fort_trigger": 2506,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Gateway",
+      "system_name": "Gateway",
       "um": 0,
       "um_trigger": 1000000000,
       "updated_at": 1662530894
@@ -2963,7 +2963,7 @@
       "fort_trigger": 3351,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Gendalla",
+      "system_name": "Gendalla",
       "um": 180,
       "um_trigger": 14278,
       "updated_at": 1662530894
@@ -2973,7 +2973,7 @@
       "fort_trigger": 8299,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Gui Banni",
+      "system_name": "Gui Banni",
       "um": 0,
       "um_trigger": 11767,
       "updated_at": 1662530894
@@ -2983,7 +2983,7 @@
       "fort_trigger": 3150,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "HIP 54536",
+      "system_name": "HIP 54536",
       "um": 0,
       "um_trigger": 15652,
       "updated_at": 1662530894
@@ -2993,7 +2993,7 @@
       "fort_trigger": 7562,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "HIP 54692",
+      "system_name": "HIP 54692",
       "um": 0,
       "um_trigger": 12598,
       "updated_at": 1662530894
@@ -3003,7 +3003,7 @@
       "fort_trigger": 3481,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "HIP 55118",
+      "system_name": "HIP 55118",
       "um": 0,
       "um_trigger": 13643,
       "updated_at": 1662530894
@@ -3013,7 +3013,7 @@
       "fort_trigger": 3372,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "HIP 58056",
+      "system_name": "HIP 58056",
       "um": 0,
       "um_trigger": 14167,
       "updated_at": 1662530894
@@ -3023,7 +3023,7 @@
       "fort_trigger": 4296,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "HIP 59879",
+      "system_name": "HIP 59879",
       "um": 0,
       "um_trigger": 11518,
       "updated_at": 1662530894
@@ -3033,7 +3033,7 @@
       "fort_trigger": 9269,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "HIP 62349",
+      "system_name": "HIP 62349",
       "um": 0,
       "um_trigger": 16215,
       "updated_at": 1662530894
@@ -3043,7 +3043,7 @@
       "fort_trigger": 3630,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "HIP 80243",
+      "system_name": "HIP 80243",
       "um": 0,
       "um_trigger": 13065,
       "updated_at": 1662530894
@@ -3053,7 +3053,7 @@
       "fort_trigger": 4495,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "HR 6328",
+      "system_name": "HR 6328",
       "um": 0,
       "um_trigger": 11230,
       "updated_at": 1662530894
@@ -3063,7 +3063,7 @@
       "fort_trigger": 4599,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "HR 8474",
+      "system_name": "HR 8474",
       "um": 0,
       "um_trigger": 11097,
       "updated_at": 1662530894
@@ -3073,7 +3073,7 @@
       "fort_trigger": 3160,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Helvetitj",
+      "system_name": "Helvetitj",
       "um": 0,
       "um_trigger": 15570,
       "updated_at": 1662530894
@@ -3083,7 +3083,7 @@
       "fort_trigger": 5410,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Hera",
+      "system_name": "Hera",
       "um": 0,
       "um_trigger": 25023,
       "updated_at": 1662530894
@@ -3093,7 +3093,7 @@
       "fort_trigger": 5646,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Holiacan",
+      "system_name": "Holiacan",
       "um": 0,
       "um_trigger": 20544,
       "updated_at": 1662530894
@@ -3103,7 +3103,7 @@
       "fort_trigger": 5112,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Hooriayan",
+      "system_name": "Hooriayan",
       "um": 0,
       "um_trigger": 45746,
       "updated_at": 1662530894
@@ -3113,7 +3113,7 @@
       "fort_trigger": 4014,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Ining",
+      "system_name": "Ining",
       "um": 0,
       "um_trigger": 12034,
       "updated_at": 1662530894
@@ -3123,7 +3123,7 @@
       "fort_trigger": 4870,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Insubii",
+      "system_name": "Insubii",
       "um": 0,
       "um_trigger": 10799,
       "updated_at": 1662530894
@@ -3133,7 +3133,7 @@
       "fort_trigger": 2657,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Ithaca",
+      "system_name": "Ithaca",
       "um": 0,
       "um_trigger": 28227,
       "updated_at": 1662530894
@@ -3143,7 +3143,7 @@
       "fort_trigger": 5140,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Kaal",
+      "system_name": "Kaal",
       "um": 0,
       "um_trigger": 41233,
       "updated_at": 1662530894
@@ -3153,7 +3153,7 @@
       "fort_trigger": 6060,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Kokoimudji",
+      "system_name": "Kokoimudji",
       "um": 0,
       "um_trigger": 9964,
       "updated_at": 1662530894
@@ -3163,7 +3163,7 @@
       "fort_trigger": 2957,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Kons",
+      "system_name": "Kons",
       "um": 0,
       "um_trigger": 17858,
       "updated_at": 1662530894
@@ -3173,7 +3173,7 @@
       "fort_trigger": 2672,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "LFT 820",
+      "system_name": "LFT 820",
       "um": 0,
       "um_trigger": 27112,
       "updated_at": 1662530894
@@ -3183,7 +3183,7 @@
       "fort_trigger": 6117,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "LHS 2405",
+      "system_name": "LHS 2405",
       "um": 0,
       "um_trigger": 16542,
       "updated_at": 1662530894
@@ -3193,7 +3193,7 @@
       "fort_trigger": 2533,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "LHS 2771",
+      "system_name": "LHS 2771",
       "um": 0,
       "um_trigger": 58794,
       "updated_at": 1662530894
@@ -3203,7 +3203,7 @@
       "fort_trigger": 5239,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "LHS 2936",
+      "system_name": "LHS 2936",
       "um": 0,
       "um_trigger": 32067,
       "updated_at": 1662530894
@@ -3213,7 +3213,7 @@
       "fort_trigger": 3827,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "LHS 3079",
+      "system_name": "LHS 3079",
       "um": 0,
       "um_trigger": 12473,
       "updated_at": 1662530894
@@ -3223,7 +3223,7 @@
       "fort_trigger": 5454,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "LHS 391",
+      "system_name": "LHS 391",
       "um": 0,
       "um_trigger": 23901,
       "updated_at": 1662530894
@@ -3233,7 +3233,7 @@
       "fort_trigger": 6555,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "LP 387-31",
+      "system_name": "LP 387-31",
       "um": 0,
       "um_trigger": 14714,
       "updated_at": 1662530894
@@ -3243,7 +3243,7 @@
       "fort_trigger": 2974,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "LP 621-11",
+      "system_name": "LP 621-11",
       "um": 0,
       "um_trigger": 17596,
       "updated_at": 1662530894
@@ -3253,7 +3253,7 @@
       "fort_trigger": 2643,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "LTT 14478",
+      "system_name": "LTT 14478",
       "um": 0,
       "um_trigger": 29450,
       "updated_at": 1662530894
@@ -3263,7 +3263,7 @@
       "fort_trigger": 3329,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "LTT 4461",
+      "system_name": "LTT 4461",
       "um": 0,
       "um_trigger": 14398,
       "updated_at": 1662530894
@@ -3273,7 +3273,7 @@
       "fort_trigger": 4403,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "LTT 5964",
+      "system_name": "LTT 5964",
       "um": 0,
       "um_trigger": 11356,
       "updated_at": 1662530894
@@ -3283,7 +3283,7 @@
       "fort_trigger": 3309,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "LTT 6139",
+      "system_name": "LTT 6139",
       "um": 0,
       "um_trigger": 14519,
       "updated_at": 1662530894
@@ -3293,7 +3293,7 @@
       "fort_trigger": 8785,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "La Tenha",
+      "system_name": "La Tenha",
       "um": 0,
       "um_trigger": 18312,
       "updated_at": 1662530894
@@ -3303,7 +3303,7 @@
       "fort_trigger": 4716,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Leesti",
+      "system_name": "Leesti",
       "um": 0,
       "um_trigger": 10961,
       "updated_at": 1662530894
@@ -3313,7 +3313,7 @@
       "fort_trigger": 4393,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Lugh",
+      "system_name": "Lugh",
       "um": 0,
       "um_trigger": 11371,
       "updated_at": 1662530894
@@ -3323,7 +3323,7 @@
       "fort_trigger": 2570,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "MCC 686",
+      "system_name": "MCC 686",
       "um": 0,
       "um_trigger": 41090,
       "updated_at": 1662530894
@@ -3333,7 +3333,7 @@
       "fort_trigger": 5766,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Manbatz",
+      "system_name": "Manbatz",
       "um": 2610,
       "um_trigger": 10122,
       "updated_at": 1662530894
@@ -3343,7 +3343,7 @@
       "fort_trigger": 7868,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Marasing",
+      "system_name": "Marasing",
       "um": 0,
       "um_trigger": 12210,
       "updated_at": 1662530894
@@ -3353,7 +3353,7 @@
       "fort_trigger": 3758,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Marralteki",
+      "system_name": "Marralteki",
       "um": 0,
       "um_trigger": 12664,
       "updated_at": 1662530894
@@ -3363,7 +3363,7 @@
       "fort_trigger": 6891,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Meenates",
+      "system_name": "Meenates",
       "um": 0,
       "um_trigger": 13801,
       "updated_at": 1662530894
@@ -3373,7 +3373,7 @@
       "fort_trigger": 2899,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Mereboga",
+      "system_name": "Mereboga",
       "um": 0,
       "um_trigger": 18830,
       "updated_at": 1662530894
@@ -3383,7 +3383,7 @@
       "fort_trigger": 5264,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Mong Kung",
+      "system_name": "Mong Kung",
       "um": 0,
       "um_trigger": 30612,
       "updated_at": 1662530894
@@ -3393,7 +3393,7 @@
       "fort_trigger": 3488,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Mongatha",
+      "system_name": "Mongatha",
       "um": 0,
       "um_trigger": 13613,
       "updated_at": 1662530894
@@ -3403,7 +3403,7 @@
       "fort_trigger": 2847,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Mullag",
+      "system_name": "Mullag",
       "um": 0,
       "um_trigger": 19940,
       "updated_at": 1662530894
@@ -3413,7 +3413,7 @@
       "fort_trigger": 3159,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "NLTT 44958",
+      "system_name": "NLTT 44958",
       "um": 0,
       "um_trigger": 15579,
       "updated_at": 1662530894
@@ -3423,7 +3423,7 @@
       "fort_trigger": 3090,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Nagybold",
+      "system_name": "Nagybold",
       "um": 0,
       "um_trigger": 16213,
       "updated_at": 1662530894
@@ -3433,7 +3433,7 @@
       "fort_trigger": 2524,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Namaka",
+      "system_name": "Namaka",
       "um": 0,
       "um_trigger": 67234,
       "updated_at": 1662530894
@@ -3443,7 +3443,7 @@
       "fort_trigger": 4435,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Nemetes",
+      "system_name": "Nemetes",
       "um": 0,
       "um_trigger": 11311,
       "updated_at": 1662530894
@@ -3453,7 +3453,7 @@
       "fort_trigger": 2650,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Nevermore",
+      "system_name": "Nevermore",
       "um": 0,
       "um_trigger": 28839,
       "updated_at": 1662530894
@@ -3463,7 +3463,7 @@
       "fort_trigger": 5652,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Olelbis",
+      "system_name": "Olelbis",
       "um": 1950,
       "um_trigger": 10190,
       "updated_at": 1662530894
@@ -3473,7 +3473,7 @@
       "fort_trigger": 3043,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Olker",
+      "system_name": "Olker",
       "um": 30,
       "um_trigger": 16720,
       "updated_at": 1662530894
@@ -3483,7 +3483,7 @@
       "fort_trigger": 2827,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Olwain",
+      "system_name": "Olwain",
       "um": 0,
       "um_trigger": 20447,
       "updated_at": 1662530894
@@ -3493,7 +3493,7 @@
       "fort_trigger": 2818,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Opala",
+      "system_name": "Opala",
       "um": 0,
       "um_trigger": 20667,
       "updated_at": 1662530894
@@ -3503,7 +3503,7 @@
       "fort_trigger": 2792,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Pared",
+      "system_name": "Pared",
       "um": 0,
       "um_trigger": 21431,
       "updated_at": 1662530894
@@ -3513,7 +3513,7 @@
       "fort_trigger": 2684,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Peckollerci",
+      "system_name": "Peckollerci",
       "um": 0,
       "um_trigger": 26252,
       "updated_at": 1662530894
@@ -3523,7 +3523,7 @@
       "fort_trigger": 6244,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Pongo",
+      "system_name": "Pongo",
       "um": 0,
       "um_trigger": 9877,
       "updated_at": 1662530894
@@ -3533,7 +3533,7 @@
       "fort_trigger": 4304,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Pontae",
+      "system_name": "Pontae",
       "um": 0,
       "um_trigger": 11505,
       "updated_at": 1662530894
@@ -3543,7 +3543,7 @@
       "fort_trigger": 2790,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Praecipua",
+      "system_name": "Praecipua",
       "um": 0,
       "um_trigger": 21496,
       "updated_at": 1662530894
@@ -3553,7 +3553,7 @@
       "fort_trigger": 4204,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Ross 842",
+      "system_name": "Ross 842",
       "um": 0,
       "um_trigger": 11671,
       "updated_at": 1662530894
@@ -3563,7 +3563,7 @@
       "fort_trigger": 6257,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Ross 860",
+      "system_name": "Ross 860",
       "um": 0,
       "um_trigger": 15846,
       "updated_at": 1662530894
@@ -3573,7 +3573,7 @@
       "fort_trigger": 3371,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Ross 94",
+      "system_name": "Ross 94",
       "um": 0,
       "um_trigger": 14169,
       "updated_at": 1662530894
@@ -3583,7 +3583,7 @@
       "fort_trigger": 3929,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Sabikami",
+      "system_name": "Sabikami",
       "um": 0,
       "um_trigger": 12221,
       "updated_at": 1662530894
@@ -3593,7 +3593,7 @@
       "fort_trigger": 2976,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "San Tu",
+      "system_name": "San Tu",
       "um": 7320,
       "um_trigger": 17576,
       "updated_at": 1662530894
@@ -3603,7 +3603,7 @@
       "fort_trigger": 5195,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Soholia",
+      "system_name": "Soholia",
       "um": 0,
       "um_trigger": 35280,
       "updated_at": 1662530894
@@ -3613,7 +3613,7 @@
       "fort_trigger": 2665,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Tau Bootis",
+      "system_name": "Tau Bootis",
       "um": 0,
       "um_trigger": 27632,
       "updated_at": 1662530894
@@ -3623,7 +3623,7 @@
       "fort_trigger": 4977,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Tikurua",
+      "system_name": "Tikurua",
       "um": 0,
       "um_trigger": 10697,
       "updated_at": 1662530894
@@ -3633,7 +3633,7 @@
       "fort_trigger": 4339,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Tricorii",
+      "system_name": "Tricorii",
       "um": 0,
       "um_trigger": 11451,
       "updated_at": 1662530894
@@ -3643,7 +3643,7 @@
       "fort_trigger": 7893,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Tsu",
+      "system_name": "Tsu",
       "um": 0,
       "um_trigger": 30698,
       "updated_at": 1662530894
@@ -3653,7 +3653,7 @@
       "fort_trigger": 3118,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Unkuar",
+      "system_name": "Unkuar",
       "um": 0,
       "um_trigger": 15945,
       "updated_at": 1662530894
@@ -3663,7 +3663,7 @@
       "fort_trigger": 3618,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Urarina",
+      "system_name": "Urarina",
       "um": 0,
       "um_trigger": 13108,
       "updated_at": 1662530894
@@ -3673,7 +3673,7 @@
       "fort_trigger": 3647,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "V2578 Ophiuchii",
+      "system_name": "V2578 Ophiuchii",
       "um": 0,
       "um_trigger": 13009,
       "updated_at": 1662530894
@@ -3683,7 +3683,7 @@
       "fort_trigger": 5369,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "V371 Normae",
+      "system_name": "V371 Normae",
       "um": 0,
       "um_trigger": 10378,
       "updated_at": 1662530894
@@ -3693,7 +3693,7 @@
       "fort_trigger": 6866,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Varam",
+      "system_name": "Varam",
       "um": 0,
       "um_trigger": 13860,
       "updated_at": 1662530894
@@ -3703,7 +3703,7 @@
       "fort_trigger": 2706,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Wolf 411",
+      "system_name": "Wolf 411",
       "um": 0,
       "um_trigger": 24983,
       "updated_at": 1662530894
@@ -3713,7 +3713,7 @@
       "fort_trigger": 2537,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Wolf 412",
+      "system_name": "Wolf 412",
       "um": 0,
       "um_trigger": 55795,
       "updated_at": 1662530894
@@ -3723,7 +3723,7 @@
       "fort_trigger": 4119,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Woloniugo",
+      "system_name": "Woloniugo",
       "um": 0,
       "um_trigger": 11824,
       "updated_at": 1662530894
@@ -3733,7 +3733,7 @@
       "fort_trigger": 2762,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Zosi",
+      "system_name": "Zosi",
       "um": 0,
       "um_trigger": 22447,
       "updated_at": 1662530894
@@ -3745,7 +3745,7 @@
       "fort_trigger": 2518,
       "held_merits": 0,
       "held_updated_at": 1662498712,
-      "name": "18 Puppis",
+      "system_name": "18 Puppis",
       "um": 0,
       "um_trigger": 51219,
       "updated_at": 1662530894
@@ -3755,7 +3755,7 @@
       "fort_trigger": 2911,
       "held_merits": 0,
       "held_updated_at": 1662498737,
-      "name": "41 Lambda Hydrae",
+      "system_name": "41 Lambda Hydrae",
       "um": 0,
       "um_trigger": 12405,
       "updated_at": 1662530894
@@ -3765,7 +3765,7 @@
       "fort_trigger": 5233,
       "held_merits": 0,
       "held_updated_at": 1662498761,
-      "name": "54 G. Antlia",
+      "system_name": "54 G. Antlia",
       "um": 0,
       "um_trigger": 21600,
       "updated_at": 1662530894
@@ -3775,7 +3775,7 @@
       "fort_trigger": 3563,
       "held_merits": 0,
       "held_updated_at": 1662498784,
-      "name": "Albicevci",
+      "system_name": "Albicevci",
       "um": 0,
       "um_trigger": 8873,
       "updated_at": 1662530894
@@ -3785,7 +3785,7 @@
       "fort_trigger": 8322,
       "held_merits": 0,
       "held_updated_at": 1662498808,
-      "name": "Asetsi",
+      "system_name": "Asetsi",
       "um": 0,
       "um_trigger": 7831,
       "updated_at": 1662530894
@@ -3795,7 +3795,7 @@
       "fort_trigger": 11954,
       "held_merits": 0,
       "held_updated_at": 1662498831,
-      "name": "Atat",
+      "system_name": "Atat",
       "um": 0,
       "um_trigger": 6671,
       "updated_at": 1662530894
@@ -3805,7 +3805,7 @@
       "fort_trigger": 3136,
       "held_merits": 0,
       "held_updated_at": 1662498854,
-      "name": "BD-01 1707",
+      "system_name": "BD-01 1707",
       "um": 0,
       "um_trigger": 10521,
       "updated_at": 1662530894
@@ -3815,7 +3815,7 @@
       "fort_trigger": 5844,
       "held_merits": 0,
       "held_updated_at": 1662498879,
-      "name": "Belgitan",
+      "system_name": "Belgitan",
       "um": 0,
       "um_trigger": 6719,
       "updated_at": 1662530894
@@ -3825,7 +3825,7 @@
       "fort_trigger": 2642,
       "held_merits": 0,
       "held_updated_at": 1662498901,
-      "name": "Binjamingi",
+      "system_name": "Binjamingi",
       "um": 0,
       "um_trigger": 19704,
       "updated_at": 1662530894
@@ -3835,7 +3835,7 @@
       "fort_trigger": 20091,
       "held_merits": 480,
       "held_updated_at": 1662498926,
-      "name": "CD-73 12",
+      "system_name": "CD-73 12",
       "um": 2370,
       "um_trigger": 6459,
       "updated_at": 1662530894
@@ -3845,7 +3845,7 @@
       "fort_trigger": 13599,
       "held_merits": 810,
       "held_updated_at": 1662498949,
-      "name": "Chun Tstar",
+      "system_name": "Chun Tstar",
       "um": 3240,
       "um_trigger": 7453,
       "updated_at": 1662530894
@@ -3855,7 +3855,7 @@
       "fort_trigger": 2642,
       "held_merits": 0,
       "held_updated_at": 1662498972,
-      "name": "Elli",
+      "system_name": "Elli",
       "um": 390,
       "um_trigger": 19684,
       "updated_at": 1662530894
@@ -3865,7 +3865,7 @@
       "fort_trigger": 4772,
       "held_merits": 0,
       "held_updated_at": 1662498996,
-      "name": "Elycoch",
+      "system_name": "Elycoch",
       "um": 0,
       "um_trigger": 7267,
       "updated_at": 1662530894
@@ -3875,7 +3875,7 @@
       "fort_trigger": 2646,
       "held_merits": 0,
       "held_updated_at": 1662499019,
-      "name": "Erivit",
+      "system_name": "Erivit",
       "um": 0,
       "um_trigger": 19490,
       "updated_at": 1662530894
@@ -3885,7 +3885,7 @@
       "fort_trigger": 2608,
       "held_merits": 0,
       "held_updated_at": 1662499043,
-      "name": "Fan Yin",
+      "system_name": "Fan Yin",
       "um": 0,
       "um_trigger": 22411,
       "updated_at": 1662530894
@@ -3895,7 +3895,7 @@
       "fort_trigger": 2626,
       "held_merits": 60,
       "held_updated_at": 1662499066,
-      "name": "Fousang",
+      "system_name": "Fousang",
       "um": 60,
       "um_trigger": 20813,
       "updated_at": 1662530894
@@ -3905,7 +3905,7 @@
       "fort_trigger": 3737,
       "held_merits": 0,
       "held_updated_at": 1662499136,
-      "name": "HIP 38747",
+      "system_name": "HIP 38747",
       "um": 0,
       "um_trigger": 8483,
       "updated_at": 1662530894
@@ -3915,7 +3915,7 @@
       "fort_trigger": 16660,
       "held_merits": 0,
       "held_updated_at": 1662499160,
-      "name": "HIP 48095",
+      "system_name": "HIP 48095",
       "um": 1710,
       "um_trigger": 6835,
       "updated_at": 1662530894
@@ -3925,7 +3925,7 @@
       "fort_trigger": 4277,
       "held_merits": 0,
       "held_updated_at": 1662499183,
-      "name": "HIP 50489",
+      "system_name": "HIP 50489",
       "um": 0,
       "um_trigger": 7699,
       "updated_at": 1662530894
@@ -3935,7 +3935,7 @@
       "fort_trigger": 7339,
       "held_merits": 120,
       "held_updated_at": 1662499090,
-      "name": "Harima",
+      "system_name": "Harima",
       "um": 360,
       "um_trigger": 8623,
       "updated_at": 1662530894
@@ -3945,7 +3945,7 @@
       "fort_trigger": 5954,
       "held_merits": 0,
       "held_updated_at": 1662499113,
-      "name": "Hikenk",
+      "system_name": "Hikenk",
       "um": 0,
       "um_trigger": 6679,
       "updated_at": 1662530894
@@ -3955,7 +3955,7 @@
       "fort_trigger": 2765,
       "held_merits": 0,
       "held_updated_at": 1662499207,
-      "name": "Kali",
+      "system_name": "Kali",
       "um": 0,
       "um_trigger": 14904,
       "updated_at": 1662530894
@@ -3965,7 +3965,7 @@
       "fort_trigger": 2614,
       "held_merits": 0,
       "held_updated_at": 1662452173,
-      "name": "Kanati",
+      "system_name": "Kanati",
       "um": 0,
       "um_trigger": 21793,
       "updated_at": 1662530894
@@ -3975,7 +3975,7 @@
       "fort_trigger": 2924,
       "held_merits": 0,
       "held_updated_at": 1662453352,
-      "name": "Karnarki",
+      "system_name": "Karnarki",
       "um": 0,
       "um_trigger": 12255,
       "updated_at": 1662530894
@@ -3985,7 +3985,7 @@
       "fort_trigger": 2709,
       "held_merits": 0,
       "held_updated_at": 1662453377,
-      "name": "Kaura",
+      "system_name": "Kaura",
       "um": 180,
       "um_trigger": 16546,
       "updated_at": 1662530894
@@ -3995,7 +3995,7 @@
       "fort_trigger": 5273,
       "held_merits": 0,
       "held_updated_at": 1662453424,
-      "name": "LFT 601",
+      "system_name": "LFT 601",
       "um": 0,
       "um_trigger": 20091,
       "updated_at": 1662530894
@@ -4005,7 +4005,7 @@
       "fort_trigger": 5331,
       "held_merits": 0,
       "held_updated_at": 1662453447,
-      "name": "LHS 1887",
+      "system_name": "LHS 1887",
       "um": 60,
       "um_trigger": 18366,
       "updated_at": 1662530894
@@ -4015,7 +4015,7 @@
       "fort_trigger": 7978,
       "held_merits": 0,
       "held_updated_at": 1662453470,
-      "name": "LHS 1928",
+      "system_name": "LHS 1928",
       "um": 0,
       "um_trigger": 18696,
       "updated_at": 1662530894
@@ -4025,7 +4025,7 @@
       "fort_trigger": 2880,
       "held_merits": 0,
       "held_updated_at": 1662453495,
-      "name": "LHS 6197",
+      "system_name": "LHS 6197",
       "um": 0,
       "um_trigger": 12814,
       "updated_at": 1662530894
@@ -4035,7 +4035,7 @@
       "fort_trigger": 3222,
       "held_merits": 540,
       "held_updated_at": 1662453518,
-      "name": "LP 490-68",
+      "system_name": "LP 490-68",
       "um": 0,
       "um_trigger": 10062,
       "updated_at": 1662530894
@@ -4045,7 +4045,7 @@
       "fort_trigger": 2706,
       "held_merits": 0,
       "held_updated_at": 1662453541,
-      "name": "LP 906-9",
+      "system_name": "LP 906-9",
       "um": 0,
       "um_trigger": 16632,
       "updated_at": 1662530894
@@ -4055,7 +4055,7 @@
       "fort_trigger": 6790,
       "held_merits": 150,
       "held_updated_at": 1662453565,
-      "name": "LPM 229",
+      "system_name": "LPM 229",
       "um": 270,
       "um_trigger": 9364,
       "updated_at": 1662530894
@@ -4065,7 +4065,7 @@
       "fort_trigger": 10221,
       "held_merits": 1410,
       "held_updated_at": 1662453400,
-      "name": "Lei Kax",
+      "system_name": "Lei Kax",
       "um": 6090,
       "um_trigger": 7053,
       "updated_at": 1662530894
@@ -4075,7 +4075,7 @@
       "fort_trigger": 3605,
       "held_merits": 0,
       "held_updated_at": 1662453588,
-      "name": "Lulua",
+      "system_name": "Lulua",
       "um": 0,
       "um_trigger": 8768,
       "updated_at": 1662530894
@@ -4085,7 +4085,7 @@
       "fort_trigger": 6876,
       "held_merits": 0,
       "held_updated_at": 1662453612,
-      "name": "Lundji",
+      "system_name": "Lundji",
       "um": 0,
       "um_trigger": 6416,
       "updated_at": 1662530894
@@ -4095,7 +4095,7 @@
       "fort_trigger": 14143,
       "held_merits": 0,
       "held_updated_at": 1662453635,
-      "name": "Matipu",
+      "system_name": "Matipu",
       "um": 0,
       "um_trigger": 6372,
       "updated_at": 1662530894
@@ -4105,7 +4105,7 @@
       "fort_trigger": 3014,
       "held_merits": 0,
       "held_updated_at": 1662453658,
-      "name": "Mbambiva",
+      "system_name": "Mbambiva",
       "um": 0,
       "um_trigger": 11374,
       "updated_at": 1662530894
@@ -4115,7 +4115,7 @@
       "fort_trigger": 2550,
       "held_merits": 0,
       "held_updated_at": 1662453682,
-      "name": "Mexicatese",
+      "system_name": "Mexicatese",
       "um": 0,
       "um_trigger": 32258,
       "updated_at": 1662530894
@@ -4125,7 +4125,7 @@
       "fort_trigger": 2623,
       "held_merits": 0,
       "held_updated_at": 1662453705,
-      "name": "Momoirent",
+      "system_name": "Momoirent",
       "um": 0,
       "um_trigger": 21041,
       "updated_at": 1662530894
@@ -4135,7 +4135,7 @@
       "fort_trigger": 2539,
       "held_merits": 0,
       "held_updated_at": 1662453776,
-      "name": "NLTT 19808",
+      "system_name": "NLTT 19808",
       "um": 0,
       "um_trigger": 36272,
       "updated_at": 1662530894
@@ -4145,7 +4145,7 @@
       "fort_trigger": 2590,
       "held_merits": 0,
       "held_updated_at": 1662453729,
-      "name": "Namte",
+      "system_name": "Namte",
       "um": 0,
       "um_trigger": 24364,
       "updated_at": 1662530894
@@ -4155,7 +4155,7 @@
       "fort_trigger": 2535,
       "held_merits": 0,
       "held_updated_at": 1662453752,
-      "name": "Neche",
+      "system_name": "Neche",
       "um": 0,
       "um_trigger": 37929,
       "updated_at": 1662530894
@@ -4165,7 +4165,7 @@
       "fort_trigger": 3668,
       "held_merits": 0,
       "held_updated_at": 1662453800,
-      "name": "Nunuri",
+      "system_name": "Nunuri",
       "um": 0,
       "um_trigger": 8627,
       "updated_at": 1662530894
@@ -4175,7 +4175,7 @@
       "fort_trigger": 2506,
       "held_merits": 0,
       "held_updated_at": 1662453822,
-      "name": "Rhea",
+      "system_name": "Rhea",
       "um": 0,
       "um_trigger": 1000000000,
       "updated_at": 1662530894
@@ -4185,7 +4185,7 @@
       "fort_trigger": 6736,
       "held_merits": 0,
       "held_updated_at": 1662453846,
-      "name": "Robor",
+      "system_name": "Robor",
       "um": 0,
       "um_trigger": 9457,
       "updated_at": 1662530894
@@ -4195,7 +4195,7 @@
       "fort_trigger": 2714,
       "held_merits": 0,
       "held_updated_at": 1662453870,
-      "name": "Sanos",
+      "system_name": "Sanos",
       "um": 0,
       "um_trigger": 16354,
       "updated_at": 1662530894
@@ -4205,7 +4205,7 @@
       "fort_trigger": 3395,
       "held_merits": 0,
       "held_updated_at": 1662453893,
-      "name": "Siki",
+      "system_name": "Siki",
       "um": 750,
       "um_trigger": 9362,
       "updated_at": 1662530894
@@ -4215,7 +4215,7 @@
       "fort_trigger": 8108,
       "held_merits": 0,
       "held_updated_at": 1662453917,
-      "name": "Uteran",
+      "system_name": "Uteran",
       "um": 0,
       "um_trigger": 16765,
       "updated_at": 1662530894
@@ -4225,7 +4225,7 @@
       "fort_trigger": 6734,
       "held_merits": 0,
       "held_updated_at": 1662453940,
-      "name": "Xiriwal",
+      "system_name": "Xiriwal",
       "um": 0,
       "um_trigger": 9461,
       "updated_at": 1662530894
@@ -4237,7 +4237,7 @@
       "fort_trigger": 2682,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "64 Ceti",
+      "system_name": "64 Ceti",
       "um": 0,
       "um_trigger": 26377,
       "updated_at": 1662530894
@@ -4247,7 +4247,7 @@
       "fort_trigger": 3260,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Akkadia",
+      "system_name": "Akkadia",
       "um": 0,
       "um_trigger": 14827,
       "updated_at": 1662530894
@@ -4257,7 +4257,7 @@
       "fort_trigger": 2555,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Amenniya",
+      "system_name": "Amenniya",
       "um": 0,
       "um_trigger": 46257,
       "updated_at": 1662530894
@@ -4267,7 +4267,7 @@
       "fort_trigger": 3851,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Apadecavi",
+      "system_name": "Apadecavi",
       "um": 0,
       "um_trigger": 12411,
       "updated_at": 1662530894
@@ -4277,7 +4277,7 @@
       "fort_trigger": 3395,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Apalok",
+      "system_name": "Apalok",
       "um": 0,
       "um_trigger": 14045,
       "updated_at": 1662530894
@@ -4287,7 +4287,7 @@
       "fort_trigger": 3006,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "BD+43 866",
+      "system_name": "BD+43 866",
       "um": 0,
       "um_trigger": 17165,
       "updated_at": 1662530894
@@ -4297,7 +4297,7 @@
       "fort_trigger": 7047,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "BD+49 1280",
+      "system_name": "BD+49 1280",
       "um": 0,
       "um_trigger": 13463,
       "updated_at": 1662530894
@@ -4307,7 +4307,7 @@
       "fort_trigger": 3202,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "BD-15 447",
+      "system_name": "BD-15 447",
       "um": 0,
       "um_trigger": 15237,
       "updated_at": 1662530894
@@ -4317,7 +4317,7 @@
       "fort_trigger": 5163,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Balante",
+      "system_name": "Balante",
       "um": 90,
       "um_trigger": 38352,
       "updated_at": 1662530894
@@ -4327,7 +4327,7 @@
       "fort_trigger": 4428,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Betel",
+      "system_name": "Betel",
       "um": 0,
       "um_trigger": 11320,
       "updated_at": 1662530894
@@ -4337,7 +4337,7 @@
       "fort_trigger": 2575,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Caberani",
+      "system_name": "Caberani",
       "um": 0,
       "um_trigger": 39865,
       "updated_at": 1662530894
@@ -4347,7 +4347,7 @@
       "fort_trigger": 2588,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Dinda",
+      "system_name": "Dinda",
       "um": 0,
       "um_trigger": 37020,
       "updated_at": 1662530894
@@ -4357,7 +4357,7 @@
       "fort_trigger": 5277,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Draguan Nu",
+      "system_name": "Draguan Nu",
       "um": 0,
       "um_trigger": 29896,
       "updated_at": 1662530894
@@ -4367,7 +4367,7 @@
       "fort_trigger": 5484,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Ebor",
+      "system_name": "Ebor",
       "um": 0,
       "um_trigger": 23242,
       "updated_at": 1662530894
@@ -4377,7 +4377,7 @@
       "fort_trigger": 5359,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Fiden",
+      "system_name": "Fiden",
       "um": 0,
       "um_trigger": 26557,
       "updated_at": 1662530894
@@ -4387,7 +4387,7 @@
       "fort_trigger": 2933,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "G 35-15",
+      "system_name": "G 35-15",
       "um": 0,
       "um_trigger": 18242,
       "updated_at": 1662530894
@@ -4397,7 +4397,7 @@
       "fort_trigger": 2775,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Gliese 9106",
+      "system_name": "Gliese 9106",
       "um": 0,
       "um_trigger": 21981,
       "updated_at": 1662530894
@@ -4407,7 +4407,7 @@
       "fort_trigger": 5831,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "HIP 13291",
+      "system_name": "HIP 13291",
       "um": 0,
       "um_trigger": 18540,
       "updated_at": 1662530894
@@ -4417,7 +4417,7 @@
       "fort_trigger": 5126,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "HIP 13644",
+      "system_name": "HIP 13644",
       "um": 0,
       "um_trigger": 43381,
       "updated_at": 1662530894
@@ -4427,7 +4427,7 @@
       "fort_trigger": 5691,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "HIP 16529",
+      "system_name": "HIP 16529",
       "um": 0,
       "um_trigger": 19970,
       "updated_at": 1662530894
@@ -4437,7 +4437,7 @@
       "fort_trigger": 3571,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "HIP 20577",
+      "system_name": "HIP 20577",
       "um": 0,
       "um_trigger": 13279,
       "updated_at": 1662530894
@@ -4447,7 +4447,7 @@
       "fort_trigger": 3313,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "HIP 20935",
+      "system_name": "HIP 20935",
       "um": 0,
       "um_trigger": 14497,
       "updated_at": 1662530894
@@ -4457,7 +4457,7 @@
       "fort_trigger": 3514,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "HIP 23395",
+      "system_name": "HIP 23395",
       "um": 0,
       "um_trigger": 13504,
       "updated_at": 1662530894
@@ -4467,7 +4467,7 @@
       "fort_trigger": 5863,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "HR 1254",
+      "system_name": "HR 1254",
       "um": 0,
       "um_trigger": 18263,
       "updated_at": 1662530894
@@ -4477,7 +4477,7 @@
       "fort_trigger": 2586,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Hedetet",
+      "system_name": "Hedetet",
       "um": 0,
       "um_trigger": 37392,
       "updated_at": 1662530894
@@ -4487,7 +4487,7 @@
       "fort_trigger": 5428,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Hel",
+      "system_name": "Hel",
       "um": 0,
       "um_trigger": 24539,
       "updated_at": 1662530894
@@ -4497,7 +4497,7 @@
       "fort_trigger": 2656,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Hoff",
+      "system_name": "Hoff",
       "um": 0,
       "um_trigger": 28306,
       "updated_at": 1662530894
@@ -4507,7 +4507,7 @@
       "fort_trigger": 4572,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Holvandalla",
+      "system_name": "Holvandalla",
       "um": 0,
       "um_trigger": 11131,
       "updated_at": 1662530894
@@ -4517,7 +4517,7 @@
       "fort_trigger": 4503,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Hyades Sector EB-X d1-110",
+      "system_name": "Hyades Sector EB-X d1-110",
       "um": 0,
       "um_trigger": 11219,
       "updated_at": 1662530894
@@ -4527,7 +4527,7 @@
       "fort_trigger": 3645,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Ix",
+      "system_name": "Ix",
       "um": 0,
       "um_trigger": 13014,
       "updated_at": 1662530894
@@ -4537,7 +4537,7 @@
       "fort_trigger": 2527,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Kalak",
+      "system_name": "Kalak",
       "um": 0,
       "um_trigger": 63594,
       "updated_at": 1662530894
@@ -4547,7 +4547,7 @@
       "fort_trigger": 2597,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Kotigeni",
+      "system_name": "Kotigeni",
       "um": 0,
       "um_trigger": 35285,
       "updated_at": 1662530894
@@ -4557,7 +4557,7 @@
       "fort_trigger": 2703,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Kutnigi",
+      "system_name": "Kutnigi",
       "um": 0,
       "um_trigger": 25129,
       "updated_at": 1662530894
@@ -4567,7 +4567,7 @@
       "fort_trigger": 2593,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "LHS 1246",
+      "system_name": "LHS 1246",
       "um": 0,
       "um_trigger": 36123,
       "updated_at": 1662530894
@@ -4577,7 +4577,7 @@
       "fort_trigger": 6547,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "LHS 1743",
+      "system_name": "LHS 1743",
       "um": 0,
       "um_trigger": 14738,
       "updated_at": 1662530894
@@ -4587,7 +4587,7 @@
       "fort_trigger": 5421,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "LP 295-2",
+      "system_name": "LP 295-2",
       "um": 0,
       "um_trigger": 24731,
       "updated_at": 1662530894
@@ -4597,7 +4597,7 @@
       "fort_trigger": 2769,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "LP 355-65",
+      "system_name": "LP 355-65",
       "um": 0,
       "um_trigger": 22218,
       "updated_at": 1662530894
@@ -4607,7 +4607,7 @@
       "fort_trigger": 6256,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "LTT 11478",
+      "system_name": "LTT 11478",
       "um": 0,
       "um_trigger": 15849,
       "updated_at": 1662530894
@@ -4617,7 +4617,7 @@
       "fort_trigger": 2556,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Lalande 4141",
+      "system_name": "Lalande 4141",
       "um": 0,
       "um_trigger": 45937,
       "updated_at": 1662530894
@@ -4627,7 +4627,7 @@
       "fort_trigger": 2787,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Lalande 4268",
+      "system_name": "Lalande 4268",
       "um": 0,
       "um_trigger": 21582,
       "updated_at": 1662530894
@@ -4637,7 +4637,7 @@
       "fort_trigger": 2506,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Lembava",
+      "system_name": "Lembava",
       "um": 0,
       "um_trigger": 1000000000,
       "updated_at": 1662530894
@@ -4647,7 +4647,7 @@
       "fort_trigger": 5053,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "MET 20",
+      "system_name": "MET 20",
       "um": 0,
       "um_trigger": 64450,
       "updated_at": 1662530894
@@ -4657,7 +4657,7 @@
       "fort_trigger": 3423,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Maikoro",
+      "system_name": "Maikoro",
       "um": 0,
       "um_trigger": 13908,
       "updated_at": 1662530894
@@ -4667,7 +4667,7 @@
       "fort_trigger": 2847,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Meiri",
+      "system_name": "Meiri",
       "um": 0,
       "um_trigger": 19951,
       "updated_at": 1662530894
@@ -4677,7 +4677,7 @@
       "fort_trigger": 2799,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Metzili",
+      "system_name": "Metzili",
       "um": 0,
       "um_trigger": 21208,
       "updated_at": 1662530894
@@ -4687,7 +4687,7 @@
       "fort_trigger": 5112,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Mitnahas",
+      "system_name": "Mitnahas",
       "um": 0,
       "um_trigger": 45778,
       "updated_at": 1662530894
@@ -4697,7 +4697,7 @@
       "fort_trigger": 2551,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Momus Reach",
+      "system_name": "Momus Reach",
       "um": 0,
       "um_trigger": 47930,
       "updated_at": 1662530894
@@ -4707,7 +4707,7 @@
       "fort_trigger": 5258,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Obato",
+      "system_name": "Obato",
       "um": 0,
       "um_trigger": 30925,
       "updated_at": 1662530894
@@ -4717,7 +4717,7 @@
       "fort_trigger": 2536,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Parenni",
+      "system_name": "Parenni",
       "um": 0,
       "um_trigger": 56458,
       "updated_at": 1662530894
@@ -4727,7 +4727,7 @@
       "fort_trigger": 2564,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Purut",
+      "system_name": "Purut",
       "um": 0,
       "um_trigger": 43059,
       "updated_at": 1662530894
@@ -4737,7 +4737,7 @@
       "fort_trigger": 2611,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Qi Yomisii",
+      "system_name": "Qi Yomisii",
       "um": 0,
       "um_trigger": 33237,
       "updated_at": 1662530894
@@ -4747,7 +4747,7 @@
       "fort_trigger": 5337,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Shana Bei",
+      "system_name": "Shana Bei",
       "um": 0,
       "um_trigger": 27316,
       "updated_at": 1662530894
@@ -4757,7 +4757,7 @@
       "fort_trigger": 6946,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Sietae",
+      "system_name": "Sietae",
       "um": 0,
       "um_trigger": 13677,
       "updated_at": 1662530894
@@ -4767,7 +4767,7 @@
       "fort_trigger": 3102,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "V774 Tauri",
+      "system_name": "V774 Tauri",
       "um": 0,
       "um_trigger": 16097,
       "updated_at": 1662530894
@@ -4779,7 +4779,7 @@
       "fort_trigger": 3365,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "10 Arietis",
+      "system_name": "10 Arietis",
       "um": 0,
       "um_trigger": 14203,
       "updated_at": 1662530894
@@ -4789,7 +4789,7 @@
       "fort_trigger": 2538,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "32 c Piscium",
+      "system_name": "32 c Piscium",
       "um": 1590,
       "um_trigger": 54877,
       "updated_at": 1662530894
@@ -4799,7 +4799,7 @@
       "fort_trigger": 7012,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Allowa",
+      "system_name": "Allowa",
       "um": 8250,
       "um_trigger": 9577,
       "updated_at": 1662530894
@@ -4809,7 +4809,7 @@
       "fort_trigger": 5096,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Anouphis",
+      "system_name": "Anouphis",
       "um": 0,
       "um_trigger": 10591,
       "updated_at": 1662530894
@@ -4819,7 +4819,7 @@
       "fort_trigger": 2599,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Audheim",
+      "system_name": "Audheim",
       "um": 0,
       "um_trigger": 34994,
       "updated_at": 1662530894
@@ -4829,7 +4829,7 @@
       "fort_trigger": 5688,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Azalai",
+      "system_name": "Azalai",
       "um": 0,
       "um_trigger": 10168,
       "updated_at": 1662530894
@@ -4839,7 +4839,7 @@
       "fort_trigger": 2705,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Ba Xian",
+      "system_name": "Ba Xian",
       "um": 0,
       "um_trigger": 25006,
       "updated_at": 1662530894
@@ -4849,7 +4849,7 @@
       "fort_trigger": 2610,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Bhadra",
+      "system_name": "Bhadra",
       "um": 0,
       "um_trigger": 33351,
       "updated_at": 1662530894
@@ -4859,7 +4859,7 @@
       "fort_trigger": 2527,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Bletani",
+      "system_name": "Bletani",
       "um": 0,
       "um_trigger": 63815,
       "updated_at": 1662530894
@@ -4869,7 +4869,7 @@
       "fort_trigger": 4753,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Brynhilo",
+      "system_name": "Brynhilo",
       "um": 0,
       "um_trigger": 10920,
       "updated_at": 1662530894
@@ -4879,7 +4879,7 @@
       "fort_trigger": 4570,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Chaimal",
+      "system_name": "Chaimal",
       "um": 0,
       "um_trigger": 11133,
       "updated_at": 1662530894
@@ -4889,7 +4889,7 @@
       "fort_trigger": 3141,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Dheneb",
+      "system_name": "Dheneb",
       "um": 0,
       "um_trigger": 15736,
       "updated_at": 1662530894
@@ -4899,7 +4899,7 @@
       "fort_trigger": 3906,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Ewah",
+      "system_name": "Ewah",
       "um": 0,
       "um_trigger": 12275,
       "updated_at": 1662530894
@@ -4909,7 +4909,7 @@
       "fort_trigger": 5548,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "GCRV 2743",
+      "system_name": "GCRV 2743",
       "um": 0,
       "um_trigger": 10256,
       "updated_at": 1662530894
@@ -4919,7 +4919,7 @@
       "fort_trigger": 5300,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Gallavs",
+      "system_name": "Gallavs",
       "um": 0,
       "um_trigger": 10429,
       "updated_at": 1662530894
@@ -4929,7 +4929,7 @@
       "fort_trigger": 3046,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Gauluujja",
+      "system_name": "Gauluujja",
       "um": 0,
       "um_trigger": 16682,
       "updated_at": 1662530894
@@ -4939,7 +4939,7 @@
       "fort_trigger": 2574,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Gorringa",
+      "system_name": "Gorringa",
       "um": 0,
       "um_trigger": 40077,
       "updated_at": 1662530894
@@ -4949,7 +4949,7 @@
       "fort_trigger": 2808,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Gucumadhyas",
+      "system_name": "Gucumadhyas",
       "um": 0,
       "um_trigger": 20956,
       "updated_at": 1662530894
@@ -4959,7 +4959,7 @@
       "fort_trigger": 4935,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "HIP 108110",
+      "system_name": "HIP 108110",
       "um": 0,
       "um_trigger": 10736,
       "updated_at": 1662530894
@@ -4969,7 +4969,7 @@
       "fort_trigger": 2574,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "HIP 116213",
+      "system_name": "HIP 116213",
       "um": 0,
       "um_trigger": 40068,
       "updated_at": 1662530894
@@ -4979,7 +4979,7 @@
       "fort_trigger": 2851,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "HIP 117972",
+      "system_name": "HIP 117972",
       "um": 0,
       "um_trigger": 19837,
       "updated_at": 1662530894
@@ -4989,7 +4989,7 @@
       "fort_trigger": 3021,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "HIP 118251",
+      "system_name": "HIP 118251",
       "um": 0,
       "um_trigger": 16981,
       "updated_at": 1662530894
@@ -4999,7 +4999,7 @@
       "fort_trigger": 5097,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "HIP 2725",
+      "system_name": "HIP 2725",
       "um": 0,
       "um_trigger": 49075,
       "updated_at": 1662530894
@@ -5009,7 +5009,7 @@
       "fort_trigger": 3245,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "HIP 4005",
+      "system_name": "HIP 4005",
       "um": 0,
       "um_trigger": 14926,
       "updated_at": 1662530894
@@ -5019,7 +5019,7 @@
       "fort_trigger": 2883,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "HIP 6324",
+      "system_name": "HIP 6324",
       "um": 0,
       "um_trigger": 19154,
       "updated_at": 1662530894
@@ -5029,7 +5029,7 @@
       "fort_trigger": 6806,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "HIP 7076",
+      "system_name": "HIP 7076",
       "um": 900,
       "um_trigger": 14005,
       "updated_at": 1662530894
@@ -5039,7 +5039,7 @@
       "fort_trigger": 4480,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Har Itariu",
+      "system_name": "Har Itariu",
       "um": 0,
       "um_trigger": 11249,
       "updated_at": 1662530894
@@ -5049,7 +5049,7 @@
       "fort_trigger": 2676,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Hevernaku",
+      "system_name": "Hevernaku",
       "um": 0,
       "um_trigger": 26776,
       "updated_at": 1662530894
@@ -5059,7 +5059,7 @@
       "fort_trigger": 13679,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Hidar",
+      "system_name": "Hidar",
       "um": 0,
       "um_trigger": 9637,
       "updated_at": 1662530894
@@ -5069,7 +5069,7 @@
       "fort_trigger": 3548,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Kenna",
+      "system_name": "Kenna",
       "um": 0,
       "um_trigger": 13366,
       "updated_at": 1662530894
@@ -5079,7 +5079,7 @@
       "fort_trigger": 2900,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Khaman",
+      "system_name": "Khaman",
       "um": 0,
       "um_trigger": 18816,
       "updated_at": 1662530894
@@ -5089,7 +5089,7 @@
       "fort_trigger": 2710,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Kotilekui",
+      "system_name": "Kotilekui",
       "um": 0,
       "um_trigger": 24723,
       "updated_at": 1662530894
@@ -5099,7 +5099,7 @@
       "fort_trigger": 2905,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "LTT 17156",
+      "system_name": "LTT 17156",
       "um": 0,
       "um_trigger": 18734,
       "updated_at": 1662530894
@@ -5109,7 +5109,7 @@
       "fort_trigger": 2613,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Lalande 46867",
+      "system_name": "Lalande 46867",
       "um": 0,
       "um_trigger": 32922,
       "updated_at": 1662530894
@@ -5119,7 +5119,7 @@
       "fort_trigger": 2756,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Lidpar",
+      "system_name": "Lidpar",
       "um": 0,
       "um_trigger": 22667,
       "updated_at": 1662530894
@@ -5129,7 +5129,7 @@
       "fort_trigger": 2916,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "MCC 868",
+      "system_name": "MCC 868",
       "um": 0,
       "um_trigger": 18534,
       "updated_at": 1662530894
@@ -5139,7 +5139,7 @@
       "fort_trigger": 4189,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Makula",
+      "system_name": "Makula",
       "um": 0,
       "um_trigger": 11696,
       "updated_at": 1662530894
@@ -5149,7 +5149,7 @@
       "fort_trigger": 3531,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Midgard",
+      "system_name": "Midgard",
       "um": 0,
       "um_trigger": 13435,
       "updated_at": 1662530894
@@ -5159,7 +5159,7 @@
       "fort_trigger": 4010,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Miki",
+      "system_name": "Miki",
       "um": 0,
       "um_trigger": 12042,
       "updated_at": 1662530894
@@ -5169,7 +5169,7 @@
       "fort_trigger": 2549,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Milcenu",
+      "system_name": "Milcenu",
       "um": 210,
       "um_trigger": 48544,
       "updated_at": 1662530894
@@ -5179,7 +5179,7 @@
       "fort_trigger": 3319,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "NLTT 53690",
+      "system_name": "NLTT 53690",
       "um": 0,
       "um_trigger": 14459,
       "updated_at": 1662530894
@@ -5189,7 +5189,7 @@
       "fort_trigger": 3161,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "NLTT 56881",
+      "system_name": "NLTT 56881",
       "um": 0,
       "um_trigger": 15567,
       "updated_at": 1662530894
@@ -5199,7 +5199,7 @@
       "fort_trigger": 3363,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "NLTT 6655",
+      "system_name": "NLTT 6655",
       "um": 0,
       "um_trigger": 14214,
       "updated_at": 1662530894
@@ -5209,7 +5209,7 @@
       "fort_trigger": 2544,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Narri",
+      "system_name": "Narri",
       "um": 0,
       "um_trigger": 51069,
       "updated_at": 1662530894
@@ -5219,7 +5219,7 @@
       "fort_trigger": 2828,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Nguna",
+      "system_name": "Nguna",
       "um": 0,
       "um_trigger": 20405,
       "updated_at": 1662530894
@@ -5229,7 +5229,7 @@
       "fort_trigger": 2506,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Polevnic",
+      "system_name": "Polevnic",
       "um": 0,
       "um_trigger": 1000000000,
       "updated_at": 1662530894
@@ -5239,7 +5239,7 @@
       "fort_trigger": 2761,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "San Neb Xoc",
+      "system_name": "San Neb Xoc",
       "um": 0,
       "um_trigger": 22475,
       "updated_at": 1662530894
@@ -5249,7 +5249,7 @@
       "fort_trigger": 2825,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Silvandza",
+      "system_name": "Silvandza",
       "um": 0,
       "um_trigger": 20477,
       "updated_at": 1662530894
@@ -5259,7 +5259,7 @@
       "fort_trigger": 2687,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Sokn",
+      "system_name": "Sokn",
       "um": 0,
       "um_trigger": 26089,
       "updated_at": 1662530894
@@ -5269,7 +5269,7 @@
       "fort_trigger": 5798,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Sukree",
+      "system_name": "Sukree",
       "um": 900,
       "um_trigger": 10104,
       "updated_at": 1662530894
@@ -5279,7 +5279,7 @@
       "fort_trigger": 5680,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Waikula",
+      "system_name": "Waikula",
       "um": 0,
       "um_trigger": 10173,
       "updated_at": 1662530894
@@ -5289,7 +5289,7 @@
       "fort_trigger": 2617,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Wayano",
+      "system_name": "Wayano",
       "um": 0,
       "um_trigger": 32385,
       "updated_at": 1662530894
@@ -5301,7 +5301,7 @@
       "fort_trigger": 6450,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "27 b1 Cygni",
+      "system_name": "27 b1 Cygni",
       "um": 0,
       "um_trigger": 15068,
       "updated_at": 1662530894
@@ -5311,7 +5311,7 @@
       "fort_trigger": 7649,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Aeternitas",
+      "system_name": "Aeternitas",
       "um": 0,
       "um_trigger": 48405,
       "updated_at": 1662530894
@@ -5321,7 +5321,7 @@
       "fort_trigger": 5569,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Alino",
+      "system_name": "Alino",
       "um": 0,
       "um_trigger": 21672,
       "updated_at": 1662530894
@@ -5331,7 +5331,7 @@
       "fort_trigger": 6701,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Arany",
+      "system_name": "Arany",
       "um": 0,
       "um_trigger": 14280,
       "updated_at": 1662530894
@@ -5341,7 +5341,7 @@
       "fort_trigger": 5686,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Auserine",
+      "system_name": "Auserine",
       "um": 0,
       "um_trigger": 20037,
       "updated_at": 1662530894
@@ -5351,7 +5351,7 @@
       "fort_trigger": 5154,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "BD-10 5238",
+      "system_name": "BD-10 5238",
       "um": 120,
       "um_trigger": 39387,
       "updated_at": 1662530894
@@ -5361,7 +5361,7 @@
       "fort_trigger": 7633,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Belu",
+      "system_name": "Belu",
       "um": 0,
       "um_trigger": 51010,
       "updated_at": 1662530894
@@ -5371,7 +5371,7 @@
       "fort_trigger": 3166,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Buluwai",
+      "system_name": "Buluwai",
       "um": 0,
       "um_trigger": 15517,
       "updated_at": 1662530894
@@ -5381,7 +5381,7 @@
       "fort_trigger": 3045,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Cenu Kichs",
+      "system_name": "Cenu Kichs",
       "um": 0,
       "um_trigger": 16695,
       "updated_at": 1662530894
@@ -5391,7 +5391,7 @@
       "fort_trigger": 3620,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Chireni",
+      "system_name": "Chireni",
       "um": 0,
       "um_trigger": 13100,
       "updated_at": 1662530894
@@ -5401,7 +5401,7 @@
       "fort_trigger": 5013,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Clayakarma",
+      "system_name": "Clayakarma",
       "um": 0,
       "um_trigger": 1000000000,
       "updated_at": 1662530894
@@ -5411,7 +5411,7 @@
       "fort_trigger": 3212,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Dangai",
+      "system_name": "Dangai",
       "um": 0,
       "um_trigger": 15166,
       "updated_at": 1662530894
@@ -5421,7 +5421,7 @@
       "fort_trigger": 14171,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Dhanchu",
+      "system_name": "Dhanchu",
       "um": 0,
       "um_trigger": 10952,
       "updated_at": 1662530894
@@ -5431,7 +5431,7 @@
       "fort_trigger": 3048,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Frey",
+      "system_name": "Frey",
       "um": 0,
       "um_trigger": 16655,
       "updated_at": 1662530894
@@ -5441,7 +5441,7 @@
       "fort_trigger": 4500,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Garm",
+      "system_name": "Garm",
       "um": 0,
       "um_trigger": 11222,
       "updated_at": 1662530894
@@ -5451,7 +5451,7 @@
       "fort_trigger": 4790,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "HIP 88178",
+      "system_name": "HIP 88178",
       "um": 0,
       "um_trigger": 10881,
       "updated_at": 1662530894
@@ -5461,7 +5461,7 @@
       "fort_trigger": 3788,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "HIP 99642",
+      "system_name": "HIP 99642",
       "um": 810,
       "um_trigger": 12579,
       "updated_at": 1662530894
@@ -5471,7 +5471,7 @@
       "fort_trigger": 3606,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "HR 6189",
+      "system_name": "HR 6189",
       "um": 0,
       "um_trigger": 13148,
       "updated_at": 1662530894
@@ -5481,7 +5481,7 @@
       "fort_trigger": 3246,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Haithis",
+      "system_name": "Haithis",
       "um": 0,
       "um_trigger": 14924,
       "updated_at": 1662530894
@@ -5491,7 +5491,7 @@
       "fort_trigger": 3099,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Huilliche",
+      "system_name": "Huilliche",
       "um": 0,
       "um_trigger": 16123,
       "updated_at": 1662530894
@@ -5501,7 +5501,7 @@
       "fort_trigger": 4125,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Hunapiti",
+      "system_name": "Hunapiti",
       "um": 0,
       "um_trigger": 11813,
       "updated_at": 1662530894
@@ -5511,7 +5511,7 @@
       "fort_trigger": 7835,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Iah Bulu",
+      "system_name": "Iah Bulu",
       "um": 0,
       "um_trigger": 12248,
       "updated_at": 1662530894
@@ -5521,7 +5521,7 @@
       "fort_trigger": 4059,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Ix Chita",
+      "system_name": "Ix Chita",
       "um": 0,
       "um_trigger": 11940,
       "updated_at": 1662530894
@@ -5531,7 +5531,7 @@
       "fort_trigger": 7636,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Katuri",
+      "system_name": "Katuri",
       "um": 0,
       "um_trigger": 50612,
       "updated_at": 1662530894
@@ -5541,7 +5541,7 @@
       "fort_trigger": 3515,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Katurru",
+      "system_name": "Katurru",
       "um": 0,
       "um_trigger": 13500,
       "updated_at": 1662530894
@@ -5551,7 +5551,7 @@
       "fort_trigger": 3183,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Kpaniya",
+      "system_name": "Kpaniya",
       "um": 0,
       "um_trigger": 15382,
       "updated_at": 1662530894
@@ -5561,7 +5561,7 @@
       "fort_trigger": 3735,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "LFT 78",
+      "system_name": "LFT 78",
       "um": 120,
       "um_trigger": 12730,
       "updated_at": 1662530894
@@ -5571,7 +5571,7 @@
       "fort_trigger": 7206,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "LFT 926",
+      "system_name": "LFT 926",
       "um": 240,
       "um_trigger": 13160,
       "updated_at": 1662530894
@@ -5581,7 +5581,7 @@
       "fort_trigger": 6917,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "LHS 1339",
+      "system_name": "LHS 1339",
       "um": 0,
       "um_trigger": 13741,
       "updated_at": 1662530894
@@ -5591,7 +5591,7 @@
       "fort_trigger": 5746,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "LHS 3531",
+      "system_name": "LHS 3531",
       "um": 0,
       "um_trigger": 19354,
       "updated_at": 1662530894
@@ -5601,7 +5601,7 @@
       "fort_trigger": 3067,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "LHS 3677",
+      "system_name": "LHS 3677",
       "um": 780,
       "um_trigger": 16447,
       "updated_at": 1662530894
@@ -5611,7 +5611,7 @@
       "fort_trigger": 3143,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "LP 701-7",
+      "system_name": "LP 701-7",
       "um": 0,
       "um_trigger": 15715,
       "updated_at": 1662530894
@@ -5621,7 +5621,7 @@
       "fort_trigger": 5363,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "LTT 15574",
+      "system_name": "LTT 15574",
       "um": 0,
       "um_trigger": 26423,
       "updated_at": 1662530894
@@ -5631,7 +5631,7 @@
       "fort_trigger": 7691,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "LTT 7548",
+      "system_name": "LTT 7548",
       "um": 420,
       "um_trigger": 43152,
       "updated_at": 1662530894
@@ -5641,7 +5641,7 @@
       "fort_trigger": 8184,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "LTT 8181",
+      "system_name": "LTT 8181",
       "um": 0,
       "um_trigger": 23866,
       "updated_at": 1662530894
@@ -5651,7 +5651,7 @@
       "fort_trigger": 6944,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "LTT 8260",
+      "system_name": "LTT 8260",
       "um": 0,
       "um_trigger": 13681,
       "updated_at": 1662530894
@@ -5661,7 +5661,7 @@
       "fort_trigger": 4157,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Luk Xing",
+      "system_name": "Luk Xing",
       "um": 0,
       "um_trigger": 11753,
       "updated_at": 1662530894
@@ -5671,7 +5671,7 @@
       "fort_trigger": 4078,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Maramovoy",
+      "system_name": "Maramovoy",
       "um": 0,
       "um_trigger": 11903,
       "updated_at": 1662530894
@@ -5681,7 +5681,7 @@
       "fort_trigger": 3542,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Medzistha",
+      "system_name": "Medzistha",
       "um": 0,
       "um_trigger": 13390,
       "updated_at": 1662530894
@@ -5691,7 +5691,7 @@
       "fort_trigger": 7709,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Meidubi",
+      "system_name": "Meidubi",
       "um": 0,
       "um_trigger": 41306,
       "updated_at": 1662530894
@@ -5701,7 +5701,7 @@
       "fort_trigger": 6598,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Muncheim",
+      "system_name": "Muncheim",
       "um": 0,
       "um_trigger": 9727,
       "updated_at": 1662530894
@@ -5711,7 +5711,7 @@
       "fort_trigger": 5318,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Murung",
+      "system_name": "Murung",
       "um": 0,
       "um_trigger": 28057,
       "updated_at": 1662530894
@@ -5721,7 +5721,7 @@
       "fort_trigger": 3249,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Nauo",
+      "system_name": "Nauo",
       "um": 0,
       "um_trigger": 14902,
       "updated_at": 1662530894
@@ -5731,7 +5731,7 @@
       "fort_trigger": 5296,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Ngaledi",
+      "system_name": "Ngaledi",
       "um": 2520,
       "um_trigger": 29008,
       "updated_at": 1662530894
@@ -5741,7 +5741,7 @@
       "fort_trigger": 10521,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Pethes",
+      "system_name": "Pethes",
       "um": 300,
       "um_trigger": 13531,
       "updated_at": 1662530894
@@ -5751,7 +5751,7 @@
       "fort_trigger": 3296,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Rati Irtii",
+      "system_name": "Rati Irtii",
       "um": 0,
       "um_trigger": 14595,
       "updated_at": 1662530894
@@ -5761,7 +5761,7 @@
       "fort_trigger": 2889,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Rho Capricorni",
+      "system_name": "Rho Capricorni",
       "um": 90,
       "um_trigger": 19034,
       "updated_at": 1662530894
@@ -5771,7 +5771,7 @@
       "fort_trigger": 4423,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "San Guan",
+      "system_name": "San Guan",
       "um": 0,
       "um_trigger": 11329,
       "updated_at": 1662530894
@@ -5781,7 +5781,7 @@
       "fort_trigger": 5585,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Skinfaxi",
+      "system_name": "Skinfaxi",
       "um": 780,
       "um_trigger": 21418,
       "updated_at": 1662530894
@@ -5791,7 +5791,7 @@
       "fort_trigger": 8903,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Tatamo",
+      "system_name": "Tatamo",
       "um": 0,
       "um_trigger": 17694,
       "updated_at": 1662530894
@@ -5801,7 +5801,7 @@
       "fort_trigger": 3541,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Turigame",
+      "system_name": "Turigame",
       "um": 0,
       "um_trigger": 13395,
       "updated_at": 1662530894
@@ -5811,7 +5811,7 @@
       "fort_trigger": 2854,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "UBV 15076",
+      "system_name": "UBV 15076",
       "um": 0,
       "um_trigger": 19777,
       "updated_at": 1662530894
@@ -5821,7 +5821,7 @@
       "fort_trigger": 3420,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Umaitis",
+      "system_name": "Umaitis",
       "um": 0,
       "um_trigger": 13923,
       "updated_at": 1662530894
@@ -5831,7 +5831,7 @@
       "fort_trigger": 4149,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Veroo",
+      "system_name": "Veroo",
       "um": 0,
       "um_trigger": 11769,
       "updated_at": 1662530894
@@ -5841,7 +5841,7 @@
       "fort_trigger": 3901,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Wolfberg",
+      "system_name": "Wolfberg",
       "um": 0,
       "um_trigger": 12288,
       "updated_at": 1662530894
@@ -5851,7 +5851,7 @@
       "fort_trigger": 3103,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Wulwula",
+      "system_name": "Wulwula",
       "um": 810,
       "um_trigger": 16083,
       "updated_at": 1662530894
@@ -5861,7 +5861,7 @@
       "fort_trigger": 5100,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Xi Ophiuchi",
+      "system_name": "Xi Ophiuchi",
       "um": 0,
       "um_trigger": 48247,
       "updated_at": 1662530894
@@ -5871,7 +5871,7 @@
       "fort_trigger": 3843,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Yimanbin",
+      "system_name": "Yimanbin",
       "um": 750,
       "um_trigger": 12432,
       "updated_at": 1662530894
@@ -5881,7 +5881,7 @@
       "fort_trigger": 3775,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "Yurok",
+      "system_name": "Yurok",
       "um": 0,
       "um_trigger": 12616,
       "updated_at": 1662530894
@@ -5893,7 +5893,7 @@
       "fort_trigger": 5837,
       "held_merits": 0,
       "held_updated_at": 1662491993,
-      "name": "14 Geminorum",
+      "system_name": "14 Geminorum",
       "um": 0,
       "um_trigger": 17868,
       "updated_at": 1662530894
@@ -5903,7 +5903,7 @@
       "fort_trigger": 6013,
       "held_merits": 0,
       "held_updated_at": 1662492018,
-      "name": "16 Cygni",
+      "system_name": "16 Cygni",
       "um": 0,
       "um_trigger": 16587,
       "updated_at": 1662530894
@@ -5913,7 +5913,7 @@
       "fort_trigger": 5180,
       "held_merits": 0,
       "held_updated_at": 1662492042,
-      "name": "37 Xi Bootis",
+      "system_name": "37 Xi Bootis",
       "um": 0,
       "um_trigger": 35354,
       "updated_at": 1662530894
@@ -5923,7 +5923,7 @@
       "fort_trigger": 5973,
       "held_merits": 0,
       "held_updated_at": 0,
-      "name": "39 Serpentis",
+      "system_name": "39 Serpentis",
       "um": 0,
       "um_trigger": 16849,
       "updated_at": 1662530894
@@ -5933,7 +5933,7 @@
       "fort_trigger": 3045,
       "held_merits": 0,
       "held_updated_at": 1662492065,
-      "name": "Abi",
+      "system_name": "Abi",
       "um": 0,
       "um_trigger": 16138,
       "updated_at": 1662530894
@@ -5943,7 +5943,7 @@
       "fort_trigger": 4872,
       "held_merits": 0,
       "held_updated_at": 1662492089,
-      "name": "Allowini",
+      "system_name": "Allowini",
       "um": 0,
       "um_trigger": 10438,
       "updated_at": 1662530894
@@ -5953,7 +5953,7 @@
       "fort_trigger": 6476,
       "held_merits": 0,
       "held_updated_at": 1662492112,
-      "name": "Alpha Fornacis",
+      "system_name": "Alpha Fornacis",
       "um": 2640,
       "um_trigger": 14478,
       "updated_at": 1662530894
@@ -5963,7 +5963,7 @@
       "fort_trigger": 5105,
       "held_merits": 0,
       "held_updated_at": 1662492135,
-      "name": "Anlave",
+      "system_name": "Anlave",
       "um": 0,
       "um_trigger": 45718,
       "updated_at": 1662530894
@@ -5973,7 +5973,7 @@
       "fort_trigger": 3115,
       "held_merits": 0,
       "held_updated_at": 1662492159,
-      "name": "Arnemil",
+      "system_name": "Arnemil",
       "um": 0,
       "um_trigger": 15435,
       "updated_at": 1662530894
@@ -5983,7 +5983,7 @@
       "fort_trigger": 6581,
       "held_merits": 0,
       "held_updated_at": 1662492183,
-      "name": "BD+42 3917",
+      "system_name": "BD+42 3917",
       "um": 0,
       "um_trigger": 14142,
       "updated_at": 1662530894
@@ -5993,7 +5993,7 @@
       "fort_trigger": 5384,
       "held_merits": 0,
       "held_updated_at": 1662492206,
-      "name": "Bhritzameno",
+      "system_name": "Bhritzameno",
       "um": 300,
       "um_trigger": 24900,
       "updated_at": 1662530894
@@ -6003,7 +6003,7 @@
       "fort_trigger": 6939,
       "held_merits": 0,
       "held_updated_at": 1662492230,
-      "name": "Burr",
+      "system_name": "Burr",
       "um": 0,
       "um_trigger": 13236,
       "updated_at": 1662530894
@@ -6013,7 +6013,7 @@
       "fort_trigger": 6009,
       "held_merits": 0,
       "held_updated_at": 1662492253,
-      "name": "Chandra",
+      "system_name": "Chandra",
       "um": 0,
       "um_trigger": 16615,
       "updated_at": 1662530894
@@ -6023,7 +6023,7 @@
       "fort_trigger": 6686,
       "held_merits": 0,
       "held_updated_at": 1662492276,
-      "name": "DP Camelopardalis",
+      "system_name": "DP Camelopardalis",
       "um": 0,
       "um_trigger": 13845,
       "updated_at": 1662530894
@@ -6033,7 +6033,7 @@
       "fort_trigger": 5278,
       "held_merits": 0,
       "held_updated_at": 1662492300,
-      "name": "G 250-34",
+      "system_name": "G 250-34",
       "um": 0,
       "um_trigger": 28854,
       "updated_at": 1662530894
@@ -6043,7 +6043,7 @@
       "fort_trigger": 6564,
       "held_merits": 0,
       "held_updated_at": 1662492323,
-      "name": "GD 219",
+      "system_name": "GD 219",
       "um": 0,
       "um_trigger": 14196,
       "updated_at": 1662530894
@@ -6053,7 +6053,7 @@
       "fort_trigger": 6733,
       "held_merits": 0,
       "held_updated_at": 1662492347,
-      "name": "Gilgamesh",
+      "system_name": "Gilgamesh",
       "um": 0,
       "um_trigger": 13721,
       "updated_at": 1662530894
@@ -6063,7 +6063,7 @@
       "fort_trigger": 3269,
       "held_merits": 1140,
       "held_updated_at": 1662492373,
-      "name": "Gliese 868",
+      "system_name": "Gliese 868",
       "um": 3060,
       "um_trigger": 14275,
       "updated_at": 1662530894
@@ -6073,7 +6073,7 @@
       "fort_trigger": 5037,
       "held_merits": 4,
       "held_updated_at": 1662492394,
-      "name": "Groombridge 1618",
+      "system_name": "Groombridge 1618",
       "um": 1200,
       "um_trigger": 72847,
       "updated_at": 1662530894
@@ -6083,7 +6083,7 @@
       "fort_trigger": 6617,
       "held_merits": 360,
       "held_updated_at": 1662492417,
-      "name": "Jiuyou",
+      "system_name": "Jiuyou",
       "um": 0,
       "um_trigger": 14037,
       "updated_at": 1662530894
@@ -6093,7 +6093,7 @@
       "fort_trigger": 6427,
       "held_merits": 0,
       "held_updated_at": 1662492464,
-      "name": "LHS 1197",
+      "system_name": "LHS 1197",
       "um": 0,
       "um_trigger": 14645,
       "updated_at": 1662530894
@@ -6103,7 +6103,7 @@
       "fort_trigger": 5510,
       "held_merits": 1312,
       "held_updated_at": 1662492487,
-      "name": "LHS 1541",
+      "system_name": "LHS 1541",
       "um": 10800,
       "um_trigger": 21965,
       "updated_at": 1662530894
@@ -6113,7 +6113,7 @@
       "fort_trigger": 5767,
       "held_merits": 0,
       "held_updated_at": 1662492511,
-      "name": "LHS 1681",
+      "system_name": "LHS 1681",
       "um": 6120,
       "um_trigger": 18506,
       "updated_at": 1662530894
@@ -6123,7 +6123,7 @@
       "fort_trigger": 5048,
       "held_merits": 0,
       "held_updated_at": 1662492534,
-      "name": "LHS 2088",
+      "system_name": "LHS 2088",
       "um": 7260,
       "um_trigger": 65352,
       "updated_at": 1662530894
@@ -6133,7 +6133,7 @@
       "fort_trigger": 5391,
       "held_merits": 0,
       "held_updated_at": 1662492558,
-      "name": "LHS 3577",
+      "system_name": "LHS 3577",
       "um": 0,
       "um_trigger": 24693,
       "updated_at": 1662530894
@@ -6143,7 +6143,7 @@
       "fort_trigger": 2987,
       "held_merits": 0,
       "held_updated_at": 1662492581,
-      "name": "LHS 3749",
+      "system_name": "LHS 3749",
       "um": 0,
       "um_trigger": 16838,
       "updated_at": 1662530894
@@ -6153,7 +6153,7 @@
       "fort_trigger": 5790,
       "held_merits": 0,
       "held_updated_at": 1662492605,
-      "name": "LHS 3885",
+      "system_name": "LHS 3885",
       "um": 2400,
       "um_trigger": 18284,
       "updated_at": 1662530894
@@ -6163,7 +6163,7 @@
       "fort_trigger": 5569,
       "held_merits": 0,
       "held_updated_at": 1662492628,
-      "name": "LHS 6427",
+      "system_name": "LHS 6427",
       "um": 0,
       "um_trigger": 20949,
       "updated_at": 1662530894
@@ -6173,7 +6173,7 @@
       "fort_trigger": 5860,
       "held_merits": 0,
       "held_updated_at": 1662492652,
-      "name": "LP 291-34",
+      "system_name": "LP 291-34",
       "um": 1500,
       "um_trigger": 17674,
       "updated_at": 1662530894
@@ -6183,7 +6183,7 @@
       "fort_trigger": 6623,
       "held_merits": 0,
       "held_updated_at": 1662492676,
-      "name": "LTT 15449",
+      "system_name": "LTT 15449",
       "um": 0,
       "um_trigger": 14021,
       "updated_at": 1662530894
@@ -6193,7 +6193,7 @@
       "fort_trigger": 6708,
       "held_merits": 0,
       "held_updated_at": 1662492441,
-      "name": "Lalande 39866",
+      "system_name": "Lalande 39866",
       "um": 0,
       "um_trigger": 13786,
       "updated_at": 1662530894
@@ -6203,7 +6203,7 @@
       "fort_trigger": 5272,
       "held_merits": 0,
       "held_updated_at": 1662492699,
-      "name": "Lung",
+      "system_name": "Lung",
       "um": 0,
       "um_trigger": 29166,
       "updated_at": 1662530894
@@ -6213,7 +6213,7 @@
       "fort_trigger": 5076,
       "held_merits": 0,
       "held_updated_at": 1662492723,
-      "name": "Lushertha",
+      "system_name": "Lushertha",
       "um": 0,
       "um_trigger": 53187,
       "updated_at": 1662530894
@@ -6223,7 +6223,7 @@
       "fort_trigger": 6213,
       "held_merits": 0,
       "held_updated_at": 1662492745,
-      "name": "Mombaluma",
+      "system_name": "Mombaluma",
       "um": 210,
       "um_trigger": 15517,
       "updated_at": 1662530894
@@ -6233,7 +6233,7 @@
       "fort_trigger": 6187,
       "held_merits": 0,
       "held_updated_at": 1662492769,
-      "name": "Mulachi",
+      "system_name": "Mulachi",
       "um": 0,
       "um_trigger": 15639,
       "updated_at": 1662530894
@@ -6243,7 +6243,7 @@
       "fort_trigger": 5341,
       "held_merits": 0,
       "held_updated_at": 1662492816,
-      "name": "NLTT 46621",
+      "system_name": "NLTT 46621",
       "um": 0,
       "um_trigger": 26266,
       "updated_at": 1662530894
@@ -6253,7 +6253,7 @@
       "fort_trigger": 5013,
       "held_merits": 0,
       "held_updated_at": 1662492792,
-      "name": "Nanomam",
+      "system_name": "Nanomam",
       "um": 0,
       "um_trigger": 1000000000,
       "updated_at": 1662530894
@@ -6263,7 +6263,7 @@
       "fort_trigger": 4212,
       "held_merits": 90,
       "held_updated_at": 1662492840,
-      "name": "Nurundere",
+      "system_name": "Nurundere",
       "um": 0,
       "um_trigger": 11267,
       "updated_at": 1662530894
@@ -6273,7 +6273,7 @@
       "fort_trigger": 5825,
       "held_merits": 0,
       "held_updated_at": 1662492863,
-      "name": "Parutis",
+      "system_name": "Parutis",
       "um": 0,
       "um_trigger": 17969,
       "updated_at": 1662530894
@@ -6283,7 +6283,7 @@
       "fort_trigger": 8238,
       "held_merits": 0,
       "held_updated_at": 1662492887,
-      "name": "Phanes",
+      "system_name": "Phanes",
       "um": 0,
       "um_trigger": 22306,
       "updated_at": 1662530894
@@ -6293,7 +6293,7 @@
       "fort_trigger": 6813,
       "held_merits": 0,
       "held_updated_at": 1662492910,
-      "name": "Ptah",
+      "system_name": "Ptah",
       "um": 0,
       "um_trigger": 13522,
       "updated_at": 1662530894
@@ -6303,7 +6303,7 @@
       "fort_trigger": 5636,
       "held_merits": 0,
       "held_updated_at": 1662492933,
-      "name": "Rana",
+      "system_name": "Rana",
       "um": 120,
       "um_trigger": 19989,
       "updated_at": 1662530894
@@ -6313,7 +6313,7 @@
       "fort_trigger": 5333,
       "held_merits": 0,
       "held_updated_at": 1662492957,
-      "name": "Ross 33",
+      "system_name": "Ross 33",
       "um": 0,
       "um_trigger": 26555,
       "updated_at": 1662530894
@@ -6323,7 +6323,7 @@
       "fort_trigger": 2706,
       "held_merits": 0,
       "held_updated_at": 1662492980,
-      "name": "Shoujeman",
+      "system_name": "Shoujeman",
       "um": 0,
       "um_trigger": 24106,
       "updated_at": 1662530894
@@ -6333,7 +6333,7 @@
       "fort_trigger": 5211,
       "held_merits": 340,
       "held_updated_at": 1662493004,
-      "name": "Sol",
+      "system_name": "Sol",
       "um": 1320,
       "um_trigger": 32865,
       "updated_at": 1662530894
@@ -6343,7 +6343,7 @@
       "fort_trigger": 5297,
       "held_merits": 0,
       "held_updated_at": 1662493027,
-      "name": "Tun",
+      "system_name": "Tun",
       "um": 0,
       "um_trigger": 28009,
       "updated_at": 1662530894
@@ -6353,7 +6353,7 @@
       "fort_trigger": 5491,
       "held_merits": 0,
       "held_updated_at": 1662493051,
-      "name": "V989 Cassiopeiae",
+      "system_name": "V989 Cassiopeiae",
       "um": 0,
       "um_trigger": 22339,
       "updated_at": 1662530894
@@ -6363,7 +6363,7 @@
       "fort_trigger": 5190,
       "held_merits": 0,
       "held_updated_at": 1662493074,
-      "name": "Vega",
+      "system_name": "Vega",
       "um": 0,
       "um_trigger": 34482,
       "updated_at": 1662530894
@@ -6373,7 +6373,7 @@
       "fort_trigger": 6801,
       "held_merits": 0,
       "held_updated_at": 1662493097,
-      "name": "Venetic",
+      "system_name": "Venetic",
       "um": 0,
       "um_trigger": 13550,
       "updated_at": 1662530894
@@ -6383,7 +6383,7 @@
       "fort_trigger": 2970,
       "held_merits": 0,
       "held_updated_at": 1662493121,
-      "name": "Wat Yu",
+      "system_name": "Wat Yu",
       "um": 0,
       "um_trigger": 17074,
       "updated_at": 1662530894
@@ -6393,7 +6393,7 @@
       "fort_trigger": 5489,
       "held_merits": 0,
       "held_updated_at": 1662493144,
-      "name": "Wolf 25",
+      "system_name": "Wolf 25",
       "um": 0,
       "um_trigger": 22379,
       "updated_at": 1662530894
@@ -6403,7 +6403,7 @@
       "fort_trigger": 5948,
       "held_merits": 0,
       "held_updated_at": 1662493168,
-      "name": "Wolf 867",
+      "system_name": "Wolf 867",
       "um": 0,
       "um_trigger": 17018,
       "updated_at": 1662530894
@@ -6413,7 +6413,7 @@
       "fort_trigger": 3162,
       "held_merits": 0,
       "held_updated_at": 1662493191,
-      "name": "Wolf 906",
+      "system_name": "Wolf 906",
       "um": 750,
       "um_trigger": 15036,
       "updated_at": 1662530894
@@ -6425,7 +6425,7 @@
       "fort_trigger": 5055,
       "held_merits": 40,
       "held_updated_at": 1662493217,
-      "name": "Amphisatsu",
+      "system_name": "Amphisatsu",
       "um": 0,
       "um_trigger": 63599,
       "updated_at": 1662530894
@@ -6435,7 +6435,7 @@
       "fort_trigger": 8439,
       "held_merits": 0,
       "held_updated_at": 1662493239,
-      "name": "Barathaona",
+      "system_name": "Barathaona",
       "um": 0,
       "um_trigger": 11644,
       "updated_at": 1662530894
@@ -6445,7 +6445,7 @@
       "fort_trigger": 7454,
       "held_merits": 0,
       "held_updated_at": 1662493263,
-      "name": "Baxbakaeris",
+      "system_name": "Baxbakaeris",
       "um": 0,
       "um_trigger": 12755,
       "updated_at": 1662530894
@@ -6455,7 +6455,7 @@
       "fort_trigger": 10155,
       "held_merits": 0,
       "held_updated_at": 1662493288,
-      "name": "CD-27 5409",
+      "system_name": "CD-27 5409",
       "um": 0,
       "um_trigger": 10607,
       "updated_at": 1662530894
@@ -6465,7 +6465,7 @@
       "fort_trigger": 5191,
       "held_merits": 0,
       "held_updated_at": 1662493309,
-      "name": "CPC 22 212",
+      "system_name": "CPC 22 212",
       "um": 0,
       "um_trigger": 35564,
       "updated_at": 1662530894
@@ -6475,7 +6475,7 @@
       "fort_trigger": 2769,
       "held_merits": 8,
       "held_updated_at": 1662493333,
-      "name": "Ehecatl",
+      "system_name": "Ehecatl",
       "um": 0,
       "um_trigger": 22191,
       "updated_at": 1662530894
@@ -6485,7 +6485,7 @@
       "fort_trigger": 5691,
       "held_merits": 20,
       "held_updated_at": 1662493357,
-      "name": "Gl 606.1 B",
+      "system_name": "Gl 606.1 B",
       "um": 0,
       "um_trigger": 19976,
       "updated_at": 1662530894
@@ -6495,7 +6495,7 @@
       "fort_trigger": 5165,
       "held_merits": 0,
       "held_updated_at": 1662493381,
-      "name": "Gongalungul",
+      "system_name": "Gongalungul",
       "um": 0,
       "um_trigger": 38091,
       "updated_at": 1662530894
@@ -6505,7 +6505,7 @@
       "fort_trigger": 2910,
       "held_merits": 0,
       "held_updated_at": 1662493427,
-      "name": "HIP 106213",
+      "system_name": "HIP 106213",
       "um": 0,
       "um_trigger": 18643,
       "updated_at": 1662530894
@@ -6515,7 +6515,7 @@
       "fort_trigger": 6625,
       "held_merits": 25,
       "held_updated_at": 1662493452,
-      "name": "HIP 107936",
+      "system_name": "HIP 107936",
       "um": 0,
       "um_trigger": 14496,
       "updated_at": 1662530894
@@ -6525,7 +6525,7 @@
       "fort_trigger": 3066,
       "held_merits": 0,
       "held_updated_at": 1662493474,
-      "name": "HIP 98621",
+      "system_name": "HIP 98621",
       "um": 0,
       "um_trigger": 16462,
       "updated_at": 1662530894
@@ -6535,7 +6535,7 @@
       "fort_trigger": 5490,
       "held_merits": 100,
       "held_updated_at": 1662493521,
-      "name": "HR 1064",
+      "system_name": "HR 1064",
       "um": 0,
       "um_trigger": 23116,
       "updated_at": 1662530894
@@ -6545,7 +6545,7 @@
       "fort_trigger": 2847,
       "held_merits": 0,
       "held_updated_at": 1662493404,
-      "name": "Herthans",
+      "system_name": "Herthans",
       "um": 0,
       "um_trigger": 19947,
       "updated_at": 1662530894
@@ -6555,7 +6555,7 @@
       "fort_trigger": 7225,
       "held_merits": 0,
       "held_updated_at": 1662493498,
-      "name": "Hiradhea",
+      "system_name": "Hiradhea",
       "um": 0,
       "um_trigger": 13127,
       "updated_at": 1662530894
@@ -6565,7 +6565,7 @@
       "fort_trigger": 6548,
       "held_merits": 0,
       "held_updated_at": 1662493544,
-      "name": "Izanagi",
+      "system_name": "Izanagi",
       "um": 0,
       "um_trigger": 14736,
       "updated_at": 1662530894
@@ -6575,7 +6575,7 @@
       "fort_trigger": 5086,
       "held_merits": 0,
       "held_updated_at": 1662493567,
-      "name": "Jeterait",
+      "system_name": "Jeterait",
       "um": 0,
       "um_trigger": 51900,
       "updated_at": 1662530894
@@ -6585,7 +6585,7 @@
       "fort_trigger": 19325,
       "held_merits": 0,
       "held_updated_at": 1662493592,
-      "name": "Kappa",
+      "system_name": "Kappa",
       "um": 0,
       "um_trigger": 9790,
       "updated_at": 1662530894
@@ -6595,7 +6595,7 @@
       "fort_trigger": 10079,
       "held_merits": 0,
       "held_updated_at": 1662493615,
-      "name": "Kumana",
+      "system_name": "Kumana",
       "um": 0,
       "um_trigger": 10640,
       "updated_at": 1662530894
@@ -6605,7 +6605,7 @@
       "fort_trigger": 7121,
       "held_merits": 0,
       "held_updated_at": 1662493638,
-      "name": "LAWD 26",
+      "system_name": "LAWD 26",
       "um": 0,
       "um_trigger": 13317,
       "updated_at": 1662530894
@@ -6615,7 +6615,7 @@
       "fort_trigger": 9180,
       "held_merits": 0,
       "held_updated_at": 1662493661,
-      "name": "LHS 274",
+      "system_name": "LHS 274",
       "um": 0,
       "um_trigger": 11108,
       "updated_at": 1662530894
@@ -6625,7 +6625,7 @@
       "fort_trigger": 15843,
       "held_merits": 0,
       "held_updated_at": 1662493685,
-      "name": "LTT 12058",
+      "system_name": "LTT 12058",
       "um": 0,
       "um_trigger": 10443,
       "updated_at": 1662530894
@@ -6635,7 +6635,7 @@
       "fort_trigger": 3019,
       "held_merits": 0,
       "held_updated_at": 1662493708,
-      "name": "LTT 8517",
+      "system_name": "LTT 8517",
       "um": 0,
       "um_trigger": 17000,
       "updated_at": 1662530894
@@ -6645,7 +6645,7 @@
       "fort_trigger": 6167,
       "held_merits": 0,
       "held_updated_at": 1662493732,
-      "name": "Mandhrithar",
+      "system_name": "Mandhrithar",
       "um": 0,
       "um_trigger": 16280,
       "updated_at": 1662530894
@@ -6655,7 +6655,7 @@
       "fort_trigger": 2883,
       "held_merits": 210,
       "held_updated_at": 1662493755,
-      "name": "Nanabozho",
+      "system_name": "Nanabozho",
       "um": 480,
       "um_trigger": 19147,
       "updated_at": 1662530894
@@ -6665,7 +6665,7 @@
       "fort_trigger": 12395,
       "held_merits": 0,
       "held_updated_at": 1662493780,
-      "name": "Ross 429",
+      "system_name": "Ross 429",
       "um": 0,
       "um_trigger": 11800,
       "updated_at": 1662530894
@@ -6675,7 +6675,7 @@
       "fort_trigger": 2705,
       "held_merits": 0,
       "held_updated_at": 1662493802,
-      "name": "Secoya",
+      "system_name": "Secoya",
       "um": 0,
       "um_trigger": 25026,
       "updated_at": 1662530894
@@ -6685,7 +6685,7 @@
       "fort_trigger": 5013,
       "held_merits": 0,
       "held_updated_at": 1662493826,
-      "name": "Synteini",
+      "system_name": "Synteini",
       "um": 0,
       "um_trigger": 1000000000,
       "updated_at": 1662530894
@@ -6695,7 +6695,7 @@
       "fort_trigger": 10179,
       "held_merits": 0,
       "held_updated_at": 1662493849,
-      "name": "Tau-1 Hydrae",
+      "system_name": "Tau-1 Hydrae",
       "um": 0,
       "um_trigger": 10597,
       "updated_at": 1662530894
@@ -6705,7 +6705,7 @@
       "fort_trigger": 2739,
       "held_merits": 700,
       "held_updated_at": 1662493873,
-      "name": "Tepertsi",
+      "system_name": "Tepertsi",
       "um": 0,
       "um_trigger": 23352,
       "updated_at": 1662530894
@@ -6715,7 +6715,7 @@
       "fort_trigger": 5117,
       "held_merits": 10,
       "held_updated_at": 1662493896,
-      "name": "Tir Na Nog",
+      "system_name": "Tir Na Nog",
       "um": 0,
       "um_trigger": 44801,
       "updated_at": 1662530894
@@ -6725,7 +6725,7 @@
       "fort_trigger": 4463,
       "held_merits": 0,
       "held_updated_at": 1662493920,
-      "name": "Trante",
+      "system_name": "Trante",
       "um": 0,
       "um_trigger": 11273,
       "updated_at": 1662530894
@@ -6735,7 +6735,7 @@
       "fort_trigger": 7937,
       "held_merits": 0,
       "held_updated_at": 1662493943,
-      "name": "Trepin",
+      "system_name": "Trepin",
       "um": 2190,
       "um_trigger": 12132,
       "updated_at": 1662530894
@@ -6745,7 +6745,7 @@
       "fort_trigger": 2536,
       "held_merits": 0,
       "held_updated_at": 1662493967,
-      "name": "Ullese",
+      "system_name": "Ullese",
       "um": 0,
       "um_trigger": 56500,
       "updated_at": 1662530894
@@ -6755,7 +6755,7 @@
       "fort_trigger": 10535,
       "held_merits": 0,
       "held_updated_at": 1662493990,
-      "name": "Wulganda",
+      "system_name": "Wulganda",
       "um": 0,
       "um_trigger": 10453,
       "updated_at": 1662530894
@@ -6765,7 +6765,7 @@
       "fort_trigger": 3135,
       "held_merits": 0,
       "held_updated_at": 1662494014,
-      "name": "Xuanduna",
+      "system_name": "Xuanduna",
       "um": 0,
       "um_trigger": 15787,
       "updated_at": 1662530894
