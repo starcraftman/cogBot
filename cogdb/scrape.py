@@ -16,6 +16,7 @@ import logging
 import os
 import re
 import time
+import urllib.request
 
 import bs4
 import selenium
@@ -271,14 +272,22 @@ def main():
     Demonstrate a complete parsing of all powerplay information and dump to json file.
     """
     out_file = "/tmp/data.json"
-    # Run a sanity test, parse entire powerplay page for all leaders.
-    with get_chrome_driver(dev=True) as driver:
-        data = scrape_all_powerplay(driver, held_merits=False)
-        with open(out_file, "w") as fout:
-            fout.write(json.dumps(data, sort_keys=True, indent=2))
 
-    print("Parsing all powerplay data is COMPLETE!")
-    print(f"JSON info can be found in: {out_file}")
+    try:
+        # confirm page is up and working BEFORE asking for complete scrape
+        urllib.request.urlopen(cog.util.CONF.scrape.url)
+
+        # Run a sanity test, parse entire powerplay page for all leaders.
+        with get_chrome_driver(dev=True) as driver:
+            data = scrape_all_powerplay(driver, held_merits=False)
+            with open(out_file, "w") as fout:
+                fout.write(json.dumps(data, sort_keys=True, indent=2))
+
+        print("Parsing all powerplay data is COMPLETE!")
+        print(f"JSON info can be found in: {out_file}")
+
+    except urllib.error.URLError:
+        logging.getLogger(__name__).error("Site down for now, try again later!")
 
 
 if __name__ == "__main__":

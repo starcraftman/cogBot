@@ -2456,24 +2456,27 @@ async def push_scrape_to_sheets():  # pragma: no cover | tested elsewhere
 async def monitor_powerplay_page(client, *, repeat=True, delay=1800):
     """Poll the powerplay page for info every delay seconds.
 
-    N.B. This depends on multiple scanners being operable. Start this task on a delay.
+    N.B. This depends on multiple scanners being operable. Start this task ONLY when they are ready.
 
     Args:
         client: The discord.py client.
         repeat: If True schedule self at end of execution to run again.
         delay: The delay in seconds between checks.
     """
-    # confirm page is up and working BEFORE asking for complete scrape
-    url = cog.util.CONF.scrape.url
-    async with aiohttp.ClientSession() as http:
-        async with http.get(url) as resp:
-            if resp.status == 200:
-                with cfut.ProcessPoolExecutor(max_workers=1) as pool:
-                    await client.loop.run_in_executor(
-                        pool, scrape_all_in_background
-                    )
-                await push_scrape_to_gal_scanner()
-                await push_scrape_to_sheets()
+    try:
+        # confirm page is up and working BEFORE asking for complete scrape
+        async with aiohttp.ClientSession() as http:
+            async with http.get(cog.util.CONF.scrape.url) as resp:
+                pass
+
+        with cfut.ProcessPoolExecutor(max_workers=1) as pool:
+            await client.loop.run_in_executor(
+                pool, scrape_all_in_background
+            )
+        await push_scrape_to_gal_scanner()
+        await push_scrape_to_sheets()
+    except aiohttp.ClientConnectorError:
+        logging.getLogger(__name__).error("Spy service not operating. Will try again in %d seconds.", delay)
 
     await asyncio.sleep(delay)
 

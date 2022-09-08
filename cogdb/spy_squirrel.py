@@ -86,6 +86,7 @@ class SpyPrep(Base):
     id = sqla.Column(sqla.Integer, primary_key=True)
     ed_system_id = sqla.Column(sqla.BigInteger, sqla.ForeignKey('systems.ed_system_id'))
     power_id = sqla.Column(sqla.Integer, sqla.ForeignKey('powers.id'))
+    system_name = sqla.Column(sqla.String(cogdb.eddb.LEN["system"]), index=True)  # Intentional caching for QoL
     merits = sqla.Column(sqla.Integer, default=0)
     updated_at = sqla.Column(sqla.Integer, default=time.time, onupdate=time.time)
 
@@ -134,6 +135,7 @@ class SpySystem(Base):
     power_state_id = sqla.Column(sqla.Integer, sqla.ForeignKey('systems.id'), default=0)
 
     # info
+    system_name = sqla.Column(sqla.String(cogdb.eddb.LEN["system"]), index=True)  # Intentional caching for QoL
     income = sqla.Column(sqla.Integer, default=0)
     upkeep_current = sqla.Column(sqla.Integer, default=0)
     upkeep_default = sqla.Column(sqla.Integer, default=0)
@@ -228,8 +230,12 @@ def load_base_json(base, eddb_session):
         power_id = json_powers_to_eddb_id[bundle['powerId']]
 
         for sys_addr, data in bundle['systemAddr'].items():
+            eddb_system = eddb_session.query(System).\
+                filter(System.ed_system_id == sys_addr).\
+                one()
             kwargs = {
                 'ed_system_id': sys_addr,
+                'system_name': eddb_system.name,
                 'power_id': power_id,
                 'power_state_id': JSON_POWER_STATE_TO_EDDB[bundle['state']],
                 'fort_trigger': data['thrFor'],
@@ -284,6 +290,9 @@ def load_refined_json(refined, eddb_session):
         db_objs += [spyvote]
 
         for ed_system_id, merits in bundle['rankedSystems']:
+            eddb_system = eddb_session.query(System).\
+                filter(System.ed_system_id == ed_system_id).\
+                one()
             try:
                 spyprep = eddb_session.query(SpySystem).\
                     filter(SpySystem.ed_system_id == ed_system_id,
@@ -291,10 +300,12 @@ def load_refined_json(refined, eddb_session):
                     one()
                 spyprep.merits = merits
                 spyprep.updated_at = updated_at
+                spyprep.system_name = eddb_system
             except sqla.orm.exc.NoResultFound:
                 spyprep = SpyPrep(
                     power_id=power_id,
                     ed_system_id=ed_system_id,
+                    system_name = eddb_system.name,
                     merits=merits,
                     updated_at=updated_at
                 )
@@ -304,9 +315,13 @@ def load_refined_json(refined, eddb_session):
     for bundle, pstate_id in [[refined["gainControl"][0], 64], [refined["fortifyUndermine"][0], 16]]:
         power_id = json_powers_to_eddb_id[bundle['power_id']]
         ed_system_id = bundle['systemAddr']
+        eddb_system = eddb_session.query(System).\
+            filter(System.ed_system_id == ed_system_id).\
+            one()
         kwargs = {
             'power_id': power_id,
             'ed_system_id': ed_system_id,
+            'system_name': eddb_system.name,
             'power_state_id': pstate_id,
             'fort': bundle['qtyFor'],
             'um': bundle['qtyAgainst'],
@@ -381,8 +396,7 @@ def compare_sheet_fort_systems_to_spy(session, eddb_session):
         })
 
     spy_systems = eddb_session.query(SpySystem).\
-        join(System, System.ed_system_id == SpySystem.ed_system_id).\
-        filter(System.name.in_(fort_names)).\
+        filter(SpySystem.name.in_(fort_names)).\
         all()
     for spy_sys in spy_systems:
         if spy_sys.fort > systems[spy_sys.system.name]['fort']:
@@ -419,8 +433,7 @@ def compare_sheet_um_systems_to_spy(session, eddb_session):
         })
 
     spy_systems = eddb_session.query(SpySystem).\
-        join(System, System.ed_system_id == SpySystem.ed_system_id).\
-        filter(System.name.in_(um_names)).\
+        filter(SpySystem.name.in_(um_names)).\
         all()
     for spy_sys in spy_systems:
 
