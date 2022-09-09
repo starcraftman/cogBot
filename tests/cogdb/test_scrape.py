@@ -27,11 +27,12 @@ HELD_OLD = """
 """
 with open(os.path.join(cog.util.ROOT_DIR, 'tests', 'cogdb', 'whole_page.html')) as fin:
     WHOLE_PAGE = fin.read()
+NOW_TIMESTAMP = 1662490449
 
 
 @pytest.fixture
 def now():
-    yield datetime.datetime.utcfromtimestamp(1662490449)
+    yield datetime.datetime.utcfromtimestamp(NOW_TIMESTAMP)
 
 
 def test_powerplay_names():

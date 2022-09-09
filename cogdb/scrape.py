@@ -244,12 +244,16 @@ def parse_powerplay_page(page_source, *, start, updated_at):
             'held_updated_at': 0,
         }
 
+        print('start', int(start.timestamp()))
+        held_updated_at = parse_date(str(body), start=start).timestamp()
+        print('held at', held_updated_at)
+
         # If the held merits available parse them out
         mat = MAT_MERITS.match(str(body))
         if mat:
             info = {
                 'held_merits': int(mat.group(5)) + int(mat.group(6)),
-                'held_updated_at': int(parse_date(str(body), start=start).timestamp()),
+                'held_updated_at': held_updated_at,
             }
         else:  # Held merits were not available.
             logging.getLogger(__name__).error("Held Merits missing: %s", systems[ind]['system_name'])
