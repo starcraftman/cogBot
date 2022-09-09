@@ -349,9 +349,9 @@ class FortScanner():
         start = systems[0]['sheet_col']
         end = systems[-1]['sheet_col']
         forts, ums = [], []
-        for sys in systems:
-            forts += [sys['fort']]
-            ums += [sys['um']]
+        for system in systems:
+            forts += [system['fort']]
+            ums += [system['um']]
 
         return [{'range': f'{start}6:{end}7', 'values': [forts, ums]}]
 

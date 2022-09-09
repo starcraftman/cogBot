@@ -305,7 +305,7 @@ def load_refined_json(refined, eddb_session):
                 spyprep = SpyPrep(
                     power_id=power_id,
                     ed_system_id=ed_system_id,
-                    system_name = eddb_system.name,
+                    system_name=eddb_system.name,
                     merits=merits,
                     updated_at=updated_at
                 )

@@ -21,8 +21,8 @@ jobs:
     - name: Install packages required for tests
       run: |
         sudo apt-get update && sudo apt-get install -y apt-transport-https ca-certificates
-        echo "deb [trusted=yes] https://apt.secrethub.io stable main" | sudo tee -a /etc/apt/sources.list.d/secrethub.sources.list
-        sudo apt-get update && sudo apt-get install -y git build-essential python3-dev python3-pip libyajl2 jq secrethub-cli
+        curl https://apt.secrethub.io | bash
+        sudo apt-get update && sudo apt-get install -y git build-essential python3-dev python3-pip libyajl2 jq
     - name: Install pip dependencies
       run: python setup.py deps --force=yes
     - name: Setup database, tables and import EDDB dump.

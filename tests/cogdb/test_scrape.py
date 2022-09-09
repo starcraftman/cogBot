@@ -79,7 +79,7 @@ def test_parse_powerplay_page(now):
         'fort': 4464,
         'fort_trigger': 4247,
         'held_merits': 0,
-        'held_updated_at': 1662504156,
+        'held_updated_at': 1662489756,
         'system_name': 'Aowica',
         'um': 0,
         'um_trigger': 11598,

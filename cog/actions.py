@@ -2432,7 +2432,7 @@ async def push_scrape_to_sheets():  # pragma: no cover | tested elsewhere
     log = logging.getLogger(__name__)
 
     with cogdb.session_scope(cogdb.Session) as session,\
-        cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
+         cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
 
         log.error("Processing scrape results to sheets")
         forts = spy.compare_sheet_fort_systems_to_spy(session, eddb_session)
@@ -2465,7 +2465,7 @@ async def monitor_powerplay_page(client, *, repeat=True, delay=1800):
     try:
         # confirm page is up and working BEFORE asking for complete scrape
         async with aiohttp.ClientSession() as http:
-            async with http.get(cog.util.CONF.scrape.url) as resp:
+            async with http.get(cog.util.CONF.scrape.url):
                 pass
 
         with cfut.ProcessPoolExecutor(max_workers=1) as pool:

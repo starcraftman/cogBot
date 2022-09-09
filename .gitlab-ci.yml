@@ -18,13 +18,16 @@ cache:
 
 before_script:
   - apt-get update && apt-get install -y apt-transport-https ca-certificates
-  - echo "deb [trusted=yes] https://apt.secrethub.io stable main" > /etc/apt/sources.list.d/secrethub.sources.list
-  - apt-get update && apt-get install -y git build-essential python3-dev python3-pip libyajl2 jq mariadb-client mariadb-server secrethub-cli
+  - curl https://apt.secrethub.io | bash
+  - apt-get update && apt-get install -y git build-essential python3-dev python3-pip libyajl2 jq mariadb-client mariadb-server
   - python setup.py deps --force=yes
 
-test:
+coverage:
+  rules:
+    - if: $CI_COMMIT_BRANCH == "master"
   variables:
     ALL_TESTS: "True"
+  stage: test
   script:
     - /etc/init.d/mariadb start
     - mysql -u root < "tests/mysql_tables.sql"
@@ -34,10 +37,26 @@ test:
     - secrethub inject -i "tests/secrethub/secretSheets.json" -o "data/service_sheets.json"
     - python -m pytest --cov=cog --cov=cogdb
     - coveralls || true
+tests:
+  rules:
+    - if: $CI_COMMIT_BRANCH != "master"
+  variables:
+    ALL_TESTS: "True"
+  stage: test
+  script:
+    - /etc/init.d/mariadb start
+    - mysql -u root < "tests/mysql_tables.sql"
+    - curl "http://starcraftman.com/elite/eddb_v05.sql" > "eddb.sql"
+    - mysql -u root -D eddb < "eddb.sql"
+    - secrethub inject -i "tests/secrethub/secretConfig.yml" -o "data/config.yml"
+    - secrethub inject -i "tests/secrethub/secretSheets.json" -o "data/service_sheets.json"
+    - python -m pytest --cov=cog --cov=cogdb
 pylint:
+  stage: test
   script:
     - python -m tox -e pylint
 flake8:
+  stage: test
   script:
     - python -m tox -e flake8
 ---

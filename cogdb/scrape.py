@@ -184,7 +184,7 @@ def scrape_all_powerplay(driver, held_merits=False):  # pragma: no cover | Depen
     # Determine the updated_at time for general fort/um data
     now = datetime.datetime.utcnow()
     spans = driver.find_elements(By.TAG_NAME, "span")
-    updated_at = int(parse_date("as of" + spans[4].text, start=now).timestamp())
+    updated_at = int(parse_date("as of" + spans[4].text, start=now).replace(tzinfo=datetime.timezone.utc).timestamp())
 
     # Expand all blocks for information
     switch = driver.find_element(By.CLASS_NAME, "input-switch")
@@ -244,13 +244,11 @@ def parse_powerplay_page(page_source, *, start, updated_at):
             'held_updated_at': 0,
         }
 
-        print('start', int(start.timestamp()))
-        held_updated_at = parse_date(str(body), start=start).timestamp()
-        print('held at', held_updated_at)
-
         # If the held merits available parse them out
         mat = MAT_MERITS.match(str(body))
         if mat:
+            # N.B. Going from native UTC BACK to UTC timestamp requires becoming aware UTC.
+            held_updated_at = int(parse_date(str(body), start=start).replace(tzinfo=datetime.timezone.utc).timestamp())
             info = {
                 'held_merits': int(mat.group(5)) + int(mat.group(6)),
                 'held_updated_at': held_updated_at,
