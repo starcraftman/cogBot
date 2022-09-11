@@ -2462,6 +2462,12 @@ async def monitor_powerplay_page(client, *, repeat=True, delay=1800):
         repeat: If True schedule self at end of execution to run again.
         delay: The delay in seconds between checks.
     """
+    await asyncio.sleep(delay)
+    if repeat:
+        asyncio.ensure_future(
+            monitor_powerplay_page(client, repeat=repeat, delay=delay)
+        )
+
     try:
         # confirm page is up and working BEFORE asking for complete scrape
         async with aiohttp.ClientSession() as http:
@@ -2476,13 +2482,8 @@ async def monitor_powerplay_page(client, *, repeat=True, delay=1800):
         await push_scrape_to_sheets()
     except aiohttp.ClientConnectorError:
         logging.getLogger(__name__).error("Spy service not operating. Will try again in %d seconds.", delay)
-
-    await asyncio.sleep(delay)
-
-    if repeat:
-        asyncio.ensure_future(
-            monitor_powerplay_page(client, repeat=repeat, delay=delay)
-        )
+    except:
+        traceback.print_exc()
 
 
 async def report_to_leadership(client, msgs):  # pragma: no cover
