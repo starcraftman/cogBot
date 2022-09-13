@@ -196,7 +196,7 @@ def test_fortscanner_update_drop_dict():
 
 
 def test_fortscanner_update_import_mode_dict():
-    data = FortScanner.update_import_mode_dict('FALSE')
+    data = FortScanner.update_import_mode_dict("B9:B9", 'FALSE')
     assert data == [{"range": "B9:B9", "values": [['FALSE']]}]
 
 

@@ -415,13 +415,16 @@ class Admin(Action):
 
         try:
             for name, template in [['hudson_cattle', 'New Template Fort'],
-                                   ['hudson_undermine', 'New Template UM']]:
+                                   ['hudson_undermine', 'New Template UM'],
+                                   ['hudson_tracker', 'New Template Tracker']]:
                 config = confs[name]
                 new_page = cog.util.number_increment(config['page'])
                 config['page'] = new_page
                 try:
                     if name == 'hudson_cattle':
-                        await scanners[name].asheet.batch_update(scanners[name].update_import_mode_dict('FALSE'), 'USER_ENTERED')
+                        await scanners[name].asheet.batch_update(scanners[name].update_import_mode_dict('B9:B9', 'FALSE'), 'USER_ENTERED')
+                    elif name == 'hudson_tracker':
+                        await scanners[name].asheet.batch_update(scanners[name].update_import_mode_dict('B13:B13', 'FALSE'), 'USER_ENTERED')
 
                     # Copy template to new page and point asheet at it.
                     try:
@@ -432,7 +435,9 @@ class Admin(Action):
                     await scanners[name].asheet.change_worksheet(new_page)
 
                     if name == 'hudson_cattle':
-                        await scanners[name].asheet.batch_update(scanners[name].update_import_mode_dict('TRUE'), 'USER_ENTERED')
+                        await scanners[name].asheet.batch_update(scanners[name].update_import_mode_dict('B9:B9', 'TRUE'), 'USER_ENTERED')
+                    elif name == 'hudson_tracker':
+                        await scanners[name].asheet.batch_update(scanners[name].update_import_mode_dict('B13:B13', 'TRUE'), 'USER_ENTERED')
                 except gspread.exceptions.WorksheetNotFound as exc:
                     msg = f"Missing **{new_page}** worksheet on {name}. Please fix and rerun cycle. No change made."
                     raise cog.exc.InvalidCommandArgs(msg) from exc
@@ -554,7 +559,7 @@ class Admin(Action):
         return reply
 
     async def execute(self):
-        #globe = cogdb.query.get_current_global(self.session)
+        globe = cogdb.query.get_current_global(self.session)
         try:
             admin = cogdb.query.get_admin(self.session, self.duser)
         except cog.exc.NoMatch as exc:
@@ -564,8 +569,8 @@ class Admin(Action):
             func = getattr(self, self.args.subcmd)
             if self.args.subcmd == "remove":
                 response = await func(admin)
-            #elif self.args.subcmd == "cycle":
-                #response = await func(globe)
+            elif self.args.subcmd == "cycle":
+                response = await func(globe)
             else:
                 response = await func()
             if response:

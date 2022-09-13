@@ -323,15 +323,16 @@ class FortScanner():
         return [{'range': cell_range, 'values': [[amount]]}]
 
     @staticmethod
-    def update_import_mode_dict(import_mode):
+    def update_import_mode_dict(range, import_mode):
         """Change import mode from the sheet.
 
         Args:
+            range (string): Range value in the sheet. (E.G. B9:B9)
             import_mode (string): Import mode, can only be True or False.
 
         Returns: A list of update dicts to pass to batch_update.
         """
-        return [{'range': 'B9:B9', 'values': [[import_mode]]}]
+        return [{'range': str(range), 'values': [[import_mode]]}]
 
 
 class UMScanner(FortScanner):
@@ -1077,6 +1078,19 @@ class OCRScanner(FortScanner):
 
         return triggers
 
+
+class FortTracker(FortScanner):
+    """
+    Scanner for the Main Hudson Fort Tracker sheet.
+
+    args:
+        asheet: The AsyncGSheet that connects to the sheet.
+    """
+    def __init__(self, asheet):
+        super().__init__(asheet, [])
+
+    def __repr__(self):
+        return super().__repr__().replace('FortScanner', 'FortTracker')
 
 async def init_scanners():
     """
