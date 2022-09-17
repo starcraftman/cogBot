@@ -1,7 +1,7 @@
 """
 Test the bot's main functions.
 """
-from cog.bot import EmojiResolver
+from cog.bot import EmojiResolver, cmd_from_content
 from tests.conftest import Guild, Emoji
 
 
@@ -44,3 +44,17 @@ def test_emoji_fix():
     emo.update([guild])
 
     assert emo.fix(":duck: :sleep:", guild) == "[duck] [sleep]"
+
+
+def test_cmd_from_content_no_space():
+    content = "!fort"
+    prefix = '!'
+
+    assert "fort" == cmd_from_content(prefix, content)
+
+
+def test_cmd_from_content_has_space():
+    content = "!bgs subCmd some text"
+    prefix = '!'
+
+    assert "bgs" == cmd_from_content(prefix, content)

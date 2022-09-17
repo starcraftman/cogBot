@@ -289,7 +289,7 @@ class CogBot(discord.Client):
 
             with cogdb.session_scope(cogdb.Session) as session:
                 # Check permissions before full parsing
-                cmd = content[len(self.prefix):content.find(' ')]
+                cmd = cmd_from_content(self.prefix, content)
                 cogdb.query.check_perms(session, message, cmd)
 
                 args = self.parser.parse_args(re.split(r'\s+', content))
@@ -490,6 +490,20 @@ async def simple_heartbeat(delay=30):
             await fout.write('{} {}\n'.format(delay,
                                               datetime.datetime.utcnow().replace(microsecond=0)))
         await asyncio.sleep(delay)
+
+
+def cmd_from_content(prefix, content):
+    """
+    Determine the command that was asked for from the content of the message.
+
+    Returns: The command without the prefix or any other content.
+    """
+    cont = content[len(prefix):]
+    index = content.find(' ')
+    if index != -1:
+        cont = cont[:index - 1]
+
+    return cont
 
 
 def main():  # pragma: no cover
