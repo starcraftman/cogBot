@@ -559,7 +559,7 @@ class Admin(Action):
         return reply
 
     async def execute(self):
-        #globe = cogdb.query.get_current_global(self.session)
+        globe = cogdb.query.get_current_global(self.session)
         try:
             admin = cogdb.query.get_admin(self.session, self.duser)
         except cog.exc.NoMatch as exc:
@@ -569,8 +569,8 @@ class Admin(Action):
             func = getattr(self, self.args.subcmd)
             if self.args.subcmd == "remove":
                 response = await func(admin)
-            #elif self.args.subcmd == "cycle":
-                #response = await func(globe)
+            elif self.args.subcmd == "cycle":
+                response = await func(globe)
             else:
                 response = await func()
             if response:
@@ -866,6 +866,36 @@ class Drop(Action):
 
         return response
 
+    def finished(self, system):
+        """
+        Additional reply when a system is finished (i.e. deferred or 100%).
+        """
+        try:
+            new_target = cogdb.query.fort_get_next_targets(self.session, count=1)[0]
+            response = '\n\n__Next Fort Target__:\n' + new_target.display()
+        except cog.exc.NoMoreTargets:
+            response = '\n\n Could not determine next fort target.'
+
+        lines = [
+            '**{}** Have a :cookie: for completing {}'.format(self.duser.display_name, system.name),
+        ]
+
+        try:
+            merits = list(reversed(sorted(system.merits)))
+            top = merits[0]
+            lines += ['Bonus for highest contribution:']
+            for merit in merits:
+                if merit.amount != top.amount:
+                    break
+                lines.append('    :cookie: for **{}** with {} supplies'.format(
+                    merit.user.name, merit.amount))
+        except IndexError:
+            lines += ["No found contributions. Heres a :cookie: for the unknown commanders."]
+
+        response += '\n\n' + '\n'.join(lines)
+
+        return response
+
     @check_mentions
     @check_sheet('hudson_cattle', 'fort_user', FortUser)
     async def execute(self):
@@ -899,7 +929,9 @@ class Drop(Action):
                       self.duser.display_name, self.args.amount, system.name)
 
         response = system.display()
-        if system.is_fortified:
+        if system.is_deferred:
+            response += self.deferred(system)
+        elif system.is_fortified:
             response += self.finished(system)
         await self.bot.send_message(self.msg.channel,
                                     self.bot.emoji.fix(response, self.msg.guild))
