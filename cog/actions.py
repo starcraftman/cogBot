@@ -878,7 +878,7 @@ class Drop(Action):
 
         lines = [
             f'**{self.duser.display_name}** Thank you for contributing to the fort of this system.',
-            f'**{system.name}** is now considered almost done and should stay untouch until further orders.'
+            f'__**{system.name}** is now considered almost done and should stay **untouch** until further orders.__'
         ]
         
         response += '\n\n' + '\n'.join(lines)
@@ -891,6 +891,7 @@ class Drop(Action):
         """
         Drop forts at the fortification target.
         """
+        globe = cogdb.query.get_current_global(self.session)
         self.log.info('DROP %s - Matched duser with id %s and sheet name %s.',
                       self.duser.display_name, self.duser.id, self.duser.fort_user)
 
@@ -918,7 +919,7 @@ class Drop(Action):
                       self.duser.display_name, self.args.amount, system.name)
 
         response = system.display()
-        if system.is_deferred:
+        if system.is_deferred and not globe.show_almost_done:
             response += self.deferred(system)
         elif system.is_fortified:
             response += self.finished(system)
@@ -1047,12 +1048,13 @@ To unset override, simply set an empty list of systems.
             response = self.order()
 
         elif self.args.system:
+            globe = cogdb.query.get_current_global(self.session)
             lines = ['__Search Results__']
             for name in process_system_args(self.args.system):
                 system = cogdb.query.fort_find_system(self.session, name)
-                if system.is_deferred:
-                    lines.append('This system is considered almost done and should stay untouch until further orders.')
                 lines.append(system.display())
+                if system.is_deferred and not globe.show_almost_done:
+                    lines.append('This system is considered **almost done** and should stay **untouch** until further orders.\n')
             response = '\n'.join(lines)
 
         elif self.args.next:
