@@ -866,9 +866,9 @@ class Drop(Action):
 
         return response
 
-    def finished(self, system):
+    def deferred(self, system):
         """
-        Additional reply when a system is finished (i.e. deferred or 100%).
+        Additional reply when a system is tagged as deferred (below the treshold).
         """
         try:
             new_target = cogdb.query.fort_get_next_targets(self.session, count=1)[0]
@@ -877,21 +877,10 @@ class Drop(Action):
             response = '\n\n Could not determine next fort target.'
 
         lines = [
-            '**{}** Have a :cookie: for completing {}'.format(self.duser.display_name, system.name),
+            f'**{self.duser.display_name}** Thank you for contributing to the fort of this system.',
+            f'**{system.name}** is now considered almost done and should stay untouch until further orders.'
         ]
-
-        try:
-            merits = list(reversed(sorted(system.merits)))
-            top = merits[0]
-            lines += ['Bonus for highest contribution:']
-            for merit in merits:
-                if merit.amount != top.amount:
-                    break
-                lines.append('    :cookie: for **{}** with {} supplies'.format(
-                    merit.user.name, merit.amount))
-        except IndexError:
-            lines += ["No found contributions. Heres a :cookie: for the unknown commanders."]
-
+        
         response += '\n\n' + '\n'.join(lines)
 
         return response
@@ -1060,7 +1049,10 @@ To unset override, simply set an empty list of systems.
         elif self.args.system:
             lines = ['__Search Results__']
             for name in process_system_args(self.args.system):
-                lines.append(cogdb.query.fort_find_system(self.session, name).display())
+                system = cogdb.query.fort_find_system(self.session, name)
+                if system.is_deferred:
+                    lines.append('This system is considered almost done and should stay untouch until further orders.')
+                lines.append(system.display())
             response = '\n'.join(lines)
 
         elif self.args.next:
