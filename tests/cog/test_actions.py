@@ -769,6 +769,34 @@ Bonus for highest contribution:
 
 
 @pytest.mark.asyncio
+async def test_cmd_drop_deferred(session, f_bot, f_dusers, f_fort_testbed):
+    msg = fake_msg_gears("!drop 1 dong")
+
+    await action_map(msg, f_bot).execute()
+    expected = """**Dongkum** 7001/7239 :Fortifying: (238 left) - 81.54Ly
+
+__Next Fort Target__:
+**Nurundere** 5422/8425 :Fortifying: - 99.51Ly
+
+**User1** Thank you for contributing to the fort of this system.
+__**Dongkum** is now considered almost done and should stay **untouch** until further orders.__"""
+    f_bot.send_message.assert_called_with(msg.channel, expected)
+
+    system = session.query(FortSystem).filter_by(name='Dongkum').one()
+    assert system.current_status == 7001
+    duser = session.query(DiscordUser).filter_by(id=msg.author.id).one()
+    cattle = session.query(FortUser).filter_by(name=duser.pref_name).one()
+    drop = session.query(FortDrop).filter_by(user_id=cattle.id, system_id=system.id).one()
+    assert drop.amount == 1
+    
+    expect = [
+        {'range': 'K6:K7', 'values': [[7001], [0]]},
+        {'range': 'K15:K15', 'values': [[1]]},
+    ]
+    assert cogdb.scanners.SCANNERS['hudson_cattle'].payloads == expect
+
+
+@pytest.mark.asyncio
 async def test_cmd_hold_simple(session, f_bot, f_dusers, f_um_testbed):
     msg = fake_msg_gears("!hold 2000 empt")
 
