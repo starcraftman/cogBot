@@ -559,7 +559,7 @@ class Admin(Action):
         return reply
 
     async def execute(self):
-        #globe = cogdb.query.get_current_global(self.session)
+        globe = cogdb.query.get_current_global(self.session)
         try:
             admin = cogdb.query.get_admin(self.session, self.duser)
         except cog.exc.NoMatch as exc:
@@ -569,8 +569,8 @@ class Admin(Action):
             func = getattr(self, self.args.subcmd)
             if self.args.subcmd == "remove":
                 response = await func(admin)
-            #elif self.args.subcmd == "cycle":
-                #response = await func(globe)
+            elif self.args.subcmd == "cycle":
+                response = await func(globe)
             else:
                 response = await func()
             if response:
@@ -2022,6 +2022,15 @@ class Voting(Action):
             globe.vote_goal = self.args.set
             msg = "New vote goal is **{goal}%**, current vote is {current_vote}%."\
                 .format(goal=self.args.set, current_vote=globe.consolidation)
+
+        elif self.args.force:
+            try:
+                cogdb.query.get_admin(self.session, self.duser)
+            except cog.exc.NoMatch as exc:
+                raise cog.exc.InvalidPerms("{} You are not an admin!".format(self.msg.author.mention)) from exc
+            globe.consolidation = self.args.force
+            msg = "Vote goal is **{goal}%**, forced current vote is {current_vote}%."\
+                .format(goal=globe.vote_goal, current_vote=self.args.force)
 
         elif self.args.vote_tuple:
             vote_type, amount = cog.parse.parse_vote_tuple(self.args.vote_tuple)

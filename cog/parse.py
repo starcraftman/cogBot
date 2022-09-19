@@ -772,6 +772,7 @@ def subs_vote(subs, prefix):
     CMD_MAP['Voting'] = 'vote'
     sub.add_argument('vote_tuple', nargs='*', help='format either: cons 1 or 5 prep')
     sub.add_argument('--set', '-s', type=int, help='Set vote goal.')
+    sub.add_argument('--force', '-fs', type=int, help='Force set the current vote status.')
     sub.add_argument('--display', '-d', action='store_true', help='Display the current vote goal.')
     sub.add_argument('--summary', action='store_true', help='Display the admin summary of votes this cycle.')
 

@@ -1790,6 +1790,14 @@ async def test_cmd_vote_set_goal(f_bot, f_admins, f_dusers, f_global_testbed, f_
 
 
 @pytest.mark.asyncio
+async def test_cmd_vote_set_current(f_bot, f_admins, f_dusers, f_global_testbed, f_vote_testbed, db_cleanup):
+    msg = fake_msg_gears("!vote -fs 42")
+
+    await action_map(msg, f_bot).execute()
+    f_bot.send_message.assert_called_with(msg.channel, 'Vote goal is **0%**, forced current vote is 42%.')
+
+
+@pytest.mark.asyncio
 async def test_cmd_vote_display(f_bot, f_admins, f_dusers, f_global_testbed, f_vote_testbed, db_cleanup):
     msg = fake_msg_gears("!vote --display")
 
