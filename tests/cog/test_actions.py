@@ -710,7 +710,7 @@ async def test_cmd_drop_newuser(session, f_bot, f_dusers, f_fort_testbed):
 
     await action_map(msg, f_bot).execute()
 
-    expect = 'Will automatically add NewUser to sheet. See !user command to change.'
+    expect = 'Will add NewUser to the sheet. See !user command to change.'
     f_bot.send_message.assert_any_call(msg.channel, expect)
     f_bot.send_message.assert_any_call(msg.channel, '**Nurundere** 5922/8425 :Fortifying: - 99.51Ly')
 
@@ -853,7 +853,7 @@ async def test_cmd_hold_newuser(session, f_bot, f_dusers, f_um_testbed):
 
     await action_map(msg, f_bot).execute()
 
-    expect = 'Will automatically add NewUser to sheet. See !user command to change.'
+    expect = 'Will add NewUser to the sheet. See !user command to change.'
     f_bot.send_message.assert_any_call(msg.channel, expect)
     expect2 = """```Control        | Empty [M sec]
 10%            | Merits Missing 9000

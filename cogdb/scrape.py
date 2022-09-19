@@ -20,6 +20,7 @@ import urllib.request
 
 import bs4
 import selenium
+from selenium.common.exceptions import ElementClickInterceptedException
 from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
@@ -111,6 +112,36 @@ def parse_date(text, *, start):
     return start - datetime.timedelta(**kwargs)
 
 
+def click_with_retry(element, *, delay=5, retries=5):
+    """Click an element in the page.
+    If the click raises an exception retry again after a delay. Retry until all retries used.
+
+    Args:
+        element: The element found in the page with the webdriver.
+        delay: The delay in seconds if the click fails.
+        retries: The number of times to retry on fail.
+
+    Returns: True IFF the element was successfully clicked.
+    """
+    # Sane minimums on flags.
+    if retries < 1:
+        retries = 1
+    if delay < 0:
+        delay = 5
+
+    been_clicked = False
+    while retries and not been_clicked:
+        try:
+            element.click()
+            been_clicked = True
+        except ElementClickInterceptedException:
+            time.sleep(delay)
+        finally:
+            retries = retries - 1
+
+    return been_clicked
+
+
 def powerplay_leader(driver, leader_index, *, updated_at=0, held_merits=False):  # pragma: no cover | Heavily dependent on driver.
     """Scrape the powerplay page for the spy site.
 
@@ -124,23 +155,23 @@ def powerplay_leader(driver, leader_index, *, updated_at=0, held_merits=False): 
     """
     # Fetch the page for named leader
     top_box = driver.find_element(By.CLASS_NAME, "blazored-typeahead__input-icon")
-    top_box.click()
+    click_with_retry(top_box)
     time.sleep(LONG_GAP)
 
     # Select leader from drop down by index
     selects = driver.find_elements(By.CLASS_NAME, "blazored-typeahead__result ")
-    selects[leader_index].click()
+    click_with_retry(selects[leader_index])
     now = datetime.datetime.utcnow()  # Time is relative when you click leader in list
     time.sleep(LONG_GAP)
 
     if held_merits:
         for check in driver.find_elements(By.CLASS_NAME, "checkmark"):
-            check.click()
+            click_with_retry(check)
             time.sleep(SHORT_GAP)
 
         # Get held merits fro all selected systems of power
         buttons = driver.find_elements(By.CSS_SELECTOR, "button.btn-primary")
-        buttons[0].click()
+        click_with_retry(buttons[0])
 
         print("Wait start:", str(now))
         while not check_held_recent(driver.page_source, now):
@@ -154,7 +185,7 @@ def powerplay_leader(driver, leader_index, *, updated_at=0, held_merits=False): 
 
     # Clear the selection for next time.
     clear = driver.find_element(By.CLASS_NAME, "blazored-typeahead__clear")
-    clear.click()
+    click_with_retry(clear)
     time.sleep(LONG_GAP)
 
     return info
@@ -175,7 +206,7 @@ def scrape_all_powerplay(driver, held_merits=False):  # pragma: no cover | Depen
     # Push refine button to get latest fort and um data
     buttons = driver.find_elements(By.CSS_SELECTOR, "button.btn-primary")
     ref_button = buttons[-1]
-    ref_button.click()
+    click_with_retry(ref_button)
     time.sleep(LONGEST_GAP)
     while ref_button.text != "Refine":
         time.sleep(5)
@@ -187,7 +218,7 @@ def scrape_all_powerplay(driver, held_merits=False):  # pragma: no cover | Depen
 
     # Expand all blocks for information
     switch = driver.find_element(By.CLASS_NAME, "input-switch")
-    switch.click()
+    click_with_retry(switch)
 
     return {
         leader: powerplay_leader(driver, ind, held_merits=held_merits, updated_at=updated_at)

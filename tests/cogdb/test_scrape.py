@@ -2,9 +2,12 @@
 Tests for cogdb.scrape
 """
 import datetime
+import functools
 import os
 
 import pytest
+import mock
+from selenium.common.exceptions import ElementClickInterceptedException
 
 import cog.util
 import cogdb.scrape
@@ -99,3 +102,33 @@ def test_parse_powerplay_page(now):
     parsed = cogdb.scrape.parse_powerplay_page(WHOLE_PAGE, start=now, updated_at=1662504155)
     assert expect_held == parsed['Aowica']
     assert expect_unknown == parsed['Zhao']
+
+
+def test_click_with_retry_success():
+    mock_click = mock.MagicMock(click=lambda: True)
+    assert cogdb.scrape.click_with_retry(mock_click)
+
+
+def test_click_with_retry_fail():
+    def always_raise():
+        raise ElementClickInterceptedException()
+
+    mock_click = mock.MagicMock(click=always_raise)
+    assert not cogdb.scrape.click_with_retry(mock_click, retries=2, delay=0.5)
+
+
+def test_click_with_retry_fail_then_succeed():
+    class StubClick():
+        def __init__(self):
+            self.first = True
+
+        def click(self):
+            if self.first:
+                self.first = False
+                raise ElementClickInterceptedException()
+
+            return True
+
+    stub = StubClick()
+    mock_click = mock.MagicMock(click=stub.click)
+    assert cogdb.scrape.click_with_retry(mock_click, retries=2, delay=0.5)

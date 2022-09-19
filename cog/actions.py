@@ -81,30 +81,41 @@ async def check_mentions(coro, *args, **kwargs):
         await coro(*args, **kwargs)
 
 
-def check_sheet(scanner_name, attr, user_cls, sheet_src=None):
-    """ Check if user present in sheet. """
-    @decorator.decorator
-    async def inner(coro, *args, **kwargs):
-        """ The actual decorator. """
-        self = args[0]
-        if not getattr(self.duser, attr):
-            self.log.info('USERS %s - Adding to %s as %s.',
-                          self.duser.display_name, user_cls.__name__, self.duser.pref_name)
-            sheet = cogdb.query.add_sheet_user(
-                self.session, cls=user_cls, discord_user=self.duser,
-                start_row=get_scanner(scanner_name).user_row, sheet_src=sheet_src
-            )
+def check_sheet(*, client, scanner_name, attr, user_cls, sheet_src=None):
+    """Common function that will check and add user to sheet and db if needed.
 
-            self.payloads += get_scanner(scanner_name).__class__.update_sheet_user_dict(
-                sheet.row, sheet.cry, sheet.name)
+    When user not found in sheet:
+    - Create sheet user in database.
+    - Add payload to client.payloads to add user to new row.
+    - Notify user with message.
 
-            notice = 'Will automatically add {} to sheet. See !user command to change.'.format(
-                self.duser.pref_name)
-            asyncio.ensure_future(self.bot.send_message(self.msg.channel, notice))
+    Args:
+        client: The bot client.
+        scanner_name: The name of the scanner found in config.
+        attr: The name of the attribute to find the existing sheet_user on the db DUser object.
+        user_cls: The class that is to be used to instantiate a user.
+        sheet_src: The specific sheet_src to be used with class to create a user.
 
-        await coro(*args, **kwargs)
+    Returns: The newly created sheet user if it was added. Otherwise None.
+    """
+    # Confirm the user is in the sheet and db concurs
+    if getattr(client.duser, attr):
+        return None
 
-    return inner
+    client.log.info('USERS %s - Adding to %s as %s.',
+                    client.duser.display_name, user_cls.__name__, client.duser.pref_name)
+    scanner = get_scanner(scanner_name)
+    sheet = cogdb.query.add_sheet_user(
+        client.session, cls=user_cls, discord_user=client.duser,
+        start_row=scanner.user_row, sheet_src=sheet_src
+    )
+    client.payloads += scanner.__class__.update_sheet_user_dict(
+        sheet.row, sheet.cry, sheet.name)
+
+    notice = f'Will add {client.duser.pref_name} to the sheet. See !user command to change.'
+    asyncio.ensure_future(client.bot.send_message(client.msg.channel, notice))
+
+    return sheet
 
 
 class Action():
@@ -889,7 +900,6 @@ class Drop(Action):
         return response
 
     @check_mentions
-    @check_sheet('hudson_cattle', 'fort_user', FortUser)
     async def execute(self):
         """
         Drop forts at the fortification target.
@@ -902,8 +912,10 @@ class Drop(Action):
         self.log.info('DROP %s - Matched system %s from: \n%s.',
                       self.duser.display_name, system.name, system)
 
+        check_sheet(client=self, scanner_name='hudson_cattle', attr='fort_user', user_cls=FortUser)
         drop = cogdb.query.fort_add_drop(self.session, system=system,
                                          user=self.duser.fort_user, amount=self.args.amount)
+
         if self.args.set:
             system.set_status(self.args.set)
         self.log.info('DROP %s - After drop, Drop: %s\nSystem: %s.',
@@ -1158,9 +1170,6 @@ class Hold(Action):
 
     async def set_hold(self):
         """ Set the hold on a system. """
-        if not self.args.system:
-            raise cog.exc.InvalidCommandArgs("You forgot to specify a system to update.")
-
         system = cogdb.query.um_find_system(self.session, ' '.join(self.args.system),
                                             sheet_src=self.args.sheet_src)
         self.log.info('HOLD %s - Matched system name %s: \n%s.',
@@ -1190,15 +1199,15 @@ class Hold(Action):
 
         return ([hold], response)
 
-    @check_mentions
-    @check_sheet('hudson_undermine', 'um_user', UMUser, sheet_src=EUMSheet.main)
-    async def check_sheet_user(self):
+    def check_sheet_user(self):
         """
         Decorate this function to prevent duplicate decorator running.
         """
+        check_sheet(client=self, scanner_name='hudson_undermine', attr='um_user',
+                    user_cls=UMUser, sheet_src=EUMSheet.main)
 
+    @check_mentions
     async def execute(self):
-        await self.check_sheet_user()
         self.log.info('HOLD %s - Matched self.duser with id %s and sheet name %s.',
                       self.duser.display_name, self.duser.id, self.um_user)
 
@@ -1231,6 +1240,10 @@ class Hold(Action):
             response += cog.tbl.format_table(lines, header=True)[0]
 
         else:  # Default case, update the hold for a system
+            if not self.args.system:
+                raise cog.exc.InvalidCommandArgs("You forgot to specify a system to update.")
+
+            self.check_sheet_user()
             holds, response = await self.set_hold()
 
         self.session.commit()
@@ -1253,12 +1266,12 @@ class SnipeHold(Hold):
     def um_user(self):
         return self.duser.snipe_user
 
-    @check_mentions
-    @check_sheet('hudson_snipe', 'snipe_user', UMUser, sheet_src=EUMSheet.snipe)
-    async def check_sheet_user(self):
+    def check_sheet_user(self):
         """
         Decorate this function to prevent duplicate decorator running.
         """
+        check_sheet(client=self, scanner_name='hudson_snipe', attr='snipe_user',
+                    user_cls=UMUser, sheet_src=EUMSheet.snipe)
 
 
 class KOS(Action):
