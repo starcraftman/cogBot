@@ -878,9 +878,9 @@ class Drop(Action):
 
         lines = [
             f'**{self.duser.display_name}** Thank you for contributing to the fort of this system.',
-            f'__**{system.name}** is now considered almost done and should stay **untouch** until further orders.__'
+            f'__**{system.name}** is **almost done** and should stay **untouched** until further orders.__'
         ]
-        
+
         response += '\n\n' + '\n'.join(lines)
 
         return response
@@ -1054,7 +1054,7 @@ To unset override, simply set an empty list of systems.
                 system = cogdb.query.fort_find_system(self.session, name)
                 lines.append(system.display())
                 if system.is_deferred and not globe.show_almost_done:
-                    lines.append('This system is considered **almost done** and should stay **untouch** until further orders.\n')
+                    lines.append('This system is **almost done** and should stay **untouched** until further orders.\n')
             response = '\n'.join(lines)
 
         elif self.args.next:

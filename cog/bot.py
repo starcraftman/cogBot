@@ -304,7 +304,7 @@ class CogBot(discord.Client):
             else:
                 try:
                     self.parser.parse_args(content.split(' ')[0:1] + ['--help'])
-                except cog.exc.ArgumentHelpError as exc2:
+                except cog.exc.ArgumentHelpError:
                     exc.message = 'Invalid command use. Check the command help.'
                     exc.message += '\n{}\n{}'.format(len(exc.message) * '-', exc.message)
 

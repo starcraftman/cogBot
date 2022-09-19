@@ -1092,6 +1092,7 @@ class FortTracker(FortScanner):
     def __repr__(self):
         return super().__repr__().replace('FortScanner', 'FortTracker')
 
+
 async def init_scanners():
     """
     Initialized all parts related to google sheet scanners.

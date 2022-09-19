@@ -525,6 +525,19 @@ async def test_cmd_fort_search(f_bot, f_dusers, f_fort_testbed):
 
 
 @pytest.mark.asyncio
+async def test_cmd_fort_search_deferred(f_bot, f_dusers, f_fort_testbed):
+    msg = fake_msg_gears("!fort dong")
+
+    await action_map(msg, f_bot).execute()
+
+    expect = """__Search Results__
+**Dongkum** 7000/7239 :Fortifying: (239 left) - 81.54Ly
+This system is **almost done** and should stay **untouched** until further orders.
+"""
+    f_bot.send_message.assert_called_with(msg.channel, expect)
+
+
+@pytest.mark.asyncio
 async def test_cmd_fort_set(session, f_bot, f_dusers, f_fort_testbed):
     msg = fake_msg_gears("!fort --set 7000:222 nuru")
 
@@ -779,7 +792,7 @@ __Next Fort Target__:
 **Nurundere** 5422/8425 :Fortifying: - 99.51Ly
 
 **User1** Thank you for contributing to the fort of this system.
-__**Dongkum** is now considered almost done and should stay **untouch** until further orders.__"""
+__**Dongkum** is **almost done** and should stay **untouched** until further orders.__"""
     f_bot.send_message.assert_called_with(msg.channel, expected)
 
     system = session.query(FortSystem).filter_by(name='Dongkum').one()
@@ -788,7 +801,7 @@ __**Dongkum** is now considered almost done and should stay **untouch** until fu
     cattle = session.query(FortUser).filter_by(name=duser.pref_name).one()
     drop = session.query(FortDrop).filter_by(user_id=cattle.id, system_id=system.id).one()
     assert drop.amount == 1
-    
+
     expect = [
         {'range': 'K6:K7', 'values': [[7001], [0]]},
         {'range': 'K15:K15', 'values': [[1]]},
