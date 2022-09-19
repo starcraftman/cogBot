@@ -112,7 +112,7 @@ def parse_date(text, *, start):
     return start - datetime.timedelta(**kwargs)
 
 
-def powerplay_leader(driver, leader_index, *, updated_at=0, held_merits=False):
+def powerplay_leader(driver, leader_index, *, updated_at=0, held_merits=False):  # pragma: no cover | Heavily dependent on driver.
     """Scrape the powerplay page for the spy site.
 
     Expectation: Driver is already loaded and pointed at powerplay page.
@@ -269,7 +269,7 @@ def parse_powerplay_page(page_source, *, start, updated_at):
     return {x['system_name']: x for x in systems}
 
 
-def main():
+def main():  # pragma: no cover | Main test code to sanity check with real driver
     """
     Demonstrate a complete parsing of all powerplay information and dump to json file.
     """

@@ -109,7 +109,9 @@ class SpyPrep(Base):
     def __str__(self):
         """ A pretty one line to give all information. """
         date = datetime.datetime.utcfromtimestamp(self.updated_at)
-        return f"{self.power.text} {self.system.name}: {self.merits}, updated at {date}"
+        power_text = "{}".format(self.power.text if self.power else self.power_id)
+        system_text = "{}".format(self.system.name if self.system else self.ed_system_id)
+        return f"{power_text} {system_text}: {self.merits}, updated at {date}"
 
     def __eq__(self, other):
         return isinstance(other, SpyPrep) and hash(self) == hash(other)
@@ -173,10 +175,12 @@ class SpySystem(Base):
         """ A pretty one line to give all information. """
         updated_at = datetime.datetime.utcfromtimestamp(self.updated_at)
         status_text = f"{self.fort}/{self.fort_trigger} | {self.um}/{self.um_trigger}, updated at {updated_at}"
+        power_text = "{}".format(self.power.text if self.power else self.power_id)
+        system_text = "{}".format(self.system.name if self.system else self.ed_system_id)
         if self.is_expansion:
-            description = f"Expansion for {self.power.text} to {self.system.name}: {status_text}"
+            description = f"Expansion for {power_text} to {system_text}: {status_text}"
         else:
-            description = f"{self.power.text} {self.system.name}: {status_text}"
+            description = f"{power_text} {system_text}: {status_text}"
 
         return description
 
@@ -294,13 +298,13 @@ def load_refined_json(refined, eddb_session):
                 filter(System.ed_system_id == ed_system_id).\
                 one()
             try:
-                spyprep = eddb_session.query(SpySystem).\
-                    filter(SpySystem.ed_system_id == ed_system_id,
-                           SpySystem.power_id == power_id).\
+                spyprep = eddb_session.query(SpyPrep).\
+                    filter(SpyPrep.ed_system_id == ed_system_id,
+                           SpyPrep.power_id == power_id).\
                     one()
                 spyprep.merits = merits
                 spyprep.updated_at = updated_at
-                spyprep.system_name = eddb_system
+                spyprep.system_name = eddb_system.name
             except sqla.orm.exc.NoResultFound:
                 spyprep = SpyPrep(
                     power_id=power_id,
@@ -382,6 +386,7 @@ def compare_sheet_fort_systems_to_spy(session, eddb_session):
         filter(FortSystem.type == EFortType.fort).\
         all()
     fort_names = [x.name for x in fort_targets]
+    fort_dict = {x.name: x for x in fort_targets}
 
     systems = {}
     for system in fort_targets:
@@ -401,8 +406,10 @@ def compare_sheet_fort_systems_to_spy(session, eddb_session):
     for spy_sys in spy_systems:
         if spy_sys.fort > systems[spy_sys.system.name]['fort']:
             systems[spy_sys.system.name]['fort'] = spy_sys.fort
+            fort_dict[spy_sys.system.name].fort_status = spy_sys.fort
         if spy_sys.um > systems[spy_sys.system.name]['um']:
             systems[spy_sys.system.name]['um'] = spy_sys.um
+            fort_dict[spy_sys.system.name].um_status = spy_sys.um
 
     return list(sorted(systems.values(), key=lambda x: x['sheet_order']))
 
@@ -420,6 +427,7 @@ def compare_sheet_um_systems_to_spy(session, eddb_session):
                UMSystem.sheet_src == EUMSheet.main).\
         all()
     um_names = [x.name for x in um_targets]
+    um_dict = {x.name: x for x in um_targets}
 
     systems = {}
     for system in um_targets:
@@ -441,11 +449,13 @@ def compare_sheet_um_systems_to_spy(session, eddb_session):
         changed = False
         if spy_sys.um > systems[spy_sys.system.name]['progress_us']:
             systems[spy_sys.system.name]['progress_us'] = spy_sys.um
+            um_dict[spy_sys.system.name].progress_us = spy_sys.um
             changed = True
 
         spy_progress_them = spy_sys.fort / spy_sys.fort_trigger
         if spy_progress_them > systems[spy_sys.system.name]['progress_them']:
             systems[spy_sys.system.name]['progress_them'] = spy_progress_them
+            um_dict[spy_sys.system.name].progress_them = spy_progress_them
             changed = True
 
         # Prune all unchanged systems, UM sheet isn't guaranteed contiguous
@@ -486,7 +496,7 @@ def recreate_tables():  # pragma: no cover | destructive to test
     Base.metadata.create_all(cogdb.eddb_engine)
 
 
-def main():
+def main():  # pragma: no cover | destructive to test
     """
     Main function to load the test data during development.
     """
