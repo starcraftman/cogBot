@@ -18,7 +18,6 @@ import aiozmq
 import aiozmq.rpc
 
 import cog.util
-import cogdb.scanners
 
 ADDR = 'tcp://127.0.0.1:{}'.format(cog.util.CONF.ports.zmq)
 POOL = cfut.ProcessPoolExecutor(max_workers=os.cpu_count())

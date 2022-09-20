@@ -11,7 +11,7 @@ import cogdb
 from cogdb.schema import (DiscordUser, FortSystem, FortUser, FortOrder,
                           UMUser, UMSystem, UMHold, EUMSheet, AdminPerm, ChannelPerm, RolePerm,
                           KOS, TrackSystem, TrackSystemCached, TrackByID,
-                          Global, Vote, EVoteType)
+                          Vote, EVoteType)
 import cogdb.query
 
 from tests.conftest import Channel, Member, Message, Role, Guild

@@ -330,7 +330,7 @@ def test_compare_sheet_um_systems_to_spy(empty_spy, db_cleanup, session, eddb_se
 
     system = session.query(UMSystem).filter(UMSystem.name == "Sol").one()
     assert us == system.progress_us
-    assert them/3333 == system.progress_them
+    assert them / 3333 == system.progress_them
     system = session.query(UMSystem).filter(UMSystem.name == "Rana").one()
     assert 0 == system.progress_us
     assert 0 == system.progress_them

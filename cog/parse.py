@@ -457,19 +457,6 @@ def subs_near(subs, prefix):
 
 
 @register_parser
-def subs_ocr(subs, prefix):
-    """ Subcommand parsing for ocr """
-    sub = subs.add_parser(prefix + 'ocr', description='Manage the OCR system and query things.')
-    sub.set_defaults(cmd='OCR')
-    CMD_MAP['OCR'] = 'ocr'
-    subcmds = sub.add_subparsers(title='subcommands',
-                                 description='OCR Subcommands', dest='subcmd')
-
-    subcmds.add_parser('preps', help='Show all preps.')
-    subcmds.add_parser('refresh', help='Immediately refresh from OCR sheet.')
-
-
-@register_parser
 def subs_pin(subs, prefix):
     """ Subcommand parsing for pin """
     sub = subs.add_parser(prefix + 'pin', description='Make an objectives pin and keep updating.')
@@ -596,8 +583,6 @@ def subs_scrape(subs, prefix):
     sub = subs.add_parser(prefix + 'scrape', description=desc, formatter_class=RawHelp)
     sub.set_defaults(cmd='Scrape')
     CMD_MAP['Scrape'] = 'scrape'
-    sub.add_argument('powerplay_leader', nargs="+", help='The powerplay leader.')
-    sub.add_argument('--held', action='store_true', help='Scrape the held merits too.')
 
 
 @register_parser

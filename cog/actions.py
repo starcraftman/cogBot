@@ -1382,23 +1382,6 @@ class Near(Action):
         await self.bot.send_message(self.msg.channel, msg)
 
 
-class OCR(Action):
-    """
-    Management interface for OCR operations.
-    """
-    async def execute(self):
-        reply = None
-
-        if self.args.subcmd == "preps":
-            reply = cogdb.query.ocr_prep_report(self.session)
-        elif self.args.subcmd == "refresh":  # pragma: no cover
-            reply = "OCR Sheet has been read and update pushed to Fort"
-            #  await cogdb.scanners.handle_ocr_sheet_update(self.bot)
-
-        if reply:
-            await self.bot.send_message(self.msg.channel, reply)
-
-
 class Pin(Action):
     """
     Create an objetives pin.
@@ -1634,15 +1617,7 @@ class Scrape(Action):
         await self.bot.send_message(self.msg.channel,
                                     "Initiated the scrape in the background.")
 
-        url = cog.util.CONF.scrape.url
-        async with aiohttp.ClientSession() as http:
-            async with http.get(url) as resp:
-                if resp.status == 200:
-                    with cfut.ProcessPoolExecutor(max_workers=1) as pool:
-                        await self.bot.loop.run_in_executor(
-                            pool, scrape_all_in_background
-                        )
-                    await push_scrape_to_gal_scanner()
+        await monitor_powerplay_page(self.bot, repeat=False, delay=0)
 
         await self.bot.send_message(self.msg.channel,
                                     "Finished the scrape.")
@@ -2482,7 +2457,7 @@ async def monitor_powerplay_page(client, *, repeat=True, delay=1800):
         await push_scrape_to_sheets()
     except aiohttp.ClientConnectorError:
         logging.getLogger(__name__).error("Spy service not operating. Will try again in %d seconds.", delay)
-    except:
+    except:  # FIXME: Remove this in final. Debugging intermittent issue.
         traceback.print_exc()
 
 

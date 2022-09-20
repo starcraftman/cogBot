@@ -4,7 +4,6 @@ All sheet scanners are stored here for now
 Sheet scanners make heavy use of cog.sheets.AsyncGSheet
 """
 import asyncio
-import concurrent.futures as cfut
 import datetime
 import logging
 import re
@@ -18,7 +17,7 @@ import cog.sheets
 import cog.util
 import cogdb
 from cogdb.schema import (FortSystem, FortPrep, FortDrop, FortUser,
-                          UMSystem, UMUser, UMHold, KOS, EUMSheet, Consolidation,
+                          UMSystem, UMUser, UMHold, KOS, EUMSheet,
                           kwargs_fort_system, kwargs_um_system)
 
 
@@ -927,22 +926,15 @@ class CarrierScanner(FortScanner):
         return found
 
 
-# FIXME: Currently doesn't insert into db pending move to spy_squirrel
 class GalScanner(FortScanner):
     """
-    Scanner for the Hudson OCR sheet.
+    Scanner for the Hudson Gal sheet.
 
     args:
         asheet: The AsyncGSheet that connects to the sheet.
     """
     def __init__(self, asheet):
         super().__init__(asheet, [])
-
-        # All columns are mapped from letters to indices, so B == 1
-        self.start_row = 2  # Usable info starts on this row
-        self.prep_consolidation_row = 8  # Consolidation always at this row of prep column
-        self.prep_col = 3  # Col where prep info starts
-        self.trigger_col = 11  # Col where trigger info starts
 
     def __repr__(self):
         return super().__repr__().replace('FortScanner', 'GalScanner')
@@ -952,36 +944,6 @@ class GalScanner(FortScanner):
         Will not parse, only pushing data.
         """
         pass
-
-    def generate_system_map(self):
-        """
-        Use this map to correct systm names and ensure system name is not corrupted in ocr sheet.
-        Looks up candidates against the EDDB database, maps the CAPS -> Normal system names.
-        Any system names corrupted won't be in the map and will generate errors when looked up.
-
-        Dictionary Format:
-        {
-            "16 CYGNI": "16 Cygni",
-            "ADEO": "Adeo",
-            ...
-        }
-
-        Returns: A dictionary mapping system names from ALL CAPS to normal eddb name.
-        """
-        with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
-            systems_in_sheets = [x.upper() for x in
-                                 cogdb.eddb.get_controls_of_power(eddb_session, power='%hudson')]
-        systems_in_sheets += [x for x in self.cells_col_major[self.prep_col][2:7] if x]
-
-        # Generate a map for system name correction
-        with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
-            eddb_systems = eddb_session.query(cogdb.eddb.System).\
-                filter(cogdb.eddb.System.name.in_(systems_in_sheets)).\
-                all()
-            mapping_eddb = {x.name.lower(): x.name for x in eddb_systems}
-
-        return {x: mapping_eddb[x.lower()] for x in systems_in_sheets
-                if x.lower() in mapping_eddb}
 
     def update_dict(self, *, systems, row=3):
         """
@@ -1060,32 +1022,6 @@ async def init_scanners():
     await asyncio.gather(*init_coros)
 
     return scanners
-
-
-#  async def handle_ocr_sheet_update(client):  # pragma: no cover
-    #  """
-    #  This task is to be run only when the OCR sheet has been updated.
-    #  Update the OCR information in the db and then take any actions
-    #  required with changes.
-
-    #  Args:
-        #  client: The bot client itself.
-    #  """
-    #  # Update database by triggering manual refresh
-    #  ocr_scanner = get_scanner('hudson_gal')
-    #  await ocr_scanner.update_cells()
-    #  with cfut.ProcessPoolExecutor(max_workers=1) as pool:
-        #  await client.loop.run_in_executor(
-            #  pool, ocr_scanner.scheduler_run,
-        #  )
-
-    #  # Data refreshed, analyse and update
-    #  with cogdb.session_scope(cogdb.Session) as session:
-        #  cell_updates = cogdb.query.ocr_update_fort_status(session)
-        #  if cell_updates:
-            #  await get_scanner('hudson_cattle').send_batch(cell_updates)
-            #  logging.getLogger(__name__).info("Sent update to sheet.")
-            #  logging.getLogger(__name__).info(str(cell_updates))
 
 
 def get_scanner(name):
