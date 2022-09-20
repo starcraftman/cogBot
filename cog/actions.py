@@ -919,7 +919,7 @@ class Drop(Action):
                       self.duser.display_name, self.args.amount, system.name)
 
         response = system.display()
-        if system.is_deferred and not globe.show_almost_done:
+        if system.is_deferred and (not globe.show_almost_done or not is_near_tick()):
             response += self.deferred(system)
         elif system.is_fortified:
             response += self.finished(system)
