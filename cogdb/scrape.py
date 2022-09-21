@@ -158,9 +158,18 @@ def powerplay_leader(driver, leader_index, *, updated_at=0, held_merits=False): 
     click_with_retry(top_box)
     time.sleep(LONG_GAP)
 
-    # Select leader from drop down by index
-    selects = driver.find_elements(By.CLASS_NAME, "blazored-typeahead__result ")
-    click_with_retry(selects[leader_index])
+    # Select leader from drop down by index, sometimes delayed
+    retries = 5
+    while retries:
+        try:
+            selects = driver.find_elements(By.CLASS_NAME, "blazored-typeahead__result ")
+            click_with_retry(selects[leader_index])
+        except IndexError:
+            if retries == 0:
+                raise
+            time.sleep(LONG_GAP)
+        finally:
+            retries = retries - 1
     now = datetime.datetime.utcnow()  # Time is relative when you click leader in list
     time.sleep(LONG_GAP)
 
