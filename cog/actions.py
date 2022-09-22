@@ -934,7 +934,7 @@ class Drop(Action):
                       self.duser.display_name, self.args.amount, system.name)
 
         response = system.display()
-        if system.is_deferred and (not globe.show_almost_done or not is_near_tick()):
+        if system.is_deferred and (not globe.show_almost_done and not is_near_tick()):
             response += self.deferred(system)
         elif system.is_fortified:
             response += self.finished(system)
@@ -1068,7 +1068,7 @@ To unset override, simply set an empty list of systems.
             for name in process_system_args(self.args.system):
                 system = cogdb.query.fort_find_system(self.session, name)
                 lines.append(system.display())
-                if system.is_deferred and not globe.show_almost_done:
+                if system.is_deferred and (not globe.show_almost_done and not is_near_tick()):
                     lines.append('This system is **almost done** and should stay **untouched** until further orders.\n')
             response = '\n'.join(lines)
 
@@ -2457,6 +2457,11 @@ async def monitor_powerplay_page(client, *, repeat=True, delay=1800):
         )
 
     try:
+        # Disable during window of Thursday 0700-0800
+        now = datetime.datetime.utcnow()
+        if now.strftime("%A") == "Thursday" and now.hour == 7:
+            raise aiohttp.ClientConnectionError()
+
         # confirm page is up and working BEFORE asking for complete scrape
         async with aiohttp.ClientSession() as http:
             async with http.get(cog.util.CONF.scrape.url):
