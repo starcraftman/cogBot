@@ -22,6 +22,7 @@ import bs4
 import selenium
 from selenium.common.exceptions import ElementClickInterceptedException
 from selenium.webdriver.common.by import By
+from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
 from webdriver_manager.chrome import ChromeDriverManager
@@ -299,6 +300,78 @@ def parse_powerplay_page(page_source, *, start, updated_at):
     return {x['system_name']: x for x in systems}
 
 
+def scrape_all_bgs(driver, systems):  # pragma: no cover | Depends on driver running.
+    """Scrape all bgs information for given systems.
+
+    Args:
+        driver: The webdriver, probably chrome.
+        systems: The name of the systems to push.
+    """
+    results = {}
+    url = os.path.join(cog.util.CONF.scrape.url, 'bgs')
+    driver.get(url)
+    time.sleep(LONG_GAP)
+
+    # Push refine button to get latest fort and um data
+    for system_name in systems:
+        input_box = driver.find_element(By.CLASS_NAME, "blazored-typeahead__input ")
+        input_box.send_keys(system_name)
+        time.sleep(LONG_GAP)
+
+        # Wait until choices populate
+        done = False
+        while not done:
+            time.sleep(SHORT_GAP)
+            drop_items = driver.find_elements(By.CLASS_NAME, "blazored-typeahead__result")
+            if drop_items:
+                done = True
+        drop_items[0].click()
+        time.sleep(LONG_GAP)
+
+        # Click Fetch button, wait until fetched
+        buttons = [x for x in driver.find_elements(By.TAG_NAME, "button") if x.text == "Fetch"]
+        buttons[0].click()
+        done = False
+        while not done:
+            time.sleep(LONG_GAP)
+            buttons = [x for x in driver.find_elements(By.TAG_NAME, "button") if x.text == "Fetch"]
+            if buttons:
+                done = True
+
+        # Parse the information
+        eles = [system_name] + [x.text for x in driver.find_elements(By.TAG_NAME, "p")]
+        results.update(parse_bgs_page(*eles))
+
+        # Reset the input box
+        reset = find_element(By.CLASS_NAME, "blazored-typeahead__clear")
+        reset.click()
+        time.sleep(SHORT_GAP)
+
+    return results
+
+
+def parse_bgs_page(system_name, date_p, info_p):
+    """Parse the bgs information based on separated out elements.
+
+    Args
+        page_source: The text of the bgs page to parse.
+
+    Returns: Parsed information in a dictionary.
+    """
+    retrieved = re.search(r'Last fetched: (.*?) \(.*\).', date_p).group(1)
+    retrieved = datetime.datetime.strptime(retrieved, '%m/%d/%Y %H:%M:%S %Z').replace(tzinfo=datetime.timezone.utc)
+    updated_at = re.search(r'Data updated: (.*) \(.*\).', date_p).group(1)
+    updated_at = datetime.datetime.strptime(updated_at, '%m/%d/%Y %H:%M:%S %Z').replace(tzinfo=datetime.timezone.utc)
+
+    return {
+        system_name: {
+            'retrieved': retrieved.timestamp(),
+            'updated_at': updated_at.timestamp(),
+            'factions': {name: inf for name, inf in re.findall(r'(.*?): ([.0-9]+)%', info_p)},
+        }
+    }
+
+
 def main():  # pragma: no cover | Main test code to sanity check with real driver
     """
     Demonstrate a complete parsing of all powerplay information and dump to json file.
@@ -311,7 +384,8 @@ def main():  # pragma: no cover | Main test code to sanity check with real drive
 
         # Run a sanity test, parse entire powerplay page for all leaders.
         with get_chrome_driver(dev=True) as driver:
-            data = scrape_all_powerplay(driver, held_merits=False)
+            data = scrape_all_bgs(driver, ["Sol", "Rana", "Abi"])
+            #  data = scrape_all_powerplay(driver, held_merits=False)
             with open(out_file, "w") as fout:
                 fout.write(json.dumps(data, sort_keys=True, indent=2))
 

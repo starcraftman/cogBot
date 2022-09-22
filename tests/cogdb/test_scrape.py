@@ -132,3 +132,25 @@ def test_click_with_retry_fail_then_succeed():
     stub = StubClick()
     mock_click = mock.MagicMock(click=stub.click)
     assert cogdb.scrape.click_with_retry(mock_click, retries=2, delay=0.5)
+
+
+def test_parse_bgs_page():
+    args = [
+        'Rana',
+        'Last fetched: 09/22/2022 18:47:39 UTC (32 seconds ago).\nData updated: 09/22/2022 18:34:33 UTC (13 minutes ago).',
+        'Earth Defense Fleet: 47.5%\nRana General Co: 15%\nIndependent Rana Labour: 12.6%\nAegis of Federal Democrats: 8.2%\n',
+    ]
+    expect = {
+        'Rana': {
+            'retrieved': 1663872459.0,
+            'updated_at': 1663871673.0,
+            'factions': {
+                'Aegis of Federal Democrats': '8.2',
+                'Earth Defense Fleet': '47.5',
+                'Independent Rana Labour': '12.6',
+                'Rana General Co': '15'
+            },
+        }
+    }
+
+    assert expect == cogdb.scrape.parse_bgs_page(*args)
