@@ -1959,3 +1959,25 @@ def test_check_system_deferred_and_globe(f_dusers, f_fort_testbed, f_global_test
     assert cog.actions.check_system_deferred_and_globe(fort, globe) is not cog.actions.is_near_tick()
     globe.show_vote_goal = True
     assert cog.actions.check_system_deferred_and_globe(fort, globe) is False
+
+
+# TODO: Test: `!scrape power`. At present power is too long, create shorter command.
+@pytest.mark.asyncio
+async def test_cmd_scrape_bgs(f_bot, eddb_session):
+    infs = eddb_session.query(cogdb.eddb.Influence).\
+        join(cogdb.eddb.System, cogdb.eddb.Influence.system_id == cogdb.eddb.System.id).\
+        filter(cogdb.eddb.System.name == 'LHS 215').\
+        all()
+    for inf in infs:
+        inf.influence = 0
+    eddb_session.commit()
+
+    msg = fake_msg_gears("!scrape bgs LHS 215")
+    await action_map(msg, f_bot).execute()
+
+    infs = eddb_session.query(cogdb.eddb.Influence).\
+        join(cogdb.eddb.System, cogdb.eddb.Influence.system_id == cogdb.eddb.System.id).\
+        filter(cogdb.eddb.System.name == 'LHS 215').\
+        all()
+    for inf in infs:
+        assert inf.influence != 0

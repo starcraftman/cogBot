@@ -314,7 +314,6 @@ def scrape_all_bgs(driver, systems):  # pragma: no cover | Depends on driver run
 
     # Push refine button to get latest fort and um data
     for system_name in systems:
-        print(system_name)
         input_box = driver.find_element(By.CLASS_NAME, "blazored-typeahead__input ")
         input_box.send_keys(system_name)
         time.sleep(LONG_GAP)
@@ -322,7 +321,7 @@ def scrape_all_bgs(driver, systems):  # pragma: no cover | Depends on driver run
         # Wait until choices populate
         done = False
         while not done:
-            time.sleep(SHORT_GAP)
+            time.sleep(LONG_GAP)
             drop_items = driver.find_elements(By.CLASS_NAME, "blazored-typeahead__result")
             if drop_items:
                 done = True
