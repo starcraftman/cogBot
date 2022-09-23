@@ -13,7 +13,7 @@ from sqlalchemy.ext.hybrid import hybrid_property
 
 import cog.util
 import cogdb.eddb
-from cogdb.eddb import Base, Power, System
+from cogdb.eddb import Base, Power, System, Faction, Influence
 from cogdb.schema import FortSystem, UMSystem, EFortType, EUMType, EUMSheet
 
 
@@ -454,6 +454,28 @@ def compare_sheet_um_systems_to_spy(session, eddb_session):
             um_dict[spy_sys.system.name].progress_them = spy_progress_them
 
     return list(sorted(systems.values(), key=lambda x: x['sheet_col']))
+
+
+def update_eddb_factions(eddb_session, fact_info):
+    """Bulk update influence values for existing found system faction pairs.
+    Changes will be committed
+
+    Args:
+        eddb_session: Session onto the EDDB database.
+        fact_info: A dictionary with required information, see cogdb.scrape.scrape_all_bgs for format.
+    """
+    for system_name, info in fact_info.items():
+        for faction_name in info['factions']:
+            found = eddb_session.query(Influence).\
+                join(System).\
+                join(Faction, Influence.faction_id == Faction.id).\
+                filter(System.name == system_name,
+                       Faction.name == faction_name).\
+                one()
+            found.influence = info['factions'][faction_name]
+            found.updated_at = info['updated_at']
+
+    eddb_session.commit()
 
 
 def drop_tables():  # pragma: no cover | destructive to test

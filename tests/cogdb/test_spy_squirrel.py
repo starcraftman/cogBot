@@ -14,6 +14,47 @@ import cogdb.eddb
 from cogdb.schema import FortSystem, UMSystem
 
 FIXED_TIMESTAMP = 1662390092
+INPUT_UPDATE_EDDB_FACTIONS = {
+    "Abi": {
+        "factions": {
+            "Abi Crimson Raiders": 1,
+            "Abi Focus": 8.1,
+            "Abi Jet Natural Incorporated": 9.3,
+            "Abi Progressive Party": 4.5,
+            "Knights of Sol Eternal": 18.3,
+            "LFT 1723 Energy Commodities": 8.1,
+            "LHS 3899 Crimson Bridge Ind": 1,
+            "Tibis Alliance": 49.7
+        },
+        "retrieved": 1663943357.0,
+        "updated_at": 1663943357.0
+    },
+    "Rana": {
+        "factions": {
+            "Aegis of Federal Democrats": 8.2,
+            "Earth Defense Fleet": 47.5,
+            "Independent Rana Labour": 12.6,
+            "Rana Flag": 6.3,
+            "Rana General Co": 15,
+            "Rana Regulatory State": 4.5,
+            "Rana State Network": 5.8
+        },
+        "retrieved": 1663943331.0,
+        "updated_at": 1663871673.0
+    },
+    "Sol": {
+        "factions": {
+            "Aegis Core": 8.9,
+            "Federal Congress": 15.9,
+            "Mother Gaia": 29,
+            "Sol Constitution Party": 12.2,
+            "Sol Nationalists": 11.2,
+            "Sol Workers' Party": 22.7
+        },
+        "retrieved": 1663943306.0,
+        "updated_at": 1663870671.0
+    }
+}
 
 # Empty tables before running tests.
 spy.empty_tables()
@@ -334,3 +375,35 @@ def test_compare_sheet_um_systems_to_spy(empty_spy, db_cleanup, session, eddb_se
     system = session.query(UMSystem).filter(UMSystem.name == "Rana").one()
     assert 0 == system.progress_us
     assert 0 == system.progress_them
+
+
+def test_update_eddb_factions(eddb_session):
+    infs = []
+    for system_name in INPUT_UPDATE_EDDB_FACTIONS.keys():
+        infs += eddb_session.query(cogdb.eddb.Influence).\
+            join(cogdb.eddb.System).\
+            filter(cogdb.eddb.System.name == system_name).\
+            all()
+
+    try:
+        with cogdb.session_scope(cogdb.EDDBSession) as isolated_session:
+            cogdb.spy_squirrel.update_eddb_factions(isolated_session, INPUT_UPDATE_EDDB_FACTIONS)
+            abi_tibis = isolated_session.query(cogdb.eddb.Influence).\
+                join(cogdb.eddb.System).\
+                join(cogdb.eddb.Faction, cogdb.eddb.Influence.faction_id == cogdb.eddb.Faction.id).\
+                filter(cogdb.eddb.System.name == 'Abi',
+                       cogdb.eddb.Faction.name == 'Tibis Alliance').\
+                one()
+
+            assert abi_tibis.influence == 49.7
+            assert abi_tibis.updated_at == 1663943357.0
+    finally:
+        # Ensure EDDB not changed by test on fail
+        eddb_session.rollback()
+        for inf in infs:
+            queried = eddb_session.query(cogdb.eddb.Influence).\
+                filter(cogdb.eddb.Influence.id == inf.id).\
+                one()
+            queried.influence = inf.influence
+            queried.updated_at = inf.updated_at
+        eddb_session.commit()

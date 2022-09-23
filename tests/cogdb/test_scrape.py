@@ -145,10 +145,10 @@ def test_parse_bgs_page():
             'retrieved': 1663872459.0,
             'updated_at': 1663871673.0,
             'factions': {
-                'Aegis of Federal Democrats': '8.2',
-                'Earth Defense Fleet': '47.5',
-                'Independent Rana Labour': '12.6',
-                'Rana General Co': '15'
+                'Aegis of Federal Democrats': 8.2,
+                'Earth Defense Fleet': 47.5,
+                'Independent Rana Labour': 12.6,
+                'Rana General Co': 15.0,
             },
         }
     }

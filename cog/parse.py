@@ -577,12 +577,18 @@ def subs_scrape(subs, prefix):
     """ Subcommand parsing for scrape """
     desc = """Perform manual scraping functions.
 
-**{prefix}scrape Hudson --held**
-        Scrape all held merits from Hudson.
+**{prefix}scrape power
+        Scrape all powerplay powers and update db.
+**{prefix}scrape bgs Abi, Rana
+        Scrape all bgs information for:
+            - If a system is a control, scrape all exploited systems as well.
+            - Otherwise just scrape the system as a one off.
     """.format(prefix=prefix)
     sub = subs.add_parser(prefix + 'scrape', description=desc, formatter_class=RawHelp)
     sub.set_defaults(cmd='Scrape')
     CMD_MAP['Scrape'] = 'scrape'
+    sub.add_argument('subcmd', choices=['bgs', 'power'], help='The type to update.')
+    sub.add_argument('rest', nargs='*', help='The args for the subcmd.')
 
 
 @register_parser

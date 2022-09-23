@@ -109,6 +109,7 @@ DO
             conflicts.updated_at < (unix_timestamp() - (3 * 24 * 60 * 60))
         )
 """
+CONTROL_DISTANCE = 15  # A control exploits all systems in this distance
 # To select planetary stations
 Base = sqlalchemy.ext.declarative.declarative_base()
 
@@ -2034,6 +2035,31 @@ def get_closest_station_by_government(session, system, gov_type, *, limit=10):
         order_by(System.dist_to(found)).\
         limit(limit).\
         all()
+
+
+def compute_all_exploits_from_controls(session, system_names):
+    """Compute a full list of individual systems from a mixed list of controls and exploiteds.
+
+    Args:
+        session: A session onto the db.
+        system_names: A list of control and exploited system names.
+
+    Returns: The list of system names resolved and those that failed, 2 lists.
+    """
+    found = session.query(System).\
+        filter(System.name.in_(system_names)).\
+        all()
+
+    exploits = []
+    for system in found:
+        if system.power_state.text == "Control":
+            exploits += get_systems_around(session, system.name, CONTROL_DISTANCE)
+
+    found_names = list(set([x.name for x in found] + [x.name for x in exploits]))
+    found_names_lower = [x.lower() for x in found_names]
+    not_found = [x for x in system_names if x.lower() not in found_names_lower]
+
+    return found_names, not_found
 
 
 def populate_system_controls(session):

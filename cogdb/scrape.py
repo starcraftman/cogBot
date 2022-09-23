@@ -314,6 +314,7 @@ def scrape_all_bgs(driver, systems):  # pragma: no cover | Depends on driver run
 
     # Push refine button to get latest fort and um data
     for system_name in systems:
+        print(system_name)
         input_box = driver.find_element(By.CLASS_NAME, "blazored-typeahead__input ")
         input_box.send_keys(system_name)
         time.sleep(LONG_GAP)
@@ -342,11 +343,6 @@ def scrape_all_bgs(driver, systems):  # pragma: no cover | Depends on driver run
         eles = [system_name] + [x.text for x in driver.find_elements(By.TAG_NAME, "p")]
         results.update(parse_bgs_page(*eles))
 
-        # Reset the input box
-        reset = find_element(By.CLASS_NAME, "blazored-typeahead__clear")
-        reset.click()
-        time.sleep(SHORT_GAP)
-
     return results
 
 
@@ -367,7 +363,7 @@ def parse_bgs_page(system_name, date_p, info_p):
         system_name: {
             'retrieved': retrieved.timestamp(),
             'updated_at': updated_at.timestamp(),
-            'factions': {name: inf for name, inf in re.findall(r'(.*?): ([.0-9]+)%', info_p)},
+            'factions': {name: float(inf) for name, inf in re.findall(r'(.*?): ([.0-9]+)%', info_p)},
         }
     }
 

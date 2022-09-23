@@ -1622,18 +1622,63 @@ class Scout(Action):
         await self.bot.send_message(self.msg.channel, lines)
 
 
+def scrape_bgs_in_background(system_names):  # pragma: no cover | tested elsewhere
+    """
+    Perform a scrape of requested systems for bgs.
+    """
+    with cogdb.scrape.get_chrome_driver(dev=False) as driver:
+        return cogdb.scrape.scrape_all_bgs(driver, system_names)
+
+
 class Scrape(Action):
     """
     Interface with the spy_squirrel stuff.
     """
+    async def bgs_scrape(self):
+        """
+        Execute the bgs scrape.
+        """
+        try:
+            with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
+                system_names = process_system_args(self.args.rest)
+                found, not_found = cogdb.eddb.compute_all_exploits_from_controls(eddb_session, system_names)
+
+                estimate_seconds = len(found) * 20
+                estimate = datetime.timedelta(seconds=estimate_seconds)
+                msg = f"The {len(found)} systems were found and will be updated.\nEstimate of time to take: {str(estimate)}"
+                if not_found:
+                    msg += f"\n\nThe following systems weren't found: \n{pprint.pformat(not_found)}"
+                await self.bot.send_message(self.msg.channel, msg)
+
+                # confirm page is up and working BEFORE asking
+                async with aiohttp.ClientSession() as http:
+                    async with http.get(cog.util.CONF.scrape.url):
+                        pass
+
+                with cfut.ProcessPoolExecutor(max_workers=1) as pool:
+                    info = await self.bot.loop.run_in_executor(
+                        pool, scrape_bgs_in_background, found
+                    )
+                    cogdb.spy_squirrel.update_eddb_factions(eddb_session, info)
+
+            return "Update completed successfully."
+
+        except aiohttp.ClientConnectorError:
+            return "Could not update bgs at this time. Site is down."
+
     async def execute(self):
-        await self.bot.send_message(self.msg.channel,
-                                    "Initiated the scrape in the background.")
+        if self.args.subcmd == "bgs":
+            msg = await self.bgs_scrape()
+            await self.bot.send_message(self.msg.channel, msg)
 
-        await monitor_powerplay_page(self.bot, repeat=False, delay=0)
+        elif self.args.subcmd == "power":
+            await self.bot.send_message(self.msg.channel,
+                                        "Initiated the scrape in the background.")
 
-        await self.bot.send_message(self.msg.channel,
-                                    "Finished the scrape.")
+            await monitor_powerplay_page(self.bot, repeat=False, delay=0)
+
+            await self.bot.send_message(self.msg.channel,
+                                        "Finished the scrape.")
 
 
 class Status(Action):
@@ -2388,7 +2433,7 @@ async def monitor_snipe_merits(client, *, repeat=True):  # pragma: no cover
 
 
 # Simple helper to run scrape in executor
-def scrape_all_in_background():  # pragma: no cover | tested elsewhere
+def scrape_powerplay_in_background():  # pragma: no cover | tested elsewhere
     """
     Perform a complete scrape of fort and um, push into db.
     """
@@ -2481,7 +2526,7 @@ async def monitor_powerplay_page(client, *, repeat=True, delay=1800):
 
         with cfut.ProcessPoolExecutor(max_workers=1) as pool:
             await client.loop.run_in_executor(
-                pool, scrape_all_in_background
+                pool, scrape_powerplay_in_background
             )
         await push_scrape_to_gal_scanner()
         await push_scrape_to_sheets()
