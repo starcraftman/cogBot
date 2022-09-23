@@ -2,7 +2,6 @@
 Tests for cogdb.scrape
 """
 import datetime
-import functools
 import os
 
 import pytest

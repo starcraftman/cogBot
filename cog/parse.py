@@ -577,12 +577,12 @@ def subs_scrape(subs, prefix):
     """ Subcommand parsing for scrape """
     desc = """Perform manual scraping functions.
 
-**{prefix}scrape power
+**{prefix}scrape power**
         Scrape all powerplay powers and update db.
-**{prefix}scrape bgs Abi, Rana
-        Scrape all bgs information for:
-            - If a system is a control, scrape all exploited systems as well.
-            - Otherwise just scrape the system as a one off.
+**{prefix}scrape bgs Abi, Rana**
+        Scrape all bgs information listed systems and ...
+            if a system is a control, scrape all exploited systems as well.
+            otherwise just scrape the system as a one off.
     """.format(prefix=prefix)
     sub = subs.add_parser(prefix + 'scrape', description=desc, formatter_class=RawHelp)
     sub.set_defaults(cmd='Scrape')

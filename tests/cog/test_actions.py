@@ -3,6 +3,7 @@ Tests against the cog.actions module.
 These tests act as integration tests, checking almost the whole path.
 Importantly, I have stubbed/mocked everything to do with discord.py and the gsheets calls.
 """
+import os
 import re
 import tempfile
 
@@ -26,6 +27,8 @@ import tests.conftest as tc
 from tests.cog.test_inara import INARA_TEST
 
 
+CHROME_REASON = "Chromedriver tests are heavy, execute on dev. Enable with CHROME=True"
+CHROME_TEST = pytest.mark.skipif(not os.environ.get('CHROME'), reason=CHROME_REASON)
 # Important, any fixtures in here get auto run
 pytestmark = pytest.mark.usefixtures("patch_scanners")
 
@@ -1962,6 +1965,7 @@ def test_check_system_deferred_and_globe(f_dusers, f_fort_testbed, f_global_test
 
 
 # TODO: Test: `!scrape power`. At present power is too long, create shorter command.
+@CHROME_TEST
 @pytest.mark.asyncio
 async def test_cmd_scrape_bgs(f_bot, eddb_session):
     infs = eddb_session.query(cogdb.eddb.Influence).\
