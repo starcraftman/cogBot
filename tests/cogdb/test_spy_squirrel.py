@@ -310,8 +310,8 @@ def test_compare_sheet_um_systems_to_spy(empty_spy, db_cleanup, session, eddb_se
     us = 4444
     them = 3333
     session.add_all([
-        UMSystem(name='Sol', progress_us=0, progress_them=0),
-        UMSystem(name='Rana', progress_us=0, progress_them=0),
+        UMSystem(name='Sol', progress_us=0, progress_them=0, sheet_col='D'),
+        UMSystem(name='Rana', progress_us=0, progress_them=0, sheet_col='F'),
     ])
     session.commit()
     eddb_session.add_all([

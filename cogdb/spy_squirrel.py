@@ -404,12 +404,11 @@ def compare_sheet_fort_systems_to_spy(session, eddb_session):
         filter(System.name.in_(fort_names)).\
         all()
     for spy_sys in spy_systems:
-        if spy_sys.fort > systems[spy_sys.system.name]['fort']:
-            systems[spy_sys.system.name]['fort'] = spy_sys.fort
-            fort_dict[spy_sys.system.name].fort_status = spy_sys.fort
-        if spy_sys.um > systems[spy_sys.system.name]['um']:
-            systems[spy_sys.system.name]['um'] = spy_sys.um
-            fort_dict[spy_sys.system.name].um_status = spy_sys.um
+        systems[spy_sys.system.name]['fort'] = spy_sys.fort
+        fort_dict[spy_sys.system.name].fort_status = spy_sys.fort
+
+        systems[spy_sys.system.name]['um'] = spy_sys.um + spy_sys.held_merits
+        fort_dict[spy_sys.system.name].um_status = spy_sys.um + spy_sys.held_merits
 
     return list(sorted(systems.values(), key=lambda x: x['sheet_order']))
 
@@ -445,22 +444,14 @@ def compare_sheet_um_systems_to_spy(session, eddb_session):
         filter(System.name.in_(um_names)).\
         all()
     for spy_sys in spy_systems:
-
-        changed = False
         if spy_sys.um > systems[spy_sys.system.name]['progress_us']:
-            systems[spy_sys.system.name]['progress_us'] = spy_sys.um
-            um_dict[spy_sys.system.name].progress_us = spy_sys.um
-            changed = True
+            systems[spy_sys.system.name]['progress_us'] = spy_sys.um + spy_sys.held_merits
+            um_dict[spy_sys.system.name].progress_us = spy_sys.um + spy_sys.held_merits
 
         spy_progress_them = spy_sys.fort / spy_sys.fort_trigger
         if spy_progress_them > systems[spy_sys.system.name]['progress_them']:
             systems[spy_sys.system.name]['progress_them'] = spy_progress_them
             um_dict[spy_sys.system.name].progress_them = spy_progress_them
-            changed = True
-
-        # Prune all unchanged systems, UM sheet isn't guaranteed contiguous
-        if not changed:
-            del systems[spy_sys.system.name]
 
     return list(sorted(systems.values(), key=lambda x: x['sheet_col']))
 
