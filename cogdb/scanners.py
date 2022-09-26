@@ -998,6 +998,57 @@ class FortTracker(FortScanner):
         return super().__repr__().replace('FortScanner', 'FortTracker')
 
 
+class BGSDemo(FortScanner):
+    """
+    Scanner for the bgs demo sheet. Prototype for now.
+
+    args:
+        asheet: The AsyncGSheet that connects to the sheet.
+    """
+    def __init__(self, asheet):
+        super().__init__(asheet, [])
+
+    def __repr__(self):
+        return super().__repr__().replace('FortScanner', 'BGSDemo')
+
+    def update_dict(self, *, infos, row=2):
+        """
+        Create an update payload to update all cells on a sheet.
+
+        Returns: A list of update dicts to pass to batch_update.
+        """
+        now = datetime.datetime.utcnow().replace(microsecond=0)
+
+        flat_by_system = {}
+        end_row = row
+        for system_name, info in infos.items():
+            entries = [[system_name, fact_name, inf] for fact_name, inf in info['factions'].items()]
+            end_row = end_row + len(entries)
+            flat_by_system[system_name] = sorted(entries, key=lambda x: x[2], reverse=True)
+        values = []
+        for key in sorted(flat_by_system.keys()):
+            values += flat_by_system[key]
+
+        payload = [
+            {'range': f'A{row}:C{end_row}', 'values': values},
+            {'range': 'G1:G1', 'values': [[str(now)]]},
+        ]
+
+        return payload
+
+    async def clear_cells(self, *, row=2):
+        """
+        Use batch_clear to wipe out all existing data in the sheet where we will write.
+
+        Returns: A list of update dicts to pass to batch_update.
+        """
+        end_row = 400
+        ranges = [
+            f'A{row}:J{end_row}',
+        ]
+        await self.asheet.batch_clear(ranges)
+
+
 async def init_scanners():
     """
     Initialized all parts related to google sheet scanners.

@@ -1644,9 +1644,10 @@ class Scrape(Action):
                 system_names = process_system_args(self.args.rest)
                 found, not_found = cogdb.eddb.compute_all_exploits_from_controls(eddb_session, system_names)
 
-                estimate_seconds = len(found) * 20
+                estimate_seconds = len(found) * 30
                 estimate = datetime.timedelta(seconds=estimate_seconds)
-                msg = f"The {len(found)} systems were found and will be updated.\nEstimate of time to take: {str(estimate)}"
+                msg = f"""The {len(found)} systems were found and will be updated.
+Estimate of how long it will take: {str(estimate)}"""
                 if not_found:
                     msg += f"\n\nThe following systems weren't found: \n{pprint.pformat(not_found)}"
                 await self.bot.send_message(self.msg.channel, msg)
@@ -1660,6 +1661,11 @@ class Scrape(Action):
                     info = await self.bot.loop.run_in_executor(
                         pool, scrape_bgs_in_background, found
                     )
+                    scanner = get_scanner('bgs_demo')
+                    await scanner.clear_cells()
+                    __import__('pprint').pprint(scanner.update_dict(infos=info))
+                    await scanner.send_batch(scanner.update_dict(infos=info))
+
                     cogdb.spy_squirrel.update_eddb_factions(eddb_session, info)
 
             return "Update completed successfully."

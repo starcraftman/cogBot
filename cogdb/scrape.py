@@ -340,6 +340,7 @@ def scrape_all_bgs(driver, systems):  # pragma: no cover | Depends on driver run
         # Parse the information
         eles = [system_name] + [x.text for x in driver.find_elements(By.TAG_NAME, "p")]
         results.update(parse_bgs_page(*eles))
+        time.sleep(LONG_GAP * 3)
 
     return results
 
