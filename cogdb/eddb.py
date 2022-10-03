@@ -204,18 +204,18 @@ class Economy(Base):
         return hash(self.id)
 
 
-class Faction(Base):
+class Faction(cog.util.TimestampMixin, Base):
     """ Information about a faction. """
     __tablename__ = "factions"
 
     id = sqla.Column(sqla.Integer, primary_key=True)
     name = sqla.Column(sqla.String(LEN["faction"]), index=True)
-    is_player_faction = sqla.Column(sqla.Boolean)
+    is_player_faction = sqla.Column(sqla.Boolean, default=False)
     home_system_id = sqla.Column(sqla.Integer)  # Makes circular foreigns.
     allegiance_id = sqla.Column(sqla.Integer, sqla.ForeignKey('allegiance.id'))
     government_id = sqla.Column(sqla.Integer, sqla.ForeignKey('gov_type.id'))
     state_id = sqla.Column(sqla.Integer, sqla.ForeignKey('faction_state.id'))
-    updated_at = sqla.Column(sqla.Integer, onupdate=sqla.func.unix_timestamp())
+    updated_at = sqla.Column(sqla.Integer, default=sqla.func.unix_timestamp(), onupdate=sqla.func.unix_timestamp())
 
     # Relationships
     allegiance = sqla.orm.relationship('Allegiance')
@@ -299,9 +299,10 @@ class FactionActiveState(Base):
     system_id = sqla.Column(sqla.Integer, sqla.ForeignKey('systems.id'), primary_key=True)
     faction_id = sqla.Column(sqla.Integer, sqla.ForeignKey('factions.id'), primary_key=True)
     state_id = sqla.Column(sqla.Integer, sqla.ForeignKey('faction_state.id'), primary_key=True)
+    updated_at = sqla.Column(sqla.Integer, default=sqla.func.unix_timestamp(), onupdate=sqla.func.unix_timestamp())
 
     def __repr__(self):
-        keys = ['system_id', 'faction_id', 'state_id']
+        keys = ['system_id', 'faction_id', 'state_id', 'updated_at']
         kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
 
         return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
@@ -322,9 +323,10 @@ class FactionPendingState(Base):
     system_id = sqla.Column(sqla.Integer, sqla.ForeignKey('systems.id'), primary_key=True)
     faction_id = sqla.Column(sqla.Integer, sqla.ForeignKey('factions.id'), primary_key=True)
     state_id = sqla.Column(sqla.Integer, sqla.ForeignKey('faction_state.id'), primary_key=True)
+    updated_at = sqla.Column(sqla.Integer, default=sqla.func.unix_timestamp(), onupdate=sqla.func.unix_timestamp())
 
     def __repr__(self):
-        keys = ['system_id', 'faction_id', 'state_id']
+        keys = ['system_id', 'faction_id', 'state_id', 'updated_at']
         kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
 
         return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
@@ -345,9 +347,10 @@ class FactionRecoveringState(Base):
     system_id = sqla.Column(sqla.Integer, sqla.ForeignKey('systems.id'), primary_key=True)
     faction_id = sqla.Column(sqla.Integer, sqla.ForeignKey('factions.id'), primary_key=True)
     state_id = sqla.Column(sqla.Integer, sqla.ForeignKey('faction_state.id'), primary_key=True)
+    updated_at = sqla.Column(sqla.Integer, default=sqla.func.unix_timestamp(), onupdate=sqla.func.unix_timestamp())
 
     def __repr__(self):
-        keys = ['system_id', 'faction_id', 'state_id']
+        keys = ['system_id', 'faction_id', 'state_id', 'updated_at']
         kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
 
         return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
@@ -383,7 +386,7 @@ class Government(Base):
         return hash(self.id)
 
 
-class Influence(Base):
+class Influence(cog.util.TimestampMixin, Base):
     """ Represents influence of a faction in a system. """
     __tablename__ = "influence"
 
@@ -391,9 +394,9 @@ class Influence(Base):
     system_id = sqla.Column(sqla.Integer, sqla.ForeignKey('systems.id'), nullable=False)
     faction_id = sqla.Column(sqla.Integer, sqla.ForeignKey('factions.id'), nullable=False)
     happiness_id = sqla.Column(sqla.Integer, sqla.ForeignKey('faction_happiness.id'), nullable=True)
-    influence = sqla.Column(sqla.Numeric(7, 4, None, False))
-    is_controlling_faction = sqla.Column(sqla.Boolean)
-    updated_at = sqla.Column(sqla.Integer, onupdate=sqla.func.unix_timestamp())
+    influence = sqla.Column(sqla.Numeric(7, 4, None, False), default=0.0)
+    is_controlling_faction = sqla.Column(sqla.Boolean, default=False)
+    updated_at = sqla.Column(sqla.Integer, default=sqla.func.unix_timestamp(), onupdate=sqla.func.unix_timestamp())
 
     # Relationships
     happiness = sqla.orm.relationship('FactionHappiness')
@@ -672,7 +675,7 @@ class StationEconomy(Base):
         return hash("{}_{}".format(self.id, self.economy_id))
 
 
-class Station(Base):
+class Station(cog.util.TimestampMixin, Base):
     """ Repesents a system in the universe. """
     __tablename__ = "stations"
 
@@ -684,7 +687,7 @@ class Station(Base):
     type_id = sqla.Column(sqla.Integer, sqla.ForeignKey('station_types.id'))
     system_id = sqla.Column(sqla.Integer)
     controlling_minor_faction_id = sqla.Column(sqla.Integer, sqla.ForeignKey('factions.id'))
-    updated_at = sqla.Column(sqla.Integer, onupdate=sqla.func.unix_timestamp())
+    updated_at = sqla.Column(sqla.Integer, default=sqla.func.unix_timestamp(), onupdate=sqla.func.unix_timestamp())
 
     # Relationships
     features = sqla.orm.relationship('StationFeatures', uselist=False, viewonly=True)
@@ -721,7 +724,7 @@ class Station(Base):
         return hash(self.id)
 
 
-class System(Base):
+class System(cog.util.TimestampMixin, Base):
     """
     Repesents a system in the universe.
 
@@ -744,7 +747,7 @@ class System(Base):
     x = sqla.Column(sqla.Numeric(10, 5, None, False))
     y = sqla.Column(sqla.Numeric(10, 5, None, False))
     z = sqla.Column(sqla.Numeric(10, 5, None, False))
-    updated_at = sqla.Column(sqla.Integer, onupdate=sqla.func.unix_timestamp())
+    updated_at = sqla.Column(sqla.Integer, default=sqla.func.unix_timestamp(), onupdate=sqla.func.unix_timestamp())
 
     # Relationships
     primary_economy = sqla.orm.relationship(
@@ -965,7 +968,7 @@ class ConflictState(Base):
         return hash(self.id)
 
 
-class Conflict(Base):
+class Conflict(cog.util.TimestampMixin, Base):
     """
     Defines an in system conflict between two factions.
     """
@@ -981,7 +984,7 @@ class Conflict(Base):
     faction2_id = sqla.Column(sqla.Integer, sqla.ForeignKey('factions.id'), primary_key=True)
     faction2_stake_id = sqla.Column(sqla.Integer, sqla.ForeignKey('stations.id'))
     faction2_days = sqla.Column(sqla.Integer)
-    updated_at = sqla.Column(sqla.Integer, onupdate=sqla.func.unix_timestamp())
+    updated_at = sqla.Column(sqla.Integer, default=sqla.func.unix_timestamp(), onupdate=sqla.func.unix_timestamp())
 
     # Relationships
     system = sqla_orm.relationship('System')
@@ -1028,6 +1031,79 @@ class Conflict(Base):
     def update(self, kwargs):
         """ Update this object based on a dictionary of kwargs. """
         self.__dict__.update(kwargs)
+
+
+class HistoryTrack(cog.util.TimestampMixin, Base):
+    """
+    Set an entry to flag this system should be tracked.
+    """
+    __tablename__ = 'history_systems'
+
+    system_id = sqla.Column(sqla.Integer, sqla.ForeignKey('systems.id'), primary_key=True)
+    updated_at = sqla.Column(sqla.Integer, default=sqla.func.unix_timestamp(), onupdate=sqla.func.unix_timestamp())
+
+    # Relationships
+    system = sqla_orm.relationship('System')
+
+    def __repr__(self):
+        keys = ['system_id', 'updated_at']
+        kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
+
+        return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
+
+    def __eq__(self, other):
+        return (isinstance(self, HistoryTrack) and isinstance(other, HistoryTrack)
+                and self.__hash__() == other.__hash__())
+
+    def __hash__(self):
+        return hash("{}".format(self.system_id))
+
+
+# N.B. Ever increasing data, the following rules must be enforced:
+#       - Prune data older than X days, run nightly.
+# select * from history_influence where updated_at <  unix_timestamp() - (DATE WINDOW);
+#       - Prune data when there are more than X entries per system_id, faction_id pairs, can be done on insert.
+# select count(*) as cnt, system_id, faction_id from history_influence group by system_id, faction_id having cnt > 2;
+class HistoryInfluence(cog.util.TimestampMixin, Base):
+    """ Represents a frozen state of influence for a faction in a system at some point in time. """
+    __tablename__ = "history_influence"
+
+    id = sqla.Column(sqla.BigInteger, primary_key=True)
+    system_id = sqla.Column(sqla.Integer, sqla.ForeignKey('systems.id'), nullable=False)
+    faction_id = sqla.Column(sqla.Integer, sqla.ForeignKey('factions.id'), nullable=False)
+    happiness_id = sqla.Column(sqla.Integer, sqla.ForeignKey('faction_happiness.id'), nullable=True)
+    influence = sqla.Column(sqla.Numeric(7, 4, None, False), default=0.0)
+    is_controlling_faction = sqla.Column(sqla.Boolean, default=False)
+    updated_at = sqla.Column(sqla.Integer, default=sqla.func.unix_timestamp(), onupdate=sqla.func.unix_timestamp())
+
+    # Relationships
+    system = sqla.orm.relationship('System', viewonly=True)
+    faction = sqla.orm.relationship('Faction', viewonly=True)
+    happiness = sqla.orm.relationship('FactionHappiness', viewonly=True)
+
+    def __repr__(self):
+        keys = ['id', 'system_id', 'faction_id', 'happiness_id', 'influence', 'is_controlling_faction', 'updated_at']
+        kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
+
+        return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
+
+    def __hash__(self):
+        return hash("{}_{}_{}".format(self.id, self.system_id, self.faction_id))
+
+    def __eq__(self, other):
+        return (isinstance(self, HistoryInfluence) and isinstance(other, HistoryInfluence)
+                and hash(self) == hash(other))
+
+    @classmethod
+    def from_influence(cls, influence):
+        return cls(
+            system_id=influence.system_id,
+            faction_id=influence.faction_id,
+            happiness_id=influence.happiness_id,
+            influence=influence.influence,
+            is_controlling_faction=influence.is_controlling_faction,
+            updated_at=influence.updated_at,
+        )
 
 
 # Bidirectional relationships
@@ -2277,7 +2353,7 @@ def import_eddb(eddb_session):  # pragma: no cover
         confirm = input("Reimport EDDB Database? (y/n) ").strip().lower()
         if not confirm.startswith('y'):
             print("Aborting.")
-            return
+            sys.exit(0)
 
     if args.dump:
         fname = '/tmp/eddb_dump'
@@ -2410,8 +2486,36 @@ except (AttributeError, sqla_orm.exc.NoResultFound, sqla.exc.ProgrammingError): 
     HQS = None
 
 
+def add_history_influence(eddb_session, influence):
+    new_influence = HistoryInfluence.from_influence(influence)
+    eddb_session.add()
+    pass
+
+
 if __name__ == "__main__":  # pragma: no cover
     # Tell user when not using most efficient backend.
+    with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
+        eddb_session.query(HistoryTrack).delete()
+        eddb_session.query(HistoryInfluence).delete()
+        eddb_session.commit()
+
+        eddb_session.add_all([
+            HistoryTrack(system_id=2222),
+            HistoryTrack(system_id=3333),
+            HistoryTrack(system_id=4444),
+            HistoryInfluence(system_id=2222, faction_id=222, happiness_id=2, influence=33.2),
+            HistoryInfluence(system_id=2222, faction_id=333, happiness_id=3, influence=3.9),
+            HistoryInfluence(system_id=3333, faction_id=444, happiness_id=1, influence=27.2),
+        ])
+
+        print("CLONE")
+        hist = HistoryInfluence(system_id=3333, faction_id=444, happiness_id=1, influence=27.2)
+        print(HistoryInfluence.from_influence(hist))
+
+        eddb_session.commit()
+        __import__('pprint').pprint(eddb_session.query(HistoryTrack).all())
+        __import__('pprint').pprint(eddb_session.query(HistoryInfluence).all())
+        __import__('pprint').pprint(eddb_session.query(FactionHappiness).all())
     if ijson.backend != 'yajl2_c':
         print("Failed to set backend to yajl2_c. Please check that yajl is installed. Parsing may slow down.")
         print(f"Selected: {ijson.backend}")

@@ -565,11 +565,15 @@ class TimestampMixin():
     """
     Simple mixing that converts updated_at timestamp to a datetime object.
     """
-    def utc_date_notz(self):
+    @property
+    def utc_date(self):
+        """Assumes the timestampe is in fact UTC, native datetime with no tz info. """
         return datetime.datetime.utcfromtimestamp(self.updated_at)
 
+    @property
     def utc_date_tz(self):
-        return datetime.datetime.utcfromtimestamp(self.updated_at).astimezone(datetime.timezone.utc)
+        """Assumes the timestampe is in fact UTC, datetime object set to UTC timezone."""
+        return datetime.datetime.fromtimestamp(self.updated_at, tz=datetime.timezone.utc)
 
 
 #  # Scenario multiple readers, always allowed

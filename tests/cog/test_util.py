@@ -316,3 +316,20 @@ def test_current_cycle(mock_date):
 
 def test_cycle_to_start():
     assert cog.util.cycle_to_start(334) == datetime.datetime(2021, 10, 21, 7, 0)
+
+
+class UpdatedAtObj(cog.util.TimestampMixin):
+    def __init__(self):
+        self.updated_at = datetime.datetime(2021, 10, 21, 7, 0, tzinfo=datetime.timezone.utc).timestamp()
+
+
+def test_timestampmixin_notz():
+    actual = UpdatedAtObj()
+    assert actual.utc_date.tzname() is None
+    assert "2021-10-21 07:00:00" == str(actual.utc_date)
+
+
+def test_timestampmixin_tz():
+    actual = UpdatedAtObj()
+    assert "UTC" == actual.utc_date_tz.tzname()
+    assert "2021-10-21 07:00:00+00:00" == str(actual.utc_date_tz)
