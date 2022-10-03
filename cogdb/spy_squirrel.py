@@ -45,13 +45,13 @@ class SpyVote(Base):
     """
     __tablename__ = 'spy_votes'
 
-    power_id = sqla.Column(sqla.Integer, sqla.ForeignKey('powers.id'), primary_key=True)
+    power_id = sqla.Column(sqla.Integer, primary_key=True)
     vote = sqla.Column(sqla.Integer, default=0)
     updated_at = sqla.Column(sqla.Integer, default=time.time, onupdate=time.time)
 
     # Relationships
     power = sqla.orm.relationship(
-        'Power', uselist=False, lazy='select', viewonly=True,
+        'Power', uselist=False, lazy='joined', viewonly=True,
         primaryjoin='foreign(Power.id) == SpyVote.power_id',
     )
 
@@ -84,8 +84,8 @@ class SpyPrep(Base):
     )
 
     id = sqla.Column(sqla.Integer, primary_key=True)
-    ed_system_id = sqla.Column(sqla.BigInteger, sqla.ForeignKey('systems.ed_system_id'))
-    power_id = sqla.Column(sqla.Integer, sqla.ForeignKey('powers.id'))
+    ed_system_id = sqla.Column(sqla.BigInteger, index=True, nullable=False)
+    power_id = sqla.Column(sqla.Integer, nullable=False)
     system_name = sqla.Column(sqla.String(cogdb.eddb.LEN["system"]), index=True)  # Intentional caching for QoL
     merits = sqla.Column(sqla.Integer, default=0)
     updated_at = sqla.Column(sqla.Integer, default=time.time, onupdate=time.time)
@@ -96,7 +96,7 @@ class SpyPrep(Base):
         primaryjoin='foreign(System.ed_system_id) == SpyPrep.ed_system_id',
     )
     power = sqla.orm.relationship(
-        'Power', uselist=False, lazy='select', viewonly=True,
+        'Power', uselist=False, lazy='joined', viewonly=True,
         primaryjoin='foreign(Power.id) == SpyPrep.power_id',
     )
 
@@ -132,9 +132,9 @@ class SpySystem(Base):
 
     # ids
     id = sqla.Column(sqla.Integer, primary_key=True)
-    ed_system_id = sqla.Column(sqla.BigInteger, sqla.ForeignKey('systems.ed_system_id'))
-    power_id = sqla.Column(sqla.Integer, sqla.ForeignKey('powers.id'))
-    power_state_id = sqla.Column(sqla.Integer, sqla.ForeignKey('systems.id'), default=0)
+    ed_system_id = sqla.Column(sqla.BigInteger, index=True, nullable=False)
+    power_id = sqla.Column(sqla.Integer, nullable=False)
+    power_state_id = sqla.Column(sqla.Integer, nullable=False, default=0)
 
     # info
     system_name = sqla.Column(sqla.String(cogdb.eddb.LEN["system"]), index=True)  # Intentional caching for QoL
@@ -155,11 +155,11 @@ class SpySystem(Base):
         primaryjoin='foreign(System.ed_system_id) == SpySystem.ed_system_id',
     )
     power = sqla.orm.relationship(
-        'Power', uselist=False, lazy='select', viewonly=True,
+        'Power', uselist=False, lazy='joined', viewonly=True,
         primaryjoin='foreign(Power.id) == SpySystem.power_id',
     )
     power_state = sqla.orm.relationship(
-        'PowerState', uselist=False, lazy='select', viewonly=True,
+        'PowerState', uselist=False, lazy='joined', viewonly=True,
         primaryjoin='foreign(PowerState.id) == SpySystem.power_state_id',
     )
 

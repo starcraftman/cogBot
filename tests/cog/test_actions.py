@@ -535,9 +535,9 @@ async def test_cmd_fort_search_deferred(f_bot, f_dusers, f_fort_testbed):
 **Dongkum** 7000/7239 :Fortifying: (239 left) - 81.54Ly"""
     else:
         expect = """__Search Results__
-    **Dongkum** 7000/7239 :Fortifying: (239 left) - 81.54Ly
-    This system is **almost done** and should stay **untouched** until further orders.
-    """
+**Dongkum** 7000/7239 :Fortifying: (239 left) - 81.54Ly
+This system is **almost done** and should stay **untouched** until further orders.
+"""
     f_bot.send_message.assert_called_with(msg.channel, expect)
 
 
@@ -795,11 +795,11 @@ async def test_cmd_drop_deferred(session, f_bot, f_dusers, f_fort_testbed):
     else:
         expected = """**Dongkum** 7001/7239 :Fortifying: (238 left) - 81.54Ly
 
-    __Next Fort Target__:
-    **Nurundere** 5422/8425 :Fortifying: - 99.51Ly
+__Next Fort Target__:
+**Nurundere** 5422/8425 :Fortifying: - 99.51Ly
 
-    **User1** Thank you for contributing to the fort of this system.
-    __**Dongkum** is **almost done** and should stay **untouched** until further orders.__"""
+**User1** Thank you for contributing to the fort of this system.
+__**Dongkum** is **almost done** and should stay **untouched** until further orders.__"""
     f_bot.send_message.assert_called_with(msg.channel, expected)
 
     system = session.query(FortSystem).filter_by(name='Dongkum').one()

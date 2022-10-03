@@ -2106,7 +2106,9 @@ def recreate_tables():  # pragma: no cover | destructive to test
     meta.reflect()
     for tbl in reversed(meta.sorted_tables):
         try:
-            tbl.drop()
+            # FIXME: Exempt the spy tables for now.
+            if not tbl.name.startswith('spy_'):
+                tbl.drop()
         except sqla.exc.OperationalError:
             pass
 
