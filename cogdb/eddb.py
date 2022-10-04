@@ -108,9 +108,21 @@ DO
              conflicts.updated_at < (unix_timestamp() - (24 * 60 * 60))
         ) OR (
             conflicts.updated_at < (unix_timestamp() - (3 * 24 * 60 * 60))
-        )
+        );
+"""
+EVENT_HISTORY_INFLUENCE = """
+CREATE EVENT IF NOT EXISTS clean_history_influence
+ON SCHEDULE
+    EVERY 1 DAY
+COMMENT "Check daily for HistoryInfluence entries older than 30 days."
+DO
+    DELETE FROM eddb.history_influence
+    WHERE updated_at < (unix_timestamp() - (30 * 24 * 60 * 60));
 """
 CONTROL_DISTANCE = 15  # A control exploits all systems in this distance
+HISTORY_INF_LIMIT = 40
+HOUR_SECONDS = 60 * 60
+HISTORY_INF_TIME_GAP = HOUR_SECONDS * 4  # min seconds between data points
 # To select planetary stations
 Base = sqlalchemy.ext.declarative.declarative_base()
 
@@ -1044,7 +1056,7 @@ class HistoryTrack(cog.util.TimestampMixin, Base):
     updated_at = sqla.Column(sqla.Integer, default=time.time, onupdate=time.time)
 
     # Relationships
-    system = sqla_orm.relationship('System')
+    system = sqla_orm.relationship('System', viewonly=True)
 
     def __repr__(self):
         keys = ['system_id', 'updated_at']
@@ -1061,10 +1073,11 @@ class HistoryTrack(cog.util.TimestampMixin, Base):
 
 
 # N.B. Ever increasing data, the following rules must be enforced:
-#       - Prune data older than X days, run nightly.
-# select * from history_influence where updated_at <  unix_timestamp() - (DATE WINDOW);
-#       - Prune data when there are more than X entries per system_id, faction_id pairs, can be done on insert.
-# select count(*) as cnt, system_id, faction_id from history_influence group by system_id, faction_id having cnt > 2;
+#   - Prune data older than X days, run nightly.
+#       select * from history_influence where updated_at <  unix_timestamp() - (DATE WINDOW);
+#   - With add_history_influence enforce following:
+#       LIMIT total number of entries per key pair
+#       Enforce only new data when inf is different than last and min gap in time from last
 class HistoryInfluence(cog.util.TimestampMixin, Base):
     """ Represents a frozen state of influence for a faction in a system at some point in time. """
     __tablename__ = "history_influence"
@@ -2197,6 +2210,7 @@ def recreate_tables():  # pragma: no cover | destructive to test
         "DROP VIEW eddb.v_systems_contested"
         "DROP VIEW eddb.v_systems_controlled",
         "DROP EVENT clean_conflicts",
+        "DROP EVENT clean_history_influence",
     ]
     try:
         with cogdb.eddb_engine.connect() as con:
@@ -2230,6 +2244,7 @@ def recreate_tables():  # pragma: no cover | destructive to test
         VIEW_CONTESTEDS.strip(),
         VIEW_SYSTEM_CONTROLS.strip(),
         EVENT_CONFLICTS.strip(),
+        EVENT_HISTORY_INFLUENCE.strip(),
     ]
     with cogdb.eddb_engine.connect() as con:
         for create_cmd in create_cmds:
@@ -2487,39 +2502,82 @@ except (AttributeError, sqla_orm.exc.NoResultFound, sqla.exc.ProgrammingError): 
     HQS = None
 
 
-def add_history_influence(eddb_session, influence):
-    new_influence = HistoryInfluence.from_influence(influence)
-    eddb_session.add()
-    pass
+def add_history_track(eddb_session, system_names):
+    """Add all systems to bgs tracking.
+
+    Args:
+        eddb_session: A session onto the db.
+        systems: The list of systems to add.
+    """
+    system_ids = [x[0] for x in eddb_session.query(System.id).\
+        filter(System.name.in_(system_names)).\
+        all()
+    ]
+    eddb_session.query(HistoryTrack).\
+        filter(HistoryTrack.system_id.in_(system_ids)).\
+        delete()
+    eddb_session.add_all([HistoryTrack(system_id=x) for x in system_ids])
+    eddb_session.commit()
+
+
+def remove_history_track(eddb_session, system_names):
+    """Add all systems to bgs tracking.
+
+    Args:
+        eddb_session: A session onto the db.
+        systems: The list of systems to add.
+    """
+    system_ids = [x[0] for x in eddb_session.query(System.id).\
+        filter(System.name.in_(system_names)).\
+        all()
+    ]
+    eddb_session.query(HistoryTrack).\
+        filter(HistoryTrack.system_id.in_(system_ids)).\
+        delete()
+    eddb_session.commit()
+
+
+def add_history_influence(eddb_session, latest_inf):
+    """Add a history influence to the database.
+
+    For the following, key pair means (system_id, faction_id).
+    The following rules apply to adding data points:
+        - Ensure the number of entries for the key pair is <= HISTORY_INF_LIMIT
+        - Add data points when the time since last point is > HISTORY_INF_TIME_GAP
+            OR
+        - Add data points when influence change > 1% and time since last point is > 1 hour (floor to prevent flood)
+
+    Args:
+        eddb_session: A session onto the db.
+        latest_inf: An Influence entry that was updated (should be flush to db).
+    """
+    data = eddb_session.query(HistoryInfluence).\
+        filter(HistoryInfluence.system_id == latest_inf.system_id,
+               HistoryInfluence.faction_id == latest_inf.faction_id).\
+        order_by(HistoryInfluence.updated_at.desc()).\
+        all()
+
+    # Only keep up to limit
+    while len(data) > HISTORY_INF_LIMIT:
+        last = data[-1]
+        data = data[:-1]
+        eddb_session.delete(last)
+
+    if data:
+        last = data[-1]
+        inf_diff = math.fabs(last.influence - latest_inf.influence)
+        time_diff = latest_inf.updated_at - last.updated_at
+        if (inf_diff >= 1.0 and time_diff > HOUR_SECONDS) or time_diff >= HISTORY_INF_TIME_GAP:
+            eddb_session.add(HistoryInfluence.from_influence(latest_inf))
+
+    else:
+        eddb_session.add(HistoryInfluence.from_influence(latest_inf))
+
+    eddb_session.commit()
 
 
 if __name__ == "__main__":  # pragma: no cover
     # Tell user when not using most efficient backend.
-    with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
-        try:
-            eddb_session.query(HistoryTrack).delete()
-            eddb_session.query(HistoryInfluence).delete()
-            eddb_session.commit()
-        except (sqla.exc.OperationalError, sqla.exc.ProgrammingError):
-            pass
-
-        eddb_session.add_all([
-            HistoryTrack(system_id=2222),
-            HistoryTrack(system_id=3333),
-            HistoryTrack(system_id=4444),
-            HistoryInfluence(system_id=2222, faction_id=222, happiness_id=2, influence=33.2),
-            HistoryInfluence(system_id=2222, faction_id=333, happiness_id=3, influence=3.9),
-            HistoryInfluence(system_id=3333, faction_id=444, happiness_id=1, influence=27.2),
-        ])
-
-        print("CLONE")
-        hist = HistoryInfluence(system_id=3333, faction_id=444, happiness_id=1, influence=27.2)
-        print(HistoryInfluence.from_influence(hist))
-
-        eddb_session.commit()
-        __import__('pprint').pprint(eddb_session.query(HistoryTrack).all())
-        __import__('pprint').pprint(eddb_session.query(HistoryInfluence).all())
-        __import__('pprint').pprint(eddb_session.query(FactionHappiness).all())
     if ijson.backend != 'yajl2_c':
         print("Failed to set backend to yajl2_c. Please check that yajl is installed. Parsing may slow down.")
         print(f"Selected: {ijson.backend}")

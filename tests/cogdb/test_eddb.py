@@ -8,11 +8,13 @@ import cog.exc
 import cogdb.eddb
 from cogdb.eddb import (Commodity, CommodityCat, Module, ModuleGroup,
                         System, Faction, Allegiance, Government,
-                        Station, StationFeatures, StationEconomy)
+                        Station, StationFeatures, StationEconomy,
+                        Influence, HistoryInfluence, HistoryTrack)
 
 FAKE_ID1 = 942834121
 FAKE_ID2 = FAKE_ID1 + 1
 FAKE_ID3 = FAKE_ID1 + 2
+HISTORY_TIMESTAMP = 1664897410
 
 
 def test_system_controls(eddb_session):
@@ -354,3 +356,98 @@ def test_compute_all_exploits_from_control_missing(eddb_session):
     assert 'LHS 215' in found
     assert 'Abi' not in found
     assert ['ZZZZ'] == not_found
+
+
+def test_add_history_track_empty(eddb_session):
+    try:
+        assert not eddb_session.query(HistoryTrack).all()
+        cogdb.eddb.add_history_track(eddb_session, ['Rana', 'LHS 215'])
+        assert len(eddb_session.query(HistoryTrack).all()) == 2
+    finally:
+        eddb_session.rollback()
+        eddb_session.query(HistoryTrack).delete()
+
+
+def test_add_history_track_exists(eddb_session):
+    try:
+        eddb_session.add(HistoryTrack(system_id=11905))
+        eddb_session.commit()
+        cogdb.eddb.add_history_track(eddb_session, ['Rana', 'LHS 215'])
+        assert len(eddb_session.query(HistoryTrack).all()) == 2
+    finally:
+        eddb_session.rollback()
+        eddb_session.query(HistoryTrack).delete()
+
+
+def test_remove_history_track_exists(eddb_session):
+    try:
+        eddb_session.add(HistoryTrack(system_id=11905))
+        eddb_session.commit()
+        assert eddb_session.query(HistoryTrack).all()
+        cogdb.eddb.remove_history_track(eddb_session, ['Rana', 'LHS 215'])
+        assert not eddb_session.query(HistoryTrack).all()
+    finally:
+        eddb_session.rollback()
+        eddb_session.query(HistoryTrack).delete()
+
+
+def test_add_history_influence_empty(eddb_session):
+    try:
+        assert not eddb_session.query(HistoryInfluence).all()
+        cogdb.eddb.add_history_influence(eddb_session, Influence(
+            system_id=1,
+            faction_id=1,
+            happiness_id=1,
+            influence=20,
+            is_controlling_faction=False,
+            updated_at=HISTORY_TIMESTAMP))
+        assert eddb_session.query(HistoryInfluence).all()
+    finally:
+        eddb_session.rollback()
+        eddb_session.query(HistoryInfluence).delete()
+
+
+def test_add_history_influence_limit_passed(eddb_session):
+    influence = Influence(
+        system_id=1,
+        faction_id=1,
+        happiness_id=1,
+        influence=20,
+        is_controlling_faction=False,
+        updated_at=HISTORY_TIMESTAMP
+    )
+    try:
+        cnt = cogdb.eddb.HISTORY_INF_LIMIT + 10
+        while cnt:
+            cogdb.eddb.add_history_influence(eddb_session, influence)
+            cnt -= 1
+            influence.influence += 1
+            influence.updated_at += 60 * 60 * 4
+        assert len(eddb_session.query(HistoryInfluence).all()) == 41
+
+    finally:
+        eddb_session.rollback()
+        eddb_session.query(HistoryInfluence).delete()
+
+
+def test_add_history_influence_inf_diff(eddb_session):
+    influence = Influence(
+        system_id=1,
+        faction_id=1,
+        happiness_id=1,
+        influence=20,
+        is_controlling_faction=False,
+        updated_at=HISTORY_TIMESTAMP
+    )
+    try:
+        cogdb.eddb.add_history_influence(eddb_session, influence)
+        cogdb.eddb.add_history_influence(eddb_session, influence)
+        cogdb.eddb.add_history_influence(eddb_session, influence)
+        influence.updated_at += 60 * 60 * 2
+        influence.influence += 1.0
+        cogdb.eddb.add_history_influence(eddb_session, influence)
+        assert len(eddb_session.query(HistoryInfluence).all()) == 2
+
+    finally:
+        eddb_session.rollback()
+        eddb_session.query(HistoryInfluence).delete()
