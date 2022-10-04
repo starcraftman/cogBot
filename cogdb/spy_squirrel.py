@@ -39,7 +39,7 @@ JSON_POWER_STATE_TO_EDDB = {
 MAX_SPY_MERITS = 99999
 
 
-class SpyVote(Base):
+class SpyVote(cog.util.TimestampMixin, Base):
     """
     Record current vote by power.
     """
@@ -63,8 +63,7 @@ class SpyVote(Base):
 
     def __str__(self):
         """ A pretty one line to give all information. """
-        date = datetime.datetime.utcfromtimestamp(self.updated_at)
-        return f"{self.power.text}: {self.vote}%, updated at {date}"
+        return f"{self.power.text}: {self.vote}%, updated at {self.utc_date}"
 
     def __eq__(self, other):
         return isinstance(other, SpyVote) and hash(self) == hash(other)
@@ -73,7 +72,7 @@ class SpyVote(Base):
         return hash(f"{self.power_id}")
 
 
-class SpyPrep(Base):
+class SpyPrep(cog.util.TimestampMixin, Base):
     """
     Store Prep triggers by systems.
     """
@@ -108,10 +107,9 @@ class SpyPrep(Base):
 
     def __str__(self):
         """ A pretty one line to give all information. """
-        date = datetime.datetime.utcfromtimestamp(self.updated_at)
         power_text = "{}".format(self.power.text if self.power else self.power_id)
         system_text = "{}".format(self.system.name if self.system else self.ed_system_id)
-        return f"{power_text} {system_text}: {self.merits}, updated at {date}"
+        return f"{power_text} {system_text}: {self.merits}, updated at {self.utc_date}"
 
     def __eq__(self, other):
         return isinstance(other, SpyPrep) and hash(self) == hash(other)
@@ -120,7 +118,7 @@ class SpyPrep(Base):
         return hash(f"{self.power_id}_{self.ed_system_id}")
 
 
-class SpySystem(Base):
+class SpySystem(cog.util.TimestampMixin, Base):
     """
     Store the current important information of the system.
     """
@@ -173,8 +171,7 @@ class SpySystem(Base):
 
     def __str__(self):
         """ A pretty one line to give all information. """
-        updated_at = datetime.datetime.utcfromtimestamp(self.updated_at)
-        status_text = f"{self.fort}/{self.fort_trigger} | {self.um}/{self.um_trigger}, updated at {updated_at}"
+        status_text = f"{self.fort}/{self.fort_trigger} | {self.um}/{self.um_trigger}, updated at {self.utc_date}"
         power_text = "{}".format(self.power.text if self.power else self.power_id)
         system_text = "{}".format(self.system.name if self.system else self.ed_system_id)
         if self.is_expansion:

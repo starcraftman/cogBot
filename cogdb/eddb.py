@@ -17,6 +17,7 @@ import math
 import os
 import string
 import sys
+import time
 
 import argparse
 # Backends tried IN ORDER on import: https://pypi.org/project/ijson/#id3
@@ -211,11 +212,11 @@ class Faction(cog.util.TimestampMixin, Base):
     id = sqla.Column(sqla.Integer, primary_key=True)
     name = sqla.Column(sqla.String(LEN["faction"]), index=True)
     is_player_faction = sqla.Column(sqla.Boolean, default=False)
-    home_system_id = sqla.Column(sqla.Integer)  # Makes circular foreigns.
+    home_system_id = sqla.Column(sqla.Integer, index=True)  # Makes circular foreigns.
     allegiance_id = sqla.Column(sqla.Integer, sqla.ForeignKey('allegiance.id'))
     government_id = sqla.Column(sqla.Integer, sqla.ForeignKey('gov_type.id'))
     state_id = sqla.Column(sqla.Integer, sqla.ForeignKey('faction_state.id'))
-    updated_at = sqla.Column(sqla.Integer, default=sqla.func.unix_timestamp(), onupdate=sqla.func.unix_timestamp())
+    updated_at = sqla.Column(sqla.Integer, default=time.time, onupdate=time.time)
 
     # Relationships
     allegiance = sqla.orm.relationship('Allegiance')
@@ -292,14 +293,14 @@ class FactionState(Base):
         return hash(self.id)
 
 
-class FactionActiveState(Base):
+class FactionActiveState(cog.util.TimestampMixin, Base):
     """ Represents the actual or pending states of a faction/system pair."""
     __tablename__ = "faction_active_states"
 
     system_id = sqla.Column(sqla.Integer, sqla.ForeignKey('systems.id'), primary_key=True)
     faction_id = sqla.Column(sqla.Integer, sqla.ForeignKey('factions.id'), primary_key=True)
     state_id = sqla.Column(sqla.Integer, sqla.ForeignKey('faction_state.id'), primary_key=True)
-    updated_at = sqla.Column(sqla.Integer, default=sqla.func.unix_timestamp(), onupdate=sqla.func.unix_timestamp())
+    updated_at = sqla.Column(sqla.Integer, default=time.time, onupdate=time.time)
 
     def __repr__(self):
         keys = ['system_id', 'faction_id', 'state_id', 'updated_at']
@@ -316,14 +317,14 @@ class FactionActiveState(Base):
         return hash("{}_{}_{}".format(self.faction_id, self.system_id, self.state_id))
 
 
-class FactionPendingState(Base):
+class FactionPendingState(cog.util.TimestampMixin, Base):
     """ Represents the actual or pending states of a faction/system pair."""
     __tablename__ = "faction_pending_states"
 
     system_id = sqla.Column(sqla.Integer, sqla.ForeignKey('systems.id'), primary_key=True)
     faction_id = sqla.Column(sqla.Integer, sqla.ForeignKey('factions.id'), primary_key=True)
     state_id = sqla.Column(sqla.Integer, sqla.ForeignKey('faction_state.id'), primary_key=True)
-    updated_at = sqla.Column(sqla.Integer, default=sqla.func.unix_timestamp(), onupdate=sqla.func.unix_timestamp())
+    updated_at = sqla.Column(sqla.Integer, default=time.time, onupdate=time.time)
 
     def __repr__(self):
         keys = ['system_id', 'faction_id', 'state_id', 'updated_at']
@@ -340,14 +341,14 @@ class FactionPendingState(Base):
         return hash("{}_{}_{}".format(self.faction_id, self.system_id, self.state_id))
 
 
-class FactionRecoveringState(Base):
+class FactionRecoveringState(cog.util.TimestampMixin, Base):
     """ Represents the actual or pending states of a faction/system pair."""
     __tablename__ = "faction_recovering_states"
 
     system_id = sqla.Column(sqla.Integer, sqla.ForeignKey('systems.id'), primary_key=True)
     faction_id = sqla.Column(sqla.Integer, sqla.ForeignKey('factions.id'), primary_key=True)
     state_id = sqla.Column(sqla.Integer, sqla.ForeignKey('faction_state.id'), primary_key=True)
-    updated_at = sqla.Column(sqla.Integer, default=sqla.func.unix_timestamp(), onupdate=sqla.func.unix_timestamp())
+    updated_at = sqla.Column(sqla.Integer, default=time.time, onupdate=time.time)
 
     def __repr__(self):
         keys = ['system_id', 'faction_id', 'state_id', 'updated_at']
@@ -396,7 +397,7 @@ class Influence(cog.util.TimestampMixin, Base):
     happiness_id = sqla.Column(sqla.Integer, sqla.ForeignKey('faction_happiness.id'), nullable=True)
     influence = sqla.Column(sqla.Numeric(7, 4, None, False), default=0.0)
     is_controlling_faction = sqla.Column(sqla.Boolean, default=False)
-    updated_at = sqla.Column(sqla.Integer, default=sqla.func.unix_timestamp(), onupdate=sqla.func.unix_timestamp())
+    updated_at = sqla.Column(sqla.Integer, default=time.time, onupdate=time.time)
 
     # Relationships
     happiness = sqla.orm.relationship('FactionHappiness')
@@ -687,7 +688,7 @@ class Station(cog.util.TimestampMixin, Base):
     type_id = sqla.Column(sqla.Integer, sqla.ForeignKey('station_types.id'))
     system_id = sqla.Column(sqla.Integer)
     controlling_minor_faction_id = sqla.Column(sqla.Integer, sqla.ForeignKey('factions.id'))
-    updated_at = sqla.Column(sqla.Integer, default=sqla.func.unix_timestamp(), onupdate=sqla.func.unix_timestamp())
+    updated_at = sqla.Column(sqla.Integer, default=time.time, onupdate=time.time)
 
     # Relationships
     features = sqla.orm.relationship('StationFeatures', uselist=False, viewonly=True)
@@ -747,7 +748,7 @@ class System(cog.util.TimestampMixin, Base):
     x = sqla.Column(sqla.Numeric(10, 5, None, False))
     y = sqla.Column(sqla.Numeric(10, 5, None, False))
     z = sqla.Column(sqla.Numeric(10, 5, None, False))
-    updated_at = sqla.Column(sqla.Integer, default=sqla.func.unix_timestamp(), onupdate=sqla.func.unix_timestamp())
+    updated_at = sqla.Column(sqla.Integer, default=time.time, onupdate=time.time)
 
     # Relationships
     primary_economy = sqla.orm.relationship(
@@ -984,7 +985,7 @@ class Conflict(cog.util.TimestampMixin, Base):
     faction2_id = sqla.Column(sqla.Integer, sqla.ForeignKey('factions.id'), primary_key=True)
     faction2_stake_id = sqla.Column(sqla.Integer, sqla.ForeignKey('stations.id'))
     faction2_days = sqla.Column(sqla.Integer)
-    updated_at = sqla.Column(sqla.Integer, default=sqla.func.unix_timestamp(), onupdate=sqla.func.unix_timestamp())
+    updated_at = sqla.Column(sqla.Integer, default=time.time, onupdate=time.time)
 
     # Relationships
     system = sqla_orm.relationship('System')
@@ -1040,7 +1041,7 @@ class HistoryTrack(cog.util.TimestampMixin, Base):
     __tablename__ = 'history_systems'
 
     system_id = sqla.Column(sqla.Integer, sqla.ForeignKey('systems.id'), primary_key=True)
-    updated_at = sqla.Column(sqla.Integer, default=sqla.func.unix_timestamp(), onupdate=sqla.func.unix_timestamp())
+    updated_at = sqla.Column(sqla.Integer, default=time.time, onupdate=time.time)
 
     # Relationships
     system = sqla_orm.relationship('System')
@@ -1074,7 +1075,7 @@ class HistoryInfluence(cog.util.TimestampMixin, Base):
     happiness_id = sqla.Column(sqla.Integer, sqla.ForeignKey('faction_happiness.id'), nullable=True)
     influence = sqla.Column(sqla.Numeric(7, 4, None, False), default=0.0)
     is_controlling_faction = sqla.Column(sqla.Boolean, default=False)
-    updated_at = sqla.Column(sqla.Integer, default=sqla.func.unix_timestamp(), onupdate=sqla.func.unix_timestamp())
+    updated_at = sqla.Column(sqla.Integer, default=time.time, onupdate=time.time)
 
     # Relationships
     system = sqla.orm.relationship('System', viewonly=True)
@@ -2495,9 +2496,12 @@ def add_history_influence(eddb_session, influence):
 if __name__ == "__main__":  # pragma: no cover
     # Tell user when not using most efficient backend.
     with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
-        eddb_session.query(HistoryTrack).delete()
-        eddb_session.query(HistoryInfluence).delete()
-        eddb_session.commit()
+        try:
+            eddb_session.query(HistoryTrack).delete()
+            eddb_session.query(HistoryInfluence).delete()
+            eddb_session.commit()
+        except (sqla.exc.OperationalError, sqla.exc.ProgrammingError):
+            pass
 
         eddb_session.add_all([
             HistoryTrack(system_id=2222),
