@@ -432,6 +432,7 @@ class EDMCJournal():
                 influence_db = Influence(**influence)
                 self.eddb_session.add(Influence(**influence))
             finally:
+                cogdb.eddb.add_history_influence(self.eddb_session, influence_db)
                 self.flushed += [influence_db]
 
         self.eddb_session.flush()

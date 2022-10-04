@@ -391,8 +391,27 @@ def test_remove_history_track_exists(eddb_session):
         eddb_session.query(HistoryTrack).delete()
 
 
+def test_add_history_influence_not_Tracked(eddb_session):
+    try:
+        assert not eddb_session.query(HistoryInfluence).all()
+        cogdb.eddb.add_history_influence(eddb_session, Influence(
+            system_id=1,
+            faction_id=1,
+            happiness_id=1,
+            influence=20,
+            is_controlling_faction=False,
+            updated_at=HISTORY_TIMESTAMP))
+        assert not eddb_session.query(HistoryInfluence).all()
+    finally:
+        eddb_session.rollback()
+        eddb_session.query(HistoryInfluence).delete()
+        eddb_session.query(HistoryTrack).delete()
+
+
 def test_add_history_influence_empty(eddb_session):
     try:
+        eddb_session.add(HistoryTrack(system_id=1))
+        eddb_session.commit()
         assert not eddb_session.query(HistoryInfluence).all()
         cogdb.eddb.add_history_influence(eddb_session, Influence(
             system_id=1,
@@ -405,9 +424,12 @@ def test_add_history_influence_empty(eddb_session):
     finally:
         eddb_session.rollback()
         eddb_session.query(HistoryInfluence).delete()
+        eddb_session.query(HistoryTrack).delete()
 
 
 def test_add_history_influence_limit_passed(eddb_session):
+    eddb_session.add(HistoryTrack(system_id=1))
+    eddb_session.commit()
     influence = Influence(
         system_id=1,
         faction_id=1,
@@ -428,9 +450,12 @@ def test_add_history_influence_limit_passed(eddb_session):
     finally:
         eddb_session.rollback()
         eddb_session.query(HistoryInfluence).delete()
+        eddb_session.query(HistoryTrack).delete()
 
 
 def test_add_history_influence_inf_diff(eddb_session):
+    eddb_session.add(HistoryTrack(system_id=1))
+    eddb_session.commit()
     influence = Influence(
         system_id=1,
         faction_id=1,
@@ -451,3 +476,4 @@ def test_add_history_influence_inf_diff(eddb_session):
     finally:
         eddb_session.rollback()
         eddb_session.query(HistoryInfluence).delete()
+        eddb_session.query(HistoryTrack).delete()

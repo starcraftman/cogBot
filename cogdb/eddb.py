@@ -2517,7 +2517,6 @@ def add_history_track(eddb_session, system_names):
         filter(HistoryTrack.system_id.in_(system_ids)).\
         delete()
     eddb_session.add_all([HistoryTrack(system_id=x) for x in system_ids])
-    eddb_session.commit()
 
 
 def remove_history_track(eddb_session, system_names):
@@ -2534,7 +2533,6 @@ def remove_history_track(eddb_session, system_names):
     eddb_session.query(HistoryTrack).\
         filter(HistoryTrack.system_id.in_(system_ids)).\
         delete()
-    eddb_session.commit()
 
 
 def add_history_influence(eddb_session, latest_inf):
@@ -2542,6 +2540,7 @@ def add_history_influence(eddb_session, latest_inf):
 
     For the following, key pair means (system_id, faction_id).
     The following rules apply to adding data points:
+        - Only add if latest_inf.system_id is in the HistoryTrack entries.
         - Ensure the number of entries for the key pair is <= HISTORY_INF_LIMIT
         - Add data points when the time since last point is > HISTORY_INF_TIME_GAP
             OR
@@ -2551,6 +2550,9 @@ def add_history_influence(eddb_session, latest_inf):
         eddb_session: A session onto the db.
         latest_inf: An Influence entry that was updated (should be flush to db).
     """
+    if not eddb_session.query(HistoryTrack).filter(HistoryTrack.system_id == latest_inf.system_id).all():
+        return
+
     data = eddb_session.query(HistoryInfluence).\
         filter(HistoryInfluence.system_id == latest_inf.system_id,
                HistoryInfluence.faction_id == latest_inf.faction_id).\
@@ -2572,8 +2574,6 @@ def add_history_influence(eddb_session, latest_inf):
 
     else:
         eddb_session.add(HistoryInfluence.from_influence(latest_inf))
-
-    eddb_session.commit()
 
 
 if __name__ == "__main__":  # pragma: no cover
