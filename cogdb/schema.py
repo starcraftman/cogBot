@@ -299,6 +299,11 @@ class FortSystem(Base):
         return cls.notes.ilike("%priority%")
 
     @hybrid_property
+    def is_prep(self):
+        """ The system should be priority. """
+        return self.type == EFortType.prep
+
+    @hybrid_property
     def is_skipped(self):
         """ The system should be skipped. """
         notes = self.notes.lower()

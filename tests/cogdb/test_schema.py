@@ -299,6 +299,23 @@ def test_fortsystem_priority_expression(session, f_dusers, f_fort_testbed):
     assert [x[0] for x in priorities] == ["Othime"]
 
 
+def test_fortsystem_prep(f_dusers, f_fort_testbed):
+    __import__('pprint').pprint(f_fort_testbed)
+
+    system = f_fort_testbed[1][0]
+    print(system)
+    assert system.is_prep is False
+
+    system = f_fort_testbed[1][-1]
+    print(system, system.is_prep)
+    assert system.is_prep is True
+
+
+def test_fortsystem_prep_expression(session, f_dusers, f_fort_testbed):
+    preps = session.query(FortSystem.name).filter(FortSystem.is_prep).all()
+    assert ['Rhea', 'PrepDone'] == [x[0] for x in preps]
+
+
 def test_fortsystem_skip(f_dusers, f_fort_testbed):
     system = f_fort_testbed[1][0]
     assert system.is_skipped is False

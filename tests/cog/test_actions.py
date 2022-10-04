@@ -1945,3 +1945,17 @@ async def test_cmd_summary_no_perms(f_bot, f_dusers, f_fort_testbed):
     with pytest.raises(cog.exc.InvalidPerms):
 
         await action_map(msg, f_bot).execute()
+
+
+def test_check_system_deferred_and_globe(f_dusers, f_fort_testbed, f_global_testbed):
+    fort = f_fort_testbed[1][0]
+    prep = f_fort_testbed[1][-1]
+    globe = f_global_testbed[0]
+    globe.show_vote_goal = False
+
+    assert cog.actions.check_system_deferred_and_globe(prep, globe) is False
+    fort.notes = 'priority'
+    assert cog.actions.check_system_deferred_and_globe(fort, globe) is False
+    assert cog.actions.check_system_deferred_and_globe(fort, globe) is not cog.actions.is_near_tick()
+    globe.show_vote_goal = True
+    assert cog.actions.check_system_deferred_and_globe(fort, globe) is False

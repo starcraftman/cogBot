@@ -934,7 +934,7 @@ class Drop(Action):
                       self.duser.display_name, self.args.amount, system.name)
 
         response = system.display()
-        if system.is_deferred and (not globe.show_almost_done and not is_near_tick()):
+        if check_system_deferred_and_globe(system, globe):
             response += self.deferred(system)
         elif system.is_fortified:
             response += self.finished(system)
@@ -1068,7 +1068,7 @@ To unset override, simply set an empty list of systems.
             for name in process_system_args(self.args.system):
                 system = cogdb.query.fort_find_system(self.session, name)
                 lines.append(system.display())
-                if system.is_deferred and (not globe.show_almost_done and not is_near_tick()):
+                if check_system_deferred_and_globe(system, globe):
                     lines.append('This system is **almost done** and should stay **untouched** until further orders.\n')
             response = '\n'.join(lines)
 
@@ -2187,6 +2187,18 @@ def is_near_tick():
     hours_left = tick_diff.seconds // 3600 + tick_diff.days * 24
 
     return hours_left <= hours_to_tick
+
+
+def check_system_deferred_and_globe(system, globe):
+    """Retrurn True IFF the system is deferred and conditions met for almost done messages.
+    N.B. This includes system can't be priority or prep.
+
+    Args:
+        system: A System db object.
+        globe: A Globe db object.
+    """
+    return system.is_deferred and not system.is_priority and not system.is_prep\
+        and (not globe.show_almost_done and not is_near_tick())
 
 
 def route_systems(systems):
