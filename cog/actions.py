@@ -1662,11 +1662,10 @@ Estimate of how long it will take: {str(estimate)}"""
                         pool, scrape_bgs_in_background, found
                     )
                     scanner = get_scanner('bgs_demo')
+                    influences = cogdb.spy_squirrel.update_eddb_factions(eddb_session, info)
                     await scanner.clear_cells()
-                    __import__('pprint').pprint(scanner.update_dict(infos=info))
-                    await scanner.send_batch(scanner.update_dict(infos=info))
+                    await scanner.send_batch(scanner.update_dict(influences=influences))
 
-                    cogdb.spy_squirrel.update_eddb_factions(eddb_session, info)
 
             return "Update completed successfully."
 

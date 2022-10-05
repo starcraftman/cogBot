@@ -460,19 +460,38 @@ def update_eddb_factions(eddb_session, fact_info):
     Args:
         eddb_session: Session onto the EDDB database.
         fact_info: A dictionary with required information, see cogdb.scrape.scrape_all_bgs for format.
+
+    Returns: A list of Influence objects updated or added to db.
     """
+    infs = []
     for system_name, info in fact_info.items():
         for faction_name in info['factions']:
-            found = eddb_session.query(Influence).\
-                join(System).\
-                join(Faction, Influence.faction_id == Faction.id).\
-                filter(System.name == system_name,
-                       Faction.name == faction_name).\
-                one()
+            try:
+                found = eddb_session.query(Influence).\
+                    join(System).\
+                    join(Faction, Influence.faction_id == Faction.id).\
+                    filter(System.name == system_name,
+                        Faction.name == faction_name).\
+                    one()
+            except sqla_orm.exc.NoResultFound:  # Handle case of not existing record
+                try:
+                    system_id = eddb_session.query(System.id).\
+                        filter(System.name == system_name).\
+                        one()[0]
+                    faction_id = eddb_session.query(Faction).\
+                        filter(Faction.name == faction_name).\
+                        one()[0]
+                    found = Influence(system_id=system_id, faction_id=faction_id)
+                    eddb_session.add(found)
+                except sqla_orm.exc.NoResultFound:
+                    logging.getLogger(__name__).error("update_eddb_factions: MISSING DB INFO for system or faction: %s, %s" % system_name, faction_name)
             found.influence = info['factions'][faction_name]
             found.updated_at = info['updated_at']
+            cogdb.eddb.add_history_influence(eddb_session, found)
+            infs += [found]
 
     eddb_session.commit()
+    return infs
 
 
 def drop_tables():  # pragma: no cover | destructive to test

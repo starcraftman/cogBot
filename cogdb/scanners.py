@@ -1011,27 +1011,34 @@ class BGSDemo(FortScanner):
     def __repr__(self):
         return super().__repr__().replace('FortScanner', 'BGSDemo')
 
-    def update_dict(self, *, infos, row=2):
+    def update_dict(self, *, influences, row=2):
         """
         Create an update payload to update all cells on a sheet.
+
+        Args:
+            influences: The cogdb.eddb.Influence objects.
+            row: The row to start putting data on, defaults 2.
 
         Returns: A list of update dicts to pass to batch_update.
         """
         now = datetime.datetime.utcnow().replace(microsecond=0)
-
-        flat_by_system = {}
-        end_row = row
-        for system_name, info in infos.items():
-            entries = [[system_name, fact_name, inf] for fact_name, inf in info['factions'].items()]
-            end_row = end_row + len(entries)
-            flat_by_system[system_name] = sorted(entries, key=lambda x: x[2], reverse=True)
         values = []
-        for key in sorted(flat_by_system.keys()):
-            values += flat_by_system[key]
+        for entry in influences:
+            values += [[
+                entry.system.name,
+                entry.faction.name,
+                ", ".join([x.state.text for x in entry.recovering_states]),
+                ", ".join([x.state.text for x in entry.active_states]),
+                ", ".join([x.state.text for x in entry.pending_states]),
+                entry.happiness.text,
+                entry.influence,
+                str(entry.utc_date),
+            ]]
+        end_row = row + len(values)
 
         payload = [
-            {'range': f'A{row}:C{end_row}', 'values': values},
-            {'range': 'G1:G1', 'values': [[str(now)]]},
+            {'range': f'A{row}:H{end_row}', 'values': values},
+            {'range': 'K1:K1', 'values': [[str(now)]]},
         ]
 
         return payload

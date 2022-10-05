@@ -231,9 +231,9 @@ class Faction(cog.util.TimestampMixin, Base):
     updated_at = sqla.Column(sqla.Integer, default=time.time, onupdate=time.time)
 
     # Relationships
-    allegiance = sqla.orm.relationship('Allegiance')
-    government = sqla.orm.relationship('Government')
-    state = sqla.orm.relationship('FactionState')
+    allegiance = sqla.orm.relationship('Allegiance', viewonly=True)
+    government = sqla.orm.relationship('Government', viewonly=True)
+    state = sqla.orm.relationship('FactionState', viewonly=True)
 
     def __repr__(self):
         keys = ['id', 'name', 'state_id', 'government_id', 'allegiance_id', 'home_system_id',
@@ -314,6 +314,9 @@ class FactionActiveState(cog.util.TimestampMixin, Base):
     state_id = sqla.Column(sqla.Integer, sqla.ForeignKey('faction_state.id'), primary_key=True)
     updated_at = sqla.Column(sqla.Integer, default=time.time, onupdate=time.time)
 
+    # Relationships
+    state = sqla.orm.relationship('FactionState', viewonly=True, lazy='joined')
+
     def __repr__(self):
         keys = ['system_id', 'faction_id', 'state_id', 'updated_at']
         kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
@@ -338,6 +341,9 @@ class FactionPendingState(cog.util.TimestampMixin, Base):
     state_id = sqla.Column(sqla.Integer, sqla.ForeignKey('faction_state.id'), primary_key=True)
     updated_at = sqla.Column(sqla.Integer, default=time.time, onupdate=time.time)
 
+    # Relationships
+    state = sqla.orm.relationship('FactionState', viewonly=True, lazy='joined')
+
     def __repr__(self):
         keys = ['system_id', 'faction_id', 'state_id', 'updated_at']
         kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
@@ -361,6 +367,9 @@ class FactionRecoveringState(cog.util.TimestampMixin, Base):
     faction_id = sqla.Column(sqla.Integer, sqla.ForeignKey('factions.id'), primary_key=True)
     state_id = sqla.Column(sqla.Integer, sqla.ForeignKey('faction_state.id'), primary_key=True)
     updated_at = sqla.Column(sqla.Integer, default=time.time, onupdate=time.time)
+
+    # Relationships
+    state = sqla.orm.relationship('FactionState', viewonly=True, lazy='joined')
 
     def __repr__(self):
         keys = ['system_id', 'faction_id', 'state_id', 'updated_at']
@@ -412,7 +421,7 @@ class Influence(cog.util.TimestampMixin, Base):
     updated_at = sqla.Column(sqla.Integer, default=time.time, onupdate=time.time)
 
     # Relationships
-    happiness = sqla.orm.relationship('FactionHappiness')
+    happiness = sqla.orm.relationship('FactionHappiness', lazy='joined', viewonly=True)
     system = sqla.orm.relationship('System', viewonly=True)
     faction = sqla.orm.relationship('Faction', viewonly=True)
 
@@ -501,7 +510,7 @@ class Power(Base):
 
     # Relationships
     home_system = sqla.orm.relationship(
-        'System', uselist=False, lazy='select',
+        'System', uselist=False, lazy='select', viewonly=True,
         primaryjoin='foreign(System.name) == Power.home_system_name',
     )
 
@@ -623,7 +632,7 @@ class StationFeatures(Base):
     shipyard = sqla.Column(sqla.Boolean)
 
     # Realtionships
-    station = sqla.orm.relationship('Station', uselist=False)
+    station = sqla.orm.relationship('Station', uselist=False, viewonly=True)
 
     def __repr__(self):
         keys = ['id', 'blackmarket', 'market', 'refuel',
@@ -704,18 +713,22 @@ class Station(cog.util.TimestampMixin, Base):
 
     # Relationships
     features = sqla.orm.relationship('StationFeatures', uselist=False, viewonly=True)
-    type = sqla.orm.relationship('StationType', uselist=False)
-    faction = sqla.orm.relationship('Faction')
+    type = sqla.orm.relationship('StationType', uselist=False, viewonly=True)
+    station_economies = sqla.orm.relationship(
+        'StationEconomy', uselist=True, viewonly=True, lazy='select',
+        primaryjoin='foreign(Station.id) == remote(StationEconomy.id)',
+    )
     economies = sqla.orm.relationship(
-        'Economy', uselist=True, lazy='select', viewonly=True,
+        'Economy', uselist=True, viewonly=True, lazy='select',
         primaryjoin='and_(foreign(Station.id) == remote(StationEconomy.id), foreign(StationEconomy.economy_id) == Economy.id)',
     )
+    faction = sqla.orm.relationship('Faction', uselist=False, viewonly=True)
     allegiance = sqla_orm.relationship(
-        'Allegiance', viewonly=True, uselist=False, lazy='select',
+        'Allegiance', uselist=False, viewonly=True, lazy='select',
         primaryjoin='and_(Station.controlling_minor_faction_id == remote(Faction.id), foreign(Faction.allegiance_id) == foreign(Allegiance.id))',
     )
     government = sqla_orm.relationship(
-        'Government', viewonly=True, uselist=False, lazy='select',
+        'Government', uselist=False, viewonly=True, lazy='select',
         primaryjoin='and_(Station.controlling_minor_faction_id == remote(Faction.id), foreign(Faction.government_id) == foreign(Government.id))',
     )
 
@@ -764,38 +777,38 @@ class System(cog.util.TimestampMixin, Base):
 
     # Relationships
     primary_economy = sqla.orm.relationship(
-        'Economy', uselist=False, lazy='select',
+        'Economy', uselist=False, viewonly=True, lazy='select',
         primaryjoin='foreign(System.primary_economy_id) == Economy.id'
     )
     secondary_economy = sqla.orm.relationship(
-        'Economy', uselist=False, lazy='select', viewonly=True,
+        'Economy', uselist=False, viewonly=True, lazy='select',
         primaryjoin='foreign(System.primary_economy_id) == Economy.id'
     )
-    power = sqla.orm.relationship('Power')
-    power_state = sqla.orm.relationship('PowerState')
-    security = sqla.orm.relationship('Security')
+    power = sqla.orm.relationship('Power', viewonly=True)
+    power_state = sqla.orm.relationship('PowerState', viewonly=True)
+    security = sqla.orm.relationship('Security', viewonly=True)
     active_states = sqla_orm.relationship(
         'FactionActiveState', viewonly=True, lazy='select',
         primaryjoin='and_(remote(FactionActiveState.system_id) == foreign(System.id), remote(FactionActiveState.faction_id) == foreign(System.controlling_minor_faction_id))',
     )
     allegiance = sqla_orm.relationship(
-        'Allegiance', viewonly=True, uselist=False, lazy='select',
+        'Allegiance', uselist=False, viewonly=True, lazy='select',
         primaryjoin='and_(System.controlling_minor_faction_id == remote(Faction.id), foreign(Faction.allegiance_id) == foreign(Allegiance.id))',
     )
     government = sqla_orm.relationship(
-        'Government', viewonly=True, uselist=False, lazy='select',
+        'Government', uselist=False, viewonly=True, lazy='select',
         primaryjoin='and_(System.controlling_minor_faction_id == remote(Faction.id), foreign(Faction.government_id) == foreign(Government.id))',
     )
     controls = sqla_orm.relationship(
-        'System', uselist=True, lazy='select', viewonly=True, order_by='System.name',
+        'System', uselist=True, viewonly=True, lazy='select', order_by='System.name',
         primaryjoin='and_(foreign(System.id) == remote(SystemControl.system_id), foreign(SystemControl.control_id) == remote(System.id))'
     )
     exploiteds = sqla_orm.relationship(
-        'System', uselist=True, lazy='select', viewonly=True, order_by='System.name',
+        'System', uselist=True, viewonly=True, lazy='select', order_by='System.name',
         primaryjoin='and_(foreign(System.id) == remote(SystemControl.control_id), foreign(SystemControl.system_id) == remote(System.id))'
     )
     contesteds = sqla_orm.relationship(
-        'System', uselist=True, lazy='select', viewonly=True, order_by='System.name',
+        'System', uselist=True, viewonly=True, lazy='select', order_by='System.name',
         primaryjoin='and_(foreign(System.id) == remote(SystemContestedV.control_id), foreign(SystemContestedV.system_id) == remote(System.id))',
     )
 
@@ -961,6 +974,9 @@ class SystemControl(Base):
 
 
 class ConflictState(Base):
+    """
+    Defines the different states possible for conflicts.
+    """
     __tablename__ = 'conflict_states'
 
     id = sqla.Column(sqla.Integer, primary_key=True)
@@ -1000,29 +1016,29 @@ class Conflict(cog.util.TimestampMixin, Base):
     updated_at = sqla.Column(sqla.Integer, default=time.time, onupdate=time.time)
 
     # Relationships
-    system = sqla_orm.relationship('System')
+    system = sqla_orm.relationship('System', viewonly=True)
     status = sqla_orm.relationship(
-        'ConflictState', lazy='select',
+        'ConflictState', viewonly=True, lazy='select',
         primaryjoin='foreign(Conflict.status_id) == ConflictState.id',
     )
     type = sqla_orm.relationship(
-        'ConflictState', lazy='select',
+        'ConflictState', viewonly=True,  lazy='select',
         primaryjoin='foreign(Conflict.type_id) == ConflictState.id',
     )
     faction1 = sqla_orm.relationship(
-        'Faction', lazy='select',
+        'Faction', viewonly=True, lazy='select',
         primaryjoin='foreign(Conflict.faction1_id) == Faction.id',
     )
     faction2 = sqla_orm.relationship(
-        'Faction', lazy='select',
+        'Faction', viewonly=True, lazy='select',
         primaryjoin='foreign(Conflict.faction2_id) == Faction.id',
     )
     faction1_stake = sqla_orm.relationship(
-        'Station', lazy='select',
+        'Station', viewonly=True, lazy='select',
         primaryjoin='foreign(Conflict.faction1_stake_id) == Station.id',
     )
     faction2_stake = sqla_orm.relationship(
-        'Station', lazy='select',
+        'Station', viewonly=True, lazy='select',
         primaryjoin='foreign(Conflict.faction2_stake_id) == Station.id',
     )
 
@@ -1074,7 +1090,7 @@ class HistoryTrack(cog.util.TimestampMixin, Base):
 
 # N.B. Ever increasing data, the following rules must be enforced:
 #   - Prune data older than X days, run nightly.
-#       select * from history_influence where updated_at <  unix_timestamp() - (DATE WINDOW);
+#       See EVENT_HISTORY_INFLUENCE
 #   - With add_history_influence enforce following:
 #       LIMIT total number of entries per key pair
 #       Enforce only new data when inf is different than last and min gap in time from last
@@ -1140,19 +1156,19 @@ FactionActiveState.influence = sqla_orm.relationship(
     'Influence', uselist=False, lazy='select',
     primaryjoin='and_(foreign(Influence.faction_id) == FactionActiveState.faction_id, foreign(Influence.system_id) == FactionActiveState.system_id)')
 Influence.active_states = sqla_orm.relationship(
-    'FactionActiveState', cascade='all, delete, delete-orphan', lazy='select',
+    'FactionActiveState', cascade='all, delete, delete-orphan', lazy='joined',
     primaryjoin='and_(foreign(FactionActiveState.faction_id) == Influence.faction_id, foreign(FactionActiveState.system_id) == Influence.system_id)')
 FactionPendingState.influence = sqla_orm.relationship(
     'Influence', uselist=False, lazy='select', viewonly=True,
     primaryjoin='and_(foreign(Influence.faction_id) == FactionPendingState.faction_id, foreign(Influence.system_id) == FactionPendingState.system_id)')
 Influence.pending_states = sqla_orm.relationship(
-    'FactionPendingState', cascade='all, delete, delete-orphan', lazy='select',
+    'FactionPendingState', cascade='all, delete, delete-orphan', lazy='joined',
     primaryjoin='and_(foreign(FactionPendingState.faction_id) == Influence.faction_id, foreign(FactionPendingState.system_id) == Influence.system_id)')
 FactionRecoveringState.influence = sqla_orm.relationship(
     'Influence', uselist=False, lazy='select', viewonly=True,
     primaryjoin='and_(foreign(Influence.faction_id) == FactionRecoveringState.faction_id, foreign(Influence.system_id) == FactionRecoveringState.system_id)')
 Influence.recovering_states = sqla_orm.relationship(
-    'FactionRecoveringState', cascade='all, delete, delete-orphan', lazy='select',
+    'FactionRecoveringState', cascade='all, delete, delete-orphan', lazy='joined',
     primaryjoin='and_(foreign(FactionRecoveringState.faction_id) == Influence.faction_id, foreign(FactionRecoveringState.system_id) == Influence.system_id)')
 
 Station.system = sqla_orm.relationship(
@@ -2183,6 +2199,81 @@ def populate_system_controls(session):
                                   power_state_id=sp_id))
 
 
+def add_history_track(eddb_session, system_names):
+    """Add all systems to bgs tracking.
+
+    Args:
+        eddb_session: A session onto the db.
+        systems: The list of systems to add.
+    """
+    system_ids = [x[0] for x in eddb_session.query(System.id).\
+        filter(System.name.in_(system_names)).\
+        all()
+    ]
+    eddb_session.query(HistoryTrack).\
+        filter(HistoryTrack.system_id.in_(system_ids)).\
+        delete()
+    eddb_session.add_all([HistoryTrack(system_id=x) for x in system_ids])
+
+
+def remove_history_track(eddb_session, system_names):
+    """Add all systems to bgs tracking.
+
+    Args:
+        eddb_session: A session onto the db.
+        systems: The list of systems to add.
+    """
+    system_ids = [x[0] for x in eddb_session.query(System.id).\
+        filter(System.name.in_(system_names)).\
+        all()
+    ]
+    eddb_session.query(HistoryTrack).\
+        filter(HistoryTrack.system_id.in_(system_ids)).\
+        delete()
+
+
+def add_history_influence(eddb_session, latest_inf):
+    """Add a history influence to the database.
+
+    For the following, key pair means (system_id, faction_id).
+    The following rules apply to adding data points:
+        - Only add if latest_inf.system_id is in the HistoryTrack entries.
+        - Ensure the number of entries for the key pair is <= HISTORY_INF_LIMIT
+        - Add data points when the time since last point is > HISTORY_INF_TIME_GAP
+            OR
+        - Add data points when influence change > 1% and time since last point is > 1 hour (floor to prevent flood)
+
+    Args:
+        eddb_session: A session onto the db.
+        latest_inf: An Influence entry that was updated (should be flush to db).
+    """
+    if not eddb_session.query(HistoryTrack).filter(HistoryTrack.system_id == latest_inf.system_id).all():
+        return
+
+    data = eddb_session.query(HistoryInfluence).\
+        filter(HistoryInfluence.system_id == latest_inf.system_id,
+               HistoryInfluence.faction_id == latest_inf.faction_id).\
+        order_by(HistoryInfluence.updated_at.desc()).\
+        all()
+
+    # Only keep up to limit
+    while len(data) > HISTORY_INF_LIMIT:
+        last = data[-1]
+        data = data[:-1]
+        eddb_session.delete(last)
+
+    if data:
+        last = data[-1]
+        # Influence stored as decimal of [0.0, 1.0]
+        inf_diff = math.fabs(last.influence - latest_inf.influence)
+        time_diff = latest_inf.updated_at - last.updated_at
+        if (inf_diff >= 0.01 and time_diff > HOUR_SECONDS) or time_diff >= HISTORY_INF_TIME_GAP:
+            eddb_session.add(HistoryInfluence.from_influence(latest_inf))
+
+    else:
+        eddb_session.add(HistoryInfluence.from_influence(latest_inf))
+
+
 def dump_db(session, classes, fname):
     """
     Dump db to a file.
@@ -2500,81 +2591,6 @@ try:
 except (AttributeError, sqla_orm.exc.NoResultFound, sqla.exc.ProgrammingError):  # pragma: no cover
     PLANETARY_TYPE_IDS = None
     HQS = None
-
-
-def add_history_track(eddb_session, system_names):
-    """Add all systems to bgs tracking.
-
-    Args:
-        eddb_session: A session onto the db.
-        systems: The list of systems to add.
-    """
-    system_ids = [x[0] for x in eddb_session.query(System.id).\
-        filter(System.name.in_(system_names)).\
-        all()
-    ]
-    eddb_session.query(HistoryTrack).\
-        filter(HistoryTrack.system_id.in_(system_ids)).\
-        delete()
-    eddb_session.add_all([HistoryTrack(system_id=x) for x in system_ids])
-
-
-def remove_history_track(eddb_session, system_names):
-    """Add all systems to bgs tracking.
-
-    Args:
-        eddb_session: A session onto the db.
-        systems: The list of systems to add.
-    """
-    system_ids = [x[0] for x in eddb_session.query(System.id).\
-        filter(System.name.in_(system_names)).\
-        all()
-    ]
-    eddb_session.query(HistoryTrack).\
-        filter(HistoryTrack.system_id.in_(system_ids)).\
-        delete()
-
-
-def add_history_influence(eddb_session, latest_inf):
-    """Add a history influence to the database.
-
-    For the following, key pair means (system_id, faction_id).
-    The following rules apply to adding data points:
-        - Only add if latest_inf.system_id is in the HistoryTrack entries.
-        - Ensure the number of entries for the key pair is <= HISTORY_INF_LIMIT
-        - Add data points when the time since last point is > HISTORY_INF_TIME_GAP
-            OR
-        - Add data points when influence change > 1% and time since last point is > 1 hour (floor to prevent flood)
-
-    Args:
-        eddb_session: A session onto the db.
-        latest_inf: An Influence entry that was updated (should be flush to db).
-    """
-    if not eddb_session.query(HistoryTrack).filter(HistoryTrack.system_id == latest_inf.system_id).all():
-        return
-
-    data = eddb_session.query(HistoryInfluence).\
-        filter(HistoryInfluence.system_id == latest_inf.system_id,
-               HistoryInfluence.faction_id == latest_inf.faction_id).\
-        order_by(HistoryInfluence.updated_at.desc()).\
-        all()
-
-    # Only keep up to limit
-    while len(data) > HISTORY_INF_LIMIT:
-        last = data[-1]
-        data = data[:-1]
-        eddb_session.delete(last)
-
-    if data:
-        last = data[-1]
-        # Influence stored as decimal of [0.0, 1.0]
-        inf_diff = math.fabs(last.influence - latest_inf.influence)
-        time_diff = latest_inf.updated_at - last.updated_at
-        if (inf_diff >= 0.01 and time_diff > HOUR_SECONDS) or time_diff >= HISTORY_INF_TIME_GAP:
-            eddb_session.add(HistoryInfluence.from_influence(latest_inf))
-
-    else:
-        eddb_session.add(HistoryInfluence.from_influence(latest_inf))
 
 
 if __name__ == "__main__":  # pragma: no cover

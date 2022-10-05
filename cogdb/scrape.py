@@ -305,6 +305,8 @@ def scrape_all_bgs(driver, systems):  # pragma: no cover | Depends on driver run
     Args:
         driver: The webdriver, probably chrome.
         systems: The name of the systems to push.
+
+    Returns: A large dict of form {system_name: {info: value, info2: value}, ...}
     """
     results = {}
     url = os.path.join(cog.util.CONF.scrape.url, 'bgs')
