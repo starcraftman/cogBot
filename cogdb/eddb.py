@@ -2567,9 +2567,10 @@ def add_history_influence(eddb_session, latest_inf):
 
     if data:
         last = data[-1]
+        # Influence stored as decimal of [0.0, 1.0]
         inf_diff = math.fabs(last.influence - latest_inf.influence)
         time_diff = latest_inf.updated_at - last.updated_at
-        if (inf_diff >= 1.0 and time_diff > HOUR_SECONDS) or time_diff >= HISTORY_INF_TIME_GAP:
+        if (inf_diff >= 0.01 and time_diff > HOUR_SECONDS) or time_diff >= HISTORY_INF_TIME_GAP:
             eddb_session.add(HistoryInfluence.from_influence(latest_inf))
 
     else:
