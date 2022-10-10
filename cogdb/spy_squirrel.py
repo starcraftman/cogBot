@@ -342,6 +342,19 @@ def load_refined_json(refined, eddb_session):
     return db_objs
 
 
+def load_response_json(response, eddb_session):
+    system_map = {}
+    for sys_name, news_info in response.items():
+        for entry in news_info['news']:
+            print(entry["type"], entry["date"])
+
+            #  __import__('pprint').pprint(value)
+
+        system_map[sys_name] = "Hello"
+
+    return system_map
+
+
 def process_scrape_data(data_json):
     """Process the scrape data and put it into the db.
 

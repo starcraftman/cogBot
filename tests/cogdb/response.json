@@ -1,0 +1,671 @@
+{
+  "123": {
+    "news": [
+      {
+        "type": "NewsSummaryFactionStateTitle",
+        "substColon": false,
+        "params": [
+          {
+            "key": "system",
+            "value": "52686561",
+            "type": "string"
+          },
+          {
+            "key": "factionName",
+            "value": "4C61626F7572206F662052686561",
+            "type": "string"
+          },
+          {
+            "key": "list",
+            "value": "$newsfeed_NewsSummaryHeadlines:#Influence=4.8:#Happiness=$Faction_HappinessBand2;;",
+            "type": "string"
+          }
+        ],
+        "date": "7 OCT 3308",
+        "sticky": 1
+      },
+      {
+        "type": "NewsSummaryFactionStateTitle",
+        "substColon": false,
+        "params": [
+          {
+            "key": "system",
+            "value": "52686561",
+            "type": "string"
+          },
+          {
+            "key": "factionName",
+            "value": "526865612054726176656C20496E647573747279",
+            "type": "string"
+          },
+          {
+            "key": "list",
+            "value": "$newsfeed_NewsSummaryHeadlines:#Influence=12.2:#Happiness=$Faction_HappinessBand2;;<br>$newsfeed_NewsSummaryelectionPending:#OtherFaction=Rhea Travel Interstellar:#System=Rhea;  $newsfeed_NewsSummaryAssetOursMarket:#Asset=de Sousa Terminal;",
+            "type": "string"
+          }
+        ],
+        "date": "7 OCT 3308",
+        "sticky": 1
+      },
+      {
+        "type": "NewsSummaryFactionStateTitle",
+        "substColon": false,
+        "params": [
+          {
+            "key": "system",
+            "value": "52686561",
+            "type": "string"
+          },
+          {
+            "key": "factionName",
+            "value": "547261646974696F6E616C20526865612046726F6E74",
+            "type": "string"
+          },
+          {
+            "key": "list",
+            "value": "$newsfeed_NewsSummaryHeadlines:#Influence=8.9:#Happiness=$Faction_HappinessBand2;;",
+            "type": "string"
+          }
+        ],
+        "date": "7 OCT 3308",
+        "sticky": 1
+      },
+      {
+        "type": "NewsSummaryFactionStateTitle",
+        "substColon": false,
+        "params": [
+          {
+            "key": "system",
+            "value": "52686561",
+            "type": "string"
+          },
+          {
+            "key": "factionName",
+            "value": "526865612054726176656C20496E7465727374656C6C6172",
+            "type": "string"
+          },
+          {
+            "key": "list",
+            "value": "$newsfeed_NewsSummaryHeadlines:#Influence=12.2:#Happiness=$Faction_HappinessBand2;;<br>$newsfeed_NewsSummaryelectionPending:#OtherFaction=Rhea Travel Industry:#System=Rhea;  $newsfeed_NewsSummaryAssetOursMarket:#Asset=Cormack Penal colony;",
+            "type": "string"
+          }
+        ],
+        "date": "7 OCT 3308",
+        "sticky": 1
+      },
+      {
+        "type": "NewsSummaryFactionStateTitle",
+        "substColon": false,
+        "params": [
+          {
+            "key": "system",
+            "value": "52686561",
+            "type": "string"
+          },
+          {
+            "key": "factionName",
+            "value": "52686561204372696D736F6E204472756720456D70697265",
+            "type": "string"
+          },
+          {
+            "key": "list",
+            "value": "$newsfeed_NewsSummaryHeadlines:#Influence=3.3:#Happiness=$Faction_HappinessBand2;;",
+            "type": "string"
+          }
+        ],
+        "date": "7 OCT 3308",
+        "sticky": 1
+      },
+      {
+        "type": "NewsSummaryFactionStateTitle",
+        "substColon": false,
+        "params": [
+          {
+            "key": "system",
+            "value": "52686561",
+            "type": "string"
+          },
+          {
+            "key": "factionName",
+            "value": "456173742047616C61787920436F6D70616E79",
+            "type": "string"
+          },
+          {
+            "key": "list",
+            "value": "$newsfeed_NewsSummaryHeadlines:#Influence=19:#Happiness=$Faction_HappinessBand2;;$newsfeed_NewsSummaryPublicholidayCoolDown;",
+            "type": "string"
+          }
+        ],
+        "date": "7 OCT 3308",
+        "sticky": 1
+      },
+      {
+        "type": "NewsSummaryFactionStateTitle",
+        "substColon": false,
+        "params": [
+          {
+            "key": "system",
+            "value": "52686561",
+            "type": "string"
+          },
+          {
+            "key": "factionName",
+            "value": "4665646572616C204C69626572616C20436F6D6D616E64",
+            "type": "string"
+          },
+          {
+            "key": "list",
+            "value": "$newsfeed_NewsSummaryHeadlines:#Influence=39.5:#Happiness=$Faction_HappinessBand2;;<br>$newsfeed_NewsSummarywarWonAsset:#Asset=Jang Astrophysics Lab:#OtherFaction=Values Party of Orishpucho:#System=Orishpucho;<br>$newsfeed_NewsSummarywarPending:#OtherFaction=Social Mombilar Revolutionary Party:#System=Kanamba;  $newsfeed_NewsSummaryAssetOursSystem:#Asset=Vaucanson Depot;<br>$newsfeed_NewsSummarywarDrawn:#OtherFaction=Coalition of Ngalung:#System=Ngalung;<br>$newsfeed_NewsSummaryelectionActive:#OtherFaction=Ho Parerme Jet Comms Commodities:#System=Ho Parerme;  $newsfeed_NewsSummaryAssetOursMarket:#Asset=Szentmartony Settlement; $newsfeed_NewsSummaryConflictScore:#Days=1;$newsfeed_NewsSummaryPublicholidayCoolDown;$newsfeed_NewsSummaryExpansionPending:#FromSystem=Areklici;",
+            "type": "string"
+          }
+        ],
+        "date": "7 OCT 3308",
+        "sticky": 1
+      },
+      {
+        "date": "7 OCT 3308",
+        "type": "stateTradeGoodCommodities",
+        "params": [
+          {
+            "key": "list",
+            "value": "2444616D61676564457363617065506F645F4E616D653B",
+            "type": "string"
+          },
+          {
+            "key": "list",
+            "value": "2442617369634D65646963696E65735F4E616D653B",
+            "type": "string"
+          },
+          {
+            "key": "list",
+            "value": "24416C6761655F4E616D653B",
+            "type": "string"
+          },
+          {
+            "key": "list",
+            "value": "245061696E6974655F4E616D653B",
+            "type": "string"
+          },
+          {
+            "key": "list",
+            "value": "24416C6578616E64726974655F4E616D653B",
+            "type": "string"
+          },
+          {
+            "key": "list",
+            "value": "244F70616C5F4E616D653B",
+            "type": "string"
+          },
+          {
+            "key": "list",
+            "value": "24476F6C645F4E616D653B",
+            "type": "string"
+          },
+          {
+            "key": "list",
+            "value": "245472697469756D5F4E616D653B",
+            "type": "string"
+          },
+          {
+            "key": "list",
+            "value": "2454686F7269756D5F4E616D653B",
+            "type": "string"
+          },
+          {
+            "key": "list",
+            "value": "2457696E655F4E616D653B",
+            "type": "string"
+          },
+          {
+            "key": "list",
+            "value": "244D6172696E65537570706C6965735F4E616D653B",
+            "type": "string"
+          }
+        ]
+      },
+      {
+        "date": "7 OCT 3308",
+        "type": "bountiesClaimed",
+        "params": [
+          {
+            "key": "bountyCount",
+            "value": 439,
+            "type": "int"
+          },
+          {
+            "key": "bountyValue",
+            "value": 75817971,
+            "type": "int"
+          }
+        ]
+      },
+      {
+        "date": "7 OCT 3308",
+        "type": "bountiesGiven",
+        "params": [
+          {
+            "key": "bountyCount",
+            "value": 204,
+            "type": "int"
+          },
+          {
+            "key": "bountyValue",
+            "value": 26684911,
+            "type": "int"
+          }
+        ]
+      },
+      {
+        "date": "7 OCT 3308",
+        "type": "top5Bounties",
+        "params": [
+          {
+            "key": "type",
+            "value": "faction",
+            "type": "string"
+          },
+          {
+            "key": "commanderId1",
+            "value": 5520548,
+            "type": "int"
+          },
+          {
+            "key": "name1",
+            "value": "434D44522053756E4E616D69646120284B72616974204D6B20494920225052495641544520434F55524945522229",
+            "type": "string"
+          },
+          {
+            "key": "lastLocation1",
+            "value": "4D656C696369202D20506F6C616E736B79204C616E64696E67",
+            "type": "string"
+          },
+          {
+            "key": "bountyValue1",
+            "value": 22800,
+            "type": "int"
+          },
+          {
+            "key": "commanderId2",
+            "value": 7686998,
+            "type": "int"
+          },
+          {
+            "key": "name2",
+            "value": "434D445220427562626120426F20426F6220284B65656C6261636B20224B45454C4241434B2229",
+            "type": "string"
+          },
+          {
+            "key": "lastLocation2",
+            "value": "446A6977616C202D2054686F6D70736F6E20446F636B",
+            "type": "string"
+          },
+          {
+            "key": "bountyValue2",
+            "value": 6300,
+            "type": "int"
+          },
+          {
+            "key": "commanderId3",
+            "value": 6750288,
+            "type": "int"
+          },
+          {
+            "key": "name3",
+            "value": "434D4452204D72536B696C6C696E20284B65656C6261636B29",
+            "type": "string"
+          },
+          {
+            "key": "lastLocation3",
+            "value": "4E4C5454203139383038",
+            "type": "string"
+          },
+          {
+            "key": "bountyValue3",
+            "value": 2600,
+            "type": "int"
+          },
+          {
+            "key": "commanderId4",
+            "value": 0,
+            "type": "int"
+          },
+          {
+            "key": "name4",
+            "value": "",
+            "type": "string"
+          },
+          {
+            "key": "lastLocation4",
+            "value": "",
+            "type": "string"
+          },
+          {
+            "key": "bountyValue4",
+            "value": 0,
+            "type": "int"
+          },
+          {
+            "key": "commanderId5",
+            "value": 0,
+            "type": "int"
+          },
+          {
+            "key": "name5",
+            "value": "",
+            "type": "string"
+          },
+          {
+            "key": "lastLocation5",
+            "value": "",
+            "type": "string"
+          },
+          {
+            "key": "bountyValue5",
+            "value": 0,
+            "type": "int"
+          }
+        ],
+        "ugc": true
+      },
+      {
+        "date": "7 OCT 3308",
+        "type": "top5Bounties",
+        "params": [
+          {
+            "key": "type",
+            "value": "super",
+            "type": "string"
+          },
+          {
+            "key": "commanderId1",
+            "value": 3378194,
+            "type": "int"
+          },
+          {
+            "key": "name1",
+            "value": "434D4452204D617264756B32393820284665646572616C20436F7276657474652022434C4F414341204D554E43482229",
+            "type": "string"
+          },
+          {
+            "key": "lastLocation1",
+            "value": "546A69616C202D2043617373696479204C616E64696E67",
+            "type": "string"
+          },
+          {
+            "key": "bountyValue1",
+            "value": 859000,
+            "type": "int"
+          },
+          {
+            "key": "commanderId2",
+            "value": 4868506,
+            "type": "int"
+          },
+          {
+            "key": "name2",
+            "value": "434D4452206DC3A16B6F73206775626120284665722D64652D4C616E636520224C534920524547554C415249545920414C5048412229",
+            "type": "string"
+          },
+          {
+            "key": "lastLocation2",
+            "value": "4E6A75776172",
+            "type": "string"
+          },
+          {
+            "key": "bountyValue2",
+            "value": 765000,
+            "type": "int"
+          },
+          {
+            "key": "commanderId3",
+            "value": 7919910,
+            "type": "int"
+          },
+          {
+            "key": "name3",
+            "value": "434D4452204B616C76756E6174682028416E61636F6E64612022424142594C4F4E2229",
+            "type": "string"
+          },
+          {
+            "key": "lastLocation3",
+            "value": "42616E646A6967616C69",
+            "type": "string"
+          },
+          {
+            "key": "bountyValue3",
+            "value": 547000,
+            "type": "int"
+          },
+          {
+            "key": "commanderId4",
+            "value": 0,
+            "type": "int"
+          },
+          {
+            "key": "name4",
+            "value": "",
+            "type": "string"
+          },
+          {
+            "key": "lastLocation4",
+            "value": "",
+            "type": "string"
+          },
+          {
+            "key": "bountyValue4",
+            "value": 0,
+            "type": "int"
+          },
+          {
+            "key": "commanderId5",
+            "value": 0,
+            "type": "int"
+          },
+          {
+            "key": "name5",
+            "value": "",
+            "type": "string"
+          },
+          {
+            "key": "lastLocation5",
+            "value": "",
+            "type": "string"
+          },
+          {
+            "key": "bountyValue5",
+            "value": 0,
+            "type": "int"
+          }
+        ],
+        "ugc": true
+      },
+      {
+        "date": "7 OCT 3308",
+        "type": "PowerUpdate",
+        "params": [
+          {
+            "key": "PowerName",
+            "value": "Felicia Winters",
+            "type": "string"
+          },
+          {
+            "key": "fortification",
+            "value": 0,
+            "type": "string"
+          },
+          {
+            "key": "merits",
+            "value": 0,
+            "type": "string"
+          }
+        ]
+      },
+      {
+        "date": "7 OCT 3308",
+        "type": "trafficTotals",
+        "params": [
+          {
+            "key": "total",
+            "value": 287,
+            "type": "int"
+          },
+          {
+            "key": "list",
+            "value": "$ASP_NAME; - 18",
+            "type": "string"
+          },
+          {
+            "key": "list",
+            "value": "$ADDER_NAME; - 2",
+            "type": "string"
+          },
+          {
+            "key": "list",
+            "value": "$CUTTER_NAME; - 37",
+            "type": "string"
+          },
+          {
+            "key": "list",
+            "value": "$FEDERATION_CORVETTE_NAME; - 20",
+            "type": "string"
+          },
+          {
+            "key": "list",
+            "value": "$DIAMONDBACKXL_NAME; - 14",
+            "type": "string"
+          },
+          {
+            "key": "list",
+            "value": "$ANACONDA_NAME; - 35",
+            "type": "string"
+          },
+          {
+            "key": "list",
+            "value": "$TYPEX_NAME; - 5",
+            "type": "string"
+          },
+          {
+            "key": "list",
+            "value": "$DIAMONDBACK_NAME; - 8",
+            "type": "string"
+          },
+          {
+            "key": "list",
+            "value": "$DOLPHIN_NAME; - 4",
+            "type": "string"
+          },
+          {
+            "key": "list",
+            "value": "$ORCA_NAME; - 4",
+            "type": "string"
+          },
+          {
+            "key": "list",
+            "value": "$VIPER_MKIV_NAME; - 7",
+            "type": "string"
+          },
+          {
+            "key": "list",
+            "value": "$KRAIT_LIGHT_NAME; - 8",
+            "type": "string"
+          },
+          {
+            "key": "list",
+            "value": "$VULTURE_NAME; - 3",
+            "type": "string"
+          },
+          {
+            "key": "list",
+            "value": "$KRAIT_MKII_NAME; - 31",
+            "type": "string"
+          },
+          {
+            "key": "list",
+            "value": "$TYPE6_NAME; - 7",
+            "type": "string"
+          },
+          {
+            "key": "list",
+            "value": "$COBRAMKIII_NAME; - 9",
+            "type": "string"
+          },
+          {
+            "key": "list",
+            "value": "$TYPE9_NAME; - 24",
+            "type": "string"
+          },
+          {
+            "key": "list",
+            "value": "$INDEPENDANT_TRADER_NAME; - 6",
+            "type": "string"
+          },
+          {
+            "key": "list",
+            "value": "$PYTHON_NAME; - 17",
+            "type": "string"
+          },
+          {
+            "key": "list",
+            "value": "$FERDELANCE_NAME; - 2",
+            "type": "string"
+          },
+          {
+            "key": "list",
+            "value": "$BELUGALINER_NAME; - 4",
+            "type": "string"
+          },
+          {
+            "key": "list",
+            "value": "$EAGLE_NAME; - 1",
+            "type": "string"
+          },
+          {
+            "key": "list",
+            "value": "$HAULER_NAME; - 1",
+            "type": "string"
+          },
+          {
+            "key": "list",
+            "value": "$TYPEX_2_NAME; - 2",
+            "type": "string"
+          },
+          {
+            "key": "list",
+            "value": "$VIPER_NAME; - 4",
+            "type": "string"
+          },
+          {
+            "key": "list",
+            "value": "$TYPE9_MILITARY_NAME; - 4",
+            "type": "string"
+          },
+          {
+            "key": "list",
+            "value": "$FEDERATION_DROPSHIP_MKII_NAME; - 3",
+            "type": "string"
+          },
+          {
+            "key": "list",
+            "value": "$TYPEX_3_NAME; - 2",
+            "type": "string"
+          },
+          {
+            "key": "list",
+            "value": "$MAMBA_NAME; - 3",
+            "type": "string"
+          },
+          {
+            "key": "list",
+            "value": "$TYPE7_NAME; - 1",
+            "type": "string"
+          },
+          {
+            "key": "list",
+            "value": "$EMPIRE_EAGLE_NAME; - 1",
+            "type": "string"
+          }
+        ]
+      }
+    ]
+  }
+}

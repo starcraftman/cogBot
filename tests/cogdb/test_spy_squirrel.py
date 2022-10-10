@@ -88,6 +88,11 @@ def refined_json():
 
 
 @pytest.fixture()
+def response_json():
+    yield load_json('response.json')
+
+
+@pytest.fixture()
 def scrape_json():
     yield load_json('scrape.json')
 
@@ -258,7 +263,7 @@ def test_empty_tables(spy_test_bed, eddb_session):
         assert not eddb_session.query(table).limit(1).all()
 
 
-def test_base_loads(empty_spy, base_json, eddb_session):
+def test_load_base_json(empty_spy, base_json, eddb_session):
     # Manually insert to test update paths
     eddb_session.add(
         spy.SpySystem(ed_system_id=10477373803, power_id=9, power_state_id=35),
@@ -279,7 +284,7 @@ def test_base_loads(empty_spy, base_json, eddb_session):
     assert expect_taking in systems
 
 
-def test_refined_loads(empty_spy, base_json, refined_json, eddb_session):
+def test_load_refined_json(empty_spy, base_json, refined_json, eddb_session):
     # Manually insert to test update paths
     eddb_session.add_all([
         spy.SpyVote(power_id=1, vote=10),
@@ -296,7 +301,7 @@ def test_refined_loads(empty_spy, base_json, refined_json, eddb_session):
 
 
 # Combined test of base then refined
-def test_base_and_refined_loads(empty_spy, base_json, refined_json, eddb_session):
+def test_load_base_and_refined_json(empty_spy, base_json, refined_json, eddb_session):
     spy.load_base_json(base_json, eddb_session)
     db_objects = spy.load_refined_json(refined_json, eddb_session)
 
@@ -312,6 +317,11 @@ def test_base_and_refined_loads(empty_spy, base_json, refined_json, eddb_session
     assert expect_sys == eddb_session.query(spy.SpySystem).\
         filter(spy.SpySystem.ed_system_id == 22958210698120).\
         one()
+
+
+def test_load_response_json(empty_spy, response_json, eddb_session):
+    result = spy.load_response_json(response_json, eddb_session)
+    __import__('pprint').pprint(result)
 
 
 def test_process_scrape_data(empty_spy, scrape_json, eddb_session):
