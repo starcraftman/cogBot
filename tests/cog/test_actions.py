@@ -1959,7 +1959,7 @@ def test_check_system_deferred_and_globe(f_dusers, f_fort_testbed, f_global_test
     assert cog.actions.check_system_deferred_and_globe(prep, globe) is False
     fort.notes = 'priority'
     assert cog.actions.check_system_deferred_and_globe(fort, globe) is False
-    assert cog.actions.check_system_deferred_and_globe(fort, globe) is not cog.actions.is_near_tick()
+    assert cog.actions.check_system_deferred_and_globe(fort, globe) is cog.actions.is_near_tick()
     globe.show_vote_goal = True
     assert cog.actions.check_system_deferred_and_globe(fort, globe) is False
 
