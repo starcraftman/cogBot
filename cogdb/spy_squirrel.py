@@ -471,8 +471,8 @@ def parse_response_power_update(input):
     params = input['params']
     return {
         "power": params[0]["value"],
-        "fort": int(params[1]["value"]),
-        "um": int(params[2]["value"]),
+        "stolen_fort": int(params[1]["value"]),
+        "held_merits": int(params[2]["value"]),
     }
 
 

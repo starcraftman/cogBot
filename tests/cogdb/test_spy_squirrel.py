@@ -441,22 +441,21 @@ def test_parse_response_trade_goods():
             }
         ]
     }
-    expect = {
-        'commodities': [
-            '$DamagedEscapePod_Name;',
-            '$BasicMedicines_Name;',
-            '$Algae_Name;',
-            '$Painite_Name;',
-            '$Alexandrite_Name;',
-            '$Opal_Name;',
-            '$Gold_Name;',
-            '$Tritium_Name;',
-            '$Thorium_Name;',
-            '$Wine_Name;',
-            '$MarineSupplies_Name;'
-        ]
-    }
+    expect = [
+        '$DamagedEscapePod_Name;',
+        '$BasicMedicines_Name;',
+        '$Algae_Name;',
+        '$Painite_Name;',
+        '$Alexandrite_Name;',
+        '$Opal_Name;',
+        '$Gold_Name;',
+        '$Tritium_Name;',
+        '$Thorium_Name;',
+        '$Wine_Name;',
+        '$MarineSupplies_Name;'
+    ]
 
+    __import__('pprint').pprint(spy.parse_response_trade_goods(input))
     assert expect == spy.parse_response_trade_goods(input)
 
 
@@ -840,6 +839,36 @@ def test_parse_response_traffic_totals():
     assert expect == spy.parse_response_traffic_totals(input)
 
 
+def test_parse_response_power_update():
+    input = {
+        "date": "7 OCT 3308",
+        "type": "PowerUpdate",
+        "params": [
+            {
+                "key": "PowerName",
+                "value": "Felicia Winters",
+                "type": "string"
+            },
+            {
+                "key": "fortification",
+                "value": 0,
+                "type": "string"
+            },
+            {
+                "key": "merits",
+                "value": 0,
+                "type": "string"
+            }
+        ]
+    }
+    expect = {
+        'power': 'Felicia Winters',
+        'held_merits': 0,
+        'stolen_fort': 0,
+    }
+    assert expect == spy.parse_response_power_update(input)
+
+
 def test_load_response_json(empty_spy, response_json, eddb_session):
     expect = {
         'bountiesClaimed': {'bountyCount': 439, 'bountyValue': 75817971},
@@ -853,7 +882,7 @@ def test_load_response_json(empty_spy, response_json, eddb_session):
             {'factionName': 'East Galaxy Company', 'happiness': 2, 'influence': 19.0, 'system': 'Rhea'},
             {'factionName': 'Federal Liberal Command', 'happiness': 2, 'influence': 39.5, 'system': 'Rhea'}
         ],
-        'power': {'fort': 0, 'power': 'Felicia Winters', 'um': 0},
+        'power': {'stolen_fort': 0, 'power': 'Felicia Winters', 'held_merits': 0},
         'system': 'Rhea',
         'top5': [
             {
