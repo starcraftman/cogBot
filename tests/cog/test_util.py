@@ -333,3 +333,15 @@ def test_timestampmixin_tz():
     actual = UpdatedAtObj()
     assert "UTC" == actual.utc_date_tz.tzname()
     assert "2021-10-21 07:00:00+00:00" == str(actual.utc_date_tz)
+
+
+def test_hex_decode():
+    input = "4C61626F7572206F662052686561"
+    expect = "Labour of Rhea"
+    assert expect == cog.util.hex_decode(input)
+
+
+def test_hex_encode():
+    input = "Labour of Rhea"
+    expect = "4C61626F7572206F662052686561"
+    assert expect == cog.util.hex_encode(input)

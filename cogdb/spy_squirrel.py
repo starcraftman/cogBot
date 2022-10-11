@@ -5,6 +5,7 @@ import datetime
 import json
 import os
 import pathlib
+import re
 import time
 
 import sqlalchemy as sqla
@@ -342,17 +343,163 @@ def load_refined_json(refined, eddb_session):
     return db_objs
 
 
+def parse_params(input):
+    """Generically parse the params object of JSON messages.
+
+    Where needed provide decoding and casting as needed.
+
+    Args:
+        input: A JSON object, with fields as expected.
+
+    Returns: A simplified object with information from params.
+    """
+    flat = {}
+    for ent in input:
+        # Ensure no collisions in keys of flat dict
+        f_key = ent["key"]
+        cnt = 0
+        while f_key in flat:
+            cnt += 1
+            f_key = f"{ent['key']}{cnt}"
+
+        if ent["type"] in ("string", "list") and "$" not in ent["value"] and ent["key"] != "type":
+            flat[f_key] = cog.util.hex_decode(ent["value"])
+        else:
+            flat[f_key] = ent["value"]
+
+        if ent["type"] == "int":
+            flat[f_key] = int(ent["value"])
+
+    return flat
+
+
+def parse_response_news_summary(input):
+    """Capabale of parsing the faction news summary.
+
+    Args:
+        input: A JSON object to parse.
+
+    Returns: A dictionary of information contained within.
+    """
+    info = parse_params(input['params'])
+
+    parts = [x for x in info["list"].split(':')]
+    info["influence"] = float(parts[1].split('=')[1])
+    info["happiness"] = int(re.match(r'.*HappinessBand(\d)', parts[2]).group(1))
+    del info["list"]
+
+    return info
+
+
+def parse_response_trade_goods(input):
+    """Capabale of parsing the trade goods available.
+
+    Args:
+        input: A JSON object to parse.
+
+    Returns: A dictionary of information contained within.
+    """
+    info = parse_params(input['params'])
+    return [val for key, val in info.items()]
+
+
+def parse_response_bounties_claimed(input):
+    """Capabale of parsing claimed and given bounties.
+
+    Args:
+        input: A JSON object to parse.
+
+    Returns: A dictionary of information contained within.
+    """
+    return parse_params(input['params'])
+
+
+def parse_response_top5_bounties(input):
+    """Capabale of parsing the top 5 bounties.
+
+    Args:
+        input: A JSON object to parse.
+
+    Returns: A dictionary of information contained within.
+    """
+    info = parse_params(input['params'])
+
+    # Transform params information into better structure
+    result = {
+        i: {
+            'bountyValue': info[f"bountyValue{i}"],
+            'commanderId': info[f"commanderId{i}"],
+            'lastLocation': info[f"lastLocation{i}"],
+            'name': info[f"name{i}"],
+        } for i in range(1, 6)
+    }
+    result['type'] = info['type']
+
+    return result
+
+
+def parse_response_traffic_totals(input):
+    """Capabale of parsing the top 5 bounties.
+
+    Args:
+        input: A JSON object to parse.
+
+    Returns: A dictionary of information contained within.
+    """
+    info = parse_params(input['params'])
+
+    result = {
+        'total': info['total'],
+        'by_ship': {}
+    }
+    del info['total']
+    for key, val in info.items():
+        name, num = val.split('; - ')
+        result['by_ship'][name.replace('_NAME', '')[1:].lower()] = int(num)
+
+    return result
+
+
+def parse_response_power_update(input):
+    """Capabale of parsing the power update information.
+
+    Args:
+        input: A JSON object to parse.
+
+    Returns: A dictionary of information contained within.
+    """
+    params = input['params']
+    return {
+        "power": params[0]["value"],
+        "fort": int(params[1]["value"]),
+        "um": int(params[2]["value"]),
+    }
+
+
 def load_response_json(response, eddb_session):
-    system_map = {}
+    """Capable of fully parsing and processing information in a response JSON.
+
+    Args:
+        response: A large JSON object returned from POST.
+        eddb_session: A session onto the EDDB database.
+    """
+    result = {}
     for sys_name, news_info in response.items():
         for entry in news_info['news']:
-            print(entry["type"], entry["date"])
+            type = entry['type']
+            parser = PARSER_MAP[type]
+            try:
+                result[parser['name']] += [parser['func'](entry)]
+            except KeyError:
+                result[parser['name']] = [parser['func'](entry)]
+    result['system'] = result['factions'][0]['system']
 
-            #  __import__('pprint').pprint(value)
+    # Prune any lists of 1 element, to not be lists.
+    for key in result:
+        if isinstance(result[key], list) and len(result[key]) == 1:
+            result[key] = result[key][0]
 
-        system_map[sys_name] = "Hello"
-
-    return system_map
+    return result
 
 
 def process_scrape_data(data_json):
@@ -565,6 +712,36 @@ def main():  # pragma: no cover | destructive to test
 
 
 SPY_TABLES = [SpyPrep, SpyVote, SpySystem]
+PARSER_MAP = {
+    "NewsSummaryFactionStateTitle": {
+        'func': parse_response_news_summary,
+        'name': 'factions',
+    },
+    "PowerUpdate": {
+        'func': parse_response_power_update,
+        'name': 'power',
+    },
+    "bountiesClaimed": {
+        'func': parse_response_bounties_claimed,
+        'name': 'bountiesClaimed',
+    },
+    "bountiesGiven": {
+        'func': parse_response_bounties_claimed,
+        'name': 'bountiesGiven',
+    },
+    "stateTradeGoodCommodities": {
+        'func': parse_response_trade_goods,
+        'name': 'trade',
+    },
+    "top5Bounties": {
+        'func': parse_response_top5_bounties,
+        'name': 'top5',
+    },
+    "trafficTotals": {
+        'func': parse_response_traffic_totals,
+        'name': 'traffic',
+    },
+}
 # Ensure the tables are created before use when this imported
 if cogdb.TEST_DB:
     recreate_tables()

@@ -37,6 +37,17 @@ Rolling over existing file logs as listed below.
     =========================="""
 # This date is the first week of Elite's Powerplay cycles
 WEEK_ZERO = datetime.datetime(2015, 5, 28, 7, 0)
+# Hex maps for encoding and decoding
+HEX_MAP = {
+    'A': 10,
+    'B': 11,
+    'C': 12,
+    'D': 13,
+    'E': 14,
+    'F': 15,
+}
+HEX_MAP.update({str(x): x for x in range(0, 10)})
+REV_HEX_MAP = {val: key for key, val in HEX_MAP.items()}
 
 
 class RWLockWrite():
@@ -560,7 +571,6 @@ def cycle_to_start(cycle_number):
     return WEEK_ZERO + datetime.timedelta(weeks=cycle_number)
 
 
-# TODO: Use later.
 class TimestampMixin():
     """
     Simple mixing that converts updated_at timestamp to a datetime object.
@@ -574,6 +584,33 @@ class TimestampMixin():
     def utc_date_tz(self):
         """Assumes the timestampe is in fact UTC, datetime object set to UTC timezone."""
         return datetime.datetime.fromtimestamp(self.updated_at, tz=datetime.timezone.utc)
+
+
+def hex_decode(line):
+    """Simple function that decodes a hex string.
+
+    Args:
+        line: A hex encoded string.
+
+    Returns: The line decoded as a normal utf8 string.
+    """
+    gap = 2
+    groupings = [line[i:i+gap] for i in range(0, len(line), gap)]
+    decoded = [chr(HEX_MAP[group[0]] * 16 + HEX_MAP[group[1]]) for group in groupings]
+    return "".join(decoded)
+
+
+def hex_encode(line):
+    """Encode a line as a hex string.
+
+    Args:
+        line: A simple string.
+
+    Returns: The line encoded as a hex.
+    """
+    chars = [line[i:i+1] for i in range(0, len(line))]
+    encs = [REV_HEX_MAP[ord(char) // 16] + REV_HEX_MAP[ord(char) % 16] for char in chars]
+    return "".join(encs)
 
 
 #  # Scenario multiple readers, always allowed
