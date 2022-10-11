@@ -1666,7 +1666,6 @@ Estimate of how long it will take: {str(estimate)}"""
                     await scanner.clear_cells()
                     await scanner.send_batch(scanner.update_dict(influences=influences))
 
-
             return "Update completed successfully."
 
         except aiohttp.ClientConnectorError:

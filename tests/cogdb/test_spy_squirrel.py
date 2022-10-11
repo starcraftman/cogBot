@@ -385,59 +385,59 @@ def test_parse_response_trade_goods():
         "type": "stateTradeGoodCommodities",
         "params": [
             {
-            "key": "list",
-            "value": "2444616D61676564457363617065506F645F4E616D653B",
-            "type": "string"
+                "key": "list",
+                "value": "2444616D61676564457363617065506F645F4E616D653B",
+                "type": "string"
             },
             {
-            "key": "list",
-            "value": "2442617369634D65646963696E65735F4E616D653B",
-            "type": "string"
+                "key": "list",
+                "value": "2442617369634D65646963696E65735F4E616D653B",
+                "type": "string"
             },
             {
-            "key": "list",
-            "value": "24416C6761655F4E616D653B",
-            "type": "string"
+                "key": "list",
+                "value": "24416C6761655F4E616D653B",
+                "type": "string"
             },
             {
-            "key": "list",
-            "value": "245061696E6974655F4E616D653B",
-            "type": "string"
+                "key": "list",
+                "value": "245061696E6974655F4E616D653B",
+                "type": "string"
             },
             {
-            "key": "list",
-            "value": "24416C6578616E64726974655F4E616D653B",
-            "type": "string"
+                "key": "list",
+                "value": "24416C6578616E64726974655F4E616D653B",
+                "type": "string"
             },
             {
-            "key": "list",
-            "value": "244F70616C5F4E616D653B",
-            "type": "string"
+                "key": "list",
+                "value": "244F70616C5F4E616D653B",
+                "type": "string"
             },
             {
-            "key": "list",
-            "value": "24476F6C645F4E616D653B",
-            "type": "string"
+                "key": "list",
+                "value": "24476F6C645F4E616D653B",
+                "type": "string"
             },
             {
-            "key": "list",
-            "value": "245472697469756D5F4E616D653B",
-            "type": "string"
+                "key": "list",
+                "value": "245472697469756D5F4E616D653B",
+                "type": "string"
             },
             {
-            "key": "list",
-            "value": "2454686F7269756D5F4E616D653B",
-            "type": "string"
+                "key": "list",
+                "value": "2454686F7269756D5F4E616D653B",
+                "type": "string"
             },
             {
-            "key": "list",
-            "value": "2457696E655F4E616D653B",
-            "type": "string"
+                "key": "list",
+                "value": "2457696E655F4E616D653B",
+                "type": "string"
             },
             {
-            "key": "list",
-            "value": "244D6172696E65537570706C6965735F4E616D653B",
-            "type": "string"
+                "key": "list",
+                "value": "244D6172696E65537570706C6965735F4E616D653B",
+                "type": "string"
             }
         ]
     }

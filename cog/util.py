@@ -595,7 +595,7 @@ def hex_decode(line):
     Returns: The line decoded as a normal utf8 string.
     """
     gap = 2
-    groupings = [line[i:i+gap] for i in range(0, len(line), gap)]
+    groupings = [line[i:i + gap] for i in range(0, len(line), gap)]
     decoded = [chr(HEX_MAP[group[0]] * 16 + HEX_MAP[group[1]]) for group in groupings]
     return "".join(decoded)
 
@@ -608,7 +608,7 @@ def hex_encode(line):
 
     Returns: The line encoded as a hex.
     """
-    chars = [line[i:i+1] for i in range(0, len(line))]
+    chars = [line[i:i + 1] for i in range(0, len(line))]
     encs = [REV_HEX_MAP[ord(char) // 16] + REV_HEX_MAP[ord(char) % 16] for char in chars]
     return "".join(encs)
 

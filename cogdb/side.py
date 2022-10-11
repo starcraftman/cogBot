@@ -991,7 +991,8 @@ def monitor_events(session, system_ids):
         join(current, Influence.state_id == current.id).\
         join(pending, Influence.pending_state_id == pending.id).\
         outerjoin(
-            sys_control, sqla.and_(
+            sys_control,
+            sqla.and_(
                 sys_control.power_state_id == control_state_id,
                 sys_control.dist_to(sys) < 15
             )
@@ -1059,7 +1060,8 @@ def control_dictators(session, system_ids):
         join(current, Influence.state_id == current.id).\
         join(pending, Influence.pending_state_id == pending.id).\
         outerjoin(
-            sys_control, sqla.and_(
+            sys_control,
+            sqla.and_(
                 sys_control.power_state_id == control_state_id,
                 sys_control.dist_to(sys) < 15
             )
@@ -1139,7 +1141,8 @@ def moving_dictators(session, system_ids):
         join(current, Influence.state_id == current.id).\
         join(pending, Influence.pending_state_id == pending.id).\
         outerjoin(
-            sys_control, sqla.and_(
+            sys_control,
+            sqla.and_(
                 sys_control.power_state_id == control_state_id,
                 sys_control.dist_to(sys) < 15
             )

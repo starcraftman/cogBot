@@ -1,14 +1,15 @@
 """
 Module to parse and import data from spying squirrel.
 """
-import datetime
 import json
+import logging
 import os
 import pathlib
 import re
 import time
 
 import sqlalchemy as sqla
+import sqlalchemy.orm as sqla_orm
 import sqlalchemy.exc as sqla_e
 from sqlalchemy.ext.hybrid import hybrid_property
 
@@ -631,7 +632,7 @@ def update_eddb_factions(eddb_session, fact_info):
                     join(System).\
                     join(Faction, Influence.faction_id == Faction.id).\
                     filter(System.name == system_name,
-                        Faction.name == faction_name).\
+                           Faction.name == faction_name).\
                     one()
             except sqla_orm.exc.NoResultFound:  # Handle case of not existing record
                 try:

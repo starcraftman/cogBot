@@ -1022,7 +1022,7 @@ class Conflict(cog.util.TimestampMixin, Base):
         primaryjoin='foreign(Conflict.status_id) == ConflictState.id',
     )
     type = sqla_orm.relationship(
-        'ConflictState', viewonly=True,  lazy='select',
+        'ConflictState', viewonly=True, lazy='select',
         primaryjoin='foreign(Conflict.type_id) == ConflictState.id',
     )
     faction1 = sqla_orm.relationship(
@@ -2206,8 +2206,9 @@ def add_history_track(eddb_session, system_names):
         eddb_session: A session onto the db.
         systems: The list of systems to add.
     """
-    system_ids = [x[0] for x in eddb_session.query(System.id).\
-        filter(System.name.in_(system_names)).\
+    system_ids = [
+        x[0] for x in eddb_session.query(System.id).
+        filter(System.name.in_(system_names)).
         all()
     ]
     eddb_session.query(HistoryTrack).\
@@ -2223,8 +2224,9 @@ def remove_history_track(eddb_session, system_names):
         eddb_session: A session onto the db.
         systems: The list of systems to add.
     """
-    system_ids = [x[0] for x in eddb_session.query(System.id).\
-        filter(System.name.in_(system_names)).\
+    system_ids = [
+        x[0] for x in eddb_session.query(System.id).
+        filter(System.name.in_(system_names)).
         all()
     ]
     eddb_session.query(HistoryTrack).\
