@@ -38,26 +38,27 @@ coverage:
     - secrethub inject -i "tests/secrethub/secretSheets.json" -o "data/service_sheets.json"
     - python -m pytest --cov=cog --cov=cogdb
     - coveralls || true
-tests:
-  rules:
-    - if: $CI_COMMIT_BRANCH != "master"
-  variables:
-    ALL_TESTS: "True"
-  stage: test
-  script:
-    - /etc/init.d/mariadb start
-    - mysql -u root < "tests/mysql_tables.sql"
-    - curl "http://starcraftman.com/elite/eddb_v06.sql" > "eddb.sql"
-    - mysql -u root -D eddb < "eddb.sql"
-    - secrethub inject -i "tests/secrethub/secretConfig.yml" -o "data/config.yml"
-    - secrethub inject -i "tests/secrethub/secretSheets.json" -o "data/service_sheets.json"
-    - python -m pytest --cov=cog --cov=cogdb
-pylint:
-  stage: test
-  script:
-    - python -m tox -e pylint
-flake8:
-  stage: test
-  script:
-    - python -m tox -e flake8
+# FIXME Disabled due to gitlab ci pipeline minutes shortage. Only master coverage for now.
+# tests:
+  # rules:
+    # - if: $CI_COMMIT_BRANCH != "master"
+  # variables:
+    # ALL_TESTS: "True"
+  # stage: test
+  # script:
+    # - /etc/init.d/mariadb start
+    # - mysql -u root < "tests/mysql_tables.sql"
+    # - curl "http://starcraftman.com/elite/eddb_v06.sql" > "eddb.sql"
+    # - mysql -u root -D eddb < "eddb.sql"
+    # - secrethub inject -i "tests/secrethub/secretConfig.yml" -o "data/config.yml"
+    # - secrethub inject -i "tests/secrethub/secretSheets.json" -o "data/service_sheets.json"
+    # - python -m pytest --cov=cog --cov=cogdb
+# pylint:
+  # stage: test
+  # script:
+    # - python -m tox -e pylint
+# flake8:
+  # stage: test
+  # script:
+    # - python -m tox -e flake8
 ---
