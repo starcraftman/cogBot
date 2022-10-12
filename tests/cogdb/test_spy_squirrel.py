@@ -149,12 +149,67 @@ def spy_test_bed(eddb_session):
             um_trigger=7198,
             updated_at=FIXED_TIMESTAMP,
         ),
+        spy.SpyTraffic(
+            id=1,
+            cnt=1,
+            ship_type=1,
+            system="Rana",
+            updated_at=FIXED_TIMESTAMP,
+        ),
+        spy.SpyTraffic(
+            id=2,
+            cnt=5,
+            ship_type=2,
+            system="Rana",
+            updated_at=FIXED_TIMESTAMP,
+        ),
+        spy.SpyBounty(
+            id=1,
+            pos=1,
+            cmdr_name="Good guy",
+            ship_name="Good guy ship",
+            last_seen_system="Rana",
+            last_seen_station="Wescott Hub",
+            bounty=100000,
+            is_powerplay=True,
+            ship_type=1,
+        ),
+        spy.SpyBounty(
+            id=1,
+            pos=2,
+            cmdr_name="Bad guy",
+            ship_name="Bad guy ship",
+            last_seen_system="Rana",
+            last_seen_station="Ali Hub",
+            bounty=10000000,
+            is_powerplay=True,
+            ship_type=2,
+        ),
     ]
+    eddb_session.add_all([
+        spy.SpyShip(id=1, text="Viper Mk. II"),
+        spy.SpyShip(id=2, text="Vulture"),
+    ])
+    eddb_session.commit()
     eddb_session.add_all(objects)
     eddb_session.commit()
 
     yield objects
     spy.empty_tables()
+
+
+def test_spy_ship__repr__(spy_test_bed, eddb_session):
+    expect = "SpyShip(id=1, text='Viper Mk. II')"
+    spyship = eddb_session.query(spy.SpyShip).filter(spy.SpyShip.id == 1).one()
+
+    assert expect == repr(spyship)
+
+
+def test_spy_ship__str__(spy_test_bed, eddb_session):
+    expect = "Ship: Viper Mk. II"
+    spyship = eddb_session.query(spy.SpyShip).filter(spy.SpyShip.id == 1).one()
+
+    assert expect == str(spyship)
 
 
 def test_spy_vote__repr__(spy_test_bed):
@@ -454,8 +509,6 @@ def test_parse_response_trade_goods():
         '$Wine_Name;',
         '$MarineSupplies_Name;'
     ]
-
-    __import__('pprint').pprint(spy.parse_response_trade_goods(input))
     assert expect == spy.parse_response_trade_goods(input)
 
 
@@ -899,7 +952,8 @@ def test_load_response_json(empty_spy, response_json, eddb_session):
                 3: {'bountyValue': 547000, 'commanderId': 7919910, 'lastLocation': 'Bandjigali', 'name': 'CMDR Kalvunath (Anaconda "BABYLON")'},
                 4: {'bountyValue': 0, 'commanderId': 0, 'lastLocation': '', 'name': ''},
                 5: {'bountyValue': 0, 'commanderId': 0, 'lastLocation': '', 'name': ''},
-                'type': 'super'}
+                'type': 'super'
+            }
         ],
         'trade': [
             '$DamagedEscapePod_Name;',

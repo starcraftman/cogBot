@@ -41,6 +41,108 @@ JSON_POWER_STATE_TO_EDDB = {
 MAX_SPY_MERITS = 99999
 
 
+class SpyShip(Base):
+    """
+    Constants for ship type for SpyTraffic.
+    """
+    __tablename__ = 'spy_ships'
+
+    id = sqla.Column(sqla.Integer, primary_key=True)
+    text = sqla.Column(sqla.String(cogdb.eddb.LEN["ship"]))
+
+    def __repr__(self):
+        keys = ['id', 'text']
+        kwargs = [f'{key}={getattr(self, key)!r}' for key in keys]
+
+        return f"{self.__class__.__name__}({', '.join(kwargs)})"
+
+    def __str__(self):
+        """ A pretty one line to give all information. """
+        return f"Ship: {self.text}"
+
+    def __eq__(self, other):
+        return isinstance(other, SpyShip) and hash(self) == hash(other)
+
+    def __hash__(self):
+        return hash(f"{self.id}")
+
+
+class SpyBounty(cog.util.TimestampMixin, Base):
+    """
+    Track the bounties active in a system.
+    """
+    __tablename__ = 'spy_top_5'
+
+    id = sqla.Column(sqla.BigInteger, primary_key=True)
+    pos = sqla.Column(sqla.Integer, primary_key=True, default=1)  # Should only be [1, 5]
+    cmdr_name = sqla.Column(sqla.String(cogdb.eddb.LEN["cmdr_name"]), nullable=False, default="")
+    ship_name = sqla.Column(sqla.String(cogdb.eddb.LEN["ship_name"]), nullable=False, default="")
+    last_seen_system = sqla.Column(sqla.String(cogdb.eddb.LEN["system"]), nullable=False, default="")
+    last_seen_station = sqla.Column(sqla.String(cogdb.eddb.LEN["station"]), nullable=False, default="")
+    bounty = sqla.Column(sqla.BigInteger, default=0)
+    is_powerplay = sqla.Column(sqla.Boolean, default=True)
+    ship_type = sqla.Column(sqla.Integer, sqla.ForeignKey('spy_ships.id'))
+    updated_at = sqla.Column(sqla.Integer, default=time.time, onupdate=time.time)
+
+    # Relationships
+    ship = sqla.orm.relationship(
+        'SpyShip', uselist=False, lazy='joined', viewonly=True,
+    )
+
+    def __repr__(self):
+        keys = ['id', 'pos', 'cmdr_name', 'ship_name', 'last_seen_system', 'last_seen_station',
+                'bounty', 'is_powerplay', 'ship_type', 'updated_at']
+        kwargs = [f'{key}={getattr(self, key)!r}' for key in keys]
+
+        return f"{self.__class__.__name__}({', '.join(kwargs)})"
+
+    def __str__(self):
+        """ A pretty one line to give all information. """
+        ship_text = "{}".format(self.ship.text if self.ship else self.ship_type)
+        return f"pos: {self.pos} {self.cmdr_name.text} in {self.last_seen_system}/{self.last_seen_station} ({ship_text}) with {self.bounty}, updated at {self.utc_date}"
+
+    def __eq__(self, other):
+        return isinstance(other, SpyVote) and hash(self) == hash(other)
+
+    def __hash__(self):
+        return hash(f"{self.id}_{self.pos}")
+
+
+class SpyTraffic(Base):
+    """
+    Monitor traffic of different ships in the system.
+    """
+    __tablename__ = 'spy_traffic'
+
+    id = sqla.Column(sqla.BigInteger, primary_key=True)
+    cnt = sqla.Column(sqla.Integer)
+    ship_type = sqla.Column(sqla.Integer, sqla.ForeignKey('spy_ships.id'))
+    system = sqla.Column(sqla.String(cogdb.eddb.LEN["system"]), nullable=False, default="")
+    updated_at = sqla.Column(sqla.Integer, default=time.time, onupdate=time.time)
+
+    # Relationships
+    ship = sqla.orm.relationship(
+        'SpyShip', uselist=False, lazy='joined', viewonly=True,
+    )
+
+    def __repr__(self):
+        keys = ['id', 'cnt', 'ship_type',  'updated_at']
+        kwargs = [f'{key}={getattr(self, key)!r}' for key in keys]
+
+        return f"{self.__class__.__name__}({', '.join(kwargs)})"
+
+    def __str__(self):
+        """ A pretty one line to give all information. """
+        ship_text = "{}".format(self.ship.text if self.ship else self.ship_type)
+        return f"{ship_text}: {self.cnt}"
+
+    def __eq__(self, other):
+        return isinstance(other, SpyTraffic) and hash(self) == hash(other)
+
+    def __hash__(self):
+        return hash(f"{self.id}")
+
+
 class SpyVote(cog.util.TimestampMixin, Base):
     """
     Record current vote by power.
@@ -147,6 +249,7 @@ class SpySystem(cog.util.TimestampMixin, Base):
     um_trigger = sqla.Column(sqla.Integer, default=0)
     updated_at = sqla.Column(sqla.Integer, default=time.time)
     held_merits = sqla.Column(sqla.Integer, default=0)
+    stolen_forts = sqla.Column(sqla.Integer, default=0)
     held_updated_at = sqla.Column(sqla.Integer, default=time.time)
 
     # Relationships
@@ -712,7 +815,7 @@ def main():  # pragma: no cover | destructive to test
         #  __import__('pprint').pprint(fall)
 
 
-SPY_TABLES = [SpyPrep, SpyVote, SpySystem]
+SPY_TABLES = [SpyPrep, SpyVote, SpySystem, SpyTraffic, SpyBounty, SpyShip]
 PARSER_MAP = {
     "NewsSummaryFactionStateTitle": {
         'func': parse_response_news_summary,

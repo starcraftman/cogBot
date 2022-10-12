@@ -37,6 +37,8 @@ import cogdb
 
 LEN = {  # Lengths for strings stored in the db
     "allegiance": 18,
+    "cmdr_name": 25,
+    "ship_name": 30,
     "commodity": 34,
     "commodity_category": 20,
     "economy": 18,
@@ -54,13 +56,14 @@ LEN = {  # Lengths for strings stored in the db
     "security": 8,
     "settlement_security": 10,
     "settlement_size": 3,
-    "ship": 20,
+    "ship": 25,
     "station": 45,
     "station_pad": 4,
     "station_type": 24,
     "system": 30,
     "weapon_mode": 6,
 }
+LEN["spy_location"] = 5 + LEN["system"] + LEN["station"]
 JOB_LIMIT = os.cpu_count()
 TIME_FMT = "%d/%m/%y %H:%M:%S"
 # These are the faction types strong/weak verse.
