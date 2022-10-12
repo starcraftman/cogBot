@@ -190,7 +190,7 @@ def test_get_monitor_systems(side_session):
     systems = ['Rana', 'Sol', 'Rhea', 'Adeo']
     results = cogdb.side.get_monitor_systems(side_session, systems)
 
-    assert len(results) > 80
+    assert len(results) > 70
 
 
 def test_control_dictators(side_session):
