@@ -9,7 +9,8 @@ import cogdb.eddb
 from cogdb.eddb import (Commodity, CommodityCat, Module, ModuleGroup,
                         System, Faction, Allegiance, Government,
                         Station, StationFeatures, StationEconomy,
-                        Influence, HistoryInfluence, HistoryTrack)
+                        Influence, HistoryInfluence, HistoryTrack,
+                        FactionActiveState, FactionPendingState, FactionRecoveringState)
 
 FAKE_ID1 = 942834121
 FAKE_ID2 = FAKE_ID1 + 1
@@ -227,66 +228,118 @@ def test_check_eddb_base_subclass():
 
 
 def test_eddb_make_parser():
-    args = cogdb.eddb.make_parser().parse_args(["--preload", "--yes"])
+    args = cogdb.eddb.make_parser().parse_args(["--no-fetch", "--recreate", "--yes"])
     assert args.yes
-    assert args.preload
+    assert not args.fetch
+    assert args.recreate
+    assert not args.empty
 
 
-def test_load_commodities():
-    fname = cog.util.rel_to_abs("tests", "eddb_fake", "commodities.jsonl")
-    objs = cogdb.eddb.load_commodities(fname)
-    expected = (
-        {CommodityCat(id=10000, name='FakeCategory')},
-        [Commodity(id=20000, category_id=10000, name='FakeProdut', average_price=108, is_rare=0)]
-    )
-    assert objs == expected
+def test_load_commodities(eddb_session):
+    try:
+        fname = cog.util.rel_to_abs("tests", "eddb_fake", "commodities.jsonl")
+        cogdb.eddb.load_commodities(fname, preload=False)
+
+        assert eddb_session.query(Commodity).filter(Commodity.id == 20000).one()
+        assert eddb_session.query(CommodityCat).filter(CommodityCat.id == 10000).one()
+    finally:
+        eddb_session.query(Commodity).filter(Commodity.id == 20000).delete()
+        eddb_session.query(CommodityCat).filter(CommodityCat.id == 10000).delete()
 
 
-def test_load_modules():
-    fname = cog.util.rel_to_abs("tests", "eddb_fake", "modules.jsonl")
-    objs = cogdb.eddb.load_modules(fname)
-    expected = (
-        {ModuleGroup(id=1000, name='Lightweight Alloy', category='Bulkhead', category_id=40)},
-        [Module(id=10000, name=None, group_id=1000, size=1, rating='I', mass=None, price=None, ship='Sidewinder Mk. I', weapon_mode=None)]
-    )
-    assert objs == expected
+def test_load_modules(eddb_session):
+    try:
+        fname = cog.util.rel_to_abs("tests", "eddb_fake", "modules.jsonl")
+        cogdb.eddb.load_modules(fname, preload=False)
+
+        assert eddb_session.query(Module).filter(Module.id == 10000).one()
+        assert eddb_session.query(ModuleGroup).filter(ModuleGroup.id == 1000).one()
+    finally:
+        eddb_session.query(Module).filter(Module.id == 10000).delete()
+        eddb_session.query(ModuleGroup).filter(ModuleGroup.id == 1000).delete()
+
+
+def test_load_factions(eddb_session):
+    try:
+        fname = cog.util.rel_to_abs("tests", "eddb_fake", "factions.jsonl")
+        cogdb.eddb.load_factions(fname, preload=False)
+
+        assert eddb_session.query(Allegiance).filter(Allegiance.id == 1000).one
+        assert eddb_session.query(Government).filter(Government.id == 1000).one()
+        assert eddb_session.query(Faction).filter(Faction.id == 942834121).one()
+    finally:
+        eddb_session.query(Faction).filter(Faction.id == 942834121).delete()
+        eddb_session.query(Allegiance).filter(Allegiance.id == 1000).delete()
+        eddb_session.query(Government).filter(Government.id == 1000).delete()
 
 
 def test_load_systems(eddb_session):
-    power_ids = {x.text: x.id for x in eddb_session.query(cogdb.eddb.Power).all()}
-    power_ids[None] = power_ids["None"]
+    try:
+        power_ids = {x.text: x.id for x in eddb_session.query(cogdb.eddb.Power).all()}
+        power_ids[None] = power_ids["None"]
+        eddb_session.close()
 
-    fname = cog.util.rel_to_abs("tests", "eddb_fake", "systems_populated.jsonl")
-    objs = cogdb.eddb.load_systems(fname, power_ids)
-    assert len(objs) == 3
-    assert objs[0][0].name == "FakeSystem"
+        fname = cog.util.rel_to_abs("tests", "eddb_fake", "systems_populated.jsonl")
+        cogdb.eddb.load_systems(fname, power_ids)
+
+        assert eddb_session.query(System).filter(System.id == 942834121).one()
+    finally:
+        eddb_session.query(System).filter(System.id == 942834121).delete()
 
 
-def test_load_factions():
-    fname = cog.util.rel_to_abs("tests", "eddb_fake", "factions.jsonl")
+def test_load_influences(eddb_session):
+    try:
+        power_ids = {x.text: x.id for x in eddb_session.query(cogdb.eddb.Power).all()}
+        power_ids[None] = power_ids["None"]
+        eddb_session.close()
 
-    objs = cogdb.eddb.load_factions(fname, preload=False)
-    expected = (
-        {Allegiance(id=1000, text='FakeAllegiance', eddn=None)},
-        {Government(id=1000, text='FakeGovernment', eddn=None)},
-        [Faction(id=942834121, name='FakeFactionName', state_id=None, government_id=1000, allegiance_id=1000, home_system_id=None, is_player_faction=False, updated_at=1546622499)]
-    )
-    assert objs == expected
+        fname = cog.util.rel_to_abs("tests", "eddb_fake", "factions.jsonl")
+        cogdb.eddb.load_factions(fname, preload=False)
+        fname = cog.util.rel_to_abs("tests", "eddb_fake", "systems_populated.jsonl")
+        cogdb.eddb.load_systems(fname, power_ids)
+        fname = cog.util.rel_to_abs("tests", "eddb_fake", "systems_populated.jsonl")
+        cogdb.eddb.load_influences(fname, power_ids)
+
+        assert 7 == eddb_session.query(Influence).filter(Influence.system_id == 942834121).count()
+        assert 7 == eddb_session.query(FactionActiveState).filter(FactionActiveState.system_id == 942834121).count()
+    finally:
+        for cls in [Influence, FactionActiveState, FactionPendingState, FactionRecoveringState]:
+            eddb_session.query(cls).filter(cls.system_id == 942834121).delete()
+        eddb_session.query(System).filter(System.id == 942834121).delete()
+        eddb_session.query(Faction).filter(Faction.id == 942834121).delete()
+        eddb_session.query(Allegiance).filter(Allegiance.id == 1000).delete()
+        eddb_session.query(Government).filter(Government.id == 1000).delete()
 
 
 def test_load_stations(eddb_session):
-    economy_ids = {x.text: x.id for x in eddb_session.query(cogdb.eddb.Economy).all()}
-    economy_ids[None] = economy_ids['None']
+    try:
+        power_ids = {x.text: x.id for x in eddb_session.query(cogdb.eddb.Power).all()}
+        power_ids[None] = power_ids["None"]
+        economy_ids = {x.text: x.id for x in eddb_session.query(cogdb.eddb.Economy).all()}
+        economy_ids[None] = economy_ids['None']
+        eddb_session.close()
 
-    fname = cog.util.rel_to_abs("tests", "eddb_fake", "stations.jsonl")
-    objs = cogdb.eddb.load_stations(fname, economy_ids)
-    expected = (
-        [],
-        [Station(id=942834121, name='Porta', distance_to_star=995, max_landing_pad_size='L', type_id=8, system_id=189, controlling_minor_faction_id=13968, updated_at=1621238405)],
-        [StationEconomy(id=942834121, economy_id=7, primary=True, proportion=None)],
-        [StationFeatures(id=942834121, blackmarket=False, market=True, refuel=True, repair=True, rearm=True, outfitting=True, shipyard=True, dock=True, commodities=True)]
-    )
-    assert objs == expected
+        fname = cog.util.rel_to_abs("tests", "eddb_fake", "factions.jsonl")
+        cogdb.eddb.load_factions(fname, preload=False)
+        fname = cog.util.rel_to_abs("tests", "eddb_fake", "systems_populated.jsonl")
+        cogdb.eddb.load_systems(fname, power_ids)
+        fname = cog.util.rel_to_abs("tests", "eddb_fake", "systems_populated.jsonl")
+        cogdb.eddb.load_influences(fname, power_ids)
+        fname = cog.util.rel_to_abs("tests", "eddb_fake", "stations.jsonl")
+        cogdb.eddb.load_stations(fname, economy_ids, preload=False, refresh_all=True)
+
+        assert eddb_session.query(Station).filter(Station.id == 942834121).one()
+        assert eddb_session.query(StationFeatures).filter(StationFeatures.id == 942834121).one()
+        assert eddb_session.query(StationEconomy).filter(StationEconomy.id == 942834121).all()
+    finally:
+        for cls in [StationFeatures, StationEconomy, Station]:
+            eddb_session.query(cls).filter(cls.id == 942834121).delete()
+        for cls in [Influence, FactionActiveState, FactionPendingState, FactionRecoveringState]:
+            eddb_session.query(cls).filter(cls.system_id == 942834121).delete()
+        for cls in [System, Faction]:
+            eddb_session.query(cls).filter(cls.id == 942834121).delete()
+        eddb_session.query(Allegiance).filter(Allegiance.id == 1000).delete()
+        eddb_session.query(Government).filter(Government.id == 1000).delete()
 
 
 def test_get_controls_of_power(eddb_session):
@@ -477,3 +530,29 @@ def test_add_history_influence_inf_diff(eddb_session):
         eddb_session.rollback()
         eddb_session.query(HistoryInfluence).delete()
         eddb_session.query(HistoryTrack).delete()
+
+
+class DummyUpdateObject(cogdb.eddb.UpdatableMixin):
+    def __init__(self):
+        self.num = 10
+        self.updated_at = 50
+
+
+def test_updatable_mixin_older_kwargs():
+    kwargs = {
+        'num': 20,
+        'updated_at': 25,
+    }
+    obj = DummyUpdateObject()
+    obj.update(**kwargs)
+    assert obj.num == 10
+
+
+def test_updatable_mixin_newer_kwargs():
+    kwargs = {
+        'num': 20,
+        'updated_at': 60,
+    }
+    obj = DummyUpdateObject()
+    obj.update(**kwargs)
+    assert obj.num == 20

@@ -197,7 +197,7 @@ class EDMCJournal():
         system = self.parsed['system']
         try:
             system_db = self.eddb_session.query(System).filter(System.name == system['name']).one()
-            system_db.update(system)
+            system_db.update(**system)
             self.eddb_session.commit()
             system['id'] = system_db.id
             self.flushed += [system_db]
@@ -271,6 +271,7 @@ class EDMCJournal():
             station['controlling_minor_faction_id'] = self.eddb_session.query(Faction.id).filter(Faction.name == body['StationFaction']['Name']).scalar()
         if "StationServices" in body:
             station['features'] = {x: x in body["StationServices"] for x in STATION_FEATS}
+            station['features']['updated_at'] = station['updated_at']
         if "StationType" in body:
             station['type_id'] = MAPS["StationType"][body['StationType']]
 
@@ -293,14 +294,14 @@ class EDMCJournal():
                 filter(Station.name == station['name'],
                        Station.system_id == station['system_id']).\
                 one()
-            station_db.update(station)
+            station_db.update(**station)
             station['id'] = station_db.id
 
             if station_features:
                 station_features_db = self.eddb_session.query(StationFeatures).\
                     filter(StationFeatures.id == station_db.id).\
                     one()
-                station_features_db.update(station_features)
+                station_features_db.update(**station_features)
                 station_features['id'] = station_db.id
             self.eddb_session.flush()
 
@@ -408,7 +409,7 @@ class EDMCJournal():
                 faction_db = self.eddb_session.query(Faction).\
                     filter(Faction.id == faction['id']).\
                     one()
-                faction_db.update(faction)
+                faction_db.update(**faction)
             except sqla_orm.exc.NoResultFound:
                 faction_db = Faction(**faction)
                 self.eddb_session.add(faction_db)
@@ -427,7 +428,7 @@ class EDMCJournal():
                     filter(Influence.system_id == influence['system_id'],
                            Influence.faction_id == influence['faction_id']).\
                     one()
-                influence_db.update(influence)
+                influence_db.update(**influence)
             except sqla_orm.exc.NoResultFound:
                 influence_db = Influence(**influence)
                 self.eddb_session.add(Influence(**influence))
@@ -485,7 +486,7 @@ class EDMCJournal():
                            Conflict.faction1_id == conflict['faction1_id'],
                            Conflict.faction2_id == conflict['faction2_id']).\
                     one()
-                conflict_db.update(conflict)
+                conflict_db.update(**conflict)
             except sqla_orm.exc.NoResultFound:
                 conflict_db = Conflict(**conflict)
                 self.eddb_session.add(conflict_db)

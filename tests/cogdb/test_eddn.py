@@ -688,15 +688,21 @@ def test_edmcjournal_parse_station():
         'economies': [{'economy_id': 4, 'primary': True, 'proportion': 0.8},
                       {'economy_id': 6, 'primary': False, 'proportion': 0.2}],
         'features': {'blackmarket': True,
-                     'commodities': True,
-                     'dock': True,
-                     'market': False,
-                     'outfitting': True,
-                     'rearm': True,
-                     'refuel': True,
-                     'repair': True,
-                     'shipyard': True,
-                     'update': False},
+              'carrier_administration': False,
+              'carrier_vendor': False,
+              'commodities': True,
+              'dock': True,
+              'interstellar_factors': False,
+              'market': False,
+              'material_trader': False,
+              'outfitting': True,
+              'rearm': True,
+              'refuel': True,
+              'repair': True,
+              'shipyard': True,
+              'technology_broker': False,
+              'universal_cartographics': False,
+              'updated_at': 1596452651},
         'name': 'Mattingly Port',
         'system_id': 569,
         'type_id': 3,
@@ -707,6 +713,8 @@ def test_edmcjournal_parse_station():
 
     parser.parse_system()
     result = parser.parse_station()
+    __import__('pprint').pprint(result)
+    __import__('pprint').pprint(expected)
 
     assert result == expected
 

@@ -152,14 +152,14 @@ def spy_test_bed(eddb_session):
         spy.SpyTraffic(
             id=1,
             cnt=1,
-            ship_type=1,
+            ship_id=1,
             system="Rana",
             updated_at=FIXED_TIMESTAMP,
         ),
         spy.SpyTraffic(
             id=2,
             cnt=5,
-            ship_type=2,
+            ship_id=2,
             system="Rana",
             updated_at=FIXED_TIMESTAMP,
         ),
@@ -171,8 +171,10 @@ def spy_test_bed(eddb_session):
             last_seen_system="Rana",
             last_seen_station="Wescott Hub",
             bounty=100000,
-            is_powerplay=True,
-            ship_type=1,
+            is_local=False,
+            ship_id=1,
+            power_id=9,
+            updated_at=FIXED_TIMESTAMP,
         ),
         spy.SpyBounty(
             id=1,
@@ -182,8 +184,10 @@ def spy_test_bed(eddb_session):
             last_seen_system="Rana",
             last_seen_station="Ali Hub",
             bounty=10000000,
-            is_powerplay=True,
-            ship_type=2,
+            is_local=False,
+            ship_id=2,
+            power_id=1,
+            updated_at=FIXED_TIMESTAMP,
         ),
     ]
     eddb_session.add_all([
@@ -200,16 +204,44 @@ def spy_test_bed(eddb_session):
 
 def test_spy_ship__repr__(spy_test_bed, eddb_session):
     expect = "SpyShip(id=1, text='Viper Mk. II')"
-    spyship = eddb_session.query(spy.SpyShip).filter(spy.SpyShip.id == 1).one()
+    ship = eddb_session.query(spy.SpyShip).filter(spy.SpyShip.id == 1).one()
 
-    assert expect == repr(spyship)
+    assert expect == repr(ship)
 
 
 def test_spy_ship__str__(spy_test_bed, eddb_session):
     expect = "Ship: Viper Mk. II"
-    spyship = eddb_session.query(spy.SpyShip).filter(spy.SpyShip.id == 1).one()
+    ship = eddb_session.query(spy.SpyShip).filter(spy.SpyShip.id == 1).one()
 
-    assert expect == str(spyship)
+    assert expect == str(ship)
+
+
+def test_spy_traffic__repr__(spy_test_bed, eddb_session):
+    expect = "SpyTraffic(id=1, cnt=1, ship_id=1, updated_at=1662390092)"
+    traffic = eddb_session.query(spy.SpyTraffic).filter(spy.SpyTraffic.id == 1).one()
+
+    assert expect == repr(traffic)
+
+
+def test_spy_traffic__str__(spy_test_bed, eddb_session):
+    expect = "Viper Mk. II: 1"
+    traffic = eddb_session.query(spy.SpyTraffic).filter(spy.SpyTraffic.id == 1).one()
+
+    assert expect == str(traffic)
+
+
+def test_spy_bounty__repr__(spy_test_bed, eddb_session):
+    expect = "SpyBounty(id=1, pos=1, cmdr_name='Good guy', ship_name='Good guy ship', last_seen_system='Rana', last_seen_station='Wescott Hub', bounty=100000, is_local=False, ship_id=1, updated_at=1662390092)"
+    bounty = eddb_session.query(spy.SpyBounty).filter(spy.SpyBounty.id == 1, spy.SpyBounty.pos == 1).one()
+
+    assert expect == repr(bounty)
+
+
+def test_spy_bounty__str__(spy_test_bed, eddb_session):
+    expect = "#1 Good guy in Rana/Wescott Hub (Viper Mk. II) with 100000, updated at 2022-09-05 15:01:32"
+    bounty = eddb_session.query(spy.SpyBounty).filter(spy.SpyBounty.id == 1, spy.SpyBounty.pos == 1).one()
+
+    assert expect == str(bounty)
 
 
 def test_spy_vote__repr__(spy_test_bed):
@@ -1100,3 +1132,9 @@ def test_update_eddb_factions(eddb_session):
             queried.influence = inf.influence
             queried.updated_at = inf.updated_at
         eddb_session.commit()
+
+
+def test_preload_spy_tables(empty_spy, eddb_session):
+    assert not eddb_session.query(spy.SpyShip).all()
+    spy.preload_spy_tables(eddb_session)
+    assert eddb_session.query(spy.SpyShip).filter(spy.SpyShip.text == "Vulture").one()

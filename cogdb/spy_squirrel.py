@@ -39,6 +39,26 @@ JSON_POWER_STATE_TO_EDDB = {
     "takingControl": 64,
 }
 MAX_SPY_MERITS = 99999
+# Remove entries older than this relative current timestamp
+TWO_WEEK_SECONDS = 14 * 24 * 60 * 60
+EVENT_SPY_TRAFFIC = f"""
+CREATE EVENT IF NOT EXISTS clean_spy_traffic
+ON SCHEDULE
+    EVERY 1 DAY
+COMMENT "Check daily for SpyTraffic entries older than 14 days."
+DO
+    DELETE FROM eddb.spy_traffic
+    WHERE updated_at < (unix_timestamp() - {TWO_WEEK_SECONDS});
+"""
+EVENT_SPY_TOP5 = """
+CREATE EVENT IF NOT EXISTS clean_spy_top5
+ON SCHEDULE
+    EVERY 1 DAY
+COMMENT "Check daily for SpyBounty entries older than 14 days."
+DO
+    DELETE FROM eddb.spy_top5
+    WHERE updated_at < (unix_timestamp() - {TWO_WEEK_SECONDS});
+"""
 
 
 class SpyShip(Base):
@@ -67,39 +87,46 @@ class SpyShip(Base):
         return hash(f"{self.id}")
 
 
+# These entries will be stored for SPY_LIMIT days.
 class SpyBounty(cog.util.TimestampMixin, Base):
     """
     Track the bounties active in a system.
     """
-    __tablename__ = 'spy_top_5'
+    __tablename__ = 'spy_top5'
 
     id = sqla.Column(sqla.BigInteger, primary_key=True)
+    ship_id = sqla.Column(sqla.Integer, sqla.ForeignKey('spy_ships.id'))
+    power_id = sqla.Column(sqla.Integer, nullable=True)
+
     pos = sqla.Column(sqla.Integer, primary_key=True, default=1)  # Should only be [1, 5]
     cmdr_name = sqla.Column(sqla.String(cogdb.eddb.LEN["cmdr_name"]), nullable=False, default="")
     ship_name = sqla.Column(sqla.String(cogdb.eddb.LEN["ship_name"]), nullable=False, default="")
     last_seen_system = sqla.Column(sqla.String(cogdb.eddb.LEN["system"]), nullable=False, default="")
     last_seen_station = sqla.Column(sqla.String(cogdb.eddb.LEN["station"]), nullable=False, default="")
     bounty = sqla.Column(sqla.BigInteger, default=0)
-    is_powerplay = sqla.Column(sqla.Boolean, default=True)
-    ship_type = sqla.Column(sqla.Integer, sqla.ForeignKey('spy_ships.id'))
+    is_local = sqla.Column(sqla.Boolean, default=True)
     updated_at = sqla.Column(sqla.Integer, default=time.time, onupdate=time.time)
 
     # Relationships
     ship = sqla.orm.relationship(
         'SpyShip', uselist=False, lazy='joined', viewonly=True,
     )
+    power = sqla.orm.relationship(
+        'Power', uselist=False, lazy='joined', viewonly=True,
+        primaryjoin='foreign(Power.id) == SpyBounty.power_id',
+    )
 
     def __repr__(self):
         keys = ['id', 'pos', 'cmdr_name', 'ship_name', 'last_seen_system', 'last_seen_station',
-                'bounty', 'is_powerplay', 'ship_type', 'updated_at']
+                'bounty', 'is_local', 'ship_id', 'updated_at']
         kwargs = [f'{key}={getattr(self, key)!r}' for key in keys]
 
         return f"{self.__class__.__name__}({', '.join(kwargs)})"
 
     def __str__(self):
         """ A pretty one line to give all information. """
-        ship_text = "{}".format(self.ship.text if self.ship else self.ship_type)
-        return f"pos: {self.pos} {self.cmdr_name.text} in {self.last_seen_system}/{self.last_seen_station} ({ship_text}) with {self.bounty}, updated at {self.utc_date}"
+        ship_text = "{}".format(self.ship.text if self.ship else self.ship_id)
+        return f"#{self.pos} {self.cmdr_name} in {self.last_seen_system}/{self.last_seen_station} ({ship_text}) with {self.bounty}, updated at {self.utc_date}"
 
     def __eq__(self, other):
         return isinstance(other, SpyVote) and hash(self) == hash(other)
@@ -108,6 +135,7 @@ class SpyBounty(cog.util.TimestampMixin, Base):
         return hash(f"{self.id}_{self.pos}")
 
 
+# These entries will be stored for SPY_LIMIT days.
 class SpyTraffic(Base):
     """
     Monitor traffic of different ships in the system.
@@ -115,8 +143,8 @@ class SpyTraffic(Base):
     __tablename__ = 'spy_traffic'
 
     id = sqla.Column(sqla.BigInteger, primary_key=True)
+    ship_id = sqla.Column(sqla.Integer, sqla.ForeignKey('spy_ships.id'))
     cnt = sqla.Column(sqla.Integer)
-    ship_type = sqla.Column(sqla.Integer, sqla.ForeignKey('spy_ships.id'))
     system = sqla.Column(sqla.String(cogdb.eddb.LEN["system"]), nullable=False, default="")
     updated_at = sqla.Column(sqla.Integer, default=time.time, onupdate=time.time)
 
@@ -126,14 +154,14 @@ class SpyTraffic(Base):
     )
 
     def __repr__(self):
-        keys = ['id', 'cnt', 'ship_type',  'updated_at']
+        keys = ['id', 'cnt', 'ship_id', 'updated_at']
         kwargs = [f'{key}={getattr(self, key)!r}' for key in keys]
 
         return f"{self.__class__.__name__}({', '.join(kwargs)})"
 
     def __str__(self):
         """ A pretty one line to give all information. """
-        ship_text = "{}".format(self.ship.text if self.ship else self.ship_type)
+        ship_text = "{}".format(self.ship.text if self.ship else self.ship_id)
         return f"{ship_text}: {self.cnt}"
 
     def __eq__(self, other):
@@ -189,6 +217,7 @@ class SpyPrep(cog.util.TimestampMixin, Base):
     id = sqla.Column(sqla.Integer, primary_key=True)
     ed_system_id = sqla.Column(sqla.BigInteger, index=True, nullable=False)
     power_id = sqla.Column(sqla.Integer, nullable=False)
+
     system_name = sqla.Column(sqla.String(cogdb.eddb.LEN["system"]), index=True)  # Intentional caching for QoL
     merits = sqla.Column(sqla.Integer, default=0)
     updated_at = sqla.Column(sqla.Integer, default=time.time, onupdate=time.time)
@@ -232,13 +261,11 @@ class SpySystem(cog.util.TimestampMixin, Base):
         sqla.UniqueConstraint('ed_system_id', 'power_id', name='system_power_constraint'),
     )
 
-    # ids
     id = sqla.Column(sqla.Integer, primary_key=True)
     ed_system_id = sqla.Column(sqla.BigInteger, index=True, nullable=False)
     power_id = sqla.Column(sqla.Integer, nullable=False)
     power_state_id = sqla.Column(sqla.Integer, nullable=False, default=0)
 
-    # info
     system_name = sqla.Column(sqla.String(cogdb.eddb.LEN["system"]), index=True)  # Intentional caching for QoL
     income = sqla.Column(sqla.Integer, default=0)
     upkeep_current = sqla.Column(sqla.Integer, default=0)
@@ -758,6 +785,49 @@ def update_eddb_factions(eddb_session, fact_info):
     return infs
 
 
+def preload_spy_tables(eddb_session):
+    eddb_session.add_all([
+        SpyShip(id=1, text="Adder"),
+        SpyShip(id=2, text="Alliance Challenger"),
+        SpyShip(id=3, text="Alliance Chieftain"),
+        SpyShip(id=4, text="Alliance Crusader"),
+        SpyShip(id=5, text="Anaconda"),
+        SpyShip(id=6, text="Asp Explorer"),
+        SpyShip(id=7, text="Asp Scout"),
+        SpyShip(id=8, text="Beluga Liner"),
+        SpyShip(id=9, text="Cobra MK IV"),
+        SpyShip(id=10, text="Cobra Mk. III"),
+        SpyShip(id=11, text="Diamondback Explorer"),
+        SpyShip(id=12, text="Diamondback Scout"),
+        SpyShip(id=13, text="Dolphin"),
+        SpyShip(id=14, text="Eagle Mk. II"),
+        SpyShip(id=15, text="Federal Assault Ship"),
+        SpyShip(id=16, text="Federal Corvette"),
+        SpyShip(id=17, text="Federal Dropship"),
+        SpyShip(id=18, text="Federal Gunship"),
+        SpyShip(id=19, text="Fer-de-Lance"),
+        SpyShip(id=20, text="Hauler"),
+        SpyShip(id=21, text="Imperial Clipper"),
+        SpyShip(id=22, text="Imperial Courier"),
+        SpyShip(id=23, text="Imperial Cutter"),
+        SpyShip(id=24, text="Imperial Eagle"),
+        SpyShip(id=25, text="Keelback"),
+        SpyShip(id=26, text="Krait MkII"),
+        SpyShip(id=27, text="Krait Phantom"),
+        SpyShip(id=28, text="Mamba"),
+        SpyShip(id=29, text="Orca"),
+        SpyShip(id=30, text="Python"),
+        SpyShip(id=31, text="Sidewinder Mk. I"),
+        SpyShip(id=32, text="Type-10 Defender"),
+        SpyShip(id=33, text="Type-6 Transporter"),
+        SpyShip(id=34, text="Type-7 Transporter"),
+        SpyShip(id=35, text="Type-9 Heavy"),
+        SpyShip(id=36, text="Viper MK IV"),
+        SpyShip(id=37, text="Viper Mk III"),
+        SpyShip(id=38, text="Vulture"),
+    ])
+
+
 def drop_tables():  # pragma: no cover | destructive to test
     """
     Drop the spy tables entirely.
@@ -796,15 +866,18 @@ def main():  # pragma: no cover | destructive to test
     recreate_tables()
     base_f = pathlib.Path(os.path.join(cog.util.ROOT_DIR, 'tests', 'cogdb', 'base.json'))
     refined_f = pathlib.Path(os.path.join(cog.util.ROOT_DIR, 'tests', 'cogdb', 'refined.json'))
+    response_f = pathlib.Path(os.path.join(cog.util.ROOT_DIR, 'tests', 'cogdb', 'response.json'))
 
     with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
+        preload_spy_tables(eddb_session)
         with open(base_f, encoding='utf-8') as fin:
             load_base_json(json.load(fin), eddb_session)
 
         with open(refined_f, encoding='utf-8') as fin:
             load_refined_json(json.load(fin), eddb_session)
 
-        eddb_session.commit()
+        with open(response_f, encoding='utf-8') as fin:
+            load_response_json(json.load(fin), eddb_session)
 
     # FIXME: For testing. Can delete soon.
     #

@@ -34,6 +34,8 @@ import cog.exc
 import cog.tbl
 import cog.util
 import cogdb
+import extras.fetch_eddb as fetch_eddb
+
 
 LEN = {  # Lengths for strings stored in the db
     "allegiance": 18,
@@ -64,7 +66,6 @@ LEN = {  # Lengths for strings stored in the db
     "weapon_mode": 6,
 }
 LEN["spy_location"] = 5 + LEN["system"] + LEN["station"]
-JOB_LIMIT = os.cpu_count()
 TIME_FMT = "%d/%m/%y %H:%M:%S"
 # These are the faction types strong/weak verse.
 HUDSON_BGS = [['Feudal', 'Patronage'], ["Dictatorship"]]
@@ -130,6 +131,23 @@ HISTORY_INF_TIME_GAP = HOUR_SECONDS * 4  # min seconds between data points
 Base = sqlalchemy.ext.declarative.declarative_base()
 
 
+class UpdatableMixin():
+    """Mixin that allows updating this object by kwargs."""
+    def update(self, **kwargs):
+        """
+        Simple kwargs update to this object.
+
+        If update_at present, only update object if new information is newer.
+        If update_at not present, the current timestamp will be set.
+        """
+        if 'updated_at' in kwargs:
+            if kwargs['updated_at'] <= self.updated_at:
+                return
+
+        for key, val in kwargs.items():
+            setattr(self, key, val)
+
+
 class Allegiance(Base):
     """ Represents the allegiance of a faction. """
     __tablename__ = "allegiance"
@@ -152,19 +170,27 @@ class Allegiance(Base):
         return hash(self.id)
 
 
-class Commodity(Base):
+class Commodity(UpdatableMixin, Base):
     """ A commodity sold at a station. """
     __tablename__ = 'commodities'
 
     id = sqla.Column(sqla.Integer, primary_key=True)
     category_id = sqla.Column(sqla.Integer,
                               sqla.ForeignKey("commodity_categories.id"), nullable=False)
+
     name = sqla.Column(sqla.String(LEN["commodity"]))
     average_price = sqla.Column(sqla.Integer, default=0)
+    min_buy_price = sqla.Column(sqla.Integer, default=0)
+    min_sell_price = sqla.Column(sqla.Integer, default=0)
+    max_buy_price = sqla.Column(sqla.Integer, default=0)
+    max_sell_price = sqla.Column(sqla.Integer, default=0)
+    is_non_marketable = sqla.Column(sqla.Boolean, default=False)
     is_rare = sqla.Column(sqla.Boolean, default=False)
+    updated_at = sqla.Column(sqla.Integer, default=time.time, onupdate=time.time)
 
     def __repr__(self):
-        keys = ['id', 'category_id', "name", "average_price", "is_rare"]
+        keys = ['id', 'category_id', "name", "average_price", "is_rare", "is_non_marketable",
+                "max_buy_price", "max_sell_price", "min_buy_price", "min_sell_price", "updated_at"]
         kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
 
         return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
@@ -220,17 +246,18 @@ class Economy(Base):
         return hash(self.id)
 
 
-class Faction(cog.util.TimestampMixin, Base):
+class Faction(cog.util.TimestampMixin, UpdatableMixin, Base):
     """ Information about a faction. """
     __tablename__ = "factions"
 
     id = sqla.Column(sqla.Integer, primary_key=True)
-    name = sqla.Column(sqla.String(LEN["faction"]), index=True)
-    is_player_faction = sqla.Column(sqla.Boolean, default=False)
-    home_system_id = sqla.Column(sqla.Integer, index=True)  # Makes circular foreigns.
     allegiance_id = sqla.Column(sqla.Integer, sqla.ForeignKey('allegiance.id'))
     government_id = sqla.Column(sqla.Integer, sqla.ForeignKey('gov_type.id'))
+    home_system_id = sqla.Column(sqla.Integer, index=True)  # Makes circular foreigns.
     state_id = sqla.Column(sqla.Integer, sqla.ForeignKey('faction_state.id'))
+
+    name = sqla.Column(sqla.String(LEN["faction"]), index=True)
+    is_player_faction = sqla.Column(sqla.Boolean, default=False)
     updated_at = sqla.Column(sqla.Integer, default=time.time, onupdate=time.time)
 
     # Relationships
@@ -250,18 +277,6 @@ class Faction(cog.util.TimestampMixin, Base):
 
     def __hash__(self):
         return hash(self.id)
-
-    def update(self, kwargs):
-        """
-        Update based on existing kwargs, all are optional except updated_at time.
-        """
-        try:
-            self.updated_at = kwargs['updated_at']
-            self.allegiance_id = kwargs.get('allegiance_id', self.allegiance_id)
-            self.government_id = kwargs.get('government_id', self.government_id)
-            self.state_id = kwargs.get('state_id', self.state_id)
-        except KeyError:
-            pass
 
 
 class FactionHappiness(Base):
@@ -416,9 +431,10 @@ class Influence(cog.util.TimestampMixin, Base):
     __tablename__ = "influence"
 
     id = sqla.Column(sqla.BigInteger, primary_key=True)
-    system_id = sqla.Column(sqla.Integer, sqla.ForeignKey('systems.id'), nullable=False)
     faction_id = sqla.Column(sqla.Integer, sqla.ForeignKey('factions.id'), nullable=False)
     happiness_id = sqla.Column(sqla.Integer, sqla.ForeignKey('faction_happiness.id'), nullable=True)
+    system_id = sqla.Column(sqla.Integer, sqla.ForeignKey('systems.id'), nullable=False)
+
     influence = sqla.Column(sqla.Numeric(7, 4, None, False), default=0.0)
     is_controlling_faction = sqla.Column(sqla.Boolean, default=False)
     updated_at = sqla.Column(sqla.Integer, default=time.time, onupdate=time.time)
@@ -439,25 +455,24 @@ class Influence(cog.util.TimestampMixin, Base):
                 and self.system_id == other.system_id
                 and self.faction_id == other.faction_id)
 
-    def update(self, kwargs):
+    def update(self, **kwargs):
         """
-        Update the object from kwargs.
+        Simple kwargs update to this object.
+
+        If update_at not present will use current timestamp.
         """
-        try:
-            self.updated_at = kwargs['updated_at']
-            self.happiness_id = kwargs.get('happiness_id', self.happiness_id)
-            self.influence = kwargs.get('influence', self.influence)
-            self.is_controlling_faction = kwargs.get('is_controlling_faction', self.is_controlling_faction)
-        except KeyError:
-            pass
+        for key, val in kwargs.items():
+            if key not in ('active_states', 'pending_states', 'recovering_states'):
+                setattr(self, key, val)
 
 
-class Module(Base):
+class Module(UpdatableMixin, Base):
     """ A module for a ship. """
     __tablename__ = "modules"
 
     id = sqla.Column(sqla.Integer, primary_key=True)
     group_id = sqla.Column(sqla.Integer, sqla.ForeignKey('module_groups.id'))
+
     size = sqla.Column(sqla.Integer)  # Equal to in game size, 1-8.
     rating = sqla.Column(sqla.String(1))  # Rating is A-E
     price = sqla.Column(sqla.Integer, default=0)
@@ -484,9 +499,10 @@ class ModuleGroup(Base):
     __tablename__ = "module_groups"
 
     id = sqla.Column(sqla.Integer, primary_key=True)
+    category_id = sqla.Column(sqla.Integer)
+
     category = sqla.Column(sqla.String(LEN["module_category"]))
     name = sqla.Column(sqla.String(LEN["module_group"]))  # Name of module group, i.e. "Beam Laser"
-    category_id = sqla.Column(sqla.Integer)
 
     def __repr__(self):
         keys = ['id', 'name', 'category', 'category_id']
@@ -619,28 +635,36 @@ class SettlementSize(Base):
         return hash(self.id)
 
 
-class StationFeatures(Base):
+class StationFeatures(cog.util.TimestampMixin, UpdatableMixin, Base):
     """ The features at a station. """
     __tablename__ = "station_features"
 
     id = sqla.Column(sqla.Integer, sqla.ForeignKey('stations.id'), primary_key=True)
+
     blackmarket = sqla.Column(sqla.Boolean)
+    carrier_administration = sqla.Column(sqla.Boolean)
+    carrier_vendor = sqla.Column(sqla.Boolean)
     commodities = sqla.Column(sqla.Boolean)
     dock = sqla.Column(sqla.Boolean)
+    interstellar_factors = sqla.Column(sqla.Boolean)
     market = sqla.Column(sqla.Boolean)
+    material_trader = sqla.Column(sqla.Boolean)
     outfitting = sqla.Column(sqla.Boolean)
     rearm = sqla.Column(sqla.Boolean)
     refuel = sqla.Column(sqla.Boolean)
     repair = sqla.Column(sqla.Boolean)
     shipyard = sqla.Column(sqla.Boolean)
+    technology_broker = sqla.Column(sqla.Boolean)
+    universal_cartographics = sqla.Column(sqla.Boolean)
+    updated_at = sqla.Column(sqla.Integer, default=time.time, onupdate=time.time)
 
     # Realtionships
     station = sqla.orm.relationship('Station', uselist=False, viewonly=True)
 
     def __repr__(self):
-        keys = ['id', 'blackmarket', 'market', 'refuel',
-                'repair', 'rearm', 'outfitting', 'shipyard',
-                'dock', 'commodities']
+        keys = ['id', 'blackmarket', 'carrier_administration', 'carrier_vendor', 'commodities',
+                'dock', 'interstellar_factors', 'market', 'outfitting', 'rearm', 'refuel',
+                'repair', 'shipyard', 'technology_broker', 'universal_cartographics', 'updated_at']
         kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
 
         return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
@@ -651,10 +675,6 @@ class StationFeatures(Base):
 
     def __hash__(self):
         return hash(self.id)
-
-    def update(self, kwargs):
-        """ Update this object based on a dictionary of kwargs. """
-        self.__dict__.update(kwargs)
 
 
 class StationType(Base):
@@ -700,23 +720,27 @@ class StationEconomy(Base):
         return hash("{}_{}".format(self.id, self.economy_id))
 
 
-class Station(cog.util.TimestampMixin, Base):
+class Station(cog.util.TimestampMixin, UpdatableMixin, Base):
     """ Repesents a system in the universe. """
     __tablename__ = "stations"
 
     id = sqla.Column(sqla.Integer, primary_key=True)
+    controlling_minor_faction_id = sqla.Column(sqla.Integer, sqla.ForeignKey('factions.id'))
+    system_id = sqla.Column(sqla.Integer)
+    type_id = sqla.Column(sqla.Integer, nullable=False)
+
     name = sqla.Column(sqla.String(LEN["station"]), index=True)
     distance_to_star = sqla.Column(sqla.Integer)
     is_planetary = sqla.Column(sqla.Boolean)
     max_landing_pad_size = sqla.Column(sqla.String(LEN["station_pad"]))
-    type_id = sqla.Column(sqla.Integer, sqla.ForeignKey('station_types.id'))
-    system_id = sqla.Column(sqla.Integer)
-    controlling_minor_faction_id = sqla.Column(sqla.Integer, sqla.ForeignKey('factions.id'))
     updated_at = sqla.Column(sqla.Integer, default=time.time, onupdate=time.time)
 
     # Relationships
     features = sqla.orm.relationship('StationFeatures', uselist=False, viewonly=True)
-    type = sqla.orm.relationship('StationType', uselist=False, viewonly=True)
+    type = sqla.orm.relationship(
+        'StationType', uselist=False, viewonly=True,
+        primaryjoin='foreign(Station.id) == remote(StationType.id)',
+    )
     station_economies = sqla.orm.relationship(
         'StationEconomy', uselist=True, viewonly=True, lazy='select',
         primaryjoin='foreign(Station.id) == remote(StationEconomy.id)',
@@ -735,10 +759,6 @@ class Station(cog.util.TimestampMixin, Base):
         primaryjoin='and_(Station.controlling_minor_faction_id == remote(Faction.id), foreign(Faction.government_id) == foreign(Government.id))',
     )
 
-    def update(self, kwargs):
-        """ Update this object based on a dictionary of kwargs. """
-        self.__dict__.update(kwargs)
-
     def __repr__(self):
         keys = ['id', 'name', 'distance_to_star', 'max_landing_pad_size',
                 'type_id', 'system_id', 'controlling_minor_faction_id', 'updated_at']
@@ -753,7 +773,7 @@ class Station(cog.util.TimestampMixin, Base):
         return hash(self.id)
 
 
-class System(cog.util.TimestampMixin, Base):
+class System(cog.util.TimestampMixin, UpdatableMixin, Base):
     """
     Repesents a system in the universe.
 
@@ -763,16 +783,17 @@ class System(cog.util.TimestampMixin, Base):
 
     id = sqla.Column(sqla.Integer, primary_key=True)
     ed_system_id = sqla.Column(sqla.BigInteger, index=True)
+    controlling_minor_faction_id = sqla.Column(sqla.Integer, sqla.ForeignKey('factions.id'), nullable=True)
+    power_id = sqla.Column(sqla.Integer, sqla.ForeignKey('powers.id'))
+    power_state_id = sqla.Column(sqla.Integer, sqla.ForeignKey('power_state.id'))
+    primary_economy_id = sqla.Column(sqla.Integer, sqla.ForeignKey('economies.id'))
+    secondary_economy_id = sqla.Column(sqla.Integer, sqla.ForeignKey('economies.id'))
+    security_id = sqla.Column(sqla.Integer, sqla.ForeignKey('security.id'))
+
     name = sqla.Column(sqla.String(LEN["system"]), index=True)
     population = sqla.Column(sqla.BigInteger)
     needs_permit = sqla.Column(sqla.Integer)
     edsm_id = sqla.Column(sqla.Integer)
-    primary_economy_id = sqla.Column(sqla.Integer, sqla.ForeignKey('economies.id'))
-    secondary_economy_id = sqla.Column(sqla.Integer, sqla.ForeignKey('economies.id'))
-    power_id = sqla.Column(sqla.Integer, sqla.ForeignKey('powers.id'))
-    security_id = sqla.Column(sqla.Integer, sqla.ForeignKey('security.id'))
-    power_state_id = sqla.Column(sqla.Integer, sqla.ForeignKey('power_state.id'))
-    controlling_minor_faction_id = sqla.Column(sqla.Integer, sqla.ForeignKey('factions.id'), nullable=True)
     x = sqla.Column(sqla.Numeric(10, 5, None, False))
     y = sqla.Column(sqla.Numeric(10, 5, None, False))
     z = sqla.Column(sqla.Numeric(10, 5, None, False))
@@ -865,10 +886,6 @@ class System(cog.util.TimestampMixin, Base):
         normal_trigger = round(5000 + (2750000 / math.pow(self.dist_to(system), 1.5)))
         return round(normal_trigger * (1 + (reinforced / 100)))
 
-    def update(self, kwargs):
-        """ Update this object based on a dictionary of kwargs. """
-        self.__dict__.update(kwargs)
-
     def __repr__(self):
         keys = ['id', 'name', 'population',
                 'needs_permit', 'updated_at', 'power_id', 'edsm_id',
@@ -894,10 +911,11 @@ class SystemContestedV(Base):
     __tablename__ = 'v_systems_contested'
 
     system_id = sqla.Column(sqla.Integer, sqla.ForeignKey('systems.id'), primary_key=True)
-    system = sqla.Column(sqla.String(LEN['system']))
-    control_id = sqla.Column(sqla.Integer, sqla.ForeignKey('systems.id'), primary_key=True, )
-    control = sqla.Column(sqla.String(LEN['system']))
     power_id = sqla.Column(sqla.Integer)
+    control_id = sqla.Column(sqla.Integer, sqla.ForeignKey('systems.id'), primary_key=True, )
+
+    system = sqla.Column(sqla.String(LEN['system']))
+    control = sqla.Column(sqla.String(LEN['system']))
     power = sqla.Column(sqla.String(LEN['power']))
 
     def __repr__(self):
@@ -923,12 +941,13 @@ class SystemControlV(Base):
     __tablename__ = "v_systems_controlled"
 
     system_id = sqla.Column(sqla.Integer, sqla.ForeignKey('systems.id'), primary_key=True, )
-    system = sqla.Column(sqla.String(LEN["system"]))
     power_state_id = sqla.Column(sqla.Integer)
-    power_state = sqla.Column(sqla.String(LEN['power_state']))
     control_id = sqla.Column(sqla.Integer, sqla.ForeignKey('systems.id'), primary_key=True, )
-    control = sqla.Column(sqla.String(LEN["system"]))
     power_id = sqla.Column(sqla.Integer)
+
+    system = sqla.Column(sqla.String(LEN["system"]))
+    power_state = sqla.Column(sqla.String(LEN['power_state']))
+    control = sqla.Column(sqla.String(LEN["system"]))
     power = sqla.Column(sqla.String(LEN['power']))
 
     def __str__(self):
@@ -958,9 +977,9 @@ class SystemControl(Base):
     __tablename__ = "systems_controlled"
 
     system_id = sqla.Column(sqla.Integer, sqla.ForeignKey('systems.id'), primary_key=True)
-    power_state_id = sqla.Column(sqla.Integer, sqla.ForeignKey('power_state.id'))
     control_id = sqla.Column(sqla.Integer, sqla.ForeignKey('systems.id'), primary_key=True)
     power_id = sqla.Column(sqla.Integer, sqla.ForeignKey('powers.id'))
+    power_state_id = sqla.Column(sqla.Integer, sqla.ForeignKey('power_state.id'))
 
     def __repr__(self):
         keys = ['system_id', 'power_state_id', 'control_id', 'power_id']
@@ -1000,7 +1019,7 @@ class ConflictState(Base):
         return hash(self.id)
 
 
-class Conflict(cog.util.TimestampMixin, Base):
+class Conflict(cog.util.TimestampMixin, UpdatableMixin, Base):
     """
     Defines an in system conflict between two factions.
     """
@@ -1009,12 +1028,12 @@ class Conflict(cog.util.TimestampMixin, Base):
     system_id = sqla.Column(sqla.Integer, sqla.ForeignKey('systems.id'), primary_key=True)
     status_id = sqla.Column(sqla.Integer, sqla.ForeignKey('conflict_states.id'))
     type_id = sqla.Column(sqla.Integer, sqla.ForeignKey('conflict_states.id'))
-    system_id = sqla.Column(sqla.Integer, sqla.ForeignKey('systems.id'))
     faction1_id = sqla.Column(sqla.Integer, sqla.ForeignKey('factions.id'), primary_key=True)
     faction1_stake_id = sqla.Column(sqla.Integer, sqla.ForeignKey('stations.id'))
-    faction1_days = sqla.Column(sqla.Integer)
     faction2_id = sqla.Column(sqla.Integer, sqla.ForeignKey('factions.id'), primary_key=True)
     faction2_stake_id = sqla.Column(sqla.Integer, sqla.ForeignKey('stations.id'))
+
+    faction1_days = sqla.Column(sqla.Integer)
     faction2_days = sqla.Column(sqla.Integer)
     updated_at = sqla.Column(sqla.Integer, default=time.time, onupdate=time.time)
 
@@ -1060,10 +1079,6 @@ class Conflict(cog.util.TimestampMixin, Base):
     def __hash__(self):
         return hash("{}_{}_{}".format(self.system_id, self.faction1_id, self.faction2_id))
 
-    def update(self, kwargs):
-        """ Update this object based on a dictionary of kwargs. """
-        self.__dict__.update(kwargs)
-
 
 class HistoryTrack(cog.util.TimestampMixin, Base):
     """
@@ -1105,6 +1120,7 @@ class HistoryInfluence(cog.util.TimestampMixin, Base):
     system_id = sqla.Column(sqla.Integer, sqla.ForeignKey('systems.id'), nullable=False)
     faction_id = sqla.Column(sqla.Integer, sqla.ForeignKey('factions.id'), nullable=False)
     happiness_id = sqla.Column(sqla.Integer, sqla.ForeignKey('faction_happiness.id'), nullable=True)
+
     influence = sqla.Column(sqla.Numeric(7, 4, None, False), default=0.0)
     is_controlling_faction = sqla.Column(sqla.Boolean, default=False)
     updated_at = sqla.Column(sqla.Integer, default=time.time, onupdate=time.time)
@@ -1195,6 +1211,27 @@ def preload_allegiance(session):
         Allegiance(id=7, text="Pilots Federation", eddn="PilotsFederation"),
         Allegiance(id=8, text="Thargoid", eddn="Thargoid"),
         Allegiance(id=9, text="Guardian", eddn="Guardian"),
+    ])
+
+
+def preload_commodity_categories(session):
+    session.add_all([
+        CommodityCat(id=1, name='Chemicals'),
+        CommodityCat(id=2, name='Consumer Items'),
+        CommodityCat(id=3, name='Legal Drugs'),
+        CommodityCat(id=4, name='Foods'),
+        CommodityCat(id=5, name='Industrial Materials'),
+        CommodityCat(id=6, name='Machinery'),
+        CommodityCat(id=7, name='Medicines'),
+        CommodityCat(id=8, name='Metals'),
+        CommodityCat(id=9, name='Minerals'),
+        CommodityCat(id=10, name='Slavery'),
+        CommodityCat(id=11, name='Technology'),
+        CommodityCat(id=12, name='Textiles'),
+        CommodityCat(id=13, name='Waste'),
+        CommodityCat(id=14, name='Weapons'),
+        CommodityCat(id=15, name='Unknown'),
+        CommodityCat(id=16, name='Salvage'),
     ])
 
 
@@ -1289,6 +1326,106 @@ def preload_gov_type(session):
         Government(id=208, text='Prison', eddn='Prison'),
         Government(id=209, text='Private Ownership', eddn='PrivateOwnership'),
         Government(id=300, text='Carrier', eddn='Carrier'),
+    ])
+
+
+def preload_module_groups(session):
+    session.add_all([
+        ModuleGroup(id=50, name='Lightweight Alloy', category='Bulkhead', category_id=40),
+        ModuleGroup(id=51, name='Reinforced Alloy', category='Bulkhead', category_id=40),
+        ModuleGroup(id=52, name='Military Grade Composite', category='Bulkhead', category_id=40),
+        ModuleGroup(id=53, name='Mirrored Surface Composite', category='Bulkhead', category_id=40),
+        ModuleGroup(id=54, name='Reactive Surface Composite', category='Bulkhead', category_id=40),
+        ModuleGroup(id=55, name='Pulse Laser', category='Weapon Hardpoint', category_id=50),
+        ModuleGroup(id=56, name='Burst Laser', category='Weapon Hardpoint', category_id=50),
+        ModuleGroup(id=57, name='Beam Laser', category='Weapon Hardpoint', category_id=50),
+        ModuleGroup(id=58, name='Cannon', category='Weapon Hardpoint', category_id=50),
+        ModuleGroup(id=59, name='Fragment Cannon', category='Weapon Hardpoint', category_id=50),
+        ModuleGroup(id=60, name='Multi-Cannon', category='Weapon Hardpoint', category_id=50),
+        ModuleGroup(id=61, name='Plasma Accelerator', category='Weapon Hardpoint', category_id=50),
+        ModuleGroup(id=62, name='Rail Gun', category='Weapon Hardpoint', category_id=50),
+        ModuleGroup(id=63, name='Missile Rack', category='Weapon Hardpoint', category_id=50),
+        ModuleGroup(id=64, name='Mine Launcher', category='Weapon Hardpoint', category_id=50),
+        ModuleGroup(id=65, name='Torpedo Pylon', category='Weapon Hardpoint', category_id=50),
+        ModuleGroup(id=66, name='Chaff Launcher', category='Utility Mount', category_id=10),
+        ModuleGroup(id=67, name='Electronic Countermeasure', category='Utility Mount', category_id=10),
+        ModuleGroup(id=68, name='Heat Sink Launcher', category='Utility Mount', category_id=10),
+        ModuleGroup(id=69, name='Point Defence', category='Utility Mount', category_id=10),
+        ModuleGroup(id=70, name='Mining Laser', category='Weapon Hardpoint', category_id=50),
+        ModuleGroup(id=71, name='Standard Docking Computer', category='Internal Compartment', category_id=20),
+        ModuleGroup(id=72, name='Power Plant', category='Essential Equipment', category_id=30),
+        ModuleGroup(id=73, name='Thrusters', category='Essential Equipment', category_id=30),
+        ModuleGroup(id=74, name='Frame Shift Drive', category='Essential Equipment', category_id=30),
+        ModuleGroup(id=75, name='Life Support', category='Essential Equipment', category_id=30),
+        ModuleGroup(id=76, name='Power Distributor', category='Essential Equipment', category_id=30),
+        ModuleGroup(id=77, name='Sensors', category='Essential Equipment', category_id=30),
+        ModuleGroup(id=78, name='Shield Generator', category='Internal Compartment', category_id=20),
+        ModuleGroup(id=79, name='Shield Cell Bank', category='Internal Compartment', category_id=20),
+        ModuleGroup(id=80, name='Cargo Rack', category='Internal Compartment', category_id=20),
+        ModuleGroup(id=81, name='Fuel Tank', category='Essential Equipment', category_id=30),
+        ModuleGroup(id=82, name='Hatch Breaker Limpet Controller', category='Internal Compartment', category_id=20),
+        ModuleGroup(id=83, name='Cargo Scanner', category='Utility Mount', category_id=10),
+        ModuleGroup(id=84, name='Frame Shift Wake Scanner', category='Utility Mount', category_id=10),
+        ModuleGroup(id=85, name='Kill Warrant Scanner', category='Utility Mount', category_id=10),
+        ModuleGroup(id=89, name='Detailed Surface Scanner', category='Internal Compartment', category_id=20),
+        ModuleGroup(id=90, name='Fuel Scoop', category='Internal Compartment', category_id=20),
+        ModuleGroup(id=91, name='Refinery', category='Internal Compartment', category_id=20),
+        ModuleGroup(id=92, name='Frame Shift Drive Interdictor', category='Internal Compartment', category_id=20),
+        ModuleGroup(id=93, name='Auto Field-Maintenance Unit', category='Internal Compartment', category_id=20),
+        ModuleGroup(id=94, name='Shield Booster', category='Utility Mount', category_id=10),
+        ModuleGroup(id=95, name='Hull Reinforcement Package', category='Internal Compartment', category_id=20),
+        ModuleGroup(id=96, name='Collector Limpet Controller', category='Internal Compartment', category_id=20),
+        ModuleGroup(id=97, name='Fuel Transfer Limpet Controller', category='Internal Compartment', category_id=20),
+        ModuleGroup(id=98, name='Prospector Limpet Controller', category='Internal Compartment', category_id=20),
+        ModuleGroup(id=99, name='Planetary Vehicle Hangar', category='Internal Compartment', category_id=20),
+        ModuleGroup(id=100, name='Shock Mine Launcher', category='Weapon Hardpoint', category_id=50),
+        ModuleGroup(id=101, name='Bi-Weave Shield Generator', category='Internal Compartment', category_id=20),
+        ModuleGroup(id=102, name='Planetary Approach Suite', category='Essential Equipment', category_id=30),
+        ModuleGroup(id=103, name='Enhanced Performance Thrusters', category='Essential Equipment', category_id=30),
+        ModuleGroup(id=104, name='Corrosion Resistant Cargo Rack', category='Internal Compartment', category_id=20),
+        ModuleGroup(id=105, name='Fighter Hangar', category='Internal Compartment', category_id=20),
+        ModuleGroup(id=106, name='Economy Class Passenger Cabin', category='Internal Compartment', category_id=20),
+        ModuleGroup(id=107, name='Business Class Passenger Cabin', category='Internal Compartment', category_id=20),
+        ModuleGroup(id=108, name='First Class Passenger Cabin', category='Internal Compartment', category_id=20),
+        ModuleGroup(id=109, name='Luxury Passenger Cabin', category='Internal Compartment', category_id=20),
+        ModuleGroup(id=110, name='Module Reinforcement Package', category='Internal Compartment', category_id=20),
+        ModuleGroup(id=111, name='Repair Limpet Controller', category='Internal Compartment', category_id=20),
+        ModuleGroup(id=112, name='AX Missile Rack', category='Weapon Hardpoint', category_id=50),
+        ModuleGroup(id=113, name='Xeno Scanner', category='Utility Mount', category_id=10),
+        ModuleGroup(id=114, name='Research Limpet Controller', category='Internal Compartment', category_id=20),
+        ModuleGroup(id=115, name='AX Multi-Cannon', category='Weapon Hardpoint', category_id=50),
+        ModuleGroup(id=116, name='Remote Release Flak Launcher', category='Weapon Hardpoint', category_id=50),
+        ModuleGroup(id=117, name='Shutdown Field Neutraliser', category='Utility Mount', category_id=10),
+        ModuleGroup(id=118, name='Decontamination Limpet Controller', category='Internal Compartment', category_id=20),
+        ModuleGroup(id=119, name='Recon Limpet Controller', category='Internal Compartment', category_id=20),
+        ModuleGroup(id=120, name='Guardian Gauss Cannon', category='Weapon Hardpoint', category_id=50),
+        ModuleGroup(id=121, name='Guardian Hull Reinforcement', category='Internal Compartment', category_id=20),
+        ModuleGroup(id=122, name='Guardian Module Reinforcement', category='Internal Compartment', category_id=20),
+        ModuleGroup(id=123, name='Guardian Shield Reinforcement', category='Internal Compartment', category_id=20),
+        ModuleGroup(id=124, name='Guardian FSD Booster', category='Internal Compartment', category_id=20),
+        ModuleGroup(id=125, name='Guardian Hybrid Power Distributor', category='Internal Compartment', category_id=20),
+        ModuleGroup(id=126, name='Guardian Hybrid Power Plant', category='Internal Compartment', category_id=20),
+        ModuleGroup(id=127, name='Enzyme Missile Rack', category='Weapon Hardpoint', category_id=50),
+        ModuleGroup(id=128, name='Remote Release Flechette Launcher', category='Weapon Hardpoint', category_id=50),
+        ModuleGroup(id=129, name='Guardian Plasma Charger', category='Weapon Hardpoint', category_id=50),
+        ModuleGroup(id=130, name='Guardian Shard Cannon', category='Weapon Hardpoint', category_id=50),
+        ModuleGroup(id=131, name='Shock Cannon', category='Weapon Hardpoint', category_id=50),
+        ModuleGroup(id=132, name='Sub-Surface Displacement Missile', category='Weapon Hardpoint', category_id=50),
+        ModuleGroup(id=133, name='Abrasion Blaster', category='Weapon Hardpoint', category_id=50),
+        ModuleGroup(id=134, name='Seismic Charge Launcher', category='Weapon Hardpoint', category_id=50),
+        ModuleGroup(id=135, name='Pulse Wave Analyser', category='Utility Mount', category_id=10),
+        ModuleGroup(id=136, name='Meta Alloy Hull Reinforcement', category='Internal Compartment', category_id=20),
+        ModuleGroup(id=137, name='Limpet Control', category='Internal Compartment', category_id=20),
+        ModuleGroup(id=138, name='Supercruise Assist', category='Internal Compartment', category_id=20),
+        ModuleGroup(id=139, name='Advanced Docking Computer', category='Internal Compartment', category_id=20),
+        ModuleGroup(id=140, name='Advanced Multi Cannon', category='Weapon Hardpoint', category_id=50),
+        ModuleGroup(id=141, name='Advanced Missile Rack', category='Weapon Hardpoint', category_id=50),
+        ModuleGroup(id=142, name='Advanced Planetary Approach Suite', category='Essential Equipment', category_id=30),
+        ModuleGroup(id=143, name='Mining Multi Limpet Controller', category='Internal Compartment', category_id=20),
+        ModuleGroup(id=144, name='Operations Multi Limpet Controller', category='Internal Compartment', category_id=20),
+        ModuleGroup(id=145, name='Rescue Multi Limpet Controller\t', category='Internal Compartment', category_id=20),
+        ModuleGroup(id=146, name='Xeno Multi Limpet Controller', category='Internal Compartment', category_id=20),
+        ModuleGroup(id=147, name='Universal Multi Limpet Controller', category='Internal Compartment', category_id=20),
     ])
 
 
@@ -1392,11 +1529,13 @@ def preload_tables(session):
     Preload all minor linked tables.
     """
     preload_allegiance(session)
+    preload_commodity_categories(session)
     preload_conflict_states(session)
     preload_economies(session)
     preload_faction_happiness(session)
     preload_faction_state(session)
     preload_gov_type(session)
+    preload_module_groups(session)
     preload_powers(session)
     preload_power_states(session)
     preload_security(session)
@@ -1406,7 +1545,7 @@ def preload_tables(session):
     session.commit()
 
 
-def load_commodities(fname):
+def load_commodities(fname, preload=True):
     """ Parse standard eddb dump commodities.json and enter into database. """
     # High level mapppings direct data flow by path in json
     # Mappings should be mutually exclusive
@@ -1415,28 +1554,47 @@ def load_commodities(fname):
         'item.id': [('commodity', 'id')],
         'item.name': [('commodity', 'name')],
         'item.average_price': [('commodity', 'average_price')],
+        'item.max_buy_price': [('commodity', 'max_buy_price')],
+        'item.max_sell_price': [('commodity', 'max_sell_price')],
+        'item.min_buy_price': [('commodity', 'min_buy_price')],
+        'item.min_sell_price': [('commodity', 'min_sell_price')],
+        'item.is_non_marketable': [('commodity', 'is_non_marketable')],
         'item.is_rare': [('commodity', 'is_rare')],
         'item.category.id': [('commodity', 'category_id'), ('commodity_cat', 'id')],
         'item.category.name': [('commodity_cat', 'name')],
     }
 
     print(f"Parsing commodities in {fname}")
-    categories, commodities = set(), []
     commodity, commodity_cat = {}, {}
-    with open(fname, 'rb') as fin:
+    with open(fname, 'rb') as fin, cogdb.session_scope(cogdb.EDDBSession, autoflush=False) as eddb_session:
         for prefix, the_type, value in ijson.parse(fin):
             #  print(prefix, the_type, value)
             if (prefix, the_type, value) == ('item', 'end_map', None):
                 # JSON Item terminated
-                commodity_db = Commodity(**commodity)
-                commodity_cat_db = CommodityCat(**commodity_cat)
+
+                if not preload:
+                    try:
+                        eddb_session.query(CommodityCat).\
+                            filter(CommodityCat.id == commodity_cat['id']).\
+                            one()
+                    except sqla_orm.exc.NoResultFound:  # Handle case of not existing record
+                        commodity_cat_db = CommodityCat(**commodity_cat)
+                        eddb_session.add(commodity_cat_db)
+                        eddb_session.commit()
+
+                try:
+                    found = eddb_session.query(Commodity).\
+                        filter(Commodity.id == commodity['id']).\
+                        one()
+                    found.update(**commodity)
+                except sqla_orm.exc.NoResultFound:  # Handle case of not existing record
+                    commodity_db = Commodity(**commodity)
+                    eddb_session.add(commodity_db)
 
                 #  Debug
                 #  print('Commodity', commodity_db)
                 #  print('Commodity Category', commodity_cat_db)
 
-                categories.add(commodity_cat_db)
-                commodities += [commodity_db]
                 commodity.clear()
                 commodity_cat.clear()
                 continue
@@ -1448,10 +1606,9 @@ def load_commodities(fname):
                 pass
 
     print(f"FIN: Parsing commodities in {fname}")
-    return categories, commodities
 
 
-def load_modules(fname):
+def load_modules(fname, preload=True):
     """ Parse standard eddb dump modules.json and enter into database. """
     # High level mapppings direct data flow by path in json
     # Mappings should be mutually exclusive
@@ -1472,23 +1629,37 @@ def load_modules(fname):
     }
 
     print(f"Parsing modules in {fname}")
-    module_groups, modules = set(), []
     module_base = {'size': None, 'mass': None}
     module_group, module = {}, copy.deepcopy(module_base)
-    with open(fname, 'rb') as fin:
+    with open(fname, 'rb') as fin, cogdb.session_scope(cogdb.EDDBSession, autoflush=False) as eddb_session:
         for prefix, the_type, value in ijson.parse(fin):
             #  print(prefix, the_type, value)
             if (prefix, the_type, value) == ('item', 'end_map', None):
                 # JSON Item terminated
-                module_group_db = ModuleGroup(**module_group)
-                module_db = Module(**module)
+
+                if not preload:
+                    try:
+                        eddb_session.query(ModuleGroup).\
+                            filter(ModuleGroup.id == module_group['id']).\
+                            one()
+                    except sqla_orm.exc.NoResultFound:  # Handle case of not existing record
+                        module_group_db = ModuleGroup(**module_group)
+                        eddb_session.add(module_group_db)
+                        eddb_session.commit()
+
+                try:
+                    found = eddb_session.query(Module).\
+                        filter(Module.id == module['id']).\
+                        one()
+                    found.update(**module)
+                except sqla_orm.exc.NoResultFound:  # Handle case of not existing record
+                    module_db = Module(**module)
+                    eddb_session.add(module_db)
 
                 # Debug
                 #  print('Module', module_db)
                 #  print('Module Group', module_group_db)
 
-                module_groups.add(module_group_db)
-                modules += [module_db]
                 module = copy.deepcopy(module_base)
                 module_group.clear()
                 continue
@@ -1500,7 +1671,6 @@ def load_modules(fname):
                 pass
 
     print(f"FIN: Parsing modules in {fname}")
-    return module_groups, modules
 
 
 def load_factions(fname, preload=True):
@@ -1521,26 +1691,44 @@ def load_factions(fname, preload=True):
     }
 
     print(f"Parsing factions in {fname}")
-    allegiances, governments, factions = set(), set(), []
     faction, allegiance, government = {}, {}, {}
-    with open(fname, 'rb') as fin:
+    with open(fname, 'rb') as fin, cogdb.session_scope(cogdb.EDDBSession, autoflush=False) as eddb_session:
         for prefix, the_type, value in ijson.parse(fin):
             #  print(prefix, the_type, value)
             if (prefix, the_type, value) == ('item', 'end_map', None):
-                # JSON Item terminated
-                faction_db = Faction(**faction)
-                allegiance_db = Allegiance(**allegiance)
-                government_db = Government(**government)
+                # JSON Item terminated, create/update
+
+                if not preload:
+                    try:
+                        eddb_session.query(Allegiance).\
+                            filter(Allegiance.id == allegiance['id']).\
+                            one()
+                    except sqla_orm.exc.NoResultFound:  # Handle case of not existing record
+                        eddb_session.add(Allegiance(**allegiance))
+                        eddb_session.commit()
+                    try:
+                        eddb_session.query(Government).\
+                            filter(Government.id == government['id']).\
+                            one()
+                    except sqla_orm.exc.NoResultFound:  # Handle case of not existing record
+                        eddb_session.add(Government(**government))
+                        eddb_session.commit()
+
+                try:
+                    found = eddb_session.query(Faction).\
+                        filter(Faction.id == faction['id']).\
+                        one()
+                    found.update(**faction)
+                except sqla_orm.exc.NoResultFound:  # Handle case of not existing record
+                    faction_db = Faction(**faction)
+                    eddb_session.add(faction_db)
 
                 # Debug
                 #  print('Faction', faction_db)
                 #  print('Allegiance', allegiance_db)
                 #  print('Government', government_db)
 
-                allegiances.add(allegiance_db)
-                governments.add(government_db)
-                factions += [faction_db]
-
+                eddb_session.flush()
                 faction.clear()
                 allegiance.clear()
                 government.clear()
@@ -1552,15 +1740,68 @@ def load_factions(fname, preload=True):
             except KeyError:
                 pass
 
-        if preload:
-            allegiances = []
-            governments = []
-
     print(f"FIN: Parsing factions in {fname}")
-    return allegiances, governments, factions
 
 
 def load_systems(fname, power_ids):
+    """ Parse standard eddb dump populated_systems.json and enter into database. """
+    # High level mapppings direct data flow by path in json
+    # Mappings should be mutually exclusive
+    # Format prefix, [(target_dictionary, key_in_dict), (target_dictionary, key_in_dict), ...]
+    mappings = {
+        'item.id': [('system', 'id')],
+        'item.ed_system_address': [('system', 'ed_system_id')],
+        'item.updated_at': [('system', 'updated_at')],
+        'item.name': [('system', 'name')],
+        'item.population': [('system', 'population')],
+        'item.needs_permit': [('system', 'needs_permit')],
+        'item.edsm_id': [('system', 'edsm_id')],
+        'item.security_id': [('system', 'security_id')],
+        'item.primary_economy_id': [('system', 'primary_economy_id')],
+        'item.power': [('system', 'power')],
+        'item.power_state_id': [('system', 'power_state_id')],
+        'item.controlling_minor_faction_id': [('system', 'controlling_minor_faction_id')],
+        'item.x': [('system', 'x')],
+        'item.y': [('system', 'y')],
+        'item.z': [('system', 'z')],
+    }
+
+    print(f"Parsing systems in {fname}")
+    system = {}
+    with open(fname, 'rb') as fin, cogdb.session_scope(cogdb.EDDBSession, autoflush=False) as eddb_session:
+        for prefix, the_type, value in ijson.parse(fin):
+            #  print(prefix, the_type, value)
+
+            if (prefix, the_type, value) == ('item', 'end_map', None):
+                # JSON Item terminated
+                system['power_id'] = power_ids[system.pop('power')]
+
+                try:
+                    found = eddb_session.query(System).\
+                        filter(System.id == system['id']).\
+                        one()
+                    found.update(**system)
+                except sqla_orm.exc.NoResultFound:  # Handle case of not existing record
+                    system_db = System(**system)
+                    eddb_session.add(system_db)
+
+                # Debug
+                #  print('System', system_db)
+
+                eddb_session.flush()
+                system.clear()
+                continue
+
+            try:
+                for dic, key in mappings[prefix]:
+                    locals()[dic][key] = value
+            except KeyError:
+                pass
+
+    print(f"FIN: Parsing systems in {fname}")
+
+
+def load_influences(fname, power_ids):
     """ Parse standard eddb dump populated_systems.json and enter into database. """
     # High level mapppings direct data flow by path in json
     # Mappings should be mutually exclusive
@@ -1586,11 +1827,10 @@ def load_systems(fname, power_ids):
         'item.minor_faction_presences.item.happiness_id': [('faction', 'happiness_id')],
     }
 
-    print(f"Parsing systems in {fname}")
-    systems, influences, states = [], [], []
+    print(f"Parsing influences in {fname}")
     faction_base = {'active_states': [], 'pending_states': [], 'recovering_states': []}
     system, factions, faction = {}, [], copy.deepcopy(faction_base)
-    with open(fname, 'rb') as fin:
+    with open(fname, 'rb') as fin, cogdb.session_scope(cogdb.EDDBSession, autoflush=False) as eddb_session:
         for prefix, the_type, value in ijson.parse(fin):
             #  print(prefix, the_type, value)
 
@@ -1611,25 +1851,32 @@ def load_systems(fname, power_ids):
             elif (prefix, the_type, value) == ('item', 'end_map', None):
                 # JSON Item terminated
                 system['power_id'] = power_ids[system.pop('power')]
-                for faction in factions:
-                    for val in faction.pop('active_states'):
-                        states += [FactionActiveState(system_id=system['id'], faction_id=faction['faction_id'], state_id=val)]
-                    for val in faction.pop('pending_states'):
-                        states += [FactionActiveState(system_id=system['id'], faction_id=faction['faction_id'], state_id=val)]
-                    for val in faction.pop('recovering_states'):
-                        states += [FactionRecoveringState(system_id=system['id'], faction_id=faction['faction_id'], state_id=val)]
 
+                states = []
+                for faction in factions:
                     faction['is_controlling_faction'] = system['controlling_minor_faction_id'] == faction['faction_id']
                     faction['system_id'] = system['id']
                     faction['updated_at'] = system['updated_at']
-                    influences += [Influence(**faction)]
 
-                system_db = System(**system)
+                    for state_key, state_cls in FACTION_STATE_PAIRS:
+                        for val in faction.pop(state_key):
+                            states += [state_cls(system_id=system['id'], faction_id=faction['faction_id'], state_id=val, updated_at=system['updated_at'])]
 
-                # Debug
-                #  print('System', system_db)
+                    try:
+                        found = eddb_session.query(Influence).\
+                            filter(Influence.system_id == faction['system_id'],
+                                   Influence.faction_id == faction['faction_id']).\
+                            one()
+                        found.update(**faction)
+                    except sqla_orm.exc.NoResultFound:  # Handle case of not existing record
+                        influence_db = Influence(**faction)
+                        eddb_session.add(influence_db)
 
-                systems += [system_db]
+                    # Debug
+                    #  print('Influences', faction)
+
+                eddb_session.add_all(states)
+                eddb_session.flush()
                 system.clear()
                 continue
 
@@ -1639,11 +1886,10 @@ def load_systems(fname, power_ids):
             except KeyError:
                 pass
 
-    print(f"FIN: Parsing systems in {fname}")
-    return systems, influences, states
+    print(f"FIN: Parsing influences in {fname}")
 
 
-def load_stations(fname, economy_ids, preload=True):
+def load_stations(fname, economy_ids, preload=True, refresh_all=False):
     """ Parse standard eddb dump stations.json and enter into database. """
     # High level mapppings direct data flow by path in json
     # Mappings should be mutually exclusive
@@ -1659,21 +1905,27 @@ def load_stations(fname, economy_ids, preload=True):
         'item.system_id': [('station', 'system_id')],
         'item.updated_at': [('station', 'updated_at')],
         'item.has_blackmarket': [('st_features', 'blackmarket')],
+        'item.has_carrier_administration': [('st_features', 'carrier_administration')],
+        'item.has_carrier_vendor': [('st_features', 'carrier_vendor')],
         'item.has_commodities': [('st_features', 'commodities')],
         'item.has_docking': [('st_features', 'dock')],
+        'item.has_interstellar_factors': [('st_features', 'interstellar_factors')],
         'item.has_market': [('st_features', 'market')],
+        'item.has_material_trader': [('st_features', 'material_trader')],
         'item.has_outfitting': [('st_features', 'outfitting')],
+        'item.has_rearm': [('st_features', 'rearm')],
         'item.has_refuel': [('st_features', 'refuel')],
         'item.has_repair': [('st_features', 'repair')],
-        'item.has_rearm': [('st_features', 'rearm')],
         'item.has_shipyard': [('st_features', 'shipyard')],
+        'item.has_technology_broker': [('st_features', 'technology_broker')],
+        'item.has_universal_cartographics': [('st_features', 'universal_cartographics')],
         'item.type': [('st_type', 'text')],
     }
 
     print(f"Parsing stations in {fname}")
     station_features, station_types, stations, economies = [], set(), [], []
     station, st_features, st_type, st_econs = {}, {}, {}, []
-    with open(fname, 'rb') as fin:
+    with open(fname, 'rb') as fin, cogdb.session_scope(cogdb.EDDBSession, autoflush=False) as eddb_session:
         for prefix, the_type, value in ijson.parse(fin):
             #  print(prefix, the_type, value)
             if (prefix, the_type) == ('item.economies.item', 'string'):
@@ -1681,22 +1933,49 @@ def load_stations(fname, economy_ids, preload=True):
 
             if (prefix, the_type, value) == ('item', 'end_map', None):
                 # JSON Item terminated
-                station_db = Station(**station)
-                st_features_db = StationFeatures(**st_features)
-                st_type_db = StationType(**st_type)
-                primary = True
-                for econ in st_econs:
-                    economies += [StationEconomy(id=station['id'], economy_id=economy_ids[econ], primary=primary)]
-                    primary = False
+
+                try:
+                    found = eddb_session.query(Station).\
+                        filter(Station.id == station['id']).\
+                        one()
+                    found.update(**station)
+                except sqla_orm.exc.NoResultFound:  # Handle case of not existing record
+                    station_db = Station(**station)
+                    eddb_session.add(station_db)
+                    stations += [station_db]
+
+                try:
+                    found = eddb_session.query(StationFeatures).\
+                        filter(StationFeatures.id == station['id']).\
+                        one()
+                    found.update(**st_features)
+                except sqla_orm.exc.NoResultFound:  # Handle case of not existing record
+                    st_features_db = StationFeatures(**st_features)
+                    eddb_session.add(st_features_db)
+                    station_features += [st_features_db]
+
+                if not preload:
+                    try:
+                        eddb_session.query(StationType).\
+                            filter(StationType.id == st_type["id"]).\
+                            one()
+                    except sqla_orm.exc.NoResultFound:  # Handle case of not existing record
+                        st_type_db = StationType(**st_type)
+                        eddb_session.add(st_type_db)
+
+                if refresh_all or preload:
+                    primary = True
+                    for econ in st_econs:
+                        economies += [StationEconomy(id=station['id'], economy_id=economy_ids[econ], primary=primary)]
+                        primary = False
+                    eddb_session.add_all(economies)
 
                 # Debug
                 #  print('Station', station_db)
                 #  print('Station Features', st_features_db)
                 #  print('Station Type', st_type_db)
-                station_features += [st_features_db]
-                station_types.add(st_type_db)
-                stations += [station_db]
 
+                eddb_session.flush()
                 station.clear()
                 st_features.clear()
                 st_type.clear()
@@ -1709,11 +1988,7 @@ def load_stations(fname, economy_ids, preload=True):
             except KeyError:
                 pass
 
-    if preload:
-        station_types = []
-
     print(f"FIN: Parsing stations in {fname}")
-    return station_types, stations, economies, station_features
 
 
 def get_systems(session, system_names):
@@ -2294,6 +2569,50 @@ def check_eddb_base_subclass(obj):
     return inspect.isclass(obj) and obj.__name__ not in ["Base", "hybrid_method", "hybrid_property"]
 
 
+def drop_tables(*, all_tables=False):  # pragma: no cover | destructive to test
+    """Ensure all safe to drop tables are dropped.
+
+    Args:
+        all_tables: When True, drop all EDDB tables.
+    """
+    meta = sqlalchemy.MetaData(bind=cogdb.eddb_engine)
+    meta.reflect()
+    for tbl in reversed(meta.sorted_tables):
+        try:
+            if is_safe_to_drop(tbl.name) or all_tables:
+                tbl.drop()
+        except sqla.exc.OperationalError:
+            pass
+
+
+def empty_tables(*, all_tables=False):
+    """Ensure all safe to drop tables are empty.
+
+    Args:
+        all_tables: When True, empty all EDDB tables.
+    """
+    sqla.orm.session.close_all_sessions()
+
+    meta = sqlalchemy.MetaData(bind=cogdb.eddb_engine)
+    meta.reflect()
+    with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
+        for tbl in reversed(meta.sorted_tables):
+            try:
+                if is_safe_to_drop(tbl.name) or all_tables:
+                    eddb_session.query(tbl).delete()
+            except sqla.exc.OperationalError:
+                pass
+
+
+def is_safe_to_drop(tbl_name):
+    """Check if the table is safe to drop.
+
+    Basically any table that can be reconstructed or imported from external can be dropped.
+    For now, tables prefixed with 'spy_' and 'history_' will return False.
+    """
+    return not tbl_name.startswith('spy_') and not tbl_name.startswith('history_')
+
+
 # TODO: Bit messy but works for now.
 #       Core SQLAlchemy lacks proper views, might be in libraries.
 def recreate_tables():  # pragma: no cover | destructive to test
@@ -2315,16 +2634,7 @@ def recreate_tables():  # pragma: no cover | destructive to test
     except (sqla.exc.OperationalError, sqla.exc.ProgrammingError):
         pass
 
-    meta = sqlalchemy.MetaData(bind=cogdb.eddb_engine)
-    meta.reflect()
-    for tbl in reversed(meta.sorted_tables):
-        try:
-            # FIXME: Exempt the spy tables for now.
-            if not tbl.name.startswith('spy_'):
-                tbl.drop()
-        except sqla.exc.OperationalError:
-            pass
-
+    drop_tables(all_tables=True)
     Base.metadata.create_all(cogdb.eddb_engine)
     try:
         SystemContestedV.__table__.drop(cogdb.eddb_engine)
@@ -2349,16 +2659,22 @@ def recreate_tables():  # pragma: no cover | destructive to test
 
 def make_parser():
     parser = argparse.ArgumentParser(description="EDDB Importer")
-    parser.add_argument('--preload', '-p', default=True, action="store_true",
-                        help='Preload required database entries.')
-    parser.add_argument('--no-preload', '-n', dest='preload', action="store_false",
-                        help='Skip preloading required database entries.')
-    parser.add_argument('--dump', '-d', action="store_true",
-                        help='Dump existing database to /tmp/eddb_dump')
     parser.add_argument('--yes', '-y', action="store_true",
                         help='Skip confirmation.')
-    parser.add_argument('--jobs', '-j', type=int,
+    parser.add_argument('--dump', '-d', action="store_true",
+                        help='Dump existing database to /tmp/eddb_dump')
+    parser.add_argument('--jobs', '-j', type=int, default=os.cpu_count(),
                         help='The max number of jobs to run.')
+    parser.add_argument('--no-preload', '-n', dest='preload', default=False, action="store_false",
+                        help='Preload required database entries. Default: True')
+    parser.add_argument('--empty', '-e', dest="empty", action="store_true",
+                        help='Only empty out the tables of data. Implies preload.')
+    parser.add_argument('--no-fetch', dest="fetch", action="store_false",
+                        help='DO NOT fetch latest eddb dumps. Will use current.')
+    parser.add_argument('--recreate-tables, -r', dest="recreate", action="store_true",
+                        help='Recreate all EDDB tables and spy tables. Default: False')
+    parser.add_argument('--full', dest="full", action="store_true",
+                        help='Do a full reimport of slow changing info.')
 
     return parser
 
@@ -2388,7 +2704,7 @@ def chunk_jobs(initial_jobs, *, limit=5000):  # pragma: no cover
     return jobs
 
 
-def pool_loader(preload=True):  # pragma: no cover
+def pool_loader(args, job_limit=os.cpu_count()):  # pragma: no cover
     """
     Use a ProcessPoolExecutor to run jobs that parse parts of the json files
     and return objects to be inserted into the db.
@@ -2404,6 +2720,14 @@ def pool_loader(preload=True):  # pragma: no cover
         preload: The preload has already been done.
     """
     with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
+        classes = [FactionActiveState, FactionPendingState, FactionRecoveringState]
+        if args.full:
+            classes += [StationFeatures, StationEconomy]
+
+        # Some classes are just easier to alwadefault=False, ys replace rather than update
+        for cls in classes:
+            eddb_session.query(cls).delete()
+
         # Map eceonomies back onto ids
         economy_ids = {x.text: x.id for x in eddb_session.query(Economy).all()}
         economy_ids[None] = economy_ids['None']
@@ -2415,36 +2739,27 @@ def pool_loader(preload=True):  # pragma: no cover
     # Things in later rounds have foreign keys to previous ones.
     rounds = {
         1: [
-            [load_commodities, cog.util.rel_to_abs("data", "eddb", "commodities.json_per_line")],
-            [load_modules, cog.util.rel_to_abs("data", "eddb", "modules.json_per_line")],
-            [load_factions, cog.util.rel_to_abs("data", "eddb", "factions.json_per_line"), preload],
+            [load_commodities, cog.util.rel_to_abs("data", "eddb", "commodities.json_per_line"), args.preload],
+            [load_modules, cog.util.rel_to_abs("data", "eddb", "modules.json_per_line"), args.preload],
+            [load_factions, cog.util.rel_to_abs("data", "eddb", "factions.json_per_line"), args.preload],
         ],
         2: [
             [load_systems, cog.util.rel_to_abs("data", "eddb", "systems_populated.json_per_line"), power_ids],
         ],
         3: [
-            [load_stations, cog.util.rel_to_abs("data", "eddb", "stations.json_per_line"), economy_ids, preload],
-        ]
+            [load_influences, cog.util.rel_to_abs("data", "eddb", "systems_populated.json_per_line"), power_ids],
+        ],
+        4: [
+            [load_stations, cog.util.rel_to_abs("data", "eddb", "stations.json_per_line"), economy_ids, args.preload, args.full],
+        ],
     }
 
     try:
-        with cfut.ProcessPoolExecutor(max_workers=JOB_LIMIT) as pool:
-            for key, limit in [(1, 4000), (2, 1500), (3, 2500)]:
+        with cfut.ProcessPoolExecutor(max_workers=job_limit) as pool:
+            for key, limit in [(1, 4000), (2, 3000), (3, 2500), (4, 2500)]:
                 jobs = chunk_jobs(rounds.get(key), limit=limit)
-
-                futures = {pool.submit(*job) for job in jobs.values()}
-                for fut in cfut.as_completed(futures, 600):
-                    for objs in fut.result():
-                        if objs:
-                            # TODO: Potential for further speedup, move this into load functions.
-                            # Current problem: Lock contention on shared table during updates holding conns too long I think.
-                            with cogdb.session_scope(cogdb.EDDBSession) as session:
-                                try:
-                                    session.add_all(objs)
-                                    session.commit()
-                                except sqla.exc.IntegrityError:
-                                    # Just in case, shouldn't trigger
-                                    session.rollback()
+                futures = [pool.submit(*job) for job in jobs.values()]
+                cfut.wait(futures)
     finally:
         match = cog.util.rel_to_abs('data', 'eddb', '*_line_0*')
         for fname in glob.glob(match):
@@ -2455,11 +2770,12 @@ def pool_loader(preload=True):  # pragma: no cover
 
 
 def import_eddb(eddb_session):  # pragma: no cover
-    """ Allows the seeding of db from eddb dumps. """
+    """Confirm user choice and process any args early before pool loading.
+
+    Args:
+        eddb_session: A session onto the db.
+    """
     args = make_parser().parse_args()
-    if args.jobs:
-        global JOB_LIMIT
-        JOB_LIMIT = args.jobs
 
     if not args.yes:
         confirm = input("Reimport EDDB Database? (y/n) ").strip().lower()
@@ -2474,13 +2790,23 @@ def import_eddb(eddb_session):  # pragma: no cover
         dump_db(eddb_session, classes, fname)
         sys.exit(0)
 
-    recreate_tables()
-    print('EDDB tables recreated.')
+    if args.fetch:
+        fetch_eddb.fetch_all(sort=True)
+
+    if args.recreate:
+        args.preload = True
+        recreate_tables()
+        print('EDDB tables recreated.')
+    elif args.empty:
+        args.preload = True
+        empty_tables()
+        print('EDDB tables empties.')
+
     if args.preload:
         preload_tables(eddb_session)
         print('EDDB tables preloaded.')
 
-    pool_loader(args.preload)
+    pool_loader(args)
 
 
 async def monitor_eddb_caches(*, delay_hours=4):  # pragma: no cover
@@ -2567,16 +2893,17 @@ def main():  # pragma: no cover
         print("Module count:", eddb_session.query(Module).count())
         print("Commodity count:", eddb_session.query(Commodity).count())
         obj_count = eddb_session.query(Faction).count()
-        assert obj_count > 77500
         print("Faction count:", obj_count)
         print("Faction States count:", eddb_session.query(FactionActiveState).count() + eddb_session.query(FactionPendingState).count() + eddb_session.query(FactionRecoveringState).count())
         print("Influence count:", eddb_session.query(Influence).count())
+        assert obj_count > 77500
+
         obj_count = eddb_session.query(System).count()
-        assert obj_count > 20500
         print("Populated System count:", obj_count)
+        assert obj_count > 20500
         obj_count = eddb_session.query(Station).count()
-        assert obj_count > 135000
         print("Station count:", obj_count)
+        assert obj_count > 200000
         print("Contested count:", eddb_session.query(SystemContestedV).count())
         print("Time taken:", datetime.datetime.utcnow() - start)
         #  main_test_area(eddb_session)
@@ -2596,6 +2923,11 @@ try:
 except (AttributeError, sqla_orm.exc.NoResultFound, sqla.exc.ProgrammingError):  # pragma: no cover
     PLANETARY_TYPE_IDS = None
     HQS = None
+FACTION_STATE_PAIRS = [
+    ('active_states', FactionActiveState),
+    ('pending_states', FactionPendingState),
+    ('recovering_states', FactionRecoveringState)
+]
 
 
 if __name__ == "__main__":  # pragma: no cover

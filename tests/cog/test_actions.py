@@ -1957,10 +1957,17 @@ def test_check_system_deferred_and_globe(f_dusers, f_fort_testbed, f_global_test
     globe.show_vote_goal = False
 
     assert cog.actions.check_system_deferred_and_globe(prep, globe) is False
+
     fort.notes = 'priority'
     assert cog.actions.check_system_deferred_and_globe(fort, globe) is False
+    fort.notes = ''
+
     globe.show_vote_goal = True
     assert cog.actions.check_system_deferred_and_globe(fort, globe) is False
+    globe.show_vote_goal = False
+
+    fort.fort_status = fort.trigger - 50
+    assert cog.actions.check_system_deferred_and_globe(fort, globe) is not cog.actions.is_near_tick()
 
 
 # TODO: Test: `!scrape power`. At present power is too long, create shorter command.

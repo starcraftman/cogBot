@@ -14,6 +14,7 @@ import aiofiles
 import aiohttp
 
 
+EDDB_D = os.path.join(os.path.dirname(os.path.abspath(os.path.dirname(__file__))), 'data', 'eddb')
 CHUNK_LIMIT = 10000
 EDDB_URLS = [
     #  "https://eddb.io/archive/v6/attractions.json",  # Beacons, abandoned bases
@@ -64,42 +65,53 @@ async def fetch(url, fname, sort=True):
         await a_jq_post_process(fname)
 
 
-def main():
-    sort = False
-    eddb_d = os.path.join(os.path.dirname(os.path.abspath(os.path.dirname(__file__))), 'data', 'eddb')
+def fetch_all(*, sort=True):
+    """
+    Synchronous function call that will update all eddb files to import.
 
+    Args:
+        sort: Use jq to sort the JSON files post download when True.
+    """
     try:
-        confirm = sys.argv[1]
-    except IndexError:
-        confirm = input("Proceeding will overwrite {} with the latest dumps from eddb.\
-\nProceed? (y/n) ".format(eddb_d))
-    confirm = confirm.strip().lower()
-
-    if confirm == "sort":
-        sort = True
-    elif not confirm.startswith('y'):
-        print("Aborting fetch.")
-        return
-
-    try:
-        os.makedirs(eddb_d)
+        os.makedirs(EDDB_D)
     except OSError:
         pass
 
     # Cleanup files before writing
-    to_remove = glob.glob(os.path.join(eddb_d, '*.json'))
+    to_remove = glob.glob(os.path.join(EDDB_D, '*.json'))
     if sort:
-        to_remove += glob.glob(os.path.join(eddb_d, '*.jsonl'))
-        to_remove += glob.glob(os.path.join(eddb_d, '*per_line'))
+        to_remove += glob.glob(os.path.join(EDDB_D, '*.jsonl'))
+        to_remove += glob.glob(os.path.join(EDDB_D, '*per_line'))
     for fname in to_remove:
         try:
             os.remove(fname)
         except OSError:
             print(f"Could not remove: {fname}")
 
-    jobs = [fetch(url, os.path.join(eddb_d, os.path.basename(url)), sort) for url in EDDB_URLS]
+    jobs = [fetch(url, os.path.join(EDDB_D, os.path.basename(url)), sort) for url in EDDB_URLS]
     asyncio.get_event_loop().run_until_complete(asyncio.gather(*jobs))
-    print("\n\nAll files updated in", eddb_d)
+    print("\n\nAll files updated in", EDDB_D)
+
+
+def main():
+    """Just handle input and then process request."""
+    sort = True
+    try:
+        confirm = sys.argv[1]
+    except IndexError:
+        confirm = input("Proceeding will overwrite {} with the latest dumps from eddb.\
+\nProceed? (y/n) ".format(EDDB_D))
+
+    confirm = confirm.strip().lower()
+    if confirm == "sort":
+        sort = True
+    elif not confirm.startswith('n'):
+        sort = False
+    else:
+        print("Aborting fetch.")
+        return
+
+    fetch_all(sort=sort)
 
 
 if __name__ == "__main__":
