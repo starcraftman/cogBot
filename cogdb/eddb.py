@@ -2033,15 +2033,19 @@ def get_systems_around(session, centre_name, distance):
         all()
 
 
-def get_shipyard_stations(session, centre_name, *, sys_dist=75, arrival=2000, include_medium=False):
-    """
+def base_get_stations(session, centre_name, *, sys_dist=75, arrival=2000):
+    """A base query to get all stations around a centre_name System.
+    Applies base criteria filters for max system distance from centre and arrival distance in system.
+
     Given a reference centre system, find nearby orbitals within:
         < sys_dist ly from original system
         < arrival ls from the entry start
 
+    Importantly station_system(System), Station, StationType and StationFeatures are available to further
+    filter the query.
+
     Returns:
-        List of matches:
-            [system_name, system_dist, station_name, station_arrival_distance]
+        A partially completed query based on above, has no extra filters.
     """
     exclude = session.query(StationType.text).\
         filter(or_(StationType.text.like("%Planet%"),
@@ -2061,19 +2065,100 @@ def get_shipyard_stations(session, centre_name, *, sys_dist=75, arrival=2000, in
                Station.distance_to_star < arrival,
                StationType.text.notin_(exclude))
 
-    if include_medium:
-        stations = stations.filter(StationFeatures.repair, StationFeatures.rearm,
-                                   StationFeatures.refuel, StationFeatures.outfitting)
-    else:
-        stations = stations.filter(StationFeatures.shipyard)
+    return stations
+
+
+def get_nearest_stations_with_features(session, centre_name, *, features=None, sys_dist=75, arrival=2000, include_medium=False):
+    """Find the nearest stations with the required features present.
+    Features is a list of strings that are possible features on StationFeatures.
+    Returned results will have stations with ALL requested features.
+
+    Returns:
+        List of matches:
+            [system_name, system_dist, station_name, station_arrival_distance]
+    """
+    stations = base_get_stations(session, centre_name, sys_dist=sys_dist, arrival=arrival)
+
+    if not features:
+        features = []
+    for feature in features:
+        stations = stations.filter(getattr(StationFeatures, feature))
+
+    pads = ['M', 'L'] if include_medium else ['L']
+    stations = stations.filter(Station.max_landing_pad_size.in_(pads))
 
     stations = stations.order_by('dist_c', Station.distance_to_star).\
-        limit(20).\
+        limit(200).\
         all()
 
-    # Slight cleanup for presentation in table
     return [[a, round(b, 2), "[{}] {}".format(e, cog.util.shorten_text(c, 16)), d]
             for [a, b, c, d, e] in stations]
+
+
+def get_nearest_tech_brokers(session, centre_name, *, guardian=True, sys_dist=75, arrival=2000):
+    """Find the nearest stations that sell guardian or human tech broker equipment.
+
+    Returns:
+        List of matches:
+            [system_name, system_dist, station_name, station_arrival_distance]
+    """
+    exclude = session.query(StationType.text).\
+        filter(or_(StationType.text.like("%Planet%"),
+                   StationType.text.like("%Fleet%"))).\
+        scalar_subquery()
+    subq_hightech_id = session.query(Economy.id).\
+        filter(Economy.text == 'High Tech').\
+        scalar_subquery()
+    high_tech_ids = session.query(System.id).\
+        filter(
+            sqla.or_(
+                System.primary_economy_id == subq_hightech_id,
+                System.secondary_economy_id == subq_hightech_id,
+            )
+        ).\
+        scalar_subquery()
+
+    centre = sqla_orm.aliased(System)
+    station_system = sqla_orm.aliased(System)
+    stations = session.query(station_system.name, station_system.dist_to(centre).label('dist_c'),
+                             Station.name, Station.distance_to_star, Station.max_landing_pad_size).\
+        select_from(station_system).\
+        join(centre, centre.name == centre_name).\
+        join(Station, Station.system_id == station_system.id).\
+        join(StationType, Station.type_id == StationType.id).\
+        join(StationFeatures, Station.id == StationFeatures.id).\
+        filter(station_system.dist_to(centre) < sys_dist,
+               Station.distance_to_star < arrival,
+               StationType.text.notin_(exclude),
+               StationFeatures.technology_broker
+        )
+
+    if guardian:
+        stations = stations.filter(station_system.id.in_(high_tech_ids))
+    else:
+        stations = stations.filter(station_system.id.not_in(high_tech_ids))
+
+    stations = stations.order_by('dist_c', Station.distance_to_star).\
+        limit(200).\
+        all()
+
+    return [[a, round(b, 2), "[{}] {}".format(e, cog.util.shorten_text(c, 16)), d]
+            for [a, b, c, d, e] in stations]
+
+
+def get_shipyard_stations(session, centre_name, *, sys_dist=75, arrival=2000, include_medium=False):
+    """Get the nearest shipyard stations.
+    Filter stations to find those with shipyards, these stations have all repair features.
+    If mediums requested, filter to find all repair required features: repair, rearm, feuel, outfitting
+
+    Returns:
+        List of matches:
+            [system_name, system_dist, station_name, station_arrival_distance]
+    """
+    return get_nearest_stations_with_features(
+            session, centre_name, features=['outfitting', 'rearm', 'refuel', 'repair'],
+            sys_dist=sys_dist, arrival=arrival, include_medium=include_medium
+    )
 
 
 def nearest_system(centre, systems):
@@ -2248,47 +2333,6 @@ def is_system_of_power(session, system_name, *, power='%hudson'):
             )
         ).\
         all()
-
-
-def get_nearest_ifactors(session, *, centre_name, sys_dist=75, arrival=2000, include_medium=False):
-    """
-    Given a reference centre system, find nearby orbitals within:
-        < sys_dist ly from original system
-        < arrival ls from the entry start
-
-    Returns:
-        List of matches:
-            [system_name, system_dist, station_name, station_arrival_distance]
-    """
-    exclude = session.query(StationType.text).\
-        filter(or_(StationType.text.like("%Planet%"),
-                   StationType.text.like("%Fleet%"))).\
-        scalar_subquery()
-    sub_security = session.query(Security.id).filter(Security.text == "Low").scalar_subquery()
-
-    centre = sqla_orm.aliased(System)
-    station_system = sqla_orm.aliased(System)
-    stations = session.query(station_system.name, station_system.dist_to(centre).label('dist_c'),
-                             Station.name, Station.distance_to_star, Station.max_landing_pad_size).\
-        select_from(station_system).\
-        join(centre, centre.name == centre_name).\
-        join(Station, Station.system_id == station_system.id).\
-        join(StationType, Station.type_id == StationType.id).\
-        join(StationFeatures, Station.id == StationFeatures.id).\
-        filter(station_system.dist_to(centre) < sys_dist,
-               station_system.security_id == sub_security,
-               Station.distance_to_star < arrival,
-               StationType.text.notin_(exclude))
-
-    if not include_medium:
-        stations = stations.filter(Station.max_landing_pad_size == 'L')
-
-    stations = stations.order_by('dist_c', Station.distance_to_star).\
-        limit(20).\
-        all()
-
-    return [[a, round(b, 2), "[{}] {}".format(e, cog.util.shorten_text(c, 16)), d]
-            for [a, b, c, d, e] in stations]
 
 
 def compute_dists(session, system_names):

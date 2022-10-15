@@ -1345,26 +1345,6 @@ class Near(Action):
         return "__Closest 10 Controls__\n\n" + \
             cog.tbl.format_table(lines, header=True)[0]
 
-    async def ifactors(self, eddb_session):
-        """
-        Find nearest suitable interstellar factors.
-        """
-        sys_name = ' '.join(self.args.system)
-        centre = cogdb.eddb.get_systems(eddb_session, [sys_name])[0]
-        stations = await self.bot.loop.run_in_executor(
-            None,
-            functools.partial(
-                cogdb.eddb.get_nearest_ifactors, eddb_session,
-                centre_name=centre.name, include_medium=self.args.medium
-            )
-        )
-
-        stations = [["System", "Distance", "Station", "Arrival"]] + stations
-        return cog.tbl.format_table(
-            stations, header=True, prefix="__Nearby Interstellar Factors__\n",
-            suffix="[L] Large pads.\n[M] M pads only."
-        )[0]
-
     async def prison(self, eddb_session):
         """
         Find nearest prison megaship.
@@ -1383,15 +1363,116 @@ class Near(Action):
         return f"__Closest 10 Prison Megaships__\nCentred on: {sys_name}\n\n" + \
             cog.tbl.format_table(lines, header=True)[0]
 
+    async def _get_station_features(self, eddb_session, *, features=None, include_medium=False):
+        """Helper function, find and return table of stations with required features.
+
+        Args:
+            eddb_session: A session onto the db.
+            features: A list of StationFeatures to filter on.
+
+        Returns: Table formatted for system, station reading.
+        """
+        sys_name = ' '.join(self.args.system)
+        centre = cogdb.eddb.get_systems(eddb_session, [sys_name])[0]
+        stations = await self.bot.loop.run_in_executor(
+            None,
+            functools.partial(
+                cogdb.eddb.get_nearest_stations_with_features, eddb_session,
+                centre_name=centre.name, features=features if features else [], include_medium=include_medium
+            )
+        )
+
+        stations = [["System", "Distance", "Station", "Arrival"]] + stations
+        title = ' '.join([x.capitalize() for x in features[0].split('_')])
+        return cog.tbl.format_table(
+            stations, header=True, prefix=f"__Nearby {title}__\nCentred on: {sys_name}\n\n",
+            suffix="[L] Large pads.\n[M] M pads only."
+        )[0]
+
+
+    async def _station_features_help(self, eddb_session, *, features=None, include_medium=False):
+        """Helper function, find and return table of stations with required features.
+
+        Args:
+            eddb_session: A session onto the db.
+            features: A list of StationFeatures to filter on.
+
+        Returns: Table formatted for system, station reading.
+        """
+        sys_name = ' '.join(self.args.system)
+        centre = cogdb.eddb.get_systems(eddb_session, [sys_name])[0]
+        stations = await self.bot.loop.run_in_executor(
+            None,
+            functools.partial(
+                cogdb.eddb.get_nearest_stations_with_features, eddb_session,
+                centre_name=centre.name, features=features if features else [], include_medium=include_medium
+            )
+        )
+
+        stations = [["System", "Distance", "Station", "Arrival"]] + stations
+        title = ' '.join([x.capitalize() for x in features[0].split('_')])
+        return cog.tbl.format_table(
+            stations, header=True, prefix=f"__Nearby {title}__\nCentred on: {sys_name}\n\n",
+            suffix="[L] Large pads.\n[M] M pads only."
+        )[0]
+
+    async def _get_brokers(self, eddb_session, *, guardian=False):
+        """Helper function, find and return table of stations with required features.
+
+        Args:
+            eddb_session: A session onto the db.
+            features: A list of StationFeatures to filter on.
+
+        Returns: Table formatted for system, station reading.
+        """
+        sys_name = ' '.join(self.args.system)
+        centre = cogdb.eddb.get_systems(eddb_session, [sys_name])[0]
+        stations = await self.bot.loop.run_in_executor(
+            None,
+            functools.partial(
+                cogdb.eddb.get_nearest_tech_brokers, eddb_session,
+                centre_name=centre.name, guardian=guardian
+            )
+        )
+
+        stations = [["System", "Distance", "Station", "Arrival"]] + stations
+        title = "Guardian Brokers" if guardian else "Human Brokers"
+        return cog.tbl.format_table(
+            stations, header=True, prefix=f"__Nearby {title}__\nCentred on: {sys_name}\n\n",
+            suffix="[L] Large pads.\n[M] M pads only."
+        )[0]
+
+    async def ifactors(self, eddb_session):
+        """
+        Find nearest suitable interstellar factors.
+        """
+        return await self._get_station_features(eddb_session, features=['interstellar_factors'], include_medium=self.args.medium)
+
+    async def mat(self, eddb_session):
+        """
+        Find nearest suitable material trader.
+        """
+        return await self._get_station_features(eddb_session, features=['material_trader'])
+
+    async def human(self, eddb_session):
+        """
+        Find nearest suitable techology broker.
+        """
+        return await self._get_brokers(eddb_session, guardian=False)
+
+    async def guardian(self, eddb_session):
+        """
+        Find nearest suitable techology broker.
+        """
+        return await self._get_brokers(eddb_session, guardian=True)
+
     async def execute(self):
         msg = 'Invalid near sub command.'
         with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
-            if self.args.subcmd == 'control':
-                msg = await self.control(eddb_session)
-            elif self.args.subcmd == 'if':
+            if self.args.subcmd == 'if':
                 msg = await self.ifactors(eddb_session)
-            elif self.args.subcmd == 'prison':
-                msg = await self.prison(eddb_session)
+            else:
+                msg = await getattr(self, self.args.subcmd)(eddb_session)
 
         await self.bot.send_message(self.msg.channel, msg)
 

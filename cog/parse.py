@@ -433,10 +433,18 @@ def subs_near(subs, prefix):
         Show the 10 nearest Winters controls to Sol (default system).
 **{prefix}near control hudson rana**
         Show the 10 nearest Hudson controls to rana.
+**{prefix}near prison sol**
+        Show the nearest prison colonies to sol.
 **{prefix}near if sol**
-        Show the nearest interstellar factors to sol.
+        Show the nearest interstellar factors to sol. Large pads only.
 **{prefix}near if sol -m**
-        Show the nearest interstellar factors to sol. Include medium pads.
+        Show the nearest interstellar factors to sol. Medium and large pads.
+**{prefix}near mat sol**
+        Show the nearest material trader to sol. Large pads only.
+**{prefix}near human sol**
+        Show the nearest human technology broker to sol. Large pads only.
+**{prefix}near guardian sol**
+        Show the nearest guardian technology broker to sol. Large pads only.
     """.format(prefix=prefix)
     sub = subs.add_parser(prefix + 'near', description=desc, formatter_class=RawHelp)
     sub.set_defaults(cmd='Near')
@@ -448,12 +456,21 @@ def subs_near(subs, prefix):
     subcmd.add_argument('power', help='A unique substring of power name.')
     subcmd.add_argument('system', nargs='+', help='The system to lookup.')
 
+    subcmd = subcmds.add_parser('prison', help='Find nearest prison megaship.')
+    subcmd.add_argument('system', nargs='+', help='The system to centre on.')
+
     subcmd = subcmds.add_parser('if', help='Find nearest interstellar factors.')
     subcmd.add_argument('system', nargs='+', help='The system to lookup.')
     subcmd.add_argument('-m', '--medium', action='store_true', default=False, help='The include mpad only stations.')
 
-    subcmd = subcmds.add_parser('prison', help='Find nearest prison megaship.')
-    subcmd.add_argument('system', nargs='+', help='The system to centre on.')
+    subcmd = subcmds.add_parser('mat', help='Find nearest material trader.')
+    subcmd.add_argument('system', nargs='+', help='The system to lookup.')
+
+    subcmd = subcmds.add_parser('human', help='Find nearest human technology broker.')
+    subcmd.add_argument('system', nargs='+', help='The system to lookup.')
+
+    subcmd = subcmds.add_parser('guardian', help='Find nearest guardian technology broker.')
+    subcmd.add_argument('system', nargs='+', help='The system to lookup.')
 
 
 @register_parser

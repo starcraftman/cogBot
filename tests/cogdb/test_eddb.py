@@ -42,6 +42,35 @@ def test_system_contesteds(eddb_session):
     assert system.contesteds[0].name == "Togher"
 
 
+def test_base_get_stations(eddb_session):
+    result = cogdb.eddb.base_get_stations(eddb_session, centre_name='Sol')
+
+    system_names = {x[0] for x in result}
+    assert "Lacaille 9352" in system_names
+
+
+def test_get_nearest_stations_with_features(eddb_session):
+    result = cogdb.eddb.get_nearest_stations_with_features(eddb_session, centre_name='Sol',
+                                          features=['interstellar_factors', 'material_trader', 'shipyard'])
+
+    system_names = {x[0] for x in result}
+    assert "Bolg" in system_names
+
+
+def test_get_nearest_tech_brokers_guardian(eddb_session):
+    result = cogdb.eddb.get_nearest_tech_brokers(eddb_session, centre_name='Sol', guardian=True)
+
+    system_names = {x[0] for x in result}
+    assert "EZ Aquarii" in system_names
+
+
+def test_get_nearest_tech_brokers_human(eddb_session):
+    result = cogdb.eddb.get_nearest_tech_brokers(eddb_session, centre_name='Sol', guardian=False)
+
+    system_names = {x[0] for x in result}
+    assert "WISE 1506+7027" in system_names
+
+
 def test_get_shipyard_stations(eddb_session):
     actual = cogdb.eddb.get_shipyard_stations(eddb_session, "Rana")
     assert actual[0][:3] == ['Rana', 0.0, '[L] Ali Hub']
@@ -198,13 +227,6 @@ def test_get_power_hq_too_many():
 def test_get_power_hq_no_match():
     with pytest.raises(cog.exc.InvalidCommandArgs):
         assert cogdb.eddb.get_power_hq('zzzzzzz')
-
-
-def test_get_nearest_ifactors(eddb_session):
-    result = cogdb.eddb.get_nearest_ifactors(eddb_session, centre_name='Sol')
-
-    system_names = {x[0] for x in result}
-    assert "Lacaille 9352" in system_names
 
 
 def test_um_trigger(eddb_session):

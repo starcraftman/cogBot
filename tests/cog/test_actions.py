@@ -1722,6 +1722,16 @@ async def test_cmd_near_if(f_bot):
 
 
 @pytest.mark.asyncio
+async def test_cmd_near_if_medium(f_bot):
+    msg = fake_msg_gears("!near if sol -m")
+
+    await action_map(msg, f_bot).execute()
+
+    actual = str(f_bot.send_message.call_args).replace("\\n", "\n")
+    assert "Levi-Strauss In." in actual
+
+
+@pytest.mark.asyncio
 async def test_cmd_near_prison(f_bot):
     msg = fake_msg_gears("!near prison Rana")
 
@@ -1731,6 +1741,36 @@ async def test_cmd_near_prison(f_bot):
     assert "The Pillar of Fortitude" in actual
     assert "SPF-LF 1" in actual
     assert "29.34" in actual
+
+
+@pytest.mark.asyncio
+async def test_cmd_near_guardian(f_bot):
+    msg = fake_msg_gears("!near guardian sol")
+
+    await action_map(msg, f_bot).execute()
+
+    actual = str(f_bot.send_message.call_args).replace("\\n", "\n")
+    assert 'Magnus Gateway' in actual
+
+
+@pytest.mark.asyncio
+async def test_cmd_near_human(f_bot):
+    msg = fake_msg_gears("!near human sol")
+
+    await action_map(msg, f_bot).execute()
+
+    actual = str(f_bot.send_message.call_args).replace("\\n", "\n")
+    assert 'Dobrovols' in actual
+
+
+@pytest.mark.asyncio
+async def test_cmd_near_mat(f_bot):
+    msg = fake_msg_gears("!near mat sol")
+
+    await action_map(msg, f_bot).execute()
+
+    actual = str(f_bot.send_message.call_args).replace("\\n", "\n")
+    assert 'Magnus Gateway' in actual
 
 
 @pytest.mark.asyncio
