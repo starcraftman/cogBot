@@ -1389,7 +1389,6 @@ class Near(Action):
             suffix="[L] Large pads.\n[M] M pads only."
         )[0]
 
-
     async def _station_features_help(self, eddb_session, *, features=None, include_medium=False):
         """Helper function, find and return table of stations with required features.
 

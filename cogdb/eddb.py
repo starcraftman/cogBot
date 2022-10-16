@@ -34,7 +34,7 @@ import cog.exc
 import cog.tbl
 import cog.util
 import cogdb
-import extras.fetch_eddb as fetch_eddb
+import extras.fetch_eddb
 
 
 LEN = {  # Lengths for strings stored in the db
@@ -2088,7 +2088,7 @@ def get_nearest_stations_with_features(session, centre_name, *, features=None, s
     stations = stations.filter(Station.max_landing_pad_size.in_(pads))
 
     stations = stations.order_by('dist_c', Station.distance_to_star).\
-        limit(200).\
+        limit(20).\
         all()
 
     return [[a, round(b, 2), "[{}] {}".format(e, cog.util.shorten_text(c, 16)), d]
@@ -2115,7 +2115,7 @@ def get_nearest_tech_brokers(session, centre_name, *, guardian=True, sys_dist=75
                 System.primary_economy_id == subq_hightech_id,
                 System.secondary_economy_id == subq_hightech_id,
             )
-        ).\
+    ).\
         scalar_subquery()
 
     centre = sqla_orm.aliased(System)
@@ -2127,11 +2127,12 @@ def get_nearest_tech_brokers(session, centre_name, *, guardian=True, sys_dist=75
         join(Station, Station.system_id == station_system.id).\
         join(StationType, Station.type_id == StationType.id).\
         join(StationFeatures, Station.id == StationFeatures.id).\
-        filter(station_system.dist_to(centre) < sys_dist,
-               Station.distance_to_star < arrival,
-               StationType.text.notin_(exclude),
-               StationFeatures.technology_broker
-        )
+        filter(
+            station_system.dist_to(centre) < sys_dist,
+            Station.distance_to_star < arrival,
+            StationType.text.notin_(exclude),
+            StationFeatures.technology_broker
+    )
 
     if guardian:
         stations = stations.filter(station_system.id.in_(high_tech_ids))
@@ -2139,7 +2140,7 @@ def get_nearest_tech_brokers(session, centre_name, *, guardian=True, sys_dist=75
         stations = stations.filter(station_system.id.not_in(high_tech_ids))
 
     stations = stations.order_by('dist_c', Station.distance_to_star).\
-        limit(200).\
+        limit(20).\
         all()
 
     return [[a, round(b, 2), "[{}] {}".format(e, cog.util.shorten_text(c, 16)), d]
@@ -2156,8 +2157,8 @@ def get_shipyard_stations(session, centre_name, *, sys_dist=75, arrival=2000, in
             [system_name, system_dist, station_name, station_arrival_distance]
     """
     return get_nearest_stations_with_features(
-            session, centre_name, features=['outfitting', 'rearm', 'refuel', 'repair'],
-            sys_dist=sys_dist, arrival=arrival, include_medium=include_medium
+        session, centre_name, features=['outfitting', 'rearm', 'refuel', 'repair'],
+        sys_dist=sys_dist, arrival=arrival, include_medium=include_medium
     )
 
 
@@ -2331,7 +2332,7 @@ def is_system_of_power(session, system_name, *, power='%hudson'):
                 SystemControlV.system == system_name,
                 SystemControlV.control == system_name
             )
-        ).\
+    ).\
         all()
 
 
@@ -2835,7 +2836,7 @@ def import_eddb(eddb_session):  # pragma: no cover
         sys.exit(0)
 
     if args.fetch:
-        fetch_eddb.fetch_all(sort=True)
+        extras.fetch_eddb.fetch_all(sort=True)
 
     if args.recreate:
         args.preload = True
@@ -2897,7 +2898,6 @@ def main_test_area(eddb_session):  # pragma: no cover
         one()
     print(station.system, station.type, station.features, station.faction)
 
-    __import__('pprint').pprint(get_nearest_ifactors(eddb_session, centre_name='rana'))
     stations = get_shipyard_stations(eddb_session, input("Please enter a system name ... "))
     if stations:
         print(cog.tbl.format_table(stations))
