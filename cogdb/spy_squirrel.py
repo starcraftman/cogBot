@@ -15,7 +15,7 @@ from sqlalchemy.ext.hybrid import hybrid_property
 
 import cog.util
 import cogdb.eddb
-from cog.util import TimestampMixin
+from cog.util import ReprMixin, TimestampMixin
 from cogdb.eddb import Base, Power, System, Faction, Influence
 from cogdb.schema import FortSystem, UMSystem, EFortType, EUMType, EUMSheet
 
@@ -62,20 +62,15 @@ DO
 """
 
 
-class SpyShip(Base):
+class SpyShip(ReprMixin, Base):
     """
     Constants for ship type for SpyTraffic.
     """
     __tablename__ = 'spy_ships'
+    _repr_keys = ['id', 'text']
 
     id = sqla.Column(sqla.Integer, primary_key=True)
     text = sqla.Column(sqla.String(cogdb.eddb.LEN["ship"]))
-
-    def __repr__(self):
-        keys = ['id', 'text']
-        kwargs = [f'{key}={getattr(self, key)!r}' for key in keys]
-
-        return f"{self.__class__.__name__}({', '.join(kwargs)})"
 
     def __str__(self):
         """ A pretty one line to give all information. """
@@ -89,11 +84,15 @@ class SpyShip(Base):
 
 
 # These entries will be stored for SPY_LIMIT days.
-class SpyBounty(TimestampMixin, Base):
+class SpyBounty(ReprMixin, TimestampMixin, Base):
     """
     Track the bounties active in a system.
     """
     __tablename__ = 'spy_top5'
+    _repr_keys = [
+        'id', 'pos', 'cmdr_name', 'ship_name', 'last_seen_system', 'last_seen_station',
+        'bounty', 'is_local', 'ship_id', 'updated_at'
+    ]
 
     id = sqla.Column(sqla.BigInteger, primary_key=True)
     ship_id = sqla.Column(sqla.Integer, sqla.ForeignKey('spy_ships.id'))
@@ -117,13 +116,6 @@ class SpyBounty(TimestampMixin, Base):
         primaryjoin='foreign(Power.id) == SpyBounty.power_id',
     )
 
-    def __repr__(self):
-        keys = ['id', 'pos', 'cmdr_name', 'ship_name', 'last_seen_system', 'last_seen_station',
-                'bounty', 'is_local', 'ship_id', 'updated_at']
-        kwargs = [f'{key}={getattr(self, key)!r}' for key in keys]
-
-        return f"{self.__class__.__name__}({', '.join(kwargs)})"
-
     def __str__(self):
         """ A pretty one line to give all information. """
         ship_text = "{}".format(self.ship.text if self.ship else self.ship_id)
@@ -137,11 +129,12 @@ class SpyBounty(TimestampMixin, Base):
 
 
 # These entries will be stored for SPY_LIMIT days.
-class SpyTraffic(Base):
+class SpyTraffic(ReprMixin, Base):
     """
     Monitor traffic of different ships in the system.
     """
     __tablename__ = 'spy_traffic'
+    _repr_keys = ['id', 'cnt', 'ship_id', 'updated_at']
 
     id = sqla.Column(sqla.BigInteger, primary_key=True)
     ship_id = sqla.Column(sqla.Integer, sqla.ForeignKey('spy_ships.id'))
@@ -153,12 +146,6 @@ class SpyTraffic(Base):
     ship = sqla.orm.relationship(
         'SpyShip', uselist=False, lazy='joined', viewonly=True,
     )
-
-    def __repr__(self):
-        keys = ['id', 'cnt', 'ship_id', 'updated_at']
-        kwargs = [f'{key}={getattr(self, key)!r}' for key in keys]
-
-        return f"{self.__class__.__name__}({', '.join(kwargs)})"
 
     def __str__(self):
         """ A pretty one line to give all information. """
@@ -172,11 +159,12 @@ class SpyTraffic(Base):
         return hash(f"{self.id}")
 
 
-class SpyVote(TimestampMixin, Base):
+class SpyVote(ReprMixin, TimestampMixin, Base):
     """
     Record current vote by power.
     """
     __tablename__ = 'spy_votes'
+    _repr_keys = ['power_id', 'vote', 'updated_at']
 
     power_id = sqla.Column(sqla.Integer, primary_key=True)
     vote = sqla.Column(sqla.Integer, default=0)
@@ -187,12 +175,6 @@ class SpyVote(TimestampMixin, Base):
         'Power', uselist=False, lazy='joined', viewonly=True,
         primaryjoin='foreign(Power.id) == SpyVote.power_id',
     )
-
-    def __repr__(self):
-        keys = ['power_id', 'vote', 'updated_at']
-        kwargs = [f'{key}={getattr(self, key)!r}' for key in keys]
-
-        return f"{self.__class__.__name__}({', '.join(kwargs)})"
 
     def __str__(self):
         """ A pretty one line to give all information. """
@@ -205,11 +187,12 @@ class SpyVote(TimestampMixin, Base):
         return hash(f"{self.power_id}")
 
 
-class SpyPrep(TimestampMixin, Base):
+class SpyPrep(ReprMixin, TimestampMixin, Base):
     """
     Store Prep triggers by systems.
     """
     __tablename__ = 'spy_preps'
+    _repr_keys = ['id', 'power_id', 'ed_system_id', 'merits', 'updated_at']
 
     __table_args__ = (
         sqla.UniqueConstraint('ed_system_id', 'power_id', name='system_power_constraint'),
@@ -233,12 +216,6 @@ class SpyPrep(TimestampMixin, Base):
         primaryjoin='foreign(Power.id) == SpyPrep.power_id',
     )
 
-    def __repr__(self):
-        keys = ['id', 'power_id', 'ed_system_id', 'merits', 'updated_at']
-        kwargs = [f'{key}={getattr(self, key)!r}' for key in keys]
-
-        return f"{self.__class__.__name__}({', '.join(kwargs)})"
-
     def __str__(self):
         """ A pretty one line to give all information. """
         power_text = "{}".format(self.power.text if self.power else self.power_id)
@@ -252,11 +229,16 @@ class SpyPrep(TimestampMixin, Base):
         return hash(f"{self.power_id}_{self.ed_system_id}")
 
 
-class SpySystem(TimestampMixin, Base):
+class SpySystem(ReprMixin, TimestampMixin, Base):
     """
     Store the current important information of the system.
     """
     __tablename__ = 'spy_systems'
+    _repr_keys = [
+        'id', 'ed_system_id', 'power_id', 'power_state_id',
+        'income', 'upkeep_current', 'upkeep_default',
+        'fort', 'fort_trigger', 'um', 'um_trigger', 'updated_at'
+    ]
 
     __table_args__ = (
         sqla.UniqueConstraint('ed_system_id', 'power_id', name='system_power_constraint'),
@@ -293,14 +275,6 @@ class SpySystem(TimestampMixin, Base):
         'PowerState', uselist=False, lazy='joined', viewonly=True,
         primaryjoin='foreign(PowerState.id) == SpySystem.power_state_id',
     )
-
-    def __repr__(self):
-        keys = ['id', 'ed_system_id', 'power_id', 'power_state_id',
-                'income', 'upkeep_current', 'upkeep_default',
-                'fort', 'fort_trigger', 'um', 'um_trigger', 'updated_at']
-        kwargs = [f'{key}={getattr(self, key)!r}' for key in keys]
-
-        return f"{self.__class__.__name__}({', '.join(kwargs)})"
 
     def __str__(self):
         """ A pretty one line to give all information. """

@@ -335,7 +335,9 @@ def test_timestampmixin_tz():
     assert "2021-10-21 07:00:00+00:00" == str(actual.utc_date_tz)
 
 
-class DummyUpdateObject(cog.util.UpdatableMixin):
+class DummyUpdateObject(cog.util.ReprMixin, cog.util.UpdatableMixin):
+    _repr_keys = ['num', 'updated_at']
+
     def __init__(self):
         self.num = 10
         self.updated_at = 50
@@ -359,6 +361,11 @@ def test_updatable_mixin_newer_kwargs():
     obj = DummyUpdateObject()
     obj.update(**kwargs)
     assert obj.num == 20
+
+
+def test_repr_mixin():
+    obj = DummyUpdateObject()
+    assert 'DummyUpdateObject(num=10, updated_at=50)' == repr(obj)
 
 
 def test_hex_decode():

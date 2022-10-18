@@ -163,6 +163,20 @@ class WaitCB():
             await self.resume_cb()
 
 
+class ReprMixin():
+    """Mixin that generates my format repr for object storage."""
+    def __repr__(self):
+        """
+        Simple repr generating the following format:
+            ClassName(key1=value1,key2=value2,...)
+        Store key names in ClassName._repr_keys
+        """
+        keys = self.__class__._repr_keys
+        kwargs = [f'{key}={getattr(self, key)!r}' for key in keys]
+
+        return f'{self.__class__.__name__}({", ".join(kwargs)})'
+
+
 class TimestampMixin():
     """
     Simple mixing that converts updated_at timestamp to a datetime object.

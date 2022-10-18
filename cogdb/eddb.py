@@ -35,7 +35,7 @@ import cog.tbl
 import cog.util
 import cogdb
 import extras.fetch_eddb
-from cog.util import TimestampMixin, UpdatableMixin
+from cog.util import ReprMixin, TimestampMixin, UpdatableMixin
 
 
 LEN = {  # Lengths for strings stored in the db
@@ -132,19 +132,14 @@ HISTORY_INF_TIME_GAP = HOUR_SECONDS * 4  # min seconds between data points
 Base = sqlalchemy.ext.declarative.declarative_base()
 
 
-class Allegiance(Base):
+class Allegiance(ReprMixin, Base):
     """ Represents the allegiance of a faction. """
     __tablename__ = "allegiance"
+    _repr_keys = ['id', 'text', 'eddn']
 
     id = sqla.Column(sqla.Integer, primary_key=True)
     text = sqla.Column(sqla.String(LEN["allegiance"]))
     eddn = sqla.Column(sqla.String(LEN["allegiance"]))
-
-    def __repr__(self):
-        keys = ['id', 'text', 'eddn']
-        kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
-
-        return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
 
     def __eq__(self, other):
         return (isinstance(self, Allegiance) and isinstance(other, Allegiance)
@@ -154,9 +149,13 @@ class Allegiance(Base):
         return hash(self.id)
 
 
-class Commodity(UpdatableMixin, Base):
+class Commodity(ReprMixin, UpdatableMixin, Base):
     """ A commodity sold at a station. """
     __tablename__ = 'commodities'
+    _repr_keys = [
+        'id', 'category_id', "name", "average_price", "is_rare", "is_non_marketable",
+        "max_buy_price", "max_sell_price", "min_buy_price", "min_sell_price", "updated_at"
+    ]
 
     id = sqla.Column(sqla.Integer, primary_key=True)
     category_id = sqla.Column(sqla.Integer,
@@ -172,13 +171,6 @@ class Commodity(UpdatableMixin, Base):
     is_rare = sqla.Column(sqla.Boolean, default=False)
     updated_at = sqla.Column(sqla.Integer, default=time.time, onupdate=time.time)
 
-    def __repr__(self):
-        keys = ['id', 'category_id', "name", "average_price", "is_rare", "is_non_marketable",
-                "max_buy_price", "max_sell_price", "min_buy_price", "min_sell_price", "updated_at"]
-        kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
-
-        return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
-
     def __eq__(self, other):
         return (isinstance(self, Commodity) and isinstance(other, Commodity)
                 and self.id == other.id)
@@ -187,18 +179,13 @@ class Commodity(UpdatableMixin, Base):
         return hash(self.id)
 
 
-class CommodityCat(Base):
+class CommodityCat(ReprMixin, Base):
     """ The category for a commodity """
     __tablename__ = "commodity_categories"
+    _repr_keys = ['id', 'name']
 
     id = sqla.Column(sqla.Integer, primary_key=True)
     name = sqla.Column(sqla.String(LEN["commodity_category"]))
-
-    def __repr__(self):
-        keys = ['id', 'name']
-        kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
-
-        return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
 
     def __eq__(self, other):
         return (isinstance(self, CommodityCat) and isinstance(other, CommodityCat)
@@ -208,19 +195,14 @@ class CommodityCat(Base):
         return hash(self.id)
 
 
-class Economy(Base):
+class Economy(ReprMixin, Base):
     """ The type of economy """
     __tablename__ = "economies"
+    _repr_keys = ['id', 'text', 'eddn']
 
     id = sqla.Column(sqla.Integer, primary_key=True)
     text = sqla.Column(sqla.String(LEN["economy"]))
     eddn = sqla.Column(sqla.String(LEN["economy"]))
-
-    def __repr__(self):
-        keys = ['id', 'text', 'eddn']
-        kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
-
-        return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
 
     def __eq__(self, other):
         return (isinstance(self, Economy) and isinstance(other, Economy)
@@ -230,9 +212,13 @@ class Economy(Base):
         return hash(self.id)
 
 
-class Faction(TimestampMixin, UpdatableMixin, Base):
+class Faction(ReprMixin, TimestampMixin, UpdatableMixin, Base):
     """ Information about a faction. """
     __tablename__ = "factions"
+    _repr_keys = [
+        'id', 'name', 'state_id', 'government_id', 'allegiance_id', 'home_system_id',
+        'is_player_faction', 'updated_at'
+    ]
 
     id = sqla.Column(sqla.Integer, primary_key=True)
     allegiance_id = sqla.Column(sqla.Integer, sqla.ForeignKey('allegiance.id'))
@@ -249,13 +235,6 @@ class Faction(TimestampMixin, UpdatableMixin, Base):
     government = sqla.orm.relationship('Government', viewonly=True)
     state = sqla.orm.relationship('FactionState', viewonly=True)
 
-    def __repr__(self):
-        keys = ['id', 'name', 'state_id', 'government_id', 'allegiance_id', 'home_system_id',
-                'is_player_faction', 'updated_at']
-        kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
-
-        return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
-
     def __eq__(self, other):
         return isinstance(self, Faction) and isinstance(other, Faction) and self.id == other.id
 
@@ -263,19 +242,14 @@ class Faction(TimestampMixin, UpdatableMixin, Base):
         return hash(self.id)
 
 
-class FactionHappiness(Base):
+class FactionHappiness(ReprMixin, Base):
     """ The happiness of a faction. """
     __tablename__ = "faction_happiness"
+    _repr_keys = ['id', 'text', 'eddn']
 
     id = sqla.Column(sqla.Integer, primary_key=True, nullable=True, autoincrement=False)
     text = sqla.Column(sqla.String(LEN["faction_happiness"]), nullable=False)
     eddn = sqla.Column(sqla.String(LEN["eddn"]), default=None)
-
-    def __repr__(self):
-        keys = ['id', 'text', 'eddn']
-        kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
-
-        return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
 
     def __eq__(self, other):
         return (isinstance(self, FactionHappiness) and isinstance(other, FactionHappiness)
@@ -285,19 +259,14 @@ class FactionHappiness(Base):
         return hash(self.id)
 
 
-class FactionState(Base):
+class FactionState(ReprMixin, Base):
     """ The state a faction is in. """
     __tablename__ = "faction_state"
+    _repr_keys = ['id', 'text', 'eddn']
 
     id = sqla.Column(sqla.Integer, primary_key=True, nullable=True, autoincrement=False)
     text = sqla.Column(sqla.String(LEN["faction_state"]), nullable=False)
     eddn = sqla.Column(sqla.String(LEN["eddn"]), default=None)
-
-    def __repr__(self):
-        keys = ['id', 'text', 'eddn']
-        kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
-
-        return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
 
     def __eq__(self, other):
         return (isinstance(self, FactionState) and isinstance(other, FactionState)
@@ -307,9 +276,10 @@ class FactionState(Base):
         return hash(self.id)
 
 
-class FactionActiveState(TimestampMixin, Base):
+class FactionActiveState(ReprMixin, TimestampMixin, Base):
     """ Represents the actual or pending states of a faction/system pair."""
     __tablename__ = "faction_active_states"
+    _repr_keys = ['system_id', 'faction_id', 'state_id', 'updated_at']
 
     system_id = sqla.Column(sqla.Integer, sqla.ForeignKey('systems.id'), primary_key=True)
     faction_id = sqla.Column(sqla.Integer, sqla.ForeignKey('factions.id'), primary_key=True)
@@ -318,12 +288,6 @@ class FactionActiveState(TimestampMixin, Base):
 
     # Relationships
     state = sqla.orm.relationship('FactionState', viewonly=True, lazy='joined')
-
-    def __repr__(self):
-        keys = ['system_id', 'faction_id', 'state_id', 'updated_at']
-        kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
-
-        return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
 
     def __eq__(self, other):
         return (isinstance(self, FactionActiveState)
@@ -331,12 +295,13 @@ class FactionActiveState(TimestampMixin, Base):
                 and self.__hash__() == other.__hash__())
 
     def __hash__(self):
-        return hash("{}_{}_{}".format(self.faction_id, self.system_id, self.state_id))
+        return hash(f"{self.faction_id}_{self.system_id}_{self.state_id}")
 
 
-class FactionPendingState(TimestampMixin, Base):
+class FactionPendingState(ReprMixin, TimestampMixin, Base):
     """ Represents the actual or pending states of a faction/system pair."""
     __tablename__ = "faction_pending_states"
+    _repr_keys = ['system_id', 'faction_id', 'state_id', 'updated_at']
 
     system_id = sqla.Column(sqla.Integer, sqla.ForeignKey('systems.id'), primary_key=True)
     faction_id = sqla.Column(sqla.Integer, sqla.ForeignKey('factions.id'), primary_key=True)
@@ -345,12 +310,6 @@ class FactionPendingState(TimestampMixin, Base):
 
     # Relationships
     state = sqla.orm.relationship('FactionState', viewonly=True, lazy='joined')
-
-    def __repr__(self):
-        keys = ['system_id', 'faction_id', 'state_id', 'updated_at']
-        kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
-
-        return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
 
     def __eq__(self, other):
         return (isinstance(self, FactionPendingState)
@@ -358,12 +317,13 @@ class FactionPendingState(TimestampMixin, Base):
                 and self.__hash__() == other.__hash__())
 
     def __hash__(self):
-        return hash("{}_{}_{}".format(self.faction_id, self.system_id, self.state_id))
+        return hash(f"{self.faction_id}_{self.system_id}_{self.state_id}")
 
 
-class FactionRecoveringState(TimestampMixin, Base):
+class FactionRecoveringState(ReprMixin, TimestampMixin, Base):
     """ Represents the actual or pending states of a faction/system pair."""
     __tablename__ = "faction_recovering_states"
+    _repr_keys = ['system_id', 'faction_id', 'state_id', 'updated_at']
 
     system_id = sqla.Column(sqla.Integer, sqla.ForeignKey('systems.id'), primary_key=True)
     faction_id = sqla.Column(sqla.Integer, sqla.ForeignKey('factions.id'), primary_key=True)
@@ -373,34 +333,23 @@ class FactionRecoveringState(TimestampMixin, Base):
     # Relationships
     state = sqla.orm.relationship('FactionState', viewonly=True, lazy='joined')
 
-    def __repr__(self):
-        keys = ['system_id', 'faction_id', 'state_id', 'updated_at']
-        kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
-
-        return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
-
     def __eq__(self, other):
         return (isinstance(self, FactionRecoveringState)
                 and isinstance(other, FactionRecoveringState)
                 and self.__hash__() == other.__hash__())
 
     def __hash__(self):
-        return hash("{}_{}_{}".format(self.faction_id, self.system_id, self.state_id))
+        return hash(f"{self.faction_id}_{self.system_id}_{self.state_id}")
 
 
-class Government(Base):
+class Government(ReprMixin, Base):
     """ All faction government types. """
     __tablename__ = "gov_type"
+    _repr_keys = ['id', 'text', 'eddn']
 
     id = sqla.Column(sqla.Integer, primary_key=True, nullable=True, autoincrement=False)
     text = sqla.Column(sqla.String(LEN["government"]), nullable=False)
     eddn = sqla.Column(sqla.String(LEN["eddn"]), default=None)
-
-    def __repr__(self):
-        keys = ['id', 'text', 'eddn']
-        kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
-
-        return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
 
     def __eq__(self, other):
         return (isinstance(self, Government) and isinstance(other, Government)
@@ -410,9 +359,10 @@ class Government(Base):
         return hash(self.id)
 
 
-class Influence(TimestampMixin, Base):
+class Influence(ReprMixin, TimestampMixin, Base):
     """ Represents influence of a faction in a system. """
     __tablename__ = "influence"
+    _repr_keys = ['system_id', 'faction_id', 'happiness_id', 'influence', 'is_controlling_faction', 'updated_at']
 
     id = sqla.Column(sqla.BigInteger, primary_key=True)
     faction_id = sqla.Column(sqla.Integer, sqla.ForeignKey('factions.id'), nullable=False)
@@ -427,12 +377,6 @@ class Influence(TimestampMixin, Base):
     happiness = sqla.orm.relationship('FactionHappiness', lazy='joined', viewonly=True)
     system = sqla.orm.relationship('System', viewonly=True)
     faction = sqla.orm.relationship('Faction', viewonly=True)
-
-    def __repr__(self):
-        keys = ['system_id', 'faction_id', 'happiness_id', 'influence', 'is_controlling_faction', 'updated_at']
-        kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
-
-        return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
 
     def __eq__(self, other):
         return (isinstance(self, Influence) and isinstance(other, Influence)
@@ -450,9 +394,10 @@ class Influence(TimestampMixin, Base):
                 setattr(self, key, val)
 
 
-class Module(UpdatableMixin, Base):
+class Module(ReprMixin, UpdatableMixin, Base):
     """ A module for a ship. """
     __tablename__ = "modules"
+    _repr_keys = ['id', 'name', 'group_id', 'size', 'rating', 'mass', 'price', 'ship', 'weapon_mode']
 
     id = sqla.Column(sqla.Integer, primary_key=True)
     group_id = sqla.Column(sqla.Integer, sqla.ForeignKey('module_groups.id'))
@@ -465,12 +410,6 @@ class Module(UpdatableMixin, Base):
     ship = sqla.Column(sqla.String(LEN["ship"]))  # Module sepfically for this ship
     weapon_mode = sqla.Column(sqla.String(LEN["weapon_mode"]))  # Fixed, Gimbal or Turret
 
-    def __repr__(self):
-        keys = ['id', 'name', 'group_id', 'size', 'rating', 'mass', 'price', 'ship', 'weapon_mode']
-        kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
-
-        return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
-
     def __eq__(self, other):
         return self.id == other.id
 
@@ -478,9 +417,10 @@ class Module(UpdatableMixin, Base):
         return hash(self.id)
 
 
-class ModuleGroup(Base):
+class ModuleGroup(ReprMixin, Base):
     """ A group for a module. """
     __tablename__ = "module_groups"
+    _repr_keys = ['id', 'name', 'category', 'category_id']
 
     id = sqla.Column(sqla.Integer, primary_key=True)
     category_id = sqla.Column(sqla.Integer)
@@ -488,12 +428,6 @@ class ModuleGroup(Base):
     category = sqla.Column(sqla.String(LEN["module_category"]))
     name = sqla.Column(sqla.String(LEN["module_group"]))  # Name of module group, i.e. "Beam Laser"
 
-    def __repr__(self):
-        keys = ['id', 'name', 'category', 'category_id']
-        kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
-
-        return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
-
     def __eq__(self, other):
         return self.id == other.id
 
@@ -501,9 +435,10 @@ class ModuleGroup(Base):
         return hash(self.id)
 
 
-class Power(Base):
+class Power(ReprMixin, Base):
     """ Represents a powerplay leader. """
     __tablename__ = "powers"
+    _repr_keys = ['id', 'text', 'eddn', 'abbrev', 'home_system_name']
 
     id = sqla.Column(sqla.Integer, primary_key=True, nullable=True, autoincrement=False)
     text = sqla.Column(sqla.String(LEN["power"]))
@@ -517,12 +452,6 @@ class Power(Base):
         primaryjoin='foreign(System.name) == Power.home_system_name',
     )
 
-    def __repr__(self):
-        keys = ['id', 'text', 'eddn', 'abbrev', 'home_system_name']
-        kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
-
-        return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
-
     def __eq__(self, other):
         return (isinstance(self, Power) and isinstance(other, Power)
                 and self.id == other.id)
@@ -531,21 +460,16 @@ class Power(Base):
         return hash(self.id)
 
 
-class PowerState(Base):
+class PowerState(ReprMixin, Base):
     """
     Represents the power state of a system (i.e. control, exploited).
     """
     __tablename__ = "power_state"
+    _repr_keys = ['id', 'text', 'eddn']
 
     id = sqla.Column(sqla.Integer, primary_key=True, nullable=True, autoincrement=False)
     text = sqla.Column(sqla.String(LEN["power_state"]))
     eddn = sqla.Column(sqla.String(LEN["power_state"]))
-
-    def __repr__(self):
-        keys = ['id', 'text', 'eddn']
-        kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
-
-        return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
 
     def __eq__(self, other):
         return (isinstance(self, PowerState) and isinstance(other, PowerState)
@@ -555,19 +479,14 @@ class PowerState(Base):
         return hash(self.id)
 
 
-class Security(Base):
+class Security(ReprMixin, Base):
     """ Security states of a system. """
     __tablename__ = "security"
+    _repr_keys = ['id', 'text', 'eddn']
 
     id = sqla.Column(sqla.Integer, primary_key=True)
     text = sqla.Column(sqla.String(LEN["security"]))
     eddn = sqla.Column(sqla.String(LEN["eddn"]))
-
-    def __repr__(self):
-        keys = ['id', 'text', 'eddn']
-        kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
-
-        return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
 
     def __eq__(self, other):
         return (isinstance(self, Security) and isinstance(other, Security)
@@ -577,18 +496,13 @@ class Security(Base):
         return hash(self.id)
 
 
-class SettlementSecurity(Base):
+class SettlementSecurity(ReprMixin, Base):
     """ The security of a settlement. """
     __tablename__ = "settlement_security"
+    _repr_keys = ['id', 'text']
 
     id = sqla.Column(sqla.Integer, primary_key=True)
     text = sqla.Column(sqla.String(LEN["settlement_security"]))
-
-    def __repr__(self):
-        keys = ['id', 'text']
-        kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
-
-        return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
 
     def __eq__(self, other):
         return (isinstance(self, SettlementSecurity) and isinstance(other, SettlementSecurity)
@@ -598,18 +512,13 @@ class SettlementSecurity(Base):
         return hash(self.id)
 
 
-class SettlementSize(Base):
+class SettlementSize(ReprMixin, Base):
     """ The size of a settlement. """
     __tablename__ = "settlement_size"
+    _repr_keys = ['id', 'text']
 
     id = sqla.Column(sqla.Integer, primary_key=True)
     text = sqla.Column(sqla.String(LEN["settlement_size"]))
-
-    def __repr__(self):
-        keys = ['id', 'text']
-        kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
-
-        return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
 
     def __eq__(self, other):
         return (isinstance(self, SettlementSize) and isinstance(other, SettlementSize)
@@ -619,9 +528,14 @@ class SettlementSize(Base):
         return hash(self.id)
 
 
-class StationFeatures(TimestampMixin, UpdatableMixin, Base):
+class StationFeatures(ReprMixin, TimestampMixin, UpdatableMixin, Base):
     """ The features at a station. """
     __tablename__ = "station_features"
+    _repr_keys = [
+        'id', 'blackmarket', 'carrier_administration', 'carrier_vendor', 'commodities',
+        'dock', 'interstellar_factors', 'market', 'outfitting', 'rearm', 'refuel',
+        'repair', 'shipyard', 'technology_broker', 'universal_cartographics', 'updated_at'
+    ]
 
     id = sqla.Column(sqla.Integer, sqla.ForeignKey('stations.id'), primary_key=True)
 
@@ -645,14 +559,6 @@ class StationFeatures(TimestampMixin, UpdatableMixin, Base):
     # Realtionships
     station = sqla.orm.relationship('Station', uselist=False, viewonly=True)
 
-    def __repr__(self):
-        keys = ['id', 'blackmarket', 'carrier_administration', 'carrier_vendor', 'commodities',
-                'dock', 'interstellar_factors', 'market', 'outfitting', 'rearm', 'refuel',
-                'repair', 'shipyard', 'technology_broker', 'universal_cartographics', 'updated_at']
-        kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
-
-        return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
-
     def __eq__(self, other):
         return (isinstance(self, StationFeatures) and isinstance(other, StationFeatures)
                 and self.id == other.id)
@@ -661,18 +567,13 @@ class StationFeatures(TimestampMixin, UpdatableMixin, Base):
         return hash(self.id)
 
 
-class StationType(Base):
+class StationType(ReprMixin, Base):
     __tablename__ = "station_types"
+    _repr_keys = ['id', 'text', 'eddn']
 
     id = sqla.Column(sqla.Integer, primary_key=True)
     text = sqla.Column(sqla.String(LEN["station_type"]))
     eddn = sqla.Column(sqla.String(LEN["station_type"]))
-
-    def __repr__(self):
-        keys = ['id', 'text', 'eddn']
-        kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
-
-        return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
 
     def __eq__(self, other):
         return (isinstance(self, StationType) and isinstance(other, StationType)
@@ -682,19 +583,14 @@ class StationType(Base):
         return hash(self.id)
 
 
-class StationEconomy(Base):
+class StationEconomy(ReprMixin, Base):
     __tablename__ = "station_economies"
+    _repr_keys = ['id', 'economy_id', 'primary', 'proportion']
 
     id = sqla.Column(sqla.Integer, sqla.ForeignKey('stations.id'), primary_key=True)
     economy_id = sqla.Column(sqla.Integer, sqla.ForeignKey('economies.id'), primary_key=True)
     primary = sqla.Column(sqla.Boolean, primary_key=True, default=False)
     proportion = sqla.Column(sqla.Float)
-
-    def __repr__(self):
-        keys = ['id', 'economy_id', 'primary', 'proportion']
-        kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
-
-        return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
 
     def __eq__(self, other):
         return (isinstance(self, StationEconomy) and isinstance(other, StationEconomy)
@@ -704,9 +600,13 @@ class StationEconomy(Base):
         return hash("{}_{}".format(self.id, self.economy_id))
 
 
-class Station(TimestampMixin, UpdatableMixin, Base):
+class Station(ReprMixin, TimestampMixin, UpdatableMixin, Base):
     """ Repesents a system in the universe. """
     __tablename__ = "stations"
+    _repr_keys = [
+        'id', 'name', 'distance_to_star', 'max_landing_pad_size',
+        'type_id', 'system_id', 'controlling_minor_faction_id', 'updated_at'
+    ]
 
     id = sqla.Column(sqla.Integer, primary_key=True)
     controlling_minor_faction_id = sqla.Column(sqla.Integer, sqla.ForeignKey('factions.id'))
@@ -743,13 +643,6 @@ class Station(TimestampMixin, UpdatableMixin, Base):
         primaryjoin='and_(Station.controlling_minor_faction_id == remote(Faction.id), foreign(Faction.government_id) == foreign(Government.id))',
     )
 
-    def __repr__(self):
-        keys = ['id', 'name', 'distance_to_star', 'max_landing_pad_size',
-                'type_id', 'system_id', 'controlling_minor_faction_id', 'updated_at']
-        kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
-
-        return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
-
     def __eq__(self, other):
         return isinstance(self, Station) and isinstance(other, Station) and self.id == other.id
 
@@ -757,13 +650,18 @@ class Station(TimestampMixin, UpdatableMixin, Base):
         return hash(self.id)
 
 
-class System(TimestampMixin, UpdatableMixin, Base):
+class System(ReprMixin, TimestampMixin, UpdatableMixin, Base):
     """
     Repesents a system in the universe.
 
     See SystemControlV for complete control information, especially for contesteds.
     """
     __tablename__ = "systems"
+    _repr_keys = [
+        'id', 'name', 'population', 'needs_permit', 'updated_at', 'power_id', 'edsm_id',
+        'primary_economy_id', 'secondary_economy_id', 'security_id', 'power_state_id',
+        'controlling_minor_faction_id', 'x', 'y', 'z'
+    ]
 
     id = sqla.Column(sqla.Integer, primary_key=True)
     ed_system_id = sqla.Column(sqla.BigInteger, index=True)
@@ -870,15 +768,6 @@ class System(TimestampMixin, UpdatableMixin, Base):
         normal_trigger = round(5000 + (2750000 / math.pow(self.dist_to(system), 1.5)))
         return round(normal_trigger * (1 + (reinforced / 100)))
 
-    def __repr__(self):
-        keys = ['id', 'name', 'population',
-                'needs_permit', 'updated_at', 'power_id', 'edsm_id',
-                'primary_economy_id', 'secondary_economy_id', 'security_id', 'power_state_id',
-                'controlling_minor_faction_id', 'x', 'y', 'z']
-        kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
-
-        return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
-
     def __eq__(self, other):
         return isinstance(self, System) and isinstance(other, System) and self.id == other.id
 
@@ -886,13 +775,14 @@ class System(TimestampMixin, UpdatableMixin, Base):
         return hash(self.id)
 
 
-class SystemContestedV(Base):
+class SystemContestedV(ReprMixin, Base):
     """
     This table is a __VIEW__. See VIEW_CONTESTEDS.
 
     This view simply selects down only those contested systems.
     """
     __tablename__ = 'v_systems_contested'
+    _repr_keys = ['system_id', 'system', 'control_id', 'control', 'power_id', 'power']
 
     system_id = sqla.Column(sqla.Integer, sqla.ForeignKey('systems.id'), primary_key=True)
     power_id = sqla.Column(sqla.Integer)
@@ -902,12 +792,6 @@ class SystemContestedV(Base):
     control = sqla.Column(sqla.String(LEN['system']))
     power = sqla.Column(sqla.String(LEN['power']))
 
-    def __repr__(self):
-        keys = ['system_id', 'system', 'control_id', 'control', 'power_id', 'power']
-        kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
-
-        return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
-
     def __eq__(self, other):
         return (isinstance(self, SystemContestedV) and isinstance(other, SystemContestedV)
                 and self.__hash__() == other.__hash__())
@@ -916,13 +800,17 @@ class SystemContestedV(Base):
         return hash("{}_{}".format(self.id, self.control_id))
 
 
-class SystemControlV(Base):
+class SystemControlV(ReprMixin, Base):
     """
     This table is a __VIEW__. See VIEW_SYSTEM_CONTROLS.
 
     This view augments SystemControl with joined text information.
     """
     __tablename__ = "v_systems_controlled"
+    _repr_keys = [
+        'system_id', 'system', 'power_state_id', 'power_state',
+        'control_id', 'control', 'power_id', 'power'
+    ]
 
     system_id = sqla.Column(sqla.Integer, sqla.ForeignKey('systems.id'), primary_key=True, )
     power_state_id = sqla.Column(sqla.Integer)
@@ -937,13 +825,6 @@ class SystemControlV(Base):
     def __str__(self):
         return f"{self.system} controlled by {self.control} ({self.power})"
 
-    def __repr__(self):
-        keys = ['system_id', 'system', 'power_state_id', 'power_state',
-                'control_id', 'control', 'power_id', 'power']
-        kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
-
-        return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
-
     def __eq__(self, other):
         return isinstance(self, SystemControlV) and isinstance(other, SystemControlV) and \
             hash(self) == hash(other)
@@ -952,24 +833,19 @@ class SystemControlV(Base):
         return hash("{}_{}".format(self.system_id, self.control_id))
 
 
-class SystemControl(Base):
+class SystemControl(ReprMixin, Base):
     """
     This table stores all pairs of systems and their controls.
     Importantly for this consideration a control system is not paired with itself.
     Use this system mainly for joins of the IDs, for query use the augmented VIEW above.
     """
     __tablename__ = "systems_controlled"
+    _repr_keys = ['system_id', 'power_state_id', 'control_id', 'power_id']
 
     system_id = sqla.Column(sqla.Integer, sqla.ForeignKey('systems.id'), primary_key=True)
     control_id = sqla.Column(sqla.Integer, sqla.ForeignKey('systems.id'), primary_key=True)
     power_id = sqla.Column(sqla.Integer, sqla.ForeignKey('powers.id'))
     power_state_id = sqla.Column(sqla.Integer, sqla.ForeignKey('power_state.id'))
-
-    def __repr__(self):
-        keys = ['system_id', 'power_state_id', 'control_id', 'power_id']
-        kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
-
-        return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
 
     def __eq__(self, other):
         return isinstance(self, SystemControl) and isinstance(other, SystemControl) and \
@@ -979,21 +855,16 @@ class SystemControl(Base):
         return hash("{}_{}".format(self.system_id, self.control_id))
 
 
-class ConflictState(Base):
+class ConflictState(ReprMixin, Base):
     """
     Defines the different states possible for conflicts.
     """
     __tablename__ = 'conflict_states'
+    _repr_keys = ['id', 'text', 'eddn']
 
     id = sqla.Column(sqla.Integer, primary_key=True)
     text = sqla.Column(sqla.String(LEN["faction_state"]))
     eddn = sqla.Column(sqla.String(LEN["faction_state"]))
-
-    def __repr__(self):
-        keys = ['id', 'text', 'eddn']
-        kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
-
-        return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
 
     def __eq__(self, other):
         return (isinstance(self, ConflictState) and isinstance(other, ConflictState)
@@ -1003,11 +874,16 @@ class ConflictState(Base):
         return hash(self.id)
 
 
-class Conflict(TimestampMixin, UpdatableMixin, Base):
+class Conflict(ReprMixin, TimestampMixin, UpdatableMixin, Base):
     """
     Defines an in system conflict between two factions.
     """
     __tablename__ = 'conflicts'
+    _repr_keys = [
+        'system_id', 'status_id', 'type_id',
+        'faction1_id', 'faction1_stake_id', 'faction1_days',
+        'faction2_id', 'faction2_stake_id', 'faction2_days'
+    ]
 
     system_id = sqla.Column(sqla.Integer, sqla.ForeignKey('systems.id'), primary_key=True)
     status_id = sqla.Column(sqla.Integer, sqla.ForeignKey('conflict_states.id'))
@@ -1048,14 +924,6 @@ class Conflict(TimestampMixin, UpdatableMixin, Base):
         primaryjoin='foreign(Conflict.faction2_stake_id) == Station.id',
     )
 
-    def __repr__(self):
-        keys = ['system_id', 'status_id', 'type_id',
-                'faction1_id', 'faction1_stake_id', 'faction1_days',
-                'faction2_id', 'faction2_stake_id', 'faction2_days']
-        kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
-
-        return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
-
     def __eq__(self, other):
         return (isinstance(self, Conflict) and isinstance(other, Conflict)
                 and self.__hash__() == other.__hash__())
@@ -1064,23 +932,18 @@ class Conflict(TimestampMixin, UpdatableMixin, Base):
         return hash("{}_{}_{}".format(self.system_id, self.faction1_id, self.faction2_id))
 
 
-class HistoryTrack(TimestampMixin, Base):
+class HistoryTrack(ReprMixin, TimestampMixin, Base):
     """
     Set an entry to flag this system should be tracked.
     """
     __tablename__ = 'history_systems'
+    _repr_keys = ['system_id', 'updated_at']
 
     system_id = sqla.Column(sqla.Integer, sqla.ForeignKey('systems.id'), primary_key=True)
     updated_at = sqla.Column(sqla.Integer, default=time.time, onupdate=time.time)
 
     # Relationships
     system = sqla_orm.relationship('System', viewonly=True)
-
-    def __repr__(self):
-        keys = ['system_id', 'updated_at']
-        kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
-
-        return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
 
     def __eq__(self, other):
         return (isinstance(self, HistoryTrack) and isinstance(other, HistoryTrack)
@@ -1096,9 +959,10 @@ class HistoryTrack(TimestampMixin, Base):
 #   - With add_history_influence enforce following:
 #       LIMIT total number of entries per key pair
 #       Enforce only new data when inf is different than last and min gap in time from last
-class HistoryInfluence(TimestampMixin, Base):
+class HistoryInfluence(ReprMixin, TimestampMixin, Base):
     """ Represents a frozen state of influence for a faction in a system at some point in time. """
     __tablename__ = "history_influence"
+    _repr_keys = ['id', 'system_id', 'faction_id', 'happiness_id', 'influence', 'is_controlling_faction', 'updated_at']
 
     id = sqla.Column(sqla.BigInteger, primary_key=True)
     system_id = sqla.Column(sqla.Integer, sqla.ForeignKey('systems.id'), nullable=False)
@@ -1113,12 +977,6 @@ class HistoryInfluence(TimestampMixin, Base):
     system = sqla.orm.relationship('System', viewonly=True)
     faction = sqla.orm.relationship('Faction', viewonly=True)
     happiness = sqla.orm.relationship('FactionHappiness', viewonly=True)
-
-    def __repr__(self):
-        keys = ['id', 'system_id', 'faction_id', 'happiness_id', 'influence', 'is_controlling_faction', 'updated_at']
-        kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
-
-        return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
 
     def __hash__(self):
         return hash("{}_{}_{}".format(self.id, self.system_id, self.faction_id))

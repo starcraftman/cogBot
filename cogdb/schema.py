@@ -16,6 +16,7 @@ import cog.exc
 import cog.tbl
 import cog.util
 import cogdb
+from cog.util import ReprMixin
 
 
 LEN_CMD = 25  # Max length of a subclass of cog.actions
@@ -40,7 +41,7 @@ TRACK_SYSTEM_SEP = ", "
 Base = sqlalchemy.ext.declarative.declarative_base()
 
 
-class DiscordUser(Base):
+class DiscordUser(ReprMixin, Base):
     """
     Table to store discord users and their permanent preferences.
 
@@ -48,6 +49,7 @@ class DiscordUser(Base):
     It is also a central tie in for relationships.
     """
     __tablename__ = 'discord_users'
+    _repr_keys = ['id', 'display_name', 'pref_name', 'pref_cry']
 
     id = sqla.Column(sqla.BigInteger, primary_key=True)  # Discord id
     display_name = sqla.Column(sqla.String(LEN_NAME))
@@ -80,12 +82,6 @@ class DiscordUser(Base):
         primaryjoin="and_(foreign(DiscordUser.pref_name) == remote(UMUser.name), foreign(UMUser.id) == UMHold.user_id, UMUser.sheet_src == 'snipe')"
     )
 
-    def __repr__(self):
-        keys = ['id', 'display_name', 'pref_name', 'pref_cry']
-        kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
-
-        return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
-
     def __eq__(self, other):
         return isinstance(other, DiscordUser) and self.id == other.id
 
@@ -108,13 +104,14 @@ class DiscordUser(Base):
         return self.fort_user.dropped + self.um_user.held + self.um_user.redeemed
 
 
-class FortUser(Base):
+class FortUser(ReprMixin, Base):
     """
     Track all infomration about the user in a row of the cattle sheet.
 
     These are what actually is in the sheet.
     """
     __tablename__ = 'hudson_fort_users'
+    _repr_keys = ['id', 'name', 'row', 'cry']
 
     id = sqla.Column(sqla.Integer, primary_key=True)
     name = sqla.Column(sqla.String(LEN_NAME), index=True)  # Undeclared FK to discord_users
@@ -153,12 +150,6 @@ class FortUser(Base):
             sqla.Integer
         )
 
-    def __repr__(self):
-        keys = ['id', 'name', 'row', 'cry']
-        kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
-
-        return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
-
     def __str__(self):
         return "dropped={!r}, {!r}".format(self.dropped, self)
 
@@ -179,7 +170,7 @@ class EFortType(enum.Enum):
     prep = 2
 
 
-class FortSystem(Base):
+class FortSystem(ReprMixin, Base):
     """
     Represent a single system for fortification in the sheet.
     Object can be flushed and queried from the database.
@@ -188,6 +179,10 @@ class FortSystem(Base):
     When representing the system use display methods and see header tuple.
     """
     __tablename__ = 'hudson_fort_systems'
+    _repr_keys = [
+        'id', 'name', 'fort_status', 'trigger', 'fort_override', 'um_status',
+        'undermine', 'distance', 'notes', 'sheet_col', 'sheet_order'
+    ]
 
     header = ['Type', 'System', 'Missing', 'Merits (Fort%/UM%)', 'Notes']
 
@@ -215,13 +210,6 @@ class FortSystem(Base):
                                    cascade='all, delete, delete-orphan',
                                    back_populates='system',
                                    lazy='select')
-
-    def __repr__(self):
-        keys = ['id', 'name', 'fort_status', 'trigger', 'fort_override', 'um_status',
-                'undermine', 'distance', 'notes', 'sheet_col', 'sheet_order']
-        kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
-
-        return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
 
     def __str__(self):
         return "cmdr_merits={!r}, {!r}".format(self.cmdr_merits, self)
@@ -446,12 +434,13 @@ class FortPrep(FortSystem):
         return 'Prep: ' + super().display(miss=miss)
 
 
-class FortDrop(Base):
+class FortDrop(ReprMixin, Base):
     """
     Every drop made by a user creates a fort entry here.
     A drop represents the value at the intersection of a FortUser and a FortSystem.
     """
     __tablename__ = 'hudson_fort_merits'
+    _repr_keys = ['id', 'system_id', 'user_id', 'amount']
 
     id = sqla.Column(sqla.Integer, primary_key=True)
     amount = sqla.Column(sqla.Integer, default=0, nullable=False)
@@ -463,12 +452,6 @@ class FortDrop(Base):
                                  lazy='select')
     system = sqla_orm.relationship('FortSystem', uselist=False, back_populates='merits',
                                    lazy='select')
-
-    def __repr__(self):
-        keys = ['id', 'system_id', 'user_id', 'amount']
-        kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
-
-        return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
 
     def __str__(self):
         system = ''
@@ -492,11 +475,12 @@ class FortDrop(Base):
         return hash("{}_{}".format(self.system_id, self.user_id))
 
 
-class FortOrder(Base):
+class FortOrder(ReprMixin, Base):
     """
     Simply store a list of Control systems in the order they should be forted.
     """
     __tablename__ = 'hudson_fort_order'
+    _repr_keys = ['order', 'system_name']
 
     order = sqla.Column(sqla.Integer, primary_key=True)
     system_name = sqla.Column(sqla.String(LEN_NAME), unique=True)
@@ -506,12 +490,6 @@ class FortOrder(Base):
         'FortSystem', uselist=False, viewonly=True,
         primaryjoin="foreign(FortOrder.system_name) == FortSystem.name"
     )
-
-    def __repr__(self):
-        keys = ['order', 'system_name']
-        kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
-
-        return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
 
     def __eq__(self, other):
         return isinstance(other, FortOrder) and self.system_name == other.system_name
@@ -600,10 +578,10 @@ class UMUser(Base):
 
     def __repr__(self):
         keys = ['id', 'name', 'row', 'cry']
-        kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
+        kwargs = [f'{key}={getattr(self, key)!r}' for key in keys]
         kwargs.insert(1, "sheet_src={}".format("EUMSheet.main" if self.sheet_src == EUMSheet.main else "EUMSheet.snipe"))
 
-        return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
+        return f'{self.__class__.__name__}({", ".join(kwargs)})'
 
     def __str__(self):
         return "held={!r}, redeemed={!r}, {!r}".format(self.held, self.redeemed, self)
@@ -668,12 +646,14 @@ class UMSystem(Base):
         return cls(**kwargs)
 
     def __repr__(self):
-        keys = ['id', 'name', 'sheet_col', 'goal', 'security', 'notes',
-                'progress_us', 'progress_them', 'close_control', 'priority', 'map_offset']
-        kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
+        keys = [
+            'id', 'name', 'sheet_col', 'goal', 'security', 'notes',
+            'progress_us', 'progress_them', 'close_control', 'priority', 'map_offset'
+        ]
+        kwargs = [f'{key}={getattr(self, key)!r}' for key in keys]
         kwargs.insert(1, "sheet_src={}".format("EUMSheet.main" if self.sheet_src == EUMSheet.main else "EUMSheet.snipe"))
 
-        return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
+        return f'{self.__class__.__name__}({", ".join(kwargs)})'
 
     def __str__(self):
         """
@@ -880,10 +860,10 @@ class UMHold(Base):
 
     def __repr__(self):
         keys = ['id', 'system_id', 'user_id', 'held', 'redeemed']
-        kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
+        kwargs = [f'{key}={getattr(self, key)!r}' for key in keys]
         kwargs.insert(1, "sheet_src={}".format("EUMSheet.main" if self.sheet_src == EUMSheet.main else "EUMSheet.snipe"))
 
-        return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
+        return f'{self.__class__.__name__}({", ".join(kwargs)})'
 
     def __str__(self):
         system = ''
@@ -907,23 +887,18 @@ class UMHold(Base):
         return hash("{}_{}".format(self.system_id, self.user_id))
 
 
-class KOS(Base):
+class KOS(ReprMixin, Base):
     """
     Represents a the kos list.
     """
     __tablename__ = 'kos'
+    _repr_keys = ['id', 'cmdr', 'squad', 'reason', 'is_friendly']
 
     id = sqla.Column(sqla.Integer, primary_key=True)
     cmdr = sqla.Column(sqla.String(LEN_NAME), index=True, nullable=False)
     squad = sqla.Column(sqla.String(LEN_NAME), nullable=False)
     reason = sqla.Column(sqla.String(LEN_REASON), nullable=False)
     is_friendly = sqla.Column(sqla.Boolean, default=False)
-
-    def __repr__(self):
-        keys = ['id', 'cmdr', 'squad', 'reason', 'is_friendly']
-        kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
-
-        return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
 
     def __eq__(self, other):
         return isinstance(other, KOS) and (self.cmdr) == (other.cmdr)
@@ -936,13 +911,14 @@ class KOS(Base):
         return 'FRIENDLY' if self.is_friendly else 'KILL'
 
 
-class AdminPerm(Base):
+class AdminPerm(ReprMixin, Base):
     """
     Table that lists admins. Essentially just a boolean.
     All admins are equal, except for removing other admins, then seniority is considered by date.
     This shouldn't be a problem practically.
     """
     __tablename__ = 'perms_admins'
+    _repr_keys = ['id', 'date']
 
     id = sqla.Column(sqla.BigInteger, primary_key=True)
     date = sqla.Column(sqla.DateTime, default=datetime.datetime.utcnow)  # All dates UTC
@@ -956,12 +932,6 @@ class AdminPerm(Base):
         session.delete(other)
         session.commit()
 
-    def __repr__(self):
-        keys = ['id', 'date']
-        kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
-
-        return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
-
     def __eq__(self, other):
         return isinstance(other, AdminPerm) and self.id == other.id
 
@@ -969,21 +939,16 @@ class AdminPerm(Base):
         return hash(self.id)
 
 
-class ChannelPerm(Base):
+class ChannelPerm(ReprMixin, Base):
     """
     A channel permission to restrict cmd to listed channels.
     """
     __tablename__ = 'perms_channels'
+    _repr_keys = ['cmd', 'guild_id', 'channel_id']
 
     cmd = sqla.Column(sqla.String(LEN_CMD), primary_key=True)
     guild_id = sqla.Column(sqla.BigInteger, primary_key=True)
     channel_id = sqla.Column(sqla.BigInteger, primary_key=True)
-
-    def __repr__(self):
-        keys = ['cmd', 'guild_id', 'channel_id']
-        kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
-
-        return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
 
     def __eq__(self, other):
         return isinstance(other, ChannelPerm) and hash(self) == hash(other)
@@ -992,21 +957,16 @@ class ChannelPerm(Base):
         return hash("{}_{}_{}".format(self.cmd, self.guild_id, self.channel_id))
 
 
-class RolePerm(Base):
+class RolePerm(ReprMixin, Base):
     """
     A role permission to restrict cmd to listed roles.
     """
     __tablename__ = 'perms_roles'
+    _repr_keys = ['cmd', 'guild_id', 'role_id']
 
     cmd = sqla.Column(sqla.String(LEN_CMD), primary_key=True)
     guild_id = sqla.Column(sqla.BigInteger, primary_key=True)
     role_id = sqla.Column(sqla.BigInteger, primary_key=True)
-
-    def __repr__(self):
-        keys = ['cmd', 'guild_id', 'role_id']
-        kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
-
-        return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
 
     def __eq__(self, other):
         return isinstance(other, RolePerm) and hash(self) == hash(other)
@@ -1015,20 +975,15 @@ class RolePerm(Base):
         return hash("{}_{}_{}".format(self.cmd, self.guild_id, self.role_id))
 
 
-class TrackSystem(Base):
+class TrackSystem(ReprMixin, Base):
     """
     Track a system for carriers.
     """
     __tablename__ = 'carriers_systems'
+    _repr_keys = ['system', 'distance']
 
     system = sqla.Column(sqla.String(LEN_NAME), primary_key=True)
     distance = sqla.Column(sqla.Integer, default=15, nullable=False)
-
-    def __repr__(self):
-        keys = ['system', 'distance']
-        kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
-
-        return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
 
     def __str__(self):
         return "Tracking systems <= {}ly from {}".format(self.distance, self.system)
@@ -1040,21 +995,16 @@ class TrackSystem(Base):
         return hash("{}".format(self.system))
 
 
-class TrackSystemCached(Base):
+class TrackSystemCached(ReprMixin, Base):
     """
     Computed systems that are the total coverage of TrackSystem directives.
     This set of system names is recomputed on every addition or removal.
     """
     __tablename__ = 'carriers_systems_cached'
+    _repr_keys = ['system', 'overlaps_with']
 
     system = sqla.Column(sqla.String(LEN_NAME), primary_key=True)
     overlaps_with = sqla.Column(sqla.String(LEN_REASON), default="", nullable=False)
-
-    def __repr__(self):
-        keys = ['system', 'overlaps_with']
-        kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
-
-        return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
 
     def __eq__(self, other):
         return isinstance(other, TrackSystemCached) and hash(self) == hash(other)
@@ -1083,11 +1033,12 @@ class TrackSystemCached(Base):
         return self.overlaps_with == ""
 
 
-class TrackByID(Base):
+class TrackByID(ReprMixin, Base):
     """
     Track where a carrier is by storing id and last known system.
     """
     __tablename__ = 'carriers_ids'
+    _repr_keys = ['id', 'squad', 'system', 'last_system', 'override', 'updated_at']
 
     header = ["ID", "Squad", "System", "Last System"]
 
@@ -1103,12 +1054,6 @@ class TrackByID(Base):
         'TrackSystemCached', uselist=False, viewonly=True,
         primaryjoin="foreign(TrackByID.system) == TrackSystemCached.system"
     )
-
-    def __repr__(self):
-        keys = ['id', 'squad', 'system', 'last_system', 'override', 'updated_at']
-        kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
-
-        return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
 
     def __str__(self):
         """ A pretty one line to give all information. """
@@ -1141,11 +1086,12 @@ class TrackByID(Base):
         self.system = new_system
 
 
-class Global(Base):
+class Global(ReprMixin, Base):
     """
     A simple storage table for any globals per cycle.
     """
     __tablename__ = 'globals'
+    _repr_keys = ['id', 'cycle', 'consolidation']
 
     id = sqla.Column(sqla.Integer, primary_key=True)
     cycle = sqla.Column(sqla.Integer, default=0)
@@ -1154,12 +1100,6 @@ class Global(Base):
     show_vote_goal = sqla.Column(sqla.Boolean, default=False)
     vote_goal = sqla.Column(sqla.Integer, default=0)
     updated_at = sqla.Column(sqla.DateTime(timezone=False), default=datetime.datetime.utcnow)  # All dates UTC
-
-    def __repr__(self):
-        keys = ['id', 'cycle', 'consolidation']
-        kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
-
-        return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
 
     def __str__(self):
         """ A pretty one line to give all information. """
@@ -1240,11 +1180,12 @@ class EVoteType(enum.Enum):
     prep = 2
 
 
-class Vote(Base):
+class Vote(ReprMixin, Base):
     """
     Store vote amount to DB based on discord User ID.
     """
     __tablename__ = 'powerplay_votes'
+    _repr_keys = ['id', 'vote', 'amount', 'updated_at']
 
     id = sqla.Column(sqla.BigInteger, primary_key=True)
     vote = sqla.Column(sqla.Enum(EVoteType), default=EVoteType.cons, primary_key=True)
@@ -1256,12 +1197,6 @@ class Vote(Base):
         'DiscordUser', uselist=False, viewonly=True,
         primaryjoin='foreign(Vote.id) == DiscordUser.id'
     )
-
-    def __repr__(self):
-        keys = ['id', 'vote', 'amount', 'updated_at']
-        kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
-
-        return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
 
     def __str__(self):
         """ A pretty one line to give all information. """
@@ -1305,23 +1240,18 @@ class Vote(Base):
         return value
 
 
-class Consolidation(Base):
+class Consolidation(ReprMixin, Base):
     """
     Track the consolidation vote changes over time.
     """
     __tablename__ = 'consolidation_tracker'
+    _repr_keys = ['id', 'amount', 'cons_total', 'prep_total', 'updated_at']
 
     id = sqla.Column(sqla.BigInteger, primary_key=True)
     amount = sqla.Column(sqla.Integer, default=0)
     cons_total = sqla.Column(sqla.Integer, default=0)
     prep_total = sqla.Column(sqla.Integer, default=0)
     updated_at = sqla.Column(sqla.DateTime, default=datetime.datetime.utcnow, unique=True)  # All dates UTC
-
-    def __repr__(self):
-        keys = ['id', 'amount', 'cons_total', 'prep_total', 'updated_at']
-        kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
-
-        return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
 
     def __str__(self):
         """ A pretty one line to give all information. """
