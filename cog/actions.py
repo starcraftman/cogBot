@@ -1029,12 +1029,18 @@ To unset override, simply set an empty list of systems.
         forts = cogdb.query.fort_get_next_targets(self.session, offset=0, count=next_count + 1)
         priority, deferred = cogdb.query.fort_get_priority_targets(self.session)
 
-        lines = ['__Active Targets{}__'.format(manual)]
-        lines += [system.display() for system in preps + forts[:1]]
-        forts = forts[1:]
+        manual_forts = cogdb.query.fort_order_get(self.session)
+        if manual_forts:
+            preps = [x for x in manual_forts if x.is_prep]
+            forts = [x for x in manual_forts if not x.is_prep]
+            priority, deferred = [], []
 
-        lines += ['\n__Next Targets__']
-        lines += [system.display() for system in forts]
+        lines = [f'__Active Targets{manual}__']
+        lines += [system.display() for system in preps + forts[:1]]
+
+        if forts[1:]:
+            lines += ['\n__Next Targets__']
+            lines += [system.display() for system in forts[1:]]
 
         globe = cogdb.query.get_current_global(self.session)
         show_deferred = deferred and not manual and (
