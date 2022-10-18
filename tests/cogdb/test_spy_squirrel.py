@@ -4,9 +4,9 @@ Tests for cogdb.spy
 import json
 import os
 import pathlib
-import pytest
 import tempfile
 
+import pytest
 import sqlalchemy as sqla
 
 import cogdb.spy_squirrel as spy
@@ -693,7 +693,7 @@ def test_compare_sheet_um_systems_to_spy(empty_spy, db_cleanup, session, eddb_se
 
 def test_update_eddb_factions(eddb_session):
     infs = []
-    for system_name in INPUT_UPDATE_EDDB_FACTIONS.keys():
+    for system_name in INPUT_UPDATE_EDDB_FACTIONS:
         infs += eddb_session.query(cogdb.eddb.Influence).\
             join(cogdb.eddb.System).\
             filter(cogdb.eddb.System.name == system_name).\

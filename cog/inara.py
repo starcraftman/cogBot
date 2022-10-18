@@ -636,8 +636,8 @@ async def select_from_choices(cmdrs, msg):
             raise cog.exc.CmdAborted("WhoIs lookup aborted, user cancelled.")
 
         return inter.values[0]
-    except asyncio.TimeoutError:
-        raise cog.exc.CmdAborted("WhoIs lookup aborted, timeout from inactivity.")
+    except asyncio.TimeoutError as exc:
+        raise cog.exc.CmdAborted("WhoIs lookup aborted, timeout from inactivity.") from exc
     finally:
         asyncio.ensure_future(sent.delete())
 

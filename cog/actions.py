@@ -2025,7 +2025,7 @@ class Snipe(UM):
     Snipe, same as UM but for snipe sheet.
     """
     async def execute(self):
-        if (self.args.cycle):
+        if self.args.cycle:
             # Limit cycle change to admins
             try:
                 cogdb.query.get_admin(self.session, self.duser)

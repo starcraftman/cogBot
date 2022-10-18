@@ -39,6 +39,7 @@ try:
     asyncio.get_event_loop().set_debug(True)
 finally:
     print("Default event loop:", asyncio.get_event_loop())
+import discord_components_mirror as dcom
 
 import cog.actions
 import cog.exc
@@ -51,7 +52,6 @@ import cogdb
 import cogdb.scanners
 import cogdb.query
 import cogdb.eddb
-import discord_components_mirror as dcom
 
 
 SYNC_NOTICE = """Synchronizing sheet changes.
@@ -283,8 +283,8 @@ class CogBot(discord.Client):
         log.info("guild: '%s' Channel: '%s' User: '%s' | %s",
                  channel.guild, channel.name, author.name, content)
 
+        edit_time = message.edited_at
         try:
-            edit_time = message.edited_at
             content = re.sub(r'<[#@]\S+>', '', content).strip()  # Strip mentions from text
 
             with cogdb.session_scope(cogdb.Session) as session:
@@ -516,7 +516,7 @@ def main():  # pragma: no cover
     cog.util.init_logging(sqlalchemy_log)
 
     intents = discord.Intents.default()
-    intents.members = True
+    intents.members = True  # pylint: disable=assigning-non-slot
     cog.util.BOT = CogBot("!", scheduler_delay=cog.util.CONF.constants.scheduler_delay,
                           intents=intents)
 

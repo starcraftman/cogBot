@@ -9,7 +9,7 @@ def test_emoji__init__():
     guild = Guild('myguild')
     guild.emojis = [Emoji('duck'), Emoji('car'), Emoji('sleep')]
     emo = EmojiResolver()
-    assert emo.emojis == {}
+    assert not emo.emojis
 
 
 def test_emoji__str__():

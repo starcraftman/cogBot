@@ -656,7 +656,7 @@ class UMScanner(FortScanner):
         new_values = []
         seen_system = False
         modify_formula = False
-        max_len = max([len(x) for x in sheet_values])
+        max_len = max(len(x) for x in sheet_values)
         pad_col = ['' for _ in range(max_len)]
 
         for col in sheet_values:
@@ -943,7 +943,7 @@ class GalScanner(FortScanner):
         """
         Will not parse, only pushing data.
         """
-        pass
+        raise NotImplementedError
 
     def update_dict(self, *, systems, row=3):
         """

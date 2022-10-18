@@ -134,8 +134,8 @@ async def test_scheduler_delayed_update(f_bot, f_asheet_fortscanner, db_cleanup)
     fscan = cogdb.scanners.FortScanner(f_asheet_fortscanner)
     wrap = WrapScanner('fort', fscan, ['Fort'])
 
+    old_bot = cog.util.BOT
     try:
-        old_bot = cog.util.BOT
         cog.util.BOT = f_bot
         await cog.scheduler.delayed_update(1, wrap)
     finally:

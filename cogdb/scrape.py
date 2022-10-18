@@ -124,8 +124,7 @@ def click_with_retry(element, *, delay=5, retries=5):
     Returns: True IFF the element was successfully clicked.
     """
     # Sane minimums on flags.
-    if retries < 1:
-        retries = 1
+    max(retries, 1)
     if delay < 0:
         delay = 5
 
@@ -174,7 +173,7 @@ def powerplay_leader(driver, leader_index, *, updated_at=0, held_merits=False): 
         click_with_retry(buttons[0])
 
         print("Wait start:", str(now))
-        while not check_held_recent(driver.page_source, now):
+        while not check_held_recent(driver.page_source, start=now):
             time.sleep(LONGEST_GAP)
         end = datetime.datetime.utcnow()
         print("Wait end:", str(now))

@@ -356,7 +356,7 @@ class FortSystem(ReprMixin, Base):
         """
         status = '{:>4}/{} ({}%/{}%)'.format(self.current_status, self.trigger,
                                              self.completion, self.ump)
-        sys_type = str(self.type).split('.')[-1].capitalize()
+        sys_type = str(self.type).split('.', maxsplit=1)[-1].capitalize()
 
         return (sys_type, self.name, '{:>4}'.format(self.missing), status, self.notes)
 
@@ -745,7 +745,7 @@ class UMSystem(Base):
     @property
     def descriptor(self):
         """ Descriptive prefix for string. """
-        return str(self.type).split('.')[-1].capitalize()
+        return str(self.type).split('.', maxsplit=1)[-1].capitalize()
 
     @hybrid_property
     def is_undermined(self):
@@ -1212,7 +1212,7 @@ class Vote(ReprMixin, Base):
 
     @property
     def vote_type(self):
-        return str(self.vote).split('.')[-1].capitalize()
+        return str(self.vote).split('.', maxsplit=1)[-1].capitalize()
 
     def update_amount(self, amount):
         """

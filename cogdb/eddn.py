@@ -271,7 +271,7 @@ class EDMCJournal():
             station['controlling_minor_faction_id'] = self.eddb_session.query(Faction.id).filter(Faction.name == body['StationFaction']['Name']).scalar()
         if "StationServices" in body:
             station['features'] = {x: x in body["StationServices"] for x in STATION_FEATS}
-            station['features']['updated_at'] = station['updated_at']
+            station['features']['updated_at'] = station['updated_at']  # pylint: disable=unsupported-assignment-operation
         if "StationType" in body:
             station['type_id'] = MAPS["StationType"][body['StationType']]
 

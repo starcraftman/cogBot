@@ -408,7 +408,7 @@ def pad_table_to_rectangle(table, pad_value=''):
 
     Returns: The table passed in.
     """
-    max_len = max([len(x) for x in table])
+    max_len = max(len(x) for x in table)
 
     for row in table:
         row += [pad_value for _ in range(max_len - len(row))]

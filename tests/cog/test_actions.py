@@ -466,7 +466,7 @@ async def test_cmd_feedback(f_bot):
 
     await action_map(msg, f_bot).execute()
 
-    assert str(f_bot.send_message.call_args).split("\\n")[-1][:-2] == 'Sample bug report.'
+    assert 'Sample bug report.' in str(f_bot.send_message.call_args)
 
 
 @pytest.mark.asyncio

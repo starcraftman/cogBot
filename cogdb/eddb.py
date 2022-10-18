@@ -1766,7 +1766,6 @@ def load_stations(fname, economy_ids, preload=True, refresh_all=False):
     }
 
     print(f"Parsing stations in {fname}")
-    station_features, station_types, stations, economies = [], set(), [], []
     station, st_features, st_type, st_econs = {}, {}, {}, []
     with open(fname, 'rb') as fin, cogdb.session_scope(cogdb.EDDBSession, autoflush=False) as eddb_session:
         for prefix, the_type, value in ijson.parse(fin):
@@ -1785,7 +1784,6 @@ def load_stations(fname, economy_ids, preload=True, refresh_all=False):
                 except sqla_orm.exc.NoResultFound:  # Handle case of not existing record
                     station_db = Station(**station)
                     eddb_session.add(station_db)
-                    stations += [station_db]
 
                 try:
                     found = eddb_session.query(StationFeatures).\
@@ -1795,7 +1793,6 @@ def load_stations(fname, economy_ids, preload=True, refresh_all=False):
                 except sqla_orm.exc.NoResultFound:  # Handle case of not existing record
                     st_features_db = StationFeatures(**st_features)
                     eddb_session.add(st_features_db)
-                    station_features += [st_features_db]
 
                 if not preload:
                     try:
@@ -1809,9 +1806,8 @@ def load_stations(fname, economy_ids, preload=True, refresh_all=False):
                 if refresh_all or preload:
                     primary = True
                     for econ in st_econs:
-                        economies += [StationEconomy(id=station['id'], economy_id=economy_ids[econ], primary=primary)]
+                        eddb_session.add(StationEconomy(id=station['id'], economy_id=economy_ids[econ], primary=primary))
                         primary = False
-                    eddb_session.add_all(economies)
 
                 # Debug
                 #  print('Station', station_db)

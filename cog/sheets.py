@@ -128,7 +128,7 @@ class Column():
         if add_counter:
             self.counters.append(ColCnt('A'))
 
-        return self.__str__()
+        return str(self)
 
     def back(self):
         """
@@ -148,7 +148,7 @@ class Column():
         if sub_counter:
             self.counters = self.counters[:-1]
 
-        return self.__str__()
+        return str(self)
 
     def offset(self, offset):
         """
@@ -166,7 +166,7 @@ class Column():
             call()
             offset -= 1
 
-        return self.__str__()
+        return str(self)
 
 
 class AsyncGSheet():

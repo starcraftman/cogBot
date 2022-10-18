@@ -72,9 +72,9 @@ def test_influence_history_in_system(side_session):
     fact_ids = [75621, 38140, 38134, 33854, 8190, 38139]
     inf_history = cogdb.side.influence_history_in_system(side_session, 15222, fact_ids)
 
-    for key in inf_history:
+    for key, infs in inf_history.items():
         assert key in fact_ids
-        for inf in inf_history[key]:
+        for inf in infs:
             assert inf.faction_id == key
             assert isinstance(inf, cogdb.side.InfluenceHistory)
 

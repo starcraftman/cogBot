@@ -673,11 +673,11 @@ def um_all_held_merits(session, *, sheet_src=EUMSheet.main):
 
     rows = []
     system_names = [sys.name for sys in systems]
-    for cmdr in c_dict:
+    for cmdr, cmdr_systems in c_dict.items():
         row = [cmdr]
         for system_name in system_names:
             try:
-                row += [c_dict[cmdr][system_name].held]
+                row += [cmdr_systems[system_name].held]
             except KeyError:
                 row += [0]
         rows += [row]

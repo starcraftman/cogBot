@@ -99,8 +99,8 @@ async def test_rate_limiter_decrement_wait(f_bot):
 
 @pytest.mark.asyncio
 async def test_inara_api_key_unset(f_bot):
+    old_key = cog.inara.HEADER_PROTO
     try:
-        old_key = cog.inara.HEADER_PROTO
         cog.inara.HEADER_PROTO = None
 
         api = cog.inara.InaraApi()

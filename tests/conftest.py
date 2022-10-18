@@ -5,13 +5,13 @@ import copy
 import datetime
 import os
 import pathlib
+import subprocess as sub
 import sys
 
 import aiofiles
 import aiomock
 import mock
 import pytest
-import subprocess as sub
 import sqlalchemy.orm as sql_orm
 try:
     import uvloop

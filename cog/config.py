@@ -84,13 +84,14 @@ class Config():
         If it is a dictionary, just return a config object wrapping it.
         If not found, return None.
         """
+        found = None
         if self.conf and key in self.conf:
             if not isinstance(self.conf[key], dict):
-                return self.conf[key]
+                found = self.conf[key]
             else:
-                return Config(self.fname, self.conf[key])
+                found = Config(self.fname, self.conf[key])
 
-        return None
+        return found
 
     def __getitem__(self, key):
         """

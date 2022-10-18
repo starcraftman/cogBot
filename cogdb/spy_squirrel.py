@@ -492,7 +492,7 @@ def parse_response_news_summary(input):
     """
     info = parse_params(input['params'])
 
-    parts = [x for x in info["list"].split(':')]
+    parts = list(info["list"].split(':'))
     info["influence"] = float(parts[1].split('=')[1])
     info["happiness"] = int(re.match(r'.*HappinessBand(\d)', parts[2]).group(1))
     del info["list"]
@@ -562,7 +562,7 @@ def parse_response_traffic_totals(input):
         'by_ship': {}
     }
     del info['total']
-    for key, val in info.items():
+    for val in info.values():
         name, num = val.split('; - ')
         result['by_ship'][name.replace('_NAME', '')[1:].lower()] = int(num)
 
@@ -593,10 +593,9 @@ def load_response_json(response, eddb_session):
         eddb_session: A session onto the EDDB database.
     """
     result = {}
-    for sys_name, news_info in response.items():
+    for news_info in response.values():
         for entry in news_info['news']:
-            type = entry['type']
-            parser = PARSER_MAP[type]
+            parser = PARSER_MAP[entry['type']]
             try:
                 result[parser['name']] += [parser['func'](entry)]
             except KeyError:
@@ -604,9 +603,9 @@ def load_response_json(response, eddb_session):
     result['system'] = result['factions'][0]['system']
 
     # Prune any lists of 1 element, to not be lists.
-    for key in result:
-        if isinstance(result[key], list) and len(result[key]) == 1:
-            result[key] = result[key][0]
+    for key, value in result.items():
+        if isinstance(value, list) and len(value) == 1:
+            result[key] = value[0]
 
     return result
 
@@ -755,7 +754,7 @@ def update_eddb_factions(eddb_session, fact_info):
                     found = Influence(system_id=system_id, faction_id=faction_id)
                     eddb_session.add(found)
                 except sqla_orm.exc.NoResultFound:
-                    logging.getLogger(__name__).error("update_eddb_factions: MISSING DB INFO for system or faction: %s, %s" % system_name, faction_name)
+                    logging.getLogger(__name__).error("update_eddb_factions: MISSING DB INFO for system or faction: %s, %s", system_name, faction_name)
             found.influence = info['factions'][faction_name]
             found.updated_at = info['updated_at']
             cogdb.eddb.add_history_influence(eddb_session, found)
