@@ -995,8 +995,7 @@ def monitor_events(session, system_ids):
             sqla.and_(
                 sys_control.power_state_id == control_state_id,
                 sys_control.dist_to(sys) < 15
-            )
-    ).\
+            )).\
         order_by('control', sys.name, current.text, pending.text).\
         limit(1000).\
         all()
@@ -1064,8 +1063,7 @@ def control_dictators(session, system_ids):
             sqla.and_(
                 sys_control.power_state_id == control_state_id,
                 sys_control.dist_to(sys) < 15
-            )
-    ).\
+            )).\
         filter(Influence.system_id.in_(system_ids),
                Government.id.in_(gov_dic)).\
         order_by('control', sys.name).\
@@ -1145,8 +1143,7 @@ def moving_dictators(session, system_ids):
             sqla.and_(
                 sys_control.power_state_id == control_state_id,
                 sys_control.dist_to(sys) < 15
-            )
-    ).\
+            )).\
         filter(Influence.system_id.in_(system_ids),
                Government.id.in_(gov_dic)).\
         order_by('control', sys.name).\

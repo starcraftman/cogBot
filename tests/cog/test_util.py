@@ -335,6 +335,32 @@ def test_timestampmixin_tz():
     assert "2021-10-21 07:00:00+00:00" == str(actual.utc_date_tz)
 
 
+class DummyUpdateObject(cog.util.UpdatableMixin):
+    def __init__(self):
+        self.num = 10
+        self.updated_at = 50
+
+
+def test_updatable_mixin_older_kwargs():
+    kwargs = {
+        'num': 20,
+        'updated_at': 25,
+    }
+    obj = DummyUpdateObject()
+    obj.update(**kwargs)
+    assert obj.num == 10
+
+
+def test_updatable_mixin_newer_kwargs():
+    kwargs = {
+        'num': 20,
+        'updated_at': 60,
+    }
+    obj = DummyUpdateObject()
+    obj.update(**kwargs)
+    assert obj.num == 20
+
+
 def test_hex_decode():
     input = "4C61626F7572206F662052686561"
     expect = "Labour of Rhea"
@@ -345,3 +371,8 @@ def test_hex_encode():
     input = "Labour of Rhea"
     expect = "4C61626F7572206F662052686561"
     assert expect == cog.util.hex_encode(input)
+
+
+@pytest.mark.asyncio
+async def test_get_url():
+    assert "google" in await cog.util.get_url('http://www.google.com')

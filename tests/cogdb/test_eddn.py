@@ -687,7 +687,8 @@ def test_edmcjournal_parse_station():
         'controlling_minor_faction_id': 55925,
         'economies': [
             {'economy_id': 4, 'primary': True, 'proportion': 0.8},
-            {'economy_id': 6, 'primary': False, 'proportion': 0.2}],
+            {'economy_id': 6, 'primary': False, 'proportion': 0.2}
+        ],
         'features': {
             'blackmarket': True,
             'carrier_administration': False,

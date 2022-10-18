@@ -10,6 +10,7 @@ Utility functions
 """
 import asyncio
 import datetime
+import json
 import logging
 import logging.handlers
 import logging.config
@@ -160,6 +161,38 @@ class WaitCB():
         """
         if self.notice_sent:
             await self.resume_cb()
+
+
+class TimestampMixin():
+    """
+    Simple mixing that converts updated_at timestamp to a datetime object.
+    """
+    @property
+    def utc_date(self):
+        """Assumes the timestampe is in fact UTC, native datetime with no tz info. """
+        return datetime.datetime.utcfromtimestamp(self.updated_at)
+
+    @property
+    def utc_date_tz(self):
+        """Assumes the timestampe is in fact UTC, datetime object set to UTC timezone."""
+        return datetime.datetime.fromtimestamp(self.updated_at, tz=datetime.timezone.utc)
+
+
+class UpdatableMixin():
+    """Mixin that allows updating this object by kwargs."""
+    def update(self, **kwargs):
+        """
+        Simple kwargs update to this object.
+
+        If update_at present, only update object if new information is newer.
+        If update_at not present, the current timestamp will be set.
+        """
+        if 'updated_at' in kwargs:
+            if kwargs['updated_at'] <= self.updated_at:
+                return
+
+        for key, val in kwargs.items():
+            setattr(self, key, val)
 
 
 # TODO: Name? This isn't the fuzzy find but I crap at naming.
@@ -571,21 +604,6 @@ def cycle_to_start(cycle_number):
     return WEEK_ZERO + datetime.timedelta(weeks=cycle_number)
 
 
-class TimestampMixin():
-    """
-    Simple mixing that converts updated_at timestamp to a datetime object.
-    """
-    @property
-    def utc_date(self):
-        """Assumes the timestampe is in fact UTC, native datetime with no tz info. """
-        return datetime.datetime.utcfromtimestamp(self.updated_at)
-
-    @property
-    def utc_date_tz(self):
-        """Assumes the timestampe is in fact UTC, datetime object set to UTC timezone."""
-        return datetime.datetime.fromtimestamp(self.updated_at, tz=datetime.timezone.utc)
-
-
 def hex_decode(line):
     """Simple function that decodes a hex string.
 
@@ -611,6 +629,53 @@ def hex_encode(line):
     chars = [line[i:i + 1] for i in range(0, len(line))]
     encs = [REV_HEX_MAP[ord(char) // 16] + REV_HEX_MAP[ord(char) % 16] for char in chars]
     return "".join(encs)
+
+
+async def get_url(url, params=None):
+    """Get a url asynchronously and return the textual response.
+
+    Using aiohttp, make a single request for a page.
+
+    Args:
+        url: The full URL to GET.
+        params: The optional params to append to the URL. Of form: [('key1', 'value1'), ...]
+
+    Raises:
+        cog.exc.RemoteError: The remote did not respond, likely down.
+    """
+    async with aiohttp.ClientSession() as http:
+        async with http.get(url, params=params) as resp:
+            if resp.status != 200:
+                raise cog.exc.RemoteError("Failed to GET from remote site [%s]: %s" % url, str(resp.status))
+
+            return await resp.text()
+
+
+# TODO:Test when endpoint available
+async def post_json_url(url, payload, *, headers=None):
+    """POST to a url asynchronously and await a response json.
+
+    Default headers used with be JSON.
+    Payload will be dumped accordingly to proper JSON.
+
+    Args:
+        url: The full URL to POST.
+        payload: The dictionary object that contains the payload to POST.
+        headers: Optionally, a different set than default headers.
+
+    Raises:
+        cog.exc.RemoteError: The remote did not respond, likely down.
+    """
+    if not headers:
+        headers = cog.inara.API_HEADERS
+
+    input = json.dumps(payload)
+    async with aiohttp.ClientSession() as http:
+        async with http.post(url, data=input, headers=headers) as resp:
+            if resp.status != 200:
+                raise cog.exc.RemoteError("Failed to POST from remote site [%s]: %s" % url, str(resp.status))
+
+            return await resp.json()
 
 
 #  # Scenario multiple readers, always allowed

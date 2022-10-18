@@ -35,6 +35,7 @@ import cog.tbl
 import cog.util
 import cogdb
 import extras.fetch_eddb
+from cog.util import TimestampMixin, UpdatableMixin
 
 
 LEN = {  # Lengths for strings stored in the db
@@ -129,23 +130,6 @@ HOUR_SECONDS = 60 * 60
 HISTORY_INF_TIME_GAP = HOUR_SECONDS * 4  # min seconds between data points
 # To select planetary stations
 Base = sqlalchemy.ext.declarative.declarative_base()
-
-
-class UpdatableMixin():
-    """Mixin that allows updating this object by kwargs."""
-    def update(self, **kwargs):
-        """
-        Simple kwargs update to this object.
-
-        If update_at present, only update object if new information is newer.
-        If update_at not present, the current timestamp will be set.
-        """
-        if 'updated_at' in kwargs:
-            if kwargs['updated_at'] <= self.updated_at:
-                return
-
-        for key, val in kwargs.items():
-            setattr(self, key, val)
 
 
 class Allegiance(Base):
@@ -246,7 +230,7 @@ class Economy(Base):
         return hash(self.id)
 
 
-class Faction(cog.util.TimestampMixin, UpdatableMixin, Base):
+class Faction(TimestampMixin, UpdatableMixin, Base):
     """ Information about a faction. """
     __tablename__ = "factions"
 
@@ -323,7 +307,7 @@ class FactionState(Base):
         return hash(self.id)
 
 
-class FactionActiveState(cog.util.TimestampMixin, Base):
+class FactionActiveState(TimestampMixin, Base):
     """ Represents the actual or pending states of a faction/system pair."""
     __tablename__ = "faction_active_states"
 
@@ -350,7 +334,7 @@ class FactionActiveState(cog.util.TimestampMixin, Base):
         return hash("{}_{}_{}".format(self.faction_id, self.system_id, self.state_id))
 
 
-class FactionPendingState(cog.util.TimestampMixin, Base):
+class FactionPendingState(TimestampMixin, Base):
     """ Represents the actual or pending states of a faction/system pair."""
     __tablename__ = "faction_pending_states"
 
@@ -377,7 +361,7 @@ class FactionPendingState(cog.util.TimestampMixin, Base):
         return hash("{}_{}_{}".format(self.faction_id, self.system_id, self.state_id))
 
 
-class FactionRecoveringState(cog.util.TimestampMixin, Base):
+class FactionRecoveringState(TimestampMixin, Base):
     """ Represents the actual or pending states of a faction/system pair."""
     __tablename__ = "faction_recovering_states"
 
@@ -426,7 +410,7 @@ class Government(Base):
         return hash(self.id)
 
 
-class Influence(cog.util.TimestampMixin, Base):
+class Influence(TimestampMixin, Base):
     """ Represents influence of a faction in a system. """
     __tablename__ = "influence"
 
@@ -635,7 +619,7 @@ class SettlementSize(Base):
         return hash(self.id)
 
 
-class StationFeatures(cog.util.TimestampMixin, UpdatableMixin, Base):
+class StationFeatures(TimestampMixin, UpdatableMixin, Base):
     """ The features at a station. """
     __tablename__ = "station_features"
 
@@ -720,7 +704,7 @@ class StationEconomy(Base):
         return hash("{}_{}".format(self.id, self.economy_id))
 
 
-class Station(cog.util.TimestampMixin, UpdatableMixin, Base):
+class Station(TimestampMixin, UpdatableMixin, Base):
     """ Repesents a system in the universe. """
     __tablename__ = "stations"
 
@@ -773,7 +757,7 @@ class Station(cog.util.TimestampMixin, UpdatableMixin, Base):
         return hash(self.id)
 
 
-class System(cog.util.TimestampMixin, UpdatableMixin, Base):
+class System(TimestampMixin, UpdatableMixin, Base):
     """
     Repesents a system in the universe.
 
@@ -1019,7 +1003,7 @@ class ConflictState(Base):
         return hash(self.id)
 
 
-class Conflict(cog.util.TimestampMixin, UpdatableMixin, Base):
+class Conflict(TimestampMixin, UpdatableMixin, Base):
     """
     Defines an in system conflict between two factions.
     """
@@ -1080,7 +1064,7 @@ class Conflict(cog.util.TimestampMixin, UpdatableMixin, Base):
         return hash("{}_{}_{}".format(self.system_id, self.faction1_id, self.faction2_id))
 
 
-class HistoryTrack(cog.util.TimestampMixin, Base):
+class HistoryTrack(TimestampMixin, Base):
     """
     Set an entry to flag this system should be tracked.
     """
@@ -1112,7 +1096,7 @@ class HistoryTrack(cog.util.TimestampMixin, Base):
 #   - With add_history_influence enforce following:
 #       LIMIT total number of entries per key pair
 #       Enforce only new data when inf is different than last and min gap in time from last
-class HistoryInfluence(cog.util.TimestampMixin, Base):
+class HistoryInfluence(TimestampMixin, Base):
     """ Represents a frozen state of influence for a faction in a system at some point in time. """
     __tablename__ = "history_influence"
 
@@ -1864,8 +1848,9 @@ def load_influences(fname, power_ids):
 
                     try:
                         found = eddb_session.query(Influence).\
-                            filter(Influence.system_id == faction['system_id'],
-                                   Influence.faction_id == faction['faction_id']).\
+                            filter(
+                                Influence.system_id == faction['system_id'],
+                                Influence.faction_id == faction['faction_id']).\
                             one()
                         found.update(**faction)
                     except sqla_orm.exc.NoResultFound:  # Handle case of not existing record
@@ -2048,8 +2033,10 @@ def base_get_stations(session, centre_name, *, sys_dist=75, arrival=2000):
         A partially completed query based on above, has no extra filters.
     """
     exclude = session.query(StationType.text).\
-        filter(or_(StationType.text.like("%Planet%"),
-                   StationType.text.like("%Fleet%"))).\
+        filter(
+            or_(
+                StationType.text.like("%Planet%"),
+                StationType.text.like("%Fleet%"))).\
         scalar_subquery()
 
     centre = sqla_orm.aliased(System)
@@ -2061,9 +2048,10 @@ def base_get_stations(session, centre_name, *, sys_dist=75, arrival=2000):
         join(Station, Station.system_id == station_system.id).\
         join(StationType, Station.type_id == StationType.id).\
         join(StationFeatures, Station.id == StationFeatures.id).\
-        filter(station_system.dist_to(centre) < sys_dist,
-               Station.distance_to_star < arrival,
-               StationType.text.notin_(exclude))
+        filter(
+            station_system.dist_to(centre) < sys_dist,
+            Station.distance_to_star < arrival,
+            StationType.text.notin_(exclude))
 
     return stations
 
@@ -2103,8 +2091,10 @@ def get_nearest_tech_brokers(session, centre_name, *, guardian=True, sys_dist=75
             [system_name, system_dist, station_name, station_arrival_distance]
     """
     exclude = session.query(StationType.text).\
-        filter(or_(StationType.text.like("%Planet%"),
-                   StationType.text.like("%Fleet%"))).\
+        filter(
+            or_(
+                StationType.text.like("%Planet%"),
+                StationType.text.like("%Fleet%"))).\
         scalar_subquery()
     subq_hightech_id = session.query(Economy.id).\
         filter(Economy.text == 'High Tech').\
@@ -2114,8 +2104,7 @@ def get_nearest_tech_brokers(session, centre_name, *, guardian=True, sys_dist=75
             sqla.or_(
                 System.primary_economy_id == subq_hightech_id,
                 System.secondary_economy_id == subq_hightech_id,
-            )
-    ).\
+            )).\
         scalar_subquery()
 
     centre = sqla_orm.aliased(System)
@@ -2131,9 +2120,7 @@ def get_nearest_tech_brokers(session, centre_name, *, guardian=True, sys_dist=75
             station_system.dist_to(centre) < sys_dist,
             Station.distance_to_star < arrival,
             StationType.text.notin_(exclude),
-            StationFeatures.technology_broker
-    )
-
+            StationFeatures.technology_broker)
     if guardian:
         stations = stations.filter(station_system.id.in_(high_tech_ids))
     else:
@@ -2331,8 +2318,7 @@ def is_system_of_power(session, system_name, *, power='%hudson'):
             sqla.or_(
                 SystemControlV.system == system_name,
                 SystemControlV.control == system_name
-            )
-    ).\
+            )).\
         all()
 
 
@@ -2576,8 +2562,9 @@ def add_history_influence(eddb_session, latest_inf):
         return
 
     data = eddb_session.query(HistoryInfluence).\
-        filter(HistoryInfluence.system_id == latest_inf.system_id,
-               HistoryInfluence.faction_id == latest_inf.faction_id).\
+        filter(
+            HistoryInfluence.system_id == latest_inf.system_id,
+            HistoryInfluence.faction_id == latest_inf.faction_id).\
         order_by(HistoryInfluence.updated_at.desc()).\
         all()
 
@@ -2893,11 +2880,15 @@ def main_test_area(eddb_session):  # pragma: no cover
     print('------')
 
     station = eddb_session.query(Station).\
-        filter(Station.system_id == system.id,
-               Station.name == "Daedalus").\
+        filter(
+            Station.system_id == system.id,
+            Station.name == "Daedalus").\
         one()
     print(station.system, station.type, station.features, station.faction)
 
+    __import__('pprint').pprint(get_nearest_stations_with_features(
+        eddb_session, centre_name='rana'), features=['interstellar_factors']
+    )
     stations = get_shipyard_stations(eddb_session, input("Please enter a system name ... "))
     if stations:
         print(cog.tbl.format_table(stations))
@@ -2938,7 +2929,10 @@ def main():  # pragma: no cover
         print("Commodity count:", eddb_session.query(Commodity).count())
         obj_count = eddb_session.query(Faction).count()
         print("Faction count:", obj_count)
-        print("Faction States count:", eddb_session.query(FactionActiveState).count() + eddb_session.query(FactionPendingState).count() + eddb_session.query(FactionRecoveringState).count())
+        print("Faction States count:",
+              eddb_session.query(FactionActiveState).count()
+              + eddb_session.query(FactionPendingState).count()
+              + eddb_session.query(FactionRecoveringState).count())
         print("Influence count:", eddb_session.query(Influence).count())
         assert obj_count > 77500
 

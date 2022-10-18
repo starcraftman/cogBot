@@ -5,13 +5,14 @@ import json
 import os
 import pathlib
 import pytest
+import tempfile
 
 import sqlalchemy as sqla
 
-import cog.util
 import cogdb.spy_squirrel as spy
 import cogdb.eddb
 from cogdb.schema import FortSystem, UMSystem
+import tests.conftest
 
 FIXED_TIMESTAMP = 1662390092
 INPUT_UPDATE_EDDB_FACTIONS = {
@@ -69,9 +70,9 @@ def load_json(fname):
     Raises:
         FileNotFoundError: The file required is missing.
     """
-    path = pathlib.Path(os.path.join(cog.util.ROOT_DIR, 'tests', 'cogdb', fname))
+    path = pathlib.Path(os.path.join(tempfile.gettempdir(), fname))
     if not path.exists():
-        raise FileNotFoundError(f"Missing required json file: {str(path)}")
+        tests.conftest.fetch_json_secret(tempfile.gettempdir(), fname.replace('.json', ''))
 
     with path.open('r', encoding='utf-8') as fin:
         return json.load(fin)
@@ -95,6 +96,12 @@ def response_json():
 @pytest.fixture()
 def scrape_json():
     yield load_json('scrape.json')
+
+
+@pytest.fixture()
+def response_news_json(response_json):
+    """Returns the news element of refined json, shortcut."""
+    yield response_json['123']['news']
 
 
 @pytest.fixture()
@@ -406,128 +413,26 @@ def test_load_base_and_refined_json(empty_spy, base_json, refined_json, eddb_ses
         one()
 
 
-def test_parse_params():
-    input = [
-        {
-            "key": "system",
-            "value": "52686561",
-            "type": "string"
-        },
-        {
-            "key": "factionName",
-            "value": "4C61626F7572206F662052686561",
-            "type": "string"
-        },
-        {
-            "key": "list",
-            "value": "$newsfeed_NewsSummaryHeadlines:#Influence=4.8:#Happiness=$Faction_HappinessBand2;;",
-            "type": "string"
-        }
-    ]
+def test_parse_params(response_news_json):
     expect = {
         'factionName': 'Labour of Rhea',
         'list': '$newsfeed_NewsSummaryHeadlines:#Influence=4.8:#Happiness=$Faction_HappinessBand2;;',
         'system': 'Rhea'
     }
+    assert expect == spy.parse_params(response_news_json[0]['params'])
 
-    assert expect == spy.parse_params(input)
 
-
-def test_parse_response_news_summary():
-    input = {
-        "type": "NewsSummaryFactionStateTitle",
-        "substColon": False,
-        "params": [
-            {
-                "key": "system",
-                "value": "52686561",
-                "type": "string"
-            },
-            {
-                "key": "factionName",
-                "value": "4C61626F7572206F662052686561",
-                "type": "string"
-            },
-            {
-                "key": "list",
-                "value": "$newsfeed_NewsSummaryHeadlines:#Influence=4.8:#Happiness=$Faction_HappinessBand2;;",
-                "type": "string"
-            }
-        ],
-        "date": "7 OCT 3308",
-        "sticky": 1
-    }
+def test_parse_response_news_summary(response_news_json):
     expect = {
         'factionName': 'Labour of Rhea',
         'happiness': 2,
         'influence': 4.8,
         'system': 'Rhea'
     }
-    assert expect == spy.parse_response_news_summary(input)
+    assert expect == spy.parse_response_news_summary(response_news_json[0])
 
 
-def test_parse_response_trade_goods():
-    input = {
-        "date": "7 OCT 3308",
-        "type": "stateTradeGoodCommodities",
-        "params": [
-            {
-                "key": "list",
-                "value": "2444616D61676564457363617065506F645F4E616D653B",
-                "type": "string"
-            },
-            {
-                "key": "list",
-                "value": "2442617369634D65646963696E65735F4E616D653B",
-                "type": "string"
-            },
-            {
-                "key": "list",
-                "value": "24416C6761655F4E616D653B",
-                "type": "string"
-            },
-            {
-                "key": "list",
-                "value": "245061696E6974655F4E616D653B",
-                "type": "string"
-            },
-            {
-                "key": "list",
-                "value": "24416C6578616E64726974655F4E616D653B",
-                "type": "string"
-            },
-            {
-                "key": "list",
-                "value": "244F70616C5F4E616D653B",
-                "type": "string"
-            },
-            {
-                "key": "list",
-                "value": "24476F6C645F4E616D653B",
-                "type": "string"
-            },
-            {
-                "key": "list",
-                "value": "245472697469756D5F4E616D653B",
-                "type": "string"
-            },
-            {
-                "key": "list",
-                "value": "2454686F7269756D5F4E616D653B",
-                "type": "string"
-            },
-            {
-                "key": "list",
-                "value": "2457696E655F4E616D653B",
-                "type": "string"
-            },
-            {
-                "key": "list",
-                "value": "244D6172696E65537570706C6965735F4E616D653B",
-                "type": "string"
-            }
-        ]
-    }
+def test_parse_response_trade_goods(response_news_json):
     expect = [
         '$DamagedEscapePod_Name;',
         '$BasicMedicines_Name;',
@@ -541,146 +446,18 @@ def test_parse_response_trade_goods():
         '$Wine_Name;',
         '$MarineSupplies_Name;'
     ]
-    assert expect == spy.parse_response_trade_goods(input)
+    assert expect == spy.parse_response_trade_goods(response_news_json[7])
 
 
-def test_parse_response_bounties_claimed():
-    input = {
-        "date": "7 OCT 3308",
-        "type": "bountiesClaimed",
-        "params": [
-            {
-                "key": "bountyCount",
-                "value": 439,
-                "type": "int"
-            },
-            {
-                "key": "bountyValue",
-                "value": 75817971,
-                "type": "int"
-            }
-        ]
-    }
+def test_parse_response_bounties_claimed(response_news_json):
     expect = {
         "bountyCount": 439,
         "bountyValue": 75817971,
     }
-    assert expect == spy.parse_response_bounties_claimed(input)
+    assert expect == spy.parse_response_bounties_claimed(response_news_json[8])
 
 
-def test_parse_response_top5_bounties():
-    input = {
-        "date": "7 OCT 3308",
-        "type": "top5Bounties",
-        "params": [
-            {
-                "key": "type",
-                "value": "faction",
-                "type": "string"
-            },
-            {
-                "key": "commanderId1",
-                "value": 5520548,
-                "type": "int"
-            },
-            {
-                "key": "name1",
-                "value": "434D44522053756E4E616D69646120284B72616974204D6B20494920225052495641544520434F55524945522229",
-                "type": "string"
-            },
-            {
-                "key": "lastLocation1",
-                "value": "4D656C696369202D20506F6C616E736B79204C616E64696E67",
-                "type": "string"
-            },
-            {
-                "key": "bountyValue1",
-                "value": 22800,
-                "type": "int"
-            },
-            {
-                "key": "commanderId2",
-                "value": 7686998,
-                "type": "int"
-            },
-            {
-                "key": "name2",
-                "value": "434D445220427562626120426F20426F6220284B65656C6261636B20224B45454C4241434B2229",
-                "type": "string"
-            },
-            {
-                "key": "lastLocation2",
-                "value": "446A6977616C202D2054686F6D70736F6E20446F636B",
-                "type": "string"
-            },
-            {
-                "key": "bountyValue2",
-                "value": 6300,
-                "type": "int"
-            },
-            {
-                "key": "commanderId3",
-                "value": 6750288,
-                "type": "int"
-            },
-            {
-                "key": "name3",
-                "value": "434D4452204D72536B696C6C696E20284B65656C6261636B29",
-                "type": "string"
-            },
-            {
-                "key": "lastLocation3",
-                "value": "4E4C5454203139383038",
-                "type": "string"
-            },
-            {
-                "key": "bountyValue3",
-                "value": 2600,
-                "type": "int"
-            },
-            {
-                "key": "commanderId4",
-                "value": 0,
-                "type": "int"
-            },
-            {
-                "key": "name4",
-                "value": "",
-                "type": "string"
-            },
-            {
-                "key": "lastLocation4",
-                "value": "",
-                "type": "string"
-            },
-            {
-                "key": "bountyValue4",
-                "value": 0,
-                "type": "int"
-            },
-            {
-                "key": "commanderId5",
-                "value": 0,
-                "type": "int"
-            },
-            {
-                "key": "name5",
-                "value": "",
-                "type": "string"
-            },
-            {
-                "key": "lastLocation5",
-                "value": "",
-                "type": "string"
-            },
-            {
-                "key": "bountyValue5",
-                "value": 0,
-                "type": "int"
-            }
-        ],
-        "ugc": True
-    }
+def test_parse_response_top5_bounties(response_news_json):
     expect = {
         1: {
             'bountyValue': 22800,
@@ -714,177 +491,19 @@ def test_parse_response_top5_bounties():
         },
         'type': 'faction'
     }
+    assert expect == spy.parse_response_top5_bounties(response_news_json[10])
 
-    assert expect == spy.parse_response_top5_bounties(input)
 
-
-def test_parse_response_traffic_totals():
-    input = {
-        "date": "7 OCT 3308",
-        "type": "trafficTotals",
-        "params": [
-            {
-                "key": "total",
-                "value": 287,
-                "type": "int"
-            },
-            {
-                "key": "list",
-                "value": "$ASP_NAME; - 18",
-                "type": "string"
-            },
-            {
-                "key": "list",
-                "value": "$ADDER_NAME; - 2",
-                "type": "string"
-            },
-            {
-                "key": "list",
-                "value": "$CUTTER_NAME; - 37",
-                "type": "string"
-            },
-            {
-                "key": "list",
-                "value": "$FEDERATION_CORVETTE_NAME; - 20",
-                "type": "string"
-            },
-            {
-                "key": "list",
-                "value": "$DIAMONDBACKXL_NAME; - 14",
-                "type": "string"
-            },
-            {
-                "key": "list",
-                "value": "$ANACONDA_NAME; - 35",
-                "type": "string"
-            },
-            {
-                "key": "list",
-                "value": "$TYPEX_NAME; - 5",
-                "type": "string"
-            },
-            {
-                "key": "list",
-                "value": "$DIAMONDBACK_NAME; - 8",
-                "type": "string"
-            },
-            {
-                "key": "list",
-                "value": "$DOLPHIN_NAME; - 4",
-                "type": "string"
-            },
-            {
-                "key": "list",
-                "value": "$ORCA_NAME; - 4",
-                "type": "string"
-            },
-            {
-                "key": "list",
-                "value": "$VIPER_MKIV_NAME; - 7",
-                "type": "string"
-            },
-            {
-                "key": "list",
-                "value": "$KRAIT_LIGHT_NAME; - 8",
-                "type": "string"
-            },
-            {
-                "key": "list",
-                "value": "$VULTURE_NAME; - 3",
-                "type": "string"
-            },
-            {
-                "key": "list",
-                "value": "$KRAIT_MKII_NAME; - 31",
-                "type": "string"
-            },
-            {
-                "key": "list",
-                "value": "$TYPE6_NAME; - 7",
-                "type": "string"
-            },
-            {
-                "key": "list",
-                "value": "$COBRAMKIII_NAME; - 9",
-                "type": "string"
-            },
-            {
-                "key": "list",
-                "value": "$TYPE9_NAME; - 24",
-                "type": "string"
-            },
-            {
-                "key": "list",
-                "value": "$INDEPENDANT_TRADER_NAME; - 6",
-                "type": "string"
-            },
-            {
-                "key": "list",
-                "value": "$PYTHON_NAME; - 17",
-                "type": "string"
-            },
-            {
-                "key": "list",
-                "value": "$FERDELANCE_NAME; - 2",
-                "type": "string"
-            },
-            {
-                "key": "list",
-                "value": "$BELUGALINER_NAME; - 4",
-                "type": "string"
-            },
-            {
-                "key": "list",
-                "value": "$EAGLE_NAME; - 1",
-                "type": "string"
-            },
-            {
-                "key": "list",
-                "value": "$HAULER_NAME; - 1",
-                "type": "string"
-            },
-            {
-                "key": "list",
-                "value": "$TYPEX_2_NAME; - 2",
-                "type": "string"
-            },
-            {
-                "key": "list",
-                "value": "$VIPER_NAME; - 4",
-                "type": "string"
-            },
-            {
-                "key": "list",
-                "value": "$TYPE9_MILITARY_NAME; - 4",
-                "type": "string"
-            },
-            {
-                "key": "list",
-                "value": "$FEDERATION_DROPSHIP_MKII_NAME; - 3",
-                "type": "string"
-            },
-            {
-                "key": "list",
-                "value": "$TYPEX_3_NAME; - 2",
-                "type": "string"
-            },
-            {
-                "key": "list",
-                "value": "$MAMBA_NAME; - 3",
-                "type": "string"
-            },
-            {
-                "key": "list",
-                "value": "$TYPE7_NAME; - 1",
-                "type": "string"
-            },
-            {
-                "key": "list",
-                "value": "$EMPIRE_EAGLE_NAME; - 1",
-                "type": "string"
-            }
-        ]
+def test_parse_response_power_update(response_news_json):
+    expect = {
+        'power': 'Felicia Winters',
+        'held_merits': 0,
+        'stolen_fort': 0,
     }
+    assert expect == spy.parse_response_power_update(response_news_json[12])
+
+
+def test_parse_response_traffic_totals(response_news_json):
     expect = {
         'by_ship': {
             'adder': 2,
@@ -921,37 +540,7 @@ def test_parse_response_traffic_totals():
         },
         'total': 287
     }
-    assert expect == spy.parse_response_traffic_totals(input)
-
-
-def test_parse_response_power_update():
-    input = {
-        "date": "7 OCT 3308",
-        "type": "PowerUpdate",
-        "params": [
-            {
-                "key": "PowerName",
-                "value": "Felicia Winters",
-                "type": "string"
-            },
-            {
-                "key": "fortification",
-                "value": 0,
-                "type": "string"
-            },
-            {
-                "key": "merits",
-                "value": 0,
-                "type": "string"
-            }
-        ]
-    }
-    expect = {
-        'power': 'Felicia Winters',
-        'held_merits': 0,
-        'stolen_fort': 0,
-    }
-    assert expect == spy.parse_response_power_update(input)
+    assert expect == spy.parse_response_traffic_totals(response_news_json[13])
 
 
 def test_load_response_json(empty_spy, response_json, eddb_session):

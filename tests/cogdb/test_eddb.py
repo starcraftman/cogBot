@@ -554,29 +554,3 @@ def test_add_history_influence_inf_diff(eddb_session):
         eddb_session.rollback()
         eddb_session.query(HistoryInfluence).delete()
         eddb_session.query(HistoryTrack).delete()
-
-
-class DummyUpdateObject(cogdb.eddb.UpdatableMixin):
-    def __init__(self):
-        self.num = 10
-        self.updated_at = 50
-
-
-def test_updatable_mixin_older_kwargs():
-    kwargs = {
-        'num': 20,
-        'updated_at': 25,
-    }
-    obj = DummyUpdateObject()
-    obj.update(**kwargs)
-    assert obj.num == 10
-
-
-def test_updatable_mixin_newer_kwargs():
-    kwargs = {
-        'num': 20,
-        'updated_at': 60,
-    }
-    obj = DummyUpdateObject()
-    obj.update(**kwargs)
-    assert obj.num == 20

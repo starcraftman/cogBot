@@ -15,6 +15,7 @@ from sqlalchemy.ext.hybrid import hybrid_property
 
 import cog.util
 import cogdb.eddb
+from cog.util import TimestampMixin
 from cogdb.eddb import Base, Power, System, Faction, Influence
 from cogdb.schema import FortSystem, UMSystem, EFortType, EUMType, EUMSheet
 
@@ -88,7 +89,7 @@ class SpyShip(Base):
 
 
 # These entries will be stored for SPY_LIMIT days.
-class SpyBounty(cog.util.TimestampMixin, Base):
+class SpyBounty(TimestampMixin, Base):
     """
     Track the bounties active in a system.
     """
@@ -171,7 +172,7 @@ class SpyTraffic(Base):
         return hash(f"{self.id}")
 
 
-class SpyVote(cog.util.TimestampMixin, Base):
+class SpyVote(TimestampMixin, Base):
     """
     Record current vote by power.
     """
@@ -204,7 +205,7 @@ class SpyVote(cog.util.TimestampMixin, Base):
         return hash(f"{self.power_id}")
 
 
-class SpyPrep(cog.util.TimestampMixin, Base):
+class SpyPrep(TimestampMixin, Base):
     """
     Store Prep triggers by systems.
     """
@@ -251,7 +252,7 @@ class SpyPrep(cog.util.TimestampMixin, Base):
         return hash(f"{self.power_id}_{self.ed_system_id}")
 
 
-class SpySystem(cog.util.TimestampMixin, Base):
+class SpySystem(TimestampMixin, Base):
     """
     Store the current important information of the system.
     """
@@ -379,8 +380,9 @@ def load_base_json(base, eddb_session):
             }
             try:
                 system = eddb_session.query(SpySystem).\
-                    filter(SpySystem.ed_system_id == sys_addr,
-                           SpySystem.power_id == power_id).\
+                    filter(
+                        SpySystem.ed_system_id == sys_addr,
+                        SpySystem.power_id == power_id).\
                     one()
                 system.update(**kwargs)
             except sqla.orm.exc.NoResultFound:
@@ -428,8 +430,9 @@ def load_refined_json(refined, eddb_session):
                 one()
             try:
                 spyprep = eddb_session.query(SpyPrep).\
-                    filter(SpyPrep.ed_system_id == ed_system_id,
-                           SpyPrep.power_id == power_id).\
+                    filter(
+                        SpyPrep.ed_system_id == ed_system_id,
+                        SpyPrep.power_id == power_id).\
                     one()
                 spyprep.merits = merits
                 spyprep.updated_at = updated_at
@@ -462,8 +465,9 @@ def load_refined_json(refined, eddb_session):
         }
         try:
             system = eddb_session.query(SpySystem).\
-                filter(SpySystem.ed_system_id == ed_system_id,
-                       SpySystem.power_id == power_id).\
+                filter(
+                    SpySystem.ed_system_id == ed_system_id,
+                    SpySystem.power_id == power_id).\
                 one()
             system.update(**kwargs)
         except sqla.orm.exc.NoResultFound:
@@ -710,8 +714,9 @@ def compare_sheet_um_systems_to_spy(session, eddb_session):
         eddb_session: A session onto the EDDB db.
     """
     um_targets = session.query(UMSystem).\
-        filter(UMSystem.type == EUMType.control,
-               UMSystem.sheet_src == EUMSheet.main).\
+        filter(
+            UMSystem.type == EUMType.control,
+            UMSystem.sheet_src == EUMSheet.main).\
         all()
     um_names = [x.name for x in um_targets]
     um_dict = {x.name: x for x in um_targets}
@@ -761,8 +766,9 @@ def update_eddb_factions(eddb_session, fact_info):
                 found = eddb_session.query(Influence).\
                     join(System).\
                     join(Faction, Influence.faction_id == Faction.id).\
-                    filter(System.name == system_name,
-                           Faction.name == faction_name).\
+                    filter(
+                        System.name == system_name,
+                        Faction.name == faction_name).\
                     one()
             except sqla_orm.exc.NoResultFound:  # Handle case of not existing record
                 try:
