@@ -1048,7 +1048,7 @@ To unset override, simply set an empty list of systems.
             cogdb.TEST_DB
         if priority:
             lines += ['\n__Priority Systems__'] + route_systems(priority)
-        if show_deferred:
+        if show_deferred and deferred:
             lines += ['\n__Almost Done__'] + route_systems(deferred)
 
         return '\n'.join(lines)

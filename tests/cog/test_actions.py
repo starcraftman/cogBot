@@ -615,13 +615,7 @@ async def test_cmd_fort_order(session, f_bot, f_dusers, f_fort_testbed, f_fortor
 **LPM 229**    0/9479 :Fortifying:, :Undermined: - 112.98Ly
 
 __Next Targets__
-**Nurundere** 5422/8425 :Fortifying: - 99.51Ly
-
-__Priority Systems__
-**Othime**    0/7367 :Fortifying: Priority for S/M ships (no L pads) - 83.68Ly
-
-__Almost Done__
-**Dongkum** 7000/7239 :Fortifying: (239 left) - 81.54Ly"""
+**Nurundere** 5422/8425 :Fortifying: - 99.51Ly"""
     f_bot.send_message.assert_called_with(msg2.channel, expect)
 
 
