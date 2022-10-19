@@ -300,8 +300,6 @@ def test_fortsystem_priority_expression(session, f_dusers, f_fort_testbed):
 
 
 def test_fortsystem_prep(f_dusers, f_fort_testbed):
-    __import__('pprint').pprint(f_fort_testbed)
-
     system = f_fort_testbed[1][0]
     print(system)
     assert system.is_prep is False

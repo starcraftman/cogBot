@@ -717,8 +717,6 @@ def test_edmcjournal_parse_station():
 
     parser.parse_system()
     result = parser.parse_station()
-    __import__('pprint').pprint(result)
-    __import__('pprint').pprint(expected)
 
     assert result == expected
 

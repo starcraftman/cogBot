@@ -945,7 +945,7 @@ class GalScanner(FortScanner):
         """
         raise NotImplementedError
 
-    def update_dict(self, *, systems=[], preps=[], exps=[], vote=[], row=3):
+    def update_dict(self, *, systems=[], preps=[], exps=[], vote=None, row=3):
         """
         Create an update payload to update all cells on a sheet.
 
@@ -962,27 +962,32 @@ class GalScanner(FortScanner):
             first += [[name, spy_system.fort, spy_system.um]]
             second += [[name, 0, 0, spy_system.fort_trigger, spy_system.um_trigger]]
             third += [[name, spy_system.held_merits]]
-
-        for spy_prep in preps:
-            name = spy_prep.system_name.upper()
-            prep_systems += [[name, spy_prep.merits]]
-
-        for spy_exp in exps:
-            name = spy_exp.system.name.upper()
-            exp_systems_first += [[name, spy_exp.fort, spy_exp.um]]
-            exp_systems_second += [[name, spy_exp.fort_trigger, spy_exp.um_trigger]]
-
         payload = [
             {'range': f'A{row}:C{end_row}', 'values': first},
             {'range': f'L{row}:P{end_row}', 'values': second},
             {'range': f'R{row}:S{end_row}', 'values': third},
-            {'range': f'D{row}:E{end_row_prep}', 'values': prep_systems},
-            {'range': f'F{row}:H{end_row_exp}', 'values': exp_systems_first},
-            {'range': f'I{row}:K{end_row_exp}', 'values': exp_systems_second},
-            {'range': 'D9:E9', 'values': [[str(vote.vote), str(100-vote.vote)]]},
-            {'range': 'C1:C1', 'values': [[str(now)]]},
         ]
 
+        if preps:
+            for spy_prep in preps:
+                name = spy_prep.system_name.upper()
+                prep_systems += [[name, spy_prep.merits]]
+            payload += [{'range': f'D{row}:E{end_row_prep}', 'values': prep_systems}]
+
+        if exps:
+            for spy_exp in exps:
+                name = spy_exp.system.name.upper()
+                exp_systems_first += [[name, spy_exp.fort, spy_exp.um]]
+                exp_systems_second += [[name, spy_exp.fort_trigger, spy_exp.um_trigger]]
+            payload += [
+                {'range': f'F{row}:H{end_row_exp}', 'values': exp_systems_first},
+                {'range': f'I{row}:K{end_row_exp}', 'values': exp_systems_second},
+            ]
+
+        if vote:
+            payload += [{'range': 'D9:E9', 'values': [[str(vote.vote), str(100 - vote.vote)]]}]
+
+        payload += [{'range': 'C1:C1', 'values': [[str(now)]]}]
         return payload
 
     async def clear_cells(self, *, row=3):

@@ -447,7 +447,6 @@ class Admin(Action):
                         await scanners[name].asheet.duplicate_sheet(template, new_page)
                     except gspread.exceptions.APIError as exc:
                         logging.getLogger(__name__).error("Failed to duplicate sheet: %s\nExc: %s", name, str(exc))
-                        # raise ValueError from exc
                     await scanners[name].asheet.change_worksheet(new_page)
 
                     if name == 'hudson_cattle':
@@ -2576,8 +2575,8 @@ async def push_scrape_to_gal_scanner():  # pragma: no cover | tested elsewhere
             #     one()
 
             systems = sorted(systems, key=lambda x: x.system.name.lower())
-            #expansions = sorted(expansions, key=lambda x: x.system.name.lower())
-            #preps = sorted(preps, key=lambda x: x.system_name.lower())
+            # expansions = sorted(expansions, key=lambda x: x.system.name.lower())
+            # preps = sorted(preps, key=lambda x: x.system_name.lower())
 
             log.error("Updating sheet for: %s", power.eddn)
             await gal_scanner.asheet.change_worksheet(power.eddn.upper())

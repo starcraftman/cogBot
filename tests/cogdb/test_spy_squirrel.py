@@ -353,7 +353,6 @@ def test_fetch_json_secret():
 
 def test_fetch_load_secret():
     base_json = spy.load_json_secret('base.json')
-    __import__('pprint').pprint(base_json)
 
     assert base_json
 
