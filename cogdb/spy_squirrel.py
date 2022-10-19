@@ -6,6 +6,8 @@ import logging
 import os
 import pathlib
 import re
+import subprocess as sub
+import tempfile
 import time
 
 import sqlalchemy as sqla
@@ -320,6 +322,36 @@ def json_powers_to_eddb_map():
         }
 
     return json_powers_to_eddb_id
+
+
+def fetch_json_secret(secrets_path, name):
+    """
+    Check if required secrets available, if not fetch them.
+    Executing this function requires local install of secrethub + credentials to read.
+
+    Args:
+        secrets_path: Path to a directory to put secrets.
+        name: Name of the json secret to fetch
+    """
+    pat = pathlib.Path(os.path.join(secrets_path, f'{name}.json'))
+    cmd = ['secrethub', 'read', '-o', str(pat), f'starcraftman/cogbot/tests/json/{name}']
+    if not pat.exists():
+        print(f"fetching: {pat}")
+        sub.check_call(cmd)
+
+
+def load_json_secret(fname):
+    """Load a json file example for API testing.
+
+    Args:
+        fname: The filename to load or fetch from secrethub.
+    """
+    path = pathlib.Path(os.path.join(tempfile.gettempdir(), fname))
+    if not path.exists():
+        fetch_json_secret(tempfile.gettempdir(), fname.replace('.json', ''))
+
+    with path.open('r', encoding='utf-8') as fin:
+        return json.load(fin)
 
 
 def load_base_json(base, eddb_session):
@@ -843,20 +875,12 @@ def main():  # pragma: no cover | destructive to test
     Main function to load the test data during development.
     """
     recreate_tables()
-    base_f = pathlib.Path(os.path.join(cog.util.ROOT_DIR, 'tests', 'cogdb', 'base.json'))
-    refined_f = pathlib.Path(os.path.join(cog.util.ROOT_DIR, 'tests', 'cogdb', 'refined.json'))
-    response_f = pathlib.Path(os.path.join(cog.util.ROOT_DIR, 'tests', 'cogdb', 'response.json'))
 
     with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
         preload_spy_tables(eddb_session)
-        with open(base_f, encoding='utf-8') as fin:
-            load_base_json(json.load(fin), eddb_session)
-
-        with open(refined_f, encoding='utf-8') as fin:
-            load_refined_json(json.load(fin), eddb_session)
-
-        with open(response_f, encoding='utf-8') as fin:
-            load_response_json(json.load(fin), eddb_session)
+        load_base_json(load_json_secret('base.json'), eddb_session)
+        load_refined_json(load_json_secret('refined.json'), eddb_session)
+        load_response_json(load_json_secret('response.json'), eddb_session)
 
     # FIXME: For testing. Can delete soon.
     #
@@ -902,7 +926,7 @@ PARSER_MAP = {
 if cogdb.TEST_DB:
     recreate_tables()
 else:
-    Base.metadata.create_all(cogdb.engine)
+    Base.metadata.create_all(cogdb.eddb_engine)
 
 
 if __name__ == "__main__":

@@ -1,10 +1,8 @@
 """
 Tests for cogdb.spy
 """
-import json
 import os
 import pathlib
-import tempfile
 
 import pytest
 import sqlalchemy as sqla
@@ -12,7 +10,8 @@ import sqlalchemy as sqla
 import cogdb.spy_squirrel as spy
 import cogdb.eddb
 from cogdb.schema import FortSystem, UMSystem
-import tests.conftest
+from cogdb.spy_squirrel import load_json_secret
+
 
 FIXED_TIMESTAMP = 1662390092
 INPUT_UPDATE_EDDB_FACTIONS = {
@@ -61,41 +60,24 @@ INPUT_UPDATE_EDDB_FACTIONS = {
 spy.empty_tables()
 
 
-def load_json(fname):
-    """Load a json file example for API testing.
-
-    Args:
-        fname: The file to load in tests directory.
-
-    Raises:
-        FileNotFoundError: The file required is missing.
-    """
-    path = pathlib.Path(os.path.join(tempfile.gettempdir(), fname))
-    if not path.exists():
-        tests.conftest.fetch_json_secret(tempfile.gettempdir(), fname.replace('.json', ''))
-
-    with path.open('r', encoding='utf-8') as fin:
-        return json.load(fin)
-
-
 @pytest.fixture()
 def base_json():
-    yield load_json('base.json')
+    yield load_json_secret('base.json')
 
 
 @pytest.fixture()
 def refined_json():
-    yield load_json('refined.json')
+    yield load_json_secret('refined.json')
 
 
 @pytest.fixture()
 def response_json():
-    yield load_json('response.json')
+    yield load_json_secret('response.json')
 
 
 @pytest.fixture()
 def scrape_json():
-    yield load_json('scrape.json')
+    yield load_json_secret('scrape.json')
 
 
 @pytest.fixture()
@@ -355,6 +337,25 @@ def test_empty_tables(spy_test_bed, eddb_session):
 
     for table in spy.SPY_TABLES:
         assert not eddb_session.query(table).limit(1).all()
+
+
+def test_fetch_json_secret():
+    fpath = pathlib.Path(os.path.join('/tmp', 'base.json'))
+    try:
+        os.remove(fpath)
+    except OSError:
+        pass
+
+    assert not fpath.exists()
+    spy.fetch_json_secret('/tmp', 'base')
+    assert fpath.exists()
+
+
+def test_fetch_load_secret():
+    base_json = spy.load_json_secret('base.json')
+    __import__('pprint').pprint(base_json)
+
+    assert base_json
 
 
 def test_load_base_json(empty_spy, base_json, eddb_session):

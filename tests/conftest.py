@@ -4,8 +4,6 @@ Used for pytest fixtures and anything else test setup/teardown related.
 import copy
 import datetime
 import os
-import pathlib
-import subprocess as sub
 import sys
 
 import aiofiles
@@ -858,20 +856,6 @@ def f_cons_data(session):
     for cls in (Consolidation,):
         session.query(cls).delete()
     session.commit()
-
-
-def fetch_json_secret(secrets_path, name):
-    """
-    Check if required secrets available, if not fetch them.
-
-    Args:
-        secrets_path: Path to a directory to put secrets.
-    """
-    pat = pathlib.Path(os.path.join(secrets_path, f'{name}.json'))
-    cmd = ['secrethub', 'read', '-o', str(pat), f'starcraftman/cogbot/tests/json/{name}']
-    if not pat.exists():
-        print(f"fetching: {pat}")
-        sub.check_call(cmd)
 
 
 # FIXME: Onetime cleanup before spy tests for now
