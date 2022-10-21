@@ -439,8 +439,12 @@ def subs_near(subs, prefix):
         Show the nearest interstellar factors to sol. Large pads only.
 **{prefix}near if sol -m**
         Show the nearest interstellar factors to sol. Medium and large pads.
-**{prefix}near mat sol**
-        Show the nearest material trader to sol. Large pads only.
+**{prefix}near data sol**
+        Show the nearest data material trader to sol. Large pads only.
+**{prefix}near raw sol**
+        Show the nearest raw material trader to sol. Large pads only.
+**{prefix}near manu sol**
+        Show the nearest manufactured material trader to sol. Large pads only.
 **{prefix}near human sol**
         Show the nearest human technology broker to sol. Large pads only.
 **{prefix}near guardian sol**
@@ -463,7 +467,13 @@ def subs_near(subs, prefix):
     subcmd.add_argument('system', nargs='+', help='The system to lookup.')
     subcmd.add_argument('-m', '--medium', action='store_true', default=False, help='The include mpad only stations.')
 
-    subcmd = subcmds.add_parser('mat', help='Find nearest material trader.')
+    subcmd = subcmds.add_parser('data', help='Find nearest data material trader.')
+    subcmd.add_argument('system', nargs='+', help='The system to lookup.')
+
+    subcmd = subcmds.add_parser('raw', help='Find nearest raw material trader.')
+    subcmd.add_argument('system', nargs='+', help='The system to lookup.')
+
+    subcmd = subcmds.add_parser('manu', help='Find nearest manufactured material trader.')
     subcmd.add_argument('system', nargs='+', help='The system to lookup.')
 
     subcmd = subcmds.add_parser('human', help='Find nearest human technology broker.')

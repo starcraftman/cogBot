@@ -1339,6 +1339,13 @@ class KOS(Action):
 
 
 class Near(Action):
+    TRADER_MAP = {
+        'data': cogdb.eddb.TraderType.MATS_DATA,
+        'guardian': cogdb.eddb.TraderType.BROKERS_GUARDIAN,
+        'human': cogdb.eddb.TraderType.BROKERS_HUMAN,
+        'manu': cogdb.eddb.TraderType.MATS_MANUFACTURED,
+        'raw': cogdb.eddb.TraderType.MATS_RAW,
+    }
     """
     Handle the KOS command.
     """
@@ -1430,7 +1437,7 @@ class Near(Action):
             suffix="[L] Large pads.\n[M] M pads only."
         )[0]
 
-    async def _get_brokers(self, eddb_session, *, guardian=False):
+    async def _get_traders(self, eddb_session):
         """Helper function, find and return table of stations with required features.
 
         Args:
@@ -1444,13 +1451,13 @@ class Near(Action):
         stations = await self.bot.loop.run_in_executor(
             None,
             functools.partial(
-                cogdb.eddb.get_nearest_tech_brokers, eddb_session,
-                centre_name=centre.name, guardian=guardian
+                cogdb.eddb.get_nearest_traders, eddb_session,
+                centre_name=centre.name, trader_type=self.TRADER_MAP[self.args.subcmd],
             )
         )
 
         stations = [["System", "Distance", "Station", "Arrival"]] + stations
-        title = "Guardian Brokers" if guardian else "Human Brokers"
+        title = self.args.subcmd.capitalize() + "s"
         return cog.tbl.format_table(
             stations, header=True, prefix=f"__Nearby {title}__\nCentred on: {sys_name}\n\n",
             suffix="[L] Large pads.\n[M] M pads only."
@@ -1485,6 +1492,8 @@ class Near(Action):
         with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
             if self.args.subcmd == 'if':
                 msg = await self.ifactors(eddb_session)
+            elif self.args.subcmd in self.TRADER_MAP.keys():
+                msg = await self._get_traders(eddb_session)
             else:
                 msg = await getattr(self, self.args.subcmd)(eddb_session)
 

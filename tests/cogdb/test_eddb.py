@@ -10,7 +10,8 @@ from cogdb.eddb import (Commodity, CommodityCat, Module, ModuleGroup,
                         System, Faction, Allegiance, Government,
                         Station, StationFeatures, StationEconomy,
                         Influence, HistoryInfluence, HistoryTrack,
-                        FactionActiveState, FactionPendingState, FactionRecoveringState)
+                        FactionActiveState, FactionPendingState, FactionRecoveringState,
+                        TraderType)
 
 FAKE_ID1 = 942834121
 FAKE_ID2 = FAKE_ID1 + 1
@@ -59,18 +60,39 @@ def test_get_nearest_stations_with_features(eddb_session):
     assert "Bolg" in system_names
 
 
-def test_get_nearest_tech_brokers_guardian(eddb_session):
-    result = cogdb.eddb.get_nearest_tech_brokers(eddb_session, centre_name='Sol', guardian=True)
+def test_get_nearest_treaders_brokers_guardian(eddb_session):
+    result = cogdb.eddb.get_nearest_traders(eddb_session, centre_name='Sol', trader_type=TraderType.BROKERS_GUARDIAN)
 
-    system_names = {x[0] for x in result}
-    assert "EZ Aquarii" in system_names
+    station_names = {x[2] for x in result}
+    assert "[L] Magnus Gateway" in station_names
 
 
-def test_get_nearest_tech_brokers_human(eddb_session):
-    result = cogdb.eddb.get_nearest_tech_brokers(eddb_session, centre_name='Sol', guardian=False)
+def test_get_nearest_traders_brokers_human(eddb_session):
+    result = cogdb.eddb.get_nearest_traders(eddb_session, centre_name='Sol', trader_type=TraderType.BROKERS_HUMAN)
 
-    system_names = {x[0] for x in result}
-    assert "WISE 1506+7027" in system_names
+    station_names = {x[2] for x in result}
+    assert "[L] Solo Orbiter" in station_names
+
+
+def test_get_nearest_traders_mats_data(eddb_session):
+    result = cogdb.eddb.get_nearest_traders(eddb_session, centre_name='Sol', trader_type=TraderType.MATS_DATA)
+
+    station_names = {x[2] for x in result}
+    assert "[L] Magnus Gateway" in station_names
+
+
+def test_get_nearest_traders_mats_raw(eddb_session):
+    result = cogdb.eddb.get_nearest_traders(eddb_session, centre_name='Sol', trader_type=TraderType.MATS_RAW)
+
+    station_names = {x[2] for x in result}
+    assert "[L] Broglie Terminal" in station_names
+
+
+def test_get_nearest_traders_mats_manufactured(eddb_session):
+    result = cogdb.eddb.get_nearest_traders(eddb_session, centre_name='Sol', trader_type=TraderType.MATS_MANUFACTURED)
+
+    station_names = {x[2] for x in result}
+    assert "[L] Patterson Enter." in station_names
 
 
 def test_get_shipyard_stations(eddb_session):

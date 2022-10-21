@@ -11,6 +11,7 @@ import asyncio
 import concurrent.futures as cfut
 import copy
 import datetime
+import enum
 import glob
 import inspect
 import math
@@ -130,6 +131,17 @@ HOUR_SECONDS = 60 * 60
 HISTORY_INF_TIME_GAP = HOUR_SECONDS * 4  # min seconds between data points
 # To select planetary stations
 Base = sqlalchemy.ext.declarative.declarative_base()
+
+
+class TraderType(enum.Enum):
+    """
+    Types of traders to filter for get_nearest_station_economies.
+    """
+    BROKERS_GUARDIAN = 1,
+    BROKERS_HUMAN = 2,
+    MATS_DATA = 3,
+    MATS_RAW = 4,
+    MATS_MANUFACTURED = 5
 
 
 class Allegiance(ReprMixin, Base):
@@ -1937,8 +1949,17 @@ def get_nearest_stations_with_features(session, centre_name, *, features=None, s
             for [a, b, c, d, e] in stations]
 
 
-def get_nearest_tech_brokers(session, centre_name, *, guardian=True, sys_dist=75, arrival=2000):
-    """Find the nearest stations that sell guardian or human tech broker equipment.
+def get_nearest_traders(session, centre_name, *,
+                        trader_type=TraderType.BROKERS_GUARDIAN, sys_dist=75, arrival=2000):
+    """Find the nearest stations that sell broker equipment or trade mats.
+    The determination is made based on station economy and features.
+
+    Args:
+        session: A session onto the db.
+        centre_name: Search for stations close to this system.
+        trader_type: A type in TraderType enum, indicating desired trader.
+        sys_dist: The max distance away from centre_name to search.
+        arrival: The max distance from arrival in system to allow.
 
     Returns:
         List of matches:
@@ -1950,15 +1971,26 @@ def get_nearest_tech_brokers(session, centre_name, *, guardian=True, sys_dist=75
                 StationType.text.like("%Planet%"),
                 StationType.text.like("%Fleet%"))).\
         scalar_subquery()
-    subq_hightech_id = session.query(Economy.id).\
+    econ_id = session.query(Economy.id).\
         filter(Economy.text == 'High Tech').\
         scalar_subquery()
     high_tech_ids = session.query(System.id).\
+        filter(System.primary_economy_id == econ_id).\
+        scalar_subquery()
+    econ_id = session.query(Economy.id).\
         filter(
             sqla.or_(
-                System.primary_economy_id == subq_hightech_id,
-                System.secondary_economy_id == subq_hightech_id,
-            )).\
+                Economy.text == 'Extraction',
+                Economy.text == 'Refinery')).\
+        scalar_subquery()
+    raw_ids = session.query(System.id).\
+        filter(System.primary_economy_id.in_(econ_id)).\
+        scalar_subquery()
+    econ_id = session.query(Economy.id).\
+        filter(Economy.text == 'Industrial').\
+        scalar_subquery()
+    industrial_ids = session.query(System.id).\
+        filter(System.primary_economy_id == econ_id).\
         scalar_subquery()
 
     centre = sqla_orm.aliased(System)
@@ -1973,18 +2005,29 @@ def get_nearest_tech_brokers(session, centre_name, *, guardian=True, sys_dist=75
         filter(
             station_system.dist_to(centre) < sys_dist,
             Station.distance_to_star < arrival,
-            StationType.text.notin_(exclude),
-            StationFeatures.technology_broker)
-    if guardian:
-        stations = stations.filter(station_system.id.in_(high_tech_ids))
-    else:
-        stations = stations.filter(station_system.id.not_in(high_tech_ids))
+            StationType.text.notin_(exclude))
+
+    if trader_type == TraderType.BROKERS_GUARDIAN:
+        stations = stations.filter(StationFeatures.technology_broker,
+                                   station_system.id.in_(high_tech_ids))
+    elif trader_type == TraderType.BROKERS_HUMAN:
+        stations = stations.filter(StationFeatures.technology_broker,
+                                   station_system.id.not_in(high_tech_ids))
+    elif trader_type == TraderType.MATS_DATA:
+        stations = stations.filter(StationFeatures.material_trader,
+                                   station_system.id.in_(high_tech_ids))
+    elif trader_type == TraderType.MATS_RAW:
+        stations = stations.filter(StationFeatures.material_trader,
+                                   station_system.id.in_(raw_ids))
+    elif trader_type == TraderType.MATS_MANUFACTURED:
+        stations = stations.filter(StationFeatures.material_trader,
+                                   station_system.id.in_(industrial_ids))
 
     stations = stations.order_by('dist_c', Station.distance_to_star).\
         limit(20).\
         all()
 
-    return [[a, round(b, 2), "[{}] {}".format(e, cog.util.shorten_text(c, 16)), d]
+    return [[a, round(b, 2), f"[{e}] {cog.util.shorten_text(c, 16)}", d]
             for [a, b, c, d, e] in stations]
 
 

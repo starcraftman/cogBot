@@ -1758,13 +1758,33 @@ async def test_cmd_near_human(f_bot):
 
 
 @pytest.mark.asyncio
-async def test_cmd_near_mat(f_bot):
-    msg = fake_msg_gears("!near mat sol")
+async def test_cmd_near_mat_data(f_bot):
+    msg = fake_msg_gears("!near data sol")
 
     await action_map(msg, f_bot).execute()
 
     actual = str(f_bot.send_message.call_args).replace("\\n", "\n")
     assert 'Magnus Gateway' in actual
+
+
+@pytest.mark.asyncio
+async def test_cmd_near_mat_raw(f_bot):
+    msg = fake_msg_gears("!near raw sol")
+
+    await action_map(msg, f_bot).execute()
+
+    actual = str(f_bot.send_message.call_args).replace("\\n", "\n")
+    assert 'Broglie Terminal' in actual
+
+
+@pytest.mark.asyncio
+async def test_cmd_near_mat_manufactured(f_bot):
+    msg = fake_msg_gears("!near manu sol")
+
+    await action_map(msg, f_bot).execute()
+
+    actual = str(f_bot.send_message.call_args).replace("\\n", "\n")
+    assert 'Patterson' in actual
 
 
 @pytest.mark.asyncio
