@@ -1448,13 +1448,18 @@ class Near(Action):
         """
         sys_name = ' '.join(self.args.system)
         centre = cogdb.eddb.get_systems(eddb_session, [sys_name])[0]
-        stations = await self.bot.loop.run_in_executor(
-            None,
-            functools.partial(
-                cogdb.eddb.get_nearest_traders, eddb_session,
-                centre_name=centre.name, trader_type=self.TRADER_MAP[self.args.subcmd],
+        sys_dist = 75
+        stations = []
+        # Broaden criteria if no results first go
+        while not stations:
+            stations = await self.bot.loop.run_in_executor(
+                None,
+                functools.partial(
+                    cogdb.eddb.get_nearest_traders, eddb_session,
+                    centre_name=centre.name, trader_type=self.TRADER_MAP[self.args.subcmd],
+                    sys_dist=sys_dist * 2, arrival=5000,
+                )
             )
-        )
 
         stations = [["System", "Distance", "Station", "Arrival"]] + stations
         title = self.args.subcmd.capitalize() + "s"

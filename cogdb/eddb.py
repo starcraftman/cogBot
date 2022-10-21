@@ -1378,6 +1378,46 @@ def preload_station_types(session):
     ])
 
 
+def preload_system_aliases(session):
+    """
+    Preload several shortcut names for systems either unpopulated or long.
+    Bit of a hack, mainly need their x, y, z. IDs are put at the back, likely never hit.
+
+    Args:
+        session: A session onto the EDDB db.
+    """
+    # https://eddb.io/attraction/73536  | Dav's Hope
+    # https://eddb.io/attraction/73512  | Jameson Crash Site
+    # https://eddb.io/attraction/73522  | Anaconda Shipwreck
+    session.query(System).\
+        filter(System.id.in_([99999990, 99999991, 99999992])).\
+        delete()
+    session.add_all([
+        System(
+            id=99999990,
+            name='Davs',
+            x=-104.625,
+            y=-0.8125,
+            z=-151.90625,
+            updated_at=1,
+        ), System(
+            id=99999991,
+            name='Cobra',
+            x=-101.90625,
+            y=-95.46875,
+            z=-165.59375,
+            updated_at=1,
+        ), System(
+            id=99999992,
+            name='Anaconda',
+            x=68.84375,
+            y=48.75,
+            z=76.75,
+            updated_at=1,
+        )
+    ])
+
+
 def preload_tables(session):
     """
     Preload all minor linked tables.
@@ -1396,6 +1436,7 @@ def preload_tables(session):
     preload_settlement_security(session)
     preload_settlement_size(session)
     preload_station_types(session)
+    preload_system_aliases(session)
     session.commit()
 
 
