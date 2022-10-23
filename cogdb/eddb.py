@@ -2012,30 +2012,22 @@ def get_nearest_traders(session, centre_name, *,
                 StationType.text.like("%Planet%"),
                 StationType.text.like("%Fleet%"))).\
         scalar_subquery()
-    econ_id = session.query(Economy.id).\
+    high_econ_id = session.query(Economy.id).\
         filter(Economy.text == 'High Tech').\
         scalar_subquery()
-    high_tech_ids = session.query(System.id).\
-        filter(System.primary_economy_id == econ_id).\
-        scalar_subquery()
-    econ_id = session.query(Economy.id).\
+    ext_econ_ids = session.query(Economy.id).\
         filter(
             sqla.or_(
                 Economy.text == 'Extraction',
                 Economy.text == 'Refinery')).\
         scalar_subquery()
-    raw_ids = session.query(System.id).\
-        filter(System.primary_economy_id.in_(econ_id)).\
-        scalar_subquery()
-    econ_id = session.query(Economy.id).\
+    ind_econ_id = session.query(Economy.id).\
         filter(Economy.text == 'Industrial').\
-        scalar_subquery()
-    industrial_ids = session.query(System.id).\
-        filter(System.primary_economy_id == econ_id).\
         scalar_subquery()
 
     centre = sqla_orm.aliased(System)
     station_system = sqla_orm.aliased(System)
+    primary_economy = sqla_orm.aliased(StationEconomy)
     stations = session.query(station_system.name, station_system.dist_to(centre).label('dist_c'),
                              Station.name, Station.distance_to_star, Station.max_landing_pad_size).\
         select_from(station_system).\
@@ -2043,26 +2035,28 @@ def get_nearest_traders(session, centre_name, *,
         join(Station, Station.system_id == station_system.id).\
         join(StationType, Station.type_id == StationType.id).\
         join(StationFeatures, Station.id == StationFeatures.id).\
+        join(primary_economy, Station.id == primary_economy.id).\
         filter(
             station_system.dist_to(centre) < sys_dist,
             Station.distance_to_star < arrival,
-            StationType.text.notin_(exclude))
+            StationType.text.notin_(exclude),
+            primary_economy.primary)
 
     if trader_type == TraderType.BROKERS_GUARDIAN:
         stations = stations.filter(StationFeatures.technology_broker,
-                                   station_system.id.in_(high_tech_ids))
+                                   primary_economy.economy_id == high_econ_id)
     elif trader_type == TraderType.BROKERS_HUMAN:
         stations = stations.filter(StationFeatures.technology_broker,
-                                   station_system.id.not_in(high_tech_ids))
+                                   primary_economy.economy_id != high_econ_id)
     elif trader_type == TraderType.MATS_DATA:
         stations = stations.filter(StationFeatures.material_trader,
-                                   station_system.id.in_(high_tech_ids))
+                                   primary_economy.economy_id == high_econ_id)
     elif trader_type == TraderType.MATS_RAW:
         stations = stations.filter(StationFeatures.material_trader,
-                                   station_system.id.in_(raw_ids))
+                                   primary_economy.economy_id == ind_econ_id)
     elif trader_type == TraderType.MATS_MANUFACTURED:
         stations = stations.filter(StationFeatures.material_trader,
-                                   station_system.id.in_(industrial_ids))
+                                   primary_economy.economy_id.in_(ext_econ_ids))
 
     stations = stations.order_by('dist_c', Station.distance_to_star).\
         limit(20).\

@@ -60,7 +60,7 @@ def test_get_nearest_stations_with_features(eddb_session):
     assert "Bolg" in system_names
 
 
-def test_get_nearest_treaders_brokers_guardian(eddb_session):
+def test_get_nearest_traders_brokers_guardian(eddb_session):
     result = cogdb.eddb.get_nearest_traders(eddb_session, centre_name='Sol', trader_type=TraderType.BROKERS_GUARDIAN)
 
     station_names = {x[2] for x in result}
