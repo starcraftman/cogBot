@@ -8,8 +8,10 @@ import concurrent
 import concurrent.futures as cfut
 import datetime
 import functools
+import json
 import logging
 import math
+import os
 import pprint
 import re
 import string
@@ -1339,6 +1341,9 @@ class KOS(Action):
 
 
 class Near(Action):
+    """
+    Handle the KOS command.
+    """
     TRADER_MAP = {
         'data': cogdb.eddb.TraderType.MATS_DATA,
         'guardian': cogdb.eddb.TraderType.BROKERS_GUARDIAN,
@@ -1346,9 +1351,7 @@ class Near(Action):
         'manu': cogdb.eddb.TraderType.MATS_MANUFACTURED,
         'raw': cogdb.eddb.TraderType.MATS_RAW,
     }
-    """
-    Handle the KOS command.
-    """
+
     async def control(self, eddb_session):
         """
         Find nearest controls.
@@ -1411,32 +1414,6 @@ class Near(Action):
             suffix="[L] Large pads.\n[M] M pads only."
         )[0]
 
-    async def _station_features_help(self, eddb_session, *, features=None, include_medium=False):
-        """Helper function, find and return table of stations with required features.
-
-        Args:
-            eddb_session: A session onto the db.
-            features: A list of StationFeatures to filter on.
-
-        Returns: Table formatted for system, station reading.
-        """
-        sys_name = ' '.join(self.args.system)
-        centre = cogdb.eddb.get_systems(eddb_session, [sys_name])[0]
-        stations = await self.bot.loop.run_in_executor(
-            None,
-            functools.partial(
-                cogdb.eddb.get_nearest_stations_with_features, eddb_session,
-                centre_name=centre.name, features=features if features else [], include_medium=include_medium
-            )
-        )
-
-        stations = [["System", "Distance", "Station", "Arrival"]] + stations
-        title = ' '.join([x.capitalize() for x in features[0].split('_')])
-        return cog.tbl.format_table(
-            stations, header=True, prefix=f"__Nearby {title}__\nCentred on: {sys_name}\n\n",
-            suffix="[L] Large pads.\n[M] M pads only."
-        )[0]
-
     async def _get_traders(self, eddb_session):
         """Helper function, find and return table of stations with required features.
 
@@ -1468,36 +1445,15 @@ class Near(Action):
             suffix="[L] Large pads.\n[M] M pads only."
         )[0]
 
-    async def ifactors(self, eddb_session):
-        """
-        Find nearest suitable interstellar factors.
-        """
-        return await self._get_station_features(eddb_session, features=['interstellar_factors'], include_medium=self.args.medium)
-
-    async def mat(self, eddb_session):
-        """
-        Find nearest suitable material trader.
-        """
-        return await self._get_station_features(eddb_session, features=['material_trader'])
-
-    async def human(self, eddb_session):
-        """
-        Find nearest suitable techology broker.
-        """
-        return await self._get_brokers(eddb_session, guardian=False)
-
-    async def guardian(self, eddb_session):
-        """
-        Find nearest suitable techology broker.
-        """
-        return await self._get_brokers(eddb_session, guardian=True)
-
     async def execute(self):
         msg = 'Invalid near sub command.'
         with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
             if self.args.subcmd == 'if':
-                msg = await self.ifactors(eddb_session)
-            elif self.args.subcmd in self.TRADER_MAP.keys():
+                msg = await self._get_station_features(
+                    eddb_session, features=['interstellar_factors'],
+                    include_medium=self.args.medium
+                )
+            elif self.args.subcmd in self.TRADER_MAP:
                 msg = await self._get_traders(eddb_session)
             else:
                 msg = await getattr(self, self.args.subcmd)(eddb_session)
@@ -2546,20 +2502,6 @@ async def monitor_snipe_merits(client, *, repeat=True):  # pragma: no cover
         )
 
 
-# Simple helper to run scrape in executor
-def scrape_powerplay_in_background():  # pragma: no cover | tested elsewhere
-    """
-    Perform a complete scrape of fort and um, push into db.
-    """
-    with cogdb.scrape.get_chrome_driver(dev=False) as driver:
-        log = logging.getLogger(__name__)
-        log.error("Start scrape in background.")
-        data = cogdb.scrape.scrape_all_powerplay(driver)
-        log.error("Pushing to database.")
-        spy.process_scrape_data(data)
-        log.error("End scrape in background.")
-
-
 async def push_scrape_to_gal_scanner():  # pragma: no cover | tested elsewhere
     """
     Perform a complete scrape of fort and um, push into db.
@@ -2642,27 +2584,30 @@ async def monitor_powerplay_page(client, *, repeat=True, delay=1800):
             monitor_powerplay_page(client, repeat=repeat, delay=delay)
         )
 
-    try:
-        # Disable during window of Thursday 0700-0800
-        now = datetime.datetime.utcnow()
-        if now.strftime("%A") == "Thursday" and now.hour == 7:
-            raise aiohttp.ClientConnectionError()
+    # Disable during window of Thursday 0700-0800
+    now = datetime.datetime.utcnow()
+    if now.strftime("%A") == "Thursday" and now.hour == 7:
+        raise aiohttp.ClientConnectionError()
 
-        # confirm page is up and working BEFORE asking for complete scrape
-        async with aiohttp.ClientSession() as http:
-            async with http.get(cog.util.CONF.scrape.url):
-                pass
+    log = logging.getLogger(__name__)
+    try:
+        api_end = cog.util.CONF.scrape.api
+        log.warning("Start api scrape in background.")
+        base_text = await cog.util.get_url(os.path.join(api_end, 'getraw', 'base.json'))
+        ref_text = await cog.util.get_url(os.path.join(api_end, 'getraw', 'refined.json'))
 
         with cfut.ProcessPoolExecutor(max_workers=1) as pool:
             await client.loop.run_in_executor(
-                pool, scrape_powerplay_in_background
+                pool, spy.load_base_json, json.loads(base_text),
+            )
+            await client.loop.run_in_executor(
+                pool, spy.load_refined_json, json.loads(ref_text),
             )
         await push_scrape_to_gal_scanner()
         await push_scrape_to_sheets()
-    except aiohttp.ClientConnectorError:
-        logging.getLogger(__name__).error("Spy service not operating. Will try again in %d seconds.", delay)
-    except:  # FIXME: Remove this in final. Debugging intermittent issue.
-        traceback.print_exc()
+        log.warning("End api scrape in background.")
+    except cog.exc.RemoteError:
+        log.error("Spy service not operating. Will try again in %d seconds.", delay)
 
 
 async def report_to_leadership(client, msgs):  # pragma: no cover

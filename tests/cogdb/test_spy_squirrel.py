@@ -364,7 +364,7 @@ def test_load_base_json(empty_spy, base_json, eddb_session):
     )
     eddb_session.commit()
 
-    systems = spy.load_base_json(base_json, eddb_session)
+    spy.load_base_json(base_json)
 
     expect_control = spy.SpySystem(
         ed_system_id=10477373803, power_id=9, power_state_id=16,
@@ -374,6 +374,10 @@ def test_load_base_json(empty_spy, base_json, eddb_session):
         ed_system_id=11665533904241, power_id=9, power_state_id=64,
         income=0, upkeep_current=0, upkeep_default=0, fort_trigger=4872, um_trigger=7198
     )
+
+    systems = eddb_session.query(spy.SpySystem).\
+        filter(spy.SpySystem.ed_system_id.in_(11665533904241, 10477373803)).\
+        all()
     assert expect_control in systems
     assert expect_taking in systems
 
@@ -386,25 +390,35 @@ def test_load_refined_json(empty_spy, base_json, refined_json, eddb_session):
     ])
     eddb_session.commit()
 
-    db_objects = spy.load_refined_json(refined_json, eddb_session)
+    spy.load_refined_json(refined_json)
 
     expect_prep = spy.SpyPrep(power_id=9, ed_system_id=2557887812314, merits=14140)
     expect_vote = spy.SpyVote(power_id=11, vote=78)
-    assert expect_prep in db_objects
-    assert expect_vote in db_objects
+
+    assert expect_prep == eddb_session.query(spy.SpyPrep).\
+        filter(spy.SpyPrep.ed_system_id == 2557887812314).\
+        one()
+    assert expect_vote == eddb_session.query(spy.SpyVote).\
+        filter(spy.SpyVote.power_id == 11).\
+        one()
 
 
 # Combined test of base then refined
 def test_load_base_and_refined_json(empty_spy, base_json, refined_json, eddb_session):
-    spy.load_base_json(base_json, eddb_session)
-    db_objects = spy.load_refined_json(refined_json, eddb_session)
+    spy.load_base_json(base_json)
+    spy.load_refined_json(refined_json)
 
     expect_prep = spy.SpyPrep(power_id=9, ed_system_id=2557887812314, merits=14140)
     expect_vote = spy.SpyVote(power_id=11, vote=78)
     expect_expo = spy.SpySystem(power_id=6, ed_system_id=2106438158699, fort=1247, um=53820)
     expect_sys = spy.SpySystem(power_id=11, ed_system_id=22958210698120, fort=464, um=900)
-    assert expect_prep in db_objects
-    assert expect_vote in db_objects
+
+    assert expect_prep == eddb_session.query(spy.SpyPrep).\
+        filter(spy.SpyPrep.ed_system_id == 2557887812314).\
+        one()
+    assert expect_vote == eddb_session.query(spy.SpyVote).\
+        filter(spy.SpyVote.power_id == 11).\
+        one()
     assert expect_expo == eddb_session.query(spy.SpySystem).\
         filter(spy.SpySystem.ed_system_id == 2106438158699).\
         one()
@@ -625,7 +639,7 @@ def test_load_response_json(empty_spy, response_json, eddb_session):
             'total': 287
         }
     }
-    assert expect == spy.load_response_json(response_json, eddb_session)
+    assert expect == spy.load_response_json(response_json)
 
 
 def test_process_scrape_data(empty_spy, scrape_json, eddb_session):

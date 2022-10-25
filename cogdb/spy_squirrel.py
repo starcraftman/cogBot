@@ -354,7 +354,7 @@ def load_json_secret(fname):
         return json.load(fin)
 
 
-def load_base_json(base, eddb_session):
+def load_base_json(base):
     """ Load the base json and parse all information from it.
 
     Args:
@@ -366,45 +366,43 @@ def load_base_json(base, eddb_session):
     db_systems = []
     json_powers_to_eddb_id = json_powers_to_eddb_map()
 
-    for bundle in base['powers']:
-        power_id = json_powers_to_eddb_id[bundle['powerId']]
+    with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
+        for bundle in base['powers']:
+            power_id = json_powers_to_eddb_id[bundle['powerId']]
 
-        for sys_addr, data in bundle['systemAddr'].items():
-            eddb_system = eddb_session.query(System).\
-                filter(System.ed_system_id == sys_addr).\
-                one()
-            kwargs = {
-                'ed_system_id': sys_addr,
-                'system_name': eddb_system.name,
-                'power_id': power_id,
-                'power_state_id': JSON_POWER_STATE_TO_EDDB[bundle['state']],
-                'fort_trigger': data['thrFor'],
-                'um_trigger': data['thrAgainst'],
-                'income': data['income'],
-                'upkeep_current': data['upkeepCurrent'],
-                'upkeep_default': data['upkeepDefault'],
-            }
-            try:
-                system = eddb_session.query(SpySystem).\
-                    filter(
-                        SpySystem.ed_system_id == sys_addr,
-                        SpySystem.power_id == power_id).\
+            for sys_addr, data in bundle['systemAddr'].items():
+                eddb_system = eddb_session.query(System).\
+                    filter(System.ed_system_id == sys_addr).\
                     one()
-                system.update(**kwargs)
-            except sqla.orm.exc.NoResultFound:
-                system = SpySystem(**kwargs)
-                eddb_session.add(system)
-            db_systems += [SpySystem(**kwargs)]
+                kwargs = {
+                    'ed_system_id': sys_addr,
+                    'system_name': eddb_system.name,
+                    'power_id': power_id,
+                    'power_state_id': JSON_POWER_STATE_TO_EDDB[bundle['state']],
+                    'fort_trigger': data['thrFor'],
+                    'um_trigger': data['thrAgainst'],
+                    'income': data['income'],
+                    'upkeep_current': data['upkeepCurrent'],
+                    'upkeep_default': data['upkeepDefault'],
+                }
+                try:
+                    system = eddb_session.query(SpySystem).\
+                        filter(
+                            SpySystem.ed_system_id == sys_addr,
+                            SpySystem.power_id == power_id).\
+                        one()
+                    system.update(**kwargs)
+                except sqla.orm.exc.NoResultFound:
+                    system = SpySystem(**kwargs)
+                    eddb_session.add(system)
+                db_systems += [SpySystem(**kwargs)]
 
-    return db_systems
 
-
-def load_refined_json(refined, eddb_session):
+def load_refined_json(refined):
     """ Load the refined json and parse all information from it.
 
     Args:
         refined: The refined json to load.
-        systems: A map of ed_system_id -> SpySystem objects to be updated with info.
 
     Returns:
         A dictionary mapping powers by name onto the systems they control and their status.
@@ -413,75 +411,74 @@ def load_refined_json(refined, eddb_session):
     json_powers_to_eddb_id = json_powers_to_eddb_map()
 
     db_objs = []
-    for bundle in refined["preparation"]:
-        power_id = json_powers_to_eddb_id[bundle['power_id']]
-        try:
-            spyvote = eddb_session.query(SpyVote).\
-                filter(SpyVote.power_id == power_id).\
-                one()
-            spyvote.vote = bundle['consolidation']['rank']
-            spyvote.updated_at = updated_at
-        except sqla.orm.exc.NoResultFound:
-            spyvote = SpyVote(
-                power_id=power_id,
-                vote=bundle['consolidation']['rank'],
-                updated_at=updated_at
-            )
-            eddb_session.add(spyvote)
-        db_objs += [spyvote]
+    with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
+        for bundle in refined["preparation"]:
+            power_id = json_powers_to_eddb_id[bundle['powerid']]
+            try:
+                spyvote = eddb_session.query(SpyVote).\
+                    filter(SpyVote.power_id == power_id).\
+                    one()
+                spyvote.vote = bundle['consolidation']['rank']
+                spyvote.updated_at = updated_at
+            except sqla.orm.exc.NoResultFound:
+                spyvote = SpyVote(
+                    power_id=power_id,
+                    vote=bundle['consolidation']['rank'],
+                    updated_at=updated_at
+                )
+                eddb_session.add(spyvote)
+            db_objs += [spyvote]
 
-        for ed_system_id, merits in bundle['rankedSystems']:
+            for ed_system_id, merits in bundle['rankedSystems']:
+                eddb_system = eddb_session.query(System).\
+                    filter(System.ed_system_id == ed_system_id).\
+                    one()
+                try:
+                    spyprep = eddb_session.query(SpyPrep).\
+                        filter(
+                            SpyPrep.ed_system_id == ed_system_id,
+                            SpyPrep.power_id == power_id).\
+                        one()
+                    spyprep.merits = merits
+                    spyprep.updated_at = updated_at
+                    spyprep.system_name = eddb_system.name
+                except sqla.orm.exc.NoResultFound:
+                    spyprep = SpyPrep(
+                        power_id=power_id,
+                        ed_system_id=ed_system_id,
+                        system_name=eddb_system.name,
+                        merits=merits,
+                        updated_at=updated_at
+                    )
+                    eddb_session.add(spyprep)
+                db_objs += [spyprep]
+
+        for bundle, pstate_id in [[refined["gainControl"][0], 64], [refined["fortifyUndermine"][0], 16]]:
+            power_id = json_powers_to_eddb_id[bundle['powerid']]
+            ed_system_id = bundle['systemAddr']
             eddb_system = eddb_session.query(System).\
                 filter(System.ed_system_id == ed_system_id).\
                 one()
+            kwargs = {
+                'power_id': power_id,
+                'ed_system_id': ed_system_id,
+                'system_name': eddb_system.name,
+                'power_state_id': pstate_id,
+                'fort': bundle['qtyFor'],
+                'um': bundle['qtyAgainst'],
+                'updated_at': updated_at,
+            }
             try:
-                spyprep = eddb_session.query(SpyPrep).\
+                system = eddb_session.query(SpySystem).\
                     filter(
-                        SpyPrep.ed_system_id == ed_system_id,
-                        SpyPrep.power_id == power_id).\
+                        SpySystem.ed_system_id == ed_system_id,
+                        SpySystem.power_id == power_id).\
                     one()
-                spyprep.merits = merits
-                spyprep.updated_at = updated_at
-                spyprep.system_name = eddb_system.name
+                system.update(**kwargs)
             except sqla.orm.exc.NoResultFound:
-                spyprep = SpyPrep(
-                    power_id=power_id,
-                    ed_system_id=ed_system_id,
-                    system_name=eddb_system.name,
-                    merits=merits,
-                    updated_at=updated_at
-                )
-                eddb_session.add(spyprep)
-            db_objs += [spyprep]
-
-    for bundle, pstate_id in [[refined["gainControl"][0], 64], [refined["fortifyUndermine"][0], 16]]:
-        power_id = json_powers_to_eddb_id[bundle['power_id']]
-        ed_system_id = bundle['systemAddr']
-        eddb_system = eddb_session.query(System).\
-            filter(System.ed_system_id == ed_system_id).\
-            one()
-        kwargs = {
-            'power_id': power_id,
-            'ed_system_id': ed_system_id,
-            'system_name': eddb_system.name,
-            'power_state_id': pstate_id,
-            'fort': bundle['qtyFor'],
-            'um': bundle['qtyAgainst'],
-            'updated_at': updated_at,
-        }
-        try:
-            system = eddb_session.query(SpySystem).\
-                filter(
-                    SpySystem.ed_system_id == ed_system_id,
-                    SpySystem.power_id == power_id).\
-                one()
-            system.update(**kwargs)
-        except sqla.orm.exc.NoResultFound:
-            system = SpySystem(**kwargs)
-            eddb_session.add(system)
-        db_objs += [system]
-
-    return db_objs
+                system = SpySystem(**kwargs)
+                eddb_session.add(system)
+            db_objs += [system]
 
 
 def parse_params(input):
@@ -617,12 +614,11 @@ def parse_response_power_update(input):
     }
 
 
-def load_response_json(response, eddb_session):
+def load_response_json(response):
     """Capable of fully parsing and processing information in a response JSON.
 
     Args:
         response: A large JSON object returned from POST.
-        eddb_session: A session onto the EDDB database.
     """
     result = {}
     for news_info in response.values():
