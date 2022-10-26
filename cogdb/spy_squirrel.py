@@ -315,13 +315,21 @@ def json_powers_to_eddb_map():
     Returns a simple map FROM power_id in JSON messages TO Power.id in EDDB.
     """
     with cogdb.session_scope(cogdb.EDDBSession) as session:
-        eddb_power_names_to_id = {power.text: power.id for power in session.query(Power).all()}
+        eddb_power_names_to_id = {power.text: power.id for power in session.query(Power)}
         json_powers_to_eddb_id = {
             power_id: eddb_power_names_to_id[power_name]
             for power_id, power_name in POWER_ID_MAP.items()
         }
 
     return json_powers_to_eddb_id
+
+
+def ship_type_to_id_map():
+    """
+    Returns a simple map from ship type to the id in SpyShip table.
+    """
+    with cogdb.session_scope(cogdb.EDDBSession) as session:
+        return {ship.text: ship.id for ship in session.query(SpyShip)}
 
 
 def fetch_json_secret(secrets_path, name):
@@ -526,7 +534,9 @@ def parse_response_news_summary(input):
     parts = list(info["list"].split(':'))
     info["influence"] = float(parts[1].split('=')[1])
     info["happiness"] = int(re.match(r'.*HappinessBand(\d)', parts[2]).group(1))
+    info["name"] = info["factionName"]
     del info["list"]
+    del info["factionName"]
 
     return info
 
@@ -601,7 +611,8 @@ def parse_response_traffic_totals(input):
 
 
 def parse_response_power_update(input):
-    """Capabale of parsing the power update information.
+    """
+    Capabale of parsing the power update information.
 
     Args:
         input: A JSON object to parse.
@@ -611,33 +622,101 @@ def parse_response_power_update(input):
     params = input['params']
     return {
         "power": params[0]["value"],
-        "stolen_fort": int(params[1]["value"]),
+        "stolen_forts": int(params[1]["value"]),
         "held_merits": int(params[2]["value"]),
     }
 
 
 def load_response_json(response):
-    """Capable of fully parsing and processing information in a response JSON.
+    """
+    Capable of fully parsing and processing information in a response JSON.
 
     Args:
         response: A large JSON object returned from POST.
     """
-    result = {}
+    results = {}
     for news_info in response.values():
+        result = {}
         for entry in news_info['news']:
             parser = PARSER_MAP[entry['type']]
             try:
                 result[parser['name']] += [parser['func'](entry)]
             except KeyError:
                 result[parser['name']] = [parser['func'](entry)]
-    result['system'] = result['factions'][0]['system']
 
-    # Prune any lists of 1 element, to not be lists.
-    for key, value in result.items():
-        if isinstance(value, list) and len(value) == 1:
-            result[key] = value[0]
+        # Prune any lists of 1 element, to not be lists.
+        for key, value in result.items():
+            if isinstance(value, list) and len(value) == 1:
+                result[key] = value[0]
 
-    return result
+        # Separate top5s if both present
+        #  if len(result['top5']) == 2:
+            #  for group in result['top5']:
+                #  result[f'top5_{group["type"]}'] = group
+            #  del result['top5']
+            #  __import__('pprint').pprint(result)
+
+        sys_name = result['factions'][0]['system']
+        results[sys_name] = result
+
+    update_based_response_info(results)
+
+    return results
+
+
+def update_based_response_info(info):
+    """
+    """
+    with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
+        for sys_name, sys_info in info.items():
+            # Handle updating data for factions
+            for faction in sys_info['factions']:
+                try:
+                    influence = eddb_session.query(cogdb.eddb.Influence).\
+                        join(cogdb.eddb.System, Influence.system_id == System.id).\
+                        join(cogdb.eddb.Faction, Influence.faction_id == Faction.id).\
+                        filter(
+                            cogdb.eddb.System.name == sys_name,
+                            cogdb.eddb.Faction.name == faction['name']).\
+                        one()
+                    influence.happiness_id == faction['happiness']
+                    influence.influence == faction['influence']
+                    # FIXME: Enable at end.
+                    #  cogdb.eddb.add_history_influence(eddb_session, influence)
+                except sqla.orm.exc.NoResultFound:
+                    logging.getLogger(__name__).warning(f"Failed to find combination of: {sys_name} | {sys_info['factions']}")
+                    # Unlikely as I import all influences
+
+            # Handle held merits
+            try:
+                system = eddb_session.query(SpySystem).\
+                    filter(SpySystem.system_name == sys_name).\
+                    one()
+                system.held_merits = sys_info['power']['held_merits']
+                system.stolen_forts = sys_info['power']['stolen_forts']
+            except sqla.orm.exc.NoResultFound:
+                eddb_system = eddb_session.query(System).\
+                    filter(System.name == sys_name).\
+                    one()
+                kwargs = {
+                    'ed_system_id': eddb_system.ed_system_id,
+                    'system_name': eddb_system.name,
+                    'power_id': eddb_system.power_id,
+                    'power_state_id': eddb_system.power_state_id,
+                    'held_merits': sys_info['power']['held_merits'],
+                    'stolen_forts': sys_info['power']['stolen_forts'],
+                }
+                system = SpySystem(**kwargs)
+                eddb_session.add(system)
+
+            for pos, b_info in sys_info['top5'][-1].items():
+                print('ID', pos)
+                __import__('pprint').pprint(b_info)
+
+            ship_map = ship_type_to_id_map()
+            __import__('pprint').pprint(ship_map)
+            for ship_name, cnt in sys_info['traffic']['by_ship'].items():
+                print(system.system_name, ship_name, cnt)
 
 
 def process_scrape_data(data_json):
@@ -763,6 +842,7 @@ def update_eddb_factions(eddb_session, fact_info):
     Returns: A list of Influence objects updated or added to db.
     """
     infs = []
+
     for system_name, info in fact_info.items():
         for faction_name in info['factions']:
             try:

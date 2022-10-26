@@ -1166,7 +1166,6 @@ class Help(Action):
             ['{prefix}user', 'Manage your user, set sheet name and tag'],
             ['{prefix}vote', 'Check and record cycle vote for prep/consolidation.'],
             ['{prefix}whois', 'Search for commander on inara.cz'],
-            ['{prefix}help', 'This help message'],
         ]
         lines = [[line[0].format(prefix=prefix), line[1]] for line in lines]
 
@@ -1688,14 +1687,6 @@ class Scout(Action):
         await self.bot.send_message(self.msg.channel, lines)
 
 
-def scrape_bgs_in_background(system_names):  # pragma: no cover | tested elsewhere
-    """
-    Perform a scrape of requested systems for bgs.
-    """
-    with cogdb.scrape.get_chrome_driver(dev=False) as driver:
-        return cogdb.scrape.scrape_all_bgs(driver, system_names)
-
-
 class Scrape(Action):
     """
     Interface with the spy_squirrel stuff.
@@ -1704,6 +1695,7 @@ class Scrape(Action):
         """
         Execute the bgs scrape.
         """
+        log = logging.getLogger(__name__)
         try:
             with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
                 system_names = process_system_args(self.args.rest)
@@ -1717,19 +1709,25 @@ Estimate of how long it will take: {str(estimate)}"""
                     msg += f"\n\nThe following systems weren't found: \n{pprint.pformat(not_found)}"
                 await self.bot.send_message(self.msg.channel, msg)
 
-                # confirm page is up and working BEFORE asking
-                async with aiohttp.ClientSession() as http:
-                    async with http.get(cog.util.CONF.scrape.url):
-                        pass
+                # Disable during window of Thursday 0700-0800
+                now = datetime.datetime.utcnow()
+                if now.strftime("%A") == "Thursday" and now.hour == 7:
+                    raise cog.exc.RemoteError
 
+                api_end = cog.util.CONF.scrape.api
+                log.warning("POST api json.")
+                payload = {sys.name: sys.ed_system_id for sys in found}
+                response_json = json.loads(str(await cog.util.post_json_url(api_end, payload)))
+
+                log.warning("POST handle sheet updates.")
                 with cfut.ProcessPoolExecutor(max_workers=1) as pool:
-                    info = await self.bot.loop.run_in_executor(
-                        pool, scrape_bgs_in_background, found
+                    await self.bot.loop.run_in_executor(
+                        pool, spy.load_response_json, response_json
                     )
-                    scanner = get_scanner('bgs_demo')
-                    influences = cogdb.spy_squirrel.update_eddb_factions(eddb_session, info)
-                    await scanner.clear_cells()
-                    await scanner.send_batch(scanner.update_dict(influences=influences))
+                    #  scanner = get_scanner('bgs_demo')
+                    #  influences = cogdb.spy_squirrel.update_eddb_factions(eddb_session, info)
+                    #  await scanner.clear_cells()
+                    #  await scanner.send_batch(scanner.update_dict(influences=influences))
 
             return "Update completed successfully."
 
@@ -1745,7 +1743,7 @@ Estimate of how long it will take: {str(estimate)}"""
             await self.bot.send_message(self.msg.channel,
                                         "Initiated the scrape in the background.")
 
-            await monitor_powerplay_page(self.bot, repeat=False, delay=0)
+            await monitor_powerplay_api(self.bot, repeat=False, delay=0)
 
             await self.bot.send_message(self.msg.channel,
                                         "Finished the scrape.")
@@ -2567,7 +2565,7 @@ async def push_scrape_to_sheets():  # pragma: no cover | tested elsewhere
             await scanner.send_batch(payloads)
 
 
-async def monitor_powerplay_page(client, *, repeat=True, delay=1800):
+async def monitor_powerplay_api(client, *, repeat=True, delay=1800):
     """Poll the powerplay page for info every delay seconds.
 
     N.B. This depends on multiple scanners being operable. Start this task ONLY when they are ready.
@@ -2580,21 +2578,23 @@ async def monitor_powerplay_page(client, *, repeat=True, delay=1800):
     await asyncio.sleep(delay)
     if repeat:
         asyncio.ensure_future(
-            monitor_powerplay_page(client, repeat=repeat, delay=delay)
+            monitor_powerplay_api(client, repeat=repeat, delay=delay)
         )
-
-    # Disable during window of Thursday 0700-0800
-    now = datetime.datetime.utcnow()
-    if now.strftime("%A") == "Thursday" and now.hour == 7:
-        raise aiohttp.ClientConnectionError()
 
     log = logging.getLogger(__name__)
     try:
+        # Disable during window of Thursday 0700-0800
+        now = datetime.datetime.utcnow()
+        if now.strftime("%A") == "Thursday" and now.hour == 7:
+            raise cog.exc.RemoteError
+
         api_end = cog.util.CONF.scrape.api
-        log.warning("Start api scrape in background.")
+        log.warning("Start api processing.")
         base_text = await cog.util.get_url(os.path.join(api_end, 'getraw', 'base.json'))
         ref_text = await cog.util.get_url(os.path.join(api_end, 'getraw', 'refined.json'))
+        log.warning("Parse retrieved json.")
 
+        log.warning("Handle sheet updates.")
         with cfut.ProcessPoolExecutor(max_workers=1) as pool:
             await client.loop.run_in_executor(
                 pool, spy.load_base_json, json.loads(base_text),
@@ -2604,7 +2604,7 @@ async def monitor_powerplay_page(client, *, repeat=True, delay=1800):
             )
         await push_scrape_to_gal_scanner()
         await push_scrape_to_sheets()
-        log.warning("End api scrape in background.")
+        log.warning("Api processing completed.")
     except cog.exc.RemoteError:
         log.error("Spy service not operating. Will try again in %d seconds.", delay)
 

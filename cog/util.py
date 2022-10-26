@@ -660,7 +660,7 @@ async def get_url(url, params=None):
     async with aiohttp.ClientSession() as http:
         async with http.get(url, params=params) as resp:
             if resp.status != 200:
-                raise cog.exc.RemoteError("Failed to GET from remote site [%s]: %s" % url, str(resp.status))
+                raise cog.exc.RemoteError(f"Failed to GET from remote site [{url}]: {resp.status}")
 
             return await resp.text()
 
@@ -674,22 +674,25 @@ async def post_json_url(url, payload, *, headers=None):
 
     Args:
         url: The full URL to POST.
-        payload: The dictionary object that contains the payload to POST.
+        payload: The dictionary object that contains the payload to POST. Will be json.dumped
         headers: Optionally, a different set than default headers.
 
     Raises:
         cog.exc.RemoteError: The remote did not respond, likely down.
     """
     if not headers:
-        headers = cog.inara.API_HEADERS
+        headers = {
+            'Accept': '*/*',
+            'Accept-Encoding': 'gzip, deflate, br',
+            'Content-Type': 'application/json',
+        }
 
-    input = json.dumps(payload)
     async with aiohttp.ClientSession() as http:
-        async with http.post(url, data=input, headers=headers) as resp:
+        async with http.post(url, data=json.dumps(payload), headers=headers) as resp:
             if resp.status != 200:
-                raise cog.exc.RemoteError("Failed to POST from remote site [%s]: %s" % url, str(resp.status))
+                raise cog.exc.RemoteError(f"Failed to POST from remote site [{url}]: {resp.status}")
 
-            return await resp.json()
+            return await resp.text()
 
 
 #  # Scenario multiple readers, always allowed

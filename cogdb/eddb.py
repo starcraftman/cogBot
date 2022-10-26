@@ -2402,11 +2402,11 @@ def compute_all_exploits_from_controls(session, system_names):
         if system.power_state.text == "Control":
             exploits += get_systems_around(session, system.name, CONTROL_DISTANCE)
 
-    found_names = list(set([x.name for x in found] + [x.name for x in exploits]))
-    found_names_lower = [x.lower() for x in found_names]
+    found_systems = set(found + exploits)
+    found_names_lower = [x.name.lower() for x in found_systems]
     not_found = [x for x in system_names if x.lower() not in found_names_lower]
 
-    return found_names, not_found
+    return found_systems, not_found
 
 
 def populate_system_controls(session):
