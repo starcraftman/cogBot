@@ -2519,26 +2519,25 @@ async def push_scrape_to_gal_scanner():  # pragma: no cover | tested elsewhere
                 filter(spy.SpySystem.power_id == power.id,
                        spy.SpySystem.power_state_id == 16).\
                 all()
-            # preps = eddb_session.query(spy.SpyPrep).\
-            #         filter(spy.SpyPrep.power_id == power.id).\
-            #         all()
-            # expansions = eddb_session.query(spy.SpySystem).\
-            #     filter(spy.SpySystem.power_id == power.id,
-            #            spy.SpySystem.power_state_id != 16).\
-            #     all()
-            # vote = eddb_session.query(spy.SpyVote).\
-            #     filter(spy.SpyVote.power_id == power.id).\
-            #     one()
+            preps = eddb_session.query(spy.SpyPrep).\
+                filter(spy.SpyPrep.power_id == power.id).\
+                all()
+            expansions = eddb_session.query(spy.SpySystem).\
+                filter(spy.SpySystem.power_id == power.id,
+                       spy.SpySystem.power_state_id != 16).\
+                all()
+            vote = eddb_session.query(spy.SpyVote).\
+                filter(spy.SpyVote.power_id == power.id).\
+                one()
 
             systems = sorted(systems, key=lambda x: x.system.name.lower())
-            # expansions = sorted(expansions, key=lambda x: x.system.name.lower())
-            # preps = sorted(preps, key=lambda x: x.system_name.lower())
+            expansions = sorted(expansions, key=lambda x: x.system.name.lower())
+            preps = sorted(preps, key=lambda x: x.system_name.lower())
 
             log.error("Updating sheet for: %s", power.eddn)
             await gal_scanner.asheet.change_worksheet(power.eddn.upper())
             await gal_scanner.clear_cells()
-            # await gal_scanner.send_batch(gal_scanner.update_dict(systems=systems, prepa=preps, exps=expansions, vote=vote))
-            await gal_scanner.send_batch(gal_scanner.update_dict(systems=systems))
+            await gal_scanner.send_batch(gal_scanner.update_dict(systems=systems, preps=preps, exps=expansions, vote=vote))
 
 
 async def push_scrape_to_sheets():  # pragma: no cover | tested elsewhere

@@ -985,12 +985,12 @@ class GalScanner(FortScanner):
             ]
 
         if vote:
-            payload += [{'range': 'D9:E9', 'values': [[str(vote.vote), str(100 - vote.vote)]]}]
+            payload += [{'range': 'D15:E15', 'values': [[str(vote.vote), str(100 - vote.vote)]]}]
 
         payload += [{'range': 'C1:C1', 'values': [[str(now)]]}]
         return payload
 
-    async def clear_cells(self, *, row=3):
+    async def clear_cells(self, *, row=3, extra=True):
         """
         Use batch_clear to wipe out all existing data in the sheet where we will write.
 
@@ -1002,6 +1002,14 @@ class GalScanner(FortScanner):
             f'L{row}:P{end_row}',
             f'R{row}:S{end_row}'
         ]
+
+        if extra:
+            ranges += [
+                f'D{row}:E{end_row}',
+                f'F{row}:H{end_row}',
+                f'I{row}:K{end_row}',
+            ]
+
         await self.asheet.batch_clear(ranges)
 
     async def cycle_reset(self, *, row=3):

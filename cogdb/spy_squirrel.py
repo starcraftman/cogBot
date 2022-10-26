@@ -452,33 +452,35 @@ def load_refined_json(refined):
                     )
                     eddb_session.add(spyprep)
                 db_objs += [spyprep]
+        eddb_session.commit()
 
-        for bundle, pstate_id in [[refined["gainControl"][0], 64], [refined["fortifyUndermine"][0], 16]]:
-            power_id = json_powers_to_eddb_id[bundle['powerid']]
-            ed_system_id = bundle['systemAddr']
-            eddb_system = eddb_session.query(System).\
-                filter(System.ed_system_id == ed_system_id).\
-                one()
-            kwargs = {
-                'power_id': power_id,
-                'ed_system_id': ed_system_id,
-                'system_name': eddb_system.name,
-                'power_state_id': pstate_id,
-                'fort': bundle['qtyFor'],
-                'um': bundle['qtyAgainst'],
-                'updated_at': updated_at,
-            }
-            try:
-                system = eddb_session.query(SpySystem).\
-                    filter(
-                        SpySystem.ed_system_id == ed_system_id,
-                        SpySystem.power_id == power_id).\
+        for bundles, pstate_id in [[refined["gainControl"], 64], [refined["fortifyUndermine"], 16]]:
+            for bundle in bundles:
+                power_id = json_powers_to_eddb_id[bundle['powerid']]
+                ed_system_id = bundle['systemAddr']
+                eddb_system = eddb_session.query(System).\
+                    filter(System.ed_system_id == ed_system_id).\
                     one()
-                system.update(**kwargs)
-            except sqla.orm.exc.NoResultFound:
-                system = SpySystem(**kwargs)
-                eddb_session.add(system)
-            db_objs += [system]
+                kwargs = {
+                    'power_id': power_id,
+                    'ed_system_id': ed_system_id,
+                    'system_name': eddb_system.name,
+                    'power_state_id': pstate_id,
+                    'fort': bundle['qtyFor'],
+                    'um': bundle['qtyAgainst'],
+                    'updated_at': updated_at,
+                }
+                try:
+                    system = eddb_session.query(SpySystem).\
+                        filter(
+                            SpySystem.ed_system_id == ed_system_id,
+                            SpySystem.power_id == power_id).\
+                        one()
+                    system.update(**kwargs)
+                except sqla.orm.exc.NoResultFound:
+                    system = SpySystem(**kwargs)
+                    eddb_session.add(system)
+                db_objs += [system]
 
 
 def parse_params(input):
