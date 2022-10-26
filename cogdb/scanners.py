@@ -960,7 +960,7 @@ class GalScanner(FortScanner):
         for spy_system in systems:
             name = spy_system.system.name.upper()
             first += [[name, spy_system.fort, spy_system.um]]
-            second += [[name, 0, 0, spy_system.fort_trigger, spy_system.um_trigger]]
+            second += [[name, spy_system.upkeep_current, spy_system.income, spy_system.fort_trigger, spy_system.um_trigger]]
             third += [[name, spy_system.held_merits]]
         payload = [
             {'range': f'A{row}:C{end_row}', 'values': first},
