@@ -513,19 +513,20 @@ def load_refined_json(refined):
     with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
         for bundle in refined["preparation"]:
             power_id = json_powers_to_eddb_id[bundle['powerid']]
-            try:
-                spyvote = eddb_session.query(SpyVote).\
-                    filter(SpyVote.power_id == power_id).\
-                    one()
-                spyvote.vote = bundle['consolidation']['rank']
-                spyvote.updated_at = updated_at
-            except sqla.orm.exc.NoResultFound:
-                spyvote = SpyVote(
-                    power_id=power_id,
-                    vote=bundle['consolidation']['rank'],
-                    updated_at=updated_at
-                )
-                eddb_session.add(spyvote)
+            if 'consolidation' in bundle:
+                try:
+                    spyvote = eddb_session.query(SpyVote).\
+                        filter(SpyVote.power_id == power_id).\
+                        one()
+                    spyvote.vote = bundle['consolidation']['rank']
+                    spyvote.updated_at = updated_at
+                except sqla.orm.exc.NoResultFound:
+                    spyvote = SpyVote(
+                        power_id=power_id,
+                        vote=bundle['consolidation']['rank'],
+                        updated_at=updated_at
+                    )
+                    eddb_session.add(spyvote)
             db_objs += [spyvote]
 
             for ed_system_id, merits in bundle['rankedSystems']:
