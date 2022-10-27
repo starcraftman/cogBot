@@ -1452,7 +1452,7 @@ Power              |```"""
     assert after.map_offset == 600
 
     expect = [
-        {'range': 'F10:F13', 'values': [[12000], [0.4], ['Hold Merits'], [600]]}
+        {'range': 'F10:F13', 'values': [[12000], ["0.4%"], ['Hold Merits'], [600]]}
     ]
     assert cogdb.scanners.SCANNERS['hudson_undermine'].payloads == expect
 

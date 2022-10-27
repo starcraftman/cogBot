@@ -118,7 +118,7 @@ def spy_test_bed(eddb_session):
             last_seen_system="Rana",
             last_seen_station="Wescott Hub",
             bounty=100000,
-            is_local=False,
+            category=1,
             ship_id=1,
             power_id=9,
             updated_at=FIXED_TIMESTAMP,
@@ -131,7 +131,7 @@ def spy_test_bed(eddb_session):
             last_seen_system="Rana",
             last_seen_station="Ali Hub",
             bounty=10000000,
-            is_local=False,
+            category=1,
             ship_id=2,
             power_id=1,
             updated_at=FIXED_TIMESTAMP,
@@ -178,14 +178,15 @@ def test_spy_traffic__str__(spy_test_bed, eddb_session):
 
 
 def test_spy_bounty__repr__(spy_test_bed, eddb_session):
-    expect = "SpyBounty(id=1, pos=1, cmdr_name='Good guy', ship_name='Good guy ship', last_seen_system='Rana', last_seen_station='Wescott Hub', bounty=100000, is_local=False, ship_id=1, updated_at=1662390092)"
+    expect = "SpyBounty(id=1, category=1, pos=1, cmdr_name='Good guy', ship_name='Good guy ship', last_seen_system='Rana', last_seen_station='Wescott Hub', bounty=100000, ship_id=1, updated_at=1662390092)"
     bounty = eddb_session.query(spy.SpyBounty).filter(spy.SpyBounty.id == 1, spy.SpyBounty.pos == 1).one()
 
     assert expect == repr(bounty)
 
 
 def test_spy_bounty__str__(spy_test_bed, eddb_session):
-    expect = "#1 Good guy in Rana/Wescott Hub (Viper Mk. II) with 100000, updated at 2022-09-05 15:01:32"
+    expect = """#1 Good guy last seen in Rana/Wescott Hub (Viper Mk. II)
+Has 100,000 in bounty, updated at 2022-09-05 15:01:32"""
     bounty = eddb_session.query(spy.SpyBounty).filter(spy.SpyBounty.id == 1, spy.SpyBounty.pos == 1).one()
 
     assert expect == str(bounty)
@@ -198,10 +199,11 @@ def test_spy_bounty_from_bounty_post_valid(spy_test_bed, eddb_session):
         'name': 'CMDR Marduk298 (Federal Corvette "CLOACA MUNCH")',
         'pos': 1,
         'value': 859000,
+        'category': 1,
         'updated_at': FIXED_TIMESTAMP,
     }
 
-    expect = "SpyBounty(id=None, pos=1, cmdr_name='Marduk298', ship_name='CLOACA MUNCH', last_seen_system='Tjial', last_seen_station='Cassidy Landing', bounty=859000, is_local=False, ship_id=None, updated_at=1662390092)"
+    expect = "SpyBounty(id=None, category=1, pos=1, cmdr_name='Marduk298', ship_name='CLOACA MUNCH', last_seen_system='Tjial', last_seen_station='Cassidy Landing', bounty=859000, ship_id=None, updated_at=1662390092)"
     bounty = spy.SpyBounty.from_bounty_post(post, power_id=11)
     assert expect == repr(bounty)
 
@@ -213,9 +215,10 @@ def test_spy_bounty_from_bounty_post_empty(spy_test_bed, eddb_session):
         'name': '',
         'pos': 4,
         'value': 0,
+        'category': 1,
         'updated_at': FIXED_TIMESTAMP,
     }
-    expect = "SpyBounty(id=None, pos=4, cmdr_name='', ship_name='', last_seen_system='', last_seen_station='', bounty=0, is_local=False, ship_id=None, updated_at=1662390092)"
+    expect = "SpyBounty(id=None, category=1, pos=4, cmdr_name='', ship_name='', last_seen_system='', last_seen_station='', bounty=0, ship_id=None, updated_at=1662390092)"
     bounty = spy.SpyBounty.from_bounty_post(post, power_id=11)
     assert expect == repr(bounty)
 
@@ -465,37 +468,41 @@ def test_parse_response_top5_bounties(response_news_json):
             'value': 22800,
             'commanderId': 5520548,
             'lastLocation': 'Melici - Polansky Landing',
-            'name': 'CMDR SunNamida (Krait Mk II "PRIVATE COURIER")'
+            'name': 'CMDR SunNamida (Krait Mk II "PRIVATE COURIER")',
+            'category': 'faction',
         },
         2: {
             'pos': 2,
             'value': 6300,
             'commanderId': 7686998,
             'lastLocation': 'Djiwal - Thompson Dock',
-            'name': 'CMDR Bubba Bo Bob (Keelback "KEELBACK")'
+            'name': 'CMDR Bubba Bo Bob (Keelback "KEELBACK")',
+            'category': 'faction',
         },
         3: {
             'pos': 3,
             'value': 2600,
             'commanderId': 6750288,
             'lastLocation': 'NLTT 19808',
-            'name': 'CMDR MrSkillin (Keelback)'
+            'name': 'CMDR MrSkillin (Keelback)',
+            'category': 'faction',
         },
         4: {
             'pos': 4,
             'value': 0,
             'commanderId': 0,
             'lastLocation': '',
-            'name': ''
+            'name': '',
+            'category': 'faction',
         },
         5: {
             'pos': 5,
             'value': 0,
             'commanderId': 0,
             'lastLocation': '',
-            'name': ''
+            'name': '',
+            'category': 'faction',
         },
-        'type': 'faction'
     }
     assert expect == spy.parse_response_top5_bounties(response_news_json[10])
 
@@ -550,88 +557,6 @@ def test_parse_response_traffic_totals(response_news_json):
 
 
 def test_load_response_json(empty_spy, response_json, eddb_session):
-    expect = {
-        'bountiesClaimed': {'bountyCount': 439, 'bountyValue': 75817971},
-        'bountiesGiven': {'bountyCount': 204, 'bountyValue': 26684911},
-        'factions': [
-            {'factionName': 'Labour of Rhea', 'happiness': 2, 'influence': 4.8, 'system': 'Rhea'},
-            {'factionName': 'Rhea Travel Industry', 'happiness': 2, 'influence': 12.2, 'system': 'Rhea'},
-            {'factionName': 'Traditional Rhea Front', 'happiness': 2, 'influence': 8.9, 'system': 'Rhea'},
-            {'factionName': 'Rhea Travel Interstellar', 'happiness': 2, 'influence': 12.2, 'system': 'Rhea'},
-            {'factionName': 'Rhea Crimson Drug Empire', 'happiness': 2, 'influence': 3.3, 'system': 'Rhea'},
-            {'factionName': 'East Galaxy Company', 'happiness': 2, 'influence': 19.0, 'system': 'Rhea'},
-            {'factionName': 'Federal Liberal Command', 'happiness': 2, 'influence': 39.5, 'system': 'Rhea'}
-        ],
-        'power': {'stolen_fort': 0, 'power': 'Felicia Winters', 'held_merits': 0},
-        'system': 'Rhea',
-        'top5': [
-            {
-                1: {'bountyValue': 22800, 'commanderId': 5520548, 'lastLocation': 'Melici - Polansky Landing', 'name': 'CMDR SunNamida (Krait Mk II "PRIVATE COURIER")'},
-                2: {'bountyValue': 6300, 'commanderId': 7686998, 'lastLocation': 'Djiwal - Thompson Dock', 'name': 'CMDR Bubba Bo Bob (Keelback "KEELBACK")'},
-                3: {'bountyValue': 2600, 'commanderId': 6750288, 'lastLocation': 'NLTT 19808', 'name': 'CMDR MrSkillin (Keelback)'},
-                4: {'bountyValue': 0, 'commanderId': 0, 'lastLocation': '', 'name': ''},
-                5: {'bountyValue': 0, 'commanderId': 0, 'lastLocation': '', 'name': ''},
-                'type': 'faction'
-            },
-            {
-                1: {'bountyValue': 859000, 'commanderId': 3378194, 'lastLocation': 'Tjial - Cassidy Landing', 'name': 'CMDR Marduk298 (Federal Corvette "CLOACA MUNCH")'},
-                2: {'bountyValue': 765000, 'commanderId': 4868506, 'lastLocation': 'Njuwar', 'name': 'CMDR mÃ¡kos guba (Fer-de-Lance "LSI REGULARITY ALPHA")'},
-                3: {'bountyValue': 547000, 'commanderId': 7919910, 'lastLocation': 'Bandjigali', 'name': 'CMDR Kalvunath (Anaconda "BABYLON")'},
-                4: {'bountyValue': 0, 'commanderId': 0, 'lastLocation': '', 'name': ''},
-                5: {'bountyValue': 0, 'commanderId': 0, 'lastLocation': '', 'name': ''},
-                'type': 'super'
-            }
-        ],
-        'trade': [
-            '$DamagedEscapePod_Name;',
-            '$BasicMedicines_Name;',
-            '$Algae_Name;',
-            '$Painite_Name;',
-            '$Alexandrite_Name;',
-            '$Opal_Name;',
-            '$Gold_Name;',
-            '$Tritium_Name;',
-            '$Thorium_Name;',
-            '$Wine_Name;',
-            '$MarineSupplies_Name;'
-        ],
-        'traffic': {
-            'by_ship': {
-                'adder': 2,
-                'anaconda': 35,
-                'asp': 18,
-                'belugaliner': 4,
-                'cobramkiii': 9,
-                'cutter': 37,
-                'diamondback': 8,
-                'diamondbackxl': 14,
-                'dolphin': 4,
-                'eagle': 1,
-                'empire_eagle': 1,
-                'federation_corvette': 20,
-                'federation_dropship_mkii': 3,
-                'ferdelance': 2,
-                'hauler': 1,
-                'independant_trader': 6,
-                'krait_light': 8,
-                'krait_mkii': 31,
-                'mamba': 3,
-                'orca': 4,
-                'python': 17,
-                'type6': 7,
-                'type7': 1,
-                'type9': 24,
-                'type9_military': 4,
-                'typex': 5,
-                'typex_2': 2,
-                'typex_3': 2,
-                'viper': 4,
-                'viper_mkiv': 7,
-                'vulture': 3},
-            'total': 287
-        }
-    }
-
     # FIXME: Update test case when done.
     spy.load_response_json(response_json)
 

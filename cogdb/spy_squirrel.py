@@ -62,6 +62,11 @@ DO
     DELETE FROM eddb.spy_top5
     WHERE updated_at < (unix_timestamp() - {TWO_WEEK_SECONDS});
 """
+BOUNTY_CATEGORY_MAP = {
+    'faction': 1,  # Local faction crimes
+    'power': 2,  # The power, i.e. Hudson
+    'super': 3,  # The super, i.e. Fed / Imp / Alliance
+}
 
 
 class SpyShip(ReprMixin, Base):
@@ -93,8 +98,8 @@ class SpyBounty(ReprMixin, TimestampMixin, Base):
     """
     __tablename__ = 'spy_top5'
     _repr_keys = [
-        'id', 'pos', 'cmdr_name', 'ship_name', 'last_seen_system', 'last_seen_station',
-        'bounty', 'is_local', 'ship_id', 'updated_at'
+        'id', 'category', 'pos', 'cmdr_name', 'ship_name', 'last_seen_system', 'last_seen_station',
+        'bounty', 'ship_id', 'updated_at'
     ]
 
     id = sqla.Column(sqla.BigInteger, primary_key=True)
@@ -107,7 +112,7 @@ class SpyBounty(ReprMixin, TimestampMixin, Base):
     last_seen_system = sqla.Column(sqla.String(cogdb.eddb.LEN["system"]), nullable=False, default="")
     last_seen_station = sqla.Column(sqla.String(cogdb.eddb.LEN["station"]), nullable=False, default="")
     bounty = sqla.Column(sqla.BigInteger, default=0)
-    is_local = sqla.Column(sqla.Boolean, default=True)
+    category = sqla.Column(sqla.Integer, default=BOUNTY_CATEGORY_MAP['power'])
     updated_at = sqla.Column(sqla.Integer, default=time.time, onupdate=time.time)
 
     # Relationships
@@ -122,7 +127,8 @@ class SpyBounty(ReprMixin, TimestampMixin, Base):
     def __str__(self):
         """ A pretty one line to give all information. """
         ship_text = "{}".format(self.ship.text if self.ship else self.ship_id)
-        return f"#{self.pos} {self.cmdr_name} in {self.last_seen_system}/{self.last_seen_station} ({ship_text}) with {self.bounty}, updated at {self.utc_date}"
+        return f"""#{self.pos} {self.cmdr_name} last seen in {self.last_seen_system}/{self.last_seen_station} ({ship_text})
+Has {self.bounty:,} in bounty, updated at {self.utc_date}"""
 
     def __eq__(self, other):
         return isinstance(other, SpyVote) and hash(self) == hash(other)
@@ -168,16 +174,38 @@ class SpyBounty(ReprMixin, TimestampMixin, Base):
             'cmdr_name': name,
             'ship_name': ship_name,
             'ship_id': ship_id,
+            'power_id': power_id,
             'last_seen_system': system,
             'last_seen_station': station,
             'pos': post['pos'],
             'bounty': post['value'],
-            'is_local': power_id is None,
+            'category': post['category'],
         }
         if 'updated_at' in post:  # Mainly for testing, unsure if useful in production
             kwargs['updated_at'] = post['updated_at']
 
         return SpyBounty(**kwargs)
+
+    @hybrid_property
+    def is_faction(self):
+        """
+        Is the bounty for faction?
+        """
+        return self.category == BOUNTY_CATEGORY_MAP['faction']
+
+    @hybrid_property
+    def is_power(self):
+        """
+        Is the bounty for power (Hudson)?
+        """
+        return self.category == BOUNTY_CATEGORY_MAP['power']
+
+    @hybrid_property
+    def is_super(self):
+        """
+        Is the bounty for superpower (Federal)?
+        """
+        return self.category == BOUNTY_CATEGORY_MAP['super']
 
 
 # These entries will be stored for SPY_LIMIT days.
@@ -643,18 +671,16 @@ def parse_response_top5_bounties(input):
     info = parse_params(input['params'])
 
     # Transform params information into better structure
-    result = {
+    return {
         i: {
             'pos': i,
             'value': info[f"bountyValue{i}"],
             'commanderId': info[f"commanderId{i}"],
             'lastLocation': info[f"lastLocation{i}"],
             'name': info[f"name{i}"],
+            'category': info['type']
         } for i in range(1, 6)
     }
-    result['type'] = info['type']
-
-    return result
 
 
 def parse_response_traffic_totals(input):
@@ -720,10 +746,10 @@ def load_response_json(response):
                 result[key] = value[0]
 
         # Separate top5s if both present
-        if len(result['top5']) == 2:
+        if len(result['top5']) > 1:
             for group in result['top5']:
-                key = f'top5_{group["type"]}'
-                result[key] = group
+                cat = list(group.values())[0]["category"]
+                result[f'top5_{cat}'] = group
             del result['top5']
 
         sys_name = result['factions'][0]['system']
@@ -800,11 +826,10 @@ def update_based_response_info(info):
                 system = SpySystem(**kwargs)
                 eddb_session.add(system)
 
-            for key, b_info in sys_info['top5_super'].items():
-                if key == 'type':  # Not a vlid bounty post
-                    continue
-                bounty = SpyBounty.from_bounty_post(b_info, power_id=system.power_id, ship_map=ship_map)
-                print(repr(bounty))
+            if 'top5_power' in sys_info:
+                for b_info in sys_info['top5_power'].values():
+                    bounty = SpyBounty.from_bounty_post(b_info, power_id=system.power_id, ship_map=ship_map)
+                    print(repr(bounty))
 
             for ship_name, cnt in sys_info['traffic']['by_ship'].items():
                 try:

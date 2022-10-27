@@ -657,7 +657,7 @@ async def get_url(url, params=None):
     Raises:
         cog.exc.RemoteError: The remote did not respond, likely down.
     """
-    async with aiohttp.ClientSession() as http:
+    async with aiohttp.ClientSession(read_timeout=0) as http:
         async with http.get(url, params=params) as resp:
             if resp.status != 200:
                 raise cog.exc.RemoteError(f"Failed to GET from remote site [{url}]: {resp.status}")
@@ -687,7 +687,7 @@ async def post_json_url(url, payload, *, headers=None):
             'Content-Type': 'application/json',
         }
 
-    async with aiohttp.ClientSession() as http:
+    async with aiohttp.ClientSession(read_timeout=0) as http:
         async with http.post(url, data=json.dumps(payload), headers=headers) as resp:
             if resp.status != 200:
                 raise cog.exc.RemoteError(f"Failed to POST from remote site [{url}]: {resp.status}")
