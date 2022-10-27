@@ -8,53 +8,11 @@ import pytest
 import sqlalchemy as sqla
 
 import cogdb.spy_squirrel as spy
-import cogdb.eddb
 from cogdb.schema import FortSystem, UMSystem
 from cogdb.spy_squirrel import load_json_secret
 
 
 FIXED_TIMESTAMP = 1662390092
-INPUT_UPDATE_EDDB_FACTIONS = {
-    "Abi": {
-        "factions": {
-            "Abi Crimson Raiders": 1,
-            "Abi Focus": 8.1,
-            "Abi Jet Natural Incorporated": 9.3,
-            "Abi Progressive Party": 4.5,
-            "Knights of Sol Eternal": 18.3,
-            "LFT 1723 Energy Commodities": 8.1,
-            "LHS 3899 Crimson Bridge Ind": 1,
-            "Tibis Alliance": 49.7
-        },
-        "retrieved": 1663943357.0,
-        "updated_at": 1663943357.0
-    },
-    "Rana": {
-        "factions": {
-            "Aegis of Federal Democrats": 8.2,
-            "Earth Defense Fleet": 47.5,
-            "Independent Rana Labour": 12.6,
-            "Rana Flag": 6.3,
-            "Rana General Co": 15,
-            "Rana Regulatory State": 4.5,
-            "Rana State Network": 5.8
-        },
-        "retrieved": 1663943331.0,
-        "updated_at": 1663871673.0
-    },
-    "Sol": {
-        "factions": {
-            "Aegis Core": 8.9,
-            "Federal Congress": 15.9,
-            "Mother Gaia": 29,
-            "Sol Constitution Party": 12.2,
-            "Sol Nationalists": 11.2,
-            "Sol Workers' Party": 22.7
-        },
-        "retrieved": 1663943306.0,
-        "updated_at": 1663870671.0
-    }
-}
 
 # Empty tables before running tests.
 spy.empty_tables()
@@ -180,8 +138,8 @@ def spy_test_bed(eddb_session):
         ),
     ]
     eddb_session.add_all([
-        spy.SpyShip(id=1, text="Viper Mk. II"),
-        spy.SpyShip(id=2, text="Vulture"),
+        spy.SpyShip(id=1, text="Viper Mk. II", traffic_text='viper_mkii'),
+        spy.SpyShip(id=2, text="Vulture", traffic_text='vulture'),
     ])
     eddb_session.commit()
     eddb_session.add_all(objects)
@@ -192,7 +150,7 @@ def spy_test_bed(eddb_session):
 
 
 def test_spy_ship__repr__(spy_test_bed, eddb_session):
-    expect = "SpyShip(id=1, text='Viper Mk. II')"
+    expect = "SpyShip(id=1, text='Viper Mk. II', traffic_text='viper_mkii')"
     ship = eddb_session.query(spy.SpyShip).filter(spy.SpyShip.id == 1).one()
 
     assert expect == repr(ship)
@@ -206,14 +164,14 @@ def test_spy_ship__str__(spy_test_bed, eddb_session):
 
 
 def test_spy_traffic__repr__(spy_test_bed, eddb_session):
-    expect = "SpyTraffic(id=1, cnt=1, ship_id=1, updated_at=1662390092)"
+    expect = "SpyTraffic(id=1, system='Rana', ship_id=1, cnt=1, updated_at=1662390092)"
     traffic = eddb_session.query(spy.SpyTraffic).filter(spy.SpyTraffic.id == 1).one()
 
     assert expect == repr(traffic)
 
 
 def test_spy_traffic__str__(spy_test_bed, eddb_session):
-    expect = "Viper Mk. II: 1"
+    expect = "Rana Viper Mk. II: 1"
     traffic = eddb_session.query(spy.SpyTraffic).filter(spy.SpyTraffic.id == 1).one()
 
     assert expect == str(traffic)
@@ -231,6 +189,35 @@ def test_spy_bounty__str__(spy_test_bed, eddb_session):
     bounty = eddb_session.query(spy.SpyBounty).filter(spy.SpyBounty.id == 1, spy.SpyBounty.pos == 1).one()
 
     assert expect == str(bounty)
+
+
+def test_spy_bounty_from_bounty_post_valid(spy_test_bed, eddb_session):
+    post = {
+        'commanderId': 3378194,
+        'lastLocation': 'Tjial - Cassidy Landing',
+        'name': 'CMDR Marduk298 (Federal Corvette "CLOACA MUNCH")',
+        'pos': 1,
+        'value': 859000,
+        'updated_at': FIXED_TIMESTAMP,
+    }
+
+    expect = "SpyBounty(id=None, pos=1, cmdr_name='Marduk298', ship_name='CLOACA MUNCH', last_seen_system='Tjial', last_seen_station='Cassidy Landing', bounty=859000, is_local=False, ship_id=None, updated_at=1662390092)"
+    bounty = spy.SpyBounty.from_bounty_post(post, power_id=11)
+    assert expect == repr(bounty)
+
+
+def test_spy_bounty_from_bounty_post_empty(spy_test_bed, eddb_session):
+    post = {
+        'commanderId': 0,
+        'lastLocation': '',
+        'name': '',
+        'pos': 4,
+        'value': 0,
+        'updated_at': FIXED_TIMESTAMP,
+    }
+    expect = "SpyBounty(id=None, pos=4, cmdr_name='', ship_name='', last_seen_system='', last_seen_station='', bounty=0, is_local=False, ship_id=None, updated_at=1662390092)"
+    bounty = spy.SpyBounty.from_bounty_post(post, power_id=11)
+    assert expect == repr(bounty)
 
 
 def test_spy_vote__repr__(spy_test_bed):
@@ -376,7 +363,7 @@ def test_load_base_json(empty_spy, base_json, eddb_session):
     )
 
     systems = eddb_session.query(spy.SpySystem).\
-        filter(spy.SpySystem.ed_system_id.in_(11665533904241, 10477373803)).\
+        filter(spy.SpySystem.ed_system_id.in_([11665533904241, 10477373803])).\
         all()
     assert expect_control in systems
     assert expect_taking in systems
@@ -438,7 +425,7 @@ def test_parse_params(response_news_json):
 
 def test_parse_response_news_summary(response_news_json):
     expect = {
-        'factionName': 'Labour of Rhea',
+        'name': 'Labour of Rhea',
         'happiness': 2,
         'influence': 4.8,
         'system': 'Rhea'
@@ -474,31 +461,36 @@ def test_parse_response_bounties_claimed(response_news_json):
 def test_parse_response_top5_bounties(response_news_json):
     expect = {
         1: {
-            'bountyValue': 22800,
+            'pos': 1,
+            'value': 22800,
             'commanderId': 5520548,
             'lastLocation': 'Melici - Polansky Landing',
             'name': 'CMDR SunNamida (Krait Mk II "PRIVATE COURIER")'
         },
         2: {
-            'bountyValue': 6300,
+            'pos': 2,
+            'value': 6300,
             'commanderId': 7686998,
             'lastLocation': 'Djiwal - Thompson Dock',
             'name': 'CMDR Bubba Bo Bob (Keelback "KEELBACK")'
         },
         3: {
-            'bountyValue': 2600,
+            'pos': 3,
+            'value': 2600,
             'commanderId': 6750288,
             'lastLocation': 'NLTT 19808',
             'name': 'CMDR MrSkillin (Keelback)'
         },
         4: {
-            'bountyValue': 0,
+            'pos': 4,
+            'value': 0,
             'commanderId': 0,
             'lastLocation': '',
             'name': ''
         },
         5: {
-            'bountyValue': 0,
+            'pos': 5,
+            'value': 0,
             'commanderId': 0,
             'lastLocation': '',
             'name': ''
@@ -512,7 +504,7 @@ def test_parse_response_power_update(response_news_json):
     expect = {
         'power': 'Felicia Winters',
         'held_merits': 0,
-        'stolen_fort': 0,
+        'stolen_forts': 0,
     }
     assert expect == spy.parse_response_power_update(response_news_json[12])
 
@@ -639,21 +631,9 @@ def test_load_response_json(empty_spy, response_json, eddb_session):
             'total': 287
         }
     }
-    assert expect == spy.load_response_json(response_json)
 
-
-def test_process_scrape_data(empty_spy, scrape_json, eddb_session):
-    spy.process_scrape_data(scrape_json)
-
-    eddb_sys = eddb_session.query(cogdb.eddb.System).\
-        filter(cogdb.eddb.System.name == 'Aowica').\
-        one()
-    sys = eddb_session.query(spy.SpySystem).\
-        filter(spy.SpySystem.ed_system_id == eddb_sys.ed_system_id).\
-        one()
-    assert sys.system.name == 'Aowica'
-    assert sys.fort == 4464
-    assert sys.um_trigger == 11598
+    # FIXME: Update test case when done.
+    spy.load_response_json(response_json)
 
 
 def test_compare_sheet_fort_systems_to_spy(empty_spy, db_cleanup, session, eddb_session):
@@ -703,38 +683,6 @@ def test_compare_sheet_um_systems_to_spy(empty_spy, db_cleanup, session, eddb_se
     system = session.query(UMSystem).filter(UMSystem.name == "Rana").one()
     assert 0 == system.progress_us
     assert 0 == system.progress_them
-
-
-def test_update_eddb_factions(eddb_session):
-    infs = []
-    for system_name in INPUT_UPDATE_EDDB_FACTIONS:
-        infs += eddb_session.query(cogdb.eddb.Influence).\
-            join(cogdb.eddb.System).\
-            filter(cogdb.eddb.System.name == system_name).\
-            all()
-
-    try:
-        with cogdb.session_scope(cogdb.EDDBSession) as isolated_session:
-            cogdb.spy_squirrel.update_eddb_factions(isolated_session, INPUT_UPDATE_EDDB_FACTIONS)
-            abi_tibis = isolated_session.query(cogdb.eddb.Influence).\
-                join(cogdb.eddb.System).\
-                join(cogdb.eddb.Faction, cogdb.eddb.Influence.faction_id == cogdb.eddb.Faction.id).\
-                filter(cogdb.eddb.System.name == 'Abi',
-                       cogdb.eddb.Faction.name == 'Tibis Alliance').\
-                one()
-
-            assert abi_tibis.influence == 49.7
-            assert abi_tibis.updated_at == 1663943357.0
-    finally:
-        # Ensure EDDB not changed by test on fail
-        eddb_session.rollback()
-        for inf in infs:
-            queried = eddb_session.query(cogdb.eddb.Influence).\
-                filter(cogdb.eddb.Influence.id == inf.id).\
-                one()
-            queried.influence = inf.influence
-            queried.updated_at = inf.updated_at
-        eddb_session.commit()
 
 
 def test_preload_spy_tables(empty_spy, eddb_session):

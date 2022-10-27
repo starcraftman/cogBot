@@ -444,6 +444,7 @@ def test_get_closest_station_by_government_bad_system(eddb_session):
 def test_compute_all_exploits_from_control(eddb_session):
     found, not_found = cogdb.eddb.compute_all_exploits_from_controls(eddb_session, ['Abi', 'Nanomam'])
 
+    found = {x.name for x in found}
     assert 'LHS 215' in found
     assert 'Abi' in found
     assert not not_found
@@ -452,6 +453,7 @@ def test_compute_all_exploits_from_control(eddb_session):
 def test_compute_all_exploits_from_control_missing(eddb_session):
     found, not_found = cogdb.eddb.compute_all_exploits_from_controls(eddb_session, ['ZZZZ', 'Nanomam'])
 
+    found = {x.name for x in found}
     assert 'LHS 215' in found
     assert 'Abi' not in found
     assert ['ZZZZ'] == not_found

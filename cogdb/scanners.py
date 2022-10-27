@@ -945,12 +945,14 @@ class GalScanner(FortScanner):
         """
         raise NotImplementedError
 
-    def update_dict(self, *, systems=[], preps=[], exps=[], vote=None, row=3):
+    def update_dict(self, *, systems=None, preps=None, exps=None, vote=None, row=3):
         """
         Create an update payload to update all cells on a sheet.
 
         Returns: A list of update dicts to pass to batch_update.
         """
+        if not systems:
+            systems = []
         now = datetime.datetime.utcnow().replace(microsecond=0)
         end_row = row + len(systems)
         end_row_prep = row + len(preps)

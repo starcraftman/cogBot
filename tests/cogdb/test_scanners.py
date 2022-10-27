@@ -610,7 +610,7 @@ async def test_galscanner_clear_cells(session):
     r_scanner = GalScanner(fake_sheet)
 
     await r_scanner.clear_cells()
-    assert [['A3:C400', 'L3:P400', 'R3:S400']] == SENT
+    assert [['A3:C400', 'L3:P400', 'R3:S400', 'D3:E400', 'F3:H400', 'I3:K400']] == SENT
 
 
 @pytest.mark.asyncio

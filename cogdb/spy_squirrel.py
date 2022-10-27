@@ -69,10 +69,11 @@ class SpyShip(ReprMixin, Base):
     Constants for ship type for SpyTraffic.
     """
     __tablename__ = 'spy_ships'
-    _repr_keys = ['id', 'text']
+    _repr_keys = ['id', 'text', 'traffic_text']
 
     id = sqla.Column(sqla.Integer, primary_key=True)
     text = sqla.Column(sqla.String(cogdb.eddb.LEN["ship"]))
+    traffic_text = sqla.Column(sqla.String(cogdb.eddb.LEN["ship"]))
 
     def __str__(self):
         """ A pretty one line to give all information. """
@@ -129,6 +130,55 @@ class SpyBounty(ReprMixin, TimestampMixin, Base):
     def __hash__(self):
         return hash(f"{self.id}_{self.pos}")
 
+    @staticmethod
+    def from_bounty_post(post, *, power_id=None, ship_map=None):
+        """
+        Generate a SpyBounty object from an existing bounty object.
+        For empty entries (i.e. commanderId 0) will generate an effectively empty object
+
+        Args:
+            post: A dictionary with information from bounty post
+            power_id: The power id of the system. If none, this is local
+            ship_map: The map of ship names to SpyShip.ids
+
+        Returns: A SpyBounty object.
+        """
+        name, ship_name, station, system, ship_id = '', '', '', '', None
+        if not ship_map:
+            ship_map = ship_type_to_id_map()
+
+        if post['commanderId'] != 0:
+            system = post['lastLocation']
+            if ' - ' in system:
+                system, station = system.split(' - ')
+
+            name = post['name']
+            mat = re.match(r'CMDR (.*) \((.*)\)', name)
+            if mat:
+                name = mat.group(1)
+                parts = mat.group(2).split('"')
+                if len(parts) == 3:
+                    ship_name = parts[1]
+                    try:
+                        ship_id = ship_map[parts[0].strip()]
+                    except KeyError:
+                        pass
+
+        kwargs = {
+            'cmdr_name': name,
+            'ship_name': ship_name,
+            'ship_id': ship_id,
+            'last_seen_system': system,
+            'last_seen_station': station,
+            'pos': post['pos'],
+            'bounty': post['value'],
+            'is_local': power_id is None,
+        }
+        if 'updated_at' in post:  # Mainly for testing, unsure if useful in production
+            kwargs['updated_at'] = post['updated_at']
+
+        return SpyBounty(**kwargs)
+
 
 # These entries will be stored for SPY_LIMIT days.
 class SpyTraffic(ReprMixin, Base):
@@ -136,7 +186,7 @@ class SpyTraffic(ReprMixin, Base):
     Monitor traffic of different ships in the system.
     """
     __tablename__ = 'spy_traffic'
-    _repr_keys = ['id', 'cnt', 'ship_id', 'updated_at']
+    _repr_keys = ['id', 'system', 'ship_id', 'cnt', 'updated_at']
 
     id = sqla.Column(sqla.BigInteger, primary_key=True)
     ship_id = sqla.Column(sqla.Integer, sqla.ForeignKey('spy_ships.id'))
@@ -152,7 +202,7 @@ class SpyTraffic(ReprMixin, Base):
     def __str__(self):
         """ A pretty one line to give all information. """
         ship_text = "{}".format(self.ship.text if self.ship else self.ship_id)
-        return f"{ship_text}: {self.cnt}"
+        return f"{self.system} {ship_text}: {self.cnt}"
 
     def __eq__(self, other):
         return isinstance(other, SpyTraffic) and hash(self) == hash(other)
@@ -314,8 +364,8 @@ def json_powers_to_eddb_map():
     """
     Returns a simple map FROM power_id in JSON messages TO Power.id in EDDB.
     """
-    with cogdb.session_scope(cogdb.EDDBSession) as session:
-        eddb_power_names_to_id = {power.text: power.id for power in session.query(Power)}
+    with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
+        eddb_power_names_to_id = {power.text: power.id for power in eddb_session.query(Power)}
         json_powers_to_eddb_id = {
             power_id: eddb_power_names_to_id[power_name]
             for power_id, power_name in POWER_ID_MAP.items()
@@ -324,12 +374,22 @@ def json_powers_to_eddb_map():
     return json_powers_to_eddb_id
 
 
-def ship_type_to_id_map():
+def ship_type_to_id_map(traffic_text=False):
     """
     Returns a simple map from ship type to the id in SpyShip table.
     """
-    with cogdb.session_scope(cogdb.EDDBSession) as session:
-        return {ship.text: ship.id for ship in session.query(SpyShip)}
+    with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
+        ships = eddb_session.query(SpyShip).\
+            all()
+        attrname = 'traffic_text' if traffic_text else 'text'
+        mapped = {getattr(ship, attrname): ship.id for ship in ships}
+
+        try:
+            del mapped[None]
+        except KeyError:
+            pass
+
+        return mapped
 
 
 def fetch_json_secret(secrets_path, name):
@@ -349,7 +409,8 @@ def fetch_json_secret(secrets_path, name):
 
 
 def load_json_secret(fname):
-    """Load a json file example for API testing.
+    """
+    Load a json file example for API testing.
 
     Args:
         fname: The filename to load or fetch from secrethub.
@@ -363,7 +424,8 @@ def load_json_secret(fname):
 
 
 def load_base_json(base):
-    """ Load the base json and parse all information from it.
+    """
+    Load the base json and parse all information from it.
 
     Args:
         base: The base json to load.
@@ -407,7 +469,8 @@ def load_base_json(base):
 
 
 def load_refined_json(refined):
-    """ Load the refined json and parse all information from it.
+    """
+    Load the refined json and parse all information from it.
 
     Args:
         refined: The refined json to load.
@@ -492,7 +555,8 @@ def load_refined_json(refined):
 
 
 def parse_params(input):
-    """Generically parse the params object of JSON messages.
+    """
+    Generically parse the params object of JSON messages.
 
     Where needed provide decoding and casting as needed.
 
@@ -522,7 +586,8 @@ def parse_params(input):
 
 
 def parse_response_news_summary(input):
-    """Capabale of parsing the faction news summary.
+    """
+    Capabale of parsing the faction news summary.
 
     Args:
         input: A JSON object to parse.
@@ -542,7 +607,8 @@ def parse_response_news_summary(input):
 
 
 def parse_response_trade_goods(input):
-    """Capabale of parsing the trade goods available.
+    """
+    Capabale of parsing the trade goods available.
 
     Args:
         input: A JSON object to parse.
@@ -554,7 +620,8 @@ def parse_response_trade_goods(input):
 
 
 def parse_response_bounties_claimed(input):
-    """Capabale of parsing claimed and given bounties.
+    """
+    Capabale of parsing claimed and given bounties.
 
     Args:
         input: A JSON object to parse.
@@ -565,7 +632,8 @@ def parse_response_bounties_claimed(input):
 
 
 def parse_response_top5_bounties(input):
-    """Capabale of parsing the top 5 bounties.
+    """
+    Capabale of parsing the top 5 bounties.
 
     Args:
         input: A JSON object to parse.
@@ -577,7 +645,8 @@ def parse_response_top5_bounties(input):
     # Transform params information into better structure
     result = {
         i: {
-            'bountyValue': info[f"bountyValue{i}"],
+            'pos': i,
+            'value': info[f"bountyValue{i}"],
             'commanderId': info[f"commanderId{i}"],
             'lastLocation': info[f"lastLocation{i}"],
             'name': info[f"name{i}"],
@@ -589,7 +658,8 @@ def parse_response_top5_bounties(input):
 
 
 def parse_response_traffic_totals(input):
-    """Capabale of parsing the top 5 bounties.
+    """
+    Capabale of parsing the top 5 bounties.
 
     Args:
         input: A JSON object to parse.
@@ -650,11 +720,11 @@ def load_response_json(response):
                 result[key] = value[0]
 
         # Separate top5s if both present
-        #  if len(result['top5']) == 2:
-            #  for group in result['top5']:
-                #  result[f'top5_{group["type"]}'] = group
-            #  del result['top5']
-            #  __import__('pprint').pprint(result)
+        if len(result['top5']) == 2:
+            for group in result['top5']:
+                key = f'top5_{group["type"]}'
+                result[key] = group
+            del result['top5']
 
         sys_name = result['factions'][0]['system']
         results[sys_name] = result
@@ -666,28 +736,48 @@ def load_response_json(response):
 
 def update_based_response_info(info):
     """
+    Based on fully parsed response to a POST, update the database.
+
+    Args:
+        info: The large info dict containing information returned and parsed from POST.
     """
+    ship_map = ship_type_to_id_map(traffic_text=False)
+    ship_map_traffic = ship_type_to_id_map(traffic_text=True)
+    log = logging.getLogger(__name__)
+
     with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
         for sys_name, sys_info in info.items():
-            # Handle updating data for factions
+            # Handle updating data for influence of factions
             for faction in sys_info['factions']:
                 try:
-                    influence = eddb_session.query(cogdb.eddb.Influence).\
+                    found = eddb_session.query(cogdb.eddb.Influence).\
                         join(cogdb.eddb.System, Influence.system_id == System.id).\
                         join(cogdb.eddb.Faction, Influence.faction_id == Faction.id).\
                         filter(
                             cogdb.eddb.System.name == sys_name,
                             cogdb.eddb.Faction.name == faction['name']).\
                         one()
-                    influence.happiness_id == faction['happiness']
-                    influence.influence == faction['influence']
-                    # FIXME: Enable at end.
-                    #  cogdb.eddb.add_history_influence(eddb_session, influence)
                 except sqla.orm.exc.NoResultFound:
-                    logging.getLogger(__name__).warning(f"Failed to find combination of: {sys_name} | {sys_info['factions']}")
-                    # Unlikely as I import all influences
+                    # Somehow influence not there, faction must be new to system
+                    try:
+                        system_id = eddb_session.query(System.id).\
+                            filter(System.name == sys_name).\
+                            one()[0]
+                        faction_id = eddb_session.query(Faction).\
+                            filter(Faction.name == faction['name']).\
+                            one()[0]
+                        found = Influence(system_id=system_id, faction_id=faction_id)
+                        eddb_session.add(found)
+                    except sqla_orm.exc.NoResultFound:
+                        log.warning("Failed to find combination of: %s | %s", sys_name, sys_info['factions'])
+
+                found.happiness_id = faction['happiness']
+                found.influence = faction['influence']
+                # FIXME: Enable at end.
+                #  cogdb.eddb.add_history_influence(eddb_session, influence)
 
             # Handle held merits
+            system = None
             try:
                 system = eddb_session.query(SpySystem).\
                     filter(SpySystem.system_name == sys_name).\
@@ -695,6 +785,7 @@ def update_based_response_info(info):
                 system.held_merits = sys_info['power']['held_merits']
                 system.stolen_forts = sys_info['power']['stolen_forts']
             except sqla.orm.exc.NoResultFound:
+                log.warning("Adding SpySystem for: %s", sys_name)
                 eddb_system = eddb_session.query(System).\
                     filter(System.name == sys_name).\
                     one()
@@ -709,43 +800,22 @@ def update_based_response_info(info):
                 system = SpySystem(**kwargs)
                 eddb_session.add(system)
 
-            for pos, b_info in sys_info['top5'][-1].items():
-                print('ID', pos)
-                __import__('pprint').pprint(b_info)
+            for key, b_info in sys_info['top5_super'].items():
+                if key == 'type':  # Not a vlid bounty post
+                    continue
+                bounty = SpyBounty.from_bounty_post(b_info, power_id=system.power_id, ship_map=ship_map)
+                print(repr(bounty))
 
-            ship_map = ship_type_to_id_map()
-            __import__('pprint').pprint(ship_map)
             for ship_name, cnt in sys_info['traffic']['by_ship'].items():
-                print(system.system_name, ship_name, cnt)
-
-
-def process_scrape_data(data_json):
-    """Process the scrape data and put it into the db.
-
-    This includes dumping existing tables first before loading.
-
-    Args:
-        data_json: The JSON object with all the data.
-    """
-    empty_tables()
-
-    with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
-        for powerplay_leader, systems in data_json.items():
-            power_id = eddb_session.query(Power).\
-                filter(Power.text == powerplay_leader).\
-                one().id
-            for system_name, system_info in systems.items():
-                eddb_system = eddb_session.query(System).\
-                    filter(System.name == system_name).\
-                    one()
-                system_info.update({
-                    'ed_system_id': eddb_system.ed_system_id,
-                    'power_id': power_id,
-                    'power_state_id': 16,  # Assuming controls
-                })
-                eddb_session.add(SpySystem(**system_info))
-
-    eddb_session.commit()
+                try:
+                    traffic = SpyTraffic(
+                        cnt=cnt,
+                        ship_id=ship_map_traffic[ship_name],
+                        system=system.system_name,
+                    )
+                    print(repr(traffic))
+                except KeyError:
+                    print("Not found", ship_name)
 
 
 def compare_sheet_fort_systems_to_spy(session, eddb_session):
@@ -831,90 +901,48 @@ def compare_sheet_um_systems_to_spy(session, eddb_session):
     return list(sorted(systems.values(), key=lambda x: x['sheet_col']))
 
 
-def update_eddb_factions(eddb_session, fact_info):
-    """Bulk update influence values for existing found system faction pairs.
-    Changes will be committed
-
-    Args:
-        eddb_session: Session onto the EDDB database.
-        fact_info: A dictionary with required information, see cogdb.scrape.scrape_all_bgs for format.
-
-    Returns: A list of Influence objects updated or added to db.
-    """
-    infs = []
-
-    for system_name, info in fact_info.items():
-        for faction_name in info['factions']:
-            try:
-                found = eddb_session.query(Influence).\
-                    join(System).\
-                    join(Faction, Influence.faction_id == Faction.id).\
-                    filter(
-                        System.name == system_name,
-                        Faction.name == faction_name).\
-                    one()
-            except sqla_orm.exc.NoResultFound:  # Handle case of not existing record
-                try:
-                    system_id = eddb_session.query(System.id).\
-                        filter(System.name == system_name).\
-                        one()[0]
-                    faction_id = eddb_session.query(Faction).\
-                        filter(Faction.name == faction_name).\
-                        one()[0]
-                    found = Influence(system_id=system_id, faction_id=faction_id)
-                    eddb_session.add(found)
-                except sqla_orm.exc.NoResultFound:
-                    logging.getLogger(__name__).error("update_eddb_factions: MISSING DB INFO for system or faction: %s, %s", system_name, faction_name)
-            found.influence = info['factions'][faction_name]
-            found.updated_at = info['updated_at']
-            cogdb.eddb.add_history_influence(eddb_session, found)
-            infs += [found]
-
-    eddb_session.commit()
-    return infs
-
-
 def preload_spy_tables(eddb_session):
     eddb_session.add_all([
-        SpyShip(id=1, text="Adder"),
+        SpyShip(id=1, text="Adder", traffic_text="adder"),
         SpyShip(id=2, text="Alliance Challenger"),
         SpyShip(id=3, text="Alliance Chieftain"),
         SpyShip(id=4, text="Alliance Crusader"),
-        SpyShip(id=5, text="Anaconda"),
+        SpyShip(id=5, text="Anaconda", traffic_text="anaconda"),
         SpyShip(id=6, text="Asp Explorer"),
-        SpyShip(id=7, text="Asp Scout"),
-        SpyShip(id=8, text="Beluga Liner"),
+        SpyShip(id=7, text="Asp Scout", traffic_text="asp"),
+        SpyShip(id=8, text="Beluga Liner", traffic_text="belugaliner"),
         SpyShip(id=9, text="Cobra MK IV"),
-        SpyShip(id=10, text="Cobra Mk. III"),
-        SpyShip(id=11, text="Diamondback Explorer"),
-        SpyShip(id=12, text="Diamondback Scout"),
-        SpyShip(id=13, text="Dolphin"),
-        SpyShip(id=14, text="Eagle Mk. II"),
+        SpyShip(id=10, text="Cobra Mk. III", traffic_text="cobramkiii"),
+        SpyShip(id=11, text="Diamondback Explorer", traffic_text="diamondbackxl"),
+        SpyShip(id=12, text="Diamondback Scout", traffic_text="diamondback"),
+        SpyShip(id=13, text="Dolphin", traffic_text="dolphin"),
+        SpyShip(id=14, text="Eagle Mk. II", traffic_text="eagle"),
         SpyShip(id=15, text="Federal Assault Ship"),
-        SpyShip(id=16, text="Federal Corvette"),
-        SpyShip(id=17, text="Federal Dropship"),
+        SpyShip(id=16, text="Federal Corvette", traffic_text="federation_corvette"),
+        SpyShip(id=17, text="Federal Dropship", traffic_text="federation_dropship_mkii"),
         SpyShip(id=18, text="Federal Gunship"),
-        SpyShip(id=19, text="Fer-de-Lance"),
-        SpyShip(id=20, text="Hauler"),
+        SpyShip(id=19, text="Fer-de-Lance", traffic_text="ferdelance"),
+        SpyShip(id=20, text="Hauler", traffic_text="hauler"),
         SpyShip(id=21, text="Imperial Clipper"),
         SpyShip(id=22, text="Imperial Courier"),
-        SpyShip(id=23, text="Imperial Cutter"),
-        SpyShip(id=24, text="Imperial Eagle"),
+        SpyShip(id=23, text="Imperial Cutter", traffic_text="cutter"),
+        SpyShip(id=24, text="Imperial Eagle", traffic_text="empire_eagle"),
         SpyShip(id=25, text="Keelback"),
-        SpyShip(id=26, text="Krait MkII"),
-        SpyShip(id=27, text="Krait Phantom"),
-        SpyShip(id=28, text="Mamba"),
-        SpyShip(id=29, text="Orca"),
-        SpyShip(id=30, text="Python"),
+        SpyShip(id=26, text="Krait MkII", traffic_text="krait_mkii"),
+        SpyShip(id=27, text="Krait Phantom", traffic_text="krait_light"),
+        SpyShip(id=28, text="Mamba", traffic_text="mamba"),
+        SpyShip(id=29, text="Orca", traffic_text="orca"),
+        SpyShip(id=30, text="Python", traffic_text="python"),
         SpyShip(id=31, text="Sidewinder Mk. I"),
         SpyShip(id=32, text="Type-10 Defender"),
-        SpyShip(id=33, text="Type-6 Transporter"),
-        SpyShip(id=34, text="Type-7 Transporter"),
+        SpyShip(id=33, text="Type-6 Transporter", traffic_text="type6"),
+        SpyShip(id=34, text="Type-7 Transporter", traffic_text="type7"),
         SpyShip(id=35, text="Type-9 Heavy"),
-        SpyShip(id=36, text="Viper MK IV"),
-        SpyShip(id=37, text="Viper Mk III"),
-        SpyShip(id=38, text="Vulture"),
+        SpyShip(id=36, text="Viper MK IV", traffic_text="viper_mkiv"),
+        SpyShip(id=37, text="Viper Mk III", traffic_text="viper"),
+        SpyShip(id=38, text="Vulture", traffic_text="vulture"),
     ])
+    eddb_session.commit()
 
 
 def drop_tables():  # pragma: no cover | destructive to test
@@ -956,17 +984,9 @@ def main():  # pragma: no cover | destructive to test
 
     with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
         preload_spy_tables(eddb_session)
-        load_base_json(load_json_secret('base.json'), eddb_session)
-        load_refined_json(load_json_secret('refined.json'), eddb_session)
-        load_response_json(load_json_secret('response.json'), eddb_session)
-
-    # FIXME: For testing. Can delete soon.
-    #
-    #  with cogdb.session_scope(cogdb.Session) as session, cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
-        #  fall = compare_sheet_fort_systems_to_spy(session, eddb_session)
-        #  __import__('pprint').pprint(fall)
-        #  fall = compare_sheet_um_systems_to_spy(session, eddb_session)
-        #  __import__('pprint').pprint(fall)
+        load_base_json(load_json_secret('base.json'))
+        load_refined_json(load_json_secret('refined.json'))
+        load_response_json(load_json_secret('response.json'))
 
 
 SPY_TABLES = [SpyPrep, SpyVote, SpySystem, SpyTraffic, SpyBounty, SpyShip]

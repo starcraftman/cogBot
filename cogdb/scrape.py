@@ -1,4 +1,7 @@
 """
+IMPORTANT: Module now deprecated.
+    Module is being archived "as is" in case it needs to be reused for another site or replacement goes down.
+
 Scrape the json site. This is a stopgap.
 
     0) Remove all "chromium" packages, driver needs chrome
