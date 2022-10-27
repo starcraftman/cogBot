@@ -2530,7 +2530,7 @@ async def push_scrape_to_gal_scanner():  # pragma: no cover | tested elsewhere
 
             systems = sorted(systems, key=lambda x: x.system.name.lower())
             expansions = sorted(expansions, key=lambda x: x.system.name.lower())
-            preps = list(reversed(sorted(preps, key=lambda x: x.merits)))
+            preps = list(reversed(sorted(preps, key=lambda x: x.merits)))[:10]
 
             log.error("Updating sheet for: %s", power.eddn)
             await gal_scanner.asheet.change_worksheet(power.eddn.upper())

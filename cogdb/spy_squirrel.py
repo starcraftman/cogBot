@@ -461,7 +461,6 @@ def load_base_json(base):
     Returns:
         A dictionary mapping powers by name onto the systems they control and their status.
     """
-    db_systems = []
     json_powers_to_eddb_id = json_powers_to_eddb_map()
 
     with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
@@ -493,7 +492,6 @@ def load_base_json(base):
                 except sqla.orm.exc.NoResultFound:
                     system = SpySystem(**kwargs)
                     eddb_session.add(system)
-                db_systems += [SpySystem(**kwargs)]
 
 
 def load_refined_json(refined):
@@ -509,7 +507,6 @@ def load_refined_json(refined):
     updated_at = int(refined["lastModified"])
     json_powers_to_eddb_id = json_powers_to_eddb_map()
 
-    db_objs = []
     with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
         for bundle in refined["preparation"]:
             power_id = json_powers_to_eddb_id[bundle['powerid']]
@@ -527,7 +524,6 @@ def load_refined_json(refined):
                         updated_at=updated_at
                     )
                     eddb_session.add(spyvote)
-            db_objs += [spyvote]
 
             for ed_system_id, merits in bundle['rankedSystems']:
                 eddb_system = eddb_session.query(System).\
@@ -551,7 +547,6 @@ def load_refined_json(refined):
                         updated_at=updated_at
                     )
                     eddb_session.add(spyprep)
-                db_objs += [spyprep]
         eddb_session.commit()
 
         for bundles, pstate_id in [[refined["gainControl"], 64], [refined["fortifyUndermine"], 16]]:
@@ -580,7 +575,6 @@ def load_refined_json(refined):
                 except sqla.orm.exc.NoResultFound:
                     system = SpySystem(**kwargs)
                     eddb_session.add(system)
-                db_objs += [system]
 
 
 def parse_params(input):
