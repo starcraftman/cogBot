@@ -494,7 +494,7 @@ class UMScanner(FortScanner):
         Returns: A list of update dicts to pass to batch_update.
         """
         cell_range = '{col}10:{col}13'.format(col=col)
-        values = [[progress_us], [progress_them], ['Hold Merits'], [map_offset]]
+        values = [[progress_us], [f"{progress_them}%"], ['Hold Merits'], [map_offset]]
         return [{'range': cell_range, 'values': values}]
 
     @staticmethod
@@ -955,8 +955,6 @@ class GalScanner(FortScanner):
             systems = []
         now = datetime.datetime.utcnow().replace(microsecond=0)
         end_row = row + len(systems)
-        end_row_prep = row + len(preps)
-        end_row_exp = row + len(exps)
 
         first, second, third, prep_systems, exp_systems_first, exp_systems_second = [], [], [], [], [], []
         for spy_system in systems:
@@ -971,12 +969,14 @@ class GalScanner(FortScanner):
         ]
 
         if preps:
+            end_row_prep = row + len(preps)
             for spy_prep in preps:
                 name = spy_prep.system_name.upper()
                 prep_systems += [[name, spy_prep.merits]]
             payload += [{'range': f'D{row}:E{end_row_prep}', 'values': prep_systems}]
 
         if exps:
+            end_row_exp = row + len(exps)
             for spy_exp in exps:
                 name = spy_exp.system.name.upper()
                 exp_systems_first += [[name, spy_exp.fort, spy_exp.um]]
