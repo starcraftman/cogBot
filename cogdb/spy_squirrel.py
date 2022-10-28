@@ -127,7 +127,7 @@ class SpyBounty(ReprMixin, TimestampMixin, Base):
 
     def __str__(self):
         """ A pretty one line to give all information. """
-        ship_text = "{}".format(self.ship.text if self.ship else self.ship_id)
+        ship_text = self.ship.text if self.ship else str(self.ship_id)
         return f"""#{self.pos} {self.cmdr_name} last seen in {self.last_seen_system}/{self.last_seen_station} ({ship_text})
 Has {self.bounty:,} in bounty, updated at {self.utc_date}"""
 
@@ -231,7 +231,7 @@ class SpyTraffic(ReprMixin, Base):
 
     def __str__(self):
         """ A pretty one line to give all information. """
-        ship_text = "{}".format(self.ship.text if self.ship else self.ship_id)
+        ship_text = self.ship.text if self.ship else str(self.ship_id)
         return f"{self.system} {ship_text}: {self.cnt}"
 
     def __eq__(self, other):
@@ -300,8 +300,8 @@ class SpyPrep(ReprMixin, TimestampMixin, Base):
 
     def __str__(self):
         """ A pretty one line to give all information. """
-        power_text = "{}".format(self.power.text if self.power else self.power_id)
-        system_text = "{}".format(self.system.name if self.system else self.ed_system_id)
+        power_text = self.power.text if self.power else str(self.power_id)
+        system_text = self.system.name if self.system else str(self.ed_system_id)
         return f"{power_text} {system_text}: {self.merits}, updated at {self.utc_date}"
 
     def __eq__(self, other):
@@ -361,8 +361,8 @@ class SpySystem(ReprMixin, TimestampMixin, Base):
     def __str__(self):
         """ A pretty one line to give all information. """
         status_text = f"{self.fort}/{self.fort_trigger} | {self.um}/{self.um_trigger}, updated at {self.utc_date}"
-        power_text = "{}".format(self.power.text if self.power else self.power_id)
-        system_text = "{}".format(self.system.name if self.system else self.ed_system_id)
+        power_text = self.power.text if self.power else str(self.power_id)
+        system_text = self.system.name if self.system else str(self.ed_system_id)
         if self.is_expansion:
             description = f"Expansion for {power_text} to {system_text}: {status_text}"
         else:
@@ -579,19 +579,19 @@ def load_refined_json(refined):
                     eddb_session.add(system)
 
 
-def parse_params(input):
+def parse_params(data):
     """
     Generically parse the params object of JSON messages.
 
     Where needed provide decoding and casting as needed.
 
     Args:
-        input: A JSON object, with fields as expected.
+        data: A JSON object, with fields as expected.
 
     Returns: A simplified object with information from params.
     """
     flat = {}
-    for ent in input:
+    for ent in data:
         # Ensure no collisions in keys of flat dict
         f_key = ent["key"]
         cnt = 0
@@ -610,16 +610,16 @@ def parse_params(input):
     return flat
 
 
-def parse_response_news_summary(input):
+def parse_response_news_summary(data):
     """
     Capabale of parsing the faction news summary.
 
     Args:
-        input: A JSON object to parse.
+        data: A JSON object to parse.
 
     Returns: A dictionary of information contained within.
     """
-    info = parse_params(input['params'])
+    info = parse_params(data['params'])
 
     parts = list(info["list"].split(':'))
     info["influence"] = float(parts[1].split('=')[1])
@@ -631,41 +631,41 @@ def parse_response_news_summary(input):
     return info
 
 
-def parse_response_trade_goods(input):
+def parse_response_trade_goods(data):
     """
     Capabale of parsing the trade goods available.
 
     Args:
-        input: A JSON object to parse.
+        data: A JSON object to parse.
 
     Returns: A dictionary of information contained within.
     """
-    info = parse_params(input['params'])
+    info = parse_params(data['params'])
     return [val for key, val in info.items()]
 
 
-def parse_response_bounties_claimed(input):
+def parse_response_bounties_claimed(data):
     """
     Capabale of parsing claimed and given bounties.
 
     Args:
-        input: A JSON object to parse.
+        data: A JSON object to parse.
 
     Returns: A dictionary of information contained within.
     """
-    return parse_params(input['params'])
+    return parse_params(data['params'])
 
 
-def parse_response_top5_bounties(input):
+def parse_response_top5_bounties(data):
     """
     Capabale of parsing the top 5 bounties.
 
     Args:
-        input: A JSON object to parse.
+        data: A JSON object to parse.
 
     Returns: A dictionary of information contained within.
     """
-    info = parse_params(input['params'])
+    info = parse_params(data['params'])
 
     # Transform params information into better structure
     return {
@@ -680,16 +680,16 @@ def parse_response_top5_bounties(input):
     }
 
 
-def parse_response_traffic_totals(input):
+def parse_response_traffic_totals(data):
     """
     Capabale of parsing the top 5 bounties.
 
     Args:
-        input: A JSON object to parse.
+        data: A JSON object to parse.
 
     Returns: A dictionary of information contained within.
     """
-    info = parse_params(input['params'])
+    info = parse_params(data['params'])
 
     result = {
         'total': info['total'],
@@ -703,16 +703,16 @@ def parse_response_traffic_totals(input):
     return result
 
 
-def parse_response_power_update(input):
+def parse_response_power_update(data):
     """
     Capabale of parsing the power update information.
 
     Args:
-        input: A JSON object to parse.
+        data: A JSON object to parse.
 
     Returns: A dictionary of information contained within.
     """
-    params = input['params']
+    params = data['params']
     return {
         "power": params[0]["value"],
         "stolen_forts": int(params[1]["value"]),
@@ -737,118 +737,141 @@ def load_response_json(response):
             except KeyError:
                 result[parser['name']] = [parser['func'](entry)]
 
+        # Separate top5s if both present
+        for group in result['top5']:
+            cat = group[1]["category"]
+            result[f'top5_{cat}'] = group
+        del result['top5']
+
         # Prune any lists of 1 element, to not be lists.
         for key, value in result.items():
             if isinstance(value, list) and len(value) == 1:
                 result[key] = value[0]
 
-        # Separate top5s if both present
-        if len(result['top5']) > 1:
-            for group in result['top5']:
-                cat = list(group.values())[0]["category"]
-                result[f'top5_{cat}'] = group
-            del result['top5']
-
+        # Put system name in top level for convenience
         sys_name = result['factions'][0]['system']
         results[sys_name] = result
 
-    update_based_response_info(results)
+    with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
+        response_json_update_influences(eddb_session, results)
+        response_json_update_system_info(eddb_session, results)
 
     return results
 
 
-def update_based_response_info(info):
+def response_json_update_influences(eddb_session, info):
     """
-    Based on fully parsed response to a POST, update the database.
+    Update the eddb.Influence objects for the system in question.
+
+    If any system doesn't contain the faction, add it to database.
+    In addition, add the influence to history.
 
     Args:
-        info: The large info dict containing information returned and parsed from POST.
+        eddb_session: The session onto the db.
+        info: The object with information parsed from response.json.
+    """
+    log = logging.getLogger(__name__)
+
+    for sys_name, sys_info in info.items():
+        # Handle updating data for influence of factions
+        for faction in sys_info['factions']:
+            try:
+                found = eddb_session.query(cogdb.eddb.Influence).\
+                    join(cogdb.eddb.System, Influence.system_id == System.id).\
+                    join(cogdb.eddb.Faction, Influence.faction_id == Faction.id).\
+                    filter(
+                        cogdb.eddb.System.name == sys_name,
+                        cogdb.eddb.Faction.name == faction['name']).\
+                    one()
+                log.info("Updating faction %s in %s", faction['name'], sys_name)
+            except sqla.orm.exc.NoResultFound:
+                # Somehow influence not there, faction must be new to system
+                try:
+                    system_id = eddb_session.query(System.id).\
+                        filter(System.name == sys_name).\
+                        one()[0]
+                    faction_id = eddb_session.query(Faction).\
+                        filter(Faction.name == faction['name']).\
+                        one()[0]
+                    found = Influence(system_id=system_id, faction_id=faction_id)
+                    eddb_session.add(found)
+                    log.info("Adding faction %s in %s", faction['name'], sys_name)
+                except sqla_orm.exc.NoResultFound:
+                    log.warning("Failed to find combination of: %s | %s", sys_name, sys_info['factions'])
+
+            found.happiness_id = faction['happiness']
+            found.influence = faction['influence']
+            cogdb.eddb.add_history_influence(eddb_session, found)
+
+
+def response_json_update_system_info(eddb_session, info):
+    """
+    Update the system wide information based on response.
+
+    Information updated includes:
+        - held merits and stolen forts
+        - the bounties in system
+        - the traffic in system
+
+    Args:
+        eddb_session: The session onto the db.
+        info: The object with information parsed from response.json.
     """
     ship_map = ship_type_to_id_map(traffic_text=False)
     ship_map_traffic = ship_type_to_id_map(traffic_text=True)
     log = logging.getLogger(__name__)
 
-    with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
-        for sys_name, sys_info in info.items():
-            # Handle updating data for influence of factions
-            for faction in sys_info['factions']:
-                try:
-                    found = eddb_session.query(cogdb.eddb.Influence).\
-                        join(cogdb.eddb.System, Influence.system_id == System.id).\
-                        join(cogdb.eddb.Faction, Influence.faction_id == Faction.id).\
-                        filter(
-                            cogdb.eddb.System.name == sys_name,
-                            cogdb.eddb.Faction.name == faction['name']).\
-                        one()
-                except sqla.orm.exc.NoResultFound:
-                    # Somehow influence not there, faction must be new to system
-                    try:
-                        system_id = eddb_session.query(System.id).\
-                            filter(System.name == sys_name).\
-                            one()[0]
-                        faction_id = eddb_session.query(Faction).\
-                            filter(Faction.name == faction['name']).\
-                            one()[0]
-                        found = Influence(system_id=system_id, faction_id=faction_id)
-                        eddb_session.add(found)
-                    except sqla_orm.exc.NoResultFound:
-                        log.warning("Failed to find combination of: %s | %s", sys_name, sys_info['factions'])
+    for sys_name, sys_info in info.items():
+        # Handle held merits
+        try:
+            system = eddb_session.query(SpySystem).\
+                filter(SpySystem.system_name == sys_name).\
+                one()
+            system.held_merits = sys_info['power']['held_merits']
+            system.stolen_forts = sys_info['power']['stolen_forts']
+            log.info("Updating held merits in %s", sys_name)
+        except sqla.orm.exc.NoResultFound:
+            eddb_system = eddb_session.query(System).\
+                filter(System.name == sys_name).\
+                one()
+            kwargs = {
+                'ed_system_id': eddb_system.ed_system_id,
+                'system_name': eddb_system.name,
+                'power_id': eddb_system.power_id,
+                'power_state_id': eddb_system.power_state_id,
+                'held_merits': sys_info['power']['held_merits'],
+                'stolen_forts': sys_info['power']['stolen_forts'],
+            }
+            system = SpySystem(**kwargs)
+            eddb_session.add(system)
+            log.warning("Adding SpySystem for held merits: %s", sys_name)
 
-                found.happiness_id = faction['happiness']
-                found.influence = faction['influence']
-                # FIXME: Enable at end.
-                #  cogdb.eddb.add_history_influence(eddb_session, influence)
+        eddb_session.query(SpyBounty).\
+            filter(SpyBounty.system == sys_name).\
+            delete()
+        if 'top5_power' in sys_info:
+            log.warning("Parsing top 5 bounties for: %s", sys_name)
+            for b_info in sys_info['top5_power'].values():
+                b_info['system'] = sys_name
+                bounty = SpyBounty.from_bounty_post(b_info, power_id=system.power_id, ship_map=ship_map)
+                eddb_session.add(bounty)
+                print(repr(bounty))
 
-            # Handle held merits
-            system = None
+        eddb_session.query(SpyTraffic).\
+            filter(SpyTraffic.system == sys_name).\
+            delete()
+        log.warning("Parsing ship traffic for: %s", sys_name)
+        for ship_name, cnt in sys_info['traffic']['by_ship'].items():
             try:
-                system = eddb_session.query(SpySystem).\
-                    filter(SpySystem.system_name == sys_name).\
-                    one()
-                system.held_merits = sys_info['power']['held_merits']
-                system.stolen_forts = sys_info['power']['stolen_forts']
-            except sqla.orm.exc.NoResultFound:
-                log.warning("Adding SpySystem for: %s", sys_name)
-                eddb_system = eddb_session.query(System).\
-                    filter(System.name == sys_name).\
-                    one()
-                kwargs = {
-                    'ed_system_id': eddb_system.ed_system_id,
-                    'system_name': eddb_system.name,
-                    'power_id': eddb_system.power_id,
-                    'power_state_id': eddb_system.power_state_id,
-                    'held_merits': sys_info['power']['held_merits'],
-                    'stolen_forts': sys_info['power']['stolen_forts'],
-                }
-                system = SpySystem(**kwargs)
-                eddb_session.add(system)
-
-            eddb_session.query(SpyBounty).\
-                filter(SpyBounty.system == system.system_name).\
-                delete()
-            eddb_session.flush()
-            if 'top5_power' in sys_info:
-                for b_info in sys_info['top5_power'].values():
-                    b_info['system'] = system.system_name
-                    bounty = SpyBounty.from_bounty_post(b_info, power_id=system.power_id, ship_map=ship_map)
-                    eddb_session.add(bounty)
-                    print(repr(bounty))
-
-            eddb_session.query(SpyTraffic).\
-                filter(SpyTraffic.system == system.system_name).\
-                delete()
-            eddb_session.flush()
-            for ship_name, cnt in sys_info['traffic']['by_ship'].items():
-                try:
-                    traffic = SpyTraffic(
-                        cnt=cnt,
-                        ship_id=ship_map_traffic[ship_name],
-                        system=system.system_name,
-                    )
-                    eddb_session.add(traffic)
-                    print(repr(traffic))
-                except KeyError:
-                    print("Not found", ship_name)
+                traffic = SpyTraffic(
+                    cnt=cnt,
+                    ship_id=ship_map_traffic[ship_name],
+                    system=sys_name,
+                )
+                eddb_session.add(traffic)
+                print(repr(traffic))
+            except KeyError:
+                print("Not found", ship_name)
 
 
 def compare_sheet_fort_systems_to_spy(session, eddb_session):
@@ -935,6 +958,10 @@ def compare_sheet_um_systems_to_spy(session, eddb_session):
 
 
 def preload_spy_tables(eddb_session):
+    """
+    Preload the spy tables with constant values.
+    At present this is ship names and their traffic names.
+    """
     eddb_session.add_all([
         SpyShip(id=1, text="Adder", traffic_text="adder"),
         SpyShip(id=2, text="Alliance Challenger"),
@@ -970,7 +997,7 @@ def preload_spy_tables(eddb_session):
         SpyShip(id=32, text="Type-10 Defender"),
         SpyShip(id=33, text="Type-6 Transporter", traffic_text="type6"),
         SpyShip(id=34, text="Type-7 Transporter", traffic_text="type7"),
-        SpyShip(id=35, text="Type-9 Heavy"),
+        SpyShip(id=35, text="Type-9 Heavy", traffic_text="type9"),
         SpyShip(id=36, text="Viper MK IV", traffic_text="viper_mkiv"),
         SpyShip(id=37, text="Viper Mk III", traffic_text="viper"),
         SpyShip(id=38, text="Vulture", traffic_text="vulture"),

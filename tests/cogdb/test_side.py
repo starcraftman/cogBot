@@ -110,13 +110,14 @@ def test_inf_history_for_pairs(side_session):
 
 
 def test_dash_overview(side_session):
-    control, factions, net_change, fact_count = cogdb.side.dash_overview(side_session, 'Sol')
+    control, factions, net_change, fact_count = cogdb.side.dash_overview(side_session, 'Abi')
 
-    assert control.name == "Sol"
-    assert fact_count["Sol"] == 6
-    assert "Sol" in net_change
-    sol_control = [x[1] for x in factions if x[0].name == "Sol"][0]
-    assert sol_control.id in [588, 589, 591, 592, 593]
+    assert control.name == "Abi"
+    assert fact_count["Abi"] >= 6
+    assert "Abi" in net_change
+    abi_control = [x[1] for x in factions if x[0].name == "Abi"][0]
+
+    assert abi_control.id in [2473, 2474, 2475, 2476, 23290, 24164, 49170, 76877]
 
 
 def test_find_favorable(side_session):

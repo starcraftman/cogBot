@@ -561,8 +561,11 @@ def test_parse_response_traffic_totals(response_news_json):
 
 
 def test_load_response_json(empty_spy, response_json, eddb_session):
-    # FIXME: Update test case when done.
+    spy.preload_spy_tables(eddb_session)
     spy.load_response_json(response_json)
+
+    assert eddb_session.query(spy.SpyBounty).all()
+    assert eddb_session.query(spy.SpyTraffic).all()
 
 
 def test_compare_sheet_fort_systems_to_spy(empty_spy, db_cleanup, session, eddb_session):

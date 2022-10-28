@@ -19,7 +19,6 @@ import tempfile
 import traceback
 
 import aiofiles
-import aiohttp
 import decorator
 import discord
 import discord_components_mirror as dcom
