@@ -1086,9 +1086,13 @@ def main():  # pragma: no cover | destructive to test
 
     with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
         preload_spy_tables(eddb_session)
-        load_base_json(load_json_secret('base.json'))
-        load_refined_json(load_json_secret('refined.json'))
-        load_response_json(load_json_secret('response.json'))
+        try:
+            load_base_json(load_json_secret('base.json'))
+            load_refined_json(load_json_secret('refined.json'))
+            load_response_json(load_json_secret('response.json'))
+        except FileNotFoundError:
+            print("Could not load required json.")
+            print("Please install screthub: sudo apt install secrethub-cli")
 
 
 SPY_TABLES = [SpyPrep, SpyVote, SpySystem, SpyTraffic, SpyBounty, SpyShip]
