@@ -957,6 +957,48 @@ def compare_sheet_um_systems_to_spy(session, eddb_session):
     return list(sorted(systems.values(), key=lambda x: x['sheet_col']))
 
 
+def get_spy_systems_for_galpow(eddb_session, power_id):
+    """
+    Get the systems and votes required to update a power tab on galpow.
+
+    Included in the return is the following for the power_id selected:
+        - controsl SpySystems
+        - preps SpyPreps
+        - expansion SpySystems
+        - vote SpyVote
+
+    Args:
+        eddb_session: A session onto the db.
+        power_id: The Power.id to select information for.
+
+    Returns:
+        controls, preps, expansions, vote
+    """
+    controls = eddb_session.query(SpySystem).\
+        join(cogdb.eddb.PowerState, SpySystem.power_state_id == cogdb.eddb.PowerState.id).\
+        filter(SpySystem.power_id == power_id,
+               cogdb.eddb.PowerState.text == "Control").\
+        all()
+    preps = eddb_session.query(SpyPrep).\
+        filter(SpyPrep.power_id == power_id).\
+        order_by(SpyPrep.merits.desc()).\
+        limit(10).\
+        all()
+    expansions = eddb_session.query(SpySystem).\
+        join(cogdb.eddb.PowerState, SpySystem.power_state_id == cogdb.eddb.PowerState.id).\
+        filter(SpySystem.power_id == power_id,
+               cogdb.eddb.PowerState.text == "Expansion").\
+        all()
+    try:
+        vote = eddb_session.query(SpyVote).\
+            filter(SpyVote.power_id == power_id).\
+            one()
+    except sqla.orm.exc.NoResultFound:
+        vote = None
+
+    return controls, preps, expansions, vote
+
+
 def preload_spy_tables(eddb_session):
     """
     Preload the spy tables with constant values.

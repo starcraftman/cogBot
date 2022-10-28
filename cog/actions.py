@@ -2500,36 +2500,10 @@ async def monitor_snipe_merits(client, *, repeat=True):  # pragma: no cover
         )
 
 
-async def push_scrape_to_gal_scanner():  # pragma: no cover | tested elsewhere
+async def push_spy_to_gal_scanner():  # pragma: no cover | tested elsewhere
     """
-    Perform a complete scrape of fort and um, push into db.
+    Push spy information into the gal scanner sheet.
     """
-    def helper_get_systems(eddb_session, power_id):
-        """Inner helper to execute queries in thread."""
-        systems = eddb_session.query(spy.SpySystem).\
-            join(cogdb.eddb.PowerState, spy.SpySystem.power_state_id == cogdb.eddb.PowerState.id).\
-            filter(spy.SpySystem.power_id == power_id,
-                   cogdb.eddb.PowerState.text == "Control").\
-            all()
-        preps = eddb_session.query(spy.SpyPrep).\
-            filter(spy.SpyPrep.power_id == power_id).\
-            order_by(spy.SpyPrep.merits.desc()).\
-            limit(10).\
-            all()
-        expansions = eddb_session.query(spy.SpySystem).\
-            join(cogdb.eddb.PowerState, spy.SpySystem.power_state_id == cogdb.eddb.PowerState.id).\
-            filter(spy.SpySystem.power_id == power_id,
-                   cogdb.eddb.PowerState.text == "Expansion").\
-            all()
-        try:
-            vote = eddb_session.query(spy.SpyVote).\
-                filter(spy.SpyVote.power_id == power_id).\
-                one()
-        except sqlalchemy.exc.NoResultFound:
-            vote = None
-
-        return systems, preps, expansions, vote
-
     gal_scanner = cogdb.scanners.get_scanner("hudson_gal")
     with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
         powers = eddb_session.query(cogdb.eddb.Power).\
@@ -2539,7 +2513,7 @@ async def push_scrape_to_gal_scanner():  # pragma: no cover | tested elsewhere
 
         for power in powers:
             systems, preps, expansions, vote = await asyncio.get_event_loop().run_in_executor(
-                None, helper_get_systems, eddb_session, power.id
+                None, spy.get_spy_systems_for_galpow, eddb_session, power.id
             )
 
             systems = sorted(systems, key=lambda x: x.system.name.lower())
@@ -2551,9 +2525,9 @@ async def push_scrape_to_gal_scanner():  # pragma: no cover | tested elsewhere
             await gal_scanner.send_batch(gal_scanner.update_dict(systems=systems, preps=preps, exps=expansions, vote=vote))
 
 
-async def push_scrape_to_sheets():  # pragma: no cover | tested elsewhere
+async def push_spy_to_sheets():  # pragma: no cover | tested elsewhere
     """
-    Push the new information into the fort and um sheets if needed.
+    Push the spy information into the fort and um sheets if needed.
     """
     log = logging.getLogger(__name__)
 
@@ -2568,12 +2542,14 @@ async def push_scrape_to_sheets():  # pragma: no cover | tested elsewhere
             log.error("Fort sheet will be updated.")
             await scanner.send_batch(payloads)
 
-        ums = spy.compare_sheet_um_systems_to_spy(session, eddb_session)
-        if ums:
+        umsystems = spy.compare_sheet_um_systems_to_spy(session, eddb_session)
+        if umsystems:
             scanner = cogdb.scanners.get_scanner("hudson_undermine")
             payloads = []
-            for x in ums:
-                payloads += scanner.update_systemum_dict(x['sheet_col'], x['progress_us'], x['progress_them'], x['map_offset'])
+            for umsys in umsystems:
+                payloads += scanner.update_systemum_dict(
+                    umsys['sheet_col'], umsys['progress_us'], umsys['progress_them'], umsys['map_offset']
+                )
             log.error("Operations sheet will be updated.")
             await scanner.send_batch(payloads)
 
@@ -2615,8 +2591,8 @@ async def monitor_powerplay_api(client, *, repeat=True, delay=1800):
             await client.loop.run_in_executor(
                 pool, spy.load_refined_json, json.loads(ref_text),
             )
-        await push_scrape_to_gal_scanner()
-        await push_scrape_to_sheets()
+        await push_spy_to_gal_scanner()
+        await push_spy_to_sheets()
         log.warning("Api processing completed.")
     except cog.exc.RemoteError:
         log.error("Spy service not operating. Will try again in %d seconds.", delay)

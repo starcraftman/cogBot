@@ -59,7 +59,7 @@ def spy_test_bed(eddb_session):
             updated_at=FIXED_TIMESTAMP,
         ),
         spy.SpyVote(
-            power_id=11,
+            power_id=9,
             vote=75,
             updated_at=FIXED_TIMESTAMP,
         ),
@@ -615,6 +615,15 @@ def test_compare_sheet_um_systems_to_spy(empty_spy, db_cleanup, session, eddb_se
     system = session.query(UMSystem).filter(UMSystem.name == "Rana").one()
     assert 0 == system.progress_us
     assert 0 == system.progress_them
+
+
+def test_get_spy_systems_for_galpow(empty_spy, db_cleanup, spy_test_bed, eddb_session):
+    controls, preps, expansions, vote = spy.get_spy_systems_for_galpow(eddb_session, 9)
+
+    assert controls
+    assert preps
+    assert expansions
+    assert vote
 
 
 def test_preload_spy_tables(empty_spy, eddb_session):
