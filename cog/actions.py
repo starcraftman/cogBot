@@ -2524,9 +2524,13 @@ async def push_scrape_to_gal_scanner():  # pragma: no cover | tested elsewhere
                 filter(spy.SpySystem.power_id == power.id,
                        spy.SpySystem.power_state_id != 16).\
                 all()
-            vote = eddb_session.query(spy.SpyVote).\
-                filter(spy.SpyVote.power_id == power.id).\
-                one()
+            vote = None
+            try:
+                vote = eddb_session.query(spy.SpyVote).\
+                    filter(spy.SpyVote.power_id == power.id).\
+                    one()
+            except sqlalchemy.exc.NoResultFound:
+                pass
 
             systems = sorted(systems, key=lambda x: x.system.name.lower())
             expansions = sorted(expansions, key=lambda x: x.system.name.lower())
