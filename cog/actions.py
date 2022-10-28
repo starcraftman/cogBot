@@ -2507,8 +2507,9 @@ async def push_scrape_to_gal_scanner():  # pragma: no cover | tested elsewhere
     def helper_get_systems(eddb_session, power_id):
         """Inner helper to execute queries in thread."""
         systems = eddb_session.query(spy.SpySystem).\
+            join(cogdb.eddb.PowerState, spy.SpySystem.power_state_id == cogdb.eddb.PowerState.id).\
             filter(spy.SpySystem.power_id == power_id,
-                   spy.SpySystem.power_state_id == 16).\
+                   cogdb.eddb.PowerState.text == "Control").\
             all()
         preps = eddb_session.query(spy.SpyPrep).\
             filter(spy.SpyPrep.power_id == power_id).\
@@ -2516,8 +2517,9 @@ async def push_scrape_to_gal_scanner():  # pragma: no cover | tested elsewhere
             limit(10).\
             all()
         expansions = eddb_session.query(spy.SpySystem).\
+            join(cogdb.eddb.PowerState, spy.SpySystem.power_state_id == cogdb.eddb.PowerState.id).\
             filter(spy.SpySystem.power_id == power_id,
-                   spy.SpySystem.power_state_id != 16).\
+                   cogdb.eddb.PowerState.text == "Expansion").\
             all()
         try:
             vote = eddb_session.query(spy.SpyVote).\
