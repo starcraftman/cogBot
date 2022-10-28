@@ -113,6 +113,7 @@ def spy_test_bed(eddb_session):
         spy.SpyBounty(
             id=1,
             pos=1,
+            system='Rana',
             cmdr_name="Good guy",
             ship_name="Good guy ship",
             last_seen_system="Rana",
@@ -124,8 +125,9 @@ def spy_test_bed(eddb_session):
             updated_at=FIXED_TIMESTAMP,
         ),
         spy.SpyBounty(
-            id=1,
+            id=2,
             pos=2,
+            system='Rana',
             cmdr_name="Bad guy",
             ship_name="Bad guy ship",
             last_seen_system="Rana",
@@ -178,7 +180,7 @@ def test_spy_traffic__str__(spy_test_bed, eddb_session):
 
 
 def test_spy_bounty__repr__(spy_test_bed, eddb_session):
-    expect = "SpyBounty(id=1, category=1, pos=1, cmdr_name='Good guy', ship_name='Good guy ship', last_seen_system='Rana', last_seen_station='Wescott Hub', bounty=100000, ship_id=1, updated_at=1662390092)"
+    expect = "SpyBounty(id=1, category=1, system='Rana', pos=1, cmdr_name='Good guy', ship_name='Good guy ship', last_seen_system='Rana', last_seen_station='Wescott Hub', bounty=100000, ship_id=1, updated_at=1662390092)"
     bounty = eddb_session.query(spy.SpyBounty).filter(spy.SpyBounty.id == 1, spy.SpyBounty.pos == 1).one()
 
     assert expect == repr(bounty)
@@ -199,11 +201,12 @@ def test_spy_bounty_from_bounty_post_valid(spy_test_bed, eddb_session):
         'name': 'CMDR Marduk298 (Federal Corvette "CLOACA MUNCH")',
         'pos': 1,
         'value': 859000,
-        'category': 1,
+        'category': 'power',
+        'system': 'Rana',
         'updated_at': FIXED_TIMESTAMP,
     }
 
-    expect = "SpyBounty(id=None, category=1, pos=1, cmdr_name='Marduk298', ship_name='CLOACA MUNCH', last_seen_system='Tjial', last_seen_station='Cassidy Landing', bounty=859000, ship_id=None, updated_at=1662390092)"
+    expect = "SpyBounty(id=None, category=2, system='Rana', pos=1, cmdr_name='Marduk298', ship_name='CLOACA MUNCH', last_seen_system='Tjial', last_seen_station='Cassidy Landing', bounty=859000, ship_id=None, updated_at=1662390092)"
     bounty = spy.SpyBounty.from_bounty_post(post, power_id=11)
     assert expect == repr(bounty)
 
@@ -215,10 +218,11 @@ def test_spy_bounty_from_bounty_post_empty(spy_test_bed, eddb_session):
         'name': '',
         'pos': 4,
         'value': 0,
-        'category': 1,
+        'category': 'power',
+        'system': 'Rana',
         'updated_at': FIXED_TIMESTAMP,
     }
-    expect = "SpyBounty(id=None, category=1, pos=4, cmdr_name='', ship_name='', last_seen_system='', last_seen_station='', bounty=0, ship_id=None, updated_at=1662390092)"
+    expect = "SpyBounty(id=None, category=2, system='Rana', pos=4, cmdr_name='', ship_name='', last_seen_system='', last_seen_station='', bounty=0, ship_id=None, updated_at=1662390092)"
     bounty = spy.SpyBounty.from_bounty_post(post, power_id=11)
     assert expect == repr(bounty)
 

@@ -856,7 +856,3 @@ def f_cons_data(session):
     for cls in (Consolidation,):
         session.query(cls).delete()
     session.commit()
-
-
-# FIXME: Onetime cleanup before spy tests for now
-spy.empty_tables()

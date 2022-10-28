@@ -98,15 +98,16 @@ class SpyBounty(ReprMixin, TimestampMixin, Base):
     """
     __tablename__ = 'spy_top5'
     _repr_keys = [
-        'id', 'category', 'pos', 'cmdr_name', 'ship_name', 'last_seen_system', 'last_seen_station',
-        'bounty', 'ship_id', 'updated_at'
+        'id', 'category', 'system', 'pos', 'cmdr_name', 'ship_name',
+        'last_seen_system', 'last_seen_station', 'bounty', 'ship_id', 'updated_at'
     ]
 
     id = sqla.Column(sqla.BigInteger, primary_key=True)
     ship_id = sqla.Column(sqla.Integer, sqla.ForeignKey('spy_ships.id'))
     power_id = sqla.Column(sqla.Integer, nullable=True)
 
-    pos = sqla.Column(sqla.Integer, primary_key=True, default=1)  # Should only be [1, 5]
+    system = sqla.Column(sqla.String(cogdb.eddb.LEN["system"]), nullable=False, default="")
+    pos = sqla.Column(sqla.Integer, default=1)  # Should only be [1, 5]
     cmdr_name = sqla.Column(sqla.String(cogdb.eddb.LEN["cmdr_name"]), nullable=False, default="")
     ship_name = sqla.Column(sqla.String(cogdb.eddb.LEN["ship_name"]), nullable=False, default="")
     last_seen_system = sqla.Column(sqla.String(cogdb.eddb.LEN["system"]), nullable=False, default="")
@@ -177,9 +178,10 @@ Has {self.bounty:,} in bounty, updated at {self.utc_date}"""
             'power_id': power_id,
             'last_seen_system': system,
             'last_seen_station': station,
+            'system': post['system'],
             'pos': post['pos'],
             'bounty': post['value'],
-            'category': post['category'],
+            'category': BOUNTY_CATEGORY_MAP[post['category']],
         }
         if 'updated_at' in post:  # Mainly for testing, unsure if useful in production
             kwargs['updated_at'] = post['updated_at']
@@ -821,11 +823,21 @@ def update_based_response_info(info):
                 system = SpySystem(**kwargs)
                 eddb_session.add(system)
 
+            eddb_session.query(SpyBounty).\
+                filter(SpyBounty.system == system.system_name).\
+                delete()
+            eddb_session.flush()
             if 'top5_power' in sys_info:
                 for b_info in sys_info['top5_power'].values():
+                    b_info['system'] = system.system_name
                     bounty = SpyBounty.from_bounty_post(b_info, power_id=system.power_id, ship_map=ship_map)
+                    eddb_session.add(bounty)
                     print(repr(bounty))
 
+            eddb_session.query(SpyTraffic).\
+                filter(SpyTraffic.system == system.system_name).\
+                delete()
+            eddb_session.flush()
             for ship_name, cnt in sys_info['traffic']['by_ship'].items():
                 try:
                     traffic = SpyTraffic(
@@ -833,6 +845,7 @@ def update_based_response_info(info):
                         ship_id=ship_map_traffic[ship_name],
                         system=system.system_name,
                     )
+                    eddb_session.add(traffic)
                     print(repr(traffic))
                 except KeyError:
                     print("Not found", ship_name)
@@ -928,8 +941,8 @@ def preload_spy_tables(eddb_session):
         SpyShip(id=3, text="Alliance Chieftain"),
         SpyShip(id=4, text="Alliance Crusader"),
         SpyShip(id=5, text="Anaconda", traffic_text="anaconda"),
-        SpyShip(id=6, text="Asp Explorer"),
-        SpyShip(id=7, text="Asp Scout", traffic_text="asp"),
+        SpyShip(id=6, text="Asp Explorer", traffic_text="asp"),
+        SpyShip(id=7, text="Asp Scout", traffic_text="asp_scout"),
         SpyShip(id=8, text="Beluga Liner", traffic_text="belugaliner"),
         SpyShip(id=9, text="Cobra MK IV"),
         SpyShip(id=10, text="Cobra Mk. III", traffic_text="cobramkiii"),
@@ -943,17 +956,17 @@ def preload_spy_tables(eddb_session):
         SpyShip(id=18, text="Federal Gunship"),
         SpyShip(id=19, text="Fer-de-Lance", traffic_text="ferdelance"),
         SpyShip(id=20, text="Hauler", traffic_text="hauler"),
-        SpyShip(id=21, text="Imperial Clipper"),
-        SpyShip(id=22, text="Imperial Courier"),
+        SpyShip(id=21, text="Imperial Clipper", traffic_text="empire_trader"),
+        SpyShip(id=22, text="Imperial Courier", traffic_text="empire_courier"),
         SpyShip(id=23, text="Imperial Cutter", traffic_text="cutter"),
         SpyShip(id=24, text="Imperial Eagle", traffic_text="empire_eagle"),
-        SpyShip(id=25, text="Keelback"),
+        SpyShip(id=25, text="Keelback", traffic_text="keelback"),
         SpyShip(id=26, text="Krait MkII", traffic_text="krait_mkii"),
         SpyShip(id=27, text="Krait Phantom", traffic_text="krait_light"),
         SpyShip(id=28, text="Mamba", traffic_text="mamba"),
         SpyShip(id=29, text="Orca", traffic_text="orca"),
         SpyShip(id=30, text="Python", traffic_text="python"),
-        SpyShip(id=31, text="Sidewinder Mk. I"),
+        SpyShip(id=31, text="Sidewinder Mk. I", traffic_text="sidewinder"),
         SpyShip(id=32, text="Type-10 Defender"),
         SpyShip(id=33, text="Type-6 Transporter", traffic_text="type6"),
         SpyShip(id=34, text="Type-7 Transporter", traffic_text="type7"),
