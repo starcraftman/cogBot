@@ -979,8 +979,8 @@ def preload_spy_tables(eddb_session):
         SpyShip(id=14, text="Eagle Mk. II", traffic_text="eagle"),
         SpyShip(id=15, text="Federal Assault Ship"),
         SpyShip(id=16, text="Federal Corvette", traffic_text="federation_corvette"),
-        SpyShip(id=17, text="Federal Dropship", traffic_text="federation_dropship_mkii"),
-        SpyShip(id=18, text="Federal Gunship"),
+        SpyShip(id=17, text="Federal Dropship", traffic_text="federation_dropship"),
+        SpyShip(id=18, text="Federal Gunship", traffic_text="federation_gunship"),
         SpyShip(id=19, text="Fer-de-Lance", traffic_text="ferdelance"),
         SpyShip(id=20, text="Hauler", traffic_text="hauler"),
         SpyShip(id=21, text="Imperial Clipper", traffic_text="empire_trader"),
@@ -994,13 +994,14 @@ def preload_spy_tables(eddb_session):
         SpyShip(id=29, text="Orca", traffic_text="orca"),
         SpyShip(id=30, text="Python", traffic_text="python"),
         SpyShip(id=31, text="Sidewinder Mk. I", traffic_text="sidewinder"),
-        SpyShip(id=32, text="Type-10 Defender"),
+        SpyShip(id=32, text="Type-10 Defender", traffic_text="type9_military"),
         SpyShip(id=33, text="Type-6 Transporter", traffic_text="type6"),
         SpyShip(id=34, text="Type-7 Transporter", traffic_text="type7"),
         SpyShip(id=35, text="Type-9 Heavy", traffic_text="type9"),
         SpyShip(id=36, text="Viper MK IV", traffic_text="viper_mkiv"),
         SpyShip(id=37, text="Viper Mk III", traffic_text="viper"),
         SpyShip(id=38, text="Vulture", traffic_text="vulture"),
+        SpyShip(id=39, text="Federal Dropship", traffic_text="federation_dropship_mkii"),
     ])
     eddb_session.commit()
 
