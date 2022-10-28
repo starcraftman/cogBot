@@ -1715,15 +1715,16 @@ Estimate of how long it will take: {str(estimate)}"""
                     raise cog.exc.RemoteError
 
                 api_end = cog.util.CONF.scrape.api
-                log.warning("POST api json.")
-                payload = {sys.name: sys.ed_system_id for sys in found}
-                response_json = json.loads(str(await cog.util.post_json_url(api_end, payload)))
-
-                log.warning("POST handle sheet updates.")
-                with cfut.ProcessPoolExecutor(max_workers=1) as pool:
-                    await self.bot.loop.run_in_executor(
-                        pool, spy.load_response_json, response_json
-                    )
+                for sys in found:
+                    log.warning("POSTAPI Request: %s.", sys.name)
+                    response_text = await cog.util.post_json_url(api_end, {sys.name: sys.ed_system_id})
+                    response_json = json.loads(str(response_text))
+                    log.warning("POSTAPI Received: %s.", sys.name)
+                    with cfut.ProcessPoolExecutor(max_workers=1) as pool:
+                        await self.bot.loop.run_in_executor(
+                            pool, spy.load_response_json, response_json
+                        )
+                    log.warning("POSTAPI Finished Parsing: %s.", sys.name)
                     #  scanner = get_scanner('bgs_demo')
                     #  influences = cogdb.spy_squirrel.update_eddb_factions(eddb_session, info)
                     #  await scanner.clear_cells()
@@ -1731,7 +1732,7 @@ Estimate of how long it will take: {str(estimate)}"""
 
             return "Update completed successfully."
 
-        except aiohttp.ClientConnectorError:
+        except cog.exc.RemoteError:
             return "Could not update bgs at this time. Site is down."
 
     async def execute(self):
@@ -2504,7 +2505,30 @@ async def push_scrape_to_gal_scanner():  # pragma: no cover | tested elsewhere
     """
     Perform a complete scrape of fort and um, push into db.
     """
-    log = logging.getLogger(__name__)
+    def helper_get_systems(eddb_session, power_id):
+        """Inner helper to execute queries in thread."""
+        systems = eddb_session.query(spy.SpySystem).\
+            filter(spy.SpySystem.power_id == power_id,
+                   spy.SpySystem.power_state_id == 16).\
+            all()
+        preps = eddb_session.query(spy.SpyPrep).\
+            filter(spy.SpyPrep.power_id == power_id).\
+            order_by(spy.SpyPrep.merits.desc()).\
+            limit(10).\
+            all()
+        expansions = eddb_session.query(spy.SpySystem).\
+            filter(spy.SpySystem.power_id == power_id,
+                   spy.SpySystem.power_state_id != 16).\
+            all()
+        try:
+            vote = eddb_session.query(spy.SpyVote).\
+                filter(spy.SpyVote.power_id == power_id).\
+                one()
+        except sqlalchemy.exc.NoResultFound:
+            vote = None
+
+        return systems, preps, expansions, vote
+
     gal_scanner = cogdb.scanners.get_scanner("hudson_gal")
     with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
         powers = eddb_session.query(cogdb.eddb.Power).\
@@ -2513,30 +2537,14 @@ async def push_scrape_to_gal_scanner():  # pragma: no cover | tested elsewhere
             all()
 
         for power in powers:
-            systems = eddb_session.query(spy.SpySystem).\
-                filter(spy.SpySystem.power_id == power.id,
-                       spy.SpySystem.power_state_id == 16).\
-                all()
-            preps = eddb_session.query(spy.SpyPrep).\
-                filter(spy.SpyPrep.power_id == power.id).\
-                all()
-            expansions = eddb_session.query(spy.SpySystem).\
-                filter(spy.SpySystem.power_id == power.id,
-                       spy.SpySystem.power_state_id != 16).\
-                all()
-            vote = None
-            try:
-                vote = eddb_session.query(spy.SpyVote).\
-                    filter(spy.SpyVote.power_id == power.id).\
-                    one()
-            except sqlalchemy.exc.NoResultFound:
-                pass
+            systems, preps, expansions, vote = await asyncio.get_event_loop().run_in_executor(
+                None, helper_get_systems, eddb_session, power.id
+            )
 
             systems = sorted(systems, key=lambda x: x.system.name.lower())
             expansions = sorted(expansions, key=lambda x: x.system.name.lower())
-            preps = list(reversed(sorted(preps, key=lambda x: x.merits)))[:10]
 
-            log.error("Updating sheet for: %s", power.eddn)
+            logging.getLogger(__name__).error("Updating sheet for: %s", power.eddn)
             await gal_scanner.asheet.change_worksheet(power.eddn.upper())
             await gal_scanner.clear_cells()
             await gal_scanner.send_batch(gal_scanner.update_dict(systems=systems, preps=preps, exps=expansions, vote=vote))

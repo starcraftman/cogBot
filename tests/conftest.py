@@ -25,7 +25,6 @@ except ImportError:
 import cog.util
 import cogdb
 import cogdb.query
-import cogdb.spy_squirrel as spy
 from cogdb.schema import (DiscordUser, FortSystem, FortPrep, FortDrop, FortUser, FortOrder,
                           UMSystem, UMExpand, UMOppose, UMUser, UMHold, EUMSheet, KOS,
                           AdminPerm, ChannelPerm, RolePerm,
