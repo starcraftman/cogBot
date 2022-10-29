@@ -167,6 +167,9 @@ def test_get_systems_around(eddb_session):
     assert results == expected
 
 
+def test_get_influences_by_id(eddb_session):
+    assert len(cogdb.eddb.get_influences_by_id(eddb_session, [1, 2, 3])) == 3
+
 def test_nearest_system(eddb_session):
     system_names = ["Arnemil", "Rana", "Sol", "Frey", "Nanomam"]
     systems = eddb_session.query(cogdb.eddb.System).\

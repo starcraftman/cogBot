@@ -1720,14 +1720,14 @@ Estimate of how long it will take: {str(estimate)}"""
                     response_json = json.loads(str(response_text))
                     log.warning("POSTAPI Received: %s.", sys.name)
                     with cfut.ProcessPoolExecutor(max_workers=1) as pool:
-                        await self.bot.loop.run_in_executor(
+                        influence_ids = await self.bot.loop.run_in_executor(
                             pool, spy.load_response_json, response_json
                         )
                     log.warning("POSTAPI Finished Parsing: %s.", sys.name)
-                    #  scanner = get_scanner('bgs_demo')
-                    #  influences = cogdb.spy_squirrel.update_eddb_factions(eddb_session, info)
-                    #  await scanner.clear_cells()
-                    #  await scanner.send_batch(scanner.update_dict(influences=influences))
+                    scanner = get_scanner('bgs_demo')
+                    influences = cogdb.eddb.get_influences_by_id(eddb_session, influence_ids)
+                    await scanner.clear_cells()
+                    await scanner.send_batch(scanner.update_dict(influences=influences))
 
             return "Update completed successfully."
 

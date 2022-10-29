@@ -1925,6 +1925,23 @@ def get_systems_around(session, centre_name, distance):
         all()
 
 
+def get_influences_by_id(eddb_session, influence_ids):
+    """
+    Get a list of Influence objects by their ids.
+
+    Args:
+        eddb_session: A session onto the db.
+        influence_ids: A list of id numbers.
+
+    Returns: A list of Influence objects found for ids.
+    """
+    return eddb_session.query(Influence).\
+        join(System, Influence.system_id == System.id).\
+        filter(Influence.id.in_(influence_ids)).\
+        order_by(System.name, Influence.influence.desc()).\
+        all()
+
+
 def base_get_stations(session, centre_name, *, sys_dist=75, arrival=2000):
     """A base query to get all stations around a centre_name System.
     Applies base criteria filters for max system distance from centre and arrival distance in system.

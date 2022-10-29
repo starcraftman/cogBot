@@ -20,6 +20,7 @@ import os
 import re
 import time
 import urllib.request
+import warnings
 
 import bs4
 import selenium
@@ -41,7 +42,8 @@ LONG_GAP = 2
 LONGEST_GAP = 15
 # Regex below
 # Match a line for held merits where it isn't unknown
-MAT_MERITS = re.compile(r".*Fortification: (\d+) / (\d+).*Undermining: (\d+) / (\d+).*Held Merits: (\d+) stolen and (\d+) held \(\+ (\d+) (.*)")
+MAT_MERITS = re.compile(r".*Fortification: (\d+) / (\d+).*Undermining: (\d+) / (\d+).*Held Merits:"
+                        r"(\d+) stolen and (\d+) held \(\+ (\d+) (.*)")
 # Match a line for held merits where it is unknown
 MAT_UKNOWN = re.compile(r".*Fortification: (\d+) / (\d+).*Undermining: (\d+) / (\d+).*Held Merits: unknown")
 # Matchers to parse time out of the held merits line
@@ -52,6 +54,8 @@ MAT_TIME = {
     'days': re.compile(r'(\d+) days?'),
 }
 HELD_MERITS_RECENT = 60 * 60  # Within last hour
+
+warnings.warn("This module is deprecated in favour of cogdb.spy_squirrel. Archived for now.", stacklevel=3)
 
 
 @contextlib.contextmanager
@@ -144,7 +148,8 @@ def click_with_retry(element, *, delay=5, retries=5):
     return been_clicked
 
 
-def powerplay_leader(driver, leader_index, *, updated_at=0, held_merits=False):  # pragma: no cover | Heavily dependent on driver.
+def powerplay_leader(driver, leader_index, *,
+                     updated_at=0, held_merits=False):  # pragma: no cover | Depends on river.
     """Scrape the powerplay page for the spy site.
 
     Expectation: Driver is already loaded and pointed at powerplay page.
@@ -379,13 +384,13 @@ def main():  # pragma: no cover | Main test code to sanity check with real drive
 
     try:
         # confirm page is up and working BEFORE asking for complete scrape
-        urllib.request.urlopen(cog.util.CONF.scrape.url)
+        urllib.request.urlopen(cog.util.CONF.scrape.url)  # pylint: disable=consider-using-with
 
         # Run a sanity test, parse entire powerplay page for all leaders.
         with get_chrome_driver(dev=True) as driver:
             data = scrape_all_bgs(driver, ["Sol", "Rana", "Abi"])
             #  data = scrape_all_powerplay(driver, held_merits=False)
-            with open(out_file, "w") as fout:
+            with open(out_file, "w", encoding='utf-8') as fout:
                 fout.write(json.dumps(data, sort_keys=True, indent=2))
 
         print("Parsing all powerplay data is COMPLETE!")

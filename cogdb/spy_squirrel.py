@@ -724,8 +724,13 @@ def load_response_json(response):
     """
     Capable of fully parsing and processing information in a response JSON.
 
+    Information will first be processed into a large readable object.
+    Then object will be parsed to update the database.
+
     Args:
         response: A large JSON object returned from POST.
+
+    Returns: A list of Influence.ids that were updated.
     """
     results = {}
     for news_info in response.values():
@@ -753,10 +758,10 @@ def load_response_json(response):
         results[sys_name] = result
 
     with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
-        response_json_update_influences(eddb_session, results)
+        influence_ids = response_json_update_influences(eddb_session, results)
         response_json_update_system_info(eddb_session, results)
 
-    return results
+    return influence_ids
 
 
 def response_json_update_influences(eddb_session, info):
@@ -772,6 +777,7 @@ def response_json_update_influences(eddb_session, info):
     """
     log = logging.getLogger(__name__)
 
+    influence_ids = []
     for sys_name, sys_info in info.items():
         # Handle updating data for influence of factions
         for faction in sys_info['factions']:
@@ -795,13 +801,17 @@ def response_json_update_influences(eddb_session, info):
                         one()[0]
                     found = Influence(system_id=system_id, faction_id=faction_id)
                     eddb_session.add(found)
+                    eddb_session.flush()
                     log.info("Adding faction %s in %s", faction['name'], sys_name)
                 except sqla_orm.exc.NoResultFound:
                     log.warning("Failed to find combination of: %s | %s", sys_name, sys_info['factions'])
 
             found.happiness_id = faction['happiness']
             found.influence = faction['influence']
+            influence_ids += [found.id]
             cogdb.eddb.add_history_influence(eddb_session, found)
+
+    return influence_ids
 
 
 def response_json_update_system_info(eddb_session, info):
@@ -846,9 +856,6 @@ def response_json_update_system_info(eddb_session, info):
             eddb_session.add(system)
             log.warning("Adding SpySystem for held merits: %s", sys_name)
 
-        eddb_session.query(SpyBounty).\
-            filter(SpyBounty.system == sys_name).\
-            delete()
         if 'top5_power' in sys_info:
             log.warning("Parsing top 5 bounties for: %s", sys_name)
             for b_info in sys_info['top5_power'].values():
@@ -857,6 +864,7 @@ def response_json_update_system_info(eddb_session, info):
                 eddb_session.add(bounty)
                 print(repr(bounty))
 
+        # Only keep current traffic values for now
         eddb_session.query(SpyTraffic).\
             filter(SpyTraffic.system == sys_name).\
             delete()
