@@ -163,12 +163,13 @@ def test_get_systems_around(eddb_session):
         'Nanomam',
         'Tollan'
     ]
-    results = [x.name for x in cogdb.eddb.get_systems_around(eddb_session, "Nanomam", 15)]
+    results = [x.name for x in cogdb.eddb.get_systems_around(eddb_session, "Nanomam")]
     assert results == expected
 
 
 def test_get_influences_by_id(eddb_session):
     assert len(cogdb.eddb.get_influences_by_id(eddb_session, [1, 2, 3])) == 3
+
 
 def test_nearest_system(eddb_session):
     system_names = ["Arnemil", "Rana", "Sol", "Frey", "Nanomam"]
@@ -444,8 +445,8 @@ def test_get_closest_station_by_government_bad_system(eddb_session):
         cogdb.eddb.get_closest_station_by_government(eddb_session, 'zxzxzx', 'Prison')
 
 
-def test_compute_all_exploits_from_control(eddb_session):
-    found, not_found = cogdb.eddb.compute_all_exploits_from_controls(eddb_session, ['Abi', 'Nanomam'])
+def test_get_all_systems_named_exploiteds(eddb_session):
+    found, not_found = cogdb.eddb.get_all_systems_named(eddb_session, ['Abi', 'Nanomam'], include_exploiteds=True)
 
     found = {x.name for x in found}
     assert 'LHS 215' in found
@@ -453,8 +454,8 @@ def test_compute_all_exploits_from_control(eddb_session):
     assert not not_found
 
 
-def test_compute_all_exploits_from_control_missing(eddb_session):
-    found, not_found = cogdb.eddb.compute_all_exploits_from_controls(eddb_session, ['ZZZZ', 'Nanomam'])
+def test_get_all_systems_named_missing(eddb_session):
+    found, not_found = cogdb.eddb.get_all_systems_named(eddb_session, ['ZZZZ', 'Nanomam'], include_exploiteds=True)
 
     found = {x.name for x in found}
     assert 'LHS 215' in found

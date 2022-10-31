@@ -796,7 +796,7 @@ def response_json_update_influences(eddb_session, info):
                     system_id = eddb_session.query(System.id).\
                         filter(System.name == sys_name).\
                         one()[0]
-                    faction_id = eddb_session.query(Faction).\
+                    faction_id = eddb_session.query(Faction.id).\
                         filter(Faction.name == faction['name']).\
                         one()[0]
                     found = Influence(system_id=system_id, faction_id=faction_id)

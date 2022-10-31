@@ -473,7 +473,7 @@ def test_parse_response_top5_bounties(response_news_json):
             'commanderId': 5520548,
             'lastLocation': 'Melici - Polansky Landing',
             'name': 'CMDR SunNamida (Krait Mk II "PRIVATE COURIER")',
-            'category': 'faction',
+            'category': 'power',
         },
         2: {
             'pos': 2,
@@ -481,7 +481,7 @@ def test_parse_response_top5_bounties(response_news_json):
             'commanderId': 7686998,
             'lastLocation': 'Djiwal - Thompson Dock',
             'name': 'CMDR Bubba Bo Bob (Keelback "KEELBACK")',
-            'category': 'faction',
+            'category': 'power',
         },
         3: {
             'pos': 3,
@@ -489,7 +489,7 @@ def test_parse_response_top5_bounties(response_news_json):
             'commanderId': 6750288,
             'lastLocation': 'NLTT 19808',
             'name': 'CMDR MrSkillin (Keelback)',
-            'category': 'faction',
+            'category': 'power',
         },
         4: {
             'pos': 4,
@@ -497,7 +497,7 @@ def test_parse_response_top5_bounties(response_news_json):
             'commanderId': 0,
             'lastLocation': '',
             'name': '',
-            'category': 'faction',
+            'category': 'power',
         },
         5: {
             'pos': 5,
@@ -505,7 +505,7 @@ def test_parse_response_top5_bounties(response_news_json):
             'commanderId': 0,
             'lastLocation': '',
             'name': '',
-            'category': 'faction',
+            'category': 'power',
         },
     }
     assert expect == spy.parse_response_top5_bounties(response_news_json[10])
