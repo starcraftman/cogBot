@@ -494,7 +494,7 @@ class UMScanner(FortScanner):
         Returns: A list of update dicts to pass to batch_update.
         """
         cell_range = '{col}10:{col}13'.format(col=col)
-        values = [[progress_us], [f"{progress_them}%"], ['Hold Merits'], [map_offset]]
+        values = [[progress_us], [f"{progress_them * 100:.2f}%"], ['Hold Merits'], [map_offset]]
         return [{'range': cell_range, 'values': values}]
 
     @staticmethod

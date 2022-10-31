@@ -1908,7 +1908,7 @@ def get_systems(session, system_names):
     return systems
 
 
-def get_systems_around(session, centre_name, distance):
+def get_systems_around(session, centre_name, distance=CONTROL_DISTANCE):
     """
     Given a central system and a distance, return all systems around it.
     Includes the centre system.
@@ -2401,23 +2401,25 @@ def get_closest_station_by_government(session, system, gov_type, *, limit=10):
         all()
 
 
-def compute_all_exploits_from_controls(session, system_names):
+def get_all_systems_named(session, system_names, *, include_exploiteds=False):
     """Compute a full list of individual systems from a mixed list of controls and exploiteds.
 
     Args:
         session: A session onto the db.
-        system_names: A list of control and exploited system names.
+        system_names: A list of system names.
+        include_exploiteds: For any control system named, include all exploited systems in range.
 
-    Returns: The list of system names resolved and those that failed, 2 lists.
+    Returns: The list of system names resolved and those that were not found.
     """
     found = session.query(System).\
         filter(System.name.in_(system_names)).\
         all()
 
     exploits = []
-    for system in found:
-        if system.power_state.text == "Control":
-            exploits += get_systems_around(session, system.name, CONTROL_DISTANCE)
+    if include_exploiteds:
+        for system in found:
+            if system.power_state.text == "Control":
+                exploits += get_systems_around(session, system.name)
 
     found_systems = set(found + exploits)
     found_names_lower = [x.name.lower() for x in found_systems]

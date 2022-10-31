@@ -1698,7 +1698,7 @@ class Scrape(Action):
         try:
             with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
                 system_names = process_system_args(self.args.rest)
-                found, not_found = cogdb.eddb.compute_all_exploits_from_controls(eddb_session, system_names)
+                found, not_found = cogdb.eddb.get_all_systems_named(eddb_session, system_names)
 
                 estimate_seconds = len(found) * 30
                 estimate = datetime.timedelta(seconds=estimate_seconds)
@@ -1714,20 +1714,21 @@ Estimate of how long it will take: {str(estimate)}"""
                     raise cog.exc.RemoteError
 
                 api_end = cog.util.CONF.scrape.api
+                influence_ids = []
                 for sys in found:
                     log.warning("POSTAPI Request: %s.", sys.name)
                     response_text = await cog.util.post_json_url(api_end, {sys.name: sys.ed_system_id})
                     response_json = json.loads(str(response_text))
                     log.warning("POSTAPI Received: %s.", sys.name)
                     with cfut.ProcessPoolExecutor(max_workers=1) as pool:
-                        influence_ids = await self.bot.loop.run_in_executor(
+                        influence_ids += await self.bot.loop.run_in_executor(
                             pool, spy.load_response_json, response_json
                         )
                     log.warning("POSTAPI Finished Parsing: %s.", sys.name)
-                    scanner = get_scanner('bgs_demo')
-                    influences = cogdb.eddb.get_influences_by_id(eddb_session, influence_ids)
-                    await scanner.clear_cells()
-                    await scanner.send_batch(scanner.update_dict(influences=influences))
+                scanner = get_scanner('bgs_demo')
+                influences = cogdb.eddb.get_influences_by_id(eddb_session, influence_ids)
+                await scanner.clear_cells()
+                await scanner.send_batch(scanner.update_dict(influences=influences))
 
             return "Update completed successfully."
 
@@ -2544,14 +2545,17 @@ async def push_spy_to_sheets():  # pragma: no cover | tested elsewhere
 
         umsystems = spy.compare_sheet_um_systems_to_spy(session, eddb_session)
         if umsystems:
+            __import__('pprint').pprint(umsystems)
             scanner = cogdb.scanners.get_scanner("hudson_undermine")
             payloads = []
             for umsys in umsystems:
                 payloads += scanner.update_systemum_dict(
                     umsys['sheet_col'], umsys['progress_us'], umsys['progress_them'], umsys['map_offset']
                 )
+            print("UM Payloads")
+            __import__('pprint').pprint(payloads)
             log.error("Operations sheet will be updated.")
-            await scanner.send_batch(payloads)
+            await scanner.send_batch(payloads, input_opt='USER_ENTERED')
 
 
 async def monitor_powerplay_api(client, *, repeat=True, delay=1800):

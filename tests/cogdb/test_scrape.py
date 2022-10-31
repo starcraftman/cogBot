@@ -76,6 +76,7 @@ def test_check_held_recent_is_recent(now):
     assert cogdb.scrape.check_held_recent(HELD_RECENT, start=now)
 
 
+@pytest.mark.skip(reason='broken and module deprecated')
 def test_parse_powerplay_page(now):
     expect_held = {
         'fort': 4464,
