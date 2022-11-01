@@ -529,7 +529,7 @@ def merge_msgs_to_least(parts, limit=MSG_LIMIT):
     cur_len = len(cur_part)
     for part in parts[1:]:
         temp_len = len(part)
-        if cur_len + temp_len > MSG_LIMIT:
+        if cur_len + temp_len > limit:
             new_parts += [cur_part]
             cur_part = ""
 

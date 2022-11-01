@@ -1686,68 +1686,107 @@ class Scout(Action):
         await self.bot.send_message(self.msg.channel, lines)
 
 
+async def post_systems(systems):
+    """
+    Helper function, take a list of systems and query their information.
+
+    Args:
+        systems: The list of cogdb.eddb.Systems that are found.
+
+    Returns: A list of cogdb.eddb.Influence ids updated.
+
+    Raises:
+        RemoteError: The remote site is down.
+    """
+    log = logging.getLogger(__name__)
+
+    # Disable during window of Thursday 0700-0800
+    now = datetime.datetime.utcnow()
+    if now.strftime("%A") == "Thursday" and now.hour == 7:
+        raise cog.exc.RemoteError
+
+    influence_ids = []
+    for sys in systems:
+        log.warning("POSTAPI Request: %s.", sys.name)
+        response_text = await cog.util.post_json_url(cog.util.CONF.scrape.api,
+                                                     {sys.name: sys.ed_system_id})
+        response_json = json.loads(str(response_text))
+        log.warning("POSTAPI Received: %s.", sys.name)
+        with cfut.ProcessPoolExecutor(max_workers=1) as pool:
+            influence_ids += await asyncio.get_event_loop().run_in_executor(
+                pool, spy.load_response_json, response_json
+            )
+        log.warning("POSTAPI Finished Parsing: %s.", sys.name)
+
+    return influence_ids
+
+
 class Scrape(Action):
     """
     Interface with the spy_squirrel stuff.
     """
-    async def bgs_scrape(self):
+    async def bgs_scrape(self, eddb_session):
         """
         Execute the bgs scrape.
         """
-        log = logging.getLogger(__name__)
-        try:
-            with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
-                system_names = process_system_args(self.args.rest)
-                found, not_found = cogdb.eddb.get_all_systems_named(eddb_session, system_names)
+        system_names = process_system_args(self.args.systems)
+        found, not_found = cogdb.eddb.get_all_systems_named(eddb_session, system_names)
 
-                estimate_seconds = len(found) * 30
-                estimate = datetime.timedelta(seconds=estimate_seconds)
-                msg = f"""The {len(found)} systems were found and will be updated.
+        estimate = datetime.timedelta(seconds=len(found) * 30)
+        msg = f"""The {len(found)} systems were found and will be updated.
 Estimate of how long it will take: {str(estimate)}"""
-                if not_found:
-                    msg += f"\n\nThe following systems weren't found: \n{pprint.pformat(not_found)}"
-                await self.bot.send_message(self.msg.channel, msg)
+        if not_found:
+            msg += f"\n\nThe following systems weren't found: \n{pprint.pformat(not_found)}"
+        await self.bot.send_message(self.msg.channel, msg)
 
-                # Disable during window of Thursday 0700-0800
-                now = datetime.datetime.utcnow()
-                if now.strftime("%A") == "Thursday" and now.hour == 7:
-                    raise cog.exc.RemoteError
+        influence_ids = await post_systems(found)
+        influences = cogdb.eddb.get_influences_by_id(eddb_session, influence_ids)
+        scanner = get_scanner('bgs_demo')
+        await scanner.clear_cells()
+        await scanner.send_batch(scanner.update_dict(influences=influences))
 
-                api_end = cog.util.CONF.scrape.api
-                influence_ids = []
-                for sys in found:
-                    log.warning("POSTAPI Request: %s.", sys.name)
-                    response_text = await cog.util.post_json_url(api_end, {sys.name: sys.ed_system_id})
-                    response_json = json.loads(str(response_text))
-                    log.warning("POSTAPI Received: %s.", sys.name)
-                    with cfut.ProcessPoolExecutor(max_workers=1) as pool:
-                        influence_ids += await self.bot.loop.run_in_executor(
-                            pool, spy.load_response_json, response_json
-                        )
-                    log.warning("POSTAPI Finished Parsing: %s.", sys.name)
-                scanner = get_scanner('bgs_demo')
-                influences = cogdb.eddb.get_influences_by_id(eddb_session, influence_ids)
-                await scanner.clear_cells()
-                await scanner.send_batch(scanner.update_dict(influences=influences))
+        return "Update completed successfully."
 
-            return "Update completed successfully."
+    async def held_for_power(self, eddb_session):
+        """
+        Scan all held merits for a given power's controls.
 
-        except cog.exc.RemoteError:
-            return "Could not update bgs at this time. Site is down."
+        Returns: A message to return to invoker.
+        """
+        name = '%' + ' '.join(self.args.name) + '%'
+        control_names = cogdb.eddb.get_controls_of_power(eddb_session, power=name)
+        systems, _ = cogdb.eddb.get_all_systems_named(eddb_session, control_names)
+
+        estimate = datetime.timedelta(seconds=len(systems) * 30)
+        msg = f"""The {len(control_names)} systems were found and will be updated.
+Estimate of how long it will take: {str(estimate)}"""
+        await self.bot.send_message(self.msg.channel, msg)
+
+        await post_systems(systems)
+
+        return 'The following systems were updated:\n\n' + ', '.join(control_names)
 
     async def execute(self):
-        if self.args.subcmd == "bgs":
-            msg = await self.bgs_scrape()
-            await self.bot.send_message(self.msg.channel, msg)
+        try:
+            with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
+                if self.args.subcmd == "bgs":
+                    msg = await self.bgs_scrape(eddb_session)
+                    await self.bot.send_message(self.msg.channel, msg)
 
-        elif self.args.subcmd == "power":
-            await self.bot.send_message(self.msg.channel,
-                                        "Initiated the scrape in the background.")
+                elif self.args.subcmd == "held":
+                    msg = await self.held_for_power(eddb_session)
+                    await self.bot.send_message(self.msg.channel, msg)
 
-            await monitor_powerplay_api(self.bot, repeat=False, delay=0)
+                elif self.args.subcmd == "power":
+                    await self.bot.send_message(self.msg.channel,
+                                                "Initiated the scrape in the background.")
 
-            await self.bot.send_message(self.msg.channel,
-                                        "Finished the scrape.")
+                    await monitor_powerplay_api(self.bot, repeat=False, delay=0)
+
+                    await self.bot.send_message(self.msg.channel,
+                                                "Finished the scrape.")
+        except cog.exc.RemoteError:
+            return "Could not perform the scrape now. Site is down."
 
 
 class Status(Action):

@@ -433,7 +433,7 @@ async def test_kosscanner_find_dupe(f_asheet_kos):
     fscan = KOSScanner(f_asheet_kos)
 
     await fscan.update_cells()
-    cnt, row = fscan.find_dupe('Silas Kruge')
+    cnt, _ = fscan.find_dupe('Silas Kruge')
     assert cnt == 1468
 
     assert not fscan.find_dupe('NotThere')[0]

@@ -605,7 +605,9 @@ def subs_scrape(subs, prefix):
     desc = """Perform manual scraping functions.
 
 **{prefix}scrape power**
-        Scrape all powerplay powers and update db.
+        Trigger an update of the sheets based on basic information query.
+**{prefix}scrape held Hudson**
+        Get information for all controls of power and update sheets.
 **{prefix}scrape bgs Abi, Rana**
         Scrape all bgs information listed systems and ...
             if a system is a control, scrape all exploited systems as well.
@@ -614,8 +616,13 @@ def subs_scrape(subs, prefix):
     sub = subs.add_parser(prefix + 'scrape', description=desc, formatter_class=RawHelp)
     sub.set_defaults(cmd='Scrape')
     CMD_MAP['Scrape'] = 'scrape'
-    sub.add_argument('subcmd', choices=['bgs', 'power'], help='The type to update.')
-    sub.add_argument('rest', nargs='*', help='The args for the subcmd.')
+    subcmds = sub.add_subparsers(title='subcommands',
+                                 description='Scrape subcommands', dest='subcmd')
+    subcmd = subcmds.add_parser('bgs', help='Scrape the bgs .')
+    subcmd.add_argument('systems', nargs='+', help='The systems to query for information.')
+    subcmd = subcmds.add_parser('held', help='Query the held information for controls of a pwoer.')
+    subcmd.add_argument('name', nargs='+', help='The name of the power to track.')
+    subcmd = subcmds.add_parser('power', help='Refresh the information and push to sheets.')
 
 
 @register_parser

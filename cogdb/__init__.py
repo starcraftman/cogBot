@@ -62,13 +62,13 @@ CREDS = None
 
 # Local engine connections should not cross process boundary.
 @sqlalchemy.event.listens_for(engine, 'connect')
-def event_connect(dbapi_connecion, connection_record):
+def event_connect(_, connection_record):
     """ Store PID. """
     connection_record.info['pid'] = os.getpid()
 
 
 @sqlalchemy.event.listens_for(engine, 'checkout')
-def event_checkout(dbapi_connecion, connection_record, connection_proxy):
+def event_checkout(_, connection_record, connection_proxy):
     """ Invalidate engine connection when in different process. """
     pid = os.getpid()
     if connection_record.info['pid'] != pid:

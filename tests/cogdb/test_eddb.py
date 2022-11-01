@@ -430,7 +430,7 @@ def test_find_route_from_hq(eddb_session):
     systems = ['Rana', 'Adeo', 'Cubeo', 'Sol', 'Rhea']
     expected = ['Sol', 'Rana', 'Rhea', 'Adeo', 'Cubeo']
 
-    dist, sorted_systems = cogdb.eddb.find_route_closest_hq(eddb_session, systems)
+    _, sorted_systems = cogdb.eddb.find_route_closest_hq(eddb_session, systems)
     assert [x.name for x in sorted_systems] == expected
 
 

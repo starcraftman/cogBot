@@ -839,6 +839,7 @@ def find_favorable(session, centre_name, max_dist=None, inc=20):
     return [['System Name', 'Govt', 'Dist', 'Inf', 'Faction Name']] + lines
 
 
+# FIXME: This doesn't seem to work as intended, faction arg unused
 @wrap_exceptions
 def expansion_candidates(session, centre, faction):
     """
@@ -849,7 +850,6 @@ def expansion_candidates(session, centre, faction):
     Returns:
         [[system_name, dictance, faction_count], ...]
     """
-    # TODO: Further filter faction count to query?
     dist_centre = System.dist_to(centre)
     matches = session.query(System.name, dist_centre, sqlfunc.count(Faction.id)).\
         join(Influence, Influence.system_id == System.id).\

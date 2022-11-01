@@ -743,10 +743,11 @@ def load_response_json(response):
                 result[parser['name']] = [parser['func'](entry)]
 
         # Separate top5s if both present
-        for group in result['top5']:
-            cat = group[1]["category"]
-            result[f'top5_{cat}'] = group
-        del result['top5']
+        if 'top5' in result:
+            for group in result['top5']:
+                cat = group[1]["category"]
+                result[f'top5_{cat}'] = group
+            del result['top5']
 
         # Prune any lists of 1 element, to not be lists.
         for key, value in result.items():
@@ -803,8 +804,10 @@ def response_json_update_influences(eddb_session, info):
                     eddb_session.add(found)
                     eddb_session.flush()
                     log.info("Adding faction %s in %s", faction['name'], sys_name)
-                except sqla_orm.exc.NoResultFound:
-                    log.warning("Failed to find combination of: %s | %s", sys_name, sys_info['factions'])
+                except sqla_orm.exc.NoResultFound as exc:
+                    log.error('IMP Exception on query: %s', str(exc))
+                    log.error("IMP Failed to find combination of: %s | %s", sys_name, faction['name'])
+                    continue
 
             found.happiness_id = faction['happiness']
             found.influence = faction['influence']
