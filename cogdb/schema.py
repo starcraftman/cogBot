@@ -1095,7 +1095,7 @@ class Global(ReprMixin, Base):
 
     id = sqla.Column(sqla.Integer, primary_key=True)
     cycle = sqla.Column(sqla.Integer, default=0)
-    consolidation = sqla.Column(sqla.Integer, default=0)
+    consolidation = sqla.Column(sqla.Integer, default=0)  # FIXME: Deprecated, remove in future from db.
     show_almost_done = sqla.Column(sqla.Boolean, default=False)
     show_vote_goal = sqla.Column(sqla.Boolean, default=False)
     vote_goal = sqla.Column(sqla.Integer, default=0)

@@ -806,13 +806,19 @@ def subs_vote(subs, prefix):
 **{prefix}vote prep 15**
         Vote preparation with strength 15.
         In this case 3 accounts that have 5 vote strength each.
+**{prefix}vote --set 50**
+**{prefix}vote -s 50**
+        Set the vote goal to 50.
+**{prefix}vote --display**
+        Toggle the manual display of vote action.
+**{prefix}vote --summary**
+        Create a summary of all votes this cycle and return in a text file.
     """.format(prefix=prefix)
     sub = subs.add_parser(prefix + 'vote', description=desc, formatter_class=RawHelp)
     sub.set_defaults(cmd='Voting')
     CMD_MAP['Voting'] = 'vote'
     sub.add_argument('vote_tuple', nargs='*', help='format either: cons 1 or 5 prep')
     sub.add_argument('--set', '-s', type=int, help='Set vote goal.')
-    sub.add_argument('--force', '-fs', type=int, help='Force set the current vote status.')
     sub.add_argument('--display', '-d', action='store_true', help='Display the current vote goal.')
     sub.add_argument('--summary', action='store_true', help='Display the admin summary of votes this cycle.')
 

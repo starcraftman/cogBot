@@ -2178,6 +2178,8 @@ class Voting(Action):
     async def execute(self):
         self.duser  # Ensure duser captured for db.
         globe = cogdb.query.get_current_global(self.session)
+        with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
+            current_vote = spy.get_vote_of_power(eddb_session)
 
         if self.args.set:
             try:
@@ -2185,17 +2187,7 @@ class Voting(Action):
             except cog.exc.NoMatch as exc:
                 raise cog.exc.InvalidPerms("{} You are not an admin!".format(self.msg.author.mention)) from exc
             globe.vote_goal = self.args.set
-            msg = "New vote goal is **{goal}%**, current vote is {current_vote}%."\
-                .format(goal=self.args.set, current_vote=globe.consolidation)
-
-        elif self.args.force:
-            try:
-                cogdb.query.get_admin(self.session, self.duser)
-            except cog.exc.NoMatch as exc:
-                raise cog.exc.InvalidPerms("{} You are not an admin!".format(self.msg.author.mention)) from exc
-            globe.consolidation = self.args.force
-            msg = "Vote goal is **{goal}%**, forced current vote is {current_vote}%."\
-                .format(goal=globe.vote_goal, current_vote=self.args.force)
+            msg = f"New vote goal is **{self.args.set}%**, current vote is {current_vote}%."
 
         elif self.args.vote_tuple:
             vote_type, amount = cog.parse.parse_vote_tuple(self.args.vote_tuple)
@@ -2206,10 +2198,10 @@ class Voting(Action):
             msg = self.display(globe)
 
         elif self.args.summary:
-            msg = await self.summary(globe)
+            msg = await self.summary(globe, current_vote)
 
         else:
-            msg = self.vote_direction(globe)
+            msg = self.vote_direction(globe, current_vote)
 
         if msg:
             await self.bot.send_message(self.msg.channel, msg)
@@ -2225,7 +2217,7 @@ class Voting(Action):
         show_msg = "SHOW" if globe.show_vote_goal else "NOT show"
         return "Will now {} the vote goal.".format(show_msg)
 
-    async def summary(self, globe):  # pragma: no cover
+    async def summary(self, globe, current_vote):  # pragma: no cover
         """ Show an executive/complete summary of votes. """
         try:
             cogdb.query.get_admin(self.session, self.duser)
@@ -2247,7 +2239,7 @@ class Voting(Action):
 Cons: {cons_tally}
 Prep: {prep_tally}
 Goal: {globe.vote_goal}
-Current Consolidation: {globe.consolidation}
+Current Consolidation: {current_vote}
 Date (UTC): {now}
 
 """
@@ -2258,15 +2250,8 @@ Date (UTC): {now}
             await self.msg.channel.send("All votes summary.",
                                         file=discord.File(fp=tfile.name, filename=f"AllVotes.{now.day}_{now.month}_{now.hour}{now.minute}.txt"))
 
-    def vote_direction(self, globe):
+    def vote_direction(self, globe, current_vote):
         """Display vote direction"""
-        current_vote = globe.consolidation
-        # FIXME: This is a bit of hack. Prune global object later.
-        with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
-            spy_vote = spy.get_vote_of_power(eddb_session)
-            if spy_vote != 0:
-                current_vote = spy_vote
-
         if globe.show_vote_goal or is_near_tick():
             if math.fabs(globe.vote_goal - current_vote) <= 1.0:
                 vote_choice = 'Hold your vote (<=1% of goal)'
