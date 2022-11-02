@@ -733,6 +733,7 @@ def load_response_json(response):
     Returns: A list of Influence.ids that were updated.
     """
     results = {}
+
     for news_info in response.values():
         result = {}
         for entry in news_info['news']:
@@ -758,8 +759,14 @@ def load_response_json(response):
             if isinstance(value, list) and len(value) == 1:
                 result[key] = value[0]
 
-        # Put system name in top level for convenience
+        # FIXME: 15 Geminorum ==> 14 Geminorum, player database issue
         sys_name = result['factions'][0]['system']
+        if sys_name == "15 Geminorum":
+            sys_name = "14 Geminorum"
+            for faction in result['factions']:
+                faction['system'] = sys_name
+
+        # Put system name in top level for convenience
         results[sys_name] = result
 
     with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
