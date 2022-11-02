@@ -763,6 +763,7 @@ def load_response_json(response):
         results[sys_name] = result
 
     with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
+
         influence_ids = response_json_update_influences(eddb_session, results)
         response_json_update_system_info(eddb_session, results)
 
@@ -784,6 +785,9 @@ def response_json_update_influences(eddb_session, info):
 
     influence_ids = []
     for sys_name, sys_info in info.items():
+        if 'factions' not in sys_info:
+            continue
+
         # Handle updating data for influence of factions
         for faction in sys_info['factions']:
             try:
@@ -840,28 +844,29 @@ def response_json_update_system_info(eddb_session, info):
 
     for sys_name, sys_info in info.items():
         # Handle held merits
-        try:
-            system = eddb_session.query(SpySystem).\
-                filter(SpySystem.system_name == sys_name).\
-                one()
-            system.held_merits = sys_info['power']['held_merits']
-            system.stolen_forts = sys_info['power']['stolen_forts']
-            log.info("Updating held merits in %s", sys_name)
-        except sqla.orm.exc.NoResultFound:
-            eddb_system = eddb_session.query(System).\
-                filter(System.name == sys_name).\
-                one()
-            kwargs = {
-                'ed_system_id': eddb_system.ed_system_id,
-                'system_name': eddb_system.name,
-                'power_id': eddb_system.power_id,
-                'power_state_id': eddb_system.power_state_id,
-                'held_merits': sys_info['power']['held_merits'],
-                'stolen_forts': sys_info['power']['stolen_forts'],
-            }
-            system = SpySystem(**kwargs)
-            eddb_session.add(system)
-            log.warning("Adding SpySystem for held merits: %s", sys_name)
+        if 'power' in sys_info:
+            try:
+                system = eddb_session.query(SpySystem).\
+                    filter(SpySystem.system_name == sys_name).\
+                    one()
+                system.held_merits = sys_info['power']['held_merits']
+                system.stolen_forts = sys_info['power']['stolen_forts']
+                log.info("Updating held merits in %s", sys_name)
+            except sqla.orm.exc.NoResultFound:
+                eddb_system = eddb_session.query(System).\
+                    filter(System.name == sys_name).\
+                    one()
+                kwargs = {
+                    'ed_system_id': eddb_system.ed_system_id,
+                    'system_name': eddb_system.name,
+                    'power_id': eddb_system.power_id,
+                    'power_state_id': eddb_system.power_state_id,
+                    'held_merits': sys_info['power']['held_merits'],
+                    'stolen_forts': sys_info['power']['stolen_forts'],
+                }
+                system = SpySystem(**kwargs)
+                eddb_session.add(system)
+                log.warning("Adding SpySystem for held merits: %s", sys_name)
 
         if 'top5_power' in sys_info:
             log.warning("Parsing top 5 bounties for: %s", sys_name)
@@ -876,17 +881,18 @@ def response_json_update_system_info(eddb_session, info):
             filter(SpyTraffic.system == sys_name).\
             delete()
         log.warning("Parsing ship traffic for: %s", sys_name)
-        for ship_name, cnt in sys_info['traffic']['by_ship'].items():
-            try:
-                traffic = SpyTraffic(
-                    cnt=cnt,
-                    ship_id=ship_map_traffic[ship_name],
-                    system=sys_name,
-                )
-                eddb_session.add(traffic)
-                print(repr(traffic))
-            except KeyError:
-                print("Not found", ship_name)
+        if 'traffic' in sys_info:
+            for ship_name, cnt in sys_info['traffic']['by_ship'].items():
+                try:
+                    traffic = SpyTraffic(
+                        cnt=cnt,
+                        ship_id=ship_map_traffic[ship_name],
+                        system=sys_name,
+                    )
+                    eddb_session.add(traffic)
+                    print(repr(traffic))
+                except KeyError:
+                    print("Not found", ship_name)
 
 
 def compare_sheet_fort_systems_to_spy(session, eddb_session):
