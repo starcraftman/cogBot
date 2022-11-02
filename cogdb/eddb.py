@@ -2421,7 +2421,7 @@ def get_all_systems_named(session, system_names, *, include_exploiteds=False):
             if system.power_state.text == "Control":
                 exploits += get_systems_around(session, system.name)
 
-    found_systems = set(found + exploits)
+    found_systems = sorted(list(set(found + exploits)), key=lambda x: x.name)
     found_names_lower = [x.name.lower() for x in found_systems]
     not_found = [x for x in system_names if x.lower() not in found_names_lower]
 

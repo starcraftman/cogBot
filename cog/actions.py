@@ -1721,7 +1721,8 @@ async def post_systems(systems, callback=None):
             await callback(f'{sys.name} has been updated.')
 
     if callback:
-        await callback(f'Scrape of {len(systems)} has completed. Have a nice day!')
+        sys_names = ", ".join([x.name for x in systems])[:1600]
+        await callback(f'Scrape of {len(systems)} systems has completed. The following were updated:\n\n{sys_names}')
 
     return influence_ids
 
@@ -1762,7 +1763,7 @@ class Scrape(Action):
 
         await post_systems(systems, callback=self.msg.channel.send)
 
-        return 'The following systems were updated:\n\n' + ', '.join(control_names)
+        return 'Held update completed successfully.'
 
     async def execute(self):
         try:
