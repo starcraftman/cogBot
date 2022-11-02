@@ -1686,7 +1686,7 @@ class Scout(Action):
         await self.bot.send_message(self.msg.channel, lines)
 
 
-async def post_systems(systems):
+async def post_systems(systems, callback=None):
     """
     Helper function, take a list of systems and query their information.
 
@@ -1717,6 +1717,11 @@ async def post_systems(systems):
                 pool, spy.load_response_json, response_json
             )
         log.warning("POSTAPI Finished Parsing: %s.", sys.name)
+        if callback:
+            await callback(f'{sys.name} has been updated.')
+
+    if callback:
+        await callback(f'Scrape of {len(systems)} has completed. Have a nice day!')
 
     return influence_ids
 
@@ -1732,14 +1737,12 @@ class Scrape(Action):
         system_names = process_system_args(self.args.systems)
         found, not_found = cogdb.eddb.get_all_systems_named(eddb_session, system_names)
 
-        estimate = datetime.timedelta(seconds=len(found) * 30)
-        msg = f"""The {len(found)} systems were found and will be updated.
-Estimate of how long it will take: {str(estimate)}"""
+        msg = f"{len(found)} systems were found and will be updated."
         if not_found:
             msg += f"\n\nThe following systems weren't found: \n{pprint.pformat(not_found)}"
         await self.bot.send_message(self.msg.channel, msg)
 
-        influence_ids = await post_systems(found)
+        influence_ids = await post_systems(found, callback=self.msg.channel.send)
         influences = cogdb.eddb.get_influences_by_id(eddb_session, influence_ids)
         scanner = get_scanner('bgs_demo')
         await scanner.clear_cells()
@@ -1757,12 +1760,7 @@ Estimate of how long it will take: {str(estimate)}"""
         control_names = cogdb.eddb.get_controls_of_power(eddb_session, power=name)
         systems, _ = cogdb.eddb.get_all_systems_named(eddb_session, control_names)
 
-        estimate = datetime.timedelta(seconds=len(systems) * 30)
-        msg = f"""The {len(control_names)} systems were found and will be updated.
-Estimate of how long it will take: {str(estimate)}"""
-        await self.bot.send_message(self.msg.channel, msg)
-
-        await post_systems(systems)
+        await post_systems(systems, callback=self.msg.channel.send)
 
         return 'The following systems were updated:\n\n' + ', '.join(control_names)
 

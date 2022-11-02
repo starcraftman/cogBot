@@ -736,7 +736,11 @@ def load_response_json(response):
     for news_info in response.values():
         result = {}
         for entry in news_info['news']:
-            parser = PARSER_MAP[entry['type']]
+            try:
+                parser = PARSER_MAP[entry['type']]
+            except KeyError:
+                logging.getLogger(__name__).error("RESPONSE PARSER FAILED: %s", entry['type'])
+                __import__('pprint').pprint(news_info['news'])
             try:
                 result[parser['name']] += [parser['func'](entry)]
             except KeyError:
