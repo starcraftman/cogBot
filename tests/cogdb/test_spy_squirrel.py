@@ -630,3 +630,8 @@ def test_preload_spy_tables(empty_spy, eddb_session):
     assert not eddb_session.query(spy.SpyShip).all()
     spy.preload_spy_tables(eddb_session)
     assert eddb_session.query(spy.SpyShip).filter(spy.SpyShip.text == "Vulture").one()
+
+
+def test_get_vote_of_power(empty_spy, eddb_session, spy_test_bed):
+    assert 75 == spy.get_vote_of_power(eddb_session)
+    assert 0 == spy.get_vote_of_power(eddb_session, power='winters')

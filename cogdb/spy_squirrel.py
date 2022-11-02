@@ -249,7 +249,7 @@ class SpyVote(ReprMixin, TimestampMixin, Base):
     _repr_keys = ['power_id', 'vote', 'updated_at']
 
     power_id = sqla.Column(sqla.Integer, primary_key=True)
-    vote = sqla.Column(sqla.Integer, default=0)
+    vote = sqla.Column(sqla.Integer, default=0)  # Current consolidation
     updated_at = sqla.Column(sqla.Integer, default=time.time, onupdate=time.time)
 
     # Relationships
@@ -1025,6 +1025,27 @@ def get_spy_systems_for_galpow(eddb_session, power_id):
         vote = None
 
     return controls, preps, expansions, vote
+
+
+def get_vote_of_power(eddb_session, power='%hudson'):
+    """
+    Get the current spy vote amount for a particular power.
+
+    Args:
+        eddb_session: A session onto the db.
+        power: The loose match of power name. By default hudson's current vote.
+
+    Returns: The current amount of consolidation of a system.
+    """
+    try:
+        vote_amount = eddb_session.query(SpyVote).\
+            join(Power, SpyVote.power_id == Power.id).\
+            filter(Power.text.ilike(power)).\
+            one().vote
+    except sqla.orm.exc.NoResultFound:
+        vote_amount = 0
+
+    return vote_amount
 
 
 def preload_spy_tables(eddb_session):

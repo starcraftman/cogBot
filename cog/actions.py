@@ -2260,18 +2260,25 @@ Date (UTC): {now}
 
     def vote_direction(self, globe):
         """Display vote direction"""
+        current_vote = globe.consolidation
+        # FIXME: This is a bit of hack. Prune global object later.
+        with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
+            spy_vote = spy.get_vote_of_power(eddb_session)
+            if spy_vote != 0:
+                current_vote = spy_vote
+
         if globe.show_vote_goal or is_near_tick():
-            if math.fabs(globe.vote_goal - globe.consolidation) <= 1.0:
+            if math.fabs(globe.vote_goal - current_vote) <= 1.0:
                 vote_choice = 'Hold your vote (<=1% of goal)'
-            elif globe.consolidation > globe.vote_goal:
+            elif current_vote > globe.vote_goal:
                 vote_choice = 'vote Preparation'
-            elif globe.consolidation < globe.vote_goal:
+            elif current_vote < globe.vote_goal:
                 vote_choice = 'vote Consolidation'
             else:
                 vote_choice = 'Hold your vote'
             msg = "Current vote goal is {goal}%, current consolidation {current_cons}%, please **{vote_choice}**." \
                 .format(
-                    goal=globe.vote_goal, current_cons=globe.consolidation, vote_choice=vote_choice
+                    goal=globe.vote_goal, current_cons=current_vote, vote_choice=vote_choice
                 )
         else:
             msg = "Please hold your vote for now. A ping will be sent once we have a final decision."
