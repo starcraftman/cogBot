@@ -55,7 +55,7 @@ LEN = {  # Lengths for strings stored in the db
     "module_category": 20,  # Name of group of similar groups like limpets, weapons
     "module_group": 36,  # Name of module group, i.e. "Beam Laser"
     "power": 21,
-    "power_abv": 5,
+    "power_abv": 6,
     "power_state": 10,
     "security": 8,
     "settlement_security": 10,
@@ -1286,18 +1286,18 @@ def preload_module_groups(session):
 def preload_powers(session):
     """ All possible powers in Powerplay. """
     session.add_all([
-        Power(id=0, text="None", eddn='None', abbrev="NON"),
-        Power(id=1, text="Aisling Duval", eddn='Aisling Duval', abbrev="AIS", home_system_name='Cubeo'),
-        Power(id=2, text="Archon Delaine", eddn='Archon Delaine', abbrev="ARC", home_system_name='Harma'),
+        Power(id=0, text="None", eddn='None', abbrev="NONE"),
+        Power(id=1, text="Aisling Duval", eddn='Aisling Duval', abbrev="AD", home_system_name='Cubeo'),
+        Power(id=2, text="Archon Delaine", eddn='Archon Delaine', abbrev="Archon", home_system_name='Harma'),
         Power(id=3, text="Arissa Lavigny-Duval", eddn='A. Lavigny-Duval', abbrev="ALD", home_system_name='Kamadhenu'),
-        Power(id=4, text="Denton Patreus", eddn='Denton Patreus', abbrev="PAT", home_system_name='Eotienses'),
-        Power(id=5, text="Edmund Mahon", eddn='Edmund Mahon', abbrev="MAH", home_system_name='Gateway'),
-        Power(id=6, text="Felicia Winters", eddn='Felicia Winters', abbrev="WIN", home_system_name='Rhea'),
+        Power(id=4, text="Denton Patreus", eddn='Denton Patreus', abbrev="DP", home_system_name='Eotienses'),
+        Power(id=5, text="Edmund Mahon", eddn='Edmund Mahon', abbrev="EM", home_system_name='Gateway'),
+        Power(id=6, text="Felicia Winters", eddn='Felicia Winters', abbrev="FW", home_system_name='Rhea'),
         Power(id=7, text="Li Yong-Rui", eddn='Li Yong-Rui', abbrev="LYR", home_system_name='Lembava'),
-        Power(id=8, text="Pranav Antal", eddn='Pranav Antal', abbrev="ANT", home_system_name='Polevnic'),
-        Power(id=9, text="Zachary Hudson", eddn='Zachary Hudson', abbrev="HUD", home_system_name='Nanomam'),
-        Power(id=10, text="Zemina Torval", eddn='Zemina Torval', abbrev="TOR", home_system_name='Synteini'),
-        Power(id=11, text="Yuri Grom", eddn='Yuri Grom', abbrev="GRM", home_system_name='Clayakarma'),
+        Power(id=8, text="Pranav Antal", eddn='Pranav Antal', abbrev="PA", home_system_name='Polevnic'),
+        Power(id=9, text="Zachary Hudson", eddn='Zachary Hudson', abbrev="ZH", home_system_name='Nanomam'),
+        Power(id=10, text="Zemina Torval", eddn='Zemina Torval', abbrev="ZT", home_system_name='Synteini'),
+        Power(id=11, text="Yuri Grom", eddn='Yuri Grom', abbrev="YG", home_system_name='Clayakarma'),
     ])
 
 
@@ -1881,6 +1881,41 @@ def load_stations(fname, economy_ids, preload=True, refresh_all=False):
                 pass
 
     print(f"FIN: Parsing stations in {fname}")
+
+
+def get_power_by_name(session, partial=''):
+    """
+    Given part of a name of a power in game, resolve the Power of the database and return it.
+
+    Args:
+        session: A session onto the db.
+        partial: Part of a name, could be abbreviation or part of the name. So long as it resolves to one power valid.
+
+    Returns: A Power who was matched. Alternatively if no match found, return None.
+    """
+    try:
+        return session.query(Power).\
+            filter(Power.abbrev == partial).\
+            one()
+    except sqla_orm.exc.NoResultFound:
+        pass
+
+    try:
+        # If not modified to be loose, modify both sides
+        if partial[0] != '%' and partial[-1] != '%':
+            partial = f'%{partial}%'
+        return session.query(Power).\
+            filter(Power.text.ilike(partial)).\
+            one()
+    except sqla_orm.exc.NoResultFound:
+        powers = session.query(Power).\
+            filter(Power.id != 0).\
+            all()
+        msg = "To match a power, use any of these abreviations:\n\n"\
+            + '\n'.join([f"{pow.abbrev:6} => {pow.text}" for pow in powers])
+        raise cog.exc.InvalidCommandArgs(msg)
+
+    return None
 
 
 def get_systems(session, system_names):

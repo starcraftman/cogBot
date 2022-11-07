@@ -582,3 +582,17 @@ def test_add_history_influence_inf_diff(eddb_session):
         eddb_session.rollback()
         eddb_session.query(HistoryInfluence).delete()
         eddb_session.query(HistoryTrack).delete()
+
+
+def test_get_power_by_name(eddb_session):
+    assert "Felicia Winters" == cogdb.eddb.get_power_by_name(eddb_session, 'FW').text
+    assert "Zachary Hudson" == cogdb.eddb.get_power_by_name(eddb_session, 'huds').text
+
+
+def test_get_power_by_name_fails(eddb_session):
+    with pytest.raises(cog.exc.InvalidCommandArgs):
+        cogdb.eddb.get_power_by_name(eddb_session, 'ADD')
+    try:
+        cogdb.eddb.get_power_by_name(eddb_session, 'ADD')
+    except cog.exc.InvalidCommandArgs as exc:
+        print(str(exc))

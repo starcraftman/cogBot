@@ -1757,12 +1757,15 @@ class Scrape(Action):
 
         Returns: A message to return to invoker.
         """
-        name = '%' + ' '.join(self.args.name) + '%'
-        control_names = cogdb.eddb.get_controls_of_power(eddb_session, power=name)
+        power = cogdb.eddb.get_power_by_name(eddb_session, self.args.name)
+        await self.msg.channel.send(f"Will scrape all controls for: {power.text}. Ok? Y/N")
+        response = await self.bot.wait_for('message', check=lambda msg: msg.author == self.msg.author and msg.channel == self.msg.channel)
+        if not response.content.lower().startswith("y"):
+            return 'Canelling power scrape.'
+
+        control_names = cogdb.eddb.get_controls_of_power(eddb_session, power=power.text)
         systems, _ = cogdb.eddb.get_all_systems_named(eddb_session, control_names)
-
         await post_systems(systems, callback=self.msg.channel.send)
-
         return 'Held update completed successfully.'
 
     async def execute(self):
