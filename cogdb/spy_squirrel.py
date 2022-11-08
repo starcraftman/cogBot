@@ -1,6 +1,9 @@
 """
 Module to parse and import data from spying squirrel.
 """
+import asyncio
+import concurrent.futures as cfut
+import datetime
 import json
 import logging
 import os
@@ -44,6 +47,7 @@ JSON_POWER_STATE_TO_EDDB = {
 MAX_SPY_MERITS = 99999
 # Remove entries older than this relative current timestamp
 TWO_WEEK_SECONDS = 14 * 24 * 60 * 60
+TWO_DAYS_SECONDS = 48 * 60 * 60
 EVENT_SPY_TRAFFIC = f"""
 CREATE EVENT IF NOT EXISTS clean_spy_traffic
 ON SCHEDULE
@@ -67,6 +71,9 @@ BOUNTY_CATEGORY_MAP = {
     'power': 2,  # The power, i.e. Hudson
     'super': 3,  # The super, i.e. Fed / Imp / Alliance
 }
+HELD_POWERS = {}
+HELD_RUNNING = """Scrape for power: {power_name} already running.
+Started at {date}. Please try again later."""
 
 
 class SpyShip(ReprMixin, Base):
@@ -1048,6 +1055,103 @@ def get_vote_of_power(eddb_session, power='%hudson'):
     return vote_amount
 
 
+async def schedule_held(last_scrape):
+    """Schedule a scrape of federal powers if gap is sufficient since last.
+
+    Args:
+        last_scrape: A datetime.datetime object, should be UTC native.
+
+    Returns: The datetime.datetime UTC native object of last time run.
+    """
+    now = datetime.datetime.utcnow()
+    time_to_tick = cog.util.cycle_to_start(cog.util.current_cycle() + 1) - now
+    gap_hours = 2 if time_to_tick.seconds <= TWO_DAYS_SECONDS else 6
+
+    with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
+        if (now - last_scrape).seconds >= gap_hours * 60 * 60:
+            log = logging.getLogger(__name__)
+            log.warning("Scheduling federal scrap: %s", now)
+            for power_name in ('Felicia Winters', 'Zachary Hudson'):
+                try:
+                    await schedule_power_scrape(eddb_session, power_name, callback=log.warning)
+                except cog.exc.InvalidCommandArgs:
+                    pass
+
+    return last_scrape
+
+
+async def schedule_power_scrape(eddb_session, power_name, callback=None):
+    """Schedule a scrape of controls of a given power for detailed information.
+
+    This function will prevent multiple concurrent scrapes at same time.
+
+    Args:
+        eddb_session: A session onto the EDDB db.
+        power_name: The name of the power to scrape.
+        callback: If present, messages will be sent back over the callback.
+
+    Raises:
+        cog.exc.InvalidCommandArgs: [TODO:description]
+    """
+    if power_name in HELD_POWERS:
+        raise cog.exc.InvalidCommandArgs(
+            HELD_RUNNING.format(power_name=power_name, date=HELD_POWERS[power_name]['start_date'])
+        )
+
+    control_names = cogdb.eddb.get_controls_of_power(eddb_session, power=power_name)
+    systems, _ = cogdb.eddb.get_all_systems_named(eddb_session, control_names)
+    HELD_POWERS[power_name] = {
+        'start_date': datetime.datetime.utcnow(),
+        'start_time': time.time(),
+    }
+
+    influence_ids = await post_systems(systems, callback=callback)
+    del HELD_POWERS[power_name]
+
+    return influence_ids
+
+
+async def post_systems(systems, callback=None):
+    """
+    Helper function, take a list of systems and query their information.
+
+    Args:
+        systems: The list of cogdb.eddb.Systems that are found.
+
+    Returns: A list of cogdb.eddb.Influence ids updated.
+
+    Raises:
+        RemoteError: The remote site is down.
+    """
+    log = logging.getLogger(__name__)
+
+    # Disable during window of Thursday 0700-0800
+    now = datetime.datetime.utcnow()
+    if now.strftime("%A") == "Thursday" and now.hour == 7:
+        raise cog.exc.RemoteError
+
+    influence_ids = []
+    for sys in systems:
+        log.warning("POSTAPI Request: %s.", sys.name)
+        response_text = await cog.util.post_json_url(cog.util.CONF.scrape.api,
+                                                     {sys.name: sys.ed_system_id})
+        response_json = json.loads(str(response_text))
+        log.warning("POSTAPI Received: %s.", sys.name)
+        with cfut.ProcessPoolExecutor(max_workers=1) as pool:
+            influence_ids += await asyncio.get_event_loop().run_in_executor(
+                pool, load_response_json, response_json
+            )
+        log.warning("POSTAPI Finished Parsing: %s.", sys.name)
+        if callback:
+            await callback(f'{sys.name} has been updated.')
+
+    if callback:
+        sys_names = ", ".join([x.name for x in systems])[:1800]
+        await callback(f'Scrape of {len(systems)} systems has completed. The following were updated:\n\n{sys_names}')
+
+    return influence_ids
+
+
 def preload_spy_tables(eddb_session):
     """
     Preload the spy tables with constant values.
@@ -1163,6 +1267,10 @@ PARSER_MAP = {
         'name': 'bountiesGiven',
     },
     "stateTradeGoodCommodities": {
+        'func': parse_response_trade_goods,
+        'name': 'trade',
+    },
+    "stateTradeBadCommodities": {
         'func': parse_response_trade_goods,
         'name': 'trade',
     },

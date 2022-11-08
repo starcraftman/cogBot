@@ -1686,47 +1686,6 @@ class Scout(Action):
         await self.bot.send_message(self.msg.channel, lines)
 
 
-async def post_systems(systems, callback=None):
-    """
-    Helper function, take a list of systems and query their information.
-
-    Args:
-        systems: The list of cogdb.eddb.Systems that are found.
-
-    Returns: A list of cogdb.eddb.Influence ids updated.
-
-    Raises:
-        RemoteError: The remote site is down.
-    """
-    log = logging.getLogger(__name__)
-
-    # Disable during window of Thursday 0700-0800
-    now = datetime.datetime.utcnow()
-    if now.strftime("%A") == "Thursday" and now.hour == 7:
-        raise cog.exc.RemoteError
-
-    influence_ids = []
-    for sys in systems:
-        log.warning("POSTAPI Request: %s.", sys.name)
-        response_text = await cog.util.post_json_url(cog.util.CONF.scrape.api,
-                                                     {sys.name: sys.ed_system_id})
-        response_json = json.loads(str(response_text))
-        log.warning("POSTAPI Received: %s.", sys.name)
-        with cfut.ProcessPoolExecutor(max_workers=1) as pool:
-            influence_ids += await asyncio.get_event_loop().run_in_executor(
-                pool, spy.load_response_json, response_json
-            )
-        log.warning("POSTAPI Finished Parsing: %s.", sys.name)
-        if callback:
-            await callback(f'{sys.name} has been updated.')
-
-    if callback:
-        sys_names = ", ".join([x.name for x in systems])[:1600]
-        await callback(f'Scrape of {len(systems)} systems has completed. The following were updated:\n\n{sys_names}')
-
-    return influence_ids
-
-
 class Scrape(Action):
     """
     Interface with the spy_squirrel stuff.
@@ -1743,7 +1702,7 @@ class Scrape(Action):
             msg += f"\n\nThe following systems weren't found: \n{pprint.pformat(not_found)}"
         await self.bot.send_message(self.msg.channel, msg)
 
-        influence_ids = await post_systems(found, callback=self.msg.channel.send)
+        influence_ids = await spy.post_systems(found, callback=self.msg.channel.send)
         influences = cogdb.eddb.get_influences_by_id(eddb_session, influence_ids)
         scanner = get_scanner('bgs_demo')
         await scanner.clear_cells()
@@ -1761,12 +1720,10 @@ class Scrape(Action):
         await self.msg.channel.send(f"Will scrape all controls for: {power.text}. Ok? Y/N")
         response = await self.bot.wait_for('message', check=lambda msg: msg.author == self.msg.author and msg.channel == self.msg.channel)
         if not response.content.lower().startswith("y"):
-            return 'Canelling power scrape.'
+            return 'Cancelling power scrape.'
 
-        control_names = cogdb.eddb.get_controls_of_power(eddb_session, power=power.text)
-        systems, _ = cogdb.eddb.get_all_systems_named(eddb_session, control_names)
-        await post_systems(systems, callback=self.msg.channel.send)
-        return 'Held update completed successfully.'
+        await spy.schedule_power_scrape(eddb_session, power.text, callback=self.msg.channel.send)
+        return f'Scheduled scrape for {power.text}.'
 
     async def execute(self):
         try:
@@ -2591,7 +2548,7 @@ async def push_spy_to_sheets():  # pragma: no cover | tested elsewhere
             await scanner.send_batch(payloads, input_opt='USER_ENTERED')
 
 
-async def monitor_powerplay_api(client, *, repeat=True, delay=1800):
+async def monitor_powerplay_api(client, *, repeat=True, delay=1800, last_scrape=None):
     """Poll the powerplay page for info every delay seconds.
 
     N.B. This depends on multiple scanners being operable. Start this task ONLY when they are ready.
@@ -2603,8 +2560,11 @@ async def monitor_powerplay_api(client, *, repeat=True, delay=1800):
     """
     await asyncio.sleep(delay)
     if repeat:
+        if not last_scrape:
+            last_scrape = datetime.datetime.utcnow() - datetime.timedelta(hours=7)
+        last_scrape = await spy.schedule_held(last_scrape)
         asyncio.ensure_future(
-            monitor_powerplay_api(client, repeat=repeat, delay=delay)
+            monitor_powerplay_api(client, repeat=repeat, delay=delay, last_scrape=last_scrape)
         )
 
     log = logging.getLogger(__name__)
@@ -2615,7 +2575,7 @@ async def monitor_powerplay_api(client, *, repeat=True, delay=1800):
             raise cog.exc.RemoteError
 
         api_end = cog.util.CONF.scrape.api
-        log.warning("Start api processing.")
+        log.warning("Start monitor powerplay.")
         base_text = await cog.util.get_url(os.path.join(api_end, 'getraw', 'base.json'))
         ref_text = await cog.util.get_url(os.path.join(api_end, 'getraw', 'refined.json'))
         log.warning("Parse retrieved json.")
@@ -2630,7 +2590,7 @@ async def monitor_powerplay_api(client, *, repeat=True, delay=1800):
             )
         await push_spy_to_gal_scanner()
         await push_spy_to_sheets()
-        log.warning("Api processing completed.")
+        log.warning("End monitor powerplay.")
     except cog.exc.RemoteError:
         log.error("Spy service not operating. Will try again in %d seconds.", delay)
 
