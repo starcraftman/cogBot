@@ -1073,7 +1073,7 @@ async def schedule_held(last_scrape):
             log.warning("Scheduling federal start: %s, %s", power_name, datetime.datetime.utcnow())
             with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
                 try:
-                    await schedule_power_scrape(eddb_session, power_name, callback=log.warning)
+                    await schedule_power_scrape(eddb_session, power_name)
                 except cog.exc.InvalidCommandArgs:
                     pass
             await asyncio.sleep(random.randint(1500, 2250))  # Randomly delay between 25 and 37.5 mins
