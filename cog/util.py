@@ -18,6 +18,8 @@ import os
 import re
 
 import aiohttp
+import aiohttp.web_exceptions
+import aiohttp.client_exceptions
 import yaml
 try:
     from yaml import CLoader as Loader
@@ -658,14 +660,16 @@ async def get_url(url, params=None):
         cog.exc.RemoteError: The remote did not respond, likely down.
     """
     async with aiohttp.ClientSession(read_timeout=0) as http:
-        async with http.get(url, params=params) as resp:
-            if resp.status != 200:
-                raise cog.exc.RemoteError(f"Failed to GET from remote site [{url}]: {resp.status}")
+        try:
+            async with http.get(url, params=params) as resp:
+                if resp.status != 200:
+                    raise cog.exc.RemoteError(f"Failed to GET from remote site [{url}]: {resp.status}")
 
-            return await resp.text()
+                return await resp.text()
+        except aiohttp.ClientError as exc:
+            raise cog.exc.RemoteError("Some unexpected failure on GET.") from exc
 
 
-# TODO:Test when endpoint available
 async def post_json_url(url, payload, *, headers=None):
     """POST to a url asynchronously and await a response json.
 
@@ -688,11 +692,27 @@ async def post_json_url(url, payload, *, headers=None):
         }
 
     async with aiohttp.ClientSession(read_timeout=0) as http:
-        async with http.post(url, data=json.dumps(payload), headers=headers) as resp:
-            if resp.status != 200:
-                raise cog.exc.RemoteError(f"Failed to POST from remote site [{url}]: {resp.status}")
+        try:
+            async with http.post(url, data=json.dumps(payload), headers=headers) as resp:
+                if resp.status != 200:
+                    raise cog.exc.RemoteError(f"Failed to POST from remote site [{url}]: {resp.status}")
 
-            return await resp.text()
+                return await resp.text()
+        except aiohttp.ClientError as exc:
+            raise cog.exc.RemoteError("Some unexpected failure on POST.") from exc
+
+
+async def emergency_notice(client, msg):  # pragma: no cover just a convenience, depends on client
+    """Send an emergency notification to dev server and ping devs.
+
+    Args:
+        client: The discord client itself.
+        msg: The message to send.
+    """
+    chan = client.get_channel(cog.util.CONF.emergency.channel)
+    for user in [client.get_user(discord_id) for discord_id in cog.util.CONF.emergency.users]:
+        msg += f" {user.mention}"
+    await chan.send(msg)
 
 
 #  # Scenario multiple readers, always allowed

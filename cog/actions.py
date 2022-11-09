@@ -2594,6 +2594,31 @@ async def monitor_powerplay_api(client, *, repeat=True, delay=1800, last_scrape=
         log.error("Spy service not operating. Will try again in %d seconds.", delay)
 
 
+async def monitor_spy_site(client, *, repeat=True, delay=900):
+    """Poll the powerplay page for info every delay seconds.
+
+    When site fails to load, IMMEDIATELY ping for help.
+
+    Args:
+        client: The discord.py client.
+        repeat: If True schedule self at end of execution to run again.
+        delay: The delay in seconds between checks.
+    """
+    await asyncio.sleep(delay)
+    if repeat:
+        asyncio.ensure_future(
+            monitor_spy_site(client, repeat=repeat, delay=delay)
+        )
+
+    log = logging.getLogger(__name__)
+    try:
+        await cog.util.get_url(cog.util.CONF.scrape.url)
+        log.warning("Spy service is online.")
+    except cog.exc.RemoteError:
+        log.error("Spy service is suspected offline. Notifying server.")
+        await cog.util.emergency_notice(client, "The spy service appears down. If expected please ignore.")
+
+
 async def report_to_leadership(client, msgs):  # pragma: no cover
     """
     Send messages to the channel configured to receive reports.
