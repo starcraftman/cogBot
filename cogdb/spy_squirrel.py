@@ -8,6 +8,7 @@ import json
 import logging
 import os
 import pathlib
+import random
 import re
 import subprocess as sub
 import tempfile
@@ -47,7 +48,7 @@ JSON_POWER_STATE_TO_EDDB = {
 MAX_SPY_MERITS = 99999
 # Remove entries older than this relative current timestamp
 TWO_WEEK_SECONDS = 14 * 24 * 60 * 60
-TWO_DAYS_SECONDS = 48 * 60 * 60
+EIGHT_HOURS_SECONDS = 8 * 60 * 60
 EVENT_SPY_TRAFFIC = f"""
 CREATE EVENT IF NOT EXISTS clean_spy_traffic
 ON SCHEDULE
@@ -1064,18 +1065,17 @@ async def schedule_held(last_scrape):
     Returns: The datetime.datetime UTC native object of last time run.
     """
     now = datetime.datetime.utcnow()
-    time_to_tick = cog.util.cycle_to_start(cog.util.current_cycle() + 1) - now
-    gap_hours = 2 if time_to_tick.seconds <= TWO_DAYS_SECONDS else 6
 
     with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
-        if (now - last_scrape).seconds >= gap_hours * 60 * 60:
+        if (now - last_scrape).seconds >= EIGHT_HOURS_SECONDS:
             log = logging.getLogger(__name__)
             log.warning("Scheduling federal scrap: %s", now)
             for power_name in ('Felicia Winters', 'Zachary Hudson'):
                 try:
                     await schedule_power_scrape(eddb_session, power_name, callback=log.warning)
                 except cog.exc.InvalidCommandArgs:
-                    pass
+                   pass
+                await asyncio.sleep(random.randint(1500, 2250))  # Randomly delay between 25 and 37.5 mins
 
     return last_scrape
 
@@ -1144,6 +1144,7 @@ async def post_systems(systems, callback=None):
         log.warning("POSTAPI Finished Parsing: %s.", sys.name)
         if callback:
             await callback(f'{sys.name} has been updated.')
+        await asyncio.sleep(random.randint(60, 210))  # Randomly delay between 1 and 2.5 mins
 
     if callback:
         sys_names = ", ".join([x.name for x in systems])[:1800]

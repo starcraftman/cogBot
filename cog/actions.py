@@ -2557,11 +2557,10 @@ async def monitor_powerplay_api(client, *, repeat=True, delay=1800, last_scrape=
         client: The discord.py client.
         repeat: If True schedule self at end of execution to run again.
         delay: The delay in seconds between checks.
+        last_scrape: A datetime.datetime UTC native object. If None don't run scrape.
     """
     await asyncio.sleep(delay)
-    if repeat:
-        if not last_scrape:
-            last_scrape = datetime.datetime.utcnow() - datetime.timedelta(hours=7)
+    if repeat and last_scrape:
         last_scrape = await spy.schedule_held(last_scrape)
         asyncio.ensure_future(
             monitor_powerplay_api(client, repeat=repeat, delay=delay, last_scrape=last_scrape)

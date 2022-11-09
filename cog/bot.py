@@ -25,9 +25,11 @@ import functools
 import logging
 import os
 import pprint
+import random
 import re
 import sys
 import tempfile
+import time
 
 import aiofiles
 import apiclient
@@ -205,7 +207,8 @@ class CogBot(discord.Client):
                 cog.actions.monitor_carrier_events(self, next_summary=next_summary, delay=60),
                 cog.actions.monitor_snipe_merits(self),
                 cog.actions.monitor_powerplay_api(self, repeat=False, delay=75),  # Runs scrape right after launch once
-                cog.actions.monitor_powerplay_api(self, repeat=True, delay=1800),  # Every 30 mins scrape
+                cog.actions.monitor_powerplay_api(self, repeat=True, delay=1800,
+                                                  last_scrape=datetime.datetime.utcnow()),  # Every 30 mins scrape
                 cogdb.eddb.monitor_eddb_caches(),
                 cogdb.monitor_pools(),
             ))
@@ -508,6 +511,7 @@ def cmd_from_content(prefix, content):
 
 def main():  # pragma: no cover
     """ Entry here! """
+    random.seed(time.time())
     sqlalchemy_log = '--db' in sys.argv
     if sqlalchemy_log:
         print("Enabling SQLAlchemy log.")
