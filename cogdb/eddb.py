@@ -1907,13 +1907,13 @@ def get_power_by_name(session, partial=''):
         return session.query(Power).\
             filter(Power.text.ilike(partial)).\
             one()
-    except sqla_orm.exc.NoResultFound:
+    except sqla_orm.exc.NoResultFound as exc:
         powers = session.query(Power).\
             filter(Power.id != 0).\
             all()
         msg = "To match a power, use any of these abreviations:\n\n"\
             + '\n'.join([f"{pow.abbrev:6} => {pow.text}" for pow in powers])
-        raise cog.exc.InvalidCommandArgs(msg)
+        raise cog.exc.InvalidCommandArgs(msg) from exc
 
     return None
 

@@ -47,8 +47,8 @@ JSON_POWER_STATE_TO_EDDB = {
 }
 MAX_SPY_MERITS = 99999
 # Remove entries older than this relative current timestamp
-TWO_WEEK_SECONDS = 14 * 24 * 60 * 60
-EIGHT_HOURS_SECONDS = 8 * 60 * 60
+TWO_WEEK_SECONDS = int(datetime.timedelta(weeks=2).total_seconds())
+EIGHT_HOURS = datetime.timedelta(hours=8)
 EVENT_SPY_TRAFFIC = f"""
 CREATE EVENT IF NOT EXISTS clean_spy_traffic
 ON SCHEDULE
@@ -1065,17 +1065,18 @@ async def schedule_held(last_scrape):
     Returns: The datetime.datetime UTC native object of last time run.
     """
     now = datetime.datetime.utcnow()
+    log = logging.getLogger(__name__)
+    log.warning("Scheduling federal scrap: %s", now)
 
-    with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
-        if (now - last_scrape).seconds >= EIGHT_HOURS_SECONDS:
-            log = logging.getLogger(__name__)
-            log.warning("Scheduling federal scrap: %s", now)
-            for power_name in ('Felicia Winters', 'Zachary Hudson'):
+    if (now - last_scrape) >= EIGHT_HOURS:
+        for power_name in ('Felicia Winters', 'Zachary Hudson'):
+            log.warning("Scheduling federal start: %s, %s", power_name, datetime.datetime.utcnow())
+            with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
                 try:
                     await schedule_power_scrape(eddb_session, power_name, callback=log.warning)
                 except cog.exc.InvalidCommandArgs:
-                   pass
-                await asyncio.sleep(random.randint(1500, 2250))  # Randomly delay between 25 and 37.5 mins
+                    pass
+            await asyncio.sleep(random.randint(1500, 2250))  # Randomly delay between 25 and 37.5 mins
 
     return last_scrape
 
