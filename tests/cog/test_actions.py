@@ -16,6 +16,7 @@ import cog.bot
 import cog.parse
 import cogdb
 import cogdb.eddb
+import cogdb.spy_squirrel as spy
 from cogdb.side import SystemAge
 from cogdb.schema import (DiscordUser, FortSystem, FortDrop, FortUser,
                           FortOrder, UMSystem, UMUser, UMHold,
@@ -72,6 +73,20 @@ def patch_scanners():
     yield scanner
 
     cogdb.scanners.SCANNERS = old_scanners
+
+
+@pytest.fixture
+def f_spy_vote(eddb_session):
+    """
+    Setup the hudson SpyVote for testing command vote.
+    """
+    eddb_session.add(spy.SpyVote(power_id=9, vote=77))
+    eddb_session.commit()
+    eddb_session.close()
+
+    yield
+
+    eddb_session.query(spy.SpyVote).delete()
 
 
 def action_map(fake_message, fake_bot):
@@ -1722,7 +1737,7 @@ async def test_cmd_near_if_medium(f_bot):
     await action_map(msg, f_bot).execute()
 
     actual = str(f_bot.send_message.call_args).replace("\\n", "\n")
-    assert "Levi-Strauss In." in actual
+    assert "Lomas Orbiter" in actual
 
 
 @pytest.mark.asyncio
@@ -1804,21 +1819,21 @@ async def test_cmd_vote_cons(f_bot, f_dusers, f_global_testbed, f_vote_testbed):
 
 
 @pytest.mark.asyncio
-async def test_cmd_vote_near(f_bot, f_global_testbed, f_vote_testbed, db_cleanup):
+async def test_cmd_vote_near(f_bot, f_global_testbed, f_vote_testbed, db_cleanup, f_spy_vote):
     with cogdb.session_scope(cogdb.Session) as session:
         globe = session.query(Global).one()
         globe.show_vote_goal = True
-        globe.consolidation = 25
         globe.vote_goal = 26
 
     msg = fake_msg_gears("!vote")
     await action_map(msg, f_bot).execute()
 
-    assert "Hold your vote (<=1%" in str(f_bot.send_message.call_args).replace("\\n", "\n")
+    actual = str(f_bot.send_message.call_args).replace("\\n", "\n")
+    assert "current consolidation 77%, please **vote Preparation**." in actual
 
 
 @pytest.mark.asyncio
-async def test_cmd_vote(f_bot, f_global_testbed, f_vote_testbed, db_cleanup):
+async def test_cmd_vote(f_bot, f_global_testbed, f_vote_testbed, db_cleanup, f_spy_vote):
     msg = fake_msg_gears("!vote")
 
     await action_map(msg, f_bot).execute()
@@ -1833,19 +1848,11 @@ async def test_cmd_vote(f_bot, f_global_testbed, f_vote_testbed, db_cleanup):
 
 
 @pytest.mark.asyncio
-async def test_cmd_vote_set_goal(f_bot, f_admins, f_dusers, f_global_testbed, f_vote_testbed, db_cleanup):
+async def test_cmd_vote_set_goal(f_bot, f_admins, f_dusers, f_global_testbed, f_vote_testbed, db_cleanup, f_spy_vote):
     msg = fake_msg_gears("!vote -s 75")
 
     await action_map(msg, f_bot).execute()
     f_bot.send_message.assert_called_with(msg.channel, 'New vote goal is **75%**, current vote is 77%.')
-
-
-@pytest.mark.asyncio
-async def test_cmd_vote_set_current(f_bot, f_admins, f_dusers, f_global_testbed, f_vote_testbed, db_cleanup):
-    msg = fake_msg_gears("!vote -fs 42")
-
-    await action_map(msg, f_bot).execute()
-    f_bot.send_message.assert_called_with(msg.channel, 'Vote goal is **0%**, forced current vote is 42%.')
 
 
 @pytest.mark.asyncio

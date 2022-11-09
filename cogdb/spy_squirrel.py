@@ -958,36 +958,41 @@ def compare_sheet_um_systems_to_spy(session, eddb_session):
         eddb_session: A session onto the EDDB db.
     """
     um_targets = session.query(UMSystem).\
-        filter(
-            UMSystem.type == EUMType.control,
-            UMSystem.sheet_src == EUMSheet.main).\
+        filter(UMSystem.sheet_src == EUMSheet.main).\
         all()
-    um_names = [x.name for x in um_targets]
     um_dict = {x.name: x for x in um_targets}
 
-    systems = {}
-    for system in um_targets:
-        systems.update({
-            system.name: {
-                'sheet_col': system.sheet_col,
-                'progress_us': system.progress_us,
-                'progress_them': system.progress_them,
-                'map_offset': system.map_offset,
-            }
-        })
+    systems = {
+        system.name: {
+            'sheet_col': system.sheet_col,
+            'progress_us': system.progress_us,
+            'progress_them': system.progress_them,
+            'map_offset': system.map_offset,
+            'type': system.type,
+        } for system in um_targets
+    }
 
     spy_systems = eddb_session.query(SpySystem).\
         join(System, System.ed_system_id == SpySystem.ed_system_id).\
-        filter(System.name.in_(um_names)).\
+        filter(System.name.in_(list(um_dict.keys()))).\
         all()
     for spy_sys in spy_systems:
-        if spy_sys.um > systems[spy_sys.system.name]['progress_us']:
-            systems[spy_sys.system.name]['progress_us'] = spy_sys.um + spy_sys.held_merits
-            um_dict[spy_sys.system.name].progress_us = spy_sys.um + spy_sys.held_merits
+        system = systems[spy_sys.system.name]
 
-        spy_progress_them = spy_sys.fort / spy_sys.fort_trigger
+        if system['type'] == EUMType.expand:
+            spy_progress_us = spy_sys.fort + spy_sys.held_merits
+            spy_progress_them = spy_sys.um / spy_sys.um_trigger
+        else:
+            spy_progress_us = spy_sys.um + spy_sys.held_merits
+            spy_progress_them = spy_sys.fort / spy_sys.fort_trigger
+        del system['type']
+
+        if spy_progress_us > systems[spy_sys.system.name]['progress_us']:
+            system['progress_us'] = spy_progress_us
+            um_dict[spy_sys.system.name].progress_us = spy_progress_us
+
         if spy_progress_them > systems[spy_sys.system.name]['progress_them']:
-            systems[spy_sys.system.name]['progress_them'] = spy_progress_them
+            system['progress_them'] = spy_progress_them
             um_dict[spy_sys.system.name].progress_them = spy_progress_them
 
     return list(sorted(systems.values(), key=lambda x: x['sheet_col']))
@@ -1056,7 +1061,7 @@ def get_vote_of_power(eddb_session, power='%hudson'):
     return vote_amount
 
 
-async def schedule_held(last_scrape):
+async def schedule_held(last_scrape):  # pragma: no cover, would ping API point needlessly
     """Schedule a scrape of federal powers if gap is sufficient since last.
 
     Args:
@@ -1081,7 +1086,7 @@ async def schedule_held(last_scrape):
     return last_scrape
 
 
-async def schedule_power_scrape(eddb_session, power_name, callback=None):
+async def schedule_power_scrape(eddb_session, power_name, callback=None):  # pragma: no cover, would ping API point needlessly
     """Schedule a scrape of controls of a given power for detailed information.
 
     This function will prevent multiple concurrent scrapes at same time.
@@ -1112,7 +1117,7 @@ async def schedule_power_scrape(eddb_session, power_name, callback=None):
     return influence_ids
 
 
-async def post_systems(systems, callback=None):
+async def post_systems(systems, callback=None):  # pragma: no cover, would ping API point needlessly
     """
     Helper function, take a list of systems and query their information.
 
