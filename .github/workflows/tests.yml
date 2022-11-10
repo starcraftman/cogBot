@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ["3.8", "3.9", "3.10"]
+        python-version: ["3.8", "3.9", "3.10", "3.11"]
 
     # Example services for Mongodb, PostgreSQL and Redis can be found here:
     # https://github.com/actions/example-services/tree/master/.github/workflows
@@ -30,7 +30,7 @@ jobs:
       run: |
         sudo /etc/init.d/mysql start
         mysql -u${{ env.DB_USER }} -p${{ env.DB_PASSWORD }} < "tests/mysql_tables.sql"
-        curl "http://starcraftman.com/elite/eddb_v07.sql" > "eddb.sql"
+        curl "http://starcraftman.com/elite/eddb_v08.sql" > "eddb.sql"
         mysql -u${{ env.DB_USER }} -p${{ env.DB_PASSWORD }} -D eddb < "eddb.sql"
     - name: Generate secret config files
       env:
