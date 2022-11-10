@@ -2604,19 +2604,28 @@ async def monitor_spy_site(client, *, repeat=True, delay=900):
         repeat: If True schedule self at end of execution to run again.
         delay: The delay in seconds between checks.
     """
-    await asyncio.sleep(delay)
-    if repeat:
-        asyncio.ensure_future(
-            monitor_spy_site(client, repeat=repeat, delay=delay)
-        )
-
     log = logging.getLogger(__name__)
-    try:
-        await cog.util.get_url(cog.util.CONF.scrape.url)
-        log.warning("Spy service is online.")
-    except cog.exc.RemoteError:
-        log.error("Spy service is suspected offline. Notifying server.")
-        await cog.util.emergency_notice(client, "The spy service appears down. If expected please ignore.")
+    working = True
+    last_working = datetime.datetime.utcnow()
+
+    while repeat:
+        await asyncio.sleep(delay)
+        try:
+            await cog.util.get_url(cog.util.CONF.scrape.url)
+            if not working:
+                diff_time = datetime.datetime.utcnow() - last_working
+                hours = diff_time.seconds // 3600 + diff_time.days * 24
+                msg = f"Spy service restored. Outage began at {last_working}. Lasted {hours} hours."
+                log.error(msg)
+                await cog.util.emergency_notice(client, msg)
+            working = True
+            last_working = datetime.datetime.utcnow()
+        except cog.exc.RemoteError:
+            if working:
+                msg = "Spy service is suspected offline. If expected please ignore."
+                log.error(msg)
+                await cog.util.emergency_notice(client, msg)
+            working = False
 
 
 async def report_to_leadership(client, msgs):  # pragma: no cover
