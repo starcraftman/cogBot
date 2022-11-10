@@ -1364,7 +1364,6 @@ def fort_response_manual(session):
 
     Returns: A formatted message to send to channe.
     """
-    cogdb.query.fort_order_remove_finished(session)
     manual_forts = cogdb.query.fort_order_get(session)
     preps = [x for x in manual_forts if x.is_prep]
     forts = [x for x in manual_forts if not x.is_prep]
