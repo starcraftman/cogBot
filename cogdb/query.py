@@ -404,9 +404,12 @@ def fort_order_remove_finished(session):
     Clean up any FortOrders that have been completed.
     Deletions will be comitted.
     """
-    for fort_order in session.query(FortOrder).order_by(FortOrder.order):
-        if fort_order.system and (fort_order.system.is_fortified or fort_order.system.is_deferred):
-            session.delete(fort_order)
+    to_remove = session.query(FortOrder).\
+        join(FortSystem, FortOrder.system_name == FortSystem.name).\
+        filter(FortSystem.is_fortified).\
+        all()
+    for fort_order in to_remove:
+        session.delete(fort_order)
 
     session.commit()
 
