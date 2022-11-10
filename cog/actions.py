@@ -2519,9 +2519,8 @@ async def monitor_powerplay_api(client, *, repeat=True, delay=1800, last_scrape=
         log.warning("Start monitor powerplay.")
         base_text = await cog.util.get_url(os.path.join(api_end, 'getraw', 'base.json'))
         ref_text = await cog.util.get_url(os.path.join(api_end, 'getraw', 'refined.json'))
-        log.warning("Parse retrieved json.")
 
-        log.warning("Handle sheet updates.")
+        log.warning("Parse retrieved json.")
         with cfut.ProcessPoolExecutor(max_workers=1) as pool:
             await client.loop.run_in_executor(
                 pool, spy.load_base_json, json.loads(base_text),
@@ -2529,11 +2528,13 @@ async def monitor_powerplay_api(client, *, repeat=True, delay=1800, last_scrape=
             await client.loop.run_in_executor(
                 pool, spy.load_refined_json, json.loads(ref_text),
             )
+        log.warning("Handle sheet updates.")
         await push_spy_to_gal_scanner()
         await push_spy_to_sheets()
         log.warning("End monitor powerplay.")
     except cog.exc.RemoteError:
-        log.error("Spy service not operating. Will try again in %d seconds.", delay)
+        if repeat:
+            log.error("Spy service not operating. Will try again in %d seconds.", delay)
 
 
 async def monitor_spy_site(client, *, repeat=True, delay=900):
