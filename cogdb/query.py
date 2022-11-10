@@ -1340,7 +1340,8 @@ def fort_response_normal(session, eddb_session, *, next_systems=3):
     globe = cogdb.query.get_current_global(session)
     priority, deferred = cogdb.query.fort_get_priority_targets(session)
     show_deferred = deferred and (
-        (globe.show_almost_done or cog.util.is_near_tick())
+        globe.show_almost_done
+        or cog.util.is_near_tick()
         or cogdb.TEST_DB
     )
     if priority:
@@ -1360,7 +1361,6 @@ def fort_response_manual(session):
 
     Args:
         session: A session onto the db.
-        next_count: The amount of systems to show not including preps and active target.
 
     Returns: A formatted message to send to channe.
     """
