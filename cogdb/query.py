@@ -14,6 +14,7 @@ import cog.exc
 import cog.sheets
 import cog.util
 import cogdb.eddb
+import cogdb.spy_squirrel as spy
 from cog.util import fuzzy_find
 from cogdb.schema import (DiscordUser, FortSystem, FortPrep, FortDrop, FortUser, FortOrder,
                           EFortType, UMSystem, UMUser, UMHold, EUMSheet, EUMType, KOS,
@@ -1184,8 +1185,8 @@ def post_cycle_db_cleanup(session):
     Args:
         session: Session on to the db.
     """
-    session.query(FortOrder).delete()
-    session.query(Vote).delete()
+    for cls in [FortOrder, Vote, spy.SpyPrep, spy.SpyVote, spy.SpySystem]:
+        session.query(cls).delete()
     session.commit()
 
 
