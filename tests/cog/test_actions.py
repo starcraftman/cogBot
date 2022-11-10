@@ -628,8 +628,6 @@ async def test_cmd_fort_order(session, f_bot, f_dusers, f_fort_testbed, f_fortor
 
     expect = """__Active Targets (Manual Order)__
 **LPM 229**    0/9479 :Fortifying:, :Undermined: - 112.98Ly
-
-__Next Targets__
 **Nurundere** 5422/8425 :Fortifying: - 99.51Ly"""
     f_bot.send_message.assert_called_with(msg2.channel, expect)
 
