@@ -716,8 +716,8 @@ def test_users_with_um_merits(session, f_dusers, f_fort_testbed, f_um_testbed):
     assert [x[1] for x in cap] == [13950, 6050]
 
 
-def test_post_cycle_db_cleanup(session, f_vote_testbed):
-    cogdb.query.post_cycle_db_cleanup(session)
+def test_post_cycle_db_cleanup(session, f_vote_testbed, eddb_session):
+    cogdb.query.post_cycle_db_cleanup(session, eddb_session)
 
     assert session.query(Vote).all() == []
 
@@ -797,3 +797,50 @@ def test_get_consolidation_in_range_both(session, f_cons_data):
     before = f_cons_data[-3]
     values = cogdb.query.get_consolidation_in_range(session, start=after.updated_at, end=before.updated_at)
     assert [x.amount for x in values] == [67, 65, 64]
+
+
+def test_fort_response_normal(session, f_dusers, f_fort_testbed, eddb_session):
+    expect = """__Active Targets__
+Prep: **Rhea** 5100/10000 :Fortifying: Atropos - 65.55Ly
+**Nurundere** 5422/8425 :Fortifying: - 99.51Ly
+
+__Next Targets__
+**LHS 3749** 1850/5974 :Fortifying: - 55.72Ly
+**Alpha Fornacis**    0/6476 :Fortifying: - 67.27Ly
+**WW Piscis Austrini**    0/8563 :Fortifying:, :Undermined: - 101.38Ly
+
+__Priority Systems__
+**Othime**    0/7367 :Fortifying: Priority for S/M ships (no L pads) - 83.68Ly
+
+__Almost Done__
+**Dongkum** 7000/7239 :Fortifying: (239 left) - 81.54Ly"""
+    assert expect == cogdb.query.fort_response_normal(session, eddb_session)
+
+
+def test_fort_response_manual(session, f_dusers, f_fort_testbed, f_fortorders):
+    expect = """__Active Targets (Manual Order)__
+**Sol** 2500/5211 :Fortifying:, 2250 :Undermining: Leave For Grinders - 28.94Ly
+**LPM 229**    0/9479 :Fortifying:, :Undermined: - 112.98Ly
+**Othime**    0/7367 :Fortifying: Priority for S/M ships (no L pads) - 83.68Ly"""
+    assert expect == cogdb.query.fort_response_manual(session)
+
+
+def test_route_systems(session, f_dusers, f_fort_testbed, eddb_session):
+    systems = f_fort_testbed[1]
+
+    expected = [
+        '**Sol** 2500/5211 :Fortifying:, 2250 :Undermining: Leave For Grinders - 28.94Ly',
+        '**Alpha Fornacis**    0/6476 :Fortifying: - 67.27Ly',
+        '**Dongkum** 7000/7239 :Fortifying: (239 left) - 81.54Ly',
+        '**Nurundere** 5422/8425 :Fortifying: - 99.51Ly',
+        '**LHS 3749** 1850/5974 :Fortifying: - 55.72Ly',
+        '**Frey** 4910/4910 :Fortified: - 116.99Ly'
+    ]
+    assert cogdb.query.route_systems(eddb_session, systems[:6]) == expected
+
+
+def test_route_systems_less_two(session, f_dusers, f_fort_testbed, eddb_session):
+    systems = f_fort_testbed[1]
+
+    expected = ['**Frey** 4910/4910 :Fortified: - 116.99Ly']
+    assert cogdb.query.route_systems(eddb_session, systems[:1]) == expected

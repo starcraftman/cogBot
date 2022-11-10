@@ -424,8 +424,9 @@ class Admin(Action):
         """
         await self.bot.send_message(self.msg.channel, "Cycling in progress ...")
         scanners = cogdb.scanners.SCANNERS
-        # Zero trackers for new ocr data
-        cogdb.query.post_cycle_db_cleanup(self.session)
+        # Zero some data before cycling
+        with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
+            cogdb.query.post_cycle_db_cleanup(self.session, eddb_session)
         self.bot.deny_commands = True
         confs = cog.util.CONF.scanners.unwrap
         lines = [['Document', 'Active Page']]
@@ -1030,42 +1031,22 @@ To unset override, simply set an empty list of systems.
 
         return response
 
-    def default_show(self, manual):
+    def default_show(self, manual_order):
         """
         Default show fort information to users.
         """
-        next_count = self.args.next if self.args.next else 3
-        preps = cogdb.query.fort_get_preps(self.session) if not manual else []
-        forts = cogdb.query.fort_get_next_targets(self.session, offset=0, count=next_count + 1)
-        priority, deferred = cogdb.query.fort_get_priority_targets(self.session)
+        if manual_order:
+            response = cogdb.query.fort_response_manual(self.session)
+        else:
+            next_count = self.args.next if self.args.next else 3
+            with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
+                response = cogdb.query.fort_response_normal(self.session, eddb_session, next_systems=next_count)
 
-        manual_forts = cogdb.query.fort_order_get(self.session)
-        if manual_forts:
-            preps = [x for x in manual_forts if x.is_prep]
-            forts = [x for x in manual_forts if not x.is_prep]
-            priority, deferred = [], []
-
-        lines = [f'__Active Targets{manual}__']
-        lines += [system.display() for system in preps + forts[:1]]
-
-        if forts[1:]:
-            lines += ['\n__Next Targets__']
-            lines += [system.display() for system in forts[1:]]
-
-        globe = cogdb.query.get_current_global(self.session)
-        show_deferred = deferred and not manual and (
-            globe.show_almost_done or is_near_tick()) or \
-            cogdb.TEST_DB
-        if priority:
-            lines += ['\n__Priority Systems__'] + route_systems(priority)
-        if show_deferred and deferred:
-            lines += ['\n__Almost Done__'] + route_systems(deferred)
-
-        return '\n'.join(lines)
+        return response
 
     async def execute(self):
         cogdb.query.fort_order_remove_finished(self.session)
-        manual = ' (Manual Order)' if cogdb.query.fort_order_get(self.session) else ''
+        manual_order = cogdb.query.fort_order_get(self.session)
 
         if self.args.set:
             response = await self.set()
@@ -1090,7 +1071,7 @@ To unset override, simply set an empty list of systems.
             response = '\n'.join(lines)
 
         elif self.args.next:
-            lines = ['__Next Targets{}__'.format(manual)]
+            lines = ['__Next Targets{}__'.format(' (Manual Order)' if manual_order else '')]
             next_up = cogdb.query.fort_get_next_targets(self.session, offset=1, count=self.args.next)
             lines += [system.display() for system in next_up]
 
@@ -1103,7 +1084,7 @@ To unset override, simply set an empty list of systems.
             response = "Will now {} the almost done fort systems.".format(show_msg)
 
         else:
-            response = self.default_show(manual)
+            response = self.default_show(manual_order)
 
         await self.bot.send_message(self.msg.channel,
                                     self.bot.emoji.fix(response, self.msg.guild))
@@ -2212,7 +2193,7 @@ Date (UTC): {now}
 
     def vote_direction(self, globe, current_vote):
         """Display vote direction"""
-        if globe.show_vote_goal or is_near_tick():
+        if globe.show_vote_goal or cog.util.is_near_tick():
             if math.fabs(globe.vote_goal - current_vote) <= 1.0:
                 vote_choice = 'Hold your vote (<=1% of goal)'
             elif current_vote > globe.vote_goal:
@@ -2278,21 +2259,6 @@ class Summary(Action):
             raise cog.exc.InvalidPerms("{} You are not allowed to use this command!".format(self.msg.author.mention))
 
 
-def is_near_tick():
-    """
-    Check if we are within the window configured for
-    showing deferred systems.
-    """
-    hours_to_tick = cog.util.CONF.constants.show_priority_x_hours_before_tick
-
-    now = datetime.datetime.utcnow().replace(microsecond=0)
-    weekly_tick = cog.util.next_weekly_tick(now)
-    tick_diff = (weekly_tick - now)
-    hours_left = tick_diff.seconds // 3600 + tick_diff.days * 24
-
-    return hours_left <= hours_to_tick
-
-
 def check_system_deferred_and_globe(system, globe):
     """Retrurn True IFF the system is deferred and conditions met for almost done messages.
     N.B. This includes system can't be priority or prep.
@@ -2302,31 +2268,7 @@ def check_system_deferred_and_globe(system, globe):
         globe: A Globe db object.
     """
     return system.is_deferred and not system.is_priority and not system.is_prep\
-        and (not globe.show_almost_done and not is_near_tick())
-
-
-def route_systems(systems):
-    """
-    Take a series of FortSystem objects from local database and return them
-    sorted by best route given following criteria and formatted for display.
-        - Start at systems closest HQ.
-        - Route remaining systems by closest to last position.
-        - Format them for display to user into a list.
-
-    Args:
-        systems: A list of FortSystem objects from the live database.
-
-    Returns:
-        [System.display(), System.display(), ...]
-    """
-    if len(systems) < 2:
-        return [system.display() for system in systems]
-
-    system_names = [x.name for x in systems]
-    with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
-        _, routed_systems = cogdb.eddb.find_route_closest_hq(eddb_session, system_names)
-        mapped_originals = {x.name: x for x in systems}
-        return [mapped_originals[x.name].display() for x in routed_systems]
+        and (not globe.show_almost_done and not cog.util.is_near_tick())
 
 
 # TODO: I'm not sure why this is "lowered"

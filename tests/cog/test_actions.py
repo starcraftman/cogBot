@@ -548,7 +548,7 @@ async def test_cmd_fort_search_deferred(f_bot, f_dusers, f_fort_testbed):
 
     await action_map(msg, f_bot).execute()
 
-    if cog.actions.is_near_tick():
+    if cog.util.is_near_tick():
         expect = """__Search Results__
 **Dongkum** 7000/7239 :Fortifying: (239 left) - 81.54Ly"""
     else:
@@ -802,7 +802,7 @@ async def test_cmd_drop_deferred(session, f_bot, f_dusers, f_fort_testbed):
     msg = fake_msg_gears("!drop 1 dong")
 
     await action_map(msg, f_bot).execute()
-    if cog.actions.is_near_tick():
+    if cog.util.is_near_tick():
         expected = """**Dongkum** 7001/7239 :Fortifying: (238 left) - 81.54Ly"""
     else:
         expected = """**Dongkum** 7001/7239 :Fortifying: (238 left) - 81.54Ly
@@ -1968,27 +1968,6 @@ def test_filter_top_dusers_exclude(session, f_dusers, f_fort_testbed, f_um_testb
     assert mem == expected_mem
 
 
-def test_route_systems(session, f_dusers, f_fort_testbed):
-    systems = f_fort_testbed[1]
-
-    expected = [
-        '**Sol** 2500/5211 :Fortifying:, 2250 :Undermining: Leave For Grinders - 28.94Ly',
-        '**Alpha Fornacis**    0/6476 :Fortifying: - 67.27Ly',
-        '**Dongkum** 7000/7239 :Fortifying: (239 left) - 81.54Ly',
-        '**Nurundere** 5422/8425 :Fortifying: - 99.51Ly',
-        '**LHS 3749** 1850/5974 :Fortifying: - 55.72Ly',
-        '**Frey** 4910/4910 :Fortified: - 116.99Ly'
-    ]
-    assert cog.actions.route_systems(systems[:6]) == expected
-
-
-def test_route_systems_less_two(session, f_dusers, f_fort_testbed):
-    systems = f_fort_testbed[1]
-
-    expected = ['**Frey** 4910/4910 :Fortified: - 116.99Ly']
-    assert cog.actions.route_systems(systems[:1]) == expected
-
-
 @pytest.mark.asyncio
 async def test_cmd_summary(f_bot, f_dusers, f_admins, f_fort_testbed):
     msg = fake_msg_gears("!sum")
@@ -2028,7 +2007,7 @@ def test_check_system_deferred_and_globe(f_dusers, f_fort_testbed, f_global_test
     globe.show_vote_goal = False
 
     fort.fort_status = fort.trigger - 50
-    assert cog.actions.check_system_deferred_and_globe(fort, globe) is not cog.actions.is_near_tick()
+    assert cog.actions.check_system_deferred_and_globe(fort, globe) is not cog.util.is_near_tick()
 
 
 # TODO: Test: `!scrape power`. At present power is too long, create shorter command.

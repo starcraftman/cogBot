@@ -620,6 +620,21 @@ def cycle_to_start(cycle_number):
     return WEEK_ZERO + datetime.timedelta(weeks=cycle_number)
 
 
+def is_near_tick():  # pragma: no cover, relies on moving date
+    """Check if we are within the window configured for showing deferred systems.
+
+    Returns: True if we are near enough tick to display priority.
+    """
+    hours_to_tick = cog.util.CONF.constants.show_priority_x_hours_before_tick
+
+    now = datetime.datetime.utcnow().replace(microsecond=0)
+    weekly_tick = next_weekly_tick(now)
+    tick_diff = (weekly_tick - now)
+    hours_left = tick_diff.seconds // 3600 + tick_diff.days * 24
+
+    return hours_left <= hours_to_tick
+
+
 def hex_decode(line):
     """Simple function that decodes a hex string.
 
@@ -713,6 +728,8 @@ async def emergency_notice(client, msg):  # pragma: no cover just a convenience,
     for user in [client.get_user(discord_id) for discord_id in cog.util.CONF.emergency.users]:
         msg += f" {user.mention}"
     await chan.send(msg)
+
+
 
 
 #  # Scenario multiple readers, always allowed

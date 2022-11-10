@@ -307,7 +307,6 @@ def subs_fort(subs, prefix):
                      help='Set the fort order. Comma separate list of systems.')
     sub.add_argument('--miss', type=int,
                      help='Show systems missing <= MISS merits.')
-    # sub.add_argument('-l', '--long', action='store_true', help='Show systems in table format')
     sub.add_argument('-n', '--next', type=int,
                      help='Show the next NUM fort targets after current')
     sub.add_argument('-d', '--details', action='store_true',

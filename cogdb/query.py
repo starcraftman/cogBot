@@ -293,16 +293,14 @@ def fort_get_systems_by_state(session):
 
 def fort_get_next_targets(session, *, offset=0, count=4):
     """
-    Return the fort targets that need to be completed.
-    If manual targets set, return those.
+    Return the next fort targets that need to be completed.
+    First consider any manually set fort systems if uncompleted.
     Otherwise, return up to count systems that are not:
         - preps
         - priority or deferred systems
 
     Args:
         session: A session onto db.
-
-    Kwargs:
         offset: If set, start offset forward from current active fort target. Default 0
         count: Return this many targets. Default 4
     """
@@ -1177,17 +1175,20 @@ def get_current_global(session):
     return globe
 
 
-def post_cycle_db_cleanup(session):
+def post_cycle_db_cleanup(session, eddb_session):
     """
     Cleanup the database post cycle change:
-        Delete all votes of last cycle.
+        Remove FortOrder and Votes from db.
+        Remove SpyPreps, SpyVotes and SpySystems from EDDB db.
 
     Args:
         session: Session on to the db.
+        eddb_session: Session on to the EDDB db.
     """
-    for cls in [FortOrder, Vote, spy.SpyPrep, spy.SpyVote, spy.SpySystem]:
+    for cls in [FortOrder, Vote]:
         session.query(cls).delete()
-    session.commit()
+    for cls in [spy.SpyPrep, spy.SpyVote, spy.SpySystem]:
+        eddb_session.query(cls).delete()
 
 
 def add_vote(session, discord_id, vote_type, amount):
@@ -1304,3 +1305,91 @@ def get_consolidation_in_range(session, start, end=None):
         query = query.filter(Consolidation.updated_at <= end)
 
     return query.order_by(Consolidation.updated_at.asc()).all()
+
+
+def fort_response_normal(session, eddb_session, *, next_systems=3):
+    """Create the normal fort message with current targets.
+
+    The message will be created according to following rules:
+        - Always show active preps first, with current fort target in Active Targets.
+        - Always show the next_systems amount of systems in Next Targets
+        - When priority systems are set, display those in Priority Systems.
+        - When deferred systems are present AND show_deferred True, display those in Almost Done.
+
+    Args:
+        session: A session onto the db.
+        eddb_session: A session onto the EDDB db.
+        next_count: The amount of systems to show not including preps and active target.
+
+    Returns: A formatted message to send to channe.
+    """
+    preps = cogdb.query.fort_get_preps(session)
+    forts = cogdb.query.fort_get_next_targets(session, count=next_systems + 1)
+
+    lines = ['__Active Targets__']
+    lines += [system.display() for system in preps + forts[:1]]
+    forts = forts[1:]
+
+    if forts:
+        lines += ['\n__Next Targets__']
+        lines += [system.display() for system in forts]
+
+    globe = cogdb.query.get_current_global(session)
+    priority, deferred = cogdb.query.fort_get_priority_targets(session)
+    show_deferred = deferred and (
+        (globe.show_almost_done or cog.util.is_near_tick())
+        or cogdb.TEST_DB
+    )
+    if priority:
+        lines += ['\n__Priority Systems__'] + route_systems(eddb_session, priority)
+    if show_deferred:
+        lines += ['\n__Almost Done__'] + route_systems(eddb_session, deferred)
+
+    return '\n'.join(lines)
+
+
+def fort_response_manual(session):
+    """Create the manual fort order message.
+
+    The message will be created according to following rules:
+        - Always show active preps first that have been manually set.
+        - Afterwards show all manually set systems.
+
+    Args:
+        session: A session onto the db.
+        next_count: The amount of systems to show not including preps and active target.
+
+    Returns: A formatted message to send to channe.
+    """
+    cogdb.query.fort_order_remove_finished(session)
+    manual_forts = cogdb.query.fort_order_get(session)
+    preps = [x for x in manual_forts if x.is_prep]
+    forts = [x for x in manual_forts if not x.is_prep]
+
+    lines = ['__Active Targets (Manual Order)__']
+    lines += [system.display() for system in preps + forts]
+
+    return '\n'.join(lines)
+
+
+def route_systems(eddb_session, systems):
+    """
+    Take a series of FortSystem objects from local database and return them
+    sorted by best route given following criteria and formatted for display.
+        - Start at systems closest HQ.
+        - Route remaining systems by closest to last position.
+        - Format them for display to user into a list.
+
+    Args:
+        eddb_sesion: A session onto the EDDB db.
+        systems: A list of FortSystem objects from the live database.
+
+    Returns:
+        [System.display(), System.display(), ...]
+    """
+    if len(systems) < 2:
+        return [system.display() for system in systems]
+
+    mapped_originals = {x.name: x for x in systems}
+    _, routed_systems = cogdb.eddb.find_route_closest_hq(eddb_session, [x.name for x in systems])
+    return [mapped_originals[x.name].display() for x in routed_systems]
