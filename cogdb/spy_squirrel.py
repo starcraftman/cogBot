@@ -919,7 +919,6 @@ def compare_sheet_fort_systems_to_spy(session, eddb_session):
         eddb_session: A session onto the EDDB db.
     """
     fort_targets = session.query(FortSystem).\
-        filter(FortSystem.type == EFortType.fort).\
         all()
     fort_names = [x.name for x in fort_targets]
     fort_dict = {x.name: x for x in fort_targets}
