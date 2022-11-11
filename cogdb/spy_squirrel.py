@@ -948,16 +948,17 @@ def compare_sheet_fort_systems_to_spy(session, eddb_session):
     return list(sorted(systems.values(), key=lambda x: x['sheet_order']))
 
 
-def compare_sheet_um_systems_to_spy(session, eddb_session):
+def compare_sheet_um_systems_to_spy(session, eddb_session, *, sheet_src=EUMSheet.main):
     """Compare the um systems to the spy systems and determine the
        intersection, then find the new progress_us and progress_them values.
 
     Args:
         session: A session onto the db.
         eddb_session: A session onto the EDDB db.
+        sheet_src: The source of the um information. EUMSheet enum expected.
     """
     um_targets = session.query(UMSystem).\
-        filter(UMSystem.sheet_src == EUMSheet.main).\
+        filter(UMSystem.sheet_src == sheet_src).\
         all()
     um_dict = {x.name: x for x in um_targets}
 

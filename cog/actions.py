@@ -2475,7 +2475,7 @@ async def push_spy_to_sheets():  # pragma: no cover | tested elsewhere
             log.error("Fort sheet will be updated.")
             await scanner.send_batch(payloads)
 
-        umsystems = spy.compare_sheet_um_systems_to_spy(session, eddb_session)
+        umsystems = spy.compare_sheet_um_systems_to_spy(session, eddb_session, sheet_src=EUMSheet.main)
         if umsystems:
             __import__('pprint').pprint(umsystems)
             scanner = cogdb.scanners.get_scanner("hudson_undermine")
@@ -2487,6 +2487,21 @@ async def push_spy_to_sheets():  # pragma: no cover | tested elsewhere
             print("UM Payloads")
             __import__('pprint').pprint(payloads)
             log.error("Operations sheet will be updated.")
+            await scanner.send_batch(payloads, input_opt='USER_ENTERED')
+
+        scanner = cogdb.scanners.get_scanner("hudson_snipe")
+        snipe_cycle = int(scanner.asheet.sheet_page[1:])  # Format: "C384"
+        if cog.util.current_cycle() == snipe_cycle:
+            umsystems = spy.compare_sheet_um_systems_to_spy(session, eddb_session, sheet_src=EUMSheet.snipe)
+            __import__('pprint').pprint(umsystems)
+            payloads = []
+            for umsys in umsystems:
+                payloads += scanner.update_systemum_dict(
+                    umsys['sheet_col'], umsys['progress_us'], umsys['progress_them'], umsys['map_offset']
+                )
+            print("Snipe Payloads")
+            __import__('pprint').pprint(payloads)
+            log.error("Snipe sheet will be updated.")
             await scanner.send_batch(payloads, input_opt='USER_ENTERED')
 
 
@@ -2515,10 +2530,9 @@ async def monitor_powerplay_api(client, *, repeat=True, delay=1800, last_scrape=
         if now.strftime("%A") == "Thursday" and now.hour == 7:
             raise cog.exc.RemoteError
 
-        api_end = cog.util.CONF.scrape.api
         log.warning("Start monitor powerplay.")
-        base_text = await cog.util.get_url(os.path.join(api_end, 'getraw', 'base.json'))
-        ref_text = await cog.util.get_url(os.path.join(api_end, 'getraw', 'refined.json'))
+        base_text = await cog.util.get_url(os.path.join(cog.util.CONF.scrape.api, 'getraw', 'base.json'))
+        ref_text = await cog.util.get_url(os.path.join(cog.util.CONF.scrape.api, 'getraw', 'refined.json'))
 
         log.warning("Parse retrieved json.")
         with cfut.ProcessPoolExecutor(max_workers=1) as pool:
