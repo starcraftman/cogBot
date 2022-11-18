@@ -546,7 +546,7 @@ class UMScanner(FortScanner):
         new_um_sheet = deepcopy(sheet_values)
         new_um_sheet_temp = None
 
-        for item in values:
+        for item in reversed(values):
             columns_left_to_update = deepcopy(um_sheet_temp[0][0])
             columns_right_to_update = deepcopy(um_sheet_temp[0][1])
             for i in [3, 6, 7, 8, 9, 10]:

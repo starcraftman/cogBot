@@ -306,20 +306,42 @@ def test_umscanner_update_hold_dict():
 @pytest.mark.asyncio
 async def test_umscanner_slide_templates(f_asheet_umscanner):
     systems = []
-    value_to_add = [{"sys_name": "Frey", "power": "Yuri Grom", "trigger": "12345", "priority": "Normal"}]
+    value_to_add = [
+        {"sys_name": "Frey", "power": "Yuri Grom", "trigger": "12345", "priority": "Normal"},
+        {"sys_name": "Lawd 26", "power": "Edmund Mahon", "trigger": "22222", "priority": "Normal"},
+    ]
     for i in range(17):
         systems.append(await f_asheet_umscanner.values_col(i))
     systems = [systems[i][:13] for i in range(len(systems))]
     returned_data = UMScanner.slide_templates([systems[3:]], value_to_add)
-    expected_return = [{'range': 'N1:13', 'values': [
-        ['', '', '', '', 'Opp. trigger', '% safety margin'],
-        ['', '', '', '', '', '50%'], ['0', '', '0', '', '#DIV/0!', ''],
-        ['12345', '', '1,000', '', '0', ''], ['0', '', '0', '', '0', ''],
-        ['1,000', '', '1,000', '', '0', ''], ['Sec: N/A', 'Yuri Grom', 'Sec: N/A', '', 'Sec: N/A', ''],
-        ['', 'Normal', '', '', '', ''], ['Frey', '', 'Control System Template', '', 'Expansion Template', ''],
-        [0, '', '', '', '', ''], [0, '', '', '', '', ''],
-        ['Held merits', 'Redeemed merits', 'Held merits', 'Redeemed merits', 'Held merits', 'Redeemed merits'],
-        ['', '', '', '', '', '']]}]
+    expected_return = [{
+        'range': 'N1:13',
+        'values': [
+            ['', '', '', '', '', '', 'Opp. trigger', '% safety margin'],
+            ['', '', '', '', '', '', '', '50%'],
+            ['0', '', '0', '', '0', '', '#DIV/0!', ''],
+            ['12345', '', '22222', '', '1,000', '', '0', ''],
+            ['0', '', '0', '', '0', '', '0', ''],
+            ['1,000', '', '1,000', '', '1,000', '', '0', ''],
+            ['Sec: N/A', 'Yuri Grom', 'Sec: N/A', 'Edmund Mahon', 'Sec: N/A', '', 'Sec: N/A', ''],
+            ['', 'Normal', '', 'Normal', '', '', '', ''],
+            ['Frey', '', 'Lawd 26', '', 'Control System Template', '', 'Expansion Template', ''],
+            [0, '', '0', '', '', '', '', ''],
+            [0, '', '0', '', '', '', '', ''],
+            [
+                'Held merits',
+                'Redeemed merits',
+                'Held merits',
+                'Redeemed merits',
+                'Held merits',
+                'Redeemed merits',
+                'Held merits',
+                'Redeemed merits'
+            ],
+            ['', '', '', '', '', '', '', '']
+        ]
+    }]
+
     assert returned_data == expected_return
 
 
