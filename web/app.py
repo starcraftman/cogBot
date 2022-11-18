@@ -40,7 +40,7 @@ import cogdb
 import cogdb.query
 
 
-app = sanic.Sanic('cog web')
+app = sanic.Sanic('cogweb')
 ADDR = 'tcp://127.0.0.1:{}'.format(cog.util.CONF.ports.zmq)
 LOG_FILE = os.path.join(tempfile.gettempdir(), 'posts')
 PUB = None
