@@ -83,7 +83,8 @@ async def check_mentions(coro, *args, **kwargs):
         await coro(*args, **kwargs)
 
 
-def check_sheet(*, client, scanner_name, attr, user_cls, sheet_src=None):
+# TODO: Improve by not flushing when overall function raises error
+async def check_sheet(*, client, scanner_name, attr, user_cls, sheet_src=None):
     """Common function that will check and add user to sheet and db if needed.
 
     When user not found in sheet:
@@ -111,11 +112,10 @@ def check_sheet(*, client, scanner_name, attr, user_cls, sheet_src=None):
         client.session, cls=user_cls, discord_user=client.duser,
         start_row=scanner.user_row, sheet_src=sheet_src
     )
-    client.payloads += scanner.__class__.update_sheet_user_dict(
-        sheet.row, sheet.cry, sheet.name)
-
-    notice = f'Will add {client.duser.pref_name} to the sheet. See !user command to change.'
-    asyncio.ensure_future(client.bot.send_message(client.msg.channel, notice))
+    await scanner.send_batch(scanner.__class__.update_sheet_user_dict(
+        sheet.row, sheet.cry, sheet.name))
+    await client.bot.send_message(client.msg.channel,
+                                  f'Will add {client.duser.pref_name} to the sheet. See !user command to change.')
 
     return sheet
 
@@ -924,7 +924,7 @@ class Drop(Action):
         self.log.info('DROP %s - Matched system %s from: \n%s.',
                       self.duser.display_name, system.name, system)
 
-        check_sheet(client=self, scanner_name='hudson_cattle', attr='fort_user', user_cls=FortUser)
+        await check_sheet(client=self, scanner_name='hudson_cattle', attr='fort_user', user_cls=FortUser)
         drop = cogdb.query.fort_add_drop(self.session, system=system,
                                          user=self.duser.fort_user, amount=self.args.amount)
 
@@ -1196,12 +1196,12 @@ class Hold(Action):
 
         return ([hold], response)
 
-    def check_sheet_user(self):
+    async def check_sheet_user(self):
         """
         Decorate this function to prevent duplicate decorator running.
         """
-        check_sheet(client=self, scanner_name='hudson_undermine', attr='um_user',
-                    user_cls=UMUser, sheet_src=EUMSheet.main)
+        await check_sheet(client=self, scanner_name='hudson_undermine', attr='um_user',
+                          user_cls=UMUser, sheet_src=EUMSheet.main)
 
     @check_mentions
     async def execute(self):
@@ -1240,7 +1240,7 @@ class Hold(Action):
             if not self.args.system:
                 raise cog.exc.InvalidCommandArgs("You forgot to specify a system to update.")
 
-            self.check_sheet_user()
+            await self.check_sheet_user()
             holds, response = await self.set_hold()
 
         self.session.commit()
@@ -1263,12 +1263,12 @@ class SnipeHold(Hold):
     def um_user(self):
         return self.duser.snipe_user
 
-    def check_sheet_user(self):
+    async def check_sheet_user(self):
         """
         Decorate this function to prevent duplicate decorator running.
         """
-        check_sheet(client=self, scanner_name='hudson_snipe', attr='snipe_user',
-                    user_cls=UMUser, sheet_src=EUMSheet.snipe)
+        await check_sheet(client=self, scanner_name='hudson_snipe', attr='snipe_user',
+                          user_cls=UMUser, sheet_src=EUMSheet.snipe)
 
 
 class KOS(Action):

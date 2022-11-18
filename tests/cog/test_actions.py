@@ -737,7 +737,6 @@ async def test_cmd_drop_newuser(session, f_bot, f_dusers, f_fort_testbed):
     assert drop.amount == 500
 
     expect = [
-        {'range': 'A20:B20', 'values': [['test cry', 'test name']]},
         {'range': 'H6:H7', 'values': [[5922], [0]]},
         {'range': 'H18:H18', 'values': [[500]]},
     ]
@@ -888,7 +887,6 @@ Power          |```"""
     assert hold.held == 1000
 
     expect = [
-        {'range': 'A20:B20', 'values': [['test cry', 'test name']]},
         {'range': 'K20:L20', 'values': [[1000, 0]]},
     ]
     assert cogdb.scanners.SCANNERS['hudson_undermine'].payloads == expect
