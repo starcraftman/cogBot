@@ -30,7 +30,7 @@ from cogdb.schema import (DiscordUser, FortSystem, FortPrep, FortDrop, FortUser,
                           AdminPerm, ChannelPerm, RolePerm,
                           TrackSystem, TrackSystemCached, TrackByID,
                           Global, Vote, EVoteType,
-                          Consolidation)
+                          Consolidation, SheetRecord)
 from tests.data import CELLS_FORT, CELLS_FORT_FMT, CELLS_UM
 
 
@@ -854,4 +854,20 @@ def f_cons_data(session):
     session.rollback()
     for cls in (Consolidation,):
         session.query(cls).delete()
+    session.commit()
+
+
+@pytest.fixture
+def f_sheet_records(session):
+    records = (
+        SheetRecord(id=1, discord_id=1, channel_id=10, command='!fort -s 555:444 Rana', sheet_src='fort'),
+        SheetRecord(id=2, discord_id=1, channel_id=10, command='!drop 500 Rana', sheet_src='fort'),
+    )
+    session.add_all(records)
+    session.commit()
+
+    yield records
+
+    session.rollback()
+    session.query(SheetRecord).delete()
     session.commit()

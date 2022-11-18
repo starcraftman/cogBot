@@ -1075,7 +1075,7 @@ class BGSDemo(FortScanner):
                 ", ".join([x.state.text for x in entry.pending_states]),
                 entry.happiness.text,
                 entry.influence,
-                str(entry.utc_date),
+                str(entry.updated_date),
             ]]
         end_row = row + len(values)
 

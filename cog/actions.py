@@ -541,9 +541,14 @@ class Admin(Action):
 
         if values:
             cogdb.query.um_add_system_targets(self.session, values)
+            record = cogdb.query.add_sheet_record(
+                self.session, discord_id=self.msg.author.id, channel_id=self.msg.channel.id,
+                command=self.msg.content, sheet_src='um',
+            )
             um_sheet = await um_scanner.get_batch(['D1:13'], 'COLUMNS', 'FORMULA')
             data = cogdb.scanners.UMScanner.slide_templates(um_sheet, values)
             await um_scanner.send_batch(data, input_opt='USER_ENTERED')
+            record.flushed_sheet = True
 
             msgs = cog.util.merge_msgs_to_least(msgs)
             for msg in cog.util.merge_msgs_to_least(msgs):
@@ -927,6 +932,10 @@ class Drop(Action):
         await check_sheet(client=self, scanner_name='hudson_cattle', attr='fort_user', user_cls=FortUser)
         drop = cogdb.query.fort_add_drop(self.session, system=system,
                                          user=self.duser.fort_user, amount=self.args.amount)
+        record = cogdb.query.add_sheet_record(
+            self.session, discord_id=self.msg.author.id, channel_id=self.msg.channel.id,
+            command=self.msg.content, sheet_src='fort',
+        )
 
         if self.args.set:
             system.set_status(self.args.set)
@@ -942,6 +951,7 @@ class Drop(Action):
         )
         scanner = get_scanner("hudson_cattle")
         await scanner.send_batch(self.payloads)
+        record.flushed_sheet = True
         self.log.info('DROP %s - Sucessfully dropped %d at %s.',
                       self.duser.display_name, self.args.amount, system.name)
 
@@ -1003,6 +1013,10 @@ class Fort(Action):
 
         system = cogdb.query.fort_find_system(self.session, system_name)
         system.set_status(self.args.set)
+        record = cogdb.query.add_sheet_record(
+            self.session, discord_id=self.msg.author.id, channel_id=self.msg.channel.id,
+            command=self.msg.content, sheet_src='fort',
+        )
         self.session.commit()
 
         self.payloads += cogdb.scanners.FortScanner.update_system_dict(
@@ -1010,6 +1024,7 @@ class Fort(Action):
         )
         scanner = get_scanner("hudson_cattle")
         await scanner.send_batch(self.payloads)
+        record.flushed_sheet = True
 
         return system.display()
 
@@ -1243,6 +1258,10 @@ class Hold(Action):
             await self.check_sheet_user()
             holds, response = await self.set_hold()
 
+        record = cogdb.query.add_sheet_record(
+            self.session, discord_id=self.msg.author.id, channel_id=self.msg.channel.id,
+            command=self.msg.content, sheet_src='um' if self.args.sheet_src == EUMSheet.main else "snipe"
+        )
         self.session.commit()
 
         for hold in holds:
@@ -1251,6 +1270,7 @@ class Hold(Action):
 
         scanner = get_scanner("hudson_undermine" if self.args.sheet_src == EUMSheet.main else "hudson_snipe")
         await scanner.send_batch(self.payloads)
+        record.flushed_sheet = True
 
         await self.bot.send_message(self.msg.channel, response)
 
@@ -1919,6 +1939,10 @@ class UM(Action):
             system = cogdb.query.um_find_system(self.session, ' '.join(self.args.system),
                                                 sheet_src=self.args.sheet_src)
 
+            record = cogdb.query.add_sheet_record(
+                self.session, discord_id=self.msg.author.id, channel_id=self.msg.channel.id,
+                command=self.msg.content, sheet_src='um' if self.args.sheet_src == EUMSheet.main else "snipe"
+            )
             if self.args.offset:
                 system.map_offset = self.args.offset
             if self.args.priority:
@@ -1941,6 +1965,7 @@ class UM(Action):
                 self.session.commit()
                 scanner = get_scanner("hudson_undermine" if self.args.sheet_src == EUMSheet.main else "hudson_snipe")
                 await scanner.send_batch(self.payloads)
+                record.flushed_sheet = True
 
             response = system.display()
 

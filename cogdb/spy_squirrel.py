@@ -137,7 +137,7 @@ class SpyBounty(ReprMixin, TimestampMixin, Base):
         """ A pretty one line to give all information. """
         ship_text = self.ship.text if self.ship else str(self.ship_id)
         return f"""#{self.pos} {self.cmdr_name} last seen in {self.last_seen_system}/{self.last_seen_station} ({ship_text})
-Has {self.bounty:,} in bounty, updated at {self.utc_date}"""
+Has {self.bounty:,} in bounty, updated at {self.updated_date}"""
 
     def __eq__(self, other):
         return isinstance(other, SpyVote) and hash(self) == hash(other)
@@ -268,7 +268,7 @@ class SpyVote(ReprMixin, TimestampMixin, Base):
 
     def __str__(self):
         """ A pretty one line to give all information. """
-        return f"{self.power.text}: {self.vote}%, updated at {self.utc_date}"
+        return f"{self.power.text}: {self.vote}%, updated at {self.updated_date}"
 
     def __eq__(self, other):
         return isinstance(other, SpyVote) and hash(self) == hash(other)
@@ -310,7 +310,7 @@ class SpyPrep(ReprMixin, TimestampMixin, Base):
         """ A pretty one line to give all information. """
         power_text = self.power.text if self.power else str(self.power_id)
         system_text = self.system.name if self.system else str(self.ed_system_id)
-        return f"{power_text} {system_text}: {self.merits}, updated at {self.utc_date}"
+        return f"{power_text} {system_text}: {self.merits}, updated at {self.updated_date}"
 
     def __eq__(self, other):
         return isinstance(other, SpyPrep) and hash(self) == hash(other)
@@ -368,7 +368,7 @@ class SpySystem(ReprMixin, TimestampMixin, Base):
 
     def __str__(self):
         """ A pretty one line to give all information. """
-        status_text = f"{self.fort}/{self.fort_trigger} | {self.um}/{self.um_trigger}, updated at {self.utc_date}"
+        status_text = f"{self.fort}/{self.fort_trigger} | {self.um}/{self.um_trigger}, updated at {self.updated_date}"
         power_text = self.power.text if self.power else str(self.power_id)
         system_text = self.system.name if self.system else str(self.ed_system_id)
         if self.is_expansion:

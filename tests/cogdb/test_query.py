@@ -11,7 +11,7 @@ import cogdb
 from cogdb.schema import (DiscordUser, FortSystem, FortUser, FortOrder,
                           UMUser, UMSystem, UMHold, EUMSheet, AdminPerm, ChannelPerm, RolePerm,
                           KOS, TrackSystem, TrackSystemCached, TrackByID,
-                          Vote, EVoteType)
+                          Vote, EVoteType, SheetRecord)
 import cogdb.query
 
 from tests.conftest import Channel, Member, Message, Role, Guild
@@ -844,3 +844,18 @@ def test_route_systems_less_two(session, f_dusers, f_fort_testbed, eddb_session)
 
     expected = ['**Frey** 4910/4910 :Fortified: - 116.99Ly']
     assert cogdb.query.route_systems(eddb_session, systems[:1]) == expected
+
+
+def test_add_sheet_record(session, f_sheet_records):
+    cogdb.query.add_sheet_record(session, discord_id=1, channel_id=10,
+                                 command='!drop 500 rati', sheet_src='fort')
+    session.commit()
+    last_record = session.query(SheetRecord).all()[-1]
+    assert last_record.command == '!drop 500 rati'
+    assert last_record.discord_id == 1
+
+
+def test_get_user_sheet_records(session, f_sheet_records):
+    records = cogdb.query.get_user_sheet_records(session, discord_id=1, cycle=cog.util.current_cycle())
+
+    assert "!drop 500 Rana" == records[-1].command

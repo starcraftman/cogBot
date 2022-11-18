@@ -325,14 +325,14 @@ class UpdatedAtObj(cog.util.TimestampMixin):
 
 def test_timestampmixin_notz():
     actual = UpdatedAtObj()
-    assert actual.utc_date.tzname() is None
-    assert "2021-10-21 07:00:00" == str(actual.utc_date)
+    assert actual.updated_date.tzname() is None
+    assert "2021-10-21 07:00:00" == str(actual.updated_date)
 
 
 def test_timestampmixin_tz():
     actual = UpdatedAtObj()
-    assert "UTC" == actual.utc_date_tz.tzname()
-    assert "2021-10-21 07:00:00+00:00" == str(actual.utc_date_tz)
+    assert "UTC" == actual.updated_date_tz.tzname()
+    assert "2021-10-21 07:00:00+00:00" == str(actual.updated_date_tz)
 
 
 class DummyUpdateObject(cog.util.ReprMixin, cog.util.UpdatableMixin):

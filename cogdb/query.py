@@ -20,7 +20,8 @@ from cogdb.schema import (DiscordUser, FortSystem, FortPrep, FortDrop, FortUser,
                           EFortType, UMSystem, UMUser, UMHold, EUMSheet, EUMType, KOS,
                           AdminPerm, ChannelPerm, RolePerm,
                           TrackSystem, TrackSystemCached, TrackByID,
-                          Global, Vote, EVoteType, Consolidation)
+                          Global, Vote, EVoteType, Consolidation,
+                          ESheetType, SheetRecord)
 
 
 def dump_db(session):  # pragma: no cover
@@ -1395,3 +1396,47 @@ def route_systems(eddb_session, systems):
     mapped_originals = {x.name: x for x in systems}
     _, routed_systems = cogdb.eddb.find_route_closest_hq(eddb_session, [x.name for x in systems])
     return [mapped_originals[x.name].display() for x in routed_systems]
+
+
+def add_sheet_record(session, **kwargs):
+    """
+    Add a permanent record of a change to the sheets and db. The main purpose is historical to
+    be able to record important commands.
+
+    Args:
+        session: A session onto the db.
+        discord_id: The discord id of the requesting user.
+        channel_id: The channel id where message was sent.
+        command: The text of the message user sent.
+        sheet_src: The sheet being modified, one of: ['fort', 'um', 'snipe']
+
+    Returns:
+        The added SheetRecord
+    """
+    record = SheetRecord(**kwargs)
+    session.add(record)
+
+    return record
+
+
+def get_user_sheet_records(session, *, discord_id, cycle=None):
+    """
+    Get sheet records for a particular cycle and user, a way to see what
+    changes user has requested for bot.
+
+    Args:
+        session: A session onto the db.
+        discord_id: The discord id of the requesting user.
+        cycle: The cycle to pull information for. Default is current cycle.
+
+    Returns:
+        All SheetRecords matching, empty list if none found.
+    """
+    if not cycle:
+        cycle = cog.util.current_cycle()
+
+    return session.query(SheetRecord).\
+        filter(SheetRecord.discord_id == discord_id,
+               SheetRecord.cycle == cycle).\
+        order_by(SheetRecord.created_at).\
+        all()

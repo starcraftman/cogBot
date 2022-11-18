@@ -4,6 +4,7 @@ These allow the bot to store and query the information in sheets that are parsed
 """
 import datetime
 import enum
+import time
 
 import sqlalchemy as sqla
 import sqlalchemy.orm as sqla_orm
@@ -16,7 +17,7 @@ import cog.exc
 import cog.tbl
 import cog.util
 import cogdb
-from cog.util import ReprMixin
+from cog.util import ReprMixin, TimestampMixin
 
 
 LEN_CMD = 25  # Max length of a subclass of cog.actions
@@ -24,6 +25,7 @@ LEN_NAME = 100
 LEN_REASON = 400
 LEN_SHEET_COL = 5
 LEN_CARRIER = 7
+LEN_COMMAND = 2000
 MAX_VOTE_VALUE = 50
 EVENT_CARRIER = """
 CREATE EVENT IF NOT EXISTS clean_carriers
@@ -52,7 +54,7 @@ class DiscordUser(ReprMixin, Base):
     _repr_keys = ['id', 'display_name', 'pref_name', 'pref_cry']
 
     id = sqla.Column(sqla.BigInteger, primary_key=True)  # Discord id
-    display_name = sqla.Column(sqla.String(LEN_NAME))
+    display_name = sqla.Column(sqla.String(LEN_NAME))  # FIXME: Remove this
     pref_name = sqla.Column(sqla.String(LEN_NAME), index=True, nullable=False)  # pref_name == display_name until change
     pref_cry = sqla.Column(sqla.String(LEN_NAME), default='')
 
@@ -1245,7 +1247,7 @@ class Consolidation(ReprMixin, Base):
     Track the consolidation vote changes over time.
     """
     __tablename__ = 'consolidation_tracker'
-    _repr_keys = ['id', 'amount', 'cons_total', 'prep_total', 'updated_at']
+    _repr_keys = ['id', 'cycle', 'amount', 'cons_total', 'prep_total', 'updated_at']
 
     id = sqla.Column(sqla.BigInteger, primary_key=True)
     amount = sqla.Column(sqla.Integer, default=0)
@@ -1282,6 +1284,42 @@ class Consolidation(ReprMixin, Base):
             pass
 
         return value
+
+
+class ESheetType(enum.Enum):
+    """ Type of sheet the transaction modified. """
+    fort = 1
+    um = 2
+    snipe = 3
+
+
+class SheetRecord(ReprMixin, TimestampMixin, Base):
+    """
+    For every command modifying the local database and sheet, record a transaction.
+    """
+    __tablename__ = 'history_sheet_transactions'
+    _repr_keys = ['id', 'discord_id', 'channel_id', 'sheet_src', 'cycle', 'command',
+                  'flushed_sheet', 'created_at']
+
+    id = sqla.Column(sqla.BigInteger, primary_key=True)
+    discord_id = sqla.Column(sqla.BigInteger, nullable=False)
+    channel_id = sqla.Column(sqla.BigInteger, nullable=False)
+    sheet_src = sqla.Column(sqla.Enum(ESheetType), default=ESheetType.fort)
+    cycle = sqla.Column(sqla.Integer, default=cog.util.current_cycle)
+    command = sqla.Column(sqla.String(LEN_COMMAND), default="")
+    flushed_sheet = sqla.Column(sqla.Boolean, default=False)
+    created_at = sqla.Column(sqla.Integer, default=time.time)
+
+    # Relationships
+    user = sqla_orm.relationship('DiscordUser', uselist=False, viewonly=True, lazy='joined',
+                                 primaryjoin='foreign(SheetRecord.discord_id) == DiscordUser.id')
+
+    def __eq__(self, other):
+        return (isinstance(self, SheetRecord) and isinstance(other, SheetRecord)
+                and self.id == other.id)
+
+    def __hash__(self):
+        return hash(self.id)
 
 
 def kwargs_um_system(cells, sheet_col, *, sheet_src=EUMSheet.main):
@@ -1424,7 +1462,7 @@ def empty_tables(session, *, perm=False):
     """
     Drop all tables.
     """
-    classes = [FortDrop, UMHold, FortSystem, UMSystem, FortUser, UMUser, KOS,
+    classes = [SheetRecord, FortDrop, UMHold, FortSystem, UMSystem, FortUser, UMUser, KOS,
                KOS, TrackSystem, TrackSystemCached, TrackByID,
                AdminPerm, ChannelPerm, RolePerm]
     if perm:

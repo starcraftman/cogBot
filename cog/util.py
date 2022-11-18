@@ -182,15 +182,26 @@ class ReprMixin():
 class TimestampMixin():
     """
     Simple mixing that converts updated_at timestamp to a datetime object.
+    Timestamps on object are assumed to be created as UTC timestamps.
     """
     @property
-    def utc_date(self):
-        """Assumes the timestampe is in fact UTC, native datetime with no tz info. """
+    def created_date(self):
+        """The created at date as a naive datetime object."""
+        return datetime.datetime.utcfromtimestamp(self.created_at)
+
+    @property
+    def created_date_tz(self):
+        """The created at date as a timezone aware datetime object."""
+        return datetime.datetime.fromtimestamp(self.created_at, tz=datetime.timezone.utc)
+
+    @property
+    def updated_date(self):
+        """The update at date as a naive datetime object."""
         return datetime.datetime.utcfromtimestamp(self.updated_at)
 
     @property
-    def utc_date_tz(self):
-        """Assumes the timestampe is in fact UTC, datetime object set to UTC timezone."""
+    def updated_date_tz(self):
+        """The update at date as a timezone aware datetime object."""
         return datetime.datetime.fromtimestamp(self.updated_at, tz=datetime.timezone.utc)
 
 
