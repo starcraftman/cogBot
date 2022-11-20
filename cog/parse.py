@@ -605,7 +605,9 @@ def subs_scrape(subs, prefix):
 
 **{prefix}scrape power**
         Trigger an update of the sheets based on basic information query.
-**{prefix}scrape held Hudson**
+**{prefix}scrape held FW**
+        Get information for all controls of power and update sheets.
+**{prefix}scrape held ZH --start Kaura**
         Get information for all controls of power and update sheets.
 **{prefix}scrape bgs Abi, Rana**
         Scrape all bgs information listed systems and ...
@@ -620,6 +622,7 @@ def subs_scrape(subs, prefix):
     subcmd = subcmds.add_parser('bgs', help='Scrape the bgs .')
     subcmd.add_argument('systems', nargs='+', help='The systems to query for information.')
     subcmd = subcmds.add_parser('held', help='Query the held information for controls of a pwoer.')
+    subcmd.add_argument('--start', nargs='+', help='The name of the power to track.')
     subcmd.add_argument('name', nargs='+', help='The name of the power to track.')
     subcmd = subcmds.add_parser('power', help='Refresh the information and push to sheets.')
 

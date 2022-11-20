@@ -1086,7 +1086,7 @@ async def schedule_held(last_scrape):  # pragma: no cover, would ping API point 
     return last_scrape
 
 
-async def schedule_power_scrape(eddb_session, power_name, callback=None):  # pragma: no cover, would ping API point needlessly
+async def schedule_power_scrape(eddb_session, power_name, *, callback=None, start=None):  # pragma: no cover, would ping API point needlessly
     """Schedule a scrape of controls of a given power for detailed information.
 
     This function will prevent multiple concurrent scrapes at same time.
@@ -1106,11 +1106,24 @@ async def schedule_power_scrape(eddb_session, power_name, callback=None):  # pra
 
     control_names = cogdb.eddb.get_controls_of_power(eddb_session, power=power_name)
     systems, _ = cogdb.eddb.get_all_systems_named(eddb_session, control_names)
+
+    # If start present, start posting systems AFTER indicated start system
+    if start:
+        start = start.lower()
+        keep_systems, new_systems = False, []
+        for system in systems:
+            if keep_systems:
+                new_systems += [system]
+            if system.name.lower() == start:
+                keep_systems = True
+        if not new_systems:
+            raise cog.exc.InvalidCommandArgs("Please check start system name, could not match.")
+        systems = new_systems
+
     HELD_POWERS[power_name] = {
         'start_date': datetime.datetime.utcnow(),
         'start_time': time.time(),
     }
-
     influence_ids = await post_systems(systems, callback=callback)
     del HELD_POWERS[power_name]
 

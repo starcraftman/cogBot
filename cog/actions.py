@@ -1723,7 +1723,10 @@ class Scrape(Action):
         if not response.content.lower().startswith("y"):
             return 'Cancelling power scrape.'
 
-        await spy.schedule_power_scrape(eddb_session, power.text, callback=self.msg.channel.send)
+        if self.args.start:
+            self.args.start = " ".join(self.args.start)
+        await spy.schedule_power_scrape(eddb_session, power.text,
+                                        callback=self.msg.channel.send, start=self.args.start)
         return f'Scheduled scrape for {power.text}.'
 
     async def execute(self):
