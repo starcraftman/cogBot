@@ -75,6 +75,7 @@ BOUNTY_CATEGORY_MAP = {
 HELD_POWERS = {}
 HELD_RUNNING = """Scrape for power: {power_name} already running.
 Started at {date}. Please try again later."""
+HELD_DELAY = (20, 120)
 
 
 class SpyShip(ReprMixin, Base):
@@ -918,25 +919,21 @@ def compare_sheet_fort_systems_to_spy(session, eddb_session):
         session: A session onto the db.
         eddb_session: A session onto the EDDB db.
     """
-    fort_targets = session.query(FortSystem).\
-        all()
-    fort_names = [x.name for x in fort_targets]
+    fort_targets = session.query(FortSystem).all()
     fort_dict = {x.name: x for x in fort_targets}
 
-    systems = {}
-    for system in fort_targets:
-        systems.update({
-            system.name: {
-                'sheet_col': system.sheet_col,
-                'sheet_order': system.sheet_order,
-                'fort': system.fort_status,
-                'um': system.um_status,
-            }
-        })
+    systems = {
+        system.name: {
+            'sheet_col': system.sheet_col,
+            'sheet_order': system.sheet_order,
+            'fort': system.fort_status,
+            'um': system.um_status,
+        } for system in fort_targets
+    }
 
     spy_systems = eddb_session.query(SpySystem).\
         join(System, System.ed_system_id == SpySystem.ed_system_id).\
-        filter(System.name.in_(fort_names)).\
+        filter(System.name.in_(list(fort_dict.keys()))).\
         all()
     for spy_sys in spy_systems:
         systems[spy_sys.system.name]['fort'] = spy_sys.fort
@@ -963,7 +960,7 @@ def compare_sheet_um_systems_to_spy(session, eddb_session, *, sheet_src=EUMSheet
     um_dict = {x.name: x for x in um_targets}
 
     systems = {
-        system.name: {
+        system.name.lower(): {
             'sheet_col': system.sheet_col,
             'progress_us': system.progress_us,
             'progress_them': system.progress_them,
@@ -977,7 +974,7 @@ def compare_sheet_um_systems_to_spy(session, eddb_session, *, sheet_src=EUMSheet
         filter(System.name.in_(list(um_dict.keys()))).\
         all()
     for spy_sys in spy_systems:
-        system = systems[spy_sys.system.name]
+        system = systems[spy_sys.system.name.lower()]
 
         if system['type'] == EUMType.expand:
             spy_progress_us = spy_sys.fort + spy_sys.held_merits
@@ -1150,6 +1147,7 @@ async def post_systems(systems, callback=None):  # pragma: no cover, would ping 
         raise cog.exc.RemoteError
 
     influence_ids = []
+    delay_values = [random.randint(x - 4, x + 8) for x in HELD_DELAY]  # Randomly choose bounds too
     for sys in systems:
         log.warning("POSTAPI Request: %s.", sys.name)
         response_text = await cog.util.post_json_url(cog.util.CONF.scrape.api,
@@ -1163,7 +1161,7 @@ async def post_systems(systems, callback=None):  # pragma: no cover, would ping 
         log.warning("POSTAPI Finished Parsing: %s.", sys.name)
         if callback:
             await callback(f'{sys.name} has been updated.')
-        await asyncio.sleep(random.randint(60, 210))  # Randomly delay between 1 and 2.5 mins
+        await asyncio.sleep(random.randint(*delay_values))  # Randomly delay chosen post calls
 
     if callback:
         sys_names = ", ".join([x.name for x in systems])[:1800]
