@@ -879,6 +879,7 @@ def response_json_update_system_info(eddb_session, info):
                     'power_state_id': eddb_system.power_state_id,
                     'held_merits': sys_info['power']['held_merits'],
                     'stolen_forts': sys_info['power']['stolen_forts'],
+                    'held_updated_at': time.time(),
                 }
                 system = SpySystem(**kwargs)
                 eddb_session.add(system)
@@ -920,10 +921,10 @@ def compare_sheet_fort_systems_to_spy(session, eddb_session):
         eddb_session: A session onto the EDDB db.
     """
     fort_targets = session.query(FortSystem).all()
-    fort_dict = {x.name: x for x in fort_targets}
+    fort_dict = {x.name.lower(): x for x in fort_targets}
 
     systems = {
-        system.name: {
+        system.name.lower(): {
             'sheet_col': system.sheet_col,
             'sheet_order': system.sheet_order,
             'fort': system.fort_status,
@@ -936,11 +937,12 @@ def compare_sheet_fort_systems_to_spy(session, eddb_session):
         filter(System.name.in_(list(fort_dict.keys()))).\
         all()
     for spy_sys in spy_systems:
-        systems[spy_sys.system.name]['fort'] = spy_sys.fort
-        fort_dict[spy_sys.system.name].fort_status = spy_sys.fort
+        spy_name = spy_sys.system.name.lower()
+        systems[spy_name]['fort'] = spy_sys.fort
+        fort_dict[spy_name].fort_status = spy_sys.fort
 
-        systems[spy_sys.system.name]['um'] = spy_sys.um + spy_sys.held_merits
-        fort_dict[spy_sys.system.name].um_status = spy_sys.um + spy_sys.held_merits
+        systems[spy_name]['um'] = spy_sys.um + spy_sys.held_merits
+        fort_dict[spy_name].um_status = spy_sys.um + spy_sys.held_merits
 
     return list(sorted(systems.values(), key=lambda x: x['sheet_order']))
 
@@ -957,7 +959,7 @@ def compare_sheet_um_systems_to_spy(session, eddb_session, *, sheet_src=EUMSheet
     um_targets = session.query(UMSystem).\
         filter(UMSystem.sheet_src == sheet_src).\
         all()
-    um_dict = {x.name: x for x in um_targets}
+    um_dict = {x.name.lower(): x for x in um_targets}
 
     systems = {
         system.name.lower(): {
@@ -974,7 +976,8 @@ def compare_sheet_um_systems_to_spy(session, eddb_session, *, sheet_src=EUMSheet
         filter(System.name.in_(list(um_dict.keys()))).\
         all()
     for spy_sys in spy_systems:
-        system = systems[spy_sys.system.name.lower()]
+        spy_name = spy_sys.system.name.lower()
+        system = systems[spy_name]
 
         if system['type'] == EUMType.expand:
             spy_progress_us = spy_sys.fort + spy_sys.held_merits
@@ -984,13 +987,13 @@ def compare_sheet_um_systems_to_spy(session, eddb_session, *, sheet_src=EUMSheet
             spy_progress_them = spy_sys.fort / spy_sys.fort_trigger
         del system['type']
 
-        if spy_progress_us > systems[spy_sys.system.name]['progress_us']:
+        if spy_progress_us > systems[spy_name]['progress_us']:
             system['progress_us'] = spy_progress_us
-            um_dict[spy_sys.system.name].progress_us = spy_progress_us
+            um_dict[spy_name].progress_us = spy_progress_us
 
-        if spy_progress_them > systems[spy_sys.system.name]['progress_them']:
+        if spy_progress_them > systems[spy_name]['progress_them']:
             system['progress_them'] = spy_progress_them
-            um_dict[spy_sys.system.name].progress_them = spy_progress_them
+            um_dict[spy_name].progress_them = spy_progress_them
 
     return list(sorted(systems.values(), key=lambda x: x['sheet_col']))
 
