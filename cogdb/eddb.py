@@ -2880,22 +2880,22 @@ def main_test_area(eddb_session):  # pragma: no cover
         print(cog.tbl.format_table(stations))
 
     print('31 Aquilae')
-    sys = sqla_orm.aliased(System)
+    sys_alias = sqla_orm.aliased(System)
     sys_control = sqla_orm.aliased(System)
-    systems = eddb_session.query(sys.name, sys_control.name).\
-        filter(sys.name == '31 Aquilae').\
-        join(SystemControl, sys.id == SystemControl.system_id).\
+    systems = eddb_session.query(sys_alias.name, sys_control.name).\
+        filter(sys_alias.name == '31 Aquilae').\
+        join(SystemControl, sys_alias.id == SystemControl.system_id).\
         join(sys_control, sys_control.id == SystemControl.control_id).\
         all()
     __import__('pprint').pprint(systems)
     print('Togher')
-    system = eddb_session.query(sys).\
-        filter(sys.name == 'Togher').\
+    system = eddb_session.query(sys_alias).\
+        filter(sys_alias.name == 'Togher').\
         one()
     __import__('pprint').pprint(system.controls)
     print('Wat Yu')
     system = eddb_session.query(sys).\
-        filter(sys.name == 'Wat Yu').\
+        filter(sys_alias.name == 'Wat Yu').\
         one()
     __import__('pprint').pprint(system.exploiteds)
     __import__('pprint').pprint(system.contesteds)

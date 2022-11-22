@@ -23,7 +23,7 @@ import cog.util
 import cogdb.eddb
 from cog.util import ReprMixin, TimestampMixin
 from cogdb.eddb import Base, Power, System, Faction, Influence
-from cogdb.schema import FortSystem, UMSystem, EFortType, EUMType, EUMSheet
+from cogdb.schema import FortSystem, UMSystem, EUMType, EUMSheet
 
 
 # Map of powers used in incoming JSON messages

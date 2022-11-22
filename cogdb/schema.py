@@ -20,12 +20,14 @@ import cogdb
 from cog.util import ReprMixin, TimestampMixin
 
 
-LEN_CMD = 25  # Max length of a subclass of cog.actions
-LEN_NAME = 100
-LEN_REASON = 400
-LEN_SHEET_COL = 5
-LEN_CARRIER = 7
-LEN_COMMAND = 2000
+LEN = {
+    'carrier': 7,
+    'action_name': 25,
+    'command': 2000,
+    'name': 100,
+    'reason': 400,
+    'sheet_col': 5,
+}
 MAX_VOTE_VALUE = 50
 EVENT_CARRIER = """
 CREATE EVENT IF NOT EXISTS clean_carriers
@@ -54,9 +56,9 @@ class DiscordUser(ReprMixin, Base):
     _repr_keys = ['id', 'display_name', 'pref_name', 'pref_cry']
 
     id = sqla.Column(sqla.BigInteger, primary_key=True)  # Discord id
-    display_name = sqla.Column(sqla.String(LEN_NAME))  # FIXME: Remove this
-    pref_name = sqla.Column(sqla.String(LEN_NAME), index=True, nullable=False)  # pref_name == display_name until change
-    pref_cry = sqla.Column(sqla.String(LEN_NAME), default='')
+    display_name = sqla.Column(sqla.String(LEN['name']))  # FIXME: Remove this
+    pref_name = sqla.Column(sqla.String(LEN['name']), index=True, nullable=False)  # pref_name == display_name until change
+    pref_cry = sqla.Column(sqla.String(LEN['name']), default='')
 
     # Relationships
     fort_user = sqla.orm.relationship(
@@ -116,9 +118,9 @@ class FortUser(ReprMixin, Base):
     _repr_keys = ['id', 'name', 'row', 'cry']
 
     id = sqla.Column(sqla.Integer, primary_key=True)
-    name = sqla.Column(sqla.String(LEN_NAME), index=True)  # Undeclared FK to discord_users
+    name = sqla.Column(sqla.String(LEN['name']), index=True)  # Undeclared FK to discord_users
     row = sqla.Column(sqla.Integer, unique=True)
-    cry = sqla.Column(sqla.String(LEN_NAME), default='')
+    cry = sqla.Column(sqla.String(LEN['name']), default='')
 
     # Relationships
     discord_user = sqla.orm.relationship(
@@ -189,7 +191,7 @@ class FortSystem(ReprMixin, Base):
     header = ['Type', 'System', 'Missing', 'Merits (Fort%/UM%)', 'Notes']
 
     id = sqla.Column(sqla.Integer, primary_key=True)
-    name = sqla.Column(sqla.String(LEN_NAME), index=True)
+    name = sqla.Column(sqla.String(LEN['name']), index=True)
     type = sqla.Column(sqla.Enum(EFortType), default=EFortType.fort)
     fort_status = sqla.Column(sqla.Integer, default=0)
     trigger = sqla.Column(sqla.Integer, default=1)
@@ -197,8 +199,8 @@ class FortSystem(ReprMixin, Base):
     um_status = sqla.Column(sqla.Integer, default=0)
     undermine = sqla.Column(sqla.Float, default=0.0)
     distance = sqla.Column(sqla.Float, default=0.0)
-    notes = sqla.Column(sqla.String(LEN_NAME), default='')
-    sheet_col = sqla.Column(sqla.String(LEN_SHEET_COL), default='', unique=True)
+    notes = sqla.Column(sqla.String(LEN['name']), default='')
+    sheet_col = sqla.Column(sqla.String(LEN['sheet_col']), default='', unique=True)
     sheet_order = sqla.Column(sqla.Integer)
     manual_order = sqla.Column(sqla.Integer, nullable=True)
 
@@ -485,7 +487,7 @@ class FortOrder(ReprMixin, Base):
     _repr_keys = ['order', 'system_name']
 
     order = sqla.Column(sqla.Integer, primary_key=True)
-    system_name = sqla.Column(sqla.String(LEN_NAME), unique=True)
+    system_name = sqla.Column(sqla.String(LEN['name']), unique=True)
 
     # Relationships
     system = sqla.orm.relationship(
@@ -514,9 +516,9 @@ class UMUser(Base):
 
     id = sqla.Column(sqla.Integer, primary_key=True)
     sheet_src = sqla.Column(sqla.Enum(EUMSheet), default=EUMSheet.main)
-    name = sqla.Column(sqla.String(LEN_NAME), index=True)  # Undeclared FK to discord_users
+    name = sqla.Column(sqla.String(LEN['name']), index=True)  # Undeclared FK to discord_users
     row = sqla.Column(sqla.Integer)
-    cry = sqla.Column(sqla.String(LEN_NAME), default='')
+    cry = sqla.Column(sqla.String(LEN['name']), default='')
 
     __table_args__ = (
         sqla.UniqueConstraint('sheet_src', 'row', name='umuser_sheet_row_constraint'),
@@ -614,14 +616,14 @@ class UMSystem(Base):
 
     id = sqla.Column(sqla.Integer, primary_key=True)
     sheet_src = sqla.Column(sqla.Enum(EUMSheet), default=EUMSheet.main)
-    name = sqla.Column(sqla.String(LEN_NAME), index=True)
+    name = sqla.Column(sqla.String(LEN['name']), index=True)
     type = sqla.Column(sqla.Enum(EUMType), default=EUMType.control)
-    sheet_col = sqla.Column(sqla.String(LEN_SHEET_COL))
+    sheet_col = sqla.Column(sqla.String(LEN['sheet_col']))
     goal = sqla.Column(sqla.Integer, default=0)
-    security = sqla.Column(sqla.String(LEN_NAME), default='')
-    notes = sqla.Column(sqla.String(LEN_NAME), default='')
-    close_control = sqla.Column(sqla.String(LEN_NAME), default='')
-    priority = sqla.Column(sqla.String(LEN_NAME), default="Normal")
+    security = sqla.Column(sqla.String(LEN['name']), default='')
+    notes = sqla.Column(sqla.String(LEN['name']), default='')
+    close_control = sqla.Column(sqla.String(LEN['name']), default='')
+    priority = sqla.Column(sqla.String(LEN['name']), default="Normal")
     progress_us = sqla.Column(sqla.Integer, default=0)
     progress_them = sqla.Column(sqla.Float, default=0.0)
     map_offset = sqla.Column(sqla.Integer, default=0)
@@ -897,9 +899,9 @@ class KOS(ReprMixin, Base):
     _repr_keys = ['id', 'cmdr', 'squad', 'reason', 'is_friendly']
 
     id = sqla.Column(sqla.Integer, primary_key=True)
-    cmdr = sqla.Column(sqla.String(LEN_NAME), index=True, nullable=False)
-    squad = sqla.Column(sqla.String(LEN_NAME), nullable=False)
-    reason = sqla.Column(sqla.String(LEN_REASON), nullable=False)
+    cmdr = sqla.Column(sqla.String(LEN['name']), index=True, nullable=False)
+    squad = sqla.Column(sqla.String(LEN['name']), nullable=False)
+    reason = sqla.Column(sqla.String(LEN['reason']), nullable=False)
     is_friendly = sqla.Column(sqla.Boolean, default=False)
 
     def __eq__(self, other):
@@ -948,7 +950,7 @@ class ChannelPerm(ReprMixin, Base):
     __tablename__ = 'perms_channels'
     _repr_keys = ['cmd', 'guild_id', 'channel_id']
 
-    cmd = sqla.Column(sqla.String(LEN_CMD), primary_key=True)
+    cmd = sqla.Column(sqla.String(LEN['action_name']), primary_key=True)
     guild_id = sqla.Column(sqla.BigInteger, primary_key=True)
     channel_id = sqla.Column(sqla.BigInteger, primary_key=True)
 
@@ -966,7 +968,7 @@ class RolePerm(ReprMixin, Base):
     __tablename__ = 'perms_roles'
     _repr_keys = ['cmd', 'guild_id', 'role_id']
 
-    cmd = sqla.Column(sqla.String(LEN_CMD), primary_key=True)
+    cmd = sqla.Column(sqla.String(LEN['action_name']), primary_key=True)
     guild_id = sqla.Column(sqla.BigInteger, primary_key=True)
     role_id = sqla.Column(sqla.BigInteger, primary_key=True)
 
@@ -984,7 +986,7 @@ class TrackSystem(ReprMixin, Base):
     __tablename__ = 'carriers_systems'
     _repr_keys = ['system', 'distance']
 
-    system = sqla.Column(sqla.String(LEN_NAME), primary_key=True)
+    system = sqla.Column(sqla.String(LEN['name']), primary_key=True)
     distance = sqla.Column(sqla.Integer, default=15, nullable=False)
 
     def __str__(self):
@@ -1005,8 +1007,8 @@ class TrackSystemCached(ReprMixin, Base):
     __tablename__ = 'carriers_systems_cached'
     _repr_keys = ['system', 'overlaps_with']
 
-    system = sqla.Column(sqla.String(LEN_NAME), primary_key=True)
-    overlaps_with = sqla.Column(sqla.String(LEN_REASON), default="", nullable=False)
+    system = sqla.Column(sqla.String(LEN['name']), primary_key=True)
+    overlaps_with = sqla.Column(sqla.String(LEN['reason']), default="", nullable=False)
 
     def __eq__(self, other):
         return isinstance(other, TrackSystemCached) and hash(self) == hash(other)
@@ -1044,10 +1046,10 @@ class TrackByID(ReprMixin, Base):
 
     header = ["ID", "Squad", "System", "Last System"]
 
-    id = sqla.Column(sqla.String(LEN_CARRIER), primary_key=True)
-    squad = sqla.Column(sqla.String(LEN_NAME), default="")
-    system = sqla.Column(sqla.String(LEN_NAME), default="")
-    last_system = sqla.Column(sqla.String(LEN_NAME), default="")
+    id = sqla.Column(sqla.String(LEN['carrier']), primary_key=True)
+    squad = sqla.Column(sqla.String(LEN['name']), default="")
+    system = sqla.Column(sqla.String(LEN['name']), default="")
+    last_system = sqla.Column(sqla.String(LEN['name']), default="")
     # This flag indicates user requested this ID ALWAYS be tracked, regardless of location.
     override = sqla.Column(sqla.Boolean, default=False)
     updated_at = sqla.Column(sqla.DateTime, default=datetime.datetime.utcnow, index=True)  # All dates UTC
@@ -1306,7 +1308,7 @@ class SheetRecord(ReprMixin, TimestampMixin, Base):
     channel_id = sqla.Column(sqla.BigInteger, nullable=False)
     sheet_src = sqla.Column(sqla.Enum(ESheetType), default=ESheetType.fort)
     cycle = sqla.Column(sqla.Integer, default=cog.util.current_cycle)
-    command = sqla.Column(sqla.String(LEN_COMMAND), default="")
+    command = sqla.Column(sqla.String(LEN['command']), default="")
     flushed_sheet = sqla.Column(sqla.Boolean, default=False)
     created_at = sqla.Column(sqla.Integer, default=time.time)
 

@@ -322,7 +322,7 @@ class FortScanner():
         return [{'range': cell_range, 'values': [[amount]]}]
 
     @staticmethod
-    def update_import_mode_dict(range, import_mode):
+    def update_import_mode_dict(a1_range, import_mode):
         """Change import mode from the sheet.
 
         Args:
@@ -331,7 +331,7 @@ class FortScanner():
 
         Returns: A list of update dicts to pass to batch_update.
         """
-        return [{'range': str(range), 'values': [[import_mode]]}]
+        return [{'range': str(a1_range), 'values': [[import_mode]]}]
 
     @staticmethod
     def bulk_update_fort_status(systems):

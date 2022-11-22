@@ -1,3 +1,4 @@
+# pylint: disable=redefined-outer-name,missing-function-docstring,unused-argument
 """
 Tests against the cog.actions module.
 These tests act as integration tests, checking almost the whole path.

@@ -214,20 +214,20 @@ class EDMCJournal():
         if not ("StationType" in body and body["StationType"] == "FleetCarrier"):
             return None
 
-        id = body["StationName"]
+        cid = body["StationName"]
         system = self.parsed["system"]["name"]
         date = self.date_obj
-        ids_dict = {id: {'id': id, 'system': system, 'updated_at': date.replace(tzinfo=None)}}
+        ids_dict = {cid: {'id': cid, 'system': system, 'updated_at': date.replace(tzinfo=None)}}
 
-        if cogdb.query.track_ids_check(self.session, id):
+        if cogdb.query.track_ids_check(self.session, cid):
             cogdb.query.track_ids_update(self.session, ids_dict)
         elif cogdb.query.track_systems_computed_check(self.session, system):
-            ids_dict[id]['override'] = False
+            ids_dict[cid]['override'] = False
             cogdb.query.track_ids_update(self.session, ids_dict)
         self.session.commit()
 
-        self.parsed["carriers"] = ids_dict[id]
-        logging.getLogger(__name__).info("Matched carrier: %s", id)
+        self.parsed["carriers"] = ids_dict[cid]
+        logging.getLogger(__name__).info("Matched carrier: %s", cid)
         return ids_dict
 
     def parse_station(self):

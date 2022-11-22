@@ -1,3 +1,4 @@
+# pylint: disable=redefined-outer-name,missing-function-docstring,unused-argument
 """
 Tests for cogdb.eddn
 """
@@ -635,10 +636,10 @@ def test_edmcjournal_parse_and_flush_carrier_edmc_id(session, f_track_testbed):
 
     result = parser.parse_and_flush_carrier()
 
-    id = 'OVE-111'
+    cid = 'OVE-111'
     expected = {
-        id: {
-            'id': id,
+        cid: {
+            'id': cid,
             'system': 'Rana',
             'updated_at': parser.date_obj.replace(tzinfo=None),
         }
@@ -646,7 +647,7 @@ def test_edmcjournal_parse_and_flush_carrier_edmc_id(session, f_track_testbed):
     assert result == expected
 
     session.commit()
-    tracked = session.query(TrackByID).filter(TrackByID.id == id).one()
+    tracked = session.query(TrackByID).filter(TrackByID.id == cid).one()
     assert tracked.system == "Rana"
 
     parser.session.rollback()
@@ -663,10 +664,10 @@ def test_edmcjournal_parse_and_flush_carrier_disc_system(session, f_track_testbe
 
     result = parser.parse_and_flush_carrier()
 
-    id = 'KLG-9TL'
+    cid = 'KLG-9TL'
     expected = {
-        id: {
-            'id': 'KLG-9TL',
+        cid: {
+            'id': cid,
             'override': False,
             'system': 'Nanomam',
             'updated_at': parser.date_obj.replace(tzinfo=None),
@@ -675,7 +676,7 @@ def test_edmcjournal_parse_and_flush_carrier_disc_system(session, f_track_testbe
     assert result == expected
 
     session.commit()
-    tracked = session.query(TrackByID).filter(TrackByID.id == id).one()
+    tracked = session.query(TrackByID).filter(TrackByID.id == cid).one()
     assert tracked.system == "Nanomam"
 
     parser.session.rollback()

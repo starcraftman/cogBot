@@ -21,7 +21,7 @@ from cogdb.schema import (DiscordUser, FortSystem, FortPrep, FortDrop, FortUser,
                           AdminPerm, ChannelPerm, RolePerm,
                           TrackSystem, TrackSystemCached, TrackByID,
                           Global, Vote, EVoteType, Consolidation,
-                          ESheetType, SheetRecord)
+                          SheetRecord)
 
 
 def dump_db(session):  # pragma: no cover
@@ -1118,12 +1118,12 @@ def track_ids_remove(session, ids):
     return [x.id for x in track_ids]
 
 
-def track_ids_check(session, id):
+def track_ids_check(session, cid):
     """
     Return True iff the id is set to be manually tracked via override.
     """
     try:
-        return session.query(TrackByID).filter(TrackByID.id == id, TrackByID.override).one()
+        return session.query(TrackByID).filter(TrackByID.id == cid, TrackByID.override).one()
     except sqla_exc.NoResultFound:
         return None
 

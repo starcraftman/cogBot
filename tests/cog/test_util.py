@@ -1,3 +1,4 @@
+# pylint: disable=redefined-outer-name,missing-function-docstring,unused-argument
 """
 Test util the grab all module.
 """
@@ -369,15 +370,13 @@ def test_repr_mixin():
 
 
 def test_hex_decode():
-    input = "4C61626F7572206F662052686561"
     expect = "Labour of Rhea"
-    assert expect == cog.util.hex_decode(input)
+    assert expect == cog.util.hex_decode("4C61626F7572206F662052686561")
 
 
 def test_hex_encode():
-    input = "Labour of Rhea"
     expect = "4C61626F7572206F662052686561"
-    assert expect == cog.util.hex_encode(input)
+    assert expect == cog.util.hex_encode("Labour of Rhea")
 
 
 @pytest.mark.asyncio

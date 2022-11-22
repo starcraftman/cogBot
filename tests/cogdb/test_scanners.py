@@ -1,3 +1,4 @@
+# pylint: disable=redefined-outer-name,missing-function-docstring,unused-argument
 """
 Tests for cogdb.scanners
 """
@@ -625,7 +626,6 @@ async def test_galscanner_clear_cells(session):
         global SENT
         SENT += [x]
 
-    global SENT
     SENT.clear()
     fake_sheet = aiomock.AIOMock()
     fake_sheet.batch_clear = batch_clear_stub
@@ -641,7 +641,6 @@ async def test_galscanner_cycle_reset(session):
         global SENT
         SENT += [x]
 
-    global SENT
     SENT.clear()
     fake_sheet = aiomock.AIOMock()
     fake_sheet.batch_clear = batch_clear_stub

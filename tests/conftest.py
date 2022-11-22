@@ -1,3 +1,4 @@
+# pylint: disable=redefined-outer-name,missing-function-docstring,unused-argument,redefined-builtin
 """
 Used for pytest fixtures and anything else test setup/teardown related.
 """
@@ -504,7 +505,8 @@ class Role(FakeObject):
 
 
 class Message(FakeObject):
-    def __init__(self, content, author, srv, channel, *, id=None, mentions=None, channel_mentions=None, role_mentions=None):
+    def __init__(self, content, author, srv, channel, *, id=None,
+                 mentions=None, channel_mentions=None, role_mentions=None):
         super().__init__(None, id)
         self.author = author
         self.channel = channel
@@ -792,13 +794,13 @@ def f_global_testbed(session):
     Setup the database with dummy data for track tests.
     """
     date = datetime.datetime(2021, 8, 25, 2, 33, 0)
-    globals = (
+    db_globals = (
         Global(id=1, cycle=240, consolidation=77, updated_at=date),
     )
-    session.add_all(globals)
+    session.add_all(db_globals)
     session.commit()
 
-    yield globals
+    yield db_globals
 
     session.rollback()
     for cls in (Global,):
@@ -812,12 +814,12 @@ def f_vote_testbed(session):
     Setup the database with dummy data for vote tracker.
     """
     updated_at = datetime.datetime(2021, 8, 25, 2, 33, 0)
-    min = datetime.timedelta(minutes=1)
+    a_min = datetime.timedelta(minutes=1)
     votes = (
         Vote(id=1, vote=EVoteType.cons, amount=1, updated_at=updated_at),
-        Vote(id=1, vote=EVoteType.prep, amount=5, updated_at=updated_at + min),
-        Vote(id=2, vote=EVoteType.cons, amount=3, updated_at=updated_at + min + min),
-        Vote(id=2, vote=EVoteType.prep, amount=2, updated_at=updated_at + min + min + min),
+        Vote(id=1, vote=EVoteType.prep, amount=5, updated_at=updated_at + a_min),
+        Vote(id=2, vote=EVoteType.cons, amount=3, updated_at=updated_at + a_min + a_min),
+        Vote(id=2, vote=EVoteType.prep, amount=2, updated_at=updated_at + a_min + a_min + a_min),
     )
     session.add_all(votes)
     session.commit()

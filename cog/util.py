@@ -741,8 +741,6 @@ async def emergency_notice(client, msg):  # pragma: no cover just a convenience,
     await chan.send(msg)
 
 
-
-
 #  # Scenario multiple readers, always allowed
 #  async def a_run1(lock):
     #  print("Run1 - aquire read")
