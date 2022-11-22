@@ -3,6 +3,7 @@ Tests for cogdb.spy
 """
 import os
 import pathlib
+import time
 
 import pytest
 import sqlalchemy as sqla
@@ -73,6 +74,7 @@ def spy_test_bed(eddb_session):
         spy.SpySystem(
             id=1,
             ed_system_id=10477373803,
+            system_name="Rana",
             power_id=9,
             power_state_id=16,
             income=122,
@@ -83,10 +85,12 @@ def spy_test_bed(eddb_session):
             um=40000,
             um_trigger=33998,
             updated_at=FIXED_TIMESTAMP,
+            held_updated_at=(time.time() - 36000),
         ),
         spy.SpySystem(
             id=2,
             ed_system_id=11665533904241,
+            system_name="Nanomam",
             power_id=9,
             power_state_id=64,
             income=0,
@@ -95,6 +99,7 @@ def spy_test_bed(eddb_session):
             fort_trigger=4872,
             um_trigger=7198,
             updated_at=FIXED_TIMESTAMP,
+            held_updated_at=time.time(),
         ),
         spy.SpyTraffic(
             id=1,
@@ -635,3 +640,7 @@ def test_preload_spy_tables(empty_spy, eddb_session):
 def test_get_vote_of_power(empty_spy, eddb_session, spy_test_bed):
     assert 75 == spy.get_vote_of_power(eddb_session)
     assert 0 == spy.get_vote_of_power(eddb_session, power='winters')
+
+
+def test_get_controls_outdated_held(empty_spy, db_cleanup, spy_test_bed, eddb_session):
+    assert "Rana" in [x.name for x in spy.get_controls_outdated_held(eddb_session, power='%hudson')]

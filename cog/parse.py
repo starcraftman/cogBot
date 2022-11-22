@@ -607,8 +607,10 @@ def subs_scrape(subs, prefix):
         Trigger an update of the sheets based on basic information query.
 **{prefix}scrape held FW**
         Get information for all controls of power and update sheets.
-**{prefix}scrape held ZH --start Kaura**
+        Update systems with held merits older than 7 hours.
+**{prefix}scrape held ZH --hours 3**
         Get information for all controls of power and update sheets.
+        Update systems with held merits older than 3 hours.
 **{prefix}scrape bgs Abi, Rana**
         Scrape all bgs information listed systems and ...
             if a system is a control, scrape all exploited systems as well.
@@ -622,7 +624,7 @@ def subs_scrape(subs, prefix):
     subcmd = subcmds.add_parser('bgs', help='Scrape the bgs .')
     subcmd.add_argument('systems', nargs='+', help='The systems to query for information.')
     subcmd = subcmds.add_parser('held', help='Query the held information for controls of a pwoer.')
-    subcmd.add_argument('--start', nargs='+', help='The name of the power to track.')
+    subcmd.add_argument('--hours', type=int, default=7, help='Update all systems older than this cutoff.')
     subcmd.add_argument('name', nargs='+', help='The name of the power to track.')
     subcmd = subcmds.add_parser('power', help='Refresh the information and push to sheets.')
 

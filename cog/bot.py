@@ -208,8 +208,7 @@ class CogBot(discord.Client):
                 cog.actions.monitor_snipe_merits(self),
                 cog.actions.monitor_spy_site(self, repeat=True, delay=900),
                 cog.actions.monitor_powerplay_api(self, repeat=False, delay=75),  # Runs scrape right after launch once
-                cog.actions.monitor_powerplay_api(self, repeat=True, delay=1800,
-                                                  last_scrape=datetime.datetime.utcnow()),  # Every 30 mins scrape
+                cog.actions.monitor_powerplay_api(self, repeat=True, delay=1800),  # Every 30 mins scrape
                 cogdb.eddb.monitor_eddb_caches(),
                 cogdb.monitor_pools(),
             ))

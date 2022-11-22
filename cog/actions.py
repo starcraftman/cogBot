@@ -1718,15 +1718,12 @@ class Scrape(Action):
         Returns: A message to return to invoker.
         """
         power = cogdb.eddb.get_power_by_name(eddb_session, self.args.name)
-        await self.msg.channel.send(f"Will scrape all controls for: {power.text}. Ok? Y/N")
+        await self.msg.channel.send(f"Will scrape all controls for {power.text} with held merits updated older than {self.args.hours} hours. Ok? Y/N")
         response = await self.bot.wait_for('message', check=lambda msg: msg.author == self.msg.author and msg.channel == self.msg.channel)
         if not response.content.lower().startswith("y"):
             return 'Cancelling power scrape.'
 
-        if self.args.start:
-            self.args.start = " ".join(self.args.start)
-        await spy.schedule_power_scrape(eddb_session, power.text,
-                                        callback=self.msg.channel.send, start=self.args.start)
+        await spy.schedule_power_scrape(eddb_session, power.text, callback=self.msg.channel.send, hours_old=self.args.hours)
         return f'Scheduled scrape for {power.text}.'
 
     async def execute(self):
@@ -2533,7 +2530,7 @@ async def push_spy_to_sheets():  # pragma: no cover | tested elsewhere
             await scanner.send_batch(payloads, input_opt='USER_ENTERED')
 
 
-async def monitor_powerplay_api(client, *, repeat=True, delay=1800, last_scrape=None):
+async def monitor_powerplay_api(client, *, repeat=True, delay=1800):
     """Poll the powerplay page for info every delay seconds.
 
     N.B. This depends on multiple scanners being operable. Start this task ONLY when they are ready.
@@ -2542,14 +2539,11 @@ async def monitor_powerplay_api(client, *, repeat=True, delay=1800, last_scrape=
         client: The discord.py client.
         repeat: If True schedule self at end of execution to run again.
         delay: The delay in seconds between checks.
-        last_scrape: A datetime.datetime UTC native object. If None don't run scrape.
     """
     await asyncio.sleep(delay)
-    if repeat and last_scrape:
-        last_scrape = await spy.schedule_held(last_scrape)
-        asyncio.ensure_future(
-            monitor_powerplay_api(client, repeat=repeat, delay=delay, last_scrape=last_scrape)
-        )
+    if repeat:
+        await spy.schedule_federal_held()
+        asyncio.ensure_future(monitor_powerplay_api(client, repeat=repeat, delay=delay))
 
     log = logging.getLogger(__name__)
     try:

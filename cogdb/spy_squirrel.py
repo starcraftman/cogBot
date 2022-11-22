@@ -351,7 +351,7 @@ class SpySystem(ReprMixin, TimestampMixin, Base):
     updated_at = sqla.Column(sqla.Integer, default=time.time)
     held_merits = sqla.Column(sqla.Integer, default=0)
     stolen_forts = sqla.Column(sqla.Integer, default=0)
-    held_updated_at = sqla.Column(sqla.Integer, default=time.time)
+    held_updated_at = sqla.Column(sqla.Integer, default=10)  # Intentionally old, force held if queried
 
     # Relationships
     system = sqla.orm.relationship(
@@ -858,32 +858,35 @@ def response_json_update_system_info(eddb_session, info):
     ship_map_traffic = ship_type_to_id_map(traffic_text=True)
     log = logging.getLogger(__name__)
 
+    now_time = time.time()
     for sys_name, sys_info in info.items():
-        # Handle held merits
+        try:
+            system = eddb_session.query(SpySystem).\
+                filter(SpySystem.system_name == sys_name).\
+                one()
+            log.info("Updating SpySystem %s", sys_name)
+        except sqla.orm.exc.NoResultFound:
+            eddb_system = eddb_session.query(System).\
+                filter(System.name == sys_name).\
+                one()
+            kwargs = {
+                'ed_system_id': eddb_system.ed_system_id,
+                'system_name': eddb_system.name,
+                'power_id': eddb_system.power_id,
+                'power_state_id': eddb_system.power_state_id,
+                'held_merits': sys_info['power']['held_merits'],
+                'stolen_forts': sys_info['power']['stolen_forts'],
+            }
+            system = SpySystem(**kwargs)
+            eddb_session.add(system)
+            log.warning("Adding SpySystem for held merits: %s", sys_name)
+
+        # Always update held time based on response
+        system.held_updated_at = now_time
         if 'power' in sys_info:
-            try:
-                system = eddb_session.query(SpySystem).\
-                    filter(SpySystem.system_name == sys_name).\
-                    one()
-                system.held_merits = sys_info['power']['held_merits']
-                system.stolen_forts = sys_info['power']['stolen_forts']
-                log.info("Updating held merits in %s", sys_name)
-            except sqla.orm.exc.NoResultFound:
-                eddb_system = eddb_session.query(System).\
-                    filter(System.name == sys_name).\
-                    one()
-                kwargs = {
-                    'ed_system_id': eddb_system.ed_system_id,
-                    'system_name': eddb_system.name,
-                    'power_id': eddb_system.power_id,
-                    'power_state_id': eddb_system.power_state_id,
-                    'held_merits': sys_info['power']['held_merits'],
-                    'stolen_forts': sys_info['power']['stolen_forts'],
-                    'held_updated_at': time.time(),
-                }
-                system = SpySystem(**kwargs)
-                eddb_session.add(system)
-                log.warning("Adding SpySystem for held merits: %s", sys_name)
+            system.held_merits = sys_info['power']['held_merits']
+            system.stolen_forts = sys_info['power']['stolen_forts']
+            log.info("Updating held merits in %s", sys_name)
 
         if 'top5_power' in sys_info:
             log.warning("Parsing top 5 bounties for: %s", sys_name)
@@ -1061,32 +1064,26 @@ def get_vote_of_power(eddb_session, power='%hudson'):
     return vote_amount
 
 
-async def schedule_held(last_scrape):  # pragma: no cover, would ping API point needlessly
-    """Schedule a scrape of federal powers if gap is sufficient since last.
-
-    Args:
-        last_scrape: A datetime.datetime object, should be UTC native.
+async def schedule_federal_held():  # pragma: no cover, would ping API point needlessly
+    """Schedule a scrape of federal powers if there are SpySystems that need held updated.
 
     Returns: The datetime.datetime UTC native object of last time run.
     """
     now = datetime.datetime.utcnow()
     log = logging.getLogger(__name__)
-    log.warning("Scheduling federal scrap: %s", now)
+    log.warning("Checking held merits for federal systesm: %s", now)
 
-    if (now - last_scrape) >= EIGHT_HOURS:
-        for power_name in ('Felicia Winters', 'Zachary Hudson'):
-            log.warning("Scheduling federal start: %s, %s", power_name, datetime.datetime.utcnow())
-            with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
-                try:
-                    await schedule_power_scrape(eddb_session, power_name)
-                except cog.exc.InvalidCommandArgs:
-                    pass
-            await asyncio.sleep(random.randint(1500, 2250))  # Randomly delay between 25 and 37.5 mins
-
-    return last_scrape
+    for power_name in ('Felicia Winters', 'Zachary Hudson'):
+        log.warning("Checking held merits for: %s, %s", power_name, datetime.datetime.utcnow())
+        with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
+            try:
+                await schedule_power_scrape(eddb_session, power_name)
+            except cog.exc.InvalidCommandArgs:
+                pass
+        await asyncio.sleep(random.randint(*HELD_DELAY) * random.randint(1, 3))  # Randomly delay between
 
 
-async def schedule_power_scrape(eddb_session, power_name, *, callback=None, start=None):  # pragma: no cover, would ping API point needlessly
+async def schedule_power_scrape(eddb_session, power_name, *, callback=None, hours_old=7):  # pragma: no cover, would ping API point needlessly
     """Schedule a scrape of controls of a given power for detailed information.
 
     This function will prevent multiple concurrent scrapes at same time.
@@ -1104,21 +1101,12 @@ async def schedule_power_scrape(eddb_session, power_name, *, callback=None, star
             HELD_RUNNING.format(power_name=power_name, date=HELD_POWERS[power_name]['start_date'])
         )
 
-    control_names = cogdb.eddb.get_controls_of_power(eddb_session, power=power_name)
-    systems, _ = cogdb.eddb.get_all_systems_named(eddb_session, control_names)
-
-    # If start present, start posting systems AFTER indicated start system
-    if start:
-        start = start.lower()
-        keep_systems, new_systems = False, []
-        for system in systems:
-            if keep_systems:
-                new_systems += [system]
-            if system.name.lower() == start:
-                keep_systems = True
-        if not new_systems:
-            raise cog.exc.InvalidCommandArgs("Please check start system name, could not match.")
-        systems = new_systems
+    systems = get_controls_outdated_held(eddb_session, power=power_name, hours_old=hours_old)
+    sys_names = ", ".join([x.name for x in systems])
+    if callback:
+        msg = f"Will update the following systems:\n\n{sys_names}"
+        await callback(msg)
+        logging.getLogger(__name__).info(msg)
 
     HELD_POWERS[power_name] = {
         'start_date': datetime.datetime.utcnow(),
@@ -1171,6 +1159,30 @@ async def post_systems(systems, callback=None):  # pragma: no cover, would ping 
         await callback(f'Scrape of {len(systems)} systems has completed. The following were updated:\n\n{sys_names}')
 
     return influence_ids
+
+
+def get_controls_outdated_held(eddb_session, *, power='%hudson', hours_old=7):
+    """
+    Get all control Systems of a power mentioned where the held_updated_at date
+    is at least hours_old.
+
+    Args:
+        eddb_session: A session onto the EDDB db.
+        power: The loose like match of the power, i.e. "%hudson".
+        hours_old: Update any systems that have held_data this many hours old. Default: >= 7
+    """
+    cutoff = time.time() - (hours_old * 60 * 60)
+
+    return eddb_session.query(cogdb.eddb.System).\
+        join(SpySystem, cogdb.eddb.System.name == SpySystem.system_name).\
+        join(cogdb.eddb.PowerState, cogdb.eddb.System.power_state_id == cogdb.eddb.PowerState.id).\
+        join(cogdb.eddb.Power, cogdb.eddb.System.power_id == cogdb.eddb.Power.id).\
+        filter(
+            cogdb.eddb.Power.text.ilike(power),
+            cogdb.eddb.PowerState.text == "Control",
+            SpySystem.held_updated_at < cutoff).\
+        order_by(System.name).\
+        all()
 
 
 def preload_spy_tables(eddb_session):
