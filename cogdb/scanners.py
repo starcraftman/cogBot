@@ -15,6 +15,7 @@ import sqlalchemy.exc as sqla_exc
 import cog.exc
 import cog.sheets
 import cog.util
+from cog.util import ReprMixin
 import cogdb
 from cogdb.schema import (FortSystem, FortPrep, FortDrop, FortUser,
                           UMSystem, UMUser, UMHold, KOS, EUMSheet,
@@ -25,7 +26,7 @@ SNIPE_FIRST_ID = 10001
 SCANNERS = {}
 
 
-class FortScanner():
+class FortScanner(ReprMixin):
     """
     Scanner for the Hudson fort sheet.
 
@@ -34,6 +35,8 @@ class FortScanner():
         user_args: The arguements to use for users parsing.
         db_classes: The database classes that should be purged on replacement.
     """
+    _repr_keys = ['asheet', 'db_classes', 'lock', 'system_col', 'user_col', 'user_row']
+
     def __init__(self, asheet, db_classes=None):
         self.asheet = asheet
         self.db_classes = db_classes if db_classes else [FortDrop, FortSystem, FortUser]
@@ -44,13 +47,6 @@ class FortScanner():
         self.system_col = None
         self.user_col = 'B'
         self.user_row = 11
-
-    def __repr__(self):
-        keys = ['asheet', 'db_classes', 'lock',
-                'system_col', 'user_col', 'user_row']
-        kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
-
-        return "FortScanner({})".format(', '.join(kwargs))
 
     def __str__(self):
         return repr(self)
@@ -365,9 +361,6 @@ class UMScanner(FortScanner):
         self.user_row = 14
         self.sheet_src = EUMSheet.main
 
-    def __repr__(self):
-        return super().__repr__().replace('FortScanner', 'UMScanner')
-
     def parse_sheet(self, session):
         """
         Parse the updated sheet and return information to directly pass to scan.
@@ -567,7 +560,7 @@ class UMScanner(FortScanner):
         new_um_sheet_temp[0] = [[row[i] for row in new_um_sheet_temp[0]] for i in range(13)]
 
         # Mapping data and sending them to the sheet
-        return [{'range': '{}1:13'.format(cog.sheets.Column().offset(index + 2)), 'values': new_um_sheet_temp[0]}]
+        return [{'range': f'{cog.sheets.Column().offset(index + 2)}1:13', 'values': new_um_sheet_temp[0]}]
 
     @staticmethod
     def slide_formula_to_right(raw_um_sheet, sheet_index):
@@ -585,14 +578,14 @@ class UMScanner(FortScanner):
             column_name_3 = column_init.offset(1)
             column_name_4 = column_init.offset(1)
             column_name_5 = column_init.offset(1)
-            for j in range(len(columns)):
-                columns[j] = str(columns[j]) \
-                    .replace("{}$".format(column_name_2),
-                             "{}$".format(column_name_4)) \
-                    .replace(":{}".format(column_name_3),
-                             ":{}".format(column_name_5)) \
-                    .replace("{}$".format(column_name_3),
-                             "{}$".format(column_name_5))
+            for ind, _ in enumerate(columns):
+                columns[ind] = str(columns[ind])\
+                    .replace(f"{column_name_2}$",
+                             f"{column_name_4}$")\
+                    .replace(f":{column_name_3}",
+                             f":{column_name_5}")\
+                    .replace(f"{column_name_3}$",
+                             f"{column_name_5}$")
             temp_index += 1
         return temp
 
@@ -626,8 +619,8 @@ class UMScanner(FortScanner):
                     continue
 
                 for old, new in ((main_col, new_main_col), (sec_col, new_sec_col)):
-                    temp = re.sub('{}(\\$?\\d+)'.format(old), '{}\\1'.format(new), temp)
-                    temp = re.sub(":{}\\)".format(old), ":{})".format(new), temp)
+                    temp = re.sub(f"{old}(\\$?\\d+)", f'{new}\\1', temp)
+                    temp = re.sub(f":{old}\\)", f":{new})", temp)
                 column[ind] = temp
             except (AttributeError, TypeError):
                 pass
@@ -687,9 +680,6 @@ class SnipeScanner(UMScanner):
         # For now, format is identical to UM Sheet.
         self.sheet_src = EUMSheet.snipe
 
-    def __repr__(self):
-        return super().__repr__().replace('FortScanner', 'SnipeScanner')
-
     def users(self, *, row_cnt=None, first_id=SNIPE_FIRST_ID, cls=UMUser):
         """
         Scan the users in the sheet and return sheet user objects.
@@ -747,9 +737,6 @@ class KOSScanner(FortScanner):
     def __init__(self, asheet):
         super().__init__(asheet, [KOS])
 
-    def __repr__(self):
-        return super().__repr__().replace('FortScanner', 'KOSScanner')
-
     def parse_sheet(self, session):
         """
         Parse the updated sheet and return information to directly pass to scan.
@@ -766,7 +753,7 @@ class KOSScanner(FortScanner):
         for ent in set(entries):
             dupe_entries.remove(ent)
         if dupe_entries:
-            cmdrs = ["CMDR {} duplicated in sheet".format(x.cmdr) for x in dupe_entries]
+            cmdrs = [f"CMDR {x.cmdr} duplicated in sheet" for x in dupe_entries]
             raise cog.exc.SheetParsingError("Duplicate CMDRs in KOS sheet.\n\n" + '\n'.join(cmdrs))
 
         self.flush_to_db(session, (entries,))
@@ -832,9 +819,6 @@ class RecruitsScanner(FortScanner):
 
         self.first_free = 1
 
-    def __repr__(self):
-        return super().__repr__().replace('FortScanner', 'RecruitsScanner')
-
     def parse_sheet(self, session):
         """
         Unused, remains for consistency of interface.
@@ -884,9 +868,6 @@ class CarrierScanner(FortScanner):
     def __init__(self, asheet):
         super().__init__(asheet, [])
 
-    def __repr__(self):
-        return super().__repr__().replace('FortScanner', 'CarrierScanner')
-
     def parse_sheet(self, session):
         """
         Push the update of carriers to the database.
@@ -929,9 +910,6 @@ class GalScanner(FortScanner):
     """
     def __init__(self, asheet):
         super().__init__(asheet, [])
-
-    def __repr__(self):
-        return super().__repr__().replace('FortScanner', 'GalScanner')
 
     def parse_sheet(self, _):
         """
@@ -1031,9 +1009,6 @@ class FortTracker(FortScanner):
     def __init__(self, asheet):
         super().__init__(asheet, [])
 
-    def __repr__(self):
-        return super().__repr__().replace('FortScanner', 'FortTracker')
-
 
 class BGSDemo(FortScanner):
     """
@@ -1044,9 +1019,6 @@ class BGSDemo(FortScanner):
     """
     def __init__(self, asheet):
         super().__init__(asheet, [])
-
-    def __repr__(self):
-        return super().__repr__().replace('FortScanner', 'BGSDemo')
 
     def update_dict(self, *, influences, row=2):
         """

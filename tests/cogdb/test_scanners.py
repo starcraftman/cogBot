@@ -33,6 +33,12 @@ async def test_fortscanner_update_cells(f_asheet_fortscanner):
     assert fscan.cells_col_major[0][2] == "Total Fortification Triggers:"
 
 
+def test_fortscanner__repr__(session, f_asheet_fortscanner,
+                             f_dusers, f_fort_testbed, db_cleanup):
+    fscan = FortScanner(f_asheet_fortscanner)
+    assert "FortScanner" in repr(fscan)
+
+
 def test_fortscanner_drop_db_entries(session, f_asheet_fortscanner,
                                      f_dusers, f_fort_testbed, db_cleanup):
     fscan = FortScanner(f_asheet_fortscanner)
@@ -202,6 +208,11 @@ def test_fortscanner_update_drop_dict():
 def test_fortscanner_update_import_mode_dict():
     data = FortScanner.update_import_mode_dict("B9:B9", 'FALSE')
     assert data == [{"range": "B9:B9", "values": [['FALSE']]}]
+
+
+def test_umscanner__repr__(session, f_asheet_umscanner, f_dusers, f_um_testbed):
+    umscan = UMScanner(f_asheet_umscanner)
+    assert "UMScanner" in repr(umscan)
 
 
 def test_umscanner_drop_db_entries(session, f_asheet_umscanner, f_dusers, f_um_testbed):

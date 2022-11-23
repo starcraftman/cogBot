@@ -60,7 +60,7 @@ def register_parser(func):
 @register_parser
 def subs_admin(subs, prefix):
     """ Subcommand parsing for admin """
-    desc = """Admin only commands. Examples:
+    desc = f"""Admin only commands. Examples:
 
 **{prefix}admin add @GearsandCogs  **
         Add GearsandCogs to the admin group.
@@ -101,7 +101,7 @@ def subs_admin(subs, prefix):
         Will add Cubeo and Nauo with 50% reinforced trigger and Normal priority in UM sheet.
 **{prefix}admin removeum Nauo**
         Will remove Nauo from the UM sheet. 1 system at a time.
-    """.format(prefix=prefix)
+    """
     sub = subs.add_parser(prefix + 'admin', description=desc, formatter_class=RawHelp)
     sub.set_defaults(cmd='Admin')
     CMD_MAP['Admin'] = 'admin'
@@ -140,7 +140,7 @@ def subs_admin(subs, prefix):
 @register_parser
 def subs_bgs(subs, prefix):
     """ Subcommand parsing for bgs """
-    desc = """BGS related commands. Examples:
+    desc = f"""BGS related commands. Examples:
 
 **{prefix}bgs age 16 cygni**
         Show exploiteds in 16 Cygni bubble by age.
@@ -170,7 +170,7 @@ def subs_bgs(subs, prefix):
         Show an overall report for one or more bubbles.
 **{prefix}bgs sys Frey**
         Show a system overview and all factions.
-    """.format(prefix=prefix)
+    """
     sub = subs.add_parser(prefix + 'bgs', description=desc, formatter_class=RawHelp)
     sub.set_defaults(cmd='BGS', system=[])
     CMD_MAP['BGS'] = 'bgs'
@@ -232,8 +232,9 @@ def subs_donate(subs, prefix):
 @register_parser
 def subs_drop(subs, prefix):
     """ Subcommand parsing for drop """
-    desc = """Update the cattle sheet when you drop at a system.
-    Amount dropped must be in range [-{num}, num]
+    bound = cog.util.CONF.constants.max_drop
+    desc = f"""Update the cattle sheet when you drop at a system.
+    Amount dropped must be in range [-{bound}, {bound}]
     Examples:
 
 **{prefix}drop 600 Rana**
@@ -247,7 +248,7 @@ def subs_drop(subs, prefix):
 **{prefix}drop 600 Rana --set 4560:2000**
 **{prefix}drop 600 Rana -s 4560:2000**
         Drop 600 supplies at Rana for yourself, set fort status to 4500 and UM status to 2000.
-    """.format(prefix=prefix, num=cog.util.CONF.constants.max_drop)
+    """
     sub = subs.add_parser(prefix + 'drop', description=desc, formatter_class=RawHelp)
     sub.set_defaults(cmd='Drop')
     CMD_MAP['Drop'] = 'drop'
@@ -274,7 +275,7 @@ def subs_feedback(subs, prefix):
 @register_parser
 def subs_fort(subs, prefix):
     """ Subcommand parsing for fort """
-    desc = """Show fortification status and targets. Examples:
+    desc = f"""Show fortification status and targets. Examples:
 
 **{prefix}fort**
         Show current fort objectives.
@@ -297,7 +298,7 @@ def subs_fort(subs, prefix):
 **{prefix}fort Othime --set 7500:2000**
 **{prefix}fort Othime -s 7500:2000**
         Set othime to 7500 fort status and 2000 um status.
-    """.format(prefix=prefix)
+    """
     sub = subs.add_parser(prefix + 'fort', description=desc, formatter_class=RawHelp)
     sub.set_defaults(cmd='Fort')
     CMD_MAP['Fort'] = 'fort'
@@ -327,7 +328,7 @@ def subs_help(subs, prefix):
 @register_parser
 def subs_hold(subs, prefix):
     """ Subcommand parsing for hold """
-    desc = """Update a user's held or redeemed merits. Examples:
+    desc = f"""Update a user's held or redeemed merits. Examples:
 
 **{prefix}hold 1200 burr**
         Set your held merits at Burr to 1200.
@@ -345,7 +346,7 @@ def subs_hold(subs, prefix):
 **{prefix}hold 720 burr -s 60000:130**
         Update held merits to 720 at Burr expansion and set progress to 60000 merits for us
 and 130% opposition.
-    """.format(prefix=prefix)
+    """
     sub = subs.add_parser(prefix + 'hold', description=desc, formatter_class=RawHelp)
     sub.set_defaults(cmd='Hold', sheet_src=EUMSheet.main)
     CMD_MAP['Hold'] = 'hold'
@@ -361,7 +362,7 @@ and 130% opposition.
 @register_parser
 def subs_shold(subs, prefix):
     """ Subcommand parsing for shold, snipe variant of hold """
-    desc = """Update a user's held or redeemed merits.
+    desc = f"""Update a user's held or redeemed merits.
 IMPORTANT: This is the __SNIPE__ sheet.
 
 Examples:
@@ -382,7 +383,7 @@ Examples:
 **{prefix}shold 720 burr -s 60000:130**
         Update held merits to 720 at Burr expansion and set progress to 60000 merits for us
 and 130% opposition.
-    """.format(prefix=prefix)
+    """
     sub = subs.add_parser(prefix + 'shold', description=desc, formatter_class=RawHelp)
     sub.set_defaults(cmd='SnipeHold', sheet_src=EUMSheet.snipe)
     CMD_MAP['SnipeHold'] = 'shold'
@@ -398,7 +399,7 @@ and 130% opposition.
 @register_parser
 def subs_kos(subs, prefix):
     """ Subcommand parsing for kos """
-    desc = """KOS related commands. Examples:
+    desc = f"""KOS related commands. Examples:
 
 **{prefix}kos report -c CMDR Name -s The Squad -r Explain why he is reported here.**
         Report an enemy PP user for KOS addition.
@@ -408,7 +409,7 @@ def subs_kos(subs, prefix):
         Search for a user, list all possible matching users.
 **{prefix}kos pull**
         Pull all changes from sheet. Mainly to be used after modifying list.
-    """.format(prefix=prefix)
+    """
     sub = subs.add_parser(prefix + 'kos', description=desc, formatter_class=RawHelp)
     sub.set_defaults(cmd='KOS', system=[])
     CMD_MAP['KOS'] = 'kos'
@@ -427,7 +428,7 @@ def subs_kos(subs, prefix):
 @register_parser
 def subs_near(subs, prefix):
     """ Subcommand parsing for bgs """
-    desc = """Near related commands. Examples:
+    desc = f"""Near related commands. Examples:
 
 **{prefix}near control winters**
         Show the 10 nearest Winters controls to Sol (default system).
@@ -449,7 +450,7 @@ def subs_near(subs, prefix):
         Show the nearest human technology broker to sol. Large pads only.
 **{prefix}near guardian sol**
         Show the nearest guardian technology broker to sol. Large pads only.
-    """.format(prefix=prefix)
+    """
     sub = subs.add_parser(prefix + 'near', description=desc, formatter_class=RawHelp)
     sub.set_defaults(cmd='Near')
     CMD_MAP['Near'] = 'near'
@@ -494,7 +495,7 @@ def subs_pin(subs, prefix):
 @register_parser
 def subs_recruits(subs, prefix):
     """ Subcommand parsing for recruits """
-    desc = """Manipulate your user settings. Examples:
+    desc = f"""Manipulate your user settings. Examples:
 
 **{prefix}recruits add CMDR Name Here -r R -p 1 --pmf Some PMF Group --notes Any notes go here**
         Add a single recruit to the sheet complete example. The following will be true:
@@ -521,7 +522,7 @@ def subs_recruits(subs, prefix):
         Will add the commander with notes field to: Any notes go here
 **{prefix}recruits add CMDR Similar --force
         Will add the commander that is similar to an existing one, bypasses similarity check.
-    """.format(prefix=prefix)
+    """
     sub = subs.add_parser(prefix + 'recruits', description=desc, formatter_class=RawHelp)
     sub.set_defaults(cmd='Recruits')
     CMD_MAP['Recruits'] = 'recruits'
@@ -540,7 +541,7 @@ def subs_recruits(subs, prefix):
 @register_parser
 def subs_repair(subs, prefix):
     """ Subcommand parsing for repair """
-    desc = """Find a station with both L pad and shipyard near you.
+    desc = f"""Find a station with both L pad and shipyard near you.
 
 **{prefix}repair arnemil**
         Show suitable stations <= 15ly from Arnemil with arrival <= 1000ls
@@ -553,7 +554,7 @@ def subs_repair(subs, prefix):
 **{prefix}repair arnemil -m**
         Show suitable stations to repair at. Include medium pads.
         Note: M pad stations won't have shipyards, will have outfitting though.
-    """.format(prefix=prefix)
+    """
     sub = subs.add_parser(prefix + 'repair', description=desc, formatter_class=RawHelp)
     sub.set_defaults(cmd='Repair')
     CMD_MAP['Repair'] = 'repair'
@@ -566,14 +567,14 @@ def subs_repair(subs, prefix):
 @register_parser
 def subs_route(subs, prefix):
     """ Subcommand parsing for route """
-    desc = """Plot the shortest route between the listed systems.
+    desc = f"""Plot the shortest route between the listed systems.
 
 **{prefix}route rana, sol, nanomam, frey**
         Show the route that minimizes jumps to visit all systems, starting at Rana
 **{prefix}route rana, sol, nanomam, frey --optimum**
 **{prefix}route rana, sol, nanomam, frey -o**
         Show the route that minimizes jumps to visit all systems, start is not fixed
-    """.format(prefix=prefix)
+    """
     sub = subs.add_parser(prefix + 'route', description=desc, formatter_class=RawHelp)
     sub.set_defaults(cmd='Route')
     CMD_MAP['Route'] = 'route'
@@ -584,14 +585,14 @@ def subs_route(subs, prefix):
 @register_parser
 def subs_scout(subs, prefix):
     """ Subcommand parsing for scout """
-    desc = """Generate a scouting list. Control output with flags.
+    desc = f"""Generate a scouting list. Control output with flags.
     Examples:
 
 **{prefix}scout -r 1**
         Generate a scouting list, use first round. Choices are 1, 2 or 3.
 **{prefix}scout --custom Atropos, Alpha Fornacis, Rana, Anlave, NLTT 46621, 16 Cygni**
         Generate a scouting list, round the specified systems.
-    """.format(prefix=prefix)
+    """
     sub = subs.add_parser(prefix + 'scout', description=desc, formatter_class=RawHelp)
     sub.set_defaults(cmd='Scout')
     CMD_MAP['Scout'] = 'scout'
@@ -602,7 +603,7 @@ def subs_scout(subs, prefix):
 @register_parser
 def subs_scrape(subs, prefix):
     """ Subcommand parsing for scrape """
-    desc = """Perform manual scraping functions.
+    desc = f"""Perform manual scraping functions.
 
 **{prefix}scrape power**
         Trigger an update of the sheets based on basic information query.
@@ -616,7 +617,7 @@ def subs_scrape(subs, prefix):
         Scrape all bgs information listed systems and ...
             if a system is a control, scrape all exploited systems as well.
             otherwise just scrape the system as a one off.
-    """.format(prefix=prefix)
+    """
     sub = subs.add_parser(prefix + 'scrape', description=desc, formatter_class=RawHelp)
     sub.set_defaults(cmd='Scrape')
     CMD_MAP['Scrape'] = 'scrape'
@@ -633,7 +634,7 @@ def subs_scrape(subs, prefix):
 @register_parser
 def subs_snipe(subs, prefix):
     """ Subcommand parsing for snipe, the snipe variant of um """
-    desc = """Get undermining targets and update their galmap status.
+    desc = f"""Get undermining targets and update their galmap status.
 IMPORTANT: This is the __SNIPE__ sheet.
 
 Examples:
@@ -654,7 +655,7 @@ Examples:
         Show all outstanding merits by users and system.
 **{prefix}snipe --npcs**
         List powerplay NPC ships by alligence.
-    """.format(prefix=prefix)
+    """
     sub = subs.add_parser(prefix + 'snipe', description=desc, formatter_class=RawHelp)
     sub.set_defaults(cmd='Snipe', sheet_src=EUMSheet.snipe)
     CMD_MAP['Snipe'] = 'snipe'
@@ -686,7 +687,7 @@ def subs_time(subs, prefix):
 @register_parser
 def subs_track(subs, prefix):
     """ Subcommand parsing for track """
-    desc = """Track the locations of fleet carriers.
+    desc = f"""Track the locations of fleet carriers.
 
     **{prefix}track add -d 10 Rhea, Nanomam**
         Set up tracking to monitor systems within 10ly of Rhea and Nanomam.
@@ -704,7 +705,7 @@ def subs_track(subs, prefix):
         Set channel to notify major events on an ongoing basis.
     **{prefix}track scan**
         Scan the ids from sheet for updates.
-    """.format(prefix=prefix)
+    """
     sub = subs.add_parser(prefix + 'track', description=desc, formatter_class=RawHelp)
     sub.set_defaults(cmd='Track')
     CMD_MAP['Track'] = 'track'
@@ -728,14 +729,14 @@ def subs_track(subs, prefix):
 @register_parser
 def subs_trigger(subs, prefix):
     """ Subcommand parsing for trigger """
-    desc = """Predict the expected triggers for the requested systems.
+    desc = f"""Predict the expected triggers for the requested systems.
 
 **{prefix}trigger Rana, Arnemil**
         Calculate triggers for requested systems from Hudson HQ.
 **{prefix}trigger Rana, Arnemil --power winters**
 **{prefix}trigger Rana, Arnemil -p winters**
         Calculate triggers for requested systems from Winters HQ.
-    """.format(prefix=prefix)
+    """
     sub = subs.add_parser(prefix + 'trigger', description=desc, formatter_class=RawHelp)
     sub.set_defaults(cmd='Trigger')
     CMD_MAP['Trigger'] = 'trigger'
@@ -746,7 +747,7 @@ def subs_trigger(subs, prefix):
 @register_parser
 def subs_um(subs, prefix):
     """ Subcommand parsing for um """
-    desc = """Get undermining targets and update their galmap status. Examples:
+    desc = f"""Get undermining targets and update their galmap status. Examples:
 
 **{prefix}um**
         Show current active undermining targets.
@@ -767,7 +768,7 @@ def subs_um(subs, prefix):
         Show all outstanding merits by users and system.
 **{prefix}um --npcs**
         List powerplay NPC ships by alligence.
-    """.format(prefix=prefix)
+    """
     sub = subs.add_parser(prefix + 'um', description=desc, formatter_class=RawHelp)
     sub.set_defaults(cmd='UM', sheet_src=EUMSheet.main)
     CMD_MAP['UM'] = 'um'
@@ -783,7 +784,7 @@ def subs_um(subs, prefix):
 @register_parser
 def subs_user(subs, prefix):
     """ Subcommand parsing for user """
-    desc = """Manipulate your user settings. Examples:
+    desc = f"""Manipulate your user settings. Examples:
 
 **{prefix}user**
         Show your sheet name, crys and merits per sheet.
@@ -791,7 +792,7 @@ def subs_user(subs, prefix):
         Set your name to 'Not Gears'.
 **{prefix}user --cry The bots are invading!**
         Set your battle cry to "The bots are invading!".
-    """.format(prefix=prefix)
+    """
     sub = subs.add_parser(prefix + 'user', description=desc, formatter_class=RawHelp)
     sub.set_defaults(cmd='User')
     CMD_MAP['User'] = 'user'
@@ -802,7 +803,7 @@ def subs_user(subs, prefix):
 @register_parser
 def subs_vote(subs, prefix):
     """ Subcommand parsing for vote """
-    desc = """Cast a vote.
+    desc = f"""Cast a vote.
 
 **{prefix}vote**
         Show the current vote instructions.
@@ -818,7 +819,7 @@ def subs_vote(subs, prefix):
         Toggle the manual display of vote action.
 **{prefix}vote --summary**
         Create a summary of all votes this cycle and return in a text file.
-    """.format(prefix=prefix)
+    """
     sub = subs.add_parser(prefix + 'vote', description=desc, formatter_class=RawHelp)
     sub.set_defaults(cmd='Voting')
     CMD_MAP['Voting'] = 'vote'
@@ -831,7 +832,7 @@ def subs_vote(subs, prefix):
 @register_parser
 def subs_whois(subs, prefix):
     """ Subcommand parsing for whois """
-    desc = """Lookup information for a commander on Inara.cz
+    desc = f"""Lookup information for a commander on Inara.cz
 
 **{prefix}whois GearsandCogs**
         Find out who this GearsandCogs fellow is ...
@@ -839,7 +840,7 @@ def subs_whois(subs, prefix):
         Search for all CMDRs with 'gears' in their name
 **{prefix}whois \\\\--hypehnCmdr--**
         Search for a CMDR with a hyphen at the front of their name.
-    """.format(prefix=prefix)
+    """
     sub = subs.add_parser(prefix + 'whois', description=desc, formatter_class=RawHelp)
     sub.set_defaults(cmd='WhoIs')
     CMD_MAP['WhoIs'] = 'whois'

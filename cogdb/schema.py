@@ -1063,13 +1063,13 @@ class TrackByID(ReprMixin, Base):
         overlaps = ""
         if self.track_system:
             overlaps = f", near {self.track_system.overlaps_with}"
+        info = {
+            'squad': self.squad if self.squad else "No Group",
+            'system': self.system if self.system else "No Info",
+            'last_system': self.last_system if self.last_system else "No Info",
+        }
 
-        return "{id} [{squad}] jumped **{last_system}** => **{system}**{overlaps}.".format(
-            id=self.id, squad=self.squad if self.squad else "No Group",
-            system=self.system if self.system else "No Info",
-            last_system=self.last_system if self.last_system else "No Info",
-            overlaps=overlaps
-        )
+        return f"{self.id} [{info['squad']}] jumped **{info['last_system']}** => **{info['system']}**{overlaps}."
 
     def __eq__(self, other):
         return isinstance(other, TrackByID) and hash(self) == hash(other)
