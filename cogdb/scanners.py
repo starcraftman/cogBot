@@ -345,14 +345,8 @@ class FortScanner():
 
         Returns: A list of update dicts to pass to batch_update.
         """
-        start = systems[0]['sheet_col']
-        end = systems[-1]['sheet_col']
-        forts, ums = [], []
-        for system in systems:
-            forts += [system['fort']]
-            ums += [system['um']]
-
-        return [{'range': f'{start}6:{end}7', 'values': [forts, ums]}]
+        return [{'range': f"{system['sheet_col']}6:{system['sheet_col']}7",
+                 'values': [[system['fort']], [system['um']]]} for system in systems]
 
 
 class UMScanner(FortScanner):
