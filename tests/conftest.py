@@ -145,7 +145,7 @@ def f_dusers_many(session):
     """
     dusers = []
     for ind in range(1, 201):
-        name = "User{}".format(ind)
+        name = f"User{ind}"
         dusers += [DiscordUser(id=ind, display_name=name, pref_name=name)]
     session.add_all(dusers)
     session.commit()
@@ -390,7 +390,7 @@ class FakeObject():
     @classmethod
     def next_id(cls):
         cls.oid += 1
-        return '{}-{}'.format(cls.__name__, cls.oid)
+        return f'{cls.__name__}-{cls.oid}'
 
     def __init__(self, name, id=None):
         if not id:
@@ -399,10 +399,10 @@ class FakeObject():
         self.name = name
 
     def __repr__(self):
-        return "{}: {} {}".format(self.__class__.__name__, self.id, self.name)
+        return f"{self.__class__.__name__}: {self.id} {self.name}"
 
     def __str__(self):
-        return "{}: {}".format(self.__class__.__name__, self.name)
+        return f"{self.__class__.__name__}: {self.name}"
 
 
 # TODO: Rename Guild.
@@ -453,7 +453,7 @@ class Emoji(FakeObject):
         super().__init__(name, id)
 
     def __str__(self):
-        return "[{}]".format(self.name)
+        return f"[{self.name}]"
 
 
 class Channel(FakeObject):

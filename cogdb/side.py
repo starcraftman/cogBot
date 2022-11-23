@@ -173,7 +173,7 @@ class Influence(ReprMixin, Base):
 
     @property
     def short_date(self):
-        return '{}/{}'.format(self.date.day, self.date.month)
+        return f'{self.date.day}/{self.date.month}'
 
 
 class InfluenceHistory(ReprMixin, Base):
@@ -200,7 +200,7 @@ class InfluenceHistory(ReprMixin, Base):
 
     @property
     def short_date(self):
-        return '{}/{}'.format(self.date.day, self.date.month)
+        return f'{self.date.day}/{self.date.month}'
 
 
 class Power(ReprMixin, Base):
@@ -344,7 +344,7 @@ class System(ReprMixin, Base):
     @property
     def log_pop(self):
         """ The log base 10 of the population. For terse representation. """
-        return '{:.1f}'.format(math.log(self.population, 10))
+        return '{math.log(self.population, 10):.1f}'
 
     @hybrid_method
     def dist_to(self, other):
@@ -431,11 +431,10 @@ def next_bgs_tick(session, now):
     if not result:
         log.warning("BGS_TICK - Remote out of estimates")
         side = cog.util.BOT.get_member_by_substr("sidewinder40")
-        raise cog.exc.NoMoreTargets("BGS Tick estimate unavailable. No more estimates, %s"
-                                    % side.mention)
+        raise cog.exc.NoMoreTargets(f"BGS Tick estimate unavailable. No more estimates, {side.mention}")
 
     log.info("BGS_TICK - %s -> %s", str(now), result.tick)
-    return "BGS Tick in **{}**    (Expected {})".format(result.tick - now, result.tick)
+    return f"BGS Tick in **{result.tick - now}**    (Expected {result.tick})"
 
 
 @wrap_exceptions
@@ -477,7 +476,7 @@ def influence_in_system(session, system):
         order_by(Influence.influence.desc()).\
         all()
 
-    return [[inf[2], float('{:.2f}'.format(inf[0])), inf[4], 'Y' if inf[3] else 'N',
+    return [[inf[2], float(f'{inf[0]:.2f}'), inf[4], 'Y' if inf[3] else 'N',
              time.strftime(TIME_FMT, time.gmtime(inf[1]))] for inf in infs]
 
 
@@ -499,7 +498,7 @@ def stations_in_system(session, system_id):
     stations_dict = {fact_id: [] for _, fact_id, _ in stations}
     for name, fact_id, station_type in stations:
         try:
-            station = "%s%s" % (name, station_suffix(station_type))
+            station = f"{name}{station_suffix(station_type)}"
             stations_dict[fact_id] += [station]
         except KeyError:
             stations_dict[fact_id] = [station]
@@ -695,10 +694,11 @@ def dash_overview(session, control_system):
     net_change = {}
     for system, faction, inf in [[faction[0], faction[1], faction[3]] for faction in factions]:
         try:
-            net_inf = inf.influence - hist_for_pairs["{}_{}".format(system.id, faction.id)]
+            net_inf = inf.influence - hist_for_pairs[f"{system.id}_{faction.id}"]
         except KeyError:
             net_inf = inf.influence
-        net_change[system.name] = '{}{:.1f}'.format('+' if net_inf >= 0 else '', net_inf)
+        net_inf_prefix = '+' if net_inf >= 0 else ''
+        net_change[system.name] = f'{net_inf_prefix}{net_inf:.1f}'
 
     return (control, factions, net_change, facts_in_system)
 
@@ -747,8 +747,8 @@ def find_favorable(session, centre_name, max_dist=None, inc=20):
         lines += [[
             sys_name[:16],
             gov[:4],
-            "{:5.2f}".format(sys_dist),
-            "{:5.2f}".format(inf),
+            f"{sys_dist:5.2f}",
+            "{inf:5.2f}",
             faction,
         ]]
 
@@ -778,7 +778,7 @@ def expansion_candidates(session, centre, faction):
         all()
 
     result = [["System", "Dist", "Faction Count"]]
-    result += [[name, "{:5.2f}".format(dist), cnt] for name, dist, cnt in matches if cnt < 7]
+    result += [[name, f"{dist:5.2f}", cnt] for name, dist, cnt in matches if cnt < 7]
     return result
 
 
@@ -834,9 +834,9 @@ def expand_to_candidates(session, system_name):
         for sys_name, sys_dist, sys_pop, inf, fact, fact_state, gov in matches:
             lines += [[
                 sys_name[:16],
-                "{:5.2f}".format(sys_dist),
-                "{:3.1f}".format(math.log(sys_pop, 10)),
-                "{:5.2f}".format(inf.influence),
+                f"{sys_dist:5.2f}",
+                f"{math.log(sys_pop, 10):3.1f}",
+                f"{inf.influence:5.2f}",
                 gov[:4],
                 fact_state,
                 fact.name
@@ -924,7 +924,7 @@ def monitor_events(session, system_ids):
     for event in events:
         states = [event[-3], event[-2]]
         line = [[event[-1][:20], event[1][:20], event[2][:20], event[3][:3],
-                 "{:5.2f}".format(round(event[0], 2)), event[-3], event[-2]]]
+                 f"{round(event[0], 2):5.2f}", event[-3], event[-2]]]
 
         if "Election" in states:
             elections += line
@@ -1006,18 +1006,18 @@ def control_dictators(session, system_ids):
 
     lines = [["Control", "System", "Faction", "Gov", "Inf", "State", "Pending State"]]
     for dic in dics:
-        key = "{}_{}".format(dic[0].system_id, dic[0].faction_id)
+        key = f"{dic[0].system_id}_{dic[0].faction_id}"
         try:
             if len(pair_hist[key]) == 2:  # 2 entries in last 7 days means changed control
                 lines += [[dic[-1], dic[1][:16], dic[2][:32], dic[3],
-                           "{:5.2f}".format(round(dic[0].influence, 2)), dic[-3], dic[-2]]]
+                           "{round(dic[0].influence, 2):5.2f}", dic[-3], dic[-2]]]
         except KeyError:
             pass
 
     con_lines = [["Control", "System", "Faction", "Gov", "Inf", "State", "Pending State"]]
     for dic in [x for x in dics if x[0].is_controlling_faction]:
         con_lines += [[dic[-3], dic[1][:16], dic[2][:32], dic[3],
-                       "{:5.2f}".format(round(dic[0].influence, 2)), dic[-2], dic[-1]]]
+                       f"{round(dic[0].influence, 2):5.2f}", dic[-2], dic[-1]]]
 
     msgs = cog.tbl.format_table(lines, header=True, prefix="**\n\nControlling Anarchies/Dictators Change** (last 7 days)\n")
     msgs += cog.tbl.format_table(con_lines, header=True, prefix="\n\n**Current Controlling Anarchies/Dictators**\n")
@@ -1078,20 +1078,20 @@ def moving_dictators(session, system_ids):
 
     pair_hist = {}
     for hist in inf_history:
-        key = "{}_{}".format(hist.system_id, hist.faction_id)
+        key = f"{hist.system_id}_{hist.faction_id}"
         pair_hist[key] = hist
 
     lines = [["Control", "System", "Faction", "Gov", "Date",
               "Inf", "Inf (2 days ago)", "State", "Pending State"]]
     for dic in dics:
-        key = "{}_{}".format(dic[0].system_id, dic[0].faction_id)
+        key = f"{dic[0].system_id}_{dic[0].faction_id}"
         try:
             lines += [[dic[-1], dic[1][:16], dic[2][:16], dic[3][:3],
-                       dic[0].short_date, "{:5.2f}".format(round(dic[0].influence, 2)),
-                       "{:5.2f}".format(round(pair_hist[key].influence, 2)), dic[-3], dic[-2]]]
+                       dic[0].short_date, f"{round(dic[0].influence, 2):5.2f}",
+                       f"{round(pair_hist[key].influence, 2):5.2f}", dic[-3], dic[-2]]]
         except KeyError:
             lines += [[dic[-1], dic[1][:16], dic[2][:16], dic[3][:3],
-                       dic[0].short_date, "{:5.2f}".format(round(dic[0].influence, 2)), "N/A",
+                       dic[0].short_date, f"{round(dic[0].influence, 2):5.2f}", "N/A",
                        dic[-3], dic[-2]]]
 
     prefix = "**\n\nInf Movement Anarchies/Dictators**)\n"
@@ -1140,7 +1140,7 @@ def monitor_factions(session, faction_names=None):
               "State", "Pending State"]]
     for match in matches:
         lines += [[match[-1], match[1][:16], match[2][:16], match[3][:3],
-                   "{:5.2f}".format(round(match[0], 2)), match[-3], match[-2]]]
+                   f"{round(match[0], 2):5.2f}", match[-3], match[-2]]]
 
     return cog.tbl.format_table(lines, header=True, prefix="\n\n**Monitored Factions**\n")
 

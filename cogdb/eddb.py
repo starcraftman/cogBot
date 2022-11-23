@@ -609,7 +609,7 @@ class StationEconomy(ReprMixin, Base):
                 and self.__hash__() == other.__hash__())
 
     def __hash__(self):
-        return hash("{}_{}".format(self.id, self.economy_id))
+        return hash(f"{self.id}_{self.economy_id}")
 
 
 class Station(ReprMixin, TimestampMixin, UpdatableMixin, Base):
@@ -809,7 +809,7 @@ class SystemContestedV(ReprMixin, Base):
                 and self.__hash__() == other.__hash__())
 
     def __hash__(self):
-        return hash("{}_{}".format(self.id, self.control_id))
+        return hash(f"{self.id}_{self.control_id}")
 
 
 class SystemControlV(ReprMixin, Base):
@@ -842,7 +842,7 @@ class SystemControlV(ReprMixin, Base):
             hash(self) == hash(other)
 
     def __hash__(self):
-        return hash("{}_{}".format(self.system_id, self.control_id))
+        return hash(f"{self.system_id}_{self.control_id}")
 
 
 class SystemControl(ReprMixin, Base):
@@ -864,7 +864,7 @@ class SystemControl(ReprMixin, Base):
             hash(self) == hash(other)
 
     def __hash__(self):
-        return hash("{}_{}".format(self.system_id, self.control_id))
+        return hash(f"{self.system_id}_{self.control_id}")
 
 
 class ConflictState(ReprMixin, Base):
@@ -941,7 +941,7 @@ class Conflict(ReprMixin, TimestampMixin, UpdatableMixin, Base):
                 and self.__hash__() == other.__hash__())
 
     def __hash__(self):
-        return hash("{}_{}_{}".format(self.system_id, self.faction1_id, self.faction2_id))
+        return hash(f"{self.system_id}_{self.faction1_id}_{self.faction2_id}")
 
 
 class HistoryTrack(ReprMixin, TimestampMixin, Base):
@@ -962,7 +962,7 @@ class HistoryTrack(ReprMixin, TimestampMixin, Base):
                 and self.__hash__() == other.__hash__())
 
     def __hash__(self):
-        return hash("{}".format(self.system_id))
+        return hash(f"{self.system_id}")
 
 
 # N.B. Ever increasing data, the following rules must be enforced:
@@ -991,7 +991,7 @@ class HistoryInfluence(ReprMixin, TimestampMixin, Base):
     happiness = sqla.orm.relationship('FactionHappiness', viewonly=True)
 
     def __hash__(self):
-        return hash("{}_{}_{}".format(self.id, self.system_id, self.faction_id))
+        return hash(f"{self.id}_{self.system_id}_{self.faction_id}")
 
     def __eq__(self, other):
         return (isinstance(self, HistoryInfluence) and isinstance(other, HistoryInfluence)
@@ -2038,7 +2038,7 @@ def get_nearest_stations_with_features(session, centre_name, *, features=None, s
         limit(20).\
         all()
 
-    return [[a, round(b, 2), "[{}] {}".format(e, cog.util.shorten_text(c, 16)), d]
+    return [[a, round(b, 2), f"[{e}] {cog.util.shorten_text(c, 16)}", d]
             for [a, b, c, d, e] in stations]
 
 
@@ -2320,7 +2320,7 @@ def compute_dists(session, system_names):
     try:
         centre = session.query(System).filter(System.name.ilike(system_names[0])).one()
     except sqla_orm.exc.NoResultFound as exc:
-        raise cog.exc.InvalidCommandArgs("The start system %s was not found." % system_names[0]) from exc
+        raise cog.exc.InvalidCommandArgs(f"The start system {system_names[0]} was not found.") from exc
     systems = session.query(System.name, System.dist_to(centre)).\
         filter(System.name.in_(system_names[1:])).\
         order_by(System.name).\

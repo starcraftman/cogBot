@@ -95,7 +95,7 @@ class DiscordUser(ReprMixin, Base):
     @hybrid_property
     def mention(self):
         """ Mention this user in a response. """
-        return "<@{}>".format(self.id)
+        return f"<@{self.id}>"
 
     @mention.expression
     def mention(cls):
@@ -155,7 +155,7 @@ class FortUser(ReprMixin, Base):
         )
 
     def __str__(self):
-        return "dropped={!r}, {!r}".format(self.dropped, self)
+        return f"dropped={self.dropped!r}, {self!r}".format(self.dropped, self)
 
     def __eq__(self, other):
         return isinstance(other, FortUser) and self.name == other.name
@@ -165,7 +165,7 @@ class FortUser(ReprMixin, Base):
 
     def merit_summary(self):
         """ Summarize user merits. """
-        return 'Dropped {}'.format(self.dropped)
+        return f'Dropped {self.dropped}'
 
 
 class EFortType(enum.Enum):
@@ -216,7 +216,7 @@ class FortSystem(ReprMixin, Base):
                                    lazy='select')
 
     def __str__(self):
-        return "cmdr_merits={!r}, {!r}".format(self.cmdr_merits, self)
+        return f"cmdr_merits={self.cmdr_merits!r}, {self!r}"
 
     def __eq__(self, other):
         return isinstance(other, FortSystem) and self.name == other.name
@@ -252,7 +252,7 @@ class FortSystem(ReprMixin, Base):
     @hybrid_property
     def ump(self):
         """ Return the undermine percentage, stored as decimal. """
-        return '{:.1f}'.format(self.undermine * 100)
+        return f'{self.undermine * 100:.1f}'
 
     @ump.expression
     def ump(cls):
@@ -349,7 +349,7 @@ class FortSystem(ReprMixin, Base):
         except ZeroDivisionError:
             comp_cent = 0
 
-        return '{:.1f}'.format(comp_cent)
+        return f'{comp_cent:.1f}'
 
     @property
     def table_row(self):
@@ -358,11 +358,10 @@ class FortSystem(ReprMixin, Base):
         Each element should be mapped to separate column.
         See header.
         """
-        status = '{:>4}/{} ({}%/{}%)'.format(self.current_status, self.trigger,
-                                             self.completion, self.ump)
+        status = f'{self.current_status:>4}/{self.trigger} ({self.completion}%/{self.ump}%)'
         sys_type = str(self.type).split('.', maxsplit=1)[-1].capitalize()
 
-        return (sys_type, self.name, '{:>4}'.format(self.missing), status, self.notes)
+        return (sys_type, self.name, f'{self.missing:>4}', status, self.notes)
 
     def set_status(self, new_status):
         """
@@ -390,37 +389,36 @@ class FortSystem(ReprMixin, Base):
         """
         umd = ''
         if self.um_status > 0:
-            umd = ', {} :Undermin{}:'.format(
-                self.um_status, 'ed' if self.is_undermined else 'ing')
+            um_suffix = 'ed' if self.is_undermined else 'ing'
+            umd = f', {self.um_status} :Undermin{um_suffix}:'
         elif self.is_undermined:
             umd = ', :Undermined:'
 
-        msg = '**{}** {:>4}/{} :Fortif{}:{}'.format(
-            self.name, self.current_status, self.trigger,
-            'ied' if self.is_fortified else 'ying', umd)
+        fort_suffix = 'ied' if self.is_fortified else 'ying'
+        msg = f'**{self.name}** {self.current_status:>4}/{self.trigger} :Fortif{fort_suffix}:{umd}'
 
         if miss or miss is not False and (self.missing and self.missing < 1500):
-            msg += ' ({} left)'.format(self.missing)
+            msg += f' ({self.missing} left)'
 
         if self.notes:
             msg += ' ' + self.notes
 
-        msg += ' - {}Ly'.format(self.distance)
+        msg += f' - {self.distance}Ly'
 
         return msg
 
     def display_details(self):
         """ Return a highly detailed system display. """
-        miss = ' ({} left)'.format(self.missing) if self.missing else ''
+        miss = f" ({self.missing} left)" if self.missing else ''
         lines = [
-            ['Completion', '{}%{}'.format(self.completion, miss)],
-            ['CMDR Merits', '{}/{}'.format(self.cmdr_merits, self.trigger)],
-            ['Fort Status', '{}/{}'.format(self.fort_status, self.trigger)],
-            ['UM Status', '{} ({:.2f}%)'.format(self.um_status, self.undermine * 100)],
+            ['Completion', f'{self.completion}%{miss}'],
+            ['CMDR Merits', f'{self.cmdr_merits}/{self.trigger}'],
+            ['Fort Status', f'{self.fort_status}/{self.trigger}'],
+            ['UM Status', f'{self.um_status} ({self.undermine * 100:.2f}%)'],
             ['Notes', self.notes],
         ]
 
-        return cog.tbl.format_table(lines, prefix='**{}**\n'.format(self.name))[0]
+        return cog.tbl.format_table(lines, prefix=f'**{self.name}**\n')[0]
 
 
 class FortPrep(FortSystem):
@@ -460,13 +458,13 @@ class FortDrop(ReprMixin, Base):
     def __str__(self):
         system = ''
         if getattr(self, 'system'):
-            system = "system={!r}, ".format(self.system.name)
+            system = f"system={self.system.name!r}, "
 
         suser = ''
         if getattr(self, 'user'):
-            suser = "user={!r}, ".format(self.user.name)
+            suser = f"user={self.user.name!r}, "
 
-        return "{}{}{!r}".format(system, suser, self)
+        return f"{system}{suser}{self!r}"
 
     def __eq__(self, other):
         return isinstance(other, FortDrop) and (self.system_id, self.user_id) == (
@@ -476,7 +474,7 @@ class FortDrop(ReprMixin, Base):
         return self.amount < other.amount
 
     def __hash__(self):
-        return hash("{}_{}".format(self.system_id, self.user_id))
+        return hash(f"{self.system_id}_{self.user_id}")
 
 
 class FortOrder(ReprMixin, Base):
@@ -583,12 +581,13 @@ class UMUser(Base):
     def __repr__(self):
         keys = ['id', 'name', 'row', 'cry']
         kwargs = [f'{key}={getattr(self, key)!r}' for key in keys]
-        kwargs.insert(1, "sheet_src={}".format("EUMSheet.main" if self.sheet_src == EUMSheet.main else "EUMSheet.snipe"))
+        sheet_src = 'EUMSheet.main' if self.sheet_src == EUMSheet.main else 'EUMSheet.snipe'
+        kwargs.insert(1, f"sheet_src={sheet_src}")
 
         return f'{self.__class__.__name__}({", ".join(kwargs)})'
 
     def __str__(self):
-        return "held={!r}, redeemed={!r}, {!r}".format(self.held, self.redeemed, self)
+        return f"held={self.held!r}, redeemed={self.redeemed!r}, {self!r}"
 
     def __eq__(self, other):
         return isinstance(other, UMUser) and self.name == other.name
@@ -598,7 +597,7 @@ class UMUser(Base):
 
     def merit_summary(self):
         """ Summarize user merits. """
-        return 'Holding {}, Redeemed {}'.format(self.held, self.redeemed)
+        return f'Holding {self.held}, Redeemed {self.redeemed}'
 
 
 class EUMType(enum.Enum):
@@ -655,7 +654,8 @@ class UMSystem(Base):
             'progress_us', 'progress_them', 'close_control', 'priority', 'map_offset'
         ]
         kwargs = [f'{key}={getattr(self, key)!r}' for key in keys]
-        kwargs.insert(1, "sheet_src={}".format("EUMSheet.main" if self.sheet_src == EUMSheet.main else "EUMSheet.snipe"))
+        sheet_src = "EUMSheet.main" if self.sheet_src == EUMSheet.main else "EUMSheet.snipe"
+        kwargs.insert(1, f"sheet_src={sheet_src}")
 
         return f'{self.__class__.__name__}({", ".join(kwargs)})'
 
@@ -663,7 +663,7 @@ class UMSystem(Base):
         """
         Show additional computed properties.
         """
-        return "cmdr_merits={!r}, {!r}".format(self.cmdr_merits, self)
+        return f"cmdr_merits={self.cmdr_merits!r}, {self!r}"
 
     def __eq__(self, other):
         return isinstance(other, UMSystem) and self.name == other.name
@@ -679,7 +679,7 @@ class UMSystem(Base):
         except ZeroDivisionError:
             comp_cent = 0
 
-        completion = '{:.0f}%'.format(comp_cent)
+        completion = f'{comp_cent:.0f}%'
 
         return completion
 
@@ -763,11 +763,9 @@ class UMSystem(Base):
         Format a simple summary for users.
         """
         lines = [
-            [self.descriptor, '{} [{} sec]'.format(self.name, self.security[0].upper())],
-            [self.completion, 'Merits {} {}'.format('Missing' if self.missing > 0 else 'Leading',
-                                                    str(abs(self.missing)))],
-            ['Our Progress ' + str(self.progress_us),
-             'Enemy Progress {:.0f}%'.format(self.progress_them * 100)],
+            [self.descriptor, f'{self.name} [{self.security[0].upper()} sec]'],
+            [self.completion, "Merits {'Missing' if self.missing > 0 else 'Leading'} {abs(self.missing)}"],
+            ['Our Progress ' + str(self.progress_us), 'Enemy Progress {self.progress_them * 100:.0f}%'],
             ['Nearest Hudson', self.close_control],
             ['Priority', self.priority],
             ['Power', self.notes],
@@ -819,7 +817,7 @@ class UMExpand(UMSystem):
 
         comp_cent -= self.progress_them * 100
         prefix = 'Leading by' if comp_cent >= 0 else 'Behind by'
-        completion = '{} {:.0f}%'.format(prefix, abs(comp_cent))
+        completion = f'{prefix} {abs(comp_cent):.0f}%'
 
         return completion
 
@@ -865,20 +863,21 @@ class UMHold(Base):
     def __repr__(self):
         keys = ['id', 'system_id', 'user_id', 'held', 'redeemed']
         kwargs = [f'{key}={getattr(self, key)!r}' for key in keys]
-        kwargs.insert(1, "sheet_src={}".format("EUMSheet.main" if self.sheet_src == EUMSheet.main else "EUMSheet.snipe"))
+        sheet_src = "EUMSheet.main" if self.sheet_src == EUMSheet.main else "EUMSheet.snipe"
+        kwargs.insert(1, f"sheet_src={sheet_src}")
 
         return f'{self.__class__.__name__}({", ".join(kwargs)})'
 
     def __str__(self):
         system = ''
         if getattr(self, 'system', None):
-            system = "system={!r}, ".format(self.system.name)
+            system = f"system={self.system.name!r}, "
 
         suser = ''
         if getattr(self, 'user', None):
-            suser = "user={!r}, ".format(self.user.name)
+            suser = f"user={self.user.name!r}, "
 
-        return "{}{}{!r}".format(system, suser, self)
+        return f"{system}{suser}{self!r}"
 
     def __eq__(self, other):
         return isinstance(other, UMHold) and (self.system_id, self.user_id) == (
@@ -888,7 +887,7 @@ class UMHold(Base):
         return self.held + self.redeemed < other.held + other.redeemed
 
     def __hash__(self):
-        return hash("{}_{}".format(self.system_id, self.user_id))
+        return hash(f"{self.system_id}_{self.user_id}")
 
 
 class KOS(ReprMixin, Base):
@@ -958,7 +957,7 @@ class ChannelPerm(ReprMixin, Base):
         return isinstance(other, ChannelPerm) and hash(self) == hash(other)
 
     def __hash__(self):
-        return hash("{}_{}_{}".format(self.cmd, self.guild_id, self.channel_id))
+        return hash(f"{self.cmd}_{self.guild_id}_{self.channel_id}")
 
 
 class RolePerm(ReprMixin, Base):
@@ -976,7 +975,7 @@ class RolePerm(ReprMixin, Base):
         return isinstance(other, RolePerm) and hash(self) == hash(other)
 
     def __hash__(self):
-        return hash("{}_{}_{}".format(self.cmd, self.guild_id, self.role_id))
+        return hash(f"{self.cmd}_{self.guild_id}_{self.role_id}")
 
 
 class TrackSystem(ReprMixin, Base):
@@ -990,13 +989,13 @@ class TrackSystem(ReprMixin, Base):
     distance = sqla.Column(sqla.Integer, default=15, nullable=False)
 
     def __str__(self):
-        return "Tracking systems <= {}ly from {}".format(self.distance, self.system)
+        return f"Tracking systems <= {self.distance}ly from {self.system}"
 
     def __eq__(self, other):
         return isinstance(other, TrackSystem) and hash(self) == hash(other)
 
     def __hash__(self):
-        return hash("{}".format(self.system))
+        return hash(f"{self.system}")
 
 
 class TrackSystemCached(ReprMixin, Base):
@@ -1014,7 +1013,7 @@ class TrackSystemCached(ReprMixin, Base):
         return isinstance(other, TrackSystemCached) and hash(self) == hash(other)
 
     def __hash__(self):
-        return hash("{}".format(self.system))
+        return hash(f"{self.system}")
 
     def add_overlap(self, centre):
         """
@@ -1063,7 +1062,7 @@ class TrackByID(ReprMixin, Base):
         """ A pretty one line to give all information. """
         overlaps = ""
         if self.track_system:
-            overlaps = ", near {}".format(self.track_system.overlaps_with)
+            overlaps = f", near {self.track_system.overlaps_with}"
 
         return "{id} [{squad}] jumped **{last_system}** => **{system}**{overlaps}.".format(
             id=self.id, squad=self.squad if self.squad else "No Group",
@@ -1076,7 +1075,7 @@ class TrackByID(ReprMixin, Base):
         return isinstance(other, TrackByID) and hash(self) == hash(other)
 
     def __hash__(self):
-        return hash("{}".format(self.id))
+        return hash(self.id)
 
     def table_line(self):
         """ Returns a line for table formatting. """
@@ -1107,15 +1106,13 @@ class Global(ReprMixin, Base):
 
     def __str__(self):
         """ A pretty one line to give all information. """
-        return "Cycle {cycle}: Consolidation Vote: {consolidation}%".format(
-            cycle=self.cycle, consolidation=self.consolidation
-        )
+        return f"Cycle {self.cycle}: Consolidation Vote: {self.consolidation}%"
 
     def __eq__(self, other):
         return isinstance(other, Global) and hash(self) == hash(other)
 
     def __hash__(self):
-        return hash("{}".format(self.cycle))
+        return hash(f"{self.cycle}")
 
     def update(self, **kwargs):
         """
@@ -1144,7 +1141,7 @@ class Global(ReprMixin, Base):
     def validate_cycle(self, key, value):
         try:
             if value < 1:
-                raise cog.exc.ValidationFail("Bounds check failed for: {} with value {}".format(key, value))
+                raise cog.exc.ValidationFail(f"Bounds check failed for: {key} with value {value}")
         except TypeError:
             pass
 
@@ -1154,7 +1151,7 @@ class Global(ReprMixin, Base):
     def validate_consolidation(self, key, value):
         try:
             if value < 0 or value > 100:
-                raise cog.exc.ValidationFail("Bounds check failed for: {} with value {}".format(key, value))
+                raise cog.exc.ValidationFail(f"Bounds check failed for: {key} with value {value}")
         except TypeError:
             pass
 
@@ -1164,14 +1161,14 @@ class Global(ReprMixin, Base):
     def validate_vote_goal(self, key, value):
         try:
             if value < 0 or value > 100:
-                raise cog.exc.ValidationFail("Bounds check failed for: {} with value {}".format(key, value))
+                raise cog.exc.ValidationFail(f"Bounds check failed for: {key} with value {value}")
         except TypeError:
             pass
 
         return value
 
     @sqla_orm.validates('updated_at')
-    def validate_updated_at(self, key, value):
+    def validate_updated_at(self, _, value):
         if not value or not isinstance(value, datetime.datetime) or (self.updated_at and value < self.updated_at):
             raise cog.exc.ValidationFail("Date invalid or was older than current value.")
 
@@ -1204,15 +1201,14 @@ class Vote(ReprMixin, Base):
 
     def __str__(self):
         """ A pretty one line to give all information. """
-        return "**{name}**: voted {amount} {vote}.".format(
-            name=self.discord_user.display_name if self.discord_user else "You",
-            amount=self.amount, vote=self.vote_type)
+        name = self.discord_user.display_name if self.discord_user else "You"
+        return f"**{name}**: voted {self.amount} {self.vote_type}."
 
     def __eq__(self, other):
         return isinstance(other, Vote) and hash(self) == hash(other)
 
     def __hash__(self):
-        return hash("{}-{}".format(self.id, self.vote))
+        return hash(f"{self.id}-{self.vote}")
 
     @property
     def vote_type(self):
@@ -1237,7 +1233,7 @@ class Vote(ReprMixin, Base):
     def validate_amount(self, key, value):
         try:
             if value < 0 or value > MAX_VOTE_VALUE:
-                raise cog.exc.ValidationFail("Bounds check failed for: {} with value {}".format(key, value))
+                raise cog.exc.ValidationFail(f"Bounds check failed for: {key} with value {value}")
         except TypeError:
             pass
 
@@ -1259,7 +1255,7 @@ class Consolidation(ReprMixin, Base):
 
     def __str__(self):
         """ A pretty one line to give all information. """
-        return "Consolidation {amount}% at {date}.".format(amount=self.amount, date=self.updated_at)
+        return f"Consolidation {self.amount}% at {self.updated_at}."
 
     def __eq__(self, other):
         return isinstance(other, Consolidation) and hash(self) == hash(other)
@@ -1271,7 +1267,7 @@ class Consolidation(ReprMixin, Base):
     def validate_totals(self, key, value):
         try:
             if value < 0:
-                raise cog.exc.ValidationFail("Bounds check failed for: {} with value {}".format(key, value))
+                raise cog.exc.ValidationFail(f"Bounds check failed for: {key} with value {value}")
         except TypeError:
             pass
 
@@ -1281,7 +1277,7 @@ class Consolidation(ReprMixin, Base):
     def validate_amount(self, key, value):
         try:
             if value < 0 or value > 100:
-                raise cog.exc.ValidationFail("Bounds check failed for: {} with value {}".format(key, value))
+                raise cog.exc.ValidationFail(f"Bounds check failed for: {key} with value {value}")
         except TypeError:
             pass
 

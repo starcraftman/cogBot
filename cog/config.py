@@ -72,9 +72,9 @@ class Config():
 
     def __repr__(self):
         keys = ['fname']
-        kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
+        kwargs = [f'{key}={getattr(self, key)!r}' for key in keys]
 
-        return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
+        return f'{self.__class__.__name__}({", ".join(kwargs)})'
 
     def __getattr__(self, key):
         """

@@ -203,13 +203,13 @@ def subs_bgs(subs, prefix):
 @register_parser
 def subs_dist(subs, prefix):
     """ Subcommand parsing for dist """
-    desc = """Determine the distance from the first system to all others.
+    desc = f"""Determine the distance from the first system to all others.
     The system names must match __exactly__. Match is not case sensitive.
     Examples:
 
 **{prefix}dist sol, frey, Rana**
         Display the distance from Sol to Frey and Rana.
-    """.format(prefix=prefix)
+    """
     sub = subs.add_parser(prefix + 'dist', description=desc, formatter_class=RawHelp)
     CMD_MAP['Dist'] = 'dist'
     sub.set_defaults(cmd='Dist')
@@ -219,11 +219,11 @@ def subs_dist(subs, prefix):
 @register_parser
 def subs_donate(subs, prefix):
     """ Subcommand parsing for drop """
-    desc = """Information on how to donate to the project.
+    desc = f"""Information on how to donate to the project.
 
 **{prefix}donate**
         Information on how to donate funds to support development and server costs.
-    """.format(prefix=prefix)
+    """
     sub = subs.add_parser(prefix + 'donate', description=desc, formatter_class=RawHelp)
     sub.set_defaults(cmd='Donate')
     CMD_MAP['Donate'] = 'donate'
@@ -260,11 +260,11 @@ def subs_drop(subs, prefix):
 @register_parser
 def subs_feedback(subs, prefix):
     """ Subcommand parsing for feedback """
-    desc = """Give feedback or report a bug. Example:
+    desc = f"""Give feedback or report a bug. Example:
 
 **{prefix}bug Explain what went wrong ...**
         File a bug report or give feedback.
-    """.format(prefix=prefix)
+    """
     sub = subs.add_parser(prefix + 'feedback', description=desc, formatter_class=RawHelp)
     sub.set_defaults(cmd='Feedback')
     CMD_MAP['Feedback'] = 'feedback'
@@ -849,11 +849,11 @@ def subs_whois(subs, prefix):
 @register_parser
 def subs_sum(subs, prefix):
     """ Subcommand parsing for sum """
-    desc = """Display the sum of all fort data in our sheets
+    desc = f"""Display the sum of all fort data in our sheets
 
 **{prefix}sum**
         Display the command. Warning Veteran rank minimum required.
-    """.format(prefix=prefix)
+    """
     sub = subs.add_parser(prefix + 'sum', description=desc, formatter_class=RawHelp)
     sub.set_defaults(cmd='Summary')
     CMD_MAP['Summary'] = 'sum'

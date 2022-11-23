@@ -76,8 +76,7 @@ def event_checkout(_, connection_record, connection_proxy):
         connection_proxy.connection = None
 
         raise sqlalchemy.exc.DisconnectionError(
-            'Connection record belongs to pid {}'
-            'attempting to check out in pid {}'.format(connection_record.info['pid'], pid))
+            f"Connection record belongs to pid {connection_record.info['pid']} attempting to check out in pid {pid}")
 
 
 async def monitor_pools(delay=120):

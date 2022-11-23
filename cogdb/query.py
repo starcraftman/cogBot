@@ -137,8 +137,7 @@ def check_pref_name(session, new_name):
     try:
         existing = session.query(DiscordUser).filter(DiscordUser.pref_name == new_name).one()
         raise cog.exc.InvalidCommandArgs(
-            "Sheet name {}, taken by {}.\n\nPlease choose another.".format(
-                new_name, existing.display_name))
+            f"Sheet name {new_name}, taken by {existing.display_name}.\n\nPlease choose another.")
     except sqla_oexc.NoResultFound:
         pass
 
@@ -444,7 +443,7 @@ def fort_order_set(session, systems):
         raise cog.exc.InvalidCommandArgs("Duplicate system specified, check your command!") from exc
     except cog.exc.NoMatch as exc:
         session.rollback()
-        raise cog.exc.InvalidCommandArgs("FortSystem '{}' not found in fort systems.".format(system)) from exc
+        raise cog.exc.InvalidCommandArgs(f"FortSystem '{system}' not found in fort systems.") from exc
 
 
 def fort_order_drop(session):
@@ -466,7 +465,7 @@ def um_find_system(session, system_name, *, sheet_src=EUMSheet.main):
             one()
     except (sqla_oexc.NoResultFound, sqla_oexc.MultipleResultsFound) as exc:
         systems = session.query(UMSystem).\
-            filter(UMSystem.name.ilike('%{}%'.format(system_name)),
+            filter(UMSystem.name.ilike(f'%{system_name}%'),
                    UMSystem.sheet_src == sheet_src).\
             all()
 
@@ -707,7 +706,7 @@ def add_admin(session, member):
         session.add(AdminPerm(id=member.id))
         session.commit()
     except (sqla_exc.IntegrityError, sqla_oexc.FlushError) as exc:
-        raise cog.exc.InvalidCommandArgs("Member {} is already an admin.".format(member.display_name)) from exc
+        raise cog.exc.InvalidCommandArgs(f"Member {member.display_name} is already an admin.") from exc
 
 
 def show_guild_perms(session, guild, prefix='!'):
@@ -726,13 +725,13 @@ def show_guild_perms(session, guild, prefix='!'):
     if rules:
         msg += "\n\n__Channel Rules__\n"
         for rule in rules:
-            msg += "`{prefix}{cmd}` limited to channel: {chan}\n".format(prefix=prefix, cmd=rule.cmd, chan=guild.get_channel(rule.channel_id).mention)
+            msg += f"`{prefix}{rule.cmd}` limited to channel: {guild.get_channel(rule.channel_id).mention}\n"
 
     rules = session.query(RolePerm). filter(RolePerm.guild_id == guild.id).all()
     if rules:
         msg += "\n\n__Role Rules__\n"
         for rule in rules:
-            msg += "`{prefix}{cmd}` limited to role: {role}\n".format(prefix=prefix, cmd=rule.cmd, role=guild.get_role(rule.role_id).name)
+            msg += f"`{prefix}{rule.cmd}` limited to role: {guild.get_role(rule.role_id).name}\n"
 
     return msg.rstrip()
 
@@ -862,8 +861,7 @@ def check_channel_perms(session, cmd, server, channel):
         all()
     channels = [perm.channel_id for perm in perms]
     if channels and channel.id not in channels:
-        raise cog.exc.InvalidPerms("The '{}' command is not permitted on this channel.".format(
-            cmd.lower()))
+        raise cog.exc.InvalidPerms(f"The '{cmd.lower()}' command is not permitted on this channel.")
 
 
 def check_role_perms(session, cmd, server, member_roles):
@@ -973,7 +971,7 @@ def track_show_systems(session):
     cur_msg = "__Tracking System Rules__\n"
     pad = " " * 4
     for track in track_systems:
-        cur_msg += "\n{}{}".format(pad, str(track))
+        cur_msg += f"\n{pad}{track}"
         if len(cur_msg) > cog.util.MSG_LIMIT:
             msgs += [cur_msg]
             cur_msg = ""
@@ -1027,7 +1025,7 @@ def track_systems_computed_remove(session, centre):
         modified: A list of system names where overlap was reduced.
     """
     existing = session.query(TrackSystemCached).\
-        filter(TrackSystemCached.overlaps_with.ilike('%{}%'.format(centre))).\
+        filter(TrackSystemCached.overlaps_with.ilike(f'%{centre}%')).\
         all()
 
     deleted, modified = [], []

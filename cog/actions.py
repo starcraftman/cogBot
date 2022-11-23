@@ -780,10 +780,9 @@ class BGS(Action):
                                           kwargs['side_session'], system_ids))
         report = "\n".join(report)
 
-        title = "BGS Report {}".format(datetime.datetime.utcnow())
-        paste_url = await cog.util.pastebin_new_paste(title, report)
+        paste_url = await cog.util.pastebin_new_paste(f"BGS Report {datetime.datetime.utcnow()}", report)
 
-        return "Report Generated: <{}>".format(paste_url)
+        return f"Report Generated: <{paste_url}>"
 
     async def sys(self, system_name, **kwargs):
         """ Handle sys subcmd. """
@@ -1463,8 +1462,7 @@ class Pin(Action):
         regular = cogdb.query.fort_get_next_targets(self.session, count=5)
         systems = preps + priority + deferred + regular
 
-        lines = [":Fortifying: {}{}".format(
-            sys.name, " **{}**".format(sys.notes) if sys.notes else "") for sys in systems]
+        lines = [f":Fortifying: {sys.name}{f' **{sys.notes}**' if sys.notes else ''}" for sys in systems]
         lines += [":Fortifying: The things in the list after that"]
 
         await self.bot.send_message(self.msg.channel, cog.tbl.wrap_markdown('\n'.join(lines)))
@@ -1515,7 +1513,7 @@ class Recruits(Action):
         try:
             cogdb.query.get_admin(self.session, self.duser)
         except cog.exc.NoMatch as exc:
-            raise cog.exc.InvalidPerms("{} You are not an admin!".format(self.msg.author.mention)) from exc
+            raise cog.exc.InvalidPerms("{self.msg.author.mention} You are not an admin!") from exc
 
         r_scanner = get_scanner('hudson_recruits')
         await r_scanner.update_cells()
@@ -1525,7 +1523,7 @@ class Recruits(Action):
         discord_name = " ".join(self.args.discord_name) if self.args.discord_name else cmdr
         notes = " ".join(self.args.notes)
         if not re.match(r'.*-\s*\S+$', notes):
-            notes += " -{}".format(self.msg.author.name)
+            notes += f" -{self.msg.author.name}"
 
         row = None  # By default there's no similar cmdr.
         if not self.args.force:
@@ -1547,7 +1545,7 @@ To bypass this check use the `--force` flag. See `{prefix}recruits -h for inform
                 notes=notes,
             ))
 
-            response = "CMDR {} has been added to row: {}".format(cmdr, r_scanner.first_free - 1)
+            response = f"CMDR {cmdr} has been added to row: {r_scanner.first_free - 1}"
 
         await self.bot.send_message(self.msg.channel, response)
 
@@ -1610,7 +1608,7 @@ class Route(Action):
                 result = await self.bot.loop.run_in_executor(
                     None, cogdb.eddb.find_route, eddb_session, system_names[0], system_names[1:])
 
-            lines = ["__Route Plotted__", "Total Distance: **{}**ly".format(round(result[0])), ""]
+            lines = ["__Route Plotted__", f"Total Distance: **{round(result[0])}**ly", ""]
             lines += [sys.name for sys in result[1]]
 
         await self.bot.send_message(self.msg.channel, "\n".join(lines))
@@ -1749,7 +1747,7 @@ class Status(Action):
         lines = [
             ['Created By', 'GearsandCogs'],
             ['Uptime', self.bot.uptime],
-            ['Version', '{}'.format(cog.__version__)],
+            ['Version', f'{cog.__version__}'],
             ['Contributors:', ''],
             ['    Shotwn', 'Inara search'],
             ['    Prozer', 'Various Contributions'],
@@ -1778,9 +1776,9 @@ class Time(Action):
         except (cog.exc.NoMoreTargets, cog.exc.RemoteError) as exc:
             tick = str(exc)
         lines = [
-            'Game Time: **{}**'.format(now.strftime('%H:%M:%S')),
+            f"Game Time: **{now.strftime('%H:%M:%S')}**",
             tick,
-            'Cycle Ends in **{}**'.format(weekly_tick - now),
+            f'Cycle Ends in **{weekly_tick - now}**',
             'All Times UTC',
         ]
 
@@ -1805,7 +1803,7 @@ class Track(Action):
                 added += add
 
         new_systems = sorted(added)
-        response = "__Systems Added To Tracking__\n\nSystems added: {} First few follow ...\n\n".format(len(new_systems))
+        response = "__Systems Added To Tracking__\n\nSystems added: {len(new_systems)} First few follow ...\n\n"
         return response + ", ".join(new_systems[:TRACK_LIMIT])
 
     async def remove(self):
@@ -1819,7 +1817,7 @@ class Track(Action):
             removed += deleted
 
         removed = sorted(removed)
-        response = "__Systems Removed From Tracking__\n\nSystems added: {} First few follow ...\n\n".format(len(removed))
+        response = f"__Systems Removed From Tracking__\n\nSystems removed: {len(removed)} First few follow ...\n\n"
         return response + ", ".join(removed[:TRACK_LIMIT])
 
     async def ids(self):
@@ -1848,7 +1846,7 @@ class Track(Action):
     async def channel(self):
         """ Subcmd channel for track command. """
         await cog.util.CONF.aupdate("channels", "ops", value=self.msg.channel.id)
-        return "Channel set to: {}".format(self.msg.channel.name)
+        return f"Channel set to: {self.msg.channel.name}"
 
     async def scan(self):
         """ Subcmd scan for track command. """
@@ -1865,7 +1863,7 @@ class Track(Action):
         try:
             cogdb.query.get_admin(self.session, self.duser)
         except cog.exc.NoMatch as exc:
-            raise cog.exc.InvalidPerms("{} You are not an admin!".format(self.msg.author.mention)) from exc
+            raise cog.exc.InvalidPerms(f"{self.msg.author.mention} You are not an admin!") from exc
 
         try:
             func = getattr(self, self.args.subcmd)
@@ -1889,8 +1887,8 @@ class Trigger(Action):
             pow_hq = cogdb.eddb.get_systems(eddb_session, [power[1]])[0]
             lines = [
                 "__Predicted Triggers__",
-                "Power: {}".format(power[0]),
-                "Power HQ: {}\n".format(power[1])
+                f"Power: {power[0]}",
+                "Power HQ: {power[1]}\n",
             ]
 
             systems = await self.bot.loop.run_in_executor(
@@ -1923,7 +1921,7 @@ class UM(Action):
             now = datetime.datetime.utcnow().replace(microsecond=0)
             weekly_tick = cog.util.next_weekly_tick(now)
 
-            prefix = "**Held Merits**\n\n{}\n".format('DEADLINE **{}**'.format(weekly_tick - now))
+            prefix = f"**Held Merits**\n\n'DEADLINE **{weekly_tick - now}**'\n"
             held_merits = cogdb.query.um_all_held_merits(self.session, sheet_src=self.args.sheet_src)
             response = cog.tbl.format_table(held_merits, header=True, prefix=prefix)[0]
 
@@ -1941,7 +1939,7 @@ class UM(Action):
                 try:
                     cogdb.query.get_admin(self.session, self.duser)
                 except cog.exc.NoMatch as exc:
-                    raise cog.exc.InvalidPerms("{} You are not an admin!".format(self.msg.author.mention)) from exc
+                    raise cog.exc.InvalidPerms(f"{self.msg.author.mention} You are not an admin!") from exc
                 system.priority = " ".join(self.args.priority)
                 self.payloads += cogdb.scanners.UMScanner.update_systemum_priority_dict(system.sheet_col, system.priority)
             if self.args.set:
@@ -1972,10 +1970,10 @@ class UM(Action):
             # Index of the first power to display in the 2nd embed.
             # A single embed can display up to 6 powers
             # therefore, with 9 powers the valid values are 4-7 inclusive.
-            SPLIT_POS = 5
+            split_pos = 5
 
             embed1 = discord.Embed(title="Undermining Ships")
-            for power in UM_NPC_TABLE[1:SPLIT_POS]:
+            for power in UM_NPC_TABLE[1:split_pos]:
                 embed1.add_field(name=power[0], value="Power", inline=False)
                 embed1.add_field(name=power[1], value="Fighter", inline=True)
                 embed1.add_field(name=power[2], value="Transport", inline=True)
@@ -1983,7 +1981,7 @@ class UM(Action):
             await self.bot.send_message(self.msg.channel, embed=embed1)
 
             embed2 = discord.Embed(title="Undermining Ships (cont.)")
-            for power in UM_NPC_TABLE[SPLIT_POS:]:
+            for power in UM_NPC_TABLE[split_pos:]:
                 embed2.add_field(name=power[0], value="Power", inline=False)
                 embed2.add_field(name=power[1], value="Fighter", inline=True)
                 embed2.add_field(name=power[2], value="Transport", inline=True)
@@ -2010,7 +2008,7 @@ class Snipe(UM):
             try:
                 cogdb.query.get_admin(self.session, self.duser)
             except cog.exc.NoMatch as exc:
-                raise cog.exc.InvalidPerms("{} You are not an admin!".format(self.msg.author.mention)) from exc
+                raise cog.exc.InvalidPerms(f"{self.msg.author.mention} You are not an admin!") from exc
 
             # Set the cycle if it exists
             try:
@@ -2063,16 +2061,16 @@ class User(Action):
             await asyncio.gather(*coros)
 
         msgs = ['\n'.join([
-            '__{}__'.format(self.msg.author.display_name),
-            'Sheet Name: ' + self.duser.pref_name,
-            'Default Cry:{}\n'.format(' ' + self.duser.pref_cry if self.duser.pref_cry else ''),
+            f'__{self.msg.author.display_name}__',
+            f'Sheet Name: {self.duser.pref_name}',
+            f"Default Cry:{' ' + self.duser.pref_cry if self.duser.pref_cry else ''}\n"
             '',
         ])]
         if self.duser.fort_user:
             prefix = "\n".join([
                 '__Fortification__',
-                '    Cry: {}'.format(self.duser.fort_user.cry),
-                '    Total: {}\n'.format(self.duser.fort_user.merit_summary()),
+                f'    Cry: {self.duser.fort_user.cry}',
+                f'    Total: {self.duser.fort_user.merit_summary()}\n',
             ])
             lines = [['System', 'Amount']]
             lines += [[merit.system.name, merit.amount] for merit in self.duser.fort_user.merits
@@ -2081,8 +2079,8 @@ class User(Action):
         if self.duser.um_user:
             prefix = "\n".join([
                 '\n__Undermining__',
-                '    Cry: {}'.format(self.duser.um_user.cry),
-                '    Total: {}\n'.format(self.duser.um_user.merit_summary()),
+                f'    Cry: {self.duser.um_user.cry}',
+                f'    Total: {self.duser.um_user.merit_summary()}\n',
             ])
             lines = [['System', 'Hold', 'Redeemed']]
             lines += [[merit.system.name, merit.held, merit.redeemed] for merit
@@ -2143,7 +2141,7 @@ class Voting(Action):
             try:
                 cogdb.query.get_admin(self.session, self.duser)
             except cog.exc.NoMatch as exc:
-                raise cog.exc.InvalidPerms("{} You are not an admin!".format(self.msg.author.mention)) from exc
+                raise cog.exc.InvalidPerms(f"{self.msg.author.mention} You are not an admin!") from exc
             globe.vote_goal = self.args.set
             msg = f"New vote goal is **{self.args.set}%**, current vote is {current_vote}%."
 
@@ -2169,18 +2167,18 @@ class Voting(Action):
         try:
             cogdb.query.get_admin(self.session, self.duser)
         except cog.exc.NoMatch as exc:
-            raise cog.exc.InvalidPerms("{} You are not an admin!".format(self.msg.author.mention)) from exc
+            raise cog.exc.InvalidPerms(f"{self.msg.author.mention} You are not an admin!") from exc
 
         globe.show_vote_goal = not globe.show_vote_goal
         show_msg = "SHOW" if globe.show_vote_goal else "NOT show"
-        return "Will now {} the vote goal.".format(show_msg)
+        return f"Will now {show_msg} the vote goal."
 
     async def summary(self, globe, current_vote):  # pragma: no cover
         """ Show an executive/complete summary of votes. """
         try:
             cogdb.query.get_admin(self.session, self.duser)
         except cog.exc.NoMatch as exc:
-            raise cog.exc.InvalidPerms("{} You are not an admin!".format(self.msg.author.mention)) from exc
+            raise cog.exc.InvalidPerms(f"{self.msg.author.mention} You are not an admin!") from exc
 
         lines = [["CMDR", "Type", "Strength", "Date"]]
         cons_tally, prep_tally = 0, 0
@@ -2219,10 +2217,7 @@ Date (UTC): {now}
                 vote_choice = 'vote Consolidation'
             else:
                 vote_choice = 'Hold your vote'
-            msg = "Current vote goal is {goal}%, current consolidation {current_cons}%, please **{vote_choice}**." \
-                .format(
-                    goal=globe.vote_goal, current_cons=current_vote, vote_choice=vote_choice
-                )
+            msg = f"Current vote goal is {globe.vote_goal}%, current consolidation {current_vote}%, please **{vote_choice}**."
         else:
             msg = "Please hold your vote for now. A ping will be sent once we have a final decision."
 
@@ -2254,7 +2249,7 @@ class Summary(Action):
         keys = ['cancelled', 'fortified', 'undermined', 'skipped', 'left', 'almost_done']
         lines = [
             [key.capitalize() for key in keys],
-            ['{}/{}'.format(len(states[key]), total) for key in keys],
+            [f'{len(states[key])}/{total}' for key in keys],
         ]
 
         return cog.tbl.format_table(lines, sep='|', header=True)[0]
@@ -2273,7 +2268,7 @@ class Summary(Action):
             await self.bot.send_message(self.msg.channel,
                                         self.bot.emoji.fix(response, self.msg.guild))
         else:
-            raise cog.exc.InvalidPerms("{} You are not allowed to use this command!".format(self.msg.author.mention))
+            raise cog.exc.InvalidPerms(f"{self.msg.author.mention} You are not allowed to use this command!")
 
 
 def check_system_deferred_and_globe(system, globe):
@@ -2364,12 +2359,12 @@ async def monitor_carrier_events(client, *, next_summary, last_timestamp=None, d
 
     with cogdb.session_scope(cogdb.Session) as session:
         if datetime.datetime.utcnow() < next_summary:
-            header = "__Fleet Carriers Detected Last {} Seconds__\n".format(delay)
+            header = f"__Fleet Carriers Detected Last {delay} Seconds__\n"
             tracks = await client.loop.run_in_executor(
                 None, cogdb.query.track_ids_newer_than, session, last_timestamp
             )
         else:
-            header = "__Daily Fleet Carrier Summary For {}__\n".format(next_summary)
+            header = f"__Daily Fleet Carrier Summary For {next_summary}__\n"
             yesterday = next_summary - datetime.timedelta(days=1)
             next_summary = next_summary + datetime.timedelta(days=1)
             tracks = await client.loop.run_in_executor(

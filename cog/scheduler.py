@@ -19,7 +19,7 @@ import aiozmq.rpc
 
 import cog.util
 
-ADDR = 'tcp://127.0.0.1:{}'.format(cog.util.CONF.ports.zmq)
+ADDR = f'tcp://127.0.0.1:{cog.util.CONF.ports.zmq}'
 POOL = cfut.ProcessPoolExecutor(max_workers=os.cpu_count())
 
 
@@ -41,10 +41,10 @@ class Scheduler(aiozmq.rpc.AttrHandler, cog.util.ReprMixin):
         self.cmd_map = {}
 
     def __str__(self):
-        msg = "### Schedule ###\n\n\tDelay: {}".format(self.delay)
+        msg = f"### Schedule ###\n\n\tDelay: {self.delay}"
         msg += '__Wraps__\n'
         for wrap in self.wrap_map.values():
-            msg += "\n\t{!r}\n".format(wrap)
+            msg += f"\n\t{wrap!r}\n"
 
         return msg
 
@@ -150,7 +150,7 @@ class Scheduler(aiozmq.rpc.AttrHandler, cog.util.ReprMixin):
         self.sub = await aiozmq.rpc.serve_pubsub(self, subscribe=channel,
                                                  connect=ADDR, log_exceptions=True)
         atexit.register(self.close)
-        print("Scheduler Subscribed to: {} with tag '{}'".format(ADDR, channel))
+        print(f"Scheduler Subscribed to: {ADDR} with tag '{channel}'")
         print(aiozmq.rpc.logger)
 
 
@@ -235,16 +235,16 @@ def done_cb(wrap, fut):  # pragma: no cover
     env = os.environ.get('COG_TOKEN', 'dev')
     chan_name = 'private_dev'
     if env in ['prod', 'live']:
-        chan_name = 'private_{}'.format(env)
+        chan_name = f'private_{env}'
     chan = cog.util.BOT.get_channel_by_name(chan_name)
     try:
         to_mention = cog.util.BOT.get_member_by_substr('gears').mention
     except AttributeError:
         to_mention = "Gears"
 
-    msg = "Sheet update for `{}` failed at {}. {} have a look!\nMost likely seeing this due to duplicate username in row 'B' of this sheet.\n\n{}".format(
-        wrap.name, datetime.datetime.utcnow(),
-        to_mention, str(wrap.job.exception()),
-    )
+    msg = f"""Sheet update for `{wrap.name}` failed at {datetime.datetime.utcnow()}. {to_mention} have a look!
+Most likely seeing this due to duplicate username in row 'B' of this sheet.
+
+{wrap.job.exception()}"""
     log.error("Critical Worker Error: %s", msg)
     asyncio.create_task(cog.util.BOT.send_message(chan, msg))

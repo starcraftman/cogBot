@@ -355,7 +355,7 @@ class EDMCJournal():
             }
             for key in ("Allegiance", "Government"):
                 if key in body_faction:
-                    faction["{}_id".format(key.lower())] = MAPS[key][body_faction[key]]
+                    faction[f"{key.lower()}_id"] = MAPS[key][body_faction[key]]
             if "FactionState" in body_faction:
                 faction["state_id"] = MAPS["FactionState"][body_faction["FactionState"]]
             factions[faction['name']] = faction
@@ -528,7 +528,7 @@ def create_parser(msg):
     Returns:
         A parser ready to parse the message.
     """
-    key = "{} {}".format(msg['header']['softwareName'], msg["$schemaRef"])
+    key = f"{msg['header']['softwareName']} {msg['$schemaRef']}"
     logging.getLogger(__name__).info("Schema Key: %s", key)
     cls_name = SCHEMA_MAP[key]
     cls = getattr(sys.modules[__name__], cls_name)
@@ -548,7 +548,7 @@ def log_fname(msg):
         timestamp = msg['header']['gatewayTimestamp']
 
     schema = '_'.join(msg["$schemaRef"].split('/')[-2:])
-    fname = "{}_{}_{}".format(schema, timestamp, msg['header']['softwareName'])
+    fname = f"{schema}_{timestamp}_{msg['header']['softwareName']}"
 
     return cog.util.clean_text(fname)
 
@@ -684,7 +684,7 @@ def main():  # pragma: no cover
     sub.setsockopt(zmq.RCVTIMEO, TIMEOUT)
 
     try:
-        print("connection established, reading messages.\nOutput at: {}".format(LOG_FILE))
+        print(f"connection established, reading messages.\nOutput at: {LOG_FILE}")
         connect_loop(sub)
     except KeyboardInterrupt:
         msg = """Terminating ZMQ connection."""

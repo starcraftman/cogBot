@@ -115,7 +115,7 @@ def format_line(entries, sep=' | ', pads=None, center=False):
 
     ents = []
     for ind, ent in enumerate(entries):
-        fmt = '{:%s}' % pads[ind]
+        fmt = f'{pads[ind]}'
         ents += [fmt.format(str(ent))]
 
     line = sep.join(ents)
