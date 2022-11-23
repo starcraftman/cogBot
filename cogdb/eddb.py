@@ -580,6 +580,7 @@ class StationFeatures(ReprMixin, TimestampMixin, UpdatableMixin, Base):
 
 
 class StationType(ReprMixin, Base):
+    """ The type of a station, like Outpost and so on. """
     __tablename__ = "station_types"
     _repr_keys = ['id', 'text', 'eddn']
 
@@ -596,6 +597,7 @@ class StationType(ReprMixin, Base):
 
 
 class StationEconomy(ReprMixin, Base):
+    """ The economy of a station, can have up to 2 usually. """
     __tablename__ = "station_economies"
     _repr_keys = ['id', 'economy_id', 'primary', 'proportion']
 
@@ -999,6 +1001,13 @@ class HistoryInfluence(ReprMixin, TimestampMixin, Base):
 
     @classmethod
     def from_influence(cls, influence):
+        """
+        Create a HistoryInfluence object from an existing Influence record.
+
+        Args:
+            cls: The class itself, this is a classmethod.
+            influence: The Influence object to base upon.
+        """
         return cls(
             system_id=influence.system_id,
             faction_id=influence.faction_id,
@@ -1056,6 +1065,7 @@ System.stations = sqla_orm.relationship(
 
 # NOTE: Map text '' -> 'None'
 def preload_allegiance(session):
+    """ Preload all Allegiance constants to table. """
     session.add_all([
         Allegiance(id=1, text="Alliance", eddn="Alliance"),
         Allegiance(id=2, text="Empire", eddn="Empire"),
@@ -1069,6 +1079,7 @@ def preload_allegiance(session):
 
 
 def preload_commodity_categories(session):
+    """ Preload all CommodityCat constants to table. """
     session.add_all([
         CommodityCat(id=1, name='Chemicals'),
         CommodityCat(id=2, name='Consumer Items'),
@@ -1090,6 +1101,7 @@ def preload_commodity_categories(session):
 
 
 def preload_conflict_states(session):
+    """ Preload all ConflictState constants to table. """
     session.add_all([
         ConflictState(id=1, text="Unknown", eddn=""),
         ConflictState(id=2, text="Active", eddn="active"),
@@ -1101,6 +1113,7 @@ def preload_conflict_states(session):
 
 
 def preload_economies(session):
+    """ Preload all Economy constants to table. """
     session.add_all([
         Economy(id=1, text="Agriculture", eddn="Agri"),
         Economy(id=2, text="Extraction", eddn="Extraction"),
@@ -1123,6 +1136,7 @@ def preload_economies(session):
 
 
 def preload_faction_happiness(session):
+    """ Preload all FactionHappiness constants to table. """
     session.add_all([
         FactionHappiness(id=1, text='Elated', eddn='Elated'),
         FactionHappiness(id=2, text='Happy', eddn='Happy'),
@@ -1133,6 +1147,7 @@ def preload_faction_happiness(session):
 
 
 def preload_faction_state(session):
+    """ Preload all FactionState constants to table. """
     session.add_all([
         FactionState(id=0, text="(unknown)", eddn=None),
         FactionState(id=16, text="Boom", eddn="Boom"),
@@ -1161,6 +1176,7 @@ def preload_faction_state(session):
 
 
 def preload_gov_type(session):
+    """ Preload all Government constants to table. """
     session.add_all([
         Government(id=0, text='(unknown)', eddn=None),
         Government(id=16, text='Anarchy', eddn="Anarchy"),
@@ -1184,6 +1200,7 @@ def preload_gov_type(session):
 
 
 def preload_module_groups(session):
+    """ Preload all ModuleGroup constants to table. """
     session.add_all([
         ModuleGroup(id=50, name='Lightweight Alloy', category='Bulkhead', category_id=40),
         ModuleGroup(id=51, name='Reinforced Alloy', category='Bulkhead', category_id=40),
@@ -2676,6 +2693,10 @@ def recreate_tables():  # pragma: no cover | destructive to test
 
 
 def make_parser():
+    """
+    Make the parser for command line usage.
+    Designed to fetch and preload database before first run of bot.
+    """
     parser = argparse.ArgumentParser(description="EDDB Importer")
     parser.add_argument('--yes', '-y', action="store_true",
                         help='Skip confirmation.')

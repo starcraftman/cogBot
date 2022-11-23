@@ -169,10 +169,12 @@ class Influence(ReprMixin, Base):
 
     @property
     def date(self):
+        """ Get the datetime object of the timestamp. """
         return datetime.datetime.fromtimestamp(self.updated_at)
 
     @property
     def short_date(self):
+        """ Get a short day/month representation of timestamp. """
         return f'{self.date.day}/{self.date.month}'
 
 
@@ -196,10 +198,12 @@ class InfluenceHistory(ReprMixin, Base):
 
     @property
     def date(self):
+        """ Get the datetime object of the timestamp. """
         return datetime.datetime.fromtimestamp(self.updated_at)
 
     @property
     def short_date(self):
+        """ Get a short day/month representation of timestamp. """
         return f'{self.date.day}/{self.date.month}'
 
 
@@ -1166,6 +1170,7 @@ def get_system_ages(session, controls, cutoff=1):
 
 
 def main():  # pragma: no cover
+    """ Main function to test against side. """
     pass
     #  with cogdb.session_scope(cogdb.SideSession) as side_session:
     # system_ids = get_monitor_systems(side_session, WATCH_BUBBLES)

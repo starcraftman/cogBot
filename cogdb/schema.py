@@ -911,6 +911,7 @@ class KOS(ReprMixin, Base):
 
     @property
     def friendly(self):
+        """ Return whether this entry is for a FRIENDLY or a KILL """
         return 'FRIENDLY' if self.is_friendly else 'KILL'
 
 
@@ -1139,6 +1140,7 @@ class Global(ReprMixin, Base):
 
     @sqla_orm.validates('cycle')
     def validate_cycle(self, key, value):
+        """ Validation function for cycle. """
         try:
             if value < 1:
                 raise cog.exc.ValidationFail(f"Bounds check failed for: {key} with value {value}")
@@ -1149,6 +1151,7 @@ class Global(ReprMixin, Base):
 
     @sqla_orm.validates('consolidation')
     def validate_consolidation(self, key, value):
+        """ Validation function for consolidation. """
         try:
             if value < 0 or value > 100:
                 raise cog.exc.ValidationFail(f"Bounds check failed for: {key} with value {value}")
@@ -1159,6 +1162,7 @@ class Global(ReprMixin, Base):
 
     @sqla_orm.validates('vote_goal')
     def validate_vote_goal(self, key, value):
+        """ Validation function for vote_goal. """
         try:
             if value < 0 or value > 100:
                 raise cog.exc.ValidationFail(f"Bounds check failed for: {key} with value {value}")
@@ -1169,6 +1173,7 @@ class Global(ReprMixin, Base):
 
     @sqla_orm.validates('updated_at')
     def validate_updated_at(self, _, value):
+        """ Validation function for updated_at. """
         if not value or not isinstance(value, datetime.datetime) or (self.updated_at and value < self.updated_at):
             raise cog.exc.ValidationFail("Date invalid or was older than current value.")
 
@@ -1212,6 +1217,7 @@ class Vote(ReprMixin, Base):
 
     @property
     def vote_type(self):
+        """ Convenience to convert the enum into a string representation. """
         return str(self.vote).split('.', maxsplit=1)[-1].capitalize()
 
     def update_amount(self, amount):
@@ -1224,6 +1230,7 @@ class Vote(ReprMixin, Base):
 
     @sqla_orm.validates('updated_at')
     def validate_updated_at(self, key, value):
+        """ Validation function for updated_at. """
         if not value or not isinstance(value, datetime.datetime) or (self.updated_at and value < self.updated_at):
             raise cog.exc.ValidationFail("Date invalid or was older than current value.")
 
@@ -1231,6 +1238,7 @@ class Vote(ReprMixin, Base):
 
     @sqla_orm.validates('amount')
     def validate_amount(self, key, value):
+        """ Validation function for amount. """
         try:
             if value < 0 or value > MAX_VOTE_VALUE:
                 raise cog.exc.ValidationFail(f"Bounds check failed for: {key} with value {value}")
@@ -1265,6 +1273,7 @@ class Consolidation(ReprMixin, Base):
 
     @sqla_orm.validates('cons_total', 'prep_total')
     def validate_totals(self, key, value):
+        """ Validation function for cons_total and prep_total. """
         try:
             if value < 0:
                 raise cog.exc.ValidationFail(f"Bounds check failed for: {key} with value {value}")
@@ -1275,6 +1284,7 @@ class Consolidation(ReprMixin, Base):
 
     @sqla_orm.validates('amount')
     def validate_amount(self, key, value):
+        """ Validation function for amount. """
         try:
             if value < 0 or value > 100:
                 raise cog.exc.ValidationFail(f"Bounds check failed for: {key} with value {value}")

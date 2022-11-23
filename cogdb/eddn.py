@@ -73,14 +73,17 @@ class EDMCJournal():
 
     @property
     def header(self):
+        """ The header of the message. """
         return self.msg['header']
 
     @property
     def body(self):
+        """ The body of the message. """
         return self.msg['message']
 
     @property
     def date_obj(self):
+        """ The UTC timezone AWARE datetime object of the message. """
         try:
             parsed_time = datetime.datetime.strptime(self.body['timestamp'], TIME_STRP_MICRO)
         except ValueError:
@@ -89,6 +92,7 @@ class EDMCJournal():
 
     @property
     def timestamp(self):
+        """ The UTC timestamp of the message. """
         return int(self.date_obj.timestamp())
 
     @property
@@ -439,6 +443,9 @@ class EDMCJournal():
         self.eddb_session.flush()
 
     def parse_conflicts(self):
+        """
+        Parse any conflicts prsent in the message.
+        """
         try:
             system = self.parsed['system']
             factions = self.parsed['factions']

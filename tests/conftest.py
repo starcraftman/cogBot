@@ -1,4 +1,4 @@
-# pylint: disable=redefined-outer-name,missing-function-docstring,unused-argument,redefined-builtin
+# pylint: disable=redefined-outer-name,missing-function-docstring,unused-argument,redefined-builtin,missing-class-docstring
 """
 Used for pytest fixtures and anything else test setup/teardown related.
 """

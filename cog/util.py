@@ -403,8 +403,8 @@ def transpose_table(table):
     while len(n_table) != len(table[0]):
         n_table += [[]]
 
-    for col_ind in range(0, len(table[0])):
-        for row_ind in range(0, len(table)):
+    for col_ind, _ in enumerate(table[0]):
+        for row_ind, _ in enumerate(table):
             n_table[col_ind] += [table[row_ind][col_ind]]
 
     return n_table

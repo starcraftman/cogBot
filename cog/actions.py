@@ -1169,6 +1169,7 @@ class Hold(Action):
     """
     @property
     def um_user(self):
+        """ Property to return the right user for a hold. """
         return self.duser.um_user
 
     async def set_hold(self):
