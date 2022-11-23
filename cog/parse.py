@@ -6,6 +6,7 @@ what action to be invoked.
 """
 import argparse
 from argparse import RawDescriptionHelpFormatter as RawHelp
+import logging
 
 import cog.exc
 import cog.util
@@ -879,6 +880,7 @@ def parse_vote_tuple(vote_tuple):
         elif vote_tuple[1] in VALID_VOTE_TYPES:
             amount, vote_type = vote_tuple
         else:
+            logging.getLogger(__name__).error("Invalid tuple for voting: %s", str(vote_tuple))
             raise ValueError("Values in tuple were invalid.")
 
         vote_type = EVoteType.cons if vote_type == 'cons' else EVoteType.prep

@@ -1455,6 +1455,7 @@ class Near(Action):
             elif self.args.subcmd in self.TRADER_MAP:
                 msg = await self._get_traders(eddb_session)
             else:
+                self.log.error("Trace subcmd: %s", self.args.subcmd)  # TODO: Remove, tracing anomaly in crash
                 msg = await getattr(self, self.args.subcmd)(eddb_session)
 
         await self.bot.send_message(self.msg.channel, msg)
