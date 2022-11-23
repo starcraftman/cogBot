@@ -871,7 +871,7 @@ class Drop(Action):
         except cog.exc.NoMoreTargets:
             response = '\n\n Could not determine next fort target.'
 
-        lines = ['**{self.duser.display_name}** Have a :cookie: for completing {system.name}']
+        lines = [f'**{self.duser.display_name}** Have a :cookie: for completing {system.name}']
         try:
             merits = list(reversed(sorted(system.merits)))
             top = merits[0]
@@ -879,7 +879,7 @@ class Drop(Action):
             for merit in merits:
                 if merit.amount != top.amount:
                     break
-                lines.append('    :cookie: for **{merit.user.name}** with {merit.amount} supplies')
+                lines.append(f'    :cookie: for **{merit.user.name}** with {merit.amount} supplies')
         except IndexError:
             lines += ["No found contributions. Heres a :cookie: for the unknown commanders."]
 
@@ -1803,7 +1803,7 @@ class Track(Action):
                 added += add
 
         new_systems = sorted(added)
-        response = "__Systems Added To Tracking__\n\nSystems added: {len(new_systems)} First few follow ...\n\n"
+        response = f"__Systems Added To Tracking__\n\nSystems added: {len(new_systems)} First few follow ...\n\n"
         return response + ", ".join(new_systems[:TRACK_LIMIT])
 
     async def remove(self):
@@ -1888,7 +1888,7 @@ class Trigger(Action):
             lines = [
                 "__Predicted Triggers__",
                 f"Power: {power[0]}",
-                "Power HQ: {power[1]}\n",
+                f"Power HQ: {power[1]}\n",
             ]
 
             systems = await self.bot.loop.run_in_executor(
@@ -2064,7 +2064,7 @@ class User(Action):
             f'__{self.msg.author.display_name}__',
             f'Sheet Name: {self.duser.pref_name}',
             f"Default Cry:{' ' + self.duser.pref_cry if self.duser.pref_cry else ''}\n"
-            '',
+            '\n',
         ])]
         if self.duser.fort_user:
             prefix = "\n".join([

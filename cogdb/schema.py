@@ -764,8 +764,8 @@ class UMSystem(Base):
         """
         lines = [
             [self.descriptor, f'{self.name} [{self.security[0].upper()} sec]'],
-            [self.completion, "Merits {'Missing' if self.missing > 0 else 'Leading'} {abs(self.missing)}"],
-            ['Our Progress ' + str(self.progress_us), 'Enemy Progress {self.progress_them * 100:.0f}%'],
+            [self.completion, f"Merits {'Missing' if self.missing > 0 else 'Leading'} {abs(self.missing)}"],
+            ['Our Progress ' + str(self.progress_us), f'Enemy Progress {self.progress_them * 100:.0f}%'],
             ['Nearest Hudson', self.close_control],
             ['Priority', self.priority],
             ['Power', self.notes],

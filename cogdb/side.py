@@ -344,7 +344,7 @@ class System(ReprMixin, Base):
     @property
     def log_pop(self):
         """ The log base 10 of the population. For terse representation. """
-        return '{math.log(self.population, 10):.1f}'
+        return f'{math.log(self.population, 10):.1f}'
 
     @hybrid_method
     def dist_to(self, other):

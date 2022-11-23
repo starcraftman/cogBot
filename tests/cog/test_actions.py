@@ -1284,7 +1284,7 @@ async def test_cmd_track_remove(session, f_bot, f_dusers, f_admins, f_track_test
 
     expected = """__Systems Removed From Tracking__
 
-Systems added: 1 First few follow ...
+Systems removed: 1 First few follow ...
 
 Tollan"""
     f_bot.send_message.assert_called_with(msg.channel, expected)
@@ -1444,7 +1444,7 @@ async def test_cmd_um_set_fail(f_bot, f_testbed):
 @pytest.mark.asyncio
 async def test_cmd_um_set_works(session, f_bot, f_testbed):
     before = session.query(UMSystem).filter_by(name='Pequen').one()
-    msg = fake_msg_gears("!um --set {before.progress_us + 1500}:40 {before.name} --offset 600")
+    msg = fake_msg_gears(f"!um --set {before.progress_us + 1500}:40 {before.name} --offset 600")
 
     await action_map(msg, f_bot).execute()
 

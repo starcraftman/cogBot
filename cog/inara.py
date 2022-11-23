@@ -591,7 +591,7 @@ async def inara_squad_parse(url):
                 squad_data['hq'] = f"[{node.string.strip()}]({SITE + node['href']})"
             elif 'Related minor faction:</span>' in ele_str and ele.nextSibling.nextSibling.string:
                 node = ele.nextSibling.nextSibling
-                squad_data['minor'] = "[{node.string.strip()}]({SITE + node['href']})"
+                squad_data['minor'] = f"[{node.string.strip()}]({SITE + node['href']})"
 
     return [
         {'name': 'Squad Leader', 'value': squad_data["leader"], 'inline': True},

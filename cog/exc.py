@@ -159,7 +159,7 @@ class NameCollisionError(SheetParsingError):
             "**Critical Error**",
             "----------------",
             f"CMDR \"{self.name}\" found in rows {self.rows} of the {self.sheet} Sheet"
-            "",
+            "\n",
             "To Resolve:",
             "    Delete or rename the cmdr in one of these rows",
             "    Then execute `admin scan` to reload the db",
