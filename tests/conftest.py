@@ -712,7 +712,7 @@ def f_umformula_values(f_asheet):
     """
     Return the raw formula values of a UM Sheet.
     """
-    with open(cog.util.rel_to_abs('tests', 'test_input.umformula.txt')) as fin:
+    with open(cog.util.rel_to_abs('tests', 'test_input.umformula.txt'), encoding='utf-8') as fin:
         yield eval(fin.read())
 
 

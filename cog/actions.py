@@ -14,7 +14,6 @@ import math
 import os
 import pprint
 import re
-import string
 import tempfile
 import traceback
 
@@ -55,14 +54,14 @@ def user_info(user):  # pragma: no cover
     Trivial message formatter based on user information.
     """
     lines = [
-        ['Username', '{}#{}'.format(user.name, user.discriminator)],
+        ['Username', f'{user.name}#{user.discriminator}'],
         ['ID', str(user.id)],
         ['Status', str(user.status)],
         ['Join Date', str(user.joined_at)],
         ['All Roles:', str([str(role) for role in user.roles[1:]])],
         ['Top Role:', str(user.top_role).replace('@', '@ ')],
     ]
-    return cog.tbl.format_table(lines, prefix='**{}**\n'.format(user.display_name))
+    return cog.tbl.format_table(lines, prefix=f'**{user.display_name}**\n')
 
 
 @decorator.decorator
@@ -212,13 +211,13 @@ class Admin(Action):
         cmd_set.remove('admin')
         not_found = set(self.args.rule_cmds) - cmd_set
         if not self.args.rule_cmds or len(not_found) != 0:
-            msg = """Rules require a command in following set:
+            msg = f"""Rules require a command in following set:
 
-            {cmds}
+            {sorted(list(cmd_set))}
 
             The following were not matched:
-            {not_found}
-            """.format(cmds=str(sorted(list(cmd_set))), not_found=', '.join(list(not_found)))
+            {', '.join(list(not_found))}
+            """
             raise cog.exc.InvalidCommandArgs(msg)
 
     async def add(self):
@@ -318,18 +317,17 @@ class Admin(Action):
         all_members = sorted(all_members, key=lambda x: x.top_role.name)
         with tempfile.NamedTemporaryFile(mode='r') as tfile:
             async with aiofiles.open(tfile.name, 'w') as fout:
-                await fout.write("__Members With No Activity in Last {} Day{}__\n".format(self.args.days,
-                                                                                          "" if self.args.days == 1 else "s"))
+                day_suffix = "" if self.args.days == 1 else "s"
+                await fout.write(f"__Members With No Activity in Last {self.args.days} Day{day_suffix}__\n")
                 for member in all_members:
-                    await fout.write("{}, Top Role: {}\n".format(member.name, member.top_role))
+                    await fout.write(f"{member.name}, Top Role: {member.top_role}\n")
 
                 await fout.write("\n\n__Members With Activity__\n")
                 for msg in sorted(last_msgs.values(), key=lambda x: x.created_at):
-                    await fout.write("{}, Top Role: {}, Last Msg Sent on {} in {}\n".format(
-                        msg.author.name, msg.author.top_role, msg.created_at, msg.channel.name))
+                    author = msg.author
+                    await fout.write(f"{author.name}, Top Role: {author.top_role}, Last Msg Sent on {msg.created_at} in {msg.channel.name}\n")
 
-        fname = 'activity_report_{}_{}.txt'.format(
-            self.msg.guild.name, datetime.datetime.utcnow().replace(microsecond=0))
+        fname = f'activity_report_{self.msg.guild.name}_{datetime.datetime.utcnow().replace(microsecond=0)}.txt'
         await self.msg.channel.send("Report generated in this file.",
                                     file=discord.File(fp=tfile.name, filename=fname))
         await asyncio.sleep(5)
@@ -342,7 +340,8 @@ class Admin(Action):
     async def deny(self):
         """ Toggle bot's acceptance of commands. """
         self.bot.deny_commands = not self.bot.deny_commands
-        return 'Commands: **{}abled**'.format('Dis' if self.bot.deny_commands else 'En')
+        prefix = 'Dis' if self.bot.deny_commands else 'En'
+        return f'Commands: **{prefix}abled**'
 
     async def dump(self):
         """ Dump the entire database to a file on server. """
@@ -375,7 +374,7 @@ class Admin(Action):
     async def top(self, limit=5):
         """ Schedule all sheets for update. """
         cycle = cog.util.CONF.scanners.hudson_cattle.page
-        prefix = "__Top Merits for {}__\n\n".format(cycle)
+        prefix = f"__Top Merits for {cycle}__\n\n"
         try:
             exclude_roles = ["FRC Leadership", "Special Agent"] if not self.args.leaders else []
             arg_limit = self.args.limit
@@ -388,7 +387,7 @@ class Admin(Action):
             None, cogdb.query.users_with_all_merits, self.session,
         )
         top_recruits, top_members = filter_top_dusers(self.msg.guild, top_all, exclude_roles, limit=arg_limit)
-        lines = [["Top {} Recruits".format(limit), "Merits", "Top {} Members".format(limit), "Merits"]]
+        lines = [[f"Top {limit} Recruits", "Merits", f"Top {limit} Members", "Merits"]]
         lines += [[rec[0], rec[1], mem[0], mem[1]] for rec, mem in zip(top_recruits, top_members)]
         parts += cog.tbl.format_table(lines, header=True, prefix=prefix, suffix="\n\n")
 
@@ -396,7 +395,7 @@ class Admin(Action):
             None, cogdb.query.users_with_fort_merits, self.session,
         )
         top_recruits, top_members = filter_top_dusers(self.msg.guild, top_fort, exclude_roles, limit=arg_limit)
-        lines = [["Top {} Fort Recruits".format(limit), "Merits", "Top Fort {} Members".format(limit), "Merits"]]
+        lines = [[f"Top {limit} Fort Recruits", "Merits", f"Top Fort {limit} Members", "Merits"]]
         lines += [[rec[0], rec[1], mem[0], mem[1]] for rec, mem in zip(top_recruits, top_members)]
         parts += cog.tbl.format_table(lines, header=True, suffix="\n\n")
 
@@ -404,7 +403,7 @@ class Admin(Action):
             None, cogdb.query.users_with_um_merits, self.session,
         )
         top_recruits, top_members = filter_top_dusers(self.msg.guild, top_um, exclude_roles, limit=arg_limit)
-        lines = [["Top {} UM Recruits".format(limit), "Merits", "Top UM {} Members".format(limit), "Merits"]]
+        lines = [[f"Top {limit} UM Recruits", "Merits", f"Top UM {limit} Members", "Merits"]]
         lines += [[rec[0], rec[1], mem[0], mem[1]] for rec, mem in zip(top_recruits, top_members)]
         parts += cog.tbl.format_table(lines, header=True, suffix="\n\n")
 
@@ -479,10 +478,9 @@ class Admin(Action):
             prefix = "Cycle incremented. Changed sheets scheduled for update.\n\n"
             return cog.tbl.format_table(lines, header=True, prefix=prefix)[0]
         except ValueError as exc:
-            raise cog.exc.InternalException("Impossible to increment scanner: {}".format(name)) from exc
+            raise cog.exc.InternalException(f"Impossible to increment scanner: {name}") from exc
         except (AssertionError, googleapiclient.errors.HttpError) as exc:
-            raise cog.exc.RemoteError("The sheet {} with tab {} does not exist!".format(
-                name, confs[name]['page'])) from exc
+            raise cog.exc.RemoteError(f"The sheet {name} with tab {confs[name]['page']} does not exist!") from exc
         finally:
             self.bot.deny_commands = False
 
@@ -526,7 +524,7 @@ class Admin(Action):
                             ["System", system.name],
                             ["Power", power[0]],
                             ["UM Trigger", system.calc_um_trigger(pow_hq)],
-                            ["UM Trigger {}%".format(reinforcement_value), reinforced_trigger],
+                            [f"UM Trigger {reinforced_trigger}%"],
                             ["Priority", priority]
                         ])
                         values.append({
@@ -555,8 +553,7 @@ class Admin(Action):
                 await self.bot.send_message(self.msg.channel, msg)
             await asyncio.sleep(1)
             if found_list:
-                return "Systems added to the UM sheet.\n\nThe following systems were ignored : {}"\
-                    .format(", ".join(found_list))
+                return f"Systems added to the UM sheet.\n\nThe following systems were ignored : {', '.join(found_list)}"
             return 'Systems added to the UM sheet.'
 
         return 'All systems asked are already in the sheet or are invalid'
@@ -573,7 +570,7 @@ class Admin(Action):
 
             systems_in_sheet = [x.name for x in cogdb.query.um_get_systems(self.session, exclude_finished=False)]
             found = [x.name for x in systems if x.name in systems_in_sheet]
-            reply = 'System {} is not in the UM sheet.'.format(systems[0].name)
+            reply = f'System {systems[0].name} is not in the UM sheet.'
 
         um_scanner = get_scanner("hudson_undermine")
         if found:
@@ -585,7 +582,7 @@ class Admin(Action):
             await um_scanner.send_batch(data, input_opt='USER_ENTERED')
             self.bot.sched.schedule("hudson_undermine", 1)
             await asyncio.sleep(1)
-            reply = 'System {} removed from the UM sheet.'.format(found[0])
+            reply = f'System {found[0]} removed from the UM sheet.'
 
         return reply
 
@@ -594,7 +591,7 @@ class Admin(Action):
         try:
             admin = cogdb.query.get_admin(self.session, self.duser)
         except cog.exc.NoMatch as exc:
-            raise cog.exc.InvalidPerms("{} You are not an admin!".format(self.msg.author.mention)) from exc
+            raise cog.exc.InvalidPerms(f"{self.msg.author.mention} You are not an admin!") from exc
 
         try:
             func = getattr(self, self.args.subcmd)
@@ -640,7 +637,7 @@ class BGS(Action):
         for system, faction, gov, inf, age in systems:
             lines += [[
                 age if age else 0, system.name[-12:], faction.name[:20], gov.text[:3],
-                '{:.1f}'.format(inf.influence), net_inf[system.name],
+                f'{inf.influence:.1f}', net_inf[system.name],
                 facts_count[system.name], system.log_pop
             ]]
 
@@ -654,9 +651,9 @@ class BGS(Action):
 
         tot_systems = len(systems) - 1
         hlines = [
-            ["Strong", "{}/{}".format(strong_cnt, tot_systems)],
-            ["Weak", "{}/{}".format(weak_cnt, tot_systems)],
-            ["Neutral", "{}/{}".format(tot_systems - strong_cnt - weak_cnt, tot_systems)],
+            ["Strong", f"{strong_cnt}/{tot_systems}"],
+            ["Weak", f"{weak_cnt}/{tot_systems}"],
+            ["Neutral", f"{tot_systems - strong_cnt - weak_cnt}/{tot_systems}"],
         ]
         explain = """
 **Net**: Net change in influence over last 5 days. There may not be 5 days of data.
@@ -666,7 +663,7 @@ class BGS(Action):
          This is the exponent that would carry 10 to the population of the system.
          Example: Pop = 4.0 then actual population is: 10 ^ 4.0 = 10000
         """
-        msgs = cog.tbl.format_table(hlines, prefix="**{}**".format(control.name))
+        msgs = cog.tbl.format_table(hlines, prefix=f"**{control.name}**")
         msgs += cog.tbl.format_table(lines, header=True, suffix=explain)
 
         return cog.util.merge_msgs_to_least(msgs)[0]
@@ -690,7 +687,7 @@ class BGS(Action):
         control_ages = await self.bot.loop.run_in_executor(None, cogdb.side.get_system_ages,
                                                            kwargs['side_session'], controls, self.args.age)
         for control_name in control_ages:
-            resp += "\n\n__{}__\n".format(string.capwords(control_name))
+            resp += f"\n\n__{control_name}__\n"
             ages = control_ages[control_name]
             if len(ages) > 2:
                 _, systems = await self.bot.loop.run_in_executor(None, cogdb.eddb.find_best_route,
@@ -711,7 +708,7 @@ class BGS(Action):
                                                        side_session, centre.name)
         prompt = "Please select a faction to expand with:\n"
         for ind, name in enumerate([fact.name for fact in factions]):
-            prompt += "\n({}) {}".format(ind, name)
+            prompt += f"\n({ind}) {name}"
         sent = await self.bot.send_message(self.msg.channel, prompt)
         select = await self.bot.wait_for(
             'message',
@@ -725,7 +722,7 @@ class BGS(Action):
 
             cands = await self.bot.loop.run_in_executor(None, cogdb.side.expansion_candidates,
                                                         side_session, centre, factions[ind])
-            prefix = "**Would Expand To**\n\n{}, {}\n\n".format(centre.name, factions[ind].name)
+            prefix = f"**Would Expand To**\n\n{centre.name}, {factions[ind].name}\n\n"
             return cog.tbl.format_table(cands, header=True, prefix=prefix)[0]
         except ValueError as exc:
             raise cog.exc.InvalidCommandArgs("Selection was invalid, try command again.") from exc
@@ -765,7 +762,7 @@ class BGS(Action):
         if not infs:
             raise cog.exc.InvalidCommandArgs("Invalid system name or system is not tracked in db.")
 
-        prefix = "**{}**\n{} (UTC)\n\n".format(system_name, infs[0][-1])
+        prefix = f"**{system_name}**\n{infs[0][-1]} (UTC)\n\n"
         lines = [['Faction Name', 'Inf', 'Gov', 'PMF?']] + [inf[:-1] for inf in infs]
         return cog.tbl.format_table(lines, header=True, prefix=prefix)[0]
 
@@ -795,27 +792,25 @@ class BGS(Action):
                                                                kwargs['side_session'], system_name)
 
         if not system:
-            raise cog.exc.InvalidCommandArgs("System **{}** not found. Spelling?".format(system_name))
+            raise cog.exc.InvalidCommandArgs(f"System **{system_name}** not found. Spelling?")
         if not factions:
-            msg = """We aren't tracking influence in: **{}**
+            msg = f"""We aren't tracking influence in: **{system_name}**
 
-If we should contact Gears or Sidewinder""".format(system_name)
+If we should contact Gears or Sidewinder"""
             raise cog.exc.InvalidCommandArgs(msg)
 
         lines = []
         for faction in factions:
-            lines += [
-                '{}{}: {} -> {}'.format(faction['name'], ' (PMF)' if faction['player'] else '',
-                                        faction['state'], faction['pending']),
-            ]
+            is_pmf = ' (PMF)' if faction['player'] else ''
+            lines += [f"{faction['name']}{is_pmf}: {faction['state']} -> {faction['pending']}"]
             if faction['stations']:
                 lines += ['    Owns: ' + ', '.join(faction['stations'])]
             lines += [
-                '    ' + ' | '.join(['{:^5}'.format(inf.short_date) for inf in faction['inf_history']]),
-                '    ' + ' | '.join(['{:^5.1f}'.format(inf.influence) for inf in faction['inf_history']]),
+                '    ' + ' | '.join([f'{inf.short_date:^5}' for inf in faction['inf_history']]),
+                '    ' + ' | '.join([f'{inf.influence:^5.1f}' for inf in faction['inf_history']]),
             ]
 
-        header = "**{}**: {:,}\n\n".format(system.name, system.population)
+        header = f"**{system.name}**: {system.population:,}\n\n"
         return header + '```autohotkey\n' + '\n'.join(lines) + '```\n'
 
     async def execute(self):
@@ -846,8 +841,8 @@ class Dist(Action):
             dists = await self.bot.loop.run_in_executor(None, cogdb.eddb.compute_dists,
                                                         eddb_session, system_names)
 
-        prefix = 'Distances From: **{}**\n\n'.format(system_names[0].capitalize())
-        lines = [[name, '{:.2f}ly'.format(dist)] for name, dist in dists]
+        prefix = f'Distances From: **{system_names[0].capitalize()}**\n\n'
+        lines = [[name, f'{dist:.2f}ly'] for name, dist in dists]
         for msg in cog.tbl.format_table(lines, prefix=prefix):
             await self.bot.send_message(self.msg.channel, msg)
 
@@ -877,10 +872,7 @@ class Drop(Action):
         except cog.exc.NoMoreTargets:
             response = '\n\n Could not determine next fort target.'
 
-        lines = [
-            '**{}** Have a :cookie: for completing {}'.format(self.duser.display_name, system.name),
-        ]
-
+        lines = ['**{self.duser.display_name}** Have a :cookie: for completing {system.name}']
         try:
             merits = list(reversed(sorted(system.merits)))
             top = merits[0]
@@ -888,8 +880,7 @@ class Drop(Action):
             for merit in merits:
                 if merit.amount != top.amount:
                     break
-                lines.append('    :cookie: for **{}** with {} supplies'.format(
-                    merit.user.name, merit.amount))
+                lines.append('    :cookie: for **{merit.user.name}** with {merit.amount} supplies')
         except IndexError:
             lines += ["No found contributions. Heres a :cookie: for the unknown commanders."]
 
@@ -970,7 +961,7 @@ class Fort(Action):
     """
     def find_missing(self, left):
         """ Show systems with 'left' remaining. """
-        lines = ['__Systems Missing {} Supplies__'.format(left)]
+        lines = [f'__Systems Missing {left} Supplies__']
         lines += [x.display(miss=True) for x in cogdb.query.fort_get_systems_x_left(self.session, left)]
 
         return '\n'.join(lines)
@@ -983,7 +974,7 @@ class Fort(Action):
         keys = ['cancelled', 'fortified', 'undermined', 'skipped', 'left', 'almost_done']
         lines = [
             [key.capitalize() for key in keys],
-            ['{}/{}'.format(len(states[key]), total) for key in keys],
+            [f'{len(states[key])}/{total}' for key in keys],
         ]
 
         return cog.tbl.format_table(lines, sep='|', header=True)[0]
@@ -1086,7 +1077,8 @@ To unset override, simply set an empty list of systems.
             response = '\n'.join(lines)
 
         elif self.args.next:
-            lines = ['__Next Targets{}__'.format(' (Manual Order)' if manual_order else '')]
+            manual_text = ' (Manual Order)' if manual_order else ''
+            lines = [f"__Next Targets{manual_text}__"]
             next_up = cogdb.query.fort_get_next_targets(self.session, offset=1, count=self.args.next)
             lines += [system.display() for system in next_up]
 
@@ -1096,7 +1088,7 @@ To unset override, simply set an empty list of systems.
             globe = cogdb.query.get_current_global(self.session)
             globe.show_almost_done = not globe.show_almost_done
             show_msg = "SHOW" if globe.show_almost_done else "NOT show"
-            response = "Will now {} the almost done fort systems.".format(show_msg)
+            response = f"Will now {show_msg} the almost done fort systems."
 
         else:
             response = self.default_show(manual_order)
@@ -1132,8 +1124,8 @@ class Help(Action):
         overview = '\n'.join([
             'Here is an overview of my commands.',
             '',
-            'For more information do: `{}Command -h`'.format(prefix),
-            '       Example: `{}drop -h`'.format(prefix),
+            f'For more information do: `{prefix}Command -h`',
+            f'       Example: `{prefix}drop -h`'
             '',
         ])
         lines = [
@@ -1206,8 +1198,7 @@ class Hold(Action):
             response += '\n\nThis system should be left for now. Type `!um` for more targets.'
         if hold.system.is_undermined:
             response += '\n\nSystem is finished with held merits. Type `!um` for more targets.'
-            response += '\n\n**{}** Have a :skull: for completing {}. Don\'t forget to redeem.'.format(
-                self.duser.display_name, system.name)
+            response += f'\n\n**{self.duser.display_name}** Have a :skull: for completing {system.name}. Don\'t forget to redeem.'
 
         return ([hold], response)
 
@@ -1234,7 +1225,7 @@ class Hold(Action):
                                                            sheet_src=self.args.sheet_src)
             self.log.info('HOLD %s - Redeemed %d merits.', self.duser.display_name, redeemed)
 
-            response = '**Redeemed Now** {}\n\n__Cycle Summary__\n'.format(redeemed)
+            response = f'**Redeemed Now** {redeemed}\n\n__Cycle Summary__\n'
             lines = [['System', 'Hold', 'Redeemed']]
             lines += [[merit.system.name, merit.held, merit.redeemed] for merit
                       in self.um_user.merits if merit.held + merit.redeemed > 0]
@@ -1245,7 +1236,7 @@ class Hold(Action):
             holds, redeemed = cogdb.query.um_redeem_systems(self.session, self.um_user, system_strs,
                                                             sheet_src=self.args.sheet_src)
 
-            response = '**Redeemed Now** {}\n\n__Cycle Summary__\n'.format(redeemed)
+            response = f'**Redeemed Now** {redeemed}\n\n__Cycle Summary__\n'
             lines = [['System', 'Hold', 'Redeemed']]
             lines += [[merit.system.name, merit.held, merit.redeemed] for merit
                       in self.um_user.merits if merit.held + merit.redeemed > 0]
@@ -1301,11 +1292,11 @@ class KOS(Action):
         First ask for approval of addition, then add to kos list.
         """
         cmdr = ' '.join(self.args.cmdr)
-        await self.msg.channel.send('CMDR {} has been reported for moderation.'.format(cmdr))
+        await self.msg.channel.send(f'CMDR {cmdr} has been reported for moderation.')
         await self.moderate_kos_report({
             'cmdr': cmdr,
             'squad': ' '.join(self.args.squad),
-            'reason': ' '.join(self.args.reason) + " -{}".format(self.msg.author.name),
+            'reason': ' '.join(self.args.reason) + f" -{self.msg.author.name}",
             'is_friendly': self.args.is_friendly,
         })
 
@@ -1326,7 +1317,7 @@ class KOS(Action):
             msg = 'KOS list refreshed from sheet.'
 
         elif self.args.subcmd == 'search':
-            msg = 'Searching for "{}" against known CMDRs\n\n'.format(self.args.term)
+            msg = 'Searching for "{self.args.term}" against known CMDRs\n\n'
             cmdrs = cogdb.query.kos_search_cmdr(self.session, self.args.term)
             if cmdrs:
                 lines = [['CMDR Name', 'Faction', 'Is Friendly?', 'Reason']]
@@ -1365,7 +1356,7 @@ class Near(Action):
             )
         )
 
-        lines = [['System', 'Distance']] + [[x.name, "{:.2f}".format(x.dist_to(centre))] for x in systems]
+        lines = [['System', 'Distance']] + [[x.name, f"{x.dist_to(centre):.2f}"] for x in systems]
         return "__Closest 10 Controls__\n\n" + \
             cog.tbl.format_table(lines, header=True)[0]
 

@@ -137,10 +137,10 @@ class TraderType(enum.Enum):
     """
     Types of traders to filter for get_nearest_station_economies.
     """
-    BROKERS_GUARDIAN = 1,
-    BROKERS_HUMAN = 2,
-    MATS_DATA = 3,
-    MATS_RAW = 4,
+    BROKERS_GUARDIAN = 1
+    BROKERS_HUMAN = 2
+    MATS_DATA = 3
+    MATS_RAW = 4
     MATS_MANUFACTURED = 5
 
 
@@ -2576,7 +2576,7 @@ def dump_db(session, classes, fname):
     """
     Dump db to a file.
     """
-    with open(fname, "w") as fout:
+    with open(fname, "w", encoding='utf-8') as fout:
         for cls in classes:
             for obj in session.query(cls):
                 fout.write(repr(obj) + '\n')

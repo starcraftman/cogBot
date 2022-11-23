@@ -107,7 +107,7 @@ def test_inf_history_for_pairs(side_session):
 
     assert isinstance(result, type({}))
     for sys_id, fact_id in pairs:
-        assert "{}_{}".format(sys_id, fact_id) in result
+        assert f"{sys_id}_{fact_id}" in result
 
 
 def test_dash_overview(side_session):

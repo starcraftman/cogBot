@@ -2,6 +2,7 @@
 Common exceptions.
 """
 from cog.matching import substr_ind, DUMMY_ATTRIBUTE
+PAD_HEADER = '=' * 20
 
 
 class CogException(Exception):
@@ -19,7 +20,8 @@ class CogException(Exception):
         Log all relevant message about this session.
         """
         log_func = getattr(log, self.log_level)
-        header = '\n{}\n{}\n'.format(self.__class__.__name__ + ': ' + str(self), '=' * 20)
+        name = self.__class__.__name__ + ': ' + str(self)
+        header = f'\n{name}\n{PAD_HEADER}\n'
         log_func(header + log_format(content=content, author=author, channel=channel))
 
 
@@ -156,8 +158,7 @@ class NameCollisionError(SheetParsingError):
         lines = [
             "**Critical Error**",
             "----------------",
-            "CMDR \"{}\" found in rows {} of the {} Sheet".format(self.name, str(self.rows),
-                                                                  self.sheet),
+            f"CMDR \"{self.name}\" found in rows {self.rows} of the {self.sheet} Sheet"
             "",
             "To Resolve:",
             "    Delete or rename the cmdr in one of these rows",
@@ -182,9 +183,9 @@ def log_format(*, content, author, channel):
     """ Log useful information from discord.py """
     msg = "{aut} sent {cmd} from {cha}/{srv}"
     msg += "\n    Discord ID: " + str(author.id)
-    msg += "\n    Username: {}#{}".format(author.name, author.discriminator)
+    msg += f"\n    Username: {author.name}#{author.discriminator}"
     for role in author.roles[1:]:
-        msg += "\n    {} on {}".format(role.name, role.guild.name)
+        msg += f"\n    {role.name} on {role.guild.name}"
 
     return msg.format(aut=author.display_name, cmd=content,
                       cha=channel, srv=channel.guild)

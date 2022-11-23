@@ -29,20 +29,16 @@ REQ_SCOPE = 'https://www.googleapis.com/auth/spreadsheets'
 AGCM = None  # Rate limiting by this manager
 
 
-class ColCnt():
+class ColCnt(cog.util.ReprMixin):
     """
     Simple counter that resets and prints its character.
     """
+    _repr_keys = ['char', 'low_bound', 'high_bound']
+
     def __init__(self, char, low='A', high='Z'):
         self.char = ord(char)
         self.low_bound = ord(low) - 1
         self.high_bound = ord(high) + 1
-
-    def __repr__(self):
-        keys = ['char', 'low_bound', 'high_bound']
-        kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
-
-        return "ColCnt({})".format(', '.join(kwargs))
 
     def __str__(self):
         return chr(self.char)
@@ -81,10 +77,12 @@ class ColCnt():
             self.char = ord('Z')
 
 
-class Column():
+class Column(cog.util.ReprMixin):
     """
     Model a column in an excel sheet of form A-Z, AA, AB ... AZ, BA ....
     """
+    _repr_keys = ['counters']
+
     def __init__(self, init_col='A'):
         """
         Access the current column string by using str().
@@ -98,9 +96,6 @@ class Column():
 
         for char in init_col:
             self.counters.insert(0, ColCnt(char))
-
-    def __repr__(self):
-        return "Column({}={!r})".format('counters', self.counters)
 
     def __str__(self):
         msg = ''

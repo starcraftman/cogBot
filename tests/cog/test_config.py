@@ -22,7 +22,7 @@ def f_config(session):
         test_data = copy.deepcopy(cog.config.CONFIG_DEFAULTS)
         test_data['constants']['defer_missing'] = 4 * cog.config.CONFIG_DEFAULTS['constants']['defer_missing']
         test_data['constants']['ttl'] = 2 * cog.config.CONFIG_DEFAULTS['constants']['ttl']
-        with open(tfile.name, 'w') as fout:
+        with open(tfile.name, 'w', encoding='utf-8') as fout:
             fout.write(str(test_data))
 
         yield cog.config.Config(tfile.name)
@@ -56,7 +56,7 @@ def test_config_write(f_config):
     f_config.conf['constants']['ttl'] = 300
     f_config.write()
 
-    with open(f_config.fname) as fin:
+    with open(f_config.fname, encoding='utf-8') as fin:
         assert "ttl: 300" in fin.read()
 
 
@@ -65,7 +65,7 @@ def test_config_update(f_config):
     f_config.update('ports', 'zmq', value=9)
 
     assert f_config.ports.zmq == 9
-    with open(f_config.fname) as fin:
+    with open(f_config.fname, encoding='utf-8') as fin:
         assert "zmq: 9" in fin.read()
 
 
@@ -74,7 +74,7 @@ def test_config_update_top_val(f_config):
     f_config.update('zzz', value=9)
 
     assert f_config.zzz == 9
-    with open(f_config.fname) as fin:
+    with open(f_config.fname, encoding='utf-8') as fin:
         assert "zzz: 9" in fin.read()
 
 

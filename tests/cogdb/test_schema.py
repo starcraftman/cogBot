@@ -429,16 +429,14 @@ def test_drop__eq__(f_dusers, f_fort_testbed):
 
 def test_drop__repr__(f_dusers, f_fort_testbed):
     user, system, drop = f_fort_testbed[0][0], f_fort_testbed[1][0], f_fort_testbed[2][0]
-    assert repr(drop) == "FortDrop(id=1, system_id={}, user_id={}, amount=700)".format(
-        system.id, user.id)
+    assert repr(drop) == f"FortDrop(id=1, system_id={system.id}, user_id={user.id}, amount=700)"
     assert drop == eval(repr(drop))
 
 
 def test_drop__str__(f_dusers, f_fort_testbed):
     user, system, drop = f_fort_testbed[0][0], f_fort_testbed[1][0], f_fort_testbed[2][0]
     assert str(drop) == "system='Frey', user='User1', "\
-                        "FortDrop(id=1, system_id={}, user_id={}, amount=700)".format(
-        system.id, user.id)
+                        f"FortDrop(id=1, system_id={system.id}, user_id={user.id}, amount=700)"
 
 
 def test_umuser__eq__(f_dusers, f_um_testbed):
@@ -663,16 +661,14 @@ def test_hold__eq__(f_dusers, f_um_testbed):
 
 def test_hold__repr__(f_dusers, f_um_testbed):
     user, system, hold = f_um_testbed[0][0], f_um_testbed[1][0], f_um_testbed[2][0]
-    assert repr(hold) == "UMHold(id=1, sheet_src=EUMSheet.main, system_id={}, user_id={}, held=0, redeemed=4000)".format(
-        system.id, user.id)
+    assert repr(hold) == f"UMHold(id=1, sheet_src=EUMSheet.main, system_id={system.id}, user_id={user.id}, held=0, redeemed=4000)"
     assert hold == eval(repr(hold))
 
 
 def test_hold__str__(f_dusers, f_um_testbed):
     user, system, hold = f_um_testbed[0][0], f_um_testbed[1][0], f_um_testbed[2][0]
     assert str(hold) == "system='Cemplangpa', user='User1', "\
-                        "UMHold(id=1, sheet_src=EUMSheet.main, system_id={}, user_id={}, held=0, redeemed=4000)".format(
-        system.id, user.id)
+                        f"UMHold(id=1, sheet_src=EUMSheet.main, system_id={system.id}, user_id={user.id}, held=0, redeemed=4000)"
 
 
 def test_kos__repr__(f_kos):
@@ -784,7 +780,7 @@ def test_vote__str__(f_dusers, f_vote_testbed):
     vote = f_vote_testbed[0]
 
     expect = "**User1**: voted 1 Cons."
-    assert str(vote) == expect.format(vote.updated_at)
+    assert str(vote) == expect
 
 
 def test_vote_update_amount(f_vote_testbed):

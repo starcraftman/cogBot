@@ -258,7 +258,7 @@ This is the 97th line of text to print.
 This is the 98th line of text to print.
 This is the 99th line of text to print.""",
     ]
-    msgs = cog.util.generative_split(list(range(0, 100)), lambda x: "This is the {}th line of text to print.".format(x), header="This is the header")
+    msgs = cog.util.generative_split(list(range(0, 100)), lambda x: f"This is the {x}th line of text to print.", header="This is the header")
     assert msgs == expected
     for msg in msgs:
         assert len(msg) < cog.util.MSG_LIMIT
@@ -299,7 +299,7 @@ def test_chunk_file():
         file_2 = tfile.name + '_001'
         try:
             cog.util.chunk_file(tfile.name)
-            with open(file_2, 'r') as fin:
+            with open(file_2, 'r', encoding='utf-8') as fin:
                 assert fin.read() == '[\n5001\n]'
         finally:
             for fname in [file_1, file_2]:

@@ -23,7 +23,7 @@ ADDR = 'tcp://127.0.0.1:{}'.format(cog.util.CONF.ports.zmq)
 POOL = cfut.ProcessPoolExecutor(max_workers=os.cpu_count())
 
 
-class Scheduler(aiozmq.rpc.AttrHandler):
+class Scheduler(aiozmq.rpc.AttrHandler, cog.util.ReprMixin):
     """
     Schedule updates for the db and manage permitted commands.
 
@@ -31,18 +31,14 @@ class Scheduler(aiozmq.rpc.AttrHandler):
     if new activity detected in the hooked sheet.
     Both the job itself and future that delays start can be cancelled at any stage.
     """
+    _repr_keys = ['count', 'delay', 'sub', 'wrap_map', 'cmd_map']
+
     def __init__(self, *, delay=10):
         self.sub = None
         self.count = -1
         self.delay = delay  # Seconds of timeout before running actual update
         self.wrap_map = {}
         self.cmd_map = {}
-
-    def __repr__(self):
-        keys = ['count', 'delay', 'sub', 'wrap_map', 'cmd_map']
-        kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
-
-        return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
 
     def __str__(self):
         msg = "### Schedule ###\n\n\tDelay: {}".format(self.delay)
@@ -158,22 +154,18 @@ class Scheduler(aiozmq.rpc.AttrHandler):
         print(aiozmq.rpc.logger)
 
 
-class WrapScanner():
+class WrapScanner(cog.util.ReprMixin):
     """
     Wrap a scanner with info about scheduling. Mainly a data class.
     """
+    _repr_keys = ['name', 'scanner', 'cmds', 'future', 'job']
+
     def __init__(self, name, scanner, cmds):
         self.name = name
         self.cmds = cmds
         self.scanner = scanner
         self.future = None
         self.job = None
-
-    def __repr__(self):
-        keys = ['name', 'scanner', 'cmds', 'future', 'job']
-        kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
-
-        return "{}({})".format(self.__class__.__name__, ', '.join(kwargs))
 
     def __str__(self):
         return repr(self)

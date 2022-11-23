@@ -53,7 +53,64 @@ HEX_MAP.update({str(x): x for x in range(0, 10)})
 REV_HEX_MAP = {val: key for key, val in HEX_MAP.items()}
 
 
-class RWLockWrite():
+class ReprMixin():
+    """Mixin that generates my format repr for object storage."""
+    def __repr__(self):
+        """
+        Simple repr generating the following format:
+            ClassName(key1=value1,key2=value2,...)
+        Store key names in ClassName._repr_keys
+        """
+        keys = self.__class__._repr_keys
+        kwargs = [f'{key}={getattr(self, key)!r}' for key in keys]
+
+        return f'{self.__class__.__name__}({", ".join(kwargs)})'
+
+
+class TimestampMixin():
+    """
+    Simple mixing that converts updated_at timestamp to a datetime object.
+    Timestamps on object are assumed to be created as UTC timestamps.
+    """
+    @property
+    def created_date(self):
+        """The created at date as a naive datetime object."""
+        return datetime.datetime.utcfromtimestamp(self.created_at)
+
+    @property
+    def created_date_tz(self):
+        """The created at date as a timezone aware datetime object."""
+        return datetime.datetime.fromtimestamp(self.created_at, tz=datetime.timezone.utc)
+
+    @property
+    def updated_date(self):
+        """The update at date as a naive datetime object."""
+        return datetime.datetime.utcfromtimestamp(self.updated_at)
+
+    @property
+    def updated_date_tz(self):
+        """The update at date as a timezone aware datetime object."""
+        return datetime.datetime.fromtimestamp(self.updated_at, tz=datetime.timezone.utc)
+
+
+class UpdatableMixin():
+    """Mixin that allows updating this object by kwargs."""
+    def update(self, **kwargs):
+        """
+        Simple kwargs update to this object.
+
+        If update_at present, only update object if new information is newer.
+        If update_at not present, the current timestamp will be set.
+        """
+        if 'updated_at' in kwargs:
+            if kwargs['updated_at'] <= self.updated_at:
+                return
+
+        for key, val in kwargs.items():
+            setattr(self, key, val)
+
+
+class RWLockWrite(ReprMixin):
     """
     Implement a reader-writer lock. In this case, they are to be used to control sheet updates.
 
@@ -61,6 +118,9 @@ class RWLockWrite():
     The "writers" are the full rescans of sheet that happen by dumping db.
     Writers will be prioritized as data is drifting out of sync.
     """
+    _repr_keys = ['readers', 'writers', 'read_mut', 'write_mut', 'resource_mut',
+                  'read_allowed']
+
     def __init__(self):
         """
         This is a standard reader-writer lock.
@@ -76,13 +136,6 @@ class RWLockWrite():
 
         self.read_allowed = asyncio.Event()
         self.read_allowed.set()
-
-    def __repr__(self):
-        keys = ['readers', 'writers', 'read_mut', 'write_mut', 'resource_mut',
-                'read_allowed']
-        kwargs = ['{}={!r}'.format(key, getattr(self, key)) for key in keys]
-
-        return "RWLockWrite({})".format(', '.join(kwargs))
 
     def __str__(self):
         return repr(self)
@@ -165,63 +218,6 @@ class WaitCB():
             await self.resume_cb()
 
 
-class ReprMixin():
-    """Mixin that generates my format repr for object storage."""
-    def __repr__(self):
-        """
-        Simple repr generating the following format:
-            ClassName(key1=value1,key2=value2,...)
-        Store key names in ClassName._repr_keys
-        """
-        keys = self.__class__._repr_keys
-        kwargs = [f'{key}={getattr(self, key)!r}' for key in keys]
-
-        return f'{self.__class__.__name__}({", ".join(kwargs)})'
-
-
-class TimestampMixin():
-    """
-    Simple mixing that converts updated_at timestamp to a datetime object.
-    Timestamps on object are assumed to be created as UTC timestamps.
-    """
-    @property
-    def created_date(self):
-        """The created at date as a naive datetime object."""
-        return datetime.datetime.utcfromtimestamp(self.created_at)
-
-    @property
-    def created_date_tz(self):
-        """The created at date as a timezone aware datetime object."""
-        return datetime.datetime.fromtimestamp(self.created_at, tz=datetime.timezone.utc)
-
-    @property
-    def updated_date(self):
-        """The update at date as a naive datetime object."""
-        return datetime.datetime.utcfromtimestamp(self.updated_at)
-
-    @property
-    def updated_date_tz(self):
-        """The update at date as a timezone aware datetime object."""
-        return datetime.datetime.fromtimestamp(self.updated_at, tz=datetime.timezone.utc)
-
-
-class UpdatableMixin():
-    """Mixin that allows updating this object by kwargs."""
-    def update(self, **kwargs):
-        """
-        Simple kwargs update to this object.
-
-        If update_at present, only update object if new information is newer.
-        If update_at not present, the current timestamp will be set.
-        """
-        if 'updated_at' in kwargs:
-            if kwargs['updated_at'] <= self.updated_at:
-                return
-
-        for key, val in kwargs.items():
-            setattr(self, key, val)
-
-
 # TODO: Name? This isn't the fuzzy find but I crap at naming.
 def fuzzy_find(needle, stack, *, obj_attr=DUMMY_ATTRIBUTE, obj_type='String', ignore_case=True, skip_spaces=True):
     """Search for needle in stack with optional flags.
@@ -290,7 +286,7 @@ def init_logging(sqlalchemy_log=False):  # pragma: no cover
     """
     log_file = rel_to_abs(CONF.paths.log_conf)
     try:
-        with open(log_file) as fin:
+        with open(log_file, encoding='utf-8') as fin:
             lconf = yaml.load(fin, Loader=Loader)
     except FileNotFoundError as exc:
         raise cog.exc.MissingConfigFile("Missing log.yml. Expected at: " + log_file) from exc
@@ -305,7 +301,7 @@ def init_logging(sqlalchemy_log=False):  # pragma: no cover
         except (OSError, KeyError):
             pass
 
-    with open(log_file) as fin:
+    with open(log_file, encoding='utf-8') as fin:
         logging.config.dictConfig(lconf)
 
     print(LOG_MSG)
@@ -316,7 +312,7 @@ def init_logging(sqlalchemy_log=False):  # pragma: no cover
 
         for handler in logging.getLogger(name).handlers:
             if isinstance(handler, logging.handlers.RotatingFileHandler):
-                print('    %s -> %s' % (name, handler.baseFilename))
+                print(f'    {name} -> {handler.baseFilename}')
                 handler.doRollover()
 
 
@@ -328,7 +324,7 @@ def dict_to_columns(data):
     header = []
 
     for col, key in enumerate(sorted(data)):
-        header.append('{} ({})'.format(key, len(data[key])))
+        header.append(f'{key} ({len(data[key])})')
 
         for row, item in enumerate(data[key]):
             try:
@@ -608,7 +604,7 @@ def chunk_file(fname, *, limit=5000, start_num=0):
             lines += [line.rstrip() + ',\n']
 
     if lines:
-        with open(f'{fname}_{start_num:03}', 'w') as fout:
+        with open(f'{fname}_{start_num:03}', 'w', encoding='utf-8') as fout:
             last_line = lines[-1][:-2] + '\n'
             lines = lines[:-1] + [last_line, ']']
             fout.writelines(lines)

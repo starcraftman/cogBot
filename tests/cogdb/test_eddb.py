@@ -269,7 +269,7 @@ def test_um_trigger(eddb_session):
 def test_eddb_dump_db(eddb_session):
     with tempfile.NamedTemporaryFile() as temp:
         cogdb.eddb.dump_db(eddb_session, [cogdb.eddb.Allegiance], temp.name)
-        with open(temp.name) as fin:
+        with open(temp.name, encoding='utf-8') as fin:
             assert "Allegiance(" in fin.read()
 
 

@@ -229,8 +229,8 @@ class CogBot(discord.Client):
             return True
 
         # Accept only admin commands if denying
-        if self.deny_commands and not message.content.startswith('{}admin'.format(self.prefix)):
-            await self.send_message(message.channel, "__Admin Mode__\n\nOnly `!admin` commands accepted.")
+        if self.deny_commands and not message.content.startswith(f'{self.prefix}admin'):
+            await self.send_message(message.channel, f"__Admin Mode__\n\nOnly `{self.prefix}admin` commands accepted.")
             return True
 
         if isinstance(message.channel, discord.abc.PrivateChannel):
@@ -309,7 +309,7 @@ class CogBot(discord.Client):
                     self.parser.parse_args(content.split(' ')[0:1] + ['--help'])
                 except cog.exc.ArgumentHelpError:
                     exc.message = 'Invalid command use. Check the command help.'
-                    exc.message += '\n{}\n{}'.format(len(exc.message) * '-', exc.message)
+                    exc.message += f"\n{len(exc.message) * '-'}\n{exc.message}"
 
             await self.send_ttl_message(channel, str(exc))
             try:
@@ -343,7 +343,7 @@ class CogBot(discord.Client):
                     pass
             else:
                 gears = self.get_member_by_substr("gearsand").mention
-                await self.send_message(channel, "A critical discord error! {}.".format(gears))
+                await self.send_message(channel, f"A critical discord error! {gears}.")
             line = "Discord.py Library raised an exception"
             line += cog.exc.log_format(content=content, author=author, channel=channel)
             log.exception(line)
@@ -417,7 +417,7 @@ class CogBot(discord.Client):
         except KeyError:
             ttl = cog.util.CONF.constants.ttl
 
-        content += '\n\n__This message will be deleted in {} seconds__'.format(ttl)
+        content += f'\n\n__This message will be deleted in {ttl} seconds__'
         message = await self.send_message(destination, content, **kwargs)
 
         await asyncio.sleep(ttl)
@@ -490,8 +490,7 @@ async def simple_heartbeat(delay=30):
     print(hfile)
     while True:
         async with aiofiles.open(hfile, 'w') as fout:
-            await fout.write('{} {}\n'.format(delay,
-                                              datetime.datetime.utcnow().replace(microsecond=0)))
+            await fout.write(f'{delay} {datetime.datetime.utcnow().replace(microsecond=0)}\n')
         await asyncio.sleep(delay)
 
 

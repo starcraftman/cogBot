@@ -28,7 +28,7 @@ HELD_OLD = """
                     <p style="display: table-cell; vertical-align: middle; padding-left: 1em;">Aowica</p></div></button></h2><!--!-->
 <div class="accordion-collapse collapse show" data-blazorstrap="434678de-c20e-4f09-8230-7ef4ac4ce688" _bl_8f7632f8-0a9c-48f1-983f-afdcce3f8793="" style=""><div class="accordion-body"><!--!--><!--!-->Fortification: 4464 / 4247<br>Undermining: 0 / 11598<br><br>Held Merits: 0 stolen and 0 held (+ 0 = 0 / 11598) as of 1 hours, 11 minutes, 33 seconds ago.<!--!-->
 """
-with open(os.path.join(cog.util.ROOT_DIR, 'tests', 'cogdb', 'whole_page.html')) as fin:
+with open(os.path.join(cog.util.ROOT_DIR, 'tests', 'cogdb', 'whole_page.html'), encoding='utf-8') as fin:
     WHOLE_PAGE = fin.read()
 NOW_TIMESTAMP = 1662490449
 

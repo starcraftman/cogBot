@@ -726,11 +726,11 @@ def test_post_cycle_db_cleanup(session, f_vote_testbed, eddb_session):
 def test_vote_add(session, f_dusers, f_vote_testbed, f_global_testbed):
     last_duser = f_dusers[-1]
     returned_message = cogdb.query.add_vote(session, last_duser.id, 'prep', 1)
-    expected_message = "**{}**: voted 1 Prep.".format(last_duser.display_name)
+    expected_message = f"**{last_duser.display_name}**: voted 1 Prep."
     assert str(returned_message) == expected_message
 
     the_vote = cogdb.query.add_vote(session, last_duser.id, EVoteType.cons, 5)
-    expect = "**{}**: voted 5 Cons.".format(last_duser.display_name)
+    expect = f"**{last_duser.display_name}**: voted 5 Cons."
     assert str(the_vote) == expect
 
 

@@ -30,7 +30,7 @@ def dump_db(session):  # pragma: no cover
     """
     fname = os.path.join(tempfile.gettempdir(), 'dbdump_' + os.environ.get('COG_TOKEN', 'dev'))
     print("Dumping db contents to:", fname)
-    with open(fname, 'w') as fout:
+    with open(fname, 'w', encoding='utf-8') as fout:
         for cls in [DiscordUser, FortUser, FortSystem, FortDrop, FortOrder,
                     UMUser, UMSystem, UMHold, KOS, AdminPerm, RolePerm, ChannelPerm]:
             fout.write('---- ' + str(cls) + ' ----\n')

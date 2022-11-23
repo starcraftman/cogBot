@@ -133,7 +133,7 @@ class Config():
             The contents of CONFIG_DEFAULTS dictionary updated with the contents of the file load.
         """
         conf = copy.deepcopy(CONFIG_DEFAULTS)
-        with open(self.fname) as fin:
+        with open(self.fname, encoding='utf-8') as fin:
             loaded = yaml.load(fin, Loader=Loader)
 
             if loaded:
@@ -144,7 +144,7 @@ class Config():
         """
         Write the current config to the file.
         """
-        with open(self.fname, 'w') as fout:
+        with open(self.fname, 'w', encoding='utf-8') as fout:
             yaml.dump(self.conf, fout, Dumper=Dumper,
                       default_flow_style=False,
                       explicit_start=True,

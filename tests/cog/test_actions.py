@@ -1242,7 +1242,7 @@ async def test_cmd_status(f_bot):
     expect = cog.tbl.format_table([
         ['Created By', 'GearsandCogs'],
         ['Uptime', '5'],
-        ['Version', '{}'.format(cog.__version__)],
+        ['Version', f'{cog.__version__}'],
         ['Contributors:', ''],
         ['    Shotwn', 'Inara search'],
         ['    Prozer', 'Various Contributions'],
@@ -1444,7 +1444,7 @@ async def test_cmd_um_set_fail(f_bot, f_testbed):
 @pytest.mark.asyncio
 async def test_cmd_um_set_works(session, f_bot, f_testbed):
     before = session.query(UMSystem).filter_by(name='Pequen').one()
-    msg = fake_msg_gears("!um --set {}:40 {} --offset 600".format(before.progress_us + 1500, before.name))
+    msg = fake_msg_gears("!um --set {before.progress_us + 1500}:40 {before.name} --offset 600")
 
     await action_map(msg, f_bot).execute()
 

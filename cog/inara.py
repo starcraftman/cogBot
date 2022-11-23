@@ -293,8 +293,7 @@ class InaraApi():
                 async with http.post(API_ENDPOINT, data=api_input.serialize(),
                                      headers=API_HEADERS) as resp:
                     if resp.status != 200:
-                        raise cog.exc.RemoteError("Inara search failed. HTTP Response code bad: %s"
-                                                  % str(resp.status))
+                        raise cog.exc.RemoteError(f"Inara search failed. HTTP Response code bad: {resp.status}")
                     response_json = await resp.json(loads=wrap_json_loads)
 
             # after here many things are unorthodox due api structure.
@@ -304,8 +303,7 @@ class InaraApi():
             # handle rejection.
             if r_code == API_RESPONSE_CODES["error"] or r_code not in API_RESPONSE_CODES.values():
                 logging.getLogger(__name__).error("INARA Response Failure: \n%s", response_json)
-                raise cog.exc.RemoteError("Inara search failed. See log for details. API Response code bad: %s"
-                                          % str(r_code))
+                raise cog.exc.RemoteError("Inara search failed. See log for details. API Response code bad: {r_code}")
 
             event = response_json["events"][0]
             if event["eventStatus"] == API_RESPONSE_CODES["no result"]:
@@ -493,9 +491,9 @@ class InaraApi():
                 'is_friendly': inter.component.label == BUT_FRIENDLY,
                 'reason': f"Manual report after a !whois in {msg.channel} by cmdr {msg.author}",
             })
-            response = """You selected {}
+            response = """You selected {inter.component.label}
 
-Leadership will review your report. Thank you.""".format(inter.component.label)
+Leadership will review your report. Thank you."""
 
         await inter.send(response)
         await self.delete_waiting_message(req_id)
@@ -518,7 +516,7 @@ async def squad_details_embed(event_data, cmdr):
     return discord.Embed.from_dict({
         'color': PP_COLORS.get(extra[2]["value"], PP_COLORS['default']),
         'author': {
-            'name': "{}'s Squadron".format(cmdr["name"]),
+            'name': f"{cmdr['name']}'s Squadron",
             'icon_url': cmdr["profile_picture"],
         },
         'provider': {
@@ -583,17 +581,17 @@ async def inara_squad_parse(url):
                 squad_data['language'] = ele.nextSibling.strip()
             elif 'Squadron commander:</span>' in ele_str and ele.nextSibling.nextSibling.string:
                 node = ele.nextSibling.nextSibling
-                squad_data['leader'] = "[{}]({})".format(node.string.strip(), SITE + node['href'])
+                squad_data['leader'] = f"[{node.string.strip()}]({SITE + node['href']})"
             elif 'Members:</span>' in ele_str and ele.nextSibling.strip():
                 squad_data['members'] = ele.nextSibling.strip()
             elif 'Squadron age:</span>' in ele_str and ele.nextSibling.strip():
                 squad_data['age'] = ele.nextSibling.strip()
             elif 'Headquarters:</span>' in ele_str and ele.nextSibling.nextSibling.string:
                 node = ele.nextSibling.nextSibling
-                squad_data['hq'] = "[{}]({})".format(node.string.strip(), SITE + node['href'])
+                squad_data['hq'] = f"[{node.string.strip()}]({SITE + node['href']})"
             elif 'Related minor faction:</span>' in ele_str and ele.nextSibling.nextSibling.string:
                 node = ele.nextSibling.nextSibling
-                squad_data['minor'] = "[{}]({})".format(node.string.strip(), SITE + node['href'])
+                squad_data['minor'] = "[{node.string.strip()}]({SITE + node['href']})"
 
     return [
         {'name': 'Squad Leader', 'value': squad_data["leader"], 'inline': True},
