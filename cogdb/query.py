@@ -521,7 +521,8 @@ def um_redeem_merits(session, user, *, sheet_src=EUMSheet.main):
     """
     total = 0
     holds = session.query(UMHold).\
-        filter(UMHold.user_id == user.id).\
+        filter(UMHold.user_id == user.id,
+               UMHold.sheet_src == sheet_src).\
         all()
     for hold in holds:
         total += hold.held

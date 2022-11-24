@@ -752,7 +752,7 @@ def find_favorable(session, centre_name, max_dist=None, inc=20):
             sys_name[:16],
             gov[:4],
             f"{sys_dist:5.2f}",
-            "{inf:5.2f}",
+            f"{inf:5.2f}",
             faction,
         ]]
 

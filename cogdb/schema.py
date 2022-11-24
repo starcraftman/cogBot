@@ -1229,7 +1229,7 @@ class Vote(ReprMixin, Base):
         return self
 
     @sqla_orm.validates('updated_at')
-    def validate_updated_at(self, key, value):
+    def validate_updated_at(self, _, value):
         """ Validation function for updated_at. """
         if not value or not isinstance(value, datetime.datetime) or (self.updated_at and value < self.updated_at):
             raise cog.exc.ValidationFail("Date invalid or was older than current value.")
