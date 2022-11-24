@@ -894,7 +894,6 @@ def response_json_update_system_info(eddb_session, info):
                 b_info['system'] = sys_name
                 bounty = SpyBounty.from_bounty_post(b_info, power_id=system.power_id, ship_map=ship_map)
                 eddb_session.add(bounty)
-                print(repr(bounty))
 
         # Only keep current traffic values for now
         eddb_session.query(SpyTraffic).\
@@ -910,9 +909,8 @@ def response_json_update_system_info(eddb_session, info):
                         system=sys_name,
                     )
                     eddb_session.add(traffic)
-                    print(repr(traffic))
                 except KeyError:
-                    print("Not found", ship_name)
+                    log.error("Not found", ship_name)
 
 
 def compare_sheet_fort_systems_to_spy(session, eddb_session):
