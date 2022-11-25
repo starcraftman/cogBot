@@ -2537,7 +2537,7 @@ async def monitor_powerplay_api(client, *, repeat=True, delay=1800):
 
     log = logging.getLogger(__name__)
     try:
-        cog.util.get_url(cog.util.CONF.scrape.url)  # Sanity check service up
+        await cog.util.get_url(cog.util.CONF.scrape.url)  # Sanity check service up
 
         log.warning("Start monitor powerplay.")
         base_text = await cog.util.get_url(os.path.join(cog.util.CONF.scrape.api, 'getraw', 'base.json'))

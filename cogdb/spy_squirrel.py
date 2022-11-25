@@ -1132,7 +1132,7 @@ async def post_systems(systems, callback=None):  # pragma: no cover, would ping 
         RemoteError: The remote site is down.
     """
     log = logging.getLogger(__name__)
-    cog.util.get_url(cog.util.CONF.scrape.url)  # Sanity check service up
+    await cog.util.get_url(cog.util.CONF.scrape.url)  # Sanity check service up
 
     influence_ids = []
     delay_values = [random.randint(x - 4, x + 8) for x in HELD_DELAY]  # Randomly choose bounds too
