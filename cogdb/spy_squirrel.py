@@ -1063,9 +1063,9 @@ def get_vote_of_power(eddb_session, power='%hudson'):
 
 
 async def schedule_federal_held():  # pragma: no cover, would ping API point needlessly
-    """Schedule a scrape of federal powers if there are SpySystems that need held updated.
-
-    Returns: The datetime.datetime UTC native object of last time run.
+    """
+    Schedule a scrape of federal powers if there are SpySystems that need held updated.
+    If remote API is down simply silently log the failure.
     """
     now = datetime.datetime.utcnow()
     log = logging.getLogger(__name__)
@@ -1076,8 +1076,9 @@ async def schedule_federal_held():  # pragma: no cover, would ping API point nee
         with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
             try:
                 await schedule_power_scrape(eddb_session, power_name)
-            except cog.exc.InvalidCommandArgs:
-                pass
+            except cog.exc.RemoteError as exc:
+                log.error("RemoteError on federal scrape: %s", str(exc))
+
         await asyncio.sleep(random.randint(*HELD_DELAY) * random.randint(1, 3))  # Randomly delay between
 
 
@@ -1092,7 +1093,7 @@ async def schedule_power_scrape(eddb_session, power_name, *, callback=None, hour
         callback: If present, messages will be sent back over the callback.
 
     Raises:
-        cog.exc.InvalidCommandArgs: [TODO:description]
+        cog.exc.RemoteError: Remote api was down
     """
     if power_name in HELD_POWERS:
         raise cog.exc.InvalidCommandArgs(
@@ -1110,8 +1111,10 @@ async def schedule_power_scrape(eddb_session, power_name, *, callback=None, hour
         'start_date': datetime.datetime.utcnow(),
         'start_time': time.time(),
     }
-    influence_ids = await post_systems(systems, callback=callback)
-    del HELD_POWERS[power_name]
+    try:
+        influence_ids = await post_systems(systems, callback=callback)
+    finally:
+        del HELD_POWERS[power_name]
 
     return influence_ids
 
@@ -1129,11 +1132,7 @@ async def post_systems(systems, callback=None):  # pragma: no cover, would ping 
         RemoteError: The remote site is down.
     """
     log = logging.getLogger(__name__)
-
-    # Disable during window of Thursday 0700-0800
-    now = datetime.datetime.utcnow()
-    if now.strftime("%A") == "Thursday" and now.hour == 7:
-        raise cog.exc.RemoteError
+    cog.util.get_url(cog.util.CONF.scrape.url)  # Sanity check service up
 
     influence_ids = []
     delay_values = [random.randint(x - 4, x + 8) for x in HELD_DELAY]  # Randomly choose bounds too

@@ -1694,13 +1694,15 @@ class Scrape(Action):
             msg += f"\n\nThe following systems weren't found: \n{pprint.pformat(not_found)}"
         await self.bot.send_message(self.msg.channel, msg)
 
-        influence_ids = await spy.post_systems(found, callback=self.msg.channel.send)
-        influences = cogdb.eddb.get_influences_by_id(eddb_session, influence_ids)
-        scanner = get_scanner('bgs_demo')
-        await scanner.clear_cells()
-        await scanner.send_batch(scanner.update_dict(influences=influences))
-
-        return "Update completed successfully."
+        try:
+            influence_ids = await spy.post_systems(found, callback=self.msg.channel.send)
+            influences = cogdb.eddb.get_influences_by_id(eddb_session, influence_ids)
+            scanner = get_scanner('bgs_demo')
+            await scanner.clear_cells()
+            await scanner.send_batch(scanner.update_dict(influences=influences))
+            return "Update completed successfully."
+        except cog.exc.RemoteError:
+            return "The remote API is down, try again later."
 
     async def held_for_power(self, eddb_session):
         """
@@ -2535,10 +2537,7 @@ async def monitor_powerplay_api(client, *, repeat=True, delay=1800):
 
     log = logging.getLogger(__name__)
     try:
-        # Disable during window of Thursday 0700-0800
-        now = datetime.datetime.utcnow()
-        if now.strftime("%A") == "Thursday" and now.hour == 7:
-            raise cog.exc.RemoteError
+        cog.util.get_url(cog.util.CONF.scrape.url)  # Sanity check service up
 
         log.warning("Start monitor powerplay.")
         base_text = await cog.util.get_url(os.path.join(cog.util.CONF.scrape.api, 'getraw', 'base.json'))
