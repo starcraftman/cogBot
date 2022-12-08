@@ -1716,7 +1716,7 @@ class Scrape(Action):
         if not response.content.lower().startswith("y"):
             return 'Cancelling power scrape.'
 
-        await spy.schedule_power_scrape(eddb_session, power.text, callback=self.msg.channel.send, hours_old=self.args.hours)
+        await spy.execute_power_scrape(eddb_session, power.text, callback=self.msg.channel.send, hours_old=self.args.hours)
         return f'Scheduled scrape for {power.text}.'
 
     async def execute(self):
@@ -2532,12 +2532,13 @@ async def monitor_powerplay_api(client, *, repeat=True, delay=1800):
     """
     await asyncio.sleep(delay)
     if repeat:
-        await spy.schedule_federal_held()
         asyncio.ensure_future(monitor_powerplay_api(client, repeat=repeat, delay=delay))
 
     log = logging.getLogger(__name__)
     try:
         await cog.util.get_url(cog.util.CONF.scrape.url)  # Sanity check service up
+        # Run in background, will get pushed eventually at later date
+        asyncio.ensure_future(spy.check_federal_held())
 
         log.warning("Start monitor powerplay.")
         base_text = await cog.util.get_url(os.path.join(cog.util.CONF.scrape.api, 'getraw', 'base.json'))

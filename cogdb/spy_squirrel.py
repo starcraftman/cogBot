@@ -1062,7 +1062,7 @@ def get_vote_of_power(eddb_session, power='%hudson'):
     return vote_amount
 
 
-async def schedule_federal_held():  # pragma: no cover, would ping API point needlessly
+async def check_federal_held():  # pragma: no cover, would ping API point needlessly
     """
     Schedule a scrape of federal powers if there are SpySystems that need held updated.
     If remote API is down simply silently log the failure.
@@ -1075,14 +1075,16 @@ async def schedule_federal_held():  # pragma: no cover, would ping API point nee
         log.warning("Checking held merits for: %s, %s", power_name, datetime.datetime.utcnow())
         with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
             try:
-                await schedule_power_scrape(eddb_session, power_name)
+                await execute_power_scrape(eddb_session, power_name)
             except cog.exc.RemoteError as exc:
                 log.error("RemoteError on federal scrape: %s", str(exc))
+            except cog.exc.InvalidCommandArgs:
+                log.debug("Scrape was already running, ignore.")
 
         await asyncio.sleep(random.randint(*HELD_DELAY) * random.randint(1, 3))  # Randomly delay between
 
 
-async def schedule_power_scrape(eddb_session, power_name, *, callback=None, hours_old=7):  # pragma: no cover, would ping API point needlessly
+async def execute_power_scrape(eddb_session, power_name, *, callback=None, hours_old=7):  # pragma: no cover, would ping API point needlessly
     """Schedule a scrape of controls of a given power for detailed information.
 
     This function will prevent multiple concurrent scrapes at same time.
