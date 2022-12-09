@@ -279,7 +279,7 @@ MY_EMAIL = 'N/A'
 RUN_DEPS = ['aiofiles', 'aiozmq', 'argparse', 'asyncinotify', 'beautifulsoup4', 'cffi',
             'decorator', 'discord.py==1.7.3', 'discord_components_mirror', 'google-api-python-client', 'gspread-asyncio',
             'ijson', 'msgpack-python', 'pymysql', 'pyyaml', 'pyzmq', 'rapidjson',
-            'Sanic', 'selenium', 'SQLalchemy', 'textdistance[Hamming]', 'uvloop', 'webdriver-manager']
+            'Sanic', 'selenium', 'SQLalchemy==1.4.44', 'textdistance[Hamming]', 'uvloop', 'webdriver-manager']
 
 TEST_DEPS = ['coverage', 'coveralls', 'flake8', 'aiomock', 'mock', 'pylint', 'pytest', 'pytest-asyncio',
              'pytest-cov', 'sphinx', 'tox']

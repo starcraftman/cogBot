@@ -5,6 +5,7 @@ env:
   DB_DATABASE: test
   DB_USER: root
   DB_PASSWORD: root
+  GITHUB: "True"
 
 jobs:
   build:
@@ -44,4 +45,5 @@ jobs:
       # Running without full tests due to rate limiting of inara. See gitlab for full run.
       env:
         SECRETHUB_CREDENTIAL: ${{ secrets.SECRETHUB }}
+        # Certain tests only failing on github CI, mark with this
       run: python -m pytest --cov=cog --cov=cogdb

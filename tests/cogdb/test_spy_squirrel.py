@@ -12,6 +12,7 @@ import sqlalchemy as sqla
 import cogdb.spy_squirrel as spy
 from cogdb.schema import FortSystem, UMSystem
 from cogdb.spy_squirrel import load_json_secret
+from tests.conftest import GITHUB_FAIL
 
 
 FIXED_TIMESTAMP = 1662390092
@@ -643,5 +644,6 @@ def test_get_vote_of_power(empty_spy, eddb_session, spy_test_bed):
     assert 0 == spy.get_vote_of_power(eddb_session, power='winters')
 
 
+@GITHUB_FAIL
 def test_get_controls_outdated_held(empty_spy, db_cleanup, spy_test_bed, eddb_session):
     assert "Rana" in [x.name for x in spy.get_controls_outdated_held(eddb_session, power='%hudson')]

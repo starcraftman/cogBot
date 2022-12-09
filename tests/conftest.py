@@ -35,6 +35,9 @@ from cogdb.schema import (DiscordUser, FortSystem, FortPrep, FortDrop, FortUser,
 from tests.data import CELLS_FORT, CELLS_FORT_FMT, CELLS_UM
 
 
+GITHUB_FAIL = pytest.mark.skipif(os.environ.get('GITHUB') == "True", reason="Failing only on github CI.")
+
+
 @pytest.fixture(scope='function', autouse=True)
 def around_all_tests():
     """

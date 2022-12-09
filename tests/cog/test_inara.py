@@ -15,6 +15,7 @@ import pytest
 
 import cog.inara
 import cog.util
+from tests.conftest import GITHUB_FAIL
 
 from tests.conftest import Interaction, fake_msg_gears, fake_msg_newuser
 
@@ -233,7 +234,7 @@ async def test_select_from_multiple_stop(f_bot):
 
 
 # TODO Failing test only on github CI, cause unknown. Low priority.
-@INARA_TEST
+@GITHUB_FAIL
 @pytest.mark.asyncio
 async def test_inara_squad_details(f_bot):
     expect = [
