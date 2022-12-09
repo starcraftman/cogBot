@@ -473,8 +473,10 @@ def load_base_json(base):
     Returns:
         A dictionary mapping powers by name onto the systems they control and their status.
     """
-    json_powers_to_eddb_id = json_powers_to_eddb_map()
+    if isinstance(base, type("")):
+        base = json.loads(base)
 
+    json_powers_to_eddb_id = json_powers_to_eddb_map()
     with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
         for bundle in base['powers']:
             power_id = json_powers_to_eddb_id[bundle['powerId']]
@@ -487,13 +489,19 @@ def load_base_json(base):
                     'ed_system_id': sys_addr,
                     'system_name': eddb_system.name,
                     'power_id': power_id,
-                    'power_state_id': JSON_POWER_STATE_TO_EDDB[bundle['state']],
+                    'power_state_id': 0,
                     'fort_trigger': data['thrFor'],
                     'um_trigger': data['thrAgainst'],
                     'income': data['income'],
                     'upkeep_current': data['upkeepCurrent'],
                     'upkeep_default': data['upkeepDefault'],
                 }
+                # Protect against missing power state possibilities
+                try:
+                    kwargs['power_state_id'] = JSON_POWER_STATE_TO_EDDB[bundle['state']]
+                except KeyError:
+                    logging.getLogger(__name__).error("Failed to find power_state_id for %s", bundle['state'])
+
                 try:
                     system = eddb_session.query(SpySystem).\
                         filter(
@@ -516,6 +524,9 @@ def load_refined_json(refined):
     Returns:
         A dictionary mapping powers by name onto the systems they control and their status.
     """
+    if isinstance(refined, type("")):
+        refined = json.loads(refined)
+
     updated_at = int(refined["lastModified"])
     json_powers_to_eddb_id = json_powers_to_eddb_map()
 
@@ -911,7 +922,7 @@ def response_json_update_system_info(eddb_session, info):
                     )
                     eddb_session.add(traffic)
                 except KeyError:
-                    log.error("Not found", ship_name)
+                    log.error("Not found %s", ship_name)
 
 
 def compare_sheet_fort_systems_to_spy(session, eddb_session):
@@ -1021,6 +1032,7 @@ def get_spy_systems_for_galpow(eddb_session, power_id):
         join(cogdb.eddb.PowerState, SpySystem.power_state_id == cogdb.eddb.PowerState.id).\
         filter(SpySystem.power_id == power_id,
                cogdb.eddb.PowerState.text == "Control").\
+        order_by(sqla.func.lower(SpySystem.system_name)).\
         all()
     preps = eddb_session.query(SpyPrep).\
         filter(SpyPrep.power_id == power_id).\
@@ -1031,6 +1043,7 @@ def get_spy_systems_for_galpow(eddb_session, power_id):
         join(cogdb.eddb.PowerState, SpySystem.power_state_id == cogdb.eddb.PowerState.id).\
         filter(SpySystem.power_id == power_id,
                cogdb.eddb.PowerState.text == "Expansion").\
+        order_by(sqla.func.lower(SpySystem.system_name)).\
         all()
     try:
         vote = eddb_session.query(SpyVote).\
@@ -1152,7 +1165,11 @@ async def post_systems(systems, callback=None):  # pragma: no cover, would ping 
         log.warning("POSTAPI Finished Parsing: %s.", sys.name)
         if callback:
             await callback(f'{sys.name} has been updated.')
-        await asyncio.sleep(random.randint(*delay_values))  # Randomly delay chosen post calls
+        log.warning("POSTAPI Finished Parsing: %s.", sys.name)
+        delay = random.randint(*delay_values)
+        log.warning("POSTAPI Waiting %d seconds. Will resume at: %s",
+                    delay, datetime.datetime.utcnow() + datetime.timedelta(seconds=delay))
+        await asyncio.sleep(delay)  # Randomly delay chosen post calls
 
     if callback:
         sys_names = ", ".join([x.name for x in systems])[:1800]

@@ -8,7 +8,6 @@ import concurrent
 import concurrent.futures as cfut
 import datetime
 import functools
-import json
 import logging
 import math
 import os
@@ -2459,13 +2458,11 @@ async def push_spy_to_gal_scanner():  # pragma: no cover | tested elsewhere
             order_by(cogdb.eddb.Power.eddn).\
             all()
 
+        loop = asyncio.get_event_loop()
         for power in powers:
-            systems, preps, expansions, vote = await asyncio.get_event_loop().run_in_executor(
+            systems, preps, expansions, vote = await loop.run_in_executor(
                 None, spy.get_spy_systems_for_galpow, eddb_session, power.id
             )
-
-            systems = sorted(systems, key=lambda x: x.system.name.lower())
-            expansions = sorted(expansions, key=lambda x: x.system.name.lower())
 
             logging.getLogger(__name__).error("Updating sheet for: %s", power.eddn)
             await gal_scanner.asheet.change_worksheet(power.eddn.upper())
@@ -2537,27 +2534,30 @@ async def monitor_powerplay_api(client, *, repeat=True, delay=1800):
     log = logging.getLogger(__name__)
     try:
         await cog.util.get_url(cog.util.CONF.scrape.url)  # Sanity check service up
-        # Run in background, will get pushed eventually at later date
-        asyncio.ensure_future(spy.check_federal_held())
 
         log.warning("Start monitor powerplay.")
         base_text = await cog.util.get_url(os.path.join(cog.util.CONF.scrape.api, 'getraw', 'base.json'))
         ref_text = await cog.util.get_url(os.path.join(cog.util.CONF.scrape.api, 'getraw', 'refined.json'))
 
-        log.warning("Parse retrieved json.")
-        with cfut.ProcessPoolExecutor(max_workers=1) as pool:
-            fut = await client.loop.run_in_executor(
-                pool, spy.load_base_json, json.loads(base_text),
-            )
-            log.warning("Future base: %s", fut.result())
-            fut = await client.loop.run_in_executor(
-                pool, spy.load_refined_json, json.loads(ref_text),
-            )
-            log.warning("Future refined: %s", fut.result())
+        with cfut.ProcessPoolExecutor(max_workers=4) as pool:
+            try:
+                log.warning("Parse retrieved json.")
+                await client.loop.run_in_executor(
+                    pool, spy.load_base_json, base_text,
+                )
+                await client.loop.run_in_executor(
+                    pool, spy.load_refined_json, ref_text,
+                )
+
+            except (asyncio.CancelledError, asyncio.InvalidStateError) as exc:
+                log.error("Error with future: %s", str(exc))
 
         log.warning("Handle sheet updates.")
         await push_spy_to_gal_scanner()
         await push_spy_to_sheets()
+
+        log.warning("Check held for federal.")
+        await spy.check_federal_held()
         log.warning("End monitor powerplay.")
     except cog.exc.RemoteError:
         if repeat:
