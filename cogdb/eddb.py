@@ -1328,6 +1328,7 @@ def preload_power_states(session):
         PowerState(id=64, text="Expansion", eddn='Expansion'),
         PowerState(id=80, text="Prepared", eddn='Prepared'),  # EDDN only, system prepared
         PowerState(id=96, text="HomeSystem", eddn='HomeSystem'),  # EDDN only, HQ of a power
+        PowerState(id=240, text="Turmoil", eddn='Turmoil'),
     ])
     # Note: HomeSystem and Prepared are EDDN only states.
     #       HomeSystem is redundant as I map Power.home_system

@@ -2546,12 +2546,15 @@ async def monitor_powerplay_api(client, *, repeat=True, delay=1800):
 
         log.warning("Parse retrieved json.")
         with cfut.ProcessPoolExecutor(max_workers=1) as pool:
-            await client.loop.run_in_executor(
+            fut = await client.loop.run_in_executor(
                 pool, spy.load_base_json, json.loads(base_text),
             )
-            await client.loop.run_in_executor(
+            log.warning("Future base: %s", fut.result())
+            fut = await client.loop.run_in_executor(
                 pool, spy.load_refined_json, json.loads(ref_text),
             )
+            log.warning("Future refined: %s", fut.result())
+
         log.warning("Handle sheet updates.")
         await push_spy_to_gal_scanner()
         await push_spy_to_sheets()

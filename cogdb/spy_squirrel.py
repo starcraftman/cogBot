@@ -44,6 +44,7 @@ POWER_ID_MAP = {
 JSON_POWER_STATE_TO_EDDB = {
     "control": 16,
     "takingControl": 64,
+    "turmoil": 240,
 }
 MAX_SPY_MERITS = 99999
 # Remove entries older than this relative current timestamp
