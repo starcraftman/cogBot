@@ -77,6 +77,12 @@ HELD_POWERS = {}
 HELD_RUNNING = """Scrape for power: {power_name} already running.
 Started at {date}. Please try again later."""
 HELD_DELAY = (20, 120)
+JSON_DOPPLER_MAP = {
+    'base': 2,
+    'refined': 1,
+    'response': 1,
+    'scrape': 4,
+}
 
 
 class SpyShip(ReprMixin, Base):
@@ -442,10 +448,12 @@ def fetch_json_secret(secrets_path, name):
         name: Name of the json secret to fetch
     """
     pat = pathlib.Path(os.path.join(secrets_path, f'{name}.json'))
-    cmd = ['secrethub', 'read', '-o', str(pat), f'starcraftman/cogbot/tests/json/{name}']
+    cmd = ['doppler', 'secrets', 'get', '--plain'] +\
+          [f'JSON_{name.upper()}_{num}' for num in range(1, JSON_DOPPLER_MAP[name] + 1)]
     if not pat.exists():
         print(f"fetching: {pat}")
-        sub.check_call(cmd)
+        with open(str(pat), 'wb') as fout:
+            fout.write(sub.check_output(cmd))
 
 
 def load_json_secret(fname):
