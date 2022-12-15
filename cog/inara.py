@@ -491,7 +491,7 @@ class InaraApi():
                 'is_friendly': inter.component.label == BUT_FRIENDLY,
                 'reason': f"Manual report after a !whois in {msg.channel} by cmdr {msg.author}",
             })
-            response = """You selected {inter.component.label}
+            response = f"""You selected {inter.component.label}
 
 Leadership will review your report. Thank you."""
 
