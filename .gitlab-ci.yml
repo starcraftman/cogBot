@@ -1,6 +1,6 @@
 ---
 image:
-  name: ubuntu:jammy
+  name: python:3.10-bullseye
 
 # Change pip's cache directory to be inside the project directory since we can
 # only cache local items.
