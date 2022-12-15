@@ -14,8 +14,9 @@ jobs:
 
     # Example services for Mongodb, PostgreSQL and Redis can be found here:
     # https://github.com/actions/example-services/tree/master/.github/workflows
-    steps:
+    #
     # Commands use passwordless sudo
+    steps:
       - uses: actions/checkout@v3
       - name: Install packages required for tests
         run: |
