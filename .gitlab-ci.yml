@@ -16,12 +16,14 @@ cache:
     - .cache/pip
     - .tox
 
-before_script:
-  - apt-get update
-  - apt-get install -y apt-transport-https ca-certificates
-  - curl https://apt.secrethub.io | bash
-  - apt-get install -y git build-essential python3-dev python3-pip libyajl2 jq mariadb-client mariadb-server
-  - python setup.py deps --force=yes
+before_script: |
+    apt-get update
+    apt-get install -y apt-transport-https ca-certificates curl gnupg
+    curl -sLf --retry 3 --tlsv1.2 --proto "=https" 'https://packages.doppler.com/public/cli/gpg.DE2A7741A397C129.key' | apt-key add -
+    echo "deb https://packages.doppler.com/public/cli/deb/debian any-version main" | tee /etc/apt/sources.list.d/doppler-cli.list
+    apt-get update
+    apt-get install -y git build-essential python3-dev python3-pip libyajl2 jq doppler
+    python setup.py deps --force=yes
 
 coverage:
   rules:
@@ -29,15 +31,15 @@ coverage:
   variables:
     ALL_TESTS: "True"
   stage: test
-  script:
-    - /etc/init.d/mariadb start
-    - mysql -u root < "tests/mysql_tables.sql"
-    - curl "http://starcraftman.com/elite/eddb_v09.sql" > "eddb.sql"
-    - mysql -u root -D eddb < "eddb.sql"
-    - secrethub inject -i "tests/secrethub/secretConfig.yml" -o "data/config.yml"
-    - secrethub inject -i "tests/secrethub/secretSheets.json" -o "data/service_sheets.json"
-    - python -m pytest --cov=cog --cov=cogdb
-    - coveralls || true
+  script: |
+    /etc/init.d/mariadb start
+    mysql -u root < "tests/mysql_tables.sql"
+    curl "http://starcraftman.com/elite/eddb_v09.sql" > "eddb.sql"
+    mysql -u root -D eddb < "eddb.sql"
+    doppler secrets substitute "tests/secrethub/secretConfig.yml" --output "data/config.yml"
+    doppler secrets substitute "tests/secrethub/secretSheets.json" --output "data/service_sheets.json"
+    python -m pytest --cov=cog --cov=cogdb
+    coveralls || true
 # FIXME Disabled due to gitlab ci pipeline minutes shortage. Only master coverage for now.
 # tests:
   # rules:
