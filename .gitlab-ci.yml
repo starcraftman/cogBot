@@ -32,7 +32,7 @@ coverage:
     ALL_TESTS: "True"
   stage: test
   script: |
-    service start mariadb
+    systemctl start mariadb
     mysql -u root < "tests/mysql_tables.sql"
     curl "http://starcraftman.com/elite/eddb_v09.sql" > "eddb.sql"
     mysql -u root -D eddb < "eddb.sql"
