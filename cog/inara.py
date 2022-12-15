@@ -32,7 +32,7 @@ except ImportError:
 import aiohttp
 import bs4
 import discord
-import discord_components_mirror as dcom
+import discord.ui as dui
 
 import cog
 import cog.exc
@@ -467,35 +467,35 @@ class InaraApi():
                 'squad': String, # The squadron of the cmdr if known.
             }
         """
-        components = [
-            dcom.Button(label=BUT_FRIENDLY, style=dcom.ButtonStyle.green),
-            dcom.Button(label=BUT_HOSTILE, style=dcom.ButtonStyle.red),
-            dcom.Button(label=BUT_CANCEL, style=dcom.ButtonStyle.grey),
-        ]
+        view = dui.View().\
+            add_item(dui.Button(label=BUT_FRIENDLY, custom_id=BUT_FRIENDLY, style=discord.ButtonStyle.green)).\
+            add_item(dui.Button(label=BUT_HOSTILE, custom_id=BUT_HOSTILE, style=discord.ButtonStyle.red)).\
+            add_item(dui.Button(label=BUT_CANCEL, custom_id=BUT_CANCEL, style=discord.ButtonStyle.grey))
+
         text = f"Should the CMDR {cmdr_name} be added as friendly or hostile?"
-        sent = await cog.util.BOT.send_message(msg.channel, text, components=components)
+        sent = await cog.util.BOT.send_message(msg.channel, text, view=view)
         self.waiting_messages[req_id] = sent
 
         check = functools.partial(check_interaction_response, msg.author, sent)
-        inter = await cog.util.BOT.wait_for('button_click', check=check)
+        inter = await cog.util.BOT.wait_for('interaction', check=check)
 
         # Approved update
         kos_info = copy.deepcopy(KOS_INFO_PROTO)
         kos_info['cmdr'] = cmdr_name
-        if inter.component.label == BUT_CANCEL:
+        if inter.data['custom_id'] == BUT_CANCEL:
             response = "This report will be cancelled. Have a nice day!"
 
         else:
             kos_info.update({
                 'add': True,
-                'is_friendly': inter.component.label == BUT_FRIENDLY,
+                'is_friendly': inter.data['custom_id'] == BUT_FRIENDLY,
                 'reason': f"Manual report after a !whois in {msg.channel} by cmdr {msg.author}",
             })
             response = f"""You selected {inter.component.label}
 
 Leadership will review your report. Thank you."""
 
-        await inter.send(response)
+        await inter.response.send_message(response)
         await self.delete_waiting_message(req_id)
 
         return kos_info
@@ -617,23 +617,24 @@ async def select_from_choices(cmdrs, msg):
         CmdAborted - Cmdr either requested abort or failed to respond.
     """
     reply = "Please select a possible match from the list. Cancel with last option."
-    components = [
-        dcom.Select(
+    view = dui.View().add_item(
+        dui.Select(
             placeholder="CMDRs here",
-            options=[dcom.SelectOption(label=x, value=x) for x in cmdrs + [BUT_CANCEL]],
+            options=[discord.SelectOption(label=x, value=x) for x in cmdrs + [BUT_CANCEL]],
             custom_id='select_cmdrs',
-        ),
-    ]
+        )
+    )
 
-    sent = await cog.util.BOT.send_message(msg.channel, reply, components=components)
+    sent = await cog.util.BOT.send_message(msg.channel, reply, view=view)
     check = functools.partial(check_interaction_response, msg.author, sent)
 
     try:
-        inter = await cog.util.BOT.wait_for('select_option', check=check, timeout=30)
-        if inter.values[0] == BUT_CANCEL:
+        inter = await cog.util.BOT.wait_for('interaction', check=check, timeout=30)
+
+        if inter.data['values'][0] == BUT_CANCEL:
             raise cog.exc.CmdAborted("WhoIs lookup aborted, user cancelled.")
 
-        return inter.values[0]
+        return inter.data['values'][0]
     except asyncio.TimeoutError as exc:
         raise cog.exc.CmdAborted("WhoIs lookup aborted, timeout from inactivity.") from exc
     finally:

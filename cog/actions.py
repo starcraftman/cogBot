@@ -19,7 +19,7 @@ import traceback
 import aiofiles
 import decorator
 import discord
-import discord_components_mirror as dcom
+import discord.ui as dui
 import googleapiclient.errors
 import gspread
 import sqlalchemy.exc
@@ -166,19 +166,19 @@ class Action():
         # Request approval
         chan = self.msg.guild.get_channel(cog.util.CONF.channels.ops)
         kos_info['squad'] = kos_info['squad'].capitalize() if kos_info['squad'] == cog.inara.EMPTY_INARA else kos_info['squad']
+        view = dui.View().\
+            add_item(dui.Button(label=cog.inara.BUT_APPROVE, custom_id=cog.inara.BUT_APPROVE, style=discord.ButtonStyle.green)).\
+            add_item(dui.Button(label=cog.inara.BUT_DENY, custom_id=cog.inara.BUT_DENY, style=discord.ButtonStyle.red))
         sent = await chan.send(
             embed=cog.inara.kos_report_cmdr_embed(self.msg.author.name, kos_info),
-            components=[
-                dcom.Button(label=cog.inara.BUT_APPROVE, style=dcom.ButtonStyle.green),
-                dcom.Button(label=cog.inara.BUT_DENY, style=dcom.ButtonStyle.red),
-            ],
+            view=view,
         )
 
         check = functools.partial(cog.inara.check_interaction_response, self.msg.author, sent)
-        inter = await self.bot.wait_for('button_click', check=check)
+        inter = await self.bot.wait_for('interaction', check=check)
 
         response = "No change to KOS made."
-        if inter.component.label == cog.inara.BUT_APPROVE:
+        if inter.data['custom_id'] == cog.inara.BUT_APPROVE:
             await scanner.update_cells()
             payload = scanner.add_report_dict(kos_info)
             await scanner.send_batch(payload)

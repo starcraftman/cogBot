@@ -273,12 +273,9 @@ class UMLDocs(Command):
 SHORT_DESC = 'The Elite Federal Discord Bot'
 MY_NAME = 'Jeremy Pallats / starcraft.man'
 MY_EMAIL = 'N/A'
-# Important note: discord_components_mirror exists due to maintainer deleting package.
-#                 If anything breaks, fix on https://github.com/starcraftman/discord.py-components
-# TODO: Test 2.0 discord.py before upgrading.
 RUN_DEPS = ['aiofiles', 'aiozmq', 'argparse', 'asyncinotify', 'beautifulsoup4', 'cffi',
-            'decorator', 'discord.py==1.7.3', 'discord_components_mirror', 'google-api-python-client', 'gspread-asyncio',
-            'ijson', 'msgpack-python', 'pymysql', 'pyyaml', 'pyzmq', 'rapidjson',
+            'decorator', 'discord.py==2.1.0', 'google-api-python-client', 'gspread-asyncio',
+            'ijson', 'msgpack-python', 'pymysql', 'PyNaCl', 'pyyaml', 'pyzmq', 'rapidjson',
             'Sanic', 'selenium', 'SQLalchemy==1.4.44', 'textdistance[Hamming]', 'uvloop', 'webdriver-manager']
 
 TEST_DEPS = ['coverage', 'coveralls', 'flake8', 'aiomock', 'mock', 'pylint', 'pytest', 'pytest-asyncio',

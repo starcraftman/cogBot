@@ -41,7 +41,6 @@ try:
     asyncio.get_event_loop().set_debug(True)
 finally:
     print("Default event loop:", asyncio.get_event_loop())
-import discord_components_mirror as dcom
 
 import cog.actions
 import cog.exc
@@ -167,7 +166,6 @@ class CogBot(discord.Client):
         """
         Event triggered when connection established to discord and bot ready.
         """
-        dcom.DiscordComponents(self)
         log = logging.getLogger(__name__)
         log.info('Logged in as: %s', self.user.name)
         log.info('Available on following guilds:')
@@ -379,7 +377,7 @@ class CogBot(discord.Client):
             logging.getLogger(__name__).info('Command %s released lock.', msg.content)
 
     # TODO: Signature changed in library, update later.
-    async def send_message(self, destination, content=None, *, tts=False, embed=None, components=None):
+    async def send_message(self, destination, content=None, *, tts=False, embed=None, view=None):
         """
         Behaves excactly like Client.send_message except it:
 
@@ -395,7 +393,7 @@ class CogBot(discord.Client):
         attempts = 4
         while attempts:
             try:
-                return await destination.send(content, tts=tts, embed=embed, components=components)
+                return await destination.send(content, tts=tts, embed=embed, view=view)
             except discord.HTTPException:
                 # Catching these due to infrequent issues with discord remote.
                 await asyncio.sleep(1.5)
@@ -518,8 +516,11 @@ def main():  # pragma: no cover
         print("To enable SQLAlchemy log append --db flag.")
     cog.util.init_logging(sqlalchemy_log)
 
+    # Intents for: member info, dms and message.content access
     intents = discord.Intents.default()
     intents.members = True  # pylint: disable=assigning-non-slot
+    intents.messages = True  # pylint: disable=assigning-non-slot
+    intents.message_content = True  # pylint: disable=assigning-non-slot
     cog.util.BOT = CogBot("!", scheduler_delay=cog.util.CONF.constants.scheduler_delay,
                           intents=intents)
 
