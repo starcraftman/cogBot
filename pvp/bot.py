@@ -6,10 +6,9 @@ See cog.bot for more information.
 """
 import asyncio
 import datetime
-import functools
+import io
 import logging
 import os
-import pprint
 import random
 import re
 import sys
@@ -109,6 +108,23 @@ class PVPBot(CogBot):
         """
         pass
 
+    async def handle_dms(self, message):
+        """
+        Any hooks to respond to dms.
+        """
+        tfile = None
+        try:
+            if len(message.attachments) == 1:
+                handle, tfile = tempfile.mkstemp()
+                await message.attachments[0].save(handle)
+                await pvp.actions.FileUpload(args=None, bot=self, msg=message, session=None, file=tfile).execute()
+        finally:
+            if tfile and os.path.exists(tfile):
+                try:
+                    os.remove(tfile)
+                except OSError:
+                    pass
+
     async def on_message(self, message):
         """
         Intercepts every message sent to guild!
@@ -130,6 +146,10 @@ class PVPBot(CogBot):
         channel = message.channel
 
         if await self.ignore_message(message):
+            return
+
+        if channel.type == discord.ChannelType.private:
+            await self.handle_dms(message)
             return
 
         if not message.content.startswith(self.prefix):

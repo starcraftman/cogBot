@@ -43,3 +43,16 @@ class Help(Action):
             await self.msg.delete()
         except discord.HTTPException:
             pass
+
+
+class FileUpload(Action):
+    """
+    Handle a file upload and scan for pvp information.
+    """
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.file = kwargs['file']
+
+    async def execute(self):
+        with open(self.file, 'r') as fin:
+            await self.bot.send_message(self.msg.channel, f"Contents uploaded: {fin.read()}")
