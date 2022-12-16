@@ -2,20 +2,6 @@
 image:
   name: python:3.9-bullseye
 
-# Change pip's cache directory to be inside the project directory since we can
-# only cache local items.
-# variables:
-  # PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
-# Pip's cache doesn't store the python packages
-# https://pip.pypa.io/en/stable/reference/pip_install/#caching
-#
-# If you want to also cache the installed packages, you have to install
-# them in a virtualenv and cache it as well.
-# cache:
-  # paths:
-    # - .cache/pip
-    # - .tox
-
 before_script: |
     apt-get update
     apt-get install -y apt-transport-https ca-certificates curl gnupg
@@ -41,27 +27,29 @@ coverage:
     doppler secrets substitute "tests/secrethub/secretSheets.json" --output "data/service_sheets.json"
     python -m pytest --cov=cog --cov=cogdb
     coveralls || true
-# FIXME Disabled due to gitlab ci pipeline minutes shortage. Only master coverage for now.
-# tests:
-  # rules:
-    # - if: $CI_COMMIT_BRANCH != "master"
-  # variables:
-    # ALL_TESTS: "True"
-  # stage: test
-  # script:
-    # - /etc/init.d/mariadb start
-    # - mysql -u root < "tests/mysql_tables.sql"
-    # - curl "http://starcraftman.com/elite/eddb_v06.sql" > "eddb.sql"
-    # - mysql -u root -D eddb < "eddb.sql"
-    # - secrethub inject -i "tests/secrethub/secretConfig.yml" -o "data/config.yml"
-    # - secrethub inject -i "tests/secrethub/secretSheets.json" -o "data/service_sheets.json"
-    # - python -m pytest --cov=cog --cov=cogdb
+
+tests:
+  rules:
+    - if: $CI_COMMIT_BRANCH != "master"
+  variables:
+    ALL_TESTS: "True"
+  stage: test
+  script:
+    /etc/init.d/mariadb start
+    mysql -u root < "tests/mysql_tables.sql"
+    curl "http://starcraftman.com/elite/eddb_v09.sql" > "eddb.sql"
+    mysql -u root -D eddb < "eddb.sql"
+    doppler secrets substitute "tests/secrethub/secretConfig.yml" --output "data/config.yml"
+    doppler secrets substitute "tests/secrethub/secretSheets.json" --output "data/service_sheets.json"
+    python -m pytest --cov=cog --cov=cogdb
+
 # pylint:
   # stage: test
   # script:
     # - python -m tox -e pylint
+
 # flake8:
   # stage: test
   # script:
     # - python -m tox -e flake8
-# ---
+---
