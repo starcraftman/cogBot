@@ -1758,6 +1758,29 @@ class Status(Action):
         await self.bot.send_message(self.msg.channel, cog.tbl.format_table(lines)[0])
 
 
+def time_cmd_helper():
+    """
+    Helper to time fetch and calculation away from main loop.
+
+    Returns: The message for Time command
+    """
+    now = datetime.datetime.utcnow().replace(microsecond=0)
+    weekly_tick = cog.util.next_weekly_tick(now)
+
+    with cogdb.session_scope(cogdb.SideSession) as side_session:
+        try:
+            tick = cogdb.side.next_bgs_tick(side_session, now)
+        except (cog.exc.NoMoreTargets, cog.exc.RemoteError) as exc:
+            tick = str(exc)
+
+    return '\n'.join([
+        f"Game Time: **{now.strftime('%H:%M:%S')}**",
+        tick,
+        f'Cycle Ends in **{weekly_tick - now}**',
+        'All Times UTC',
+    ])
+
+
 class Time(Action):
     """
     Provide in game time and time to import in game ticks.
@@ -1768,23 +1791,11 @@ class Time(Action):
     - To weekly tick
     """
     async def execute(self):
-        now = datetime.datetime.utcnow().replace(microsecond=0)
-        weekly_tick = cog.util.next_weekly_tick(now)
+        msg = await self.bot.loop.run_in_executor(
+            None, time_cmd_helper
+        )
 
-        try:
-            with cogdb.session_scope(cogdb.SideSession) as side_session:
-                tick = await self.bot.loop.run_in_executor(
-                    None, cogdb.side.next_bgs_tick, side_session, now)
-        except (cog.exc.NoMoreTargets, cog.exc.RemoteError) as exc:
-            tick = str(exc)
-        lines = [
-            f"Game Time: **{now.strftime('%H:%M:%S')}**",
-            tick,
-            f'Cycle Ends in **{weekly_tick - now}**',
-            'All Times UTC',
-        ]
-
-        await self.bot.send_message(self.msg.channel, '\n'.join(lines))
+        await self.bot.send_message(self.msg.channel, msg)
 
 
 class Track(Action):

@@ -291,7 +291,8 @@ class CogBot(discord.Client):
             with cogdb.session_scope(cogdb.Session) as session:
                 # Check permissions before full parsing
                 cmd = cmd_from_content(self.prefix, content)
-                cogdb.query.check_perms(session, message, cmd)
+                await self.bot.loop.run_in_executor(
+                    None, cogdb.query.check_perms, session, message, cmd)
 
                 args = self.parser.parse_args(re.split(r'\s+', content))
                 await self.dispatch_command(args=args, bot=self, msg=message, session=session)
