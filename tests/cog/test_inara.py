@@ -23,18 +23,6 @@ REASON_INARA = 'Prevent temp inara ban due flooding. To enable, ensure os.enviro
 INARA_TEST = pytest.mark.skipif(not os.environ.get('ALL_TESTS'), reason=REASON_INARA)
 
 
-def mock_inter(values):
-    inter = aiomock.AIOMock(values=values, sent=[])
-    inter.component.label = inter.values[0]
-    inter.sent = []
-
-    async def send_(resp):
-        inter.sent += [resp]
-    inter.send = send_
-
-    return inter
-
-
 def test_inara_api_input():
     api_input = cog.inara.InaraApiInput()
     api_input.add_event("fakeEvent", {"fakeKey": "fakeData"})
@@ -119,9 +107,11 @@ async def test_inara_api_key_unset(f_bot):
 async def test_search_inara_and_kos_match_exact(f_bot):
     api = cog.inara.InaraApi()
     cog.util.BOT = f_bot
-    f_bot.wait_for.async_side_effect = [mock_inter([cog.inara.BUT_CANCEL])]
 
     msg = fake_msg_gears('!whois gearsandcogs')
+    f_bot.wait_for.async_side_effect = [
+        Interaction('kos_cancel', message=msg, user=msg.author, button=cog.inara.BUT_CANCEL),
+    ]
     result = await api.search_inara_and_kos('gearsandcogs', msg)
 
     expect = {
@@ -139,9 +129,12 @@ async def test_search_inara_and_kos_match_exact(f_bot):
 async def test_search_inara_and_kos_match_select(f_bot):
     api = cog.inara.InaraApi()
     cog.util.BOT = f_bot
-    f_bot.wait_for.async_side_effect = [mock_inter(['Gearsprud']), mock_inter([cog.inara.BUT_FRIENDLY])]
 
     msg = fake_msg_gears('!whois gearsandcogs')
+    f_bot.wait_for.async_side_effect = [
+        Interaction('kos_select', message=msg, user=msg.author, select='Gearsprud'),
+        Interaction('kos_friendly', message=msg, user=msg.author, button=cog.inara.BUT_FRIENDLY),
+    ]
     result = await api.search_inara_and_kos('gears', msg)
 
     expect = {
@@ -159,9 +152,11 @@ async def test_search_inara_and_kos_match_select(f_bot):
 async def test_search_inara_and_kos_no_match(f_bot):
     api = cog.inara.InaraApi()
     cog.util.BOT = f_bot
-    f_bot.wait_for.async_side_effect = [mock_inter([cog.inara.BUT_HOSTILE])]
 
     msg = fake_msg_gears('!whois gearsandcogs')
+    f_bot.wait_for.async_side_effect = [
+        Interaction('kos_hostile', message=msg, user=msg.author, button=cog.inara.BUT_HOSTILE),
+    ]
     result = await api.search_inara_and_kos('notInInaraForSure', msg)
 
     expect = {
@@ -192,9 +187,7 @@ async def test_search_with_api(f_bot):
 async def test_reply_with_api_result(f_bot):
     api = cog.inara.InaraApi()
     msg = fake_msg_gears('stop')
-    comp = aiomock.Mock()
-    comp.label = cog.inara.BUT_CANCEL
-    f_bot.wait_for.async_return_value = Interaction('reply_api', message=msg, user=msg.author, component=comp)
+    f_bot.wait_for.async_return_value = Interaction('reply_api', message=msg, user=msg.author, button=cog.inara.BUT_CANCEL)
 
     f_bot.send_message.async_return_value = fake_msg_gears("A message to send.")
     cog.util.BOT = f_bot
@@ -212,8 +205,8 @@ async def test_select_from_multiple_exact(f_bot):
     api = cog.inara.InaraApi()
     msg = fake_msg_gears('stop')
     f_bot.wait_for.async_side_effect = [
-        Interaction('reply_api', message=msg, user=msg.author, comp_label='GearsandCogs'),
-        Interaction('reply_api', message=msg, user=msg.author, comp_label=cog.inara.BUT_DENY),
+        Interaction('reply_api', message=msg, user=msg.author, select='GearsandCogs'),
+        Interaction('reply_api', message=msg, user=msg.author, select=cog.inara.BUT_DENY),
     ]
     cog.util.BOT = f_bot
     cmdr = await api.search_with_api('gears', fake_msg_gears('!whois gears'))
@@ -227,7 +220,7 @@ async def test_select_from_multiple_exact(f_bot):
 async def test_select_from_multiple_stop(f_bot):
     api = cog.inara.InaraApi()
     msg = fake_msg_gears(cog.inara.BUT_CANCEL)
-    f_bot.wait_for.async_return_value = Interaction('multiple_stop', message=msg, user=msg.author, comp_label=cog.inara.BUT_CANCEL)
+    f_bot.wait_for.async_return_value = Interaction('multiple_stop', message=msg, user=msg.author, select=cog.inara.BUT_CANCEL)
     cog.util.BOT = f_bot
     with pytest.raises(cog.exc.CmdAborted):
         await api.search_with_api('gears', fake_msg_gears('!whois gears'))

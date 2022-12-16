@@ -544,20 +544,29 @@ class Interaction(FakeObject):
     """
     Fake interaction object for discord components.
     """
-    def __init__(self, name, *, id=None, user=None, message=None, component=None, values=None, comp_label=None):
+    def __init__(self, name, *, id=None, user=None, message=None, component=None, button=None, select=None):
         super().__init__(name, id)
         self.message = message
         self.user = user
         self.sent = []
 
-        if comp_label:
+        if button or select:
             component = aiomock.Mock()
-            component.label = comp_label
-
+            component.label = button if button else select
         self.component = component
-        self.values = [component.label] if component and not values else values
+
+        if button:
+            self.data = {'custom_id': button}
+        if select:
+            self.data = {'values': [select]}
+
+        self.response = aiomock.Mock()
+        self.response.send_message = self.send
 
     async def send(self, *args, **kwargs):
+        self.sent += args
+
+    async def send_message(self, *args, **kwargs):
         self.sent += args
 
 

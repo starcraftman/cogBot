@@ -1865,8 +1865,8 @@ async def test_cmd_vote_display(f_bot, f_admins, f_dusers, f_global_testbed, f_v
 async def test_cmd_whois_cancelled(f_bot, f_asheet_kos, f_kos):
     msg = fake_msg_gears("!whois Prozer")
     f_bot.wait_for.async_side_effect = (
-        Interaction('cmd_who_friendly', message=msg, user=msg.author, comp_label=cog.inara.BUT_CANCEL),
-        Interaction('cmd_who_friendly', message=msg, user=msg.author, comp_label=cog.inara.BUT_DENY),
+        Interaction('cmd_who_cancelled', message=msg, user=msg.author, button=cog.inara.BUT_CANCEL),
+        Interaction('cmd_who_deny', message=msg, user=msg.author, button=cog.inara.BUT_DENY),
     )
 
     await action_map(msg, f_bot).execute()
@@ -1878,8 +1878,8 @@ async def test_cmd_whois_cancelled(f_bot, f_asheet_kos, f_kos):
 async def test_cmd_whois_friendly(f_bot, f_asheet_kos, f_kos):
     msg = fake_msg_gears('!whois Prozer')
     f_bot.wait_for.async_side_effect = (
-        Interaction('cmd_who_friendly', message=msg, user=msg.author, comp_label=cog.inara.BUT_FRIENDLY),
-        Interaction('cmd_who_friendly', message=msg, user=msg.author, comp_label=cog.inara.BUT_DENY),
+        Interaction('cmd_who_friendly', message=msg, user=msg.author, button=cog.inara.BUT_FRIENDLY),
+        Interaction('cmd_who_deny', message=msg, user=msg.author, button=cog.inara.BUT_DENY),
     )
 
     await action_map(msg, f_bot).execute()
@@ -1891,8 +1891,8 @@ async def test_cmd_whois_friendly(f_bot, f_asheet_kos, f_kos):
 async def test_cmd_whois_hostile(f_bot, f_asheet_kos, f_kos, patch_scanners):
     msg = fake_msg_gears("!whois Prozer")
     f_bot.wait_for.async_side_effect = (
-        Interaction('cmd_who_friendly', message=msg, user=msg.author, comp_label=cog.inara.BUT_FRIENDLY),
-        Interaction('cmd_who_friendly', message=msg, user=msg.author, comp_label=cog.inara.BUT_APPROVE),
+        Interaction('cmd_who_hostile', message=msg, user=msg.author, button=cog.inara.BUT_HOSTILE),
+        Interaction('cmd_who_approve', message=msg, user=msg.author, button=cog.inara.BUT_APPROVE),
     )
 
     await action_map(msg, f_bot).execute()
