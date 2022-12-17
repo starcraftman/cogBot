@@ -11,16 +11,6 @@ before_script: |
   apt-get install -y git build-essential python3-dev python3-pip libyajl2 jq doppler mariadb-server mariadb-client
   python setup.py deps --force=yes
 
-# Shared test procedure
-test_script: |-
-  /etc/init.d/mariadb start
-  mysql -u root < "tests/mysql_tables.sql"
-  curl "http://starcraftman.com/elite/eddb_v09.sql" > "eddb.sql"
-  mysql -u root -D eddb < "eddb.sql"
-  doppler secrets substitute "tests/secrethub/secretConfig.yml" --output "data/config.yml"
-  doppler secrets substitute "tests/secrethub/secretSheets.json" --output "data/service_sheets.json"
-  python -m pytest --cov=cog --cov=cogdb
-
 coverage:
   rules:
     - if: $CI_COMMIT_BRANCH == "master"
@@ -28,9 +18,15 @@ coverage:
     ALL_TESTS: "True"
   stage: test
   dependencies: []
-  script:
-    - *test_script
-    - coveralls || true
+  script: |
+    /etc/init.d/mariadb start
+    mysql -u root < "tests/mysql_tables.sql"
+    curl "http://starcraftman.com/elite/eddb_v09.sql" > "eddb.sql"
+    mysql -u root -D eddb < "eddb.sql"
+    doppler secrets substitute "tests/secrethub/secretConfig.yml" --output "data/config.yml"
+    doppler secrets substitute "tests/secrethub/secretSheets.json" --output "data/service_sheets.json"
+    python -m pytest --cov=cog --cov=cogdb
+    coveralls || true
 
 tests:
   rules:
@@ -39,7 +35,13 @@ tests:
     ALL_TESTS: "True"
   stage: test
   script:
-    - *test_script
+    /etc/init.d/mariadb start
+    mysql -u root < "tests/mysql_tables.sql"
+    curl "http://starcraftman.com/elite/eddb_v09.sql" > "eddb.sql"
+    mysql -u root -D eddb < "eddb.sql"
+    doppler secrets substitute "tests/secrethub/secretConfig.yml" --output "data/config.yml"
+    doppler secrets substitute "tests/secrethub/secretSheets.json" --output "data/service_sheets.json"
+    python -m pytest --cov=cog --cov=cogdb
 
 # pylint:
   # stage: test
