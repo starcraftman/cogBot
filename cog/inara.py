@@ -495,7 +495,7 @@ class InaraApi():
 
 Leadership will review your report of CMDR {cmdr_name}. Thank you."""
 
-        await inter.response.send_message(response)
+        await inter.response.send_message(response, ephemeral=True)
         await self.delete_waiting_message(req_id)
 
         return kos_info
