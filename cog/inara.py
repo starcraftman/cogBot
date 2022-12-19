@@ -491,9 +491,9 @@ class InaraApi():
                 'is_friendly': inter.data['custom_id'] == BUT_FRIENDLY,
                 'reason': f"Manual report after a !whois in {msg.channel} by cmdr {msg.author}",
             })
-            response = f"""You selected {inter.component.label}
+            response = f"""You selected {inter.data['custom_id']}
 
-Leadership will review your report. Thank you."""
+Leadership will review your report of CMDR {cmdr_name}. Thank you."""
 
         await inter.response.send_message(response)
         await self.delete_waiting_message(req_id)
