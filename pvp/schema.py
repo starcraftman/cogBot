@@ -10,14 +10,10 @@ import sqlalchemy.orm.session
 import sqlalchemy.ext.declarative
 
 from cogdb.eddb import LEN as EDDB_LEN
-from cogdb.spy_squirrel import ship_type_to_id_map
-import cog.inara
 import cogdb.eddb
 from cog.util import ReprMixin, TimestampMixin
 
 Base = sqlalchemy.ext.declarative.declarative_base()
-COMBAT_RANK_TO_VALUE = {x: ind for ind, x in enumerate(cog.inara.COMBAT_RANKS)}
-VALUE_TO_COMBAT_RANK = {y: x for x, y in COMBAT_RANK_TO_VALUE.items()}
 
 
 class EventTimeMixin():
