@@ -57,6 +57,7 @@ LEN = {  # Lengths for strings stored in the db
     "power": 21,
     "power_abv": 6,
     "power_state": 10,
+    "pvp_name": 50,
     "security": 8,
     "settlement_security": 10,
     "settlement_size": 3,
@@ -2646,7 +2647,7 @@ def is_safe_to_drop(tbl_name):
     Basically any table that can be reconstructed or imported from external can be dropped.
     For now, tables prefixed with 'spy_' and 'history_' will return False.
     """
-    return not tbl_name.startswith('spy_') and not tbl_name.startswith('history_')
+    return not tbl_name.startswith('spy_') and not tbl_name.startswith('history_') and not tbl_name.startswith('pvp_')
 
 
 # TODO: Bit messy but works for now.

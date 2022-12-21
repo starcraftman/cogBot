@@ -26,6 +26,7 @@ except ImportError:
 import cog.util
 import cogdb
 import cogdb.query
+import cogdb.spy_squirrel as spy
 from cogdb.schema import (DiscordUser, FortSystem, FortPrep, FortDrop, FortUser, FortOrder,
                           UMSystem, UMExpand, UMOppose, UMUser, UMHold, EUMSheet, KOS,
                           AdminPerm, ChannelPerm, RolePerm,
@@ -885,3 +886,12 @@ def f_sheet_records(session):
     session.rollback()
     session.query(SheetRecord).delete()
     session.commit()
+
+
+@pytest.fixture
+def f_spy_ships(eddb_session):
+    spy.preload_spy_tables(eddb_session)
+
+    yield
+
+    eddb_session.query(spy.SpyShip).delete()

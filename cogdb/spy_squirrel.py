@@ -1283,6 +1283,7 @@ def empty_tables():
 def recreate_tables():  # pragma: no cover | destructive to test
     """
     Recreate all tables in the related to this module, mainly for schema changes and testing.
+    Always reload preloads.
     """
     sqla.orm.session.close_all_sessions()
     drop_tables()
@@ -1344,6 +1345,8 @@ PARSER_MAP = {
 # Ensure the tables are created before use when this imported
 if cogdb.TEST_DB:
     recreate_tables()
+    with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
+        preload_spy_tables(eddb_session)
 else:
     Base.metadata.create_all(cogdb.eddb_engine)
 

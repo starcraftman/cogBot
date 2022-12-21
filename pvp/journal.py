@@ -10,6 +10,7 @@ import datetime
 import json
 import logging
 
+from cogdb.eddb import LEN as EDDB_LEN
 from cogdb.eddn import TIME_STRP
 from cogdb.spy_squirrel import ship_type_to_id_map
 import cog.inara
@@ -30,12 +31,10 @@ def parse_died(eddb_session, data):
 
     Returns: The added object.
     """
-    __import__('pprint').pprint(data)
-
     is_wing_kill = "Killers" in data
     if 'KillerName' in data:  # Reformat object so single case same as wing
         data['Killers'] = [{
-            "Name": data["KillerName"],
+            "Name": clean_cmdr_name(data["KillerName"]),
             "Ship": data["KillerShip"],
             "Rank": data["KillerRank"],
         }]
@@ -48,16 +47,21 @@ def parse_died(eddb_session, data):
     eddb_session.add(death)
     eddb_session.flush()
 
+    ship_map = ship_name_map()
     for killer in data["Killers"]:
+        try:
+            ship_id = ship_map[killer['Ship'].lower()]
+        except KeyError:
+            ship_id = ship_map['sidewinder']
+            logging.getLogger(__name__).error("Could not map ship named: %s", killer['Ship'])
+
         eddb_session.add(
             pvp.schema.PVPDeathKiller(
                 cmdr_id=data['cmdr_id'],
+                ship_id=ship_id,
                 pvp_death_id=death.id,
-                killer_name=killer['Name'][:25],
-                # TODO: Might need another mapping of name to id
-                #  killer_ship=SHIP_NAME_TO_ID[killer['Ship']],k
-                killer_ship=1,
-                killer_rank=COMBAT_RANK_TO_VALUE[killer['Rank']],
+                name=clean_cmdr_name(killer['Name']),
+                rank=COMBAT_RANK_TO_VALUE[killer['Rank']],
                 event_at=data['event_at'],
             )
         )
@@ -77,7 +81,7 @@ def parse_pvpkill(eddb_session, data):
     """
     kill = pvp.schema.PVPKill(
         cmdr_id=data.get('cmdr_id'),
-        victim_name=data['Victim'],
+        victim_name=clean_cmdr_name(data['Victim']),
         victim_rank=data['CombatRank'],
         event_at=data['event_at'],
     )
@@ -98,10 +102,10 @@ def parse_pvpinterdiction(eddb_session, data):
     """
     interdiction = pvp.schema.PVPInterdiction(
         cmdr_id=data.get('cmdr_id'),
-        victim_name=data['Interdicted'],
+        victim_name=clean_cmdr_name(data['Interdicted']),
         is_player=data['IsPlayer'],
         is_success=data['Success'],
-        victim_rank=data['CombatRank'],
+        victim_rank=data['CombatRank'] if data['IsPlayer'] else None,
         event_at=data['event_at'],
     )
     eddb_session.add(interdiction)
@@ -123,8 +127,8 @@ def parse_pvpinterdicted(eddb_session, data):
         cmdr_id=data.get('cmdr_id'),
         did_submit=data['Submitted'],
         is_player=data['IsPlayer'],
-        interdictor_name=data['Interdictor'],
-        interdictor_rank=data['CombatRank'],
+        interdictor_name=clean_cmdr_name(data['Interdictor']),
+        interdictor_rank=data['CombatRank'] if data['IsPlayer'] else None,
         event_at=data['event_at'],
     )
     eddb_session.add(interdicted)
@@ -158,7 +162,11 @@ def load_journal_possible(fname, cmdr_id=None):
     Load an existing json file on server and then parse the lines to validate them.
     Any lines that fail to be validated will be ignored.
 
-    Returns JSON objects to easily use.
+    Args:
+        fname: The filename of the partial log.
+        cmdr_id: The id of the commander who submitted the log.
+
+    Returns: A list of parsed json objects ready to further process.
     """
     json_objs = []
     with open(fname, 'r', encoding='utf-8') as fin:
@@ -177,14 +185,52 @@ def load_journal_possible(fname, cmdr_id=None):
     return json_objs
 
 
+def clean_cmdr_name(name):
+    """
+    Clean cmdr name for storage in db.
+        - Strip off any leading 'cmdr'
+        - Remove any extra whitespace
+        - Limit to width of db field
+
+    Args:
+        name: The name of the cmdr to clean
+
+    Returns: Cleaned cmdr name.
+    """
+    if name.lower().startswith('cmdr'):
+        name = name[4:].strip()
+
+    return name[:EDDB_LEN['pvp_name']]
+
+
+def ship_name_map():
+    """
+    Generate a map of possibly seen names to IDs in the db.
+
+    Returns: A dictionary of names onto ids.
+    """
+    ship_map = ship_type_to_id_map(traffic_text=True)
+    ship_map.update(ship_type_to_id_map(traffic_text=False))
+    ship_map.update({key.lower(): value for key, value in ship_map.items() if key[0].isupper()})
+
+    return ship_map
+
+
 def main():
     pass
 
 
 EVENT_TO_PARSER = {
+    "died": parse_died,
+    "interdicted": parse_pvpinterdicted,
+    "interdiction": parse_pvpinterdiction,
+    "pvpkill": parse_pvpkill,
     "Died": parse_died,
+    "Interdicted": parse_pvpinterdicted,
+    "Interdiction": parse_pvpinterdiction,
+    "PVPKill": parse_pvpkill,
 }
-SHIP_NAME_TO_ID = ship_type_to_id_map()
+
 
 if __name__ == "__main__":
     main()

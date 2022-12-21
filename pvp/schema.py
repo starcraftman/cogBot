@@ -9,11 +9,9 @@ import sqlalchemy.orm as sqla_orm
 import sqlalchemy.orm.session
 import sqlalchemy.ext.declarative
 
-from cogdb.eddb import LEN as EDDB_LEN
 import cogdb.eddb
+from cogdb.eddb import Base, LEN as EDDB_LEN
 from cog.util import ReprMixin, TimestampMixin
-
-Base = sqlalchemy.ext.declarative.declarative_base()
 
 
 class EventTimeMixin():
@@ -41,8 +39,12 @@ class PVPCmdr(ReprMixin, TimestampMixin, Base):
     _repr_keys = ['id', 'name', 'updated_at']
 
     id = sqla.Column(sqla.BigInteger, primary_key=True)  # Discord id
-    name = sqla.Column(sqla.String(EDDB_LEN['cmdr_name']))
+    name = sqla.Column(sqla.String(EDDB_LEN['pvp_name']))
     updated_at = sqla.Column(sqla.Integer, default=time.time, onupdate=time.time)
+
+    def __str__(self):
+        """ Convenient string representation of this object. """
+        return f'CMDR {self.name} ({self.id})'
 
     def __eq__(self, other):
         return isinstance(other, PVPCmdr) and self.id == other.id
@@ -61,10 +63,19 @@ class PVPKill(ReprMixin, TimestampMixin, EventTimeMixin, Base):
     id = sqla.Column(sqla.BigInteger, primary_key=True)
     cmdr_id = sqla.Column(sqla.BigInteger, sqla.ForeignKey('pvp_cmdrs.id'))
 
-    victim_name = sqla.Column(sqla.String(EDDB_LEN["cmdr_name"]), index=True)
-    victim_rank = sqla.Column(sqla.Integer)
+    victim_name = sqla.Column(sqla.String(EDDB_LEN["pvp_name"]), index=True)
+    victim_rank = sqla.Column(sqla.Integer, default=0)
     created_at = sqla.Column(sqla.Integer, default=time.time)
     event_at = sqla.Column(sqla.Integer, default=time.time)  # Set to time in log
+
+    def __str__(self):
+        """ Show PVPKill information. """
+        try:
+            cmdr = self.cmdr.name
+        except AttributeError:
+            cmdr = self.id
+
+        return f'CMDR {cmdr} killed CMDR {self.victim_name} at {self.event_date}'
 
     def __eq__(self, other):
         return isinstance(other, PVPKill) and self.id == other.id
@@ -87,6 +98,21 @@ class PVPDeath(ReprMixin, TimestampMixin, EventTimeMixin, Base):
     created_at = sqla.Column(sqla.Integer, default=time.time)
     event_at = sqla.Column(sqla.Integer, default=time.time)  # Set to time in log
 
+    def __str__(self):
+        """ Show the death and killers. """
+        try:
+            cmdr = self.cmdr.name
+        except AttributeError:
+            cmdr = self.id
+
+        killers = "<unknown>"
+        if self.killers:
+            killers = ", ".join([str(x) for x in self.killers])
+            if self.is_wing_kill:
+                killers = f'[{killers}]'
+
+        return f"CMDR {cmdr} was killed by: {killers} at {self.event_date}"
+
     def __eq__(self, other):
         return isinstance(other, PVPDeath) and self.id == other.id
 
@@ -99,22 +125,37 @@ class PVPDeathKiller(ReprMixin, TimestampMixin, EventTimeMixin, Base):
     Table to store events where cmdr interdicted other players to initiate combat.
     """
     __tablename__ = 'pvp_deaths_killers'
-    _repr_keys = ['pvp_death_id', 'killer_name', 'killer_rank', 'killer_ship', 'created_at', 'event_at']
+    _repr_keys = ['pvp_death_id', 'name', 'rank', 'ship_id', 'created_at', 'event_at']
 
     cmdr_id = sqla.Column(sqla.BigInteger, sqla.ForeignKey('pvp_cmdrs.id'))
     pvp_death_id = sqla.Column(sqla.BigInteger, sqla.ForeignKey('pvp_deaths.id'), primary_key=True)
+    ship_id = sqla.Column(sqla.Integer)  # Links against 'spy_ships', key not needed
 
-    killer_name = sqla.Column(sqla.String(EDDB_LEN["cmdr_name"]), index=True, primary_key=True)
-    killer_rank = sqla.Column(sqla.Integer)
-    killer_ship = sqla.Column(sqla.Integer)
+    name = sqla.Column(sqla.String(EDDB_LEN["pvp_name"]), index=True, primary_key=True)
+    rank = sqla.Column(sqla.Integer, default=0)
     created_at = sqla.Column(sqla.Integer, default=time.time)
     event_at = sqla.Column(sqla.Integer, default=time.time)  # Set to time in log
+
+    ship = sqla.orm.relationship('SpyShip', uselist=False, lazy='joined', viewonly=True,
+                                 primaryjoin='foreign(PVPDeathKiller.ship_id) == SpyShip.id')
+
+    def __str__(self):
+        """ Show a single PVP killer of a cmdr. """
+        return f"CMDR {self.name} ({self.ship_name})"
+
+    @property
+    def ship_name(self):
+        """ Return the actual ship name and not the id. If impossible return placeholder. """
+        try:
+            return self.ship.text
+        except AttributeError:
+            return "<unknown ship>"
 
     def __eq__(self, other):
         return isinstance(other, PVPDeathKiller) and hash(self) == hash(other)
 
     def __hash__(self):
-        return hash(f'{self.pvp_death_id}_{self.killer_name}')
+        return hash(f'{self.pvp_death_id}_{self.name}')
 
 
 class PVPInterdiction(ReprMixin, TimestampMixin, EventTimeMixin, Base):
@@ -122,7 +163,7 @@ class PVPInterdiction(ReprMixin, TimestampMixin, EventTimeMixin, Base):
     Table to store events where cmdr interdicted other players to initiate combat.
     """
     __tablename__ = 'pvp_interdictions'
-    _repr_keys = ['id', 'cmdr_id', 'is_player', 'is_success', 'did_escape'
+    _repr_keys = ['id', 'cmdr_id', 'is_player', 'is_success', 'did_escape',
                   'victim_name', 'victim_rank', 'created_at', 'event_at']
 
     id = sqla.Column(sqla.BigInteger, primary_key=True)
@@ -132,10 +173,19 @@ class PVPInterdiction(ReprMixin, TimestampMixin, EventTimeMixin, Base):
     is_success = sqla.Column(sqla.Boolean, default=False)  # True if forced player out of super cruise
     did_escape = sqla.Column(sqla.Boolean, default=False)  # True if the victim escaped
 
-    victim_name = sqla.Column(sqla.String(EDDB_LEN["cmdr_name"]), index=True)
-    victim_rank = sqla.Column(sqla.Integer)
+    victim_name = sqla.Column(sqla.String(EDDB_LEN["pvp_name"]), index=True)
+    victim_rank = sqla.Column(sqla.Integer, default=0)
     created_at = sqla.Column(sqla.Integer, default=time.time)
     event_at = sqla.Column(sqla.Integer, default=time.time)  # Set to time in log
+
+    def __str__(self):
+        """ Show a single interdiction by the cmdr. """
+        try:
+            cmdr = self.cmdr.name
+        except AttributeError:
+            cmdr = self.id
+
+        return f"CMDR {cmdr} interdicted {'CMDR ' if self.is_player else ''}{self.victim_name}. Pulled from SC: {self.is_success} Escaped: {self.did_escape}"
 
     def __eq__(self, other):
         return isinstance(other, PVPInterdiction) and self.id == other.id
@@ -210,10 +260,19 @@ class PVPInterdicted(ReprMixin, TimestampMixin, EventTimeMixin, Base):
     did_submit = sqla.Column(sqla.Boolean, default=False)  # True if the fictim submitted
     did_escape = sqla.Column(sqla.Boolean, default=False)  # True if the cmdr managed to escape
 
-    interdictor_name = sqla.Column(sqla.String(EDDB_LEN["cmdr_name"]), index=True)
-    interdictor_rank = sqla.Column(sqla.Integer)
+    interdictor_name = sqla.Column(sqla.String(EDDB_LEN["pvp_name"]), index=True)
+    interdictor_rank = sqla.Column(sqla.Integer, default=0)
     created_at = sqla.Column(sqla.Integer, default=time.time)
     event_at = sqla.Column(sqla.Integer, default=time.time)  # Set to time in log
+
+    def __str__(self):
+        """ Show a single time cmdr was interdicted by another. """
+        try:
+            cmdr = self.cmdr.name
+        except AttributeError:
+            cmdr = self.id
+
+        return f"CMDR {cmdr} was interdicted by {'CMDR ' if self.is_player else ''}{self.interdictor_name}. Submitted: {self.did_submit}. Escaped: {self.did_escape}"
 
     def __eq__(self, other):
         return isinstance(other, PVPInterdicted) and self.id == other.id
@@ -300,12 +359,10 @@ def drop_tables():  # pragma: no cover | destructive to test
     Drop all tables related to this module.
     See is_safe_to_drop for validation on if a table should be dropped.
     """
-    meta = sqlalchemy.MetaData(bind=cogdb.eddb_engine)
-    meta.reflect()
-    for tbl in reversed(meta.sorted_tables):
+    sqla.orm.session.close_all_sessions()
+    for table in PVP_TABLES:
         try:
-            if is_safe_to_drop(tbl.name):
-                tbl.drop()
+            table.__table__.drop(cogdb.eddb_engine)
         except sqla.exc.OperationalError:
             pass
 
@@ -316,16 +373,9 @@ def empty_tables():
     See is_safe_to_drop for validation on if a table should be dropped.
     """
     sqla.orm.session.close_all_sessions()
-
-    meta = sqlalchemy.MetaData(bind=cogdb.eddb_engine)
-    meta.reflect()
     with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
-        for tbl in reversed(meta.sorted_tables):
-            try:
-                if is_safe_to_drop(tbl.name):
-                    eddb_session.query(tbl).delete()
-            except sqla.exc.OperationalError:
-                pass
+        for table in PVP_TABLES:
+            eddb_session.query(table).delete()
 
 
 def is_safe_to_drop(tbl_name):
@@ -365,10 +415,10 @@ def main():
             PVPDeath(id=1, cmdr_id=1, is_wing_kill=True),
             PVPDeath(id=2, cmdr_id=1, is_wing_kill=False),
             PVPDeath(id=3, cmdr_id=3, is_wing_kill=False),
-            PVPDeathKiller(cmdr_id=1, pvp_death_id=1, killer_name='BadGuyWon', killer_rank=7, killer_ship=30),
-            PVPDeathKiller(cmdr_id=1, pvp_death_id=1, killer_name='BadGuyHelper', killer_rank=5, killer_ship=38),
-            PVPDeathKiller(cmdr_id=2, pvp_death_id=2, killer_name='BadGuyWon', killer_rank=7, killer_ship=30),
-            PVPDeathKiller(cmdr_id=3, pvp_death_id=3, killer_name='BadGuyWon', killer_rank=7, killer_ship=30),
+            PVPDeathKiller(cmdr_id=1, pvp_death_id=1, name='BadGuyWon', rank=7, ship_id=30),
+            PVPDeathKiller(cmdr_id=1, pvp_death_id=1, name='BadGuyHelper', rank=5, ship_id=38),
+            PVPDeathKiller(cmdr_id=2, pvp_death_id=2, name='BadGuyWon', rank=7, ship_id=30),
+            PVPDeathKiller(cmdr_id=3, pvp_death_id=3, name='BadGuyWon', rank=7, ship_id=30),
 
             PVPInterdiction(id=1, cmdr_id=1, is_player=True, is_success=True, did_escape=False,
                             victim_name="LeSuck", victim_rank=3),
@@ -399,8 +449,8 @@ def main():
 
 
 PVP_TABLES = [
-    PVPCmdr, PVPKill, PVPDeath, PVPInterdicted, PVPInterdiction,
-    PVPInterdictedKill, PVPInterdictedDeath, PVPInterdictionKill, PVPInterdictionDeath
+    PVPInterdictedKill, PVPInterdictedDeath, PVPInterdictionKill, PVPInterdictionDeath,
+    PVPInterdicted, PVPInterdiction, PVPDeathKiller, PVPDeath, PVPKill, PVPCmdr
 ]
 if __name__ == "__main__":
     main()
