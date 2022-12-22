@@ -1,0 +1,104 @@
+---
+channels:
+  ops: {{.CHANNELS_OPS}}
+  snipe: {{.CHANNELS_SNIPE}}
+constants:
+  defer_missing: 800
+  max_drop: 1000
+  scheduler_delay: 6
+  show_priority_x_hours_before_tick: 48
+  ttl: 60
+dbs:
+  main:
+    user: {{.DB_MAIN_USER}}
+    pass: {{.DB_MAIN_PASS}}
+    host: {{.DB_MAIN_HOST}}
+    db: eddb
+  side:
+    # This is sidewinder's remote db, for faction history tracking. Do not edit.
+    user: {{.DB_SIDE_USER}}
+    pass: {{.DB_SIDE_PASS}}
+    host: {{.DB_SIDE_HOST}}
+    db: {{.DB_SIDE_DB}}
+discord:
+  dev: {{.DISCORD_TOKEN_DEV}}
+  prod: {{.DISCORD_TOKEN_PROD}}
+  live: {{.DISCORD_TOKEN_LIVE}}
+  live2: {{.DISCORD_TOKEN_LIVE}}
+  test: {{.DISCORD_TOKEN_TEST}}
+emergency:
+  channel: {{.CHANNELS_EMERGENCY}}
+  users:
+    - {{.USER_EMERGENCY1}}
+    - {{.USER_EMERGENCY2}}
+emojis:
+  _friendly: "\U0001F1EB"
+  _hostile: "\U0001F1ED"
+  _no: "\u274C"
+  _yes: "\u2705"
+inara:
+  proto_header:
+    APIkey: {{.INARA_APIKEY}}
+    appName: CogBotTest
+    appVersion: 0.1
+    isDeveloped: true
+pastebin:
+  dev_key: {{.PASTEBIN_DEVKEY}}
+  user: {{.PASTEBIN_USER}}
+  pass: {{.PASTEBIN_PASS}}
+paths:
+  donate: data/donate.txt
+  json: data/sheets.json
+  log_conf: data/log.yml
+  service_json: data/service_sheets.json
+  token: data/sheets.token
+ports:
+  sanic: 8000
+  zmq: 9000
+scanners:
+  hudson_carriers:
+    cls: CarrierScanner
+    id: {{.DID_KOS}}
+    page: Carriers
+  hudson_cattle:
+    cls: FortScanner
+    id: {{.DID_CATTLE}}
+    page: Cycle {{.CUR_CYCLE}}
+  hudson_gal:
+    cls: GalScanner
+    id: {{.DID_GALPOW}}
+    page: ZACHARY HUDSON
+  hudson_kos:
+    cls: KOSScanner
+    id: {{.DID_KOS}}
+    page: kos
+  hudson_recruits:
+    cls: RecruitsScanner
+    id: {{.DID_RECRUITS}}
+    page: Main
+  hudson_snipe:
+    cls: SnipeScanner
+    id: {{.DID_SNIPE}}
+    page: C{{.CUR_CYCLE}}
+  hudson_tracker:
+    cls: FortTracker
+    id: {{.DID_TRACKER}}
+    page: Cycle {{.CUR_CYCLE}}
+  hudson_undermine:
+    cls: UMScanner
+    id: {{.DID_UNDERMINE}}
+    page: C{{.CUR_CYCLE}}
+scrape:
+  api: {{.SPY_API}}
+  driver: data/chromedriver
+  url: {{.SPY_URL}}
+tests:
+  hudson_cattle:
+    cls: FortScanner
+    id: {{.DID_CATTLE}}
+    page: TestUnit
+  hudson_undermine:
+    cls: UMScanner
+    id: {{.DID_UNDERMINE}}
+    page: TestUnit
+...
