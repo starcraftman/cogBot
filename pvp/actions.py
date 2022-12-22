@@ -11,7 +11,8 @@ import cog.tbl
 from cogdb.eddb import LEN as EDDB_LEN
 import pvp.journal
 # Make available reused actions
-from cog.actions import (Action, Donate, Feedback, Near, Repair, Route, Status, Time, Trigger, WhoIs)  # noqa: F401 pylint: disable=unused-import
+from cog.actions import (Action, Dist, Donate, Feedback, Near,
+                         Repair, Route, Status, Time, Trigger, WhoIs)  # noqa: F401 pylint: disable=unused-import
 
 
 class Help(Action):

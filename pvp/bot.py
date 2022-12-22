@@ -179,7 +179,7 @@ class PVPBot(CogBot):
             exc.write_log(log, content=content, author=author, channel=channel)
             if 'invalid choice' in str(exc) or 'argument {' in str(exc):
                 # Default show top level commands
-                await cog.actions.Help(args=None, bot=self, msg=message, session=None).execute()
+                await pvp.actions.Help(args=None, bot=self, msg=message, session=None).execute()
             else:
                 try:
                     self.parser.parse_args(content.split(' ')[0:1] + ['--help'])
