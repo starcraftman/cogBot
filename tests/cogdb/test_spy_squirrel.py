@@ -37,11 +37,6 @@ def response_json():
 
 
 @pytest.fixture()
-def scrape_json():
-    yield load_json_secret('scrape.json')
-
-
-@pytest.fixture()
 def response_news_json(response_json):
     """Returns the news element of refined json, shortcut."""
     yield response_json['123']['news']

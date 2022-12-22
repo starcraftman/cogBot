@@ -81,7 +81,6 @@ JSON_DOPPLER_MAP = {
     'base': 2,
     'refined': 1,
     'response': 1,
-    'scrape': 4,
 }
 
 
