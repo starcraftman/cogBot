@@ -362,16 +362,22 @@ def get_pvp_cmdr(eddb_session, discord_id):
     Returns: The PVPCmdr if present, None otherwise.
     """
     try:
-        return eddb_session.query(PVPCmdr).filter(PVPCmdr.id == discord_id).one()
+        cmdr = eddb_session.query(PVPCmdr).filter(PVPCmdr.id == discord_id).one()
     except sqla.exc.NoResultFound:
-        return None
+        cmdr = None
+
+    return cmdr
 
 
 def add_pvp_cmdr(eddb_session, discord_id, name):
     """
     Ensure the one time setup of commander is performed.
     """
-    eddb_session.add(PVPCmdr(id=discord_id, name=name))
+    cmdr = PVPCmdr(id=discord_id, name=name)
+    eddb_session.add(cmdr)
+    eddb_session.commit()
+
+    return cmdr
 
 
 def drop_tables():  # pragma: no cover | destructive to test

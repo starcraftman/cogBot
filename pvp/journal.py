@@ -171,7 +171,7 @@ def parse_event(eddb_session, data):
         return EVENT_TO_PARSER[event](eddb_session, data)
 
     logging.getLogger(__name__).error("Failed to parse event: %s", event)
-    raise ValueError(f"Do not support parsing: {event}")
+    raise ValueError(f"No parser configured for: {event}")
 
 
 def load_journal_possible(fname, cmdr_id):
@@ -196,9 +196,9 @@ def load_journal_possible(fname, cmdr_id):
                 loaded['cmdr_id'] = cmdr_id
                 to_return += [parse_event(eddb_session, loaded)]
             except json.decoder.JSONDecodeError:
-                logging.getLogger(__name__).error("Failed to parse player journal line: %s", line)
-            except ValueError:
-                logging.getLogger(__name__).warning("No parser setup for: %s", loaded['event'])
+                logging.getLogger(__name__).error("Failed to JSON decode line: %s", line)
+            except ValueError as exc:
+                logging.getLogger(__name__).warning(str(exc))
 
     return to_return
 
@@ -234,10 +234,6 @@ def ship_name_map():
     return ship_map
 
 
-def main():
-    pass
-
-
 EVENT_TO_PARSER = {
     "died": parse_died,
     "interdicted": parse_pvpinterdicted,
@@ -248,7 +244,3 @@ EVENT_TO_PARSER = {
     "Interdiction": parse_pvpinterdiction,
     "PVPKill": parse_pvpkill,
 }
-
-
-if __name__ == "__main__":
-    main()

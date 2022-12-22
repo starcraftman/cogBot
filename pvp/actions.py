@@ -57,16 +57,7 @@ async def cmdr_setup(eddb_session, client, msg):
     """
     def check_button(orig_author, sent, inter):
         """
-        Check if a user is the original requesting author
-        or if the responding user to interaction is an admin.
-        Use functools.partial to leave only inter arg.
-
-        Args:
-            orig_author: The original author who made request.
-            sent: The message sent with options/buttons.
-            inter: The interaction argument to check.
-
-        Returns: True ONLY if responding to same message and user allowed.
+        Check the interaction is for same message and author.
         """
         return inter.message == sent and inter.user == orig_author
 
@@ -74,27 +65,28 @@ async def cmdr_setup(eddb_session, client, msg):
         add_item(dui.Button(label="Yes", custom_id="Yes", style=discord.ButtonStyle.green)).\
         add_item(dui.Button(label="No", custom_id="No", style=discord.ButtonStyle.red))
 
-    text = "This bot will store information based on uploads and link it to your Discord ID. Ok?"
+    text = "This bot will store information derived from logs and link it to your Discord ID. Is that ok?"
     sent = await msg.channel.send(text, view=view)
-    check = functools.partial(check_button, msg.author, sent)
-    inter = await client.wait_for('interaction', check=check)
+    inter = await client.wait_for('interaction', check=functools.partial(check_button, msg.author, sent))
 
-    print(inter.data)
-    if not inter.data['custom_id'].lower().strip().startswith('y'):
-        await inter.response.send_message('Aborting upload. Bye.', ephemeral=True)
+    if inter.data['custom_id'] == "No":
+        await inter.response.send_message('Aborting registration. No data stored.', ephemeral=True)
         return False
 
-    view = dui.View().\
-        add_item(dui.TextInput(label="CMDR name", custom_id="cmdr_name", style=discord.TextStyle.short,
-                               placeholder='CMDR name', required=True, min_length=2, max_length=EDDB_LEN['pvp_name']))
-    text = "What is your in game cmdr name?"
-    sent = await msg.channel.send(text, view=view)
-    check = functools.partial(check_button, msg.author, sent)
-    inter = await client.wait_for('interaction', check=check)
-    print(inter.data)
+    modal = CMDRRegistration()
+    await inter.response.send_modal(modal)
+    await modal.wait()
+    return pvp.schema.add_pvp_cmdr(eddb_session, msg.author.id, modal.name)
 
-    pvp.schema.add_pvp_cmdr(eddb_session, msg.author.id, 'name')
-    eddb_session.flush()
+
+class CMDRRegistration(dui.Modal, title='CMDR Registration'):
+    """ Register a cmdr by getting name via a modal input. """
+    name = dui.TextInput(label='CMDR Name', min_length=5, max_length=EDDB_LEN['pvp_name'],
+                         style=discord.TextStyle.short, placeholder="Your in game name", required=True)
+
+    async def on_submit(self, interaction: discord.Interaction):
+        self.name = pvp.journal.clean_cmdr_name(self.name)
+        await interaction.response.send_message(f'You are now registered, CMDR {self.name}!', ephemeral=True)
 
 
 class FileUpload(Action):
@@ -114,7 +106,7 @@ class FileUpload(Action):
             if not await cmdr_setup(self.session, self.bot, self.msg):
                 return
 
-        #  with cfut.ProcessPoolExecutor(max_workers=1) as pool:
-            #  await self.bot.loop.run_in_executor(
-                #  pool, pvp.journal.load_journal_possible, self.file, discord_id,
-            #  )
+        with cfut.ProcessPoolExecutor(max_workers=1) as pool:
+            await self.bot.loop.run_in_executor(
+                pool, pvp.journal.load_journal_possible, self.file, discord_id,
+            )
