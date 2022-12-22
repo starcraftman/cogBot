@@ -10,6 +10,7 @@ import datetime
 import json
 import logging
 
+import cogdb
 from cogdb.eddb import LEN as EDDB_LEN
 from cogdb.eddn import TIME_STRP
 from cogdb.spy_squirrel import ship_type_to_id_map
@@ -157,7 +158,23 @@ def datetime_to_tstamp(date_string):
         raise
 
 
-def load_journal_possible(fname, cmdr_id=None):
+def parse_event(eddb_session, data):
+    """
+    Parse the event that has been passed in.
+
+    Args:
+        eddb_session: A session onto the db.
+        data: The JSON data object.
+    """
+    event = data['event']
+    if event in EVENT_TO_PARSER:
+        return EVENT_TO_PARSER[event](eddb_session, data)
+
+    logging.getLogger(__name__).error("Failed to parse event: %s", event)
+    raise ValueError(f"Do not support parsing: {event}")
+
+
+def load_journal_possible(fname, cmdr_id):
     """
     Load an existing json file on server and then parse the lines to validate them.
     Any lines that fail to be validated will be ignored.
@@ -168,21 +185,22 @@ def load_journal_possible(fname, cmdr_id=None):
 
     Returns: A list of parsed json objects ready to further process.
     """
-    json_objs = []
-    with open(fname, 'r', encoding='utf-8') as fin:
+    to_return = []
+    with open(fname, 'r', encoding='utf-8') as fin, cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
         lines = [x for x in fin.read().split('\n') if x]
 
         for line in lines:
             try:
                 loaded = json.loads(line)
                 loaded['event_at'] = datetime_to_tstamp(loaded['timestamp'])
-                if cmdr_id:
-                    loaded['cmdr_id'] = cmdr_id
-                json_objs += [loaded]
+                loaded['cmdr_id'] = cmdr_id
+                to_return += [parse_event(eddb_session, loaded)]
             except json.decoder.JSONDecodeError:
-                logging.getLogger(__name__).error("Failed to parse player journal line: {line}")
+                logging.getLogger(__name__).error("Failed to parse player journal line: %s", line)
+            except ValueError:
+                logging.getLogger(__name__).warning("No parser setup for: %s", loaded['event'])
 
-    return json_objs
+    return to_return
 
 
 def clean_cmdr_name(name):

@@ -24,6 +24,7 @@ def f_pvpcmdrs(eddb_session):
         PVPCmdr(id=2, name='shyGuy'),
         PVPCmdr(id=3, name='shootsALot'),
     ])
+    eddb_session.commit()
 
 
 @pytest.fixture
@@ -103,9 +104,19 @@ def test_parse_interdicted(f_pvpclean, f_pvpcmdrs, eddb_session):
     assert not interdicted.is_player
 
 
-def test_load_journal_possible(f_pvpclean):
-    jsons = pvp.journal.load_journal_possible(JOURNAL_PATH)
-    assert jsons[-1]['event'] == 'PVPKill'
+def test_load_journal_possible(f_spy_ships, f_pvpclean, f_pvpcmdrs, eddb_session):
+    pvp.journal.load_journal_possible(JOURNAL_PATH, cmdr_id=1)
+    interdicted = eddb_session.query(PVPInterdicted).filter(PVPInterdicted.cmdr_id == 1).one()
+    assert 1 == interdicted.cmdr_id
+
+
+def test_parse_event(f_spy_ships, f_pvpclean, f_pvpcmdrs, eddb_session):
+    data = json.loads('{ "timestamp":"2016-06-10T14:32:03Z", "event":"Died", "Killers":[ { "Name":"Cmdr HRC1", "Ship":"Vulture", "Rank":"Competent" }, { "Name":"Cmdr HRC2", "Ship":"Python", "Rank":"Master" } ] }')
+    data['cmdr_id'] = 1
+    data['event_at'] = pvp.journal.datetime_to_tstamp(data['timestamp'])
+    pvp.journal.parse_event(eddb_session, data)
+    assert len(eddb_session.query(PVPDeath).all()) == 1
+    assert len(eddb_session.query(PVPDeathKiller).all()) == 2
 
 
 def test_journal_rank_maps():

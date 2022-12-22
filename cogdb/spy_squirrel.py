@@ -441,7 +441,8 @@ def ship_type_to_id_map(traffic_text=False):
 def fetch_json_secret(secrets_path, name):
     """
     Check if required secrets available, if not fetch them.
-    Executing this function requires local install of secrethub + credentials to read.
+    Executing this function requires local install of doppler + credentials.
+    If in doubt contact project owner for help.
 
     Args:
         secrets_path: Path to a directory to put secrets.
@@ -461,7 +462,7 @@ def load_json_secret(fname):
     Load a json file example for API testing.
 
     Args:
-        fname: The filename to load or fetch from secrethub.
+        fname: The filename to load or fetch from doppler.
     """
     path = pathlib.Path(os.path.join(tempfile.gettempdir(), fname))
     if not path.exists():
@@ -1304,7 +1305,7 @@ def main():  # pragma: no cover | destructive to test
             load_response_json(load_json_secret('response.json'))
         except FileNotFoundError:
             print("Could not load required json.")
-            print("Please install screthub: sudo apt install secrethub-cli")
+            print("Please install and configure doppler.")
 
 
 SPY_TABLES = [SpyPrep, SpyVote, SpySystem, SpyTraffic, SpyBounty, SpyShip]

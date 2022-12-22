@@ -10,7 +10,8 @@ import sqlalchemy.orm.session
 import sqlalchemy.ext.declarative
 
 import cogdb.eddb
-from cogdb.eddb import Base, LEN as EDDB_LEN
+from cogdb.eddb import LEN as EDDB_LEN
+from cogdb.spy_squirrel import Base
 from cog.util import ReprMixin, TimestampMixin
 
 
@@ -352,6 +353,25 @@ PVPCmdr.interdicteds = sqla_orm.relationship(
     'PVPInterdicted', uselist=True, back_populates='cmdr', lazy='select')
 PVPInterdicted.cmdr = sqla_orm.relationship(
     'PVPCmdr', uselist=False, back_populates='interdicteds', lazy='select')
+
+
+def get_pvp_cmdr(eddb_session, discord_id):
+    """
+    Get the PVPCmdr for a given discord user.
+
+    Returns: The PVPCmdr if present, None otherwise.
+    """
+    try:
+        return eddb_session.query(PVPCmdr).filter(PVPCmdr.id == discord_id).one()
+    except sqla.exc.NoResultFound:
+        return None
+
+
+def add_pvp_cmdr(eddb_session, discord_id, name):
+    """
+    Ensure the one time setup of commander is performed.
+    """
+    eddb_session.add(PVPCmdr(id=discord_id, name=name))
 
 
 def drop_tables():  # pragma: no cover | destructive to test

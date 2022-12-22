@@ -117,7 +117,8 @@ class PVPBot(CogBot):
             if len(message.attachments) == 1:
                 handle, tfile = tempfile.mkstemp()
                 await message.attachments[0].save(handle)
-                await pvp.actions.FileUpload(args=None, bot=self, msg=message, session=None, file=tfile).execute()
+                with cogdb.session_scope(cogdb.EDDBSession) as session:
+                    await pvp.actions.FileUpload(args=None, bot=self, msg=message, session=session, file=tfile).execute()
         finally:
             if tfile and os.path.exists(tfile):
                 try:
