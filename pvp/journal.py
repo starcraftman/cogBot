@@ -10,7 +10,10 @@ import datetime
 import json
 import logging
 
+import sqlalchemy as sqla
+
 import cogdb
+import cogdb.eddb
 from cogdb.eddb import LEN as EDDB_LEN
 from cogdb.eddn import TIME_STRP
 from cogdb.spy_squirrel import ship_type_to_id_map
@@ -66,6 +69,7 @@ def parse_died(eddb_session, data):
                 event_at=data['event_at'],
             )
         )
+        eddb_session.flush()
 
     return death
 
@@ -87,6 +91,7 @@ def parse_pvpkill(eddb_session, data):
         event_at=data['event_at'],
     )
     eddb_session.add(kill)
+    eddb_session.flush()
 
     return kill
 
@@ -101,6 +106,9 @@ def parse_pvpinterdiction(eddb_session, data):
 
     Returns: The added object.
     """
+    if not data['IsPlayer']:
+        return None
+
     interdiction = pvp.schema.PVPInterdiction(
         cmdr_id=data.get('cmdr_id'),
         victim_name=clean_cmdr_name(data['Interdicted']),
@@ -110,6 +118,7 @@ def parse_pvpinterdiction(eddb_session, data):
         event_at=data['event_at'],
     )
     eddb_session.add(interdiction)
+    eddb_session.flush()
 
     return interdiction
 
@@ -124,6 +133,9 @@ def parse_pvpinterdicted(eddb_session, data):
 
     Returns: The added object.
     """
+    if not data['IsPlayer']:
+        return None
+
     interdicted = pvp.schema.PVPInterdicted(
         cmdr_id=data.get('cmdr_id'),
         did_submit=data['Submitted'],
@@ -133,8 +145,33 @@ def parse_pvpinterdicted(eddb_session, data):
         event_at=data['event_at'],
     )
     eddb_session.add(interdicted)
+    eddb_session.flush()
 
     return interdicted
+
+
+def parse_location(eddb_session, data):
+    """
+    Parse the Location messages in the log file.
+    Args:
+        eddb_session: A session onto the db.
+        data: A JSON object with the data to parse.
+
+    Returns: The added object.
+    """
+    try:
+        found, _ = cogdb.eddb.get_all_systems_named(eddb_session, [data['StarSystem']])
+        location = pvp.schema.PVPLocation(
+            cmdr_id=data.get('cmdr_id'),
+            system_id=found[0].id,
+            event_at=data['event_at'],
+        )
+        eddb_session.add(location)
+        eddb_session.flush()
+    except IndexError:
+        location = None
+
+    return location
 
 
 def datetime_to_tstamp(date_string):
@@ -199,6 +236,9 @@ def load_journal_possible(fname, cmdr_id):
                 logging.getLogger(__name__).error("Failed to JSON decode line: %s", line)
             except ValueError as exc:
                 logging.getLogger(__name__).warning(str(exc))
+            except sqla.exc.IntegrityError:
+                eddb_session.rollback()
+                logging.getLogger(__name__).warning("Duplicate Event: %s", line)
 
     return to_return
 
@@ -235,12 +275,10 @@ def ship_name_map():
 
 
 EVENT_TO_PARSER = {
-    "died": parse_died,
-    "interdicted": parse_pvpinterdicted,
-    "interdiction": parse_pvpinterdiction,
-    "pvpkill": parse_pvpkill,
     "Died": parse_died,
+    "FSDJump": parse_location,
     "Interdicted": parse_pvpinterdicted,
     "Interdiction": parse_pvpinterdiction,
+    "Location": parse_location,
     "PVPKill": parse_pvpkill,
 }

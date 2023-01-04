@@ -9,10 +9,11 @@ import discord.ui as dui
 
 import cog.tbl
 from cogdb.eddb import LEN as EDDB_LEN
+import pvp
 import pvp.journal
 # Make available reused actions
 from cog.actions import (Action, Dist, Donate, Feedback, Near,
-                         Repair, Route, Status, Time, Trigger, WhoIs)  # noqa: F401 pylint: disable=unused-import
+                         Repair, Route, Time, Trigger, WhoIs)  # noqa: F401 pylint: disable=unused-import
 
 
 class Help(Action):
@@ -52,6 +53,21 @@ class Help(Action):
             pass
 
 
+class Status(Action):
+    """
+    Display the status of this bot.
+    """
+    async def execute(self):
+        lines = [
+            ['Created By', 'GearsandCogs'],
+            ['Uptime', self.bot.uptime],
+            ['Version', f'{pvp.__version__}'],
+            ['Contributors:', ''],
+        ]
+
+        await self.bot.send_message(self.msg.channel, cog.tbl.format_table(lines)[0])
+
+
 async def cmdr_setup(eddb_session, client, msg):
     """
     Perform first time cmdr setup via interactive questions.
@@ -86,7 +102,7 @@ class CMDRRegistration(dui.Modal, title='CMDR Registration'):
                          style=discord.TextStyle.short, placeholder="Your in game name", required=True)
 
     async def on_submit(self, interaction: discord.Interaction):
-        self.name = pvp.journal.clean_cmdr_name(self.name)
+        self.name = pvp.journal.clean_cmdr_name(str(self.name))
         await interaction.response.send_message(f'You are now registered, CMDR {self.name}!', ephemeral=True)
 
 

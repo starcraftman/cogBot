@@ -30,7 +30,7 @@ import cog.exc
 import cog.util
 import cogdb
 import cogdb.query
-from cog.bot import EmojiResolver, CogBot
+from cog.bot import CogBot
 import pvp.parse
 import pvp.actions
 

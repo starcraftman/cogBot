@@ -8,6 +8,7 @@ import sqlalchemy as sqla
 import sqlalchemy.orm as sqla_orm
 import sqlalchemy.orm.session
 import sqlalchemy.ext.declarative
+from sqlalchemy.schema import UniqueConstraint
 
 import cogdb.eddb
 from cogdb.eddb import LEN as EDDB_LEN
@@ -54,15 +55,60 @@ class PVPCmdr(ReprMixin, TimestampMixin, Base):
         return hash(self.id)
 
 
+class PVPLocation(ReprMixin, TimestampMixin, EventTimeMixin, Base):
+    """
+    Table to store location of a given player.
+    """
+    __tablename__ = 'pvp_locations'
+    __table_args__ = (
+        UniqueConstraint('cmdr_id', 'system_id', 'event_at', name='_cmdr_system_event_unique'),
+    )
+    _repr_keys = ['id', 'cmdr_id', 'system_id', 'created_at', 'event_at']
+
+    id = sqla.Column(sqla.BigInteger, primary_key=True)
+    cmdr_id = sqla.Column(sqla.BigInteger, sqla.ForeignKey('pvp_cmdrs.id'))
+    system_id = sqla.Column(sqla.Integer)
+
+    created_at = sqla.Column(sqla.Integer, default=time.time)
+    event_at = sqla.Column(sqla.Integer, default=time.time)  # Set to time in log
+
+    cmdr = sqla.orm.relationship('PVPCmdr', viewonly=True)
+    system = sqla.orm.relationship('System', uselist=False, lazy='joined', viewonly=True,
+                                   primaryjoin='foreign(PVPLocation.system_id) == System.id')
+
+    def __str__(self):
+        """ Show PVPKill information. """
+        try:
+            cmdr = self.cmdr.name
+        except AttributeError:
+            cmdr = self.id
+        try:
+            system = self.system.name
+        except AttributeError:
+            system = f"system_id {self.system_id}"
+
+        return f'CMDR {cmdr} now located in {system}.'
+
+    def __eq__(self, other):
+        return isinstance(other, PVPLocation) and hash(self) == hash(other)
+
+    def __hash__(self):
+        return hash(f'{self.cmdr_id}_{self.system_id}_{self.event_at}')
+
+
 class PVPKill(ReprMixin, TimestampMixin, EventTimeMixin, Base):
     """
     Table to store PVP kills reported by a user.
     """
     __tablename__ = 'pvp_kills'
-    _repr_keys = ['id', 'cmdr_id', 'victim_name', 'victim_rank', 'created_at', 'event_at']
+    __table_args__ = (
+        UniqueConstraint('cmdr_id', 'system_id', 'event_at', name='_cmdr_system_event_unique'),
+    )
+    _repr_keys = ['id', 'cmdr_id', 'system_id', 'victim_name', 'victim_rank', 'created_at', 'event_at']
 
     id = sqla.Column(sqla.BigInteger, primary_key=True)
     cmdr_id = sqla.Column(sqla.BigInteger, sqla.ForeignKey('pvp_cmdrs.id'))
+    system_id = sqla.Column(sqla.Integer)
 
     victim_name = sqla.Column(sqla.String(EDDB_LEN["pvp_name"]), index=True)
     victim_rank = sqla.Column(sqla.Integer, default=0)
@@ -79,10 +125,10 @@ class PVPKill(ReprMixin, TimestampMixin, EventTimeMixin, Base):
         return f'CMDR {cmdr} killed CMDR {self.victim_name} at {self.event_date}'
 
     def __eq__(self, other):
-        return isinstance(other, PVPKill) and self.id == other.id
+        return isinstance(other, PVPKill) and hash(self) == hash(other)
 
     def __hash__(self):
-        return hash(self.id)
+        return hash(f'{self.cmdr_id}_{self.system_id}_{self.event_at}')
 
 
 class PVPDeath(ReprMixin, TimestampMixin, EventTimeMixin, Base):
@@ -90,10 +136,14 @@ class PVPDeath(ReprMixin, TimestampMixin, EventTimeMixin, Base):
     Table to store any deaths of a cmdr.
     """
     __tablename__ = 'pvp_deaths'
-    _repr_keys = ['id', 'cmdr_id', 'is_wing_kill', 'created_at', 'event_at']
+    __table_args__ = (
+        UniqueConstraint('cmdr_id', 'system_id', 'event_at', name='_cmdr_system_event_unique'),
+    )
+    _repr_keys = ['id', 'cmdr_id', 'system_id', 'is_wing_kill', 'created_at', 'event_at']
 
     id = sqla.Column(sqla.BigInteger, primary_key=True)
     cmdr_id = sqla.Column(sqla.BigInteger, sqla.ForeignKey('pvp_cmdrs.id'))
+    system_id = sqla.Column(sqla.Integer)
 
     is_wing_kill = sqla.Column(sqla.Boolean, default=False)
     created_at = sqla.Column(sqla.Integer, default=time.time)
@@ -115,10 +165,10 @@ class PVPDeath(ReprMixin, TimestampMixin, EventTimeMixin, Base):
         return f"CMDR {cmdr} was killed by: {killers} at {self.event_date}"
 
     def __eq__(self, other):
-        return isinstance(other, PVPDeath) and self.id == other.id
+        return isinstance(other, PVPDeath) and hash(self) == hash(other)
 
     def __hash__(self):
-        return hash(self.id)
+        return hash(f'{self.cmdr_id}_{self.system_id}_{self.event_at}')
 
 
 class PVPDeathKiller(ReprMixin, TimestampMixin, EventTimeMixin, Base):
@@ -164,11 +214,15 @@ class PVPInterdiction(ReprMixin, TimestampMixin, EventTimeMixin, Base):
     Table to store events where cmdr interdicted other players to initiate combat.
     """
     __tablename__ = 'pvp_interdictions'
-    _repr_keys = ['id', 'cmdr_id', 'is_player', 'is_success', 'did_escape',
+    __table_args__ = (
+        UniqueConstraint('cmdr_id', 'system_id', 'event_at', name='_cmdr_system_event_unique'),
+    )
+    _repr_keys = ['id', 'cmdr_id', 'system_id', 'is_player', 'is_success', 'did_escape',
                   'victim_name', 'victim_rank', 'created_at', 'event_at']
 
     id = sqla.Column(sqla.BigInteger, primary_key=True)
     cmdr_id = sqla.Column(sqla.BigInteger, sqla.ForeignKey('pvp_cmdrs.id'))
+    system_id = sqla.Column(sqla.Integer)
 
     is_player = sqla.Column(sqla.Boolean, default=False)  # True if interdictor is player
     is_success = sqla.Column(sqla.Boolean, default=False)  # True if forced player out of super cruise
@@ -189,10 +243,10 @@ class PVPInterdiction(ReprMixin, TimestampMixin, EventTimeMixin, Base):
         return f"CMDR {cmdr} interdicted {'CMDR ' if self.is_player else ''}{self.victim_name}. Pulled from SC: {self.is_success} Escaped: {self.did_escape}"
 
     def __eq__(self, other):
-        return isinstance(other, PVPInterdiction) and self.id == other.id
+        return isinstance(other, PVPInterdiction) and hash(self) == hash(other)
 
     def __hash__(self):
-        return hash(self.id)
+        return hash(f'{self.cmdr_id}_{self.system_id}_{self.event_at}')
 
 
 class PVPInterdictionKill(ReprMixin, TimestampMixin, EventTimeMixin, Base):
@@ -250,12 +304,15 @@ class PVPInterdicted(ReprMixin, TimestampMixin, EventTimeMixin, Base):
     Table to store events when a cmdr was interdicted by other players.
     """
     __tablename__ = 'pvp_interdicteds'
-    _repr_keys = ['id', 'cmdr_id', 'is_player', 'did_submit', 'did_escape'
+    __table_args__ = (
+        UniqueConstraint('cmdr_id', 'system_id', 'event_at', name='_cmdr_system_event_unique'),
+    )
+    _repr_keys = ['id', 'cmdr_id', 'system_id', 'is_player', 'did_submit', 'did_escape'
                   'interdictor_name', 'interdictor_rank', 'created_at', 'event_at']
 
     id = sqla.Column(sqla.BigInteger, primary_key=True)
     cmdr_id = sqla.Column(sqla.BigInteger, sqla.ForeignKey('pvp_cmdrs.id'))
-    pvp_death_id = sqla.Column(sqla.BigInteger, sqla.ForeignKey('pvp_deaths.id'))  # If they died link here
+    system_id = sqla.Column(sqla.Integer)
 
     is_player = sqla.Column(sqla.Boolean, default=False)  # True if interdictor is player
     did_submit = sqla.Column(sqla.Boolean, default=False)  # True if the fictim submitted
@@ -276,10 +333,10 @@ class PVPInterdicted(ReprMixin, TimestampMixin, EventTimeMixin, Base):
         return f"CMDR {cmdr} was interdicted by {'CMDR ' if self.is_player else ''}{self.interdictor_name}. Submitted: {self.did_submit}. Escaped: {self.did_escape}"
 
     def __eq__(self, other):
-        return isinstance(other, PVPInterdicted) and self.id == other.id
+        return isinstance(other, PVPInterdicted) and hash(self) == hash(other)
 
     def __hash__(self):
-        return hash(self.id)
+        return hash(f'{self.cmdr_id}_{self.system_id}_{self.event_at}')
 
 
 class PVPInterdictedKill(ReprMixin, TimestampMixin, EventTimeMixin, Base):
@@ -330,6 +387,40 @@ class PVPInterdictedDeath(ReprMixin, TimestampMixin, EventTimeMixin, Base):
 
     def __hash__(self):
         return hash(self.id)
+
+
+class PVPStat(ReprMixin, TimestampMixin, Base):
+    """
+    Table to store derived stats from pvp tracking.
+    Represent a single commander who reports kills to the bot.
+    """
+    __tablename__ = 'pvp_stats'
+    _repr_keys = ['id', 'cmdr_id', 'deaths', 'kills', 'interdictions', 'interdicteds',
+                  'most_visited_system_id', 'least_visited_system_id', 'updated_at']
+
+    id = sqla.Column(sqla.BigInteger, primary_key=True)  # Discord id
+    cmdr_id = sqla.Column(sqla.BigInteger, sqla.ForeignKey('pvp_cmdrs.id'))
+
+    deaths = sqla.Column(sqla.Integer, default=0)
+    kills = sqla.Column(sqla.Integer, default=0)
+    interdictions = sqla.Column(sqla.Integer, default=0)
+    interdicteds = sqla.Column(sqla.Integer, default=0)
+    most_visited_system_id = sqla.Column(sqla.Integer, default=0)
+    least_visited_system_id = sqla.Column(sqla.Integer, default=0)
+    updated_at = sqla.Column(sqla.Integer, default=time.time, onupdate=time.time)
+
+    cmdr = sqla.orm.relationship('PVPCmdr', viewonly=True)
+
+    @property
+    def kill_ratio(self):
+        """ Return the k/d of a user. """
+        return float(self.kills) / self.deaths
+
+    def __eq__(self, other):
+        return isinstance(other, PVPStat) and hash(self) == hash(other)
+
+    def __hash__(self):
+        return hash(self.cmdr_id)
 
 
 # Relationships that are back_populates
@@ -476,7 +567,7 @@ def main():
 
 PVP_TABLES = [
     PVPInterdictedKill, PVPInterdictedDeath, PVPInterdictionKill, PVPInterdictionDeath,
-    PVPInterdicted, PVPInterdiction, PVPDeathKiller, PVPDeath, PVPKill, PVPCmdr
+    PVPInterdicted, PVPInterdiction, PVPDeathKiller, PVPDeath, PVPKill, PVPLocation, PVPCmdr
 ]
 if __name__ == "__main__":
     main()

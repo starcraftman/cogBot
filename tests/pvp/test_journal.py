@@ -11,7 +11,7 @@ import pvp.schema
 import pvp.journal
 from pvp.schema import (
     PVPInterdictedKill, PVPInterdictedDeath, PVPInterdictionKill, PVPInterdictionDeath,
-    PVPInterdicted, PVPInterdiction, PVPDeathKiller, PVPDeath, PVPKill, PVPCmdr
+    PVPInterdicted, PVPInterdiction, PVPDeathKiller, PVPDeath, PVPKill, PVPLocation, PVPCmdr
 )
 
 JOURNAL_PATH = os.path.join(cog.util.ROOT_DIR, 'tests', 'pvp', 'player_journal.jsonl')
@@ -102,6 +102,30 @@ def test_parse_interdicted(f_pvpclean, f_pvpcmdrs, eddb_session):
     assert "Dread Pirate Roberts" == interdicted.interdictor_name
     assert 0 == interdicted.interdictor_rank
     assert not interdicted.is_player
+
+
+def test_parse_location(f_pvpclean, f_pvpcmdrs, eddb_session):
+    data = json.loads('{ "timestamp":"2016-07-21T13:14:25Z", "event":"Location", "Docked":true, "StationName":"Azeban City", "StationType":"Coriolis", "StarSystem":"Eranin", "StarPos":[-22.844,36.531,-1.188], "Allegiance":"Alliance", "Economy":"$economy_Agri;", "Government":"$government_Communism;", "Security":"$SYSTEM_SECURITY_medium;", "Faction":"Eranin Peoples Party" }')
+    data['cmdr_id'] = 1
+    data['event_at'] = pvp.journal.datetime_to_tstamp(data['timestamp'])
+    pvp.journal.parse_location(eddb_session, data)
+    eddb_session.commit()
+
+    location = eddb_session.query(PVPLocation).filter(PVPLocation.cmdr_id == 1).one()
+    assert location.cmdr.name == "coolGuy"
+    assert location.system.name == "Eranin"
+
+
+def test_parse_fsdjump(f_pvpclean, f_pvpcmdrs, eddb_session):
+    data = json.loads('{ "timestamp":"2016-07-21T13:16:49Z", "event":"FSDJump", "StarSystem":"LP 98-132", "StarPos":[-26.781,37.031,-4.594], "Economy":"$economy_Extraction;", "Allegiance":"Federation", "Government":"$government_Anarchy;", "Security":"$SYSTEM_SECURITY_high_anarchy;", "JumpDist":5.230, "FuelUsed":0.355614, "FuelLevel":12.079949, "Faction":"Brotherhood of LP 98-132", "FactionState":"Outbreak" }')
+    data['cmdr_id'] = 1
+    data['event_at'] = pvp.journal.datetime_to_tstamp(data['timestamp'])
+    pvp.journal.parse_location(eddb_session, data)
+    eddb_session.commit()
+
+    location = eddb_session.query(PVPLocation).filter(PVPLocation.cmdr_id == 1).one()
+    assert location.cmdr.name == "coolGuy"
+    assert location.system.name == "LP 98-132"
 
 
 def test_load_journal_possible(f_spy_ships, f_pvpclean, f_pvpcmdrs, eddb_session):

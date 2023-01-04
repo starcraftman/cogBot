@@ -31,6 +31,9 @@ handlers:
   cogdb:
     <<: *default_handler
     filename: /tmp/cog/db.log
+  pvp:
+    <<: *default_handler
+    filename: /tmp/cog/pvp.log
   discord:
     <<: *default_handler
     filename: /tmp/cog/discord.log
@@ -76,6 +79,9 @@ loggers:
   cogdb:
     level: DEBUG
     handlers: [cogdb, warn_stream]
+  pvp:
+    level: DEBUG
+    handlers: [pvp, warn_stream]
   sqlalchemy:
     level: DEBUG
     handlers: [sqlalchemy, warn_stream]
