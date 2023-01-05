@@ -13,7 +13,7 @@ from sqlalchemy.schema import UniqueConstraint
 import cogdb.eddb
 from cogdb.eddb import LEN as EDDB_LEN
 from cogdb.spy_squirrel import Base
-from cog.util import ReprMixin, TimestampMixin
+from cog.util import ReprMixin, TimestampMixin, UpdatableMixin
 
 
 class EventTimeMixin():
@@ -395,7 +395,7 @@ class PVPInterdictedDeath(ReprMixin, TimestampMixin, EventTimeMixin, Base):
         return hash(self.id)
 
 
-class PVPStat(ReprMixin, TimestampMixin, Base):
+class PVPStat(ReprMixin, TimestampMixin, UpdatableMixin, Base):
     """
     Table to store derived stats from pvp tracking.
     Represent a single commander who reports kills to the bot.
@@ -404,7 +404,7 @@ class PVPStat(ReprMixin, TimestampMixin, Base):
     _repr_keys = ['id', 'cmdr_id', 'deaths', 'kills', 'interdictions', 'interdicteds',
                   'most_visited_system_id', 'least_visited_system_id', 'updated_at']
 
-    id = sqla.Column(sqla.BigInteger, primary_key=True)  # Discord id
+    id = sqla.Column(sqla.BigInteger, primary_key=True)
     cmdr_id = sqla.Column(sqla.BigInteger, sqla.ForeignKey('pvp_cmdrs.id'))
 
     deaths = sqla.Column(sqla.Integer, default=0)
