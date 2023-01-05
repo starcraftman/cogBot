@@ -2,6 +2,8 @@
 Parsing only for pvp bot.
 See cog.parse for more info.
 """
+from argparse import RawDescriptionHelpFormatter as RawHelp
+
 import cog.parse
 
 PARSERS = []
@@ -28,6 +30,32 @@ def register_parser(func):
     """ Simple registration function, use as decorator. """
     PARSERS.append(func)
     return func
+
+
+@register_parser
+def subs_log(subs, prefix):
+    """ Subcommand parsing for log """
+    desc = f"""To see the log of recent PVP tracked events.
+
+**{prefix}log**
+        See the last 10 pvp events bot tracked.
+    """
+    sub = subs.add_parser(prefix + 'log', description=desc, formatter_class=RawHelp)
+    sub.set_defaults(cmd='Log')
+    CMD_MAP['Log'] = 'log'
+
+
+@register_parser
+def subs_stats(subs, prefix):
+    """ Subcommand parsing for stats """
+    desc = f"""To see your statistics.
+
+**{prefix}stats**
+        See your stats.
+    """
+    sub = subs.add_parser(prefix + 'stats', description=desc, formatter_class=RawHelp)
+    sub.set_defaults(cmd='Stats')
+    CMD_MAP['Stats'] = 'stats'
 
 
 def reuse_parsers():

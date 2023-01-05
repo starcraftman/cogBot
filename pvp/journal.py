@@ -320,13 +320,14 @@ class Parser():
             ))
             self.eddb_session.flush()
 
+        # Always store event in data for later use
         # When location is set and event happens, set it in event
-        if event in ['Died', 'Interdiction', 'Interdicted', 'PVPKill'] and self.data.get('Location'):
-            result.system_id = self.data.get('Location').system_id
-
-        # Store event in data for later use
         if event in ['Died', 'Interdiction', 'Interdicted', 'PVPKill']:
             self.data[event] = result
+            try:
+                result.system_id = self.data['Location'].system_id
+            except (KeyError, AttributeError):
+                pass
 
         # Handle stale data no longer needed
         if event in ['Location', 'FSDJump']:
@@ -345,39 +346,9 @@ class Parser():
         for line in self.lines:
             to_return += [self.parse_line(line)]
 
+        pvp.schema.update_pvp_stats(self.eddb_session, self.cmdr_id)
+
         return to_return
-
-
-def update_cmdr_stats(eddb_session, cmdr_id):
-    most_visited = eddb_session.query(pvp.schema.PVPLocation.system_id, sqla.func.count(pvp.schema.PVPLocation.system_id)).\
-        group_by(pvp.schema.PVPLocation.system_id).\
-        order_by(sqla.func.count(pvp.schema.PVPLocation.system_id).desc()).\
-        limit(1).\
-        one()
-    least_visited = eddb_session.query(pvp.schema.PVPLocation.system_id, sqla.func.count(pvp.schema.PVPLocation.system_id)).\
-        group_by(pvp.schema.PVPLocation.system_id).\
-        order_by(sqla.func.count(pvp.schema.PVPLocation.system_id)).\
-        limit(1).\
-        one()
-
-    kwargs = {
-        'deaths': eddb_session.query(pvp.schema.PVPDeath).count(),
-        'kills': eddb_session.query(pvp.schema.PVPKill).count(),
-        'interdictions': eddb_session.query(pvp.schema.PVPInterdiction).count(),
-        'interdicteds': eddb_session.query(pvp.schema.PVPInterdicted).count(),
-        'most_visited_system_id': most_visited[0],
-        'least_visited_system_id': least_visited[0],
-    }
-    try:
-        stat = eddb_session.query(pvp.schema.PVPStat).\
-            filter(pvp.schema.PVPStat.cmdr_id == cmdr_id).\
-            one()
-    except sqla.exc.NoResultFound:
-        stat = pvp.schema.PVPStat(cmdr_id=cmdr_id)
-        eddb_session.add(stat)
-        eddb_session.flush()
-
-    stat.update(**kwargs)
 
 
 def clean_cmdr_name(name):

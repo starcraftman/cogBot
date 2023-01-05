@@ -413,14 +413,42 @@ class PVPStat(ReprMixin, TimestampMixin, UpdatableMixin, Base):
     interdicteds = sqla.Column(sqla.Integer, default=0)
     most_visited_system_id = sqla.Column(sqla.Integer, default=0)
     least_visited_system_id = sqla.Column(sqla.Integer, default=0)
+
+    interdiction_kills = sqla.Column(sqla.Integer, default=0)
+    interdiction_deaths = sqla.Column(sqla.Integer, default=0)
+    interdicted_kills = sqla.Column(sqla.Integer, default=0)
+    interdicted_deaths = sqla.Column(sqla.Integer, default=0)
+
     updated_at = sqla.Column(sqla.Integer, default=time.time, onupdate=time.time)
 
     cmdr = sqla.orm.relationship('PVPCmdr', viewonly=True)
+    most_visited_system = sqla.orm.relationship(
+        'System', uselist=False, lazy='joined', viewonly=True,
+        primaryjoin='foreign(PVPStat.most_visited_system_id) == System.id')
+    least_visited_system = sqla.orm.relationship(
+        'System', uselist=False, lazy='joined', viewonly=True,
+        primaryjoin='foreign(PVPStat.least_visited_system_id) == System.id')
 
     @property
     def kill_ratio(self):
         """ Return the k/d of a user. """
         return float(self.kills) / self.deaths
+
+    def table_lines(self):
+        """ Return a list of columns for table formatting. """
+        return [
+            ["Kills", self.kills],
+            ["Deaths", self.deaths],
+            ["K/D", self.kill_ratio],
+            ["Interdictions", self.interdictions],
+            ["Interdicted", self.interdicteds],
+            ["Interdiction -> Kill", self.interdiction_kills],
+            ["Interdiction -> Death", self.interdiction_deaths],
+            ["Interdicted -> Kill", self.interdicted_kills],
+            ["Interdicted -> Death", self.interdicted_deaths],
+            ["Most Visited System", self.most_visited_system.name],
+            ["Least Visited System", self.least_visited_system.name],
+        ]
 
     def __eq__(self, other):
         return isinstance(other, PVPStat) and hash(self) == hash(other)
@@ -456,6 +484,10 @@ def get_pvp_cmdr(eddb_session, discord_id):
     """
     Get the PVPCmdr for a given discord user.
 
+    Args:
+        eddb_session: A session onto the EDDB db.
+        discord_id: The discord id of the CMDR.
+
     Returns: The PVPCmdr if present, None otherwise.
     """
     try:
@@ -469,12 +501,111 @@ def get_pvp_cmdr(eddb_session, discord_id):
 def add_pvp_cmdr(eddb_session, discord_id, name):
     """
     Ensure the one time setup of commander is performed.
+
+    Args:
+        eddb_session: A session onto the EDDB db.
+        discord_id: The discord id of the CMDR.
+        name: The name of the CMDR.
+
+    Returns: The added PVPCmdr.
     """
     cmdr = PVPCmdr(id=discord_id, name=name)
     eddb_session.add(cmdr)
     eddb_session.commit()
 
     return cmdr
+
+
+def get_pvp_stats(eddb_session, cmdr_id):
+    """
+    Update the statistics for a commander. To be called after a major change to events tracked.
+
+    Args:
+        eddb_session: A session onto the EDDB db.
+        cmdr_id: The cmdr's id.
+
+    Returns: The PVPStat for the cmdr. If no stats recorded, None.
+    """
+    try:
+        stat = eddb_session.query(PVPStat).\
+            filter(PVPStat.cmdr_id == cmdr_id).\
+            one()
+    except sqla.exc.NoResultFound:
+        stat = None
+
+    return stat
+
+
+def update_pvp_stats(eddb_session, cmdr_id):
+    """
+    Update the statistics for a commander. To be called after a major change to events tracked.
+
+    Args:
+        eddb_session: A session onto the EDDB db.
+        cmdr_id: The cmdr's id.
+    """
+    count_system_id = sqla.func.count(PVPLocation.system_id)
+    try:
+        most_visited_id = eddb_session.query(PVPLocation.system_id, count_system_id).\
+            group_by(PVPLocation.system_id).\
+            order_by(count_system_id.desc()).\
+            limit(1).\
+            one()[0]
+        least_visited_id = eddb_session.query(PVPLocation.system_id, count_system_id).\
+            group_by(PVPLocation.system_id).\
+            order_by(count_system_id).\
+            limit(1).\
+            one()[0]
+    except sqla.exc.NoResultFound:
+        most_visited_id = None
+        least_visited_id = None
+
+    kwargs = {
+        'deaths': eddb_session.query(PVPDeath).count(),
+        'kills': eddb_session.query(PVPKill).count(),
+        'interdictions': eddb_session.query(PVPInterdiction).count(),
+        'interdicteds': eddb_session.query(PVPInterdicted).count(),
+        'interdiction_deaths': eddb_session.query(PVPInterdictionDeath).count(),
+        'interdiction_kills': eddb_session.query(PVPInterdictionKill).count(),
+        'interdicted_deaths': eddb_session.query(PVPInterdictedDeath).count(),
+        'interdicted_kills': eddb_session.query(PVPInterdictedKill).count(),
+        'most_visited_system_id': most_visited_id,
+        'least_visited_system_id': least_visited_id,
+    }
+    try:
+        stat = eddb_session.query(PVPStat).\
+            filter(PVPStat.cmdr_id == cmdr_id).\
+            one()
+    except sqla.exc.NoResultFound:
+        stat = PVPStat(cmdr_id=cmdr_id)
+        eddb_session.add(stat)
+        eddb_session.flush()
+
+    stat.update(**kwargs)
+    return stat
+
+
+def get_pvp_events(eddb_session, cmdr_id, last_n=10):
+    """
+    Fetch the most recent tracked events to display to a user.
+
+    Args:
+        eddb_session: A session onto the EDDB db.
+        cmdr_id: The cmdr's id.
+        last_n: The amount of recent events to be displayed.
+
+    Returns: A list of db objects to display.
+    """
+    objs = []
+
+    for cls in [PVPLocation, PVPKill, PVPDeath, PVPInterdiction, PVPInterdiction]:
+        objs += eddb_session.query(cls).\
+            filter(cls.cmdr_id == cmdr_id).\
+            order_by(cls.event_at.desc()).\
+            limit(last_n).\
+            all()
+
+    return sorted(objs, key=lambda x: x.event_at, reverse=True)[:last_n]
 
 
 def drop_tables():  # pragma: no cover | destructive to test

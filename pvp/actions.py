@@ -7,8 +7,9 @@ import functools
 import discord
 import discord.ui as dui
 
-import cog.tbl
+import cogdb
 from cogdb.eddb import LEN as EDDB_LEN
+import cog.tbl
 import pvp
 import pvp.journal
 # Make available reused actions
@@ -51,6 +52,31 @@ class Help(Action):
             await self.msg.delete()
         except discord.HTTPException:
             pass
+
+
+class Log(Action):
+    """
+    Display the most recent parsed events.
+    """
+    async def execute(self):
+        with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
+            events = pvp.schema.get_pvp_events(eddb_session, self.msg.author.id)
+            msg = '__Most Recent Events__\n\n' + '\n'.join([str(x) for x in events])
+        await self.bot.send_message(self.msg.channel, msg)
+
+
+class Stats(Action):
+    """
+    Display statistics based on file uploads to bot.
+    """
+    async def execute(self):
+        table = "No recorded events."
+        with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
+            stats = pvp.schema.get_pvp_stats(eddb_session, self.msg.author.id)
+            if stats:
+                table = cog.tbl.format_table(stats.table_lines())[0]
+
+        await self.bot.send_message(self.msg.channel, f"__CMDR Statistics__\n\n{table}")
 
 
 class Status(Action):
@@ -106,6 +132,22 @@ class CMDRRegistration(dui.Modal, title='CMDR Registration'):
         await interaction.response.send_message(f'You are now registered, CMDR {self.name}!', ephemeral=True)
 
 
+def parse_in_process(fname, discord_id):
+    """
+    Helper to run the parsing in a separate process.
+
+    Args:
+        fname: The filename of the journal fragment.
+        discord_id: The discord id of the CMDR.
+
+    Returns: The results of the parse operation.
+    """
+    with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
+        parser = pvp.journal.Parser(fname=fname, cmdr_id=discord_id, eddb_session=eddb_session)
+        parser.load()
+        return parser.parse()
+
+
 class FileUpload(Action):
     """
     Handle a file upload and scan for pvp information.
@@ -125,5 +167,5 @@ class FileUpload(Action):
 
         with cfut.ProcessPoolExecutor(max_workers=1) as pool:
             await self.bot.loop.run_in_executor(
-                pool, pvp.journal.load_journal_possible, self.file, discord_id,
+                pool, parse_in_process, self.file, discord_id,
             )
