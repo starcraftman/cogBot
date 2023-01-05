@@ -117,8 +117,10 @@ class PVPBot(CogBot):
             if len(message.attachments) == 1:
                 handle, tfile = tempfile.mkstemp()
                 await message.attachments[0].save(handle)
-                with cogdb.session_scope(cogdb.EDDBSession) as session:
-                    await pvp.actions.FileUpload(args=None, bot=self, msg=message, session=session, file=tfile).execute()
+                with cogdb.session_scope(cogdb.Session) as session,\
+                        cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
+                    await pvp.actions.FileUpload(args=None, bot=self, msg=message, session=session,
+                                                 eddb_session=eddb_session, fname=tfile).execute()
         finally:
             if tfile and os.path.exists(tfile):
                 try:
@@ -165,14 +167,15 @@ class PVPBot(CogBot):
         try:
             content = re.sub(r'<[#@]\S+>', '', content).strip()  # Strip mentions from text
 
-            with cogdb.session_scope(cogdb.Session) as session:
+            with cogdb.session_scope(cogdb.Session) as session,\
+                    cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
                 # Check permissions before full parsing
                 cmd = cog.bot.cmd_from_content(self.prefix, content)
                 cogdb.query.check_perms(session, message, cmd)
 
                 args = self.parser.parse_args(re.split(r'\s+', content))
                 cls = getattr(pvp.actions, args.cmd)
-                await cls(args=args, bot=self, msg=message, session=session).execute()
+                await cls(args=args, bot=self, msg=message, session=session, eddb_session=eddb_session).execute()
 
         except cog.exc.ArgumentParseError as exc:
             log.exception("Failed to parse command. '%s' | %s", author.name, content)

@@ -58,6 +58,7 @@ def parse_died(eddb_session, data):
     except sqla.exc.NoResultFound:
         death = pvp.schema.PVPDeath(
             cmdr_id=data['cmdr_id'],
+            system_id=data['system_id'],
             is_wing_kill=is_wing_kill,
             event_at=data['event_at'],
         )
@@ -106,6 +107,7 @@ def parse_pvpkill(eddb_session, data):
     except sqla.exc.NoResultFound:
         kill = pvp.schema.PVPKill(
             cmdr_id=data.get('cmdr_id'),
+            system_id=data['system_id'],
             victim_name=clean_cmdr_name(data['Victim']),
             victim_rank=data['CombatRank'],
             event_at=data['event_at'],
@@ -138,6 +140,7 @@ def parse_pvpinterdiction(eddb_session, data):
     except sqla.exc.NoResultFound:
         interdiction = pvp.schema.PVPInterdiction(
             cmdr_id=data.get('cmdr_id'),
+            system_id=data['system_id'],
             victim_name=clean_cmdr_name(data['Interdicted']),
             is_player=data['IsPlayer'],
             is_success=data['Success'],
@@ -172,6 +175,7 @@ def parse_pvpinterdicted(eddb_session, data):
     except sqla.exc.NoResultFound:
         interdicted = pvp.schema.PVPInterdicted(
             cmdr_id=data.get('cmdr_id'),
+            system_id=data['system_id'],
             did_submit=data['Submitted'],
             is_player=data['IsPlayer'],
             interdictor_name=clean_cmdr_name(data['Interdictor']),

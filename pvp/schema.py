@@ -61,7 +61,7 @@ class PVPLocation(ReprMixin, TimestampMixin, EventTimeMixin, Base):
     """
     __tablename__ = 'pvp_locations'
     __table_args__ = (
-        UniqueConstraint('cmdr_id', 'system_id', 'event_at', name='_cmdr_system_event_unique'),
+        UniqueConstraint('cmdr_id', 'system_id', 'event_at', name='_pvp_location_unique'),
     )
     _repr_keys = ['id', 'cmdr_id', 'system_id', 'created_at', 'event_at']
 
@@ -102,7 +102,7 @@ class PVPKill(ReprMixin, TimestampMixin, EventTimeMixin, Base):
     """
     __tablename__ = 'pvp_kills'
     __table_args__ = (
-        UniqueConstraint('cmdr_id', 'system_id', 'event_at', name='_cmdr_system_event_unique'),
+        UniqueConstraint('cmdr_id', 'system_id', 'event_at', name='_pvp_kill_unique'),
     )
     _repr_keys = ['id', 'cmdr_id', 'system_id', 'victim_name', 'victim_rank', 'created_at', 'event_at']
 
@@ -137,7 +137,7 @@ class PVPDeath(ReprMixin, TimestampMixin, EventTimeMixin, Base):
     """
     __tablename__ = 'pvp_deaths'
     __table_args__ = (
-        UniqueConstraint('cmdr_id', 'system_id', 'event_at', name='_cmdr_system_event_unique'),
+        UniqueConstraint('cmdr_id', 'system_id', 'event_at', name='_pvp_death_unique'),
     )
     _repr_keys = ['id', 'cmdr_id', 'system_id', 'is_wing_kill', 'created_at', 'event_at']
 
@@ -221,7 +221,7 @@ class PVPInterdiction(ReprMixin, TimestampMixin, EventTimeMixin, Base):
     """
     __tablename__ = 'pvp_interdictions'
     __table_args__ = (
-        UniqueConstraint('cmdr_id', 'system_id', 'event_at', name='_cmdr_system_event_unique'),
+        UniqueConstraint('cmdr_id', 'system_id', 'event_at', name='_pvp_interdiction_unique'),
     )
     _repr_keys = ['id', 'cmdr_id', 'system_id', 'is_player', 'is_success', 'did_escape',
                   'victim_name', 'victim_rank', 'created_at', 'event_at']
@@ -311,7 +311,7 @@ class PVPInterdicted(ReprMixin, TimestampMixin, EventTimeMixin, Base):
     """
     __tablename__ = 'pvp_interdicteds'
     __table_args__ = (
-        UniqueConstraint('cmdr_id', 'system_id', 'event_at', name='_cmdr_system_event_unique'),
+        UniqueConstraint('cmdr_id', 'system_id', 'event_at', name='_pvp_interdicted_unique'),
     )
     _repr_keys = ['id', 'cmdr_id', 'system_id', 'is_player', 'did_submit', 'did_escape',
                   'interdictor_name', 'interdictor_rank', 'created_at', 'event_at']

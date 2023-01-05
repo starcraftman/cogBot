@@ -58,7 +58,7 @@ def test_get_nearest_stations_with_features(eddb_session):
     )
 
     system_names = {x[0] for x in result}
-    assert "Bolg" in system_names
+    assert "GD 1192" in system_names
 
 
 def test_get_nearest_traders_brokers_guardian(eddb_session):

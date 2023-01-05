@@ -11,6 +11,7 @@ import aiofiles
 import aiomock
 import mock
 import pytest
+import sqlalchemy as sqla
 import sqlalchemy.orm as sql_orm
 try:
     import uvloop
@@ -27,16 +28,21 @@ import cog.util
 import cogdb
 import cogdb.query
 import cogdb.spy_squirrel as spy
+import pvp.schema
 from cogdb.schema import (DiscordUser, FortSystem, FortPrep, FortDrop, FortUser, FortOrder,
                           UMSystem, UMExpand, UMOppose, UMUser, UMHold, EUMSheet, KOS,
                           AdminPerm, ChannelPerm, RolePerm,
                           TrackSystem, TrackSystemCached, TrackByID,
                           Global, Vote, EVoteType,
                           Consolidation, SheetRecord)
+from pvp.schema import (PVPCmdr, PVPKill, PVPDeath, PVPDeathKiller, PVPInterdicted, PVPInterdiction,
+                        PVPInterdictedKill, PVPInterdictedDeath, PVPInterdictionKill, PVPInterdictionDeath,
+                        PVPLocation, PVPStat)
 from tests.data import CELLS_FORT, CELLS_FORT_FMT, CELLS_UM
 
 
 GITHUB_FAIL = pytest.mark.skipif(os.environ.get('GITHUB') == "True", reason="Failing only on github CI.")
+PVP_TIMESTAMP = 1671655377
 
 
 @pytest.fixture(scope='function', autouse=True)
@@ -890,8 +896,70 @@ def f_sheet_records(session):
 
 @pytest.fixture
 def f_spy_ships(eddb_session):
-    spy.preload_spy_tables(eddb_session)
+    try:
+        spy.preload_spy_tables(eddb_session)
+    except sqla.exc.IntegrityError:
+        eddb_session.rollback()
 
     yield
 
     eddb_session.query(spy.SpyShip).delete()
+
+
+@pytest.fixture
+def f_pvp_clean():
+    yield
+    pvp.schema.empty_tables()
+
+
+@pytest.fixture
+def f_pvp_testbed(f_spy_ships, eddb_session):
+    """
+    Massive fixture intializes an entire dummy testbed of pvp objects.
+    """
+    eddb_session.add_all([
+        PVPCmdr(id=1, name='coolGuy', updated_at=PVP_TIMESTAMP),
+        PVPCmdr(id=2, name='shyGuy', updated_at=PVP_TIMESTAMP),
+        PVPCmdr(id=3, name='shootsALot', updated_at=PVP_TIMESTAMP),
+    ])
+    eddb_session.flush()
+    eddb_session.add_all([
+        PVPLocation(id=1, cmdr_id=1, system_id=1000, event_at=PVP_TIMESTAMP),
+        PVPLocation(id=2, cmdr_id=1, system_id=1010, event_at=PVP_TIMESTAMP),
+        PVPKill(id=1, cmdr_id=1, system_id=1000, victim_name='LeSuck', victim_rank=3, event_at=PVP_TIMESTAMP),
+        PVPKill(id=2, cmdr_id=1, system_id=1000, victim_name='BadGuy', victim_rank=7, event_at=PVP_TIMESTAMP + 2),
+        PVPKill(id=3, cmdr_id=1, system_id=1000, victim_name='LeSuck', victim_rank=3, event_at=PVP_TIMESTAMP + 4),
+        PVPKill(id=4, cmdr_id=2, victim_name='CanNotShoot', victim_rank=8, event_at=PVP_TIMESTAMP),
+
+        PVPDeath(id=1, cmdr_id=1, system_id=1000, is_wing_kill=True, event_at=PVP_TIMESTAMP),
+        PVPDeath(id=2, cmdr_id=1, system_id=1001, is_wing_kill=False, event_at=PVP_TIMESTAMP + 2),
+        PVPDeath(id=3, cmdr_id=3, is_wing_kill=False, event_at=PVP_TIMESTAMP),
+        PVPDeathKiller(cmdr_id=1, pvp_death_id=1, name='BadGuyWon', rank=7, ship_id=30, event_at=PVP_TIMESTAMP),
+        PVPDeathKiller(cmdr_id=1, pvp_death_id=1, name='BadGuyHelper', rank=5, ship_id=38, event_at=PVP_TIMESTAMP),
+        PVPDeathKiller(cmdr_id=2, pvp_death_id=2, name='BadGuyWon', rank=7, ship_id=30, event_at=PVP_TIMESTAMP),
+        PVPDeathKiller(cmdr_id=3, pvp_death_id=3, name='BadGuyWon', rank=7, ship_id=30, event_at=PVP_TIMESTAMP),
+
+        PVPInterdiction(id=1, cmdr_id=1, system_id=1000, is_player=True, is_success=True, did_escape=False,
+                        victim_name="LeSuck", victim_rank=3, event_at=PVP_TIMESTAMP),
+        PVPInterdiction(id=2, cmdr_id=1, system_id=1001, is_player=True, is_success=True, did_escape=True,
+                        victim_name="LeSuck", victim_rank=3, event_at=PVP_TIMESTAMP + 2),
+
+        PVPInterdicted(id=1, cmdr_id=1, system_id=1000, is_player=True, did_submit=False, did_escape=False,
+                       interdictor_name="BadGuyWon", interdictor_rank=7, event_at=PVP_TIMESTAMP),
+        PVPInterdicted(id=2, cmdr_id=2, is_player=True, did_submit=True, did_escape=True,
+                       interdictor_name="BadGuyWon", interdictor_rank=7, event_at=PVP_TIMESTAMP),
+
+    ])
+    eddb_session.flush()
+    eddb_session.add_all([
+        PVPInterdictionKill(cmdr_id=1, pvp_interdiction_id=1, pvp_kill_id=1),
+        PVPInterdictionDeath(cmdr_id=2, pvp_interdiction_id=2, pvp_death_id=2),
+        PVPInterdictedKill(cmdr_id=3, pvp_interdicted_id=2, pvp_kill_id=3),
+        PVPInterdictedDeath(cmdr_id=1, pvp_interdicted_id=1, pvp_death_id=1),
+    ])
+    eddb_session.flush()
+    pvp.schema.update_pvp_stats(eddb_session, 1)
+    eddb_session.commit()
+
+    yield
+    pvp.schema.empty_tables()

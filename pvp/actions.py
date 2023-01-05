@@ -17,7 +17,38 @@ from cog.actions import (Action, Dist, Donate, Feedback, Near,
                          Repair, Route, Time, Trigger, WhoIs)  # noqa: F401 pylint: disable=unused-import
 
 
-class Help(Action):
+class PVPAction(Action):
+    """
+    Top level action, contains shared logic for all PVP actions.
+    All actions will require an eddb_session by design.
+    When file needed can be set, otherwise will be None.
+    """
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.eddb_session = kwargs['eddb_session']
+        self.fname = kwargs.get('fname')
+
+
+class FileUpload(PVPAction):
+    """
+    Handle a file upload and scan for pvp information.
+    """
+    async def execute(self):
+        discord_id = self.msg.author.id
+        cmdr = pvp.schema.get_pvp_cmdr(self.eddb_session, discord_id)
+        if not cmdr:
+            if not await cmdr_setup(self.eddb_session, self.bot, self.msg):
+                return
+
+        with cfut.ProcessPoolExecutor(max_workers=1) as pool:
+            await self.bot.loop.run_in_executor(
+                pool, parse_in_process, self.fname, discord_id,
+            )
+
+        await self.bot.send_message(self.msg.channel, "Upload received and read. Have a nice day CMDR.")
+
+
+class Help(PVPAction):
     """
     Provide an overview of help.
     """
@@ -54,32 +85,30 @@ class Help(Action):
             pass
 
 
-class Log(Action):
+class Log(PVPAction):
     """
     Display the most recent parsed events.
     """
     async def execute(self):
-        with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
-            events = pvp.schema.get_pvp_events(eddb_session, self.msg.author.id)
-            msg = '__Most Recent Events__\n\n' + '\n'.join([str(x) for x in events])
+        events = pvp.schema.get_pvp_events(self.eddb_session, self.msg.author.id)
+        msg = '__Most Recent Events__\n\n' + '\n'.join([str(x) for x in events])
         await self.bot.send_message(self.msg.channel, msg)
 
 
-class Stats(Action):
+class Stats(PVPAction):
     """
     Display statistics based on file uploads to bot.
     """
     async def execute(self):
         table = "No recorded events."
-        with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
-            stats = pvp.schema.get_pvp_stats(eddb_session, self.msg.author.id)
-            if stats:
-                table = cog.tbl.format_table(stats.table_lines())[0]
+        stats = pvp.schema.get_pvp_stats(self.eddb_session, self.msg.author.id)
+        if stats:
+            table = cog.tbl.format_table(stats.table_lines())[0]
 
         await self.bot.send_message(self.msg.channel, f"__CMDR Statistics__\n\n{table}")
 
 
-class Status(Action):
+class Status(PVPAction):
     """
     Display the status of this bot.
     """
@@ -92,6 +121,16 @@ class Status(Action):
         ]
 
         await self.bot.send_message(self.msg.channel, cog.tbl.format_table(lines)[0])
+
+
+class CMDRRegistration(dui.Modal, title='CMDR Registration'):
+    """ Register a cmdr by getting name via a modal input. """
+    name = dui.TextInput(label='CMDR Name', min_length=5, max_length=EDDB_LEN['pvp_name'],
+                         style=discord.TextStyle.short, placeholder="Your in game name", required=True)
+
+    async def on_submit(self, interaction: discord.Interaction):
+        self.name = pvp.journal.clean_cmdr_name(str(self.name))
+        await interaction.response.send_message(f'You are now registered, CMDR {self.name}!', ephemeral=True)
 
 
 async def cmdr_setup(eddb_session, client, msg):
@@ -122,16 +161,6 @@ async def cmdr_setup(eddb_session, client, msg):
     return pvp.schema.add_pvp_cmdr(eddb_session, msg.author.id, modal.name)
 
 
-class CMDRRegistration(dui.Modal, title='CMDR Registration'):
-    """ Register a cmdr by getting name via a modal input. """
-    name = dui.TextInput(label='CMDR Name', min_length=5, max_length=EDDB_LEN['pvp_name'],
-                         style=discord.TextStyle.short, placeholder="Your in game name", required=True)
-
-    async def on_submit(self, interaction: discord.Interaction):
-        self.name = pvp.journal.clean_cmdr_name(str(self.name))
-        await interaction.response.send_message(f'You are now registered, CMDR {self.name}!', ephemeral=True)
-
-
 def parse_in_process(fname, discord_id):
     """
     Helper to run the parsing in a separate process.
@@ -146,26 +175,3 @@ def parse_in_process(fname, discord_id):
         parser = pvp.journal.Parser(fname=fname, cmdr_id=discord_id, eddb_session=eddb_session)
         parser.load()
         return parser.parse()
-
-
-class FileUpload(Action):
-    """
-    Handle a file upload and scan for pvp information.
-
-    For this action self.session is an instance of EDDBSession.
-    """
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.file = kwargs['file']
-
-    async def execute(self):
-        discord_id = self.msg.author.id
-        cmdr = pvp.schema.get_pvp_cmdr(self.session, discord_id)
-        if not cmdr:
-            if not await cmdr_setup(self.session, self.bot, self.msg):
-                return
-
-        with cfut.ProcessPoolExecutor(max_workers=1) as pool:
-            await self.bot.loop.run_in_executor(
-                pool, parse_in_process, self.file, discord_id,
-            )

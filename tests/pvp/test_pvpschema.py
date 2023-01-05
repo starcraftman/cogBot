@@ -10,57 +10,6 @@ from pvp.schema import (
     PVPInterdicted, PVPInterdiction, PVPDeathKiller, PVPDeath, PVPKill, PVPCmdr
 )
 
-TIMESTAMP = 1671655377
-
-
-@pytest.fixture
-def f_pvp_testbed(f_spy_ships, eddb_session):
-    """
-    Massive fixture intializes an entire dummy testbed of pvp objects.
-    """
-    eddb_session.add_all([
-        PVPCmdr(id=1, name='coolGuy', updated_at=TIMESTAMP),
-        PVPCmdr(id=2, name='shyGuy', updated_at=TIMESTAMP),
-        PVPCmdr(id=3, name='shootsALot', updated_at=TIMESTAMP),
-    ])
-    eddb_session.flush()
-    eddb_session.add_all([
-        PVPKill(id=1, cmdr_id=1, victim_name='LeSuck', victim_rank=3, event_at=TIMESTAMP),
-        PVPKill(id=2, cmdr_id=1, victim_name='BadGuy', victim_rank=7, event_at=TIMESTAMP),
-        PVPKill(id=3, cmdr_id=1, victim_name='LeSuck', victim_rank=3, event_at=TIMESTAMP),
-        PVPKill(id=4, cmdr_id=2, victim_name='CanNotShoot', victim_rank=8, event_at=TIMESTAMP),
-
-        PVPDeath(id=1, cmdr_id=1, is_wing_kill=True, event_at=TIMESTAMP),
-        PVPDeath(id=2, cmdr_id=1, is_wing_kill=False, event_at=TIMESTAMP),
-        PVPDeath(id=3, cmdr_id=3, is_wing_kill=False, event_at=TIMESTAMP),
-        PVPDeathKiller(cmdr_id=1, pvp_death_id=1, name='BadGuyWon', rank=7, ship_id=30, event_at=TIMESTAMP),
-        PVPDeathKiller(cmdr_id=1, pvp_death_id=1, name='BadGuyHelper', rank=5, ship_id=38, event_at=TIMESTAMP),
-        PVPDeathKiller(cmdr_id=2, pvp_death_id=2, name='BadGuyWon', rank=7, ship_id=30, event_at=TIMESTAMP),
-        PVPDeathKiller(cmdr_id=3, pvp_death_id=3, name='BadGuyWon', rank=7, ship_id=30, event_at=TIMESTAMP),
-
-        PVPInterdiction(id=1, cmdr_id=1, is_player=True, is_success=True, did_escape=False,
-                        victim_name="LeSuck", victim_rank=3, event_at=TIMESTAMP),
-        PVPInterdiction(id=2, cmdr_id=1, is_player=True, is_success=True, did_escape=True,
-                        victim_name="LeSuck", victim_rank=3, event_at=TIMESTAMP),
-
-        PVPInterdicted(id=1, cmdr_id=1, is_player=True, did_submit=False, did_escape=False,
-                       interdictor_name="BadGuyWon", interdictor_rank=7, event_at=TIMESTAMP),
-        PVPInterdicted(id=2, cmdr_id=2, is_player=True, did_submit=True, did_escape=True,
-                       interdictor_name="BadGuyWon", interdictor_rank=7, event_at=TIMESTAMP),
-
-    ])
-    eddb_session.flush()
-    eddb_session.add_all([
-        PVPInterdictionKill(cmdr_id=1, pvp_interdiction_id=1, pvp_kill_id=1),
-        PVPInterdictionDeath(cmdr_id=2, pvp_interdiction_id=2, pvp_death_id=2),
-        PVPInterdictedKill(cmdr_id=3, pvp_interdicted_id=2, pvp_kill_id=3),
-        PVPInterdictedDeath(cmdr_id=1, pvp_interdicted_id=1, pvp_death_id=1),
-    ])
-    eddb_session.commit()
-
-    yield
-    pvp.schema.empty_tables()
-
 
 def test_pvpcmdr__str__(f_pvp_testbed, eddb_session):
     cmdr = eddb_session.query(PVPCmdr).filter(PVPCmdr.id == 1).one()
