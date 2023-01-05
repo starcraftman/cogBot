@@ -77,7 +77,7 @@ class PVPLocation(ReprMixin, TimestampMixin, EventTimeMixin, Base):
                                    primaryjoin='foreign(PVPLocation.system_id) == System.id')
 
     def __str__(self):
-        """ Show PVPKill information. """
+        """ Show PVPLocation information. """
         try:
             cmdr = self.cmdr.name
         except AttributeError:
@@ -561,14 +561,16 @@ def update_pvp_stats(eddb_session, cmdr_id):
         least_visited_id = None
 
     kwargs = {
-        'deaths': eddb_session.query(PVPDeath).count(),
-        'kills': eddb_session.query(PVPKill).count(),
-        'interdictions': eddb_session.query(PVPInterdiction).count(),
-        'interdicteds': eddb_session.query(PVPInterdicted).count(),
-        'interdiction_deaths': eddb_session.query(PVPInterdictionDeath).count(),
-        'interdiction_kills': eddb_session.query(PVPInterdictionKill).count(),
-        'interdicted_deaths': eddb_session.query(PVPInterdictedDeath).count(),
-        'interdicted_kills': eddb_session.query(PVPInterdictedKill).count(),
+        'deaths': eddb_session.query(PVPDeath).filter(PVPDeath.cmdr_id == cmdr_id).count(),
+        'kills': eddb_session.query(PVPKill).filter(PVPKill.cmdr_id == cmdr_id).count(),
+        'interdictions': eddb_session.query(PVPInterdiction).filter(PVPInterdiction.cmdr_id == cmdr_id).count(),
+        'interdicteds': eddb_session.query(PVPInterdicted).filter(PVPInterdicted.cmdr_id == cmdr_id).count(),
+        'interdiction_deaths': eddb_session.query(PVPInterdictionDeath).
+        filter(PVPInterdictionDeath.cmdr_id == cmdr_id).
+        count(),
+        'interdiction_kills': eddb_session.query(PVPInterdictionKill).filter(PVPInterdictionKill.cmdr_id == cmdr_id).count(),
+        'interdicted_deaths': eddb_session.query(PVPInterdictedDeath).filter(PVPInterdictedDeath.cmdr_id == cmdr_id).count(),
+        'interdicted_kills': eddb_session.query(PVPInterdictedKill).filter(PVPInterdictedKill.cmdr_id == cmdr_id).count(),
         'most_visited_system_id': most_visited_id,
         'least_visited_system_id': least_visited_id,
     }
@@ -703,7 +705,7 @@ def main():
 
 
 PVP_TABLES = [
-    PVPInterdictedKill, PVPInterdictedDeath, PVPInterdictionKill, PVPInterdictionDeath,
+    PVPStat, PVPInterdictedKill, PVPInterdictedDeath, PVPInterdictionKill, PVPInterdictionDeath,
     PVPInterdicted, PVPInterdiction, PVPDeathKiller, PVPDeath, PVPKill, PVPLocation, PVPCmdr
 ]
 if __name__ == "__main__":

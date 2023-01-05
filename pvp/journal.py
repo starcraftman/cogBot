@@ -49,33 +49,40 @@ def parse_died(eddb_session, data):
             "Rank": data["KillerRank"],
         }]
 
-    death = pvp.schema.PVPDeath(
-        cmdr_id=data['cmdr_id'],
-        is_wing_kill=is_wing_kill,
-        event_at=data['event_at'],
-    )
-    eddb_session.add(death)
-    eddb_session.flush()
-
-    ship_map = ship_name_map()
-    for killer in data["Killers"]:
-        try:
-            ship_id = ship_map[killer['Ship'].lower()]
-        except KeyError:
-            ship_id = ship_map['sidewinder']
-            logging.getLogger(__name__).error("Could not map ship named: %s", killer['Ship'])
-
-        eddb_session.add(
-            pvp.schema.PVPDeathKiller(
-                cmdr_id=data['cmdr_id'],
-                ship_id=ship_id,
-                pvp_death_id=death.id,
-                name=clean_cmdr_name(killer['Name']),
-                rank=COMBAT_RANK_TO_VALUE[killer['Rank']],
-                event_at=data['event_at'],
-            )
+    try:
+        death = eddb_session.query(pvp.schema.PVPDeath).\
+            filter(pvp.schema.PVPDeath.cmdr_id == data['cmdr_id'],
+                   pvp.schema.PVPDeath.system_id == data['system_id'],
+                   pvp.schema.PVPDeath.event_at == data['event_at']).\
+            one()
+    except sqla.exc.NoResultFound:
+        death = pvp.schema.PVPDeath(
+            cmdr_id=data['cmdr_id'],
+            is_wing_kill=is_wing_kill,
+            event_at=data['event_at'],
         )
+        eddb_session.add(death)
         eddb_session.flush()
+
+        ship_map = ship_name_map()
+        for killer in data["Killers"]:
+            try:
+                ship_id = ship_map[killer['Ship'].lower()]
+            except KeyError:
+                ship_id = ship_map['sidewinder']
+                logging.getLogger(__name__).error("Could not map ship named: %s", killer['Ship'])
+
+            eddb_session.add(
+                pvp.schema.PVPDeathKiller(
+                    cmdr_id=data['cmdr_id'],
+                    ship_id=ship_id,
+                    pvp_death_id=death.id,
+                    name=clean_cmdr_name(killer['Name']),
+                    rank=COMBAT_RANK_TO_VALUE[killer['Rank']],
+                    event_at=data['event_at'],
+                )
+            )
+            eddb_session.flush()
 
     return death
 
@@ -90,14 +97,21 @@ def parse_pvpkill(eddb_session, data):
 
     Returns: The added object.
     """
-    kill = pvp.schema.PVPKill(
-        cmdr_id=data.get('cmdr_id'),
-        victim_name=clean_cmdr_name(data['Victim']),
-        victim_rank=data['CombatRank'],
-        event_at=data['event_at'],
-    )
-    eddb_session.add(kill)
-    eddb_session.flush()
+    try:
+        kill = eddb_session.query(pvp.schema.PVPKill).\
+            filter(pvp.schema.PVPKill.cmdr_id == data['cmdr_id'],
+                   pvp.schema.PVPKill.system_id == data['system_id'],
+                   pvp.schema.PVPKill.event_at == data['event_at']).\
+            one()
+    except sqla.exc.NoResultFound:
+        kill = pvp.schema.PVPKill(
+            cmdr_id=data.get('cmdr_id'),
+            victim_name=clean_cmdr_name(data['Victim']),
+            victim_rank=data['CombatRank'],
+            event_at=data['event_at'],
+        )
+        eddb_session.add(kill)
+        eddb_session.flush()
 
     return kill
 
@@ -115,16 +129,23 @@ def parse_pvpinterdiction(eddb_session, data):
     if not data['IsPlayer']:
         return None
 
-    interdiction = pvp.schema.PVPInterdiction(
-        cmdr_id=data.get('cmdr_id'),
-        victim_name=clean_cmdr_name(data['Interdicted']),
-        is_player=data['IsPlayer'],
-        is_success=data['Success'],
-        victim_rank=data['CombatRank'] if data['IsPlayer'] else None,
-        event_at=data['event_at'],
-    )
-    eddb_session.add(interdiction)
-    eddb_session.flush()
+    try:
+        interdiction = eddb_session.query(pvp.schema.PVPInterdiction).\
+            filter(pvp.schema.PVPInterdiction.cmdr_id == data['cmdr_id'],
+                   pvp.schema.PVPInterdiction.system_id == data['system_id'],
+                   pvp.schema.PVPInterdiction.event_at == data['event_at']).\
+            one()
+    except sqla.exc.NoResultFound:
+        interdiction = pvp.schema.PVPInterdiction(
+            cmdr_id=data.get('cmdr_id'),
+            victim_name=clean_cmdr_name(data['Interdicted']),
+            is_player=data['IsPlayer'],
+            is_success=data['Success'],
+            victim_rank=data['CombatRank'] if data['IsPlayer'] else None,
+            event_at=data['event_at'],
+        )
+        eddb_session.add(interdiction)
+        eddb_session.flush()
 
     return interdiction
 
@@ -142,16 +163,23 @@ def parse_pvpinterdicted(eddb_session, data):
     if not data['IsPlayer']:
         return None
 
-    interdicted = pvp.schema.PVPInterdicted(
-        cmdr_id=data.get('cmdr_id'),
-        did_submit=data['Submitted'],
-        is_player=data['IsPlayer'],
-        interdictor_name=clean_cmdr_name(data['Interdictor']),
-        interdictor_rank=data['CombatRank'] if data['IsPlayer'] else None,
-        event_at=data['event_at'],
-    )
-    eddb_session.add(interdicted)
-    eddb_session.flush()
+    try:
+        interdicted = eddb_session.query(pvp.schema.PVPInterdicted).\
+            filter(pvp.schema.PVPInterdicted.cmdr_id == data['cmdr_id'],
+                   pvp.schema.PVPInterdicted.system_id == data['system_id'],
+                   pvp.schema.PVPInterdicted.event_at == data['event_at']).\
+            one()
+    except sqla.exc.NoResultFound:
+        interdicted = pvp.schema.PVPInterdicted(
+            cmdr_id=data.get('cmdr_id'),
+            did_submit=data['Submitted'],
+            is_player=data['IsPlayer'],
+            interdictor_name=clean_cmdr_name(data['Interdictor']),
+            interdictor_rank=data['CombatRank'] if data['IsPlayer'] else None,
+            event_at=data['event_at'],
+        )
+        eddb_session.add(interdicted)
+        eddb_session.flush()
 
     return interdicted
 
@@ -166,16 +194,22 @@ def parse_location(eddb_session, data):
     Returns: The added object.
     """
     try:
-        found, _ = cogdb.eddb.get_all_systems_named(eddb_session, [data['StarSystem']])
-        location = pvp.schema.PVPLocation(
-            cmdr_id=data.get('cmdr_id'),
-            system_id=found[0].id,
-            event_at=data['event_at'],
-        )
-        eddb_session.add(location)
-        eddb_session.flush()
-    except IndexError:
-        location = None
+        location = eddb_session.query(pvp.schema.PVPLocation).\
+            filter(pvp.schema.PVPLocation.cmdr_id == data['cmdr_id'],
+                   pvp.schema.PVPLocation.event_at == data['event_at']).\
+            one()
+    except sqla.exc.NoResultFound:
+        try:
+            found, _ = cogdb.eddb.get_all_systems_named(eddb_session, [data['StarSystem']])
+            location = pvp.schema.PVPLocation(
+                cmdr_id=data['cmdr_id'],
+                system_id=found[0].id,
+                event_at=data['event_at'],
+            )
+            eddb_session.add(location)
+            eddb_session.flush()
+        except IndexError:
+            location = None
 
     return location
 
@@ -247,10 +281,12 @@ class Parser():
         """
         result = None
         try:
+            # TODO: The load fails if 2 or more events present on line
             loaded = json.loads(line)
             loaded.update({
                 'event_at': datetime_to_tstamp(loaded['timestamp']),
                 'cmdr_id': self.cmdr_id,
+                'system_id': self.data['Location'].system_id if self.data.get('Location') else None,
             })
             event, parser = get_parser(loaded)
             result = parser(self.eddb_session, loaded)
@@ -322,15 +358,10 @@ class Parser():
 
         # Always store event in data for later use
         # When location is set and event happens, set it in event
-        if event in ['Died', 'Interdiction', 'Interdicted', 'PVPKill']:
+        if event in ['Interdiction', 'Interdicted', 'PVPKill']:
             self.data[event] = result
-            try:
-                result.system_id = self.data['Location'].system_id
-            except (KeyError, AttributeError):
-                pass
-
         # Handle stale data no longer needed
-        if event in ['Location', 'FSDJump']:
+        elif event in ['Location', 'FSDJump']:
             self.data.clear()
             self.data['Location'] = result
         elif event == 'Died':
