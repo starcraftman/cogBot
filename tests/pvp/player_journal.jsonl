@@ -17,7 +17,9 @@
 { "timestamp":"2016-06-10T14:41:58Z", "event":"SellExplorationData", "Systems":[ "HIP 78085", "Praea Euq NW-W b1-3" ], "Discovered":[ "HIP 78085 A", "Praea Euq NW-W b1-3", "Praea Euq NW-W b1-3 3 a", "Praea Euq NW-W b1-3 3" ], "BaseValue":10822, "Bonus":3959 }
 
 { "timestamp":"2016-06-10T14:32:03Z", "event":"Died", "KillerName":"BadGuyWon", "KillerShip":"vulture", "KillerRank":"Deadly" }
+{ "timestamp":"2016-06-10T14:36:10Z", "event":"FSDJump", "StarSystem":"Rhea", "StarPos":[120.719,34.188,271.750], "JumpDist":6.823 }
 { "timestamp":"2016-06-10T14:50:00Z", "event":"Interdiction", "Success":true, "Interdicted":"cmdr CanNotShoot", "IsPlayer":true, "CombatRank":5 }
 { "timestamp":"2016-06-10T14:55:22Z", "event":"PVPKill", "Victim":"cmdr CanNotShoot", "CombatRank": 5}
+{ "timestamp":"2016-06-10T14:35:00Z", "event":"FSDJump", "StarSystem":"Rana", "StarPos":[120.250,40.219,268.594], "JumpDist":36.034 }
 { "timestamp":"2016-06-10T17:12:43Z", "event":"Interdicted", "Submitted":false, "Interdictor":"cmdr BadGuyWon", "IsPlayer":true, "CombatRank": 8 }
 { "timestamp":"2016-06-10T17:13:22Z", "event":"Died", "Killers":[ { "Name":"Cmdr BadGuyWon", "Ship":"Vulture", "Rank":"Elite" }, { "Name":"Cmdr Assisting", "Ship":"Python", "Rank":"Master" } ] }

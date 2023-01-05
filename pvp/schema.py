@@ -149,6 +149,12 @@ class PVPDeath(ReprMixin, TimestampMixin, EventTimeMixin, Base):
     created_at = sqla.Column(sqla.Integer, default=time.time)
     event_at = sqla.Column(sqla.Integer, default=time.time)  # Set to time in log
 
+    def killed_by(self, cmdr_name):
+        """
+        Return True IFF the cmdr_name was part of this CMDR death.
+        """
+        return cmdr_name in [x.name for x in self.killers]
+
     def __str__(self):
         """ Show the death and killers. """
         try:
@@ -307,7 +313,7 @@ class PVPInterdicted(ReprMixin, TimestampMixin, EventTimeMixin, Base):
     __table_args__ = (
         UniqueConstraint('cmdr_id', 'system_id', 'event_at', name='_cmdr_system_event_unique'),
     )
-    _repr_keys = ['id', 'cmdr_id', 'system_id', 'is_player', 'did_submit', 'did_escape'
+    _repr_keys = ['id', 'cmdr_id', 'system_id', 'is_player', 'did_submit', 'did_escape',
                   'interdictor_name', 'interdictor_rank', 'created_at', 'event_at']
 
     id = sqla.Column(sqla.BigInteger, primary_key=True)

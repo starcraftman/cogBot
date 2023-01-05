@@ -24,6 +24,12 @@ COMBAT_RANK_TO_VALUE = {x: ind for ind, x in enumerate(cog.inara.COMBAT_RANKS)}
 VALUE_TO_COMBAT_RANK = {y: x for x, y in COMBAT_RANK_TO_VALUE.items()}
 
 
+class ParserError(Exception):
+    """
+    Simple exception to denote unsupported parsing.
+    """
+
+
 def parse_died(eddb_session, data):
     """
     Parse Died messages in log file.
@@ -195,9 +201,9 @@ def datetime_to_tstamp(date_string):
         raise
 
 
-def parse_event(eddb_session, data):
+def get_parser(data):
     """
-    Parse the event that has been passed in.
+    Lookup the required parser for a given event in the data.
 
     Args:
         eddb_session: A session onto the db.
@@ -205,42 +211,141 @@ def parse_event(eddb_session, data):
     """
     event = data['event']
     if event in EVENT_TO_PARSER:
-        return EVENT_TO_PARSER[event](eddb_session, data)
+        return event, EVENT_TO_PARSER[event]
 
     logging.getLogger(__name__).error("Failed to parse event: %s", event)
-    raise ValueError(f"No parser configured for: {event}")
+    raise ParserError(f"No parser configured for: {event}")
 
 
-def load_journal_possible(fname, cmdr_id):
+class Parser():
     """
-    Load an existing json file on server and then parse the lines to validate them.
-    Any lines that fail to be validated will be ignored.
-
-    Args:
-        fname: The filename of the partial log.
-        cmdr_id: The id of the commander who submitted the log.
-
-    Returns: A list of parsed json objects ready to further process.
+    Parse a given journal fragment.
     """
-    to_return = []
-    with open(fname, 'r', encoding='utf-8') as fin, cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
-        lines = [x for x in fin.read().split('\n') if x]
+    def __init__(self, *, fname, cmdr_id, eddb_session):
+        self.fname = fname
+        self.cmdr_id = cmdr_id
+        self.eddb_session = eddb_session
+        self.lines = None
+        self.data = {}  # Scratch space for objects
 
-        for line in lines:
-            try:
-                loaded = json.loads(line)
-                loaded['event_at'] = datetime_to_tstamp(loaded['timestamp'])
-                loaded['cmdr_id'] = cmdr_id
-                to_return += [parse_event(eddb_session, loaded)]
-            except json.decoder.JSONDecodeError:
-                logging.getLogger(__name__).error("Failed to JSON decode line: %s", line)
-            except ValueError as exc:
-                logging.getLogger(__name__).warning(str(exc))
-            except sqla.exc.IntegrityError:
-                eddb_session.rollback()
-                logging.getLogger(__name__).warning("Duplicate Event: %s", line)
+    def load(self):
+        """
+        Load and cleanup the lines from the journal fragment.
+        """
+        with open(self.fname, 'r', encoding='utf-8') as fin:
+            self.lines = fin.readlines()
 
-    return to_return
+    def parse_line(self, line):
+        """
+        Parse a single line event and make required changes to both the database
+        and the tracked data that assists in parsing forward.
+
+        Args:
+            line: The line from the journal uploaded.
+
+        Returns: None if no parsing was possible. If success, returns the parsed event object in database.
+        """
+        result = None
+        try:
+            loaded = json.loads(line)
+            loaded.update({
+                'event_at': datetime_to_tstamp(loaded['timestamp']),
+                'cmdr_id': self.cmdr_id,
+            })
+            event, parser = get_parser(loaded)
+            result = parser(self.eddb_session, loaded)
+            self.post_parsing(event, result)
+        except json.decoder.JSONDecodeError:
+            logging.getLogger(__name__).error("Failed to JSON decode line: %s", line)
+        except (ParserError, ValueError) as exc:
+            logging.getLogger(__name__).warning(str(exc))
+        except sqla.exc.IntegrityError:
+            self.eddb_session.rollback()
+            logging.getLogger(__name__).warning("Duplicate Event: %s", line)
+
+        return result
+
+    def post_parsing(self, event, result):
+        """
+        By tracking previous events in db between jump events, link events together.
+        For instance, if a CMDR interdicts another ship then kills it, that is a PVPInterdictedKill, that will
+        link to the individual PVPInterdiction and PVPKill records.
+
+        Args:
+            event: The event that triggered the log.
+            result: The parsed database object.
+        """
+        # Link events that were connected for later statistics
+        if event == 'PVPKill' and self.data.get('Interdiction') and\
+                result.victim_name == self.data['Interdiction'].victim_name and\
+                result.event_at >= self.data['Interdiction'].event_at:
+            self.eddb_session.add(pvp.schema.PVPInterdictionKill(
+                cmdr_id=result.cmdr_id,
+                pvp_interdiction_id=self.data['Interdiction'].id,
+                pvp_kill_id=result.id,
+                event_at=result.event_at,
+            ))
+            self.eddb_session.flush()
+
+        elif event == 'PVPKill' and self.data.get('Interdicted') and\
+                result.victim_name == self.data['Interdicted'].interdictor_name and\
+                result.event_at >= self.data['Interdicted'].event_at:
+            self.eddb_session.add(pvp.schema.PVPInterdictedKill(
+                cmdr_id=result.cmdr_id,
+                pvp_interdicted_id=self.data['Interdicted'].id,
+                pvp_kill_id=result.id,
+                event_at=result.event_at,
+            ))
+            self.eddb_session.flush()
+
+        elif event == 'Died' and self.data.get('Interdiction') and\
+                result.killed_by(self.data['Interdiction'].victim_name) and\
+                result.event_at >= self.data['Interdiction'].event_at:
+            self.eddb_session.add(pvp.schema.PVPInterdictionDeath(
+                cmdr_id=result.cmdr_id,
+                pvp_interdiction_id=self.data['Interdiction'].id,
+                pvp_death_id=result.id,
+                event_at=result.event_at,
+            ))
+            self.eddb_session.flush()
+
+        elif event == 'Died' and self.data.get('Interdicted') and\
+                result.killed_by(self.data['Interdicted'].interdictor_name) and\
+                result.event_at >= self.data['Interdicted'].event_at:
+            self.eddb_session.add(pvp.schema.PVPInterdictedDeath(
+                cmdr_id=result.cmdr_id,
+                pvp_interdicted_id=self.data['Interdicted'].id,
+                pvp_death_id=result.id,
+                event_at=result.event_at,
+            ))
+            self.eddb_session.flush()
+
+        # When location is set and event happens, set it in event
+        if event in ['Died', 'Interdiction', 'Interdicted', 'PVPKill'] and self.data.get('Location'):
+            result.system_id = self.data.get('Location').system_id
+
+        # Store event in data for later use
+        if event in ['Died', 'Interdiction', 'Interdicted', 'PVPKill']:
+            self.data[event] = result
+
+        # Handle stale data no longer needed
+        if event in ['Location', 'FSDJump']:
+            self.data.clear()
+            self.data['Location'] = result
+        elif event == 'Died':
+            self.data.clear()
+
+    def parse(self):
+        """
+        Parse all possible events from the journal fragment.
+
+        Returns: All parsed main events.
+        """
+        to_return = []
+        for line in self.lines:
+            to_return += [self.parse_line(line)]
+
+        return to_return
 
 
 def clean_cmdr_name(name):

@@ -128,19 +128,26 @@ def test_parse_fsdjump(f_pvpclean, f_pvpcmdrs, eddb_session):
     assert location.system.name == "LP 98-132"
 
 
-def test_load_journal_possible(f_spy_ships, f_pvpclean, f_pvpcmdrs, eddb_session):
-    pvp.journal.load_journal_possible(JOURNAL_PATH, cmdr_id=1)
-    interdicted = eddb_session.query(PVPInterdicted).filter(PVPInterdicted.cmdr_id == 1).one()
-    assert 1 == interdicted.cmdr_id
+def test_journal_parser_load(f_spy_ships, f_pvpclean, f_pvpcmdrs, eddb_session):
+    parser = pvp.journal.Parser(fname=JOURNAL_PATH, cmdr_id=1, eddb_session=eddb_session)
+    parser.load()
+    assert 'FileHeader' in parser.lines[0]
 
 
-def test_parse_event(f_spy_ships, f_pvpclean, f_pvpcmdrs, eddb_session):
-    data = json.loads('{ "timestamp":"2016-06-10T14:32:03Z", "event":"Died", "Killers":[ { "Name":"Cmdr HRC1", "Ship":"Vulture", "Rank":"Competent" }, { "Name":"Cmdr HRC2", "Ship":"Python", "Rank":"Master" } ] }')
-    data['cmdr_id'] = 1
-    data['event_at'] = pvp.journal.datetime_to_tstamp(data['timestamp'])
-    pvp.journal.parse_event(eddb_session, data)
-    assert len(eddb_session.query(PVPDeath).all()) == 1
-    assert len(eddb_session.query(PVPDeathKiller).all()) == 2
+def test_journal_parser_parse(f_spy_ships, f_pvpclean, f_pvpcmdrs, eddb_session):
+    parser = pvp.journal.Parser(fname=JOURNAL_PATH, cmdr_id=1, eddb_session=eddb_session)
+    parser.load()
+    results = parser.parse()
+    eddb_session.commit()
+
+    assert isinstance(results[-1], PVPDeath)
+    input()
+
+
+def test_get_parser():
+    event, parser = pvp.journal.get_parser({'event': 'Died'})
+    assert event == 'Died'
+    assert parser == pvp.journal.parse_died
 
 
 def test_journal_rank_maps():
