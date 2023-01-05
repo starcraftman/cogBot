@@ -9,6 +9,7 @@ import discord.ui as dui
 
 import cogdb
 from cogdb.eddb import LEN as EDDB_LEN
+from cog.inara import PP_COLORS
 import cog.tbl
 import pvp
 import pvp.journal
@@ -100,12 +101,24 @@ class Stats(PVPAction):
     Display statistics based on file uploads to bot.
     """
     async def execute(self):
-        table = "No recorded events."
+        msg = "__CMDR Statistics__\n\nNo recorded events.",
+        embed = None
         stats = pvp.schema.get_pvp_stats(self.eddb_session, self.msg.author.id)
         if stats:
-            table = cog.tbl.format_table(stats.table_lines())[0]
+            msg = None
+            embed = discord.Embed.from_dict({
+                'color': PP_COLORS['Federation'],
+                'author': {
+                    'name': 'FedCAT',
+                },
+                'provider': {
+                    'name': 'FedCAT',
+                },
+                'title': f"Commander {stats.cmdr.name}",
+                "fields": stats.embed_values,
+            })
 
-        await self.bot.send_message(self.msg.channel, f"__CMDR Statistics__\n\n{table}")
+        await self.bot.send_message(self.msg.channel, msg, embed=embed)
 
 
 class Status(PVPAction):

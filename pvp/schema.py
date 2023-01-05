@@ -434,20 +434,21 @@ class PVPStat(ReprMixin, TimestampMixin, UpdatableMixin, Base):
         """ Return the k/d of a user. """
         return float(self.kills) / self.deaths
 
-    def table_lines(self):
-        """ Return a list of columns for table formatting. """
+    @property
+    def embed_values(self):
+        """ Return values for creating an embed. """
         return [
-            ["Kills", self.kills],
-            ["Deaths", self.deaths],
-            ["K/D", self.kill_ratio],
-            ["Interdictions", self.interdictions],
-            ["Interdicted", self.interdicteds],
-            ["Interdiction -> Kill", self.interdiction_kills],
-            ["Interdiction -> Death", self.interdiction_deaths],
-            ["Interdicted -> Kill", self.interdicted_kills],
-            ["Interdicted -> Death", self.interdicted_deaths],
-            ["Most Visited System", self.most_visited_system.name],
-            ["Least Visited System", self.least_visited_system.name],
+            {'name': "Kills", 'value': str(self.kills), 'inline': True},
+            {'name': "Deaths", 'value': str(self.deaths), 'inline': True},
+            {'name': "K/D", 'value': str(self.kill_ratio), 'inline': True},
+            {'name': "Interdictions", 'value': str(self.interdictions), 'inline': True},
+            {'name': "Interdiction -> Kill", 'value': str(self.interdiction_kills), 'inline': True},
+            {'name': "Interdiction -> Death", 'value': str(self.interdiction_deaths), 'inline': True},
+            {'name': "Interdiceds", 'value': str(self.interdicteds), 'inline': True},
+            {'name': "Interdiced -> Kill", 'value': str(self.interdicted_kills), 'inline': True},
+            {'name': "Interdiced -> Death", 'value': str(self.interdicted_deaths), 'inline': True},
+            {'name': "Most Visited System", 'value': self.most_visited_system.name, 'inline': True},
+            {'name': "Least Visited System", 'value': self.least_visited_system.name, 'inline': True},
         ]
 
     def __eq__(self, other):
