@@ -35,7 +35,7 @@ class FileUpload(PVPAction):
     """
     async def execute(self):
         discord_id = self.msg.author.id
-        cmdr = pvp.schema.get_pvp_cmdr(self.eddb_session, discord_id)
+        cmdr = pvp.schema.get_pvp_cmdr(self.eddb_session, cmdr_id=discord_id)
         if not cmdr:
             cmdr = await cmdr_setup(self.eddb_session, self.bot, self.msg)
             if not cmdr:  # Rejected registration
@@ -106,10 +106,19 @@ class Stats(PVPAction):
     Display statistics based on file uploads to bot.
     """
     async def execute(self):
-        msg = "__CMDR Statistics__\n\nNo recorded events."
+        if self.args.name:
+            cmdr_name = ' '.join(self.args.name)
+            cmdr = pvp.schema.get_pvp_cmdr(self.eddb_session, cmdr_name=cmdr_name)
+            msg = f"__CMDR Statistics__\n\nCMDR {cmdr_name} not found!"
+        else:
+            cmdr = pvp.schema.get_pvp_cmdr(self.eddb_session, cmdr_id=self.msg.author.id)
+            msg = "__CMDR Statistics__\n\nNo recorded events."
+        if not cmdr:
+            await self.bot.send_message(self.msg.channel, msg)
+            return
+
         embed = None
-        cmdr = pvp.schema.get_pvp_cmdr(self.eddb_session, self.msg.author.id)
-        stats = pvp.schema.get_pvp_stats(self.eddb_session, self.msg.author.id)
+        stats = pvp.schema.get_pvp_stats(self.eddb_session, cmdr.id)
         if stats:
             msg = None
             embed = discord.Embed.from_dict({

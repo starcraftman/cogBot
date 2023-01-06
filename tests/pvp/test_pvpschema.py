@@ -7,7 +7,7 @@ import pytest
 
 import pvp.schema
 from pvp.schema import (
-    PVPInterdictedKill, PVPInterdictedDeath, PVPInterdictionKill, PVPInterdictionDeath,
+    PVPStat, PVPInterdictedKill, PVPInterdictedDeath, PVPInterdictionKill, PVPInterdictionDeath,
     PVPInterdicted, PVPInterdiction, PVPDeathKiller, PVPDeath, PVPKill, PVPCmdr
 )
 
@@ -40,6 +40,35 @@ def test_pvpinterdiction__str__(f_pvp_testbed, eddb_session):
 def test_pvpinterdicted__str__(f_pvp_testbed, eddb_session):
     interdicted = eddb_session.query(PVPInterdicted).filter(PVPInterdicted.id == 1).one()
     assert "CMDR coolGuy was interdicted by CMDR BadGuyWon at 2022-12-21 20:42:57. Submitted: False. Escaped: False" == str(interdicted)
+
+
+def test_pvp_get_pvp_cmdr(f_pvp_testbed, eddb_session):
+    assert pvp.schema.get_pvp_cmdr(eddb_session, cmdr_id=1)
+    assert not pvp.schema.get_pvp_cmdr(eddb_session, cmdr_id=1000)
+    assert pvp.schema.get_pvp_cmdr(eddb_session, cmdr_name='coolGuy')
+
+
+def test_pvp_add_pvp_cmdr(f_pvp_testbed, eddb_session):
+    assert pvp.schema.add_pvp_cmdr(eddb_session, 10, 'NewGuy', '666666')
+    assert pvp.schema.get_pvp_cmdr(eddb_session, cmdr_id=10)
+
+
+def test_pvp_get_pvp_stats(f_pvp_testbed, eddb_session):
+    stats = pvp.schema.get_pvp_stats(eddb_session, 1)
+    assert 3 == stats.kills
+    assert not pvp.schema.get_pvp_stats(eddb_session, 10)
+
+
+def test_pvp_update_pvp_stats(f_pvp_testbed, eddb_session):
+    eddb_session.query(PVPStat).delete()
+    eddb_session.commit()
+    stats = pvp.schema.update_pvp_stats(eddb_session, 1)
+    assert 3 == stats.kills
+
+
+def test_pvp_get_pvp_events(f_pvp_testbed, eddb_session):
+    events = pvp.schema.get_pvp_events(eddb_session, 1)
+    assert events[-1].victim_name == 'LeSuck'
 
 
 def test_pvp_is_safe_to_drop():

@@ -489,25 +489,34 @@ PVPInterdicted.cmdr = sqla_orm.relationship(
     'PVPCmdr', uselist=False, back_populates='interdicteds', lazy='select')
 
 
-def get_pvp_cmdr(eddb_session, discord_id):
+def get_pvp_cmdr(eddb_session, *, cmdr_id=None, cmdr_name=None):
     """
     Get the PVPCmdr for a given discord user.
+    You may lookup either by cmdr_id or cmdr_name.
 
     Args:
         eddb_session: A session onto the EDDB db.
-        discord_id: The discord id of the CMDR.
+        cmdr_id: The discord id of the CMDR.
+        cmdr_name: The name of the CMDR.
 
     Returns: The PVPCmdr if present, None otherwise.
     """
     try:
-        cmdr = eddb_session.query(PVPCmdr).filter(PVPCmdr.id == discord_id).one()
+        query = eddb_session.query(PVPCmdr)
+
+        if cmdr_id:
+            query = query.filter(PVPCmdr.id == cmdr_id)
+        if cmdr_name:
+            query = query.filter(PVPCmdr.name == cmdr_name)
+
+        cmdr = query.one()
     except sqla.exc.NoResultFound:
         cmdr = None
 
     return cmdr
 
 
-def add_pvp_cmdr(eddb_session, discord_id, name, hex):
+def add_pvp_cmdr(eddb_session, discord_id, name, hex_colour):
     """
     Ensure the one time setup of commander is performed.
 
@@ -518,7 +527,7 @@ def add_pvp_cmdr(eddb_session, discord_id, name, hex):
 
     Returns: The added PVPCmdr.
     """
-    cmdr = PVPCmdr(id=discord_id, name=name, hex=hex)
+    cmdr = PVPCmdr(id=discord_id, name=name, hex=hex_colour)
     eddb_session.add(cmdr)
     eddb_session.commit()
 

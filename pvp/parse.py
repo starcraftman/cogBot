@@ -56,6 +56,7 @@ def subs_stats(subs, prefix):
     sub = subs.add_parser(prefix + 'stats', description=desc, formatter_class=RawHelp)
     sub.set_defaults(cmd='Stats')
     CMD_MAP['Stats'] = 'stats'
+    sub.add_argument('name', nargs='*', default=None, help='The cmdr name to look up.')
 
 
 def reuse_parsers():
