@@ -51,6 +51,8 @@ HEX_MAP = {
 }
 HEX_MAP.update({str(x): x for x in range(0, 10)})
 REV_HEX_MAP = {val: key for key, val in HEX_MAP.items()}
+TIME_STRP = "%Y-%m-%dT%H:%M:%SZ"
+TIME_STRP_MICRO = "%Y-%m-%dT%H:%M:%S.%fZ"
 
 
 class ReprMixin():

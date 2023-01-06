@@ -24,6 +24,7 @@ except ImportError:
     import json
 
 import cog.util
+from cog.util import TIME_STRP, TIME_STRP_MICRO
 import cogdb
 import cogdb.eddb
 import cogdb.query
@@ -43,8 +44,6 @@ SCHEMA_MAP = {
     #  "https://eddn.edcd.io/schemas/outfitting/2": "OutfitMsg",
     #  "https://eddn.edcd.io/schemas/shipyard/2": "ShipyardMsg",
 }
-TIME_STRP = "%Y-%m-%dT%H:%M:%SZ"
-TIME_STRP_MICRO = "%Y-%m-%dT%H:%M:%S.%fZ"
 LOG_FILE = "/tmp/eddn_log"
 ALL_MSGS = '/tmp/msgs'
 JOURNAL_MSGS = '/tmp/msgs_journal'

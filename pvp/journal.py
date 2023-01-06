@@ -15,7 +15,7 @@ import sqlalchemy as sqla
 import cogdb
 import cogdb.eddb
 from cogdb.eddb import LEN as EDDB_LEN
-from cogdb.eddn import TIME_STRP
+from cog.util import TIME_STRP
 from cogdb.spy_squirrel import ship_type_to_id_map
 import cog.inara
 import pvp.schema
