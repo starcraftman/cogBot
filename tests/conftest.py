@@ -495,6 +495,7 @@ class Member(FakeObject):
         self.discriminator = '12345'
         self.display_name = self.name
         self.roles = roles
+        self.display_avatar = aiomock.Mock(url='placeholder')
 
     @property
     def mention(self):
@@ -635,6 +636,8 @@ def f_bot():
     fake_bot.emoji.fix = lambda x, y: x
     fake_bot.guilds = fake_servers()
     fake_bot.get_channel_by_name.return_value = 'private_dev'
+    fake_bot.get_channel.return_value = Channel('pvp_chan')
+
     # fake_bot.msgs = []
     #
     # async def send_message_(_, msg):
@@ -918,9 +921,9 @@ def f_pvp_testbed(f_spy_ships, eddb_session):
     Massive fixture intializes an entire dummy testbed of pvp objects.
     """
     eddb_session.add_all([
-        PVPCmdr(id=1, name='coolGuy', updated_at=PVP_TIMESTAMP),
-        PVPCmdr(id=2, name='shyGuy', updated_at=PVP_TIMESTAMP),
-        PVPCmdr(id=3, name='shootsALot', updated_at=PVP_TIMESTAMP),
+        PVPCmdr(id=1, name='coolGuy', hex='B20000', updated_at=PVP_TIMESTAMP),
+        PVPCmdr(id=2, name='shyGuy', hex='B20000', updated_at=PVP_TIMESTAMP),
+        PVPCmdr(id=3, name='shootsALot', hex='B20000', updated_at=PVP_TIMESTAMP),
     ])
     eddb_session.flush()
     eddb_session.add_all([

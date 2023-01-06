@@ -7,6 +7,7 @@ import cog.exc
 import cogdb
 import pvp.actions
 import pvp.parse
+import pvp.schema
 from tests.conftest import fake_msg_gears, fake_msg_newuser, Interaction
 from tests.pvp.test_pvpjournal import JOURNAL_PATH
 
@@ -66,8 +67,12 @@ async def test_cmd_file_upload(f_bot, f_spy_ships, f_pvp_testbed):
     cls = getattr(pvp.actions, 'FileUpload')
     msg = fake_msg_gears("upload")  # Not real command
 
+    with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
+        assert len(eddb_session.query(pvp.schema.PVPDeath).all()) == 3
+
     with cogdb.session_scope(cogdb.Session) as session,\
             cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
         await cls(args=None, bot=f_bot, msg=msg, fname=JOURNAL_PATH, session=session, eddb_session=eddb_session).execute()
 
-    assert "CMDR" in str(f_bot.send_message.call_args).replace("\\n", "\n")
+    with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
+        assert len(eddb_session.query(pvp.schema.PVPDeath).all()) == 5

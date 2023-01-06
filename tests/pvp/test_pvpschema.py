@@ -33,12 +33,13 @@ def test_pvpdeathkiller__str__(f_pvp_testbed, eddb_session):
 
 def test_pvpinterdiction__str__(f_pvp_testbed, eddb_session):
     interdiction = eddb_session.query(PVPInterdiction).filter(PVPInterdiction.id == 1).one()
-    assert "CMDR coolGuy interdicted CMDR LeSuck. Pulled from SC: True Escaped: False" == str(interdiction)
+    assert "CMDR coolGuy interdicted CMDR LeSuck at 2022-12-21 20:42:57. Pulled from SC: True Escaped: False" == str(interdiction)
 
 
 def test_pvpinterdicted__str__(f_pvp_testbed, eddb_session):
     interdicted = eddb_session.query(PVPInterdicted).filter(PVPInterdicted.id == 1).one()
-    assert "CMDR coolGuy was interdicted by CMDR BadGuyWon. Submitted: False. Escaped: False" == str(interdicted)
+    assert "CMDR coolGuy was interdicted by CMDR BadGuyWon at 2022-12-21 20:42:57. Submitted: False. Escaped: False" == str(interdicted)
+
 
 
 def test_pvp_is_safe_to_drop():

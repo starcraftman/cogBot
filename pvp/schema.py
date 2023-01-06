@@ -596,7 +596,7 @@ def update_pvp_stats(eddb_session, cmdr_id):
     return stat
 
 
-def get_pvp_events(eddb_session, cmdr_id, last_n=10):
+def get_pvp_events(eddb_session, cmdr_id, *, last_n=10, event_classes=None):
     """
     Fetch the most recent tracked events to display to a user.
 
@@ -604,19 +604,22 @@ def get_pvp_events(eddb_session, cmdr_id, last_n=10):
         eddb_session: A session onto the EDDB db.
         cmdr_id: The cmdr's id.
         last_n: The amount of recent events to be displayed.
+        event_classes: The PVP events to fetch, a list of classes like PVPKill and PVPDeath. If None, all.
 
     Returns: A list of db objects to display.
     """
     objs = []
+    if not event_classes:
+        event_classes = [PVPLocation, PVPKill, PVPDeath, PVPInterdiction, PVPInterdiction]
 
-    for cls in [PVPLocation, PVPKill, PVPDeath, PVPInterdiction, PVPInterdiction]:
+    for cls in event_classes:
         objs += eddb_session.query(cls).\
             filter(cls.cmdr_id == cmdr_id).\
             order_by(cls.event_at.desc()).\
             limit(last_n).\
             all()
 
-    return sorted(objs, key=lambda x: x.event_at, reverse=True)[:last_n]
+    return list(reversed(sorted(objs, key=lambda x: x.event_at, reverse=True)[:last_n]))
 
 
 def drop_tables():  # pragma: no cover | destructive to test
