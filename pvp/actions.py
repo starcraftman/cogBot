@@ -107,7 +107,7 @@ class Stats(PVPAction):
     Display statistics based on file uploads to bot.
     """
     async def execute(self):
-        msg = "__CMDR Statistics__\n\nNo recorded events.",
+        msg = "__CMDR Statistics__\n\nNo recorded events."
         embed = None
         cmdr = pvp.schema.get_pvp_cmdr(self.eddb_session, self.msg.author.id)
         stats = pvp.schema.get_pvp_stats(self.eddb_session, self.msg.author.id)
