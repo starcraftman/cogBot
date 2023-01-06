@@ -9,7 +9,6 @@ import discord.ui as dui
 
 import cogdb
 from cogdb.eddb import LEN as EDDB_LEN
-from cog.inara import PP_COLORS
 import cog.tbl
 import pvp
 import pvp.journal

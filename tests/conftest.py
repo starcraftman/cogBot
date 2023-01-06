@@ -459,9 +459,6 @@ class Guild(FakeObject):
 
 
 class Emoji(FakeObject):
-    def __init__(self, name, id=None):
-        super().__init__(name, id)
-
     def __str__(self):
         return f"[{self.name}]"
 

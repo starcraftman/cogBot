@@ -92,6 +92,7 @@ def test_pad_table_to_rectangle():
 
 
 class NumObj():
+    """ Dummy object for wait callback tests. """
     def __init__(self):
         self.num = 0
 
@@ -320,6 +321,7 @@ def test_cycle_to_start():
 
 
 class UpdatedAtObj(cog.util.TimestampMixin):
+    """ Dummy object for mixin test. """
     def __init__(self):
         self.updated_at = datetime.datetime(2021, 10, 21, 7, 0, tzinfo=datetime.timezone.utc).timestamp()
 
@@ -337,6 +339,7 @@ def test_timestampmixin_tz():
 
 
 class DummyUpdateObject(cog.util.ReprMixin, cog.util.UpdatableMixin):
+    """ Dummy object for mixin test. """
     _repr_keys = ['num', 'updated_at']
 
     def __init__(self):

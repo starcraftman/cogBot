@@ -1,3 +1,4 @@
+# pylint: disable=redefined-outer-name,missing-function-docstring,unused-argument
 """
 Tests for pvp.schema
 """
@@ -41,7 +42,6 @@ def test_pvpinterdicted__str__(f_pvp_testbed, eddb_session):
     assert "CMDR coolGuy was interdicted by CMDR BadGuyWon at 2022-12-21 20:42:57. Submitted: False. Escaped: False" == str(interdicted)
 
 
-
 def test_pvp_is_safe_to_drop():
     assert pvp.schema.is_safe_to_drop('pvp_cmdrs')
     assert not pvp.schema.is_safe_to_drop('spy_ships')
@@ -49,6 +49,7 @@ def test_pvp_is_safe_to_drop():
 
 
 class EventAtObj(pvp.schema.EventTimeMixin):
+    """ Dummy object for mixin test. """
     def __init__(self):
         self.event_at = datetime.datetime(2021, 10, 21, 7, 0, tzinfo=datetime.timezone.utc).timestamp()
 

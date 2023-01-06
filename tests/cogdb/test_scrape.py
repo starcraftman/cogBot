@@ -120,6 +120,7 @@ def test_click_with_retry_fail():
 
 def test_click_with_retry_fail_then_succeed():
     class StubClick():
+        """ Dummy object for test. """
         def __init__(self):
             self.first = True
 
