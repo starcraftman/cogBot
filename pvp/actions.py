@@ -38,15 +38,21 @@ class FileUpload(PVPAction):
         discord_id = self.msg.author.id
         cmdr = pvp.schema.get_pvp_cmdr(self.eddb_session, discord_id)
         if not cmdr:
-            if not await cmdr_setup(self.eddb_session, self.bot, self.msg):
+            cmdr = await cmdr_setup(self.eddb_session, self.bot, self.msg)
+            if not cmdr:  # Rejected registration
                 return
 
+        # Archive all uploaded logs to ensure ability to reconstruct database.
+        log_chan = self.bot.get_channel(cog.util.CONF.channels.pvp_log)
+        with open(self.fname, 'rb') as fin:
+            await log_chan.send(f"Discord ID: {cmdr.id}\nCMDR: {cmdr.name}", file=discord.File(fin))
+
         with cfut.ProcessPoolExecutor(max_workers=1) as pool:
-            await self.bot.loop.run_in_executor(
+            events = await self.bot.loop.run_in_executor(
                 pool, parse_in_process, self.fname, discord_id,
             )
 
-        await self.bot.send_message(self.msg.channel, "Upload received and read. Have a nice day CMDR.")
+        await self.bot.send_message(self.msg.channel, f"Log parsed, {len(events)} events detected.")
 
 
 class Help(PVPAction):
@@ -103,18 +109,23 @@ class Stats(PVPAction):
     async def execute(self):
         msg = "__CMDR Statistics__\n\nNo recorded events.",
         embed = None
+        cmdr = pvp.schema.get_pvp_cmdr(self.eddb_session, self.msg.author.id)
         stats = pvp.schema.get_pvp_stats(self.eddb_session, self.msg.author.id)
         if stats:
             msg = None
             embed = discord.Embed.from_dict({
-                'color': PP_COLORS['Federation'],
+                'color': cmdr.hex_value,
                 'author': {
-                    'name': 'FedCAT',
+                    'name': 'PVP Statistics',
+                    'icon_url': self.bot.user.display_avatar.url,
                 },
                 'provider': {
                     'name': 'FedCAT',
                 },
-                'title': f"Commander {stats.cmdr.name}",
+                'thumbnail': {
+                    'url': self.msg.author.display_avatar.url,
+                },
+                'title': f"CMDR {stats.cmdr.name}",
                 "fields": stats.embed_values,
             })
 
@@ -140,6 +151,8 @@ class CMDRRegistration(dui.Modal, title='CMDR Registration'):
     """ Register a cmdr by getting name via a modal input. """
     name = dui.TextInput(label='CMDR Name', min_length=5, max_length=EDDB_LEN['pvp_name'],
                          style=discord.TextStyle.short, placeholder="Your in game name", required=True)
+    hex = dui.TextInput(label='Hex colour for embeds. Red: B20000', min_length=6, max_length=6,
+                        style=discord.TextStyle.short, placeholder="B20000", required=True)
 
     async def on_submit(self, interaction: discord.Interaction):
         self.name = pvp.journal.clean_cmdr_name(str(self.name))
@@ -171,7 +184,7 @@ async def cmdr_setup(eddb_session, client, msg):
     modal = CMDRRegistration()
     await inter.response.send_modal(modal)
     await modal.wait()
-    return pvp.schema.add_pvp_cmdr(eddb_session, msg.author.id, modal.name)
+    return pvp.schema.add_pvp_cmdr(eddb_session, msg.author.id, modal.name, modal.hex)
 
 
 def parse_in_process(fname, discord_id):

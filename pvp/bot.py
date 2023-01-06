@@ -6,7 +6,6 @@ See cog.bot for more information.
 """
 import asyncio
 import datetime
-import io
 import logging
 import os
 import random
@@ -102,31 +101,19 @@ class PVPBot(CogBot):
         if before.content != after.content and after.content.startswith(self.prefix):
             await self.on_message(after)
 
-    async def message_hooks(self, message):
-        """
-        Any hooks to respond automatically to certain messages with no prefixes go here.
-        """
-        pass
-
     async def handle_dms(self, message):
         """
         Any hooks to respond to dms.
         """
         tfile = None
-        try:
-            if len(message.attachments) == 1:
-                handle, tfile = tempfile.mkstemp()
-                await message.attachments[0].save(handle)
-                with cogdb.session_scope(cogdb.Session) as session,\
-                        cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
-                    await pvp.actions.FileUpload(args=None, bot=self, msg=message, session=session,
-                                                 eddb_session=eddb_session, fname=tfile).execute()
-        finally:
-            if tfile and os.path.exists(tfile):
-                try:
-                    os.remove(tfile)
-                except OSError:
-                    pass
+        for attach in message.attachments:
+            with cogdb.session_scope(cogdb.EDDBSession) as eddb_session,\
+                    tempfile.NamedTemporaryFile(suffix='.jsonl') as tfile:
+                await attach.save(tfile.name)
+                await pvp.actions.FileUpload(
+                    args=None, bot=self, msg=message, session=None,
+                    eddb_session=eddb_session, fname=tfile.name
+                ).execute()
 
     async def on_message(self, message):
         """

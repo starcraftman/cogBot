@@ -42,7 +42,13 @@ class PVPCmdr(ReprMixin, TimestampMixin, Base):
 
     id = sqla.Column(sqla.BigInteger, primary_key=True)  # Discord id
     name = sqla.Column(sqla.String(EDDB_LEN['pvp_name']))
+    hex = sqla.Column(sqla.String(6))  # Hex strings, no leading 0x: B20000
     updated_at = sqla.Column(sqla.Integer, default=time.time, onupdate=time.time)
+
+    @property
+    def hex_value(self):
+        """ Simple conversion of hex to integer value. """
+        return int(self.hex, 16)
 
     def __str__(self):
         """ Convenient string representation of this object. """
@@ -87,7 +93,7 @@ class PVPLocation(ReprMixin, TimestampMixin, EventTimeMixin, Base):
         except AttributeError:
             system = f"system_id {self.system_id}"
 
-        return f'CMDR {cmdr} now located in {system}.'
+        return f'CMDR {cmdr} located in {system} at {self.event_date}.'
 
     def __eq__(self, other):
         return isinstance(other, PVPLocation) and hash(self) == hash(other)
@@ -246,7 +252,7 @@ class PVPInterdiction(ReprMixin, TimestampMixin, EventTimeMixin, Base):
         except AttributeError:
             cmdr = self.id
 
-        return f"CMDR {cmdr} interdicted {'CMDR ' if self.is_player else ''}{self.victim_name}. Pulled from SC: {self.is_success} Escaped: {self.did_escape}"
+        return f"CMDR {cmdr} interdicted {'CMDR ' if self.is_player else ''}{self.victim_name} at {self.event_date}. Pulled from SC: {self.is_success} Escaped: {self.did_escape}"
 
     def __eq__(self, other):
         return isinstance(other, PVPInterdiction) and hash(self) == hash(other)
@@ -260,7 +266,7 @@ class PVPInterdictionKill(ReprMixin, TimestampMixin, EventTimeMixin, Base):
     Table to store the event where an interdiction lead to a pvp kill.
     """
     __tablename__ = 'pvp_interdictions_kills'
-    _repr_keys = ['id', 'cmdr_id', 'pvp_interdiction_id', 'pvp_kill_id']
+    _repr_keys = ['id', 'cmdr_id', 'pvp_interdiction_id', 'pvp_kill_id', 'created_at', 'event_at']
 
     id = sqla.Column(sqla.BigInteger, primary_key=True)
     cmdr_id = sqla.Column(sqla.BigInteger, sqla.ForeignKey('pvp_cmdrs.id'))
@@ -285,7 +291,7 @@ class PVPInterdictionDeath(ReprMixin, TimestampMixin, EventTimeMixin, Base):
     Table to store the event where an interdiction lead to a cmdr death.
     """
     __tablename__ = 'pvp_interdictions_deaths'
-    _repr_keys = ['id', 'cmdr_id', 'pvp_interdiction_id', 'pvp_death_id']
+    _repr_keys = ['id', 'cmdr_id', 'pvp_interdiction_id', 'pvp_death_id', 'created_at', 'event_at']
 
     id = sqla.Column(sqla.BigInteger, primary_key=True)
     cmdr_id = sqla.Column(sqla.BigInteger, sqla.ForeignKey('pvp_cmdrs.id'))
@@ -336,7 +342,7 @@ class PVPInterdicted(ReprMixin, TimestampMixin, EventTimeMixin, Base):
         except AttributeError:
             cmdr = self.id
 
-        return f"CMDR {cmdr} was interdicted by {'CMDR ' if self.is_player else ''}{self.interdictor_name}. Submitted: {self.did_submit}. Escaped: {self.did_escape}"
+        return f"CMDR {cmdr} was interdicted by {'CMDR ' if self.is_player else ''}{self.interdictor_name} at {self.event_date}. Submitted: {self.did_submit}. Escaped: {self.did_escape}"
 
     def __eq__(self, other):
         return isinstance(other, PVPInterdicted) and hash(self) == hash(other)
@@ -350,7 +356,7 @@ class PVPInterdictedKill(ReprMixin, TimestampMixin, EventTimeMixin, Base):
     Table to store the event where a cmdr was interdicted and pvp killed.
     """
     __tablename__ = 'pvp_interdicteds_kills'
-    _repr_keys = ['id', 'cmdr_id', 'pvp_interdicted_id', 'pvp_kill_id']
+    _repr_keys = ['id', 'cmdr_id', 'pvp_interdicted_id', 'pvp_kill_id', 'created_at', 'event_at']
 
     id = sqla.Column(sqla.BigInteger, primary_key=True)
     cmdr_id = sqla.Column(sqla.BigInteger, sqla.ForeignKey('pvp_cmdrs.id'))
@@ -375,7 +381,7 @@ class PVPInterdictedDeath(ReprMixin, TimestampMixin, EventTimeMixin, Base):
     Table to store the event where a cmdr was interdicted and died.
     """
     __tablename__ = 'pvp_interdicteds_deaths'
-    _repr_keys = ['id', 'cmdr_id', 'pvp_interdicted_id', 'pvp_death_id']
+    _repr_keys = ['id', 'cmdr_id', 'pvp_interdicted_id', 'pvp_death_id', 'created_at', 'event_at']
 
     id = sqla.Column(sqla.BigInteger, primary_key=True)
     cmdr_id = sqla.Column(sqla.BigInteger, sqla.ForeignKey('pvp_cmdrs.id'))
@@ -402,7 +408,9 @@ class PVPStat(ReprMixin, TimestampMixin, UpdatableMixin, Base):
     """
     __tablename__ = 'pvp_stats'
     _repr_keys = ['id', 'cmdr_id', 'deaths', 'kills', 'interdictions', 'interdicteds',
-                  'most_visited_system_id', 'least_visited_system_id', 'updated_at']
+                  'most_visited_system_id', 'least_visited_system_id',
+                  'interdicted_kills', 'interdiction_deaths', 'interdicted_kills', 'interdicted_deaths',
+                  'updated_at']
 
     id = sqla.Column(sqla.BigInteger, primary_key=True)
     cmdr_id = sqla.Column(sqla.BigInteger, sqla.ForeignKey('pvp_cmdrs.id'))
@@ -444,9 +452,9 @@ class PVPStat(ReprMixin, TimestampMixin, UpdatableMixin, Base):
             {'name': "Interdictions", 'value': str(self.interdictions), 'inline': True},
             {'name': "Interdiction -> Kill", 'value': str(self.interdiction_kills), 'inline': True},
             {'name': "Interdiction -> Death", 'value': str(self.interdiction_deaths), 'inline': True},
-            {'name': "Interdiceds", 'value': str(self.interdicteds), 'inline': True},
-            {'name': "Interdiced -> Kill", 'value': str(self.interdicted_kills), 'inline': True},
-            {'name': "Interdiced -> Death", 'value': str(self.interdicted_deaths), 'inline': True},
+            {'name': "Interdicteds", 'value': str(self.interdicteds), 'inline': True},
+            {'name': "Interdicted -> Kill", 'value': str(self.interdicted_kills), 'inline': True},
+            {'name': "Interdicted -> Death", 'value': str(self.interdicted_deaths), 'inline': True},
             {'name': "Most Visited System", 'value': self.most_visited_system.name, 'inline': True},
             {'name': "Least Visited System", 'value': self.least_visited_system.name, 'inline': True},
         ]
@@ -499,7 +507,7 @@ def get_pvp_cmdr(eddb_session, discord_id):
     return cmdr
 
 
-def add_pvp_cmdr(eddb_session, discord_id, name):
+def add_pvp_cmdr(eddb_session, discord_id, name, hex):
     """
     Ensure the one time setup of commander is performed.
 
@@ -510,7 +518,7 @@ def add_pvp_cmdr(eddb_session, discord_id, name):
 
     Returns: The added PVPCmdr.
     """
-    cmdr = PVPCmdr(id=discord_id, name=name)
+    cmdr = PVPCmdr(id=discord_id, name=name, hex=hex)
     eddb_session.add(cmdr)
     eddb_session.commit()
 

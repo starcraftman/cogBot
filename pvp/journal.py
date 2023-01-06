@@ -251,7 +251,6 @@ def get_parser(data):
     if event in EVENT_TO_PARSER:
         return event, EVENT_TO_PARSER[event]
 
-    logging.getLogger(__name__).error("Failed to parse event: %s", event)
     raise ParserError(f"No parser configured for: {event}")
 
 
