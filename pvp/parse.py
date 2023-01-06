@@ -52,6 +52,8 @@ def subs_stats(subs, prefix):
 
 **{prefix}stats**
         See your stats.
+**{prefix}stats prozer**
+        See CMDR prozer's stats. This is not case sensitive.
     """
     sub = subs.add_parser(prefix + 'stats', description=desc, formatter_class=RawHelp)
     sub.set_defaults(cmd='Stats')
