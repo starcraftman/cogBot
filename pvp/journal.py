@@ -293,6 +293,12 @@ class Parser():
                 'system_id': self.data['Location'].system_id if self.data.get('Location') else None,
             })
             event, parser = get_parser(loaded)
+
+            # If a CMDR supercruises reset events tracking, still same location
+            if event in ['SupercruiseEntry', 'SupercruiseExit']:
+                self.data = {'Location': self.data.get('Location')}
+                return result
+
             result = parser(self.eddb_session, loaded)
             self.post_parsing(event, result)
         except json.decoder.JSONDecodeError:
@@ -361,13 +367,15 @@ class Parser():
             self.eddb_session.flush()
 
         # Always store event in data for later use
-        # When location is set and event happens, set it in event
         if event in ['Interdiction', 'Interdicted', 'PVPKill']:
             self.data[event] = result
-        # Handle stale data no longer needed
+
+        # When changing location reset data and set Locaation
         elif event in ['Location', 'FSDJump']:
             self.data.clear()
             self.data['Location'] = result
+
+        # When dying all connections reset
         elif event == 'Died':
             self.data.clear()
 
@@ -379,7 +387,9 @@ class Parser():
         """
         to_return = []
         for line in self.lines:
-            to_return += [self.parse_line(line)]
+            returned = self.parse_line(line)
+            if returned:
+                to_return += [returned]
 
         pvp.schema.update_pvp_stats(self.eddb_session, self.cmdr_id)
 
@@ -422,6 +432,8 @@ EVENT_TO_PARSER = {
     "FSDJump": parse_location,
     "Interdicted": parse_pvpinterdicted,
     "Interdiction": parse_pvpinterdiction,
+    "SupercruiseEntry": parse_location,
+    "SupercruiseExit": parse_location,
     "Location": parse_location,
     "PVPKill": parse_pvpkill,
 }

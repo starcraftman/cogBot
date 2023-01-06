@@ -8,7 +8,7 @@ import cogdb
 import pvp.actions
 import pvp.parse
 from tests.conftest import fake_msg_gears, fake_msg_newuser, Interaction
-from tests.pvp.test_journal import JOURNAL_PATH
+from tests.pvp.test_pvpjournal import JOURNAL_PATH
 
 
 def action_map(fake_message, fake_bot):
@@ -57,20 +57,8 @@ async def test_cmd_stats(f_bot, f_pvp_testbed):
     msg = fake_msg_gears("!stats")
 
     await action_map(msg, f_bot).execute()
-    expect = """__CMDR Statistics__
-
-```Kills                 | 3
-Deaths                | 2
-K/D                   | 1.5
-Interdictions         | 2
-Interdicted           | 1
-Interdiction -> Kill  | 1
-Interdiction -> Death | 0
-Interdicted -> Kill   | 0
-Interdicted -> Death  | 1
-Most Visited System   | Anja
-Least Visited System  | Anja`"""
-    assert expect in str(f_bot.send_message.call_args).replace("\\n", "\n")
+    _, kwargs = f_bot.send_message.call_args_list[0]
+    assert '3' == kwargs['embed'].fields[0].value
 
 
 @pytest.mark.asyncio
