@@ -136,15 +136,6 @@ async def test_find_cmdr_name():
     assert "HRC1" == cmdr_name
 
 
-def test_load_journal_events():
-    line = '{ "timestamp":"2016-06-10T14:31:00Z", "event":"FileHeader", "part":1, "gameversion":"2.2", "build":"r113684 " }, { "timestamp":"2016-06-10T14:32:03Z", "event":"LoadGame", "Commander":"HRC1", "Ship":"SideWinder", "ShipID":1, "GameMode":"Open", "Credits":600120, "Loan":0 }'
-    expect = [
-        json.loads('{ "timestamp":"2016-06-10T14:31:00Z", "event":"FileHeader", "part":1, "gameversion":"2.2", "build":"r113684 " }'),
-        json.loads('{ "timestamp":"2016-06-10T14:32:03Z", "event":"LoadGame", "Commander":"HRC1", "Ship":"SideWinder", "ShipID":1, "GameMode":"Open", "Credits":600120, "Loan":0 }'),
-    ]
-    assert expect == pvp.journal.load_journal_events(line)
-
-
 def test_journal_parser_load(f_spy_ships, f_pvp_testbed, eddb_session):
     parser = pvp.journal.Parser(fname=JOURNAL_PATH, cmdr_id=1, eddb_session=eddb_session)
     parser.load()

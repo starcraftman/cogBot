@@ -304,7 +304,7 @@ class Parser():
         """
         result = None
         try:
-            for loaded in load_journal_events(line):
+            for loaded in json.loads(f'[ {line} ] '):
                 loaded.update({
                     'event_at': datetime_to_tstamp(loaded['timestamp']),
                     'cmdr_id': self.cmdr_id,
@@ -426,39 +426,14 @@ async def find_cmdr_name(fname):
     async with aiofiles.open(fname, 'r', encoding='utf-8') as fin:
         async for line in fin:
             try:
-                for event in load_journal_events(line):
+                for event in json.loads(f'[ {line} ] '):
                     cmdr_name = parse_cmdr_name(event)
                     if cmdr_name:
                         return cmdr_name
             except json.decoder.JSONDecodeError:
-                pass
+                logging.getLogger(__name__).error("Impossible to parse: %s", line)
 
     return None
-
-
-def load_journal_events(json_line):
-    """
-    Best effort attempt to load JSON objects from a line.
-    Assume initially that it is one object per line.
-    On failure, assume Frontier put multiple JSONs and add list around them.
-
-    Args:
-        json_line: A line that is assumed to have some JSON on it, one or more.
-
-    Returns: A list of JSON objects, at least 1.
-
-    Raises: json.decoder.JSONDecodeError - Failed to load any JSON on line.
-    """
-    try:
-        events = [json.loads(json_line)]
-    except json.decoder.JSONDecodeError:
-        try:
-            events = json.loads(f'[ {json_line} ] ')
-        except json.decoder.JSONDecodeError:
-            logging.getLogger(__name__).error("Impossible to parse: %s", json_line)
-            raise
-
-    return events
 
 
 def clean_cmdr_name(name):

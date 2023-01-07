@@ -16,6 +16,13 @@ import pvp.journal
 from cog.actions import (Action, Dist, Donate, Feedback, Near,
                          Repair, Route, Time, Trigger, WhoIs)  # noqa: F401 pylint: disable=unused-import
 
+DISCLAIMER = """
+This bot will store information derived from logs uploaded and link it to your Discord ID.
+Your in game name will be read from logs and linked to your Discord ID as well (if present).
+
+Do you consent to this use of your data?
+"""
+
 
 class PVPAction(Action):
     """
@@ -37,7 +44,8 @@ class FileUpload(PVPAction):
         discord_id = self.msg.author.id
         cmdr = pvp.schema.get_pvp_cmdr(self.eddb_session, cmdr_id=discord_id)
         if not cmdr:
-            cmdr = await cmdr_setup(self.eddb_session, self.bot, self.msg)
+            name = await pvp.journal.find_cmdr_name(self.fname)
+            cmdr = await cmdr_setup(self.eddb_session, self.bot, self.msg, cmdr_name=name)
             if not cmdr:  # Rejected registration
                 return
 
@@ -157,17 +165,17 @@ class Status(PVPAction):
 
 class CMDRRegistration(dui.Modal, title='CMDR Registration'):
     """ Register a cmdr by getting name via a modal input. """
-    name = dui.TextInput(label='CMDR Name', min_length=5, max_length=EDDB_LEN['pvp_name'],
-                         style=discord.TextStyle.short, placeholder="Your in game name", required=True)
     hex = dui.TextInput(label='Hex colour for embeds. Red: B20000', min_length=6, max_length=6,
                         style=discord.TextStyle.short, placeholder="B20000", required=True)
+    name = None
 
     async def on_submit(self, interaction: discord.Interaction):
-        self.name = pvp.journal.clean_cmdr_name(str(self.name))
+        if not self.name:
+            self.name = pvp.journal.clean_cmdr_name(self.children[-1].value)
         await interaction.response.send_message(f'You are now registered, CMDR {self.name}!', ephemeral=True)
 
 
-async def cmdr_setup(eddb_session, client, msg):
+async def cmdr_setup(eddb_session, client, msg, *, cmdr_name=None):
     """
     Perform first time cmdr setup via interactive questions.
     """
@@ -181,8 +189,7 @@ async def cmdr_setup(eddb_session, client, msg):
         add_item(dui.Button(label="Yes", custom_id="Yes", style=discord.ButtonStyle.green)).\
         add_item(dui.Button(label="No", custom_id="No", style=discord.ButtonStyle.red))
 
-    text = "This bot will store information derived from logs and link it to your Discord ID. Is that ok?"
-    sent = await msg.channel.send(text, view=view)
+    sent = await msg.channel.send(DISCLAIMER, view=view)
     inter = await client.wait_for('interaction', check=functools.partial(check_button, msg.author, sent))
 
     if inter.data['custom_id'] == "No":
@@ -190,8 +197,18 @@ async def cmdr_setup(eddb_session, client, msg):
         return False
 
     modal = CMDRRegistration()
+    modal.name = cmdr_name
+    if not modal.name:
+        modal.add_item(
+            dui.TextInput(
+                label='In Game CMDR Name', min_length=5, max_length=EDDB_LEN['pvp_name'],
+                style=discord.TextStyle.short, placeholder="Your in game name", required=True
+            )
+        )
+
     await inter.response.send_modal(modal)
     await modal.wait()
+
     return pvp.schema.add_pvp_cmdr(eddb_session, msg.author.id, modal.name, modal.hex)
 
 
