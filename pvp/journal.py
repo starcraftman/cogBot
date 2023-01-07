@@ -10,14 +10,15 @@ import datetime
 import json
 import logging
 
+import aiofiles
 import sqlalchemy as sqla
 
 import cogdb
 import cogdb.eddb
 from cogdb.eddb import LEN as EDDB_LEN
-from cog.util import TIME_STRP
 from cogdb.spy_squirrel import ship_type_to_id_map
 import cog.inara
+from cog.util import TIME_STRP
 import pvp.schema
 
 COMBAT_RANK_TO_VALUE = {x: ind for ind, x in enumerate(cog.inara.COMBAT_RANKS)}
@@ -218,6 +219,25 @@ def parse_location(eddb_session, data):
     return location
 
 
+def parse_cmdr_name(data):
+    """
+    Scan a line of log looking for possible commander name.
+
+    Args:
+        data: The JSON data.
+
+    Returns: The CMDR name if found, otherwise None.
+    """
+    cmdr = None
+
+    if data['event'] == 'LoadGame':
+        cmdr = data['Commander']
+    elif data['event'] == 'Commander':
+        cmdr = data['Name']
+
+    return cmdr
+
+
 def datetime_to_tstamp(date_string):
     """
     Convert a tiemstamp string in a log line to a simpler integer timestamp
@@ -284,22 +304,21 @@ class Parser():
         """
         result = None
         try:
-            # TODO: The load fails if 2 or more events present on line
-            loaded = json.loads(line)
-            loaded.update({
-                'event_at': datetime_to_tstamp(loaded['timestamp']),
-                'cmdr_id': self.cmdr_id,
-                'system_id': self.data['Location'].system_id if self.data.get('Location') else None,
-            })
-            event, parser = get_parser(loaded)
+            for loaded in load_journal_events(line):
+                loaded.update({
+                    'event_at': datetime_to_tstamp(loaded['timestamp']),
+                    'cmdr_id': self.cmdr_id,
+                    'system_id': self.data['Location'].system_id if self.data.get('Location') else None,
+                })
+                event, parser = get_parser(loaded)
 
-            # If a CMDR supercruises reset events tracking, still same location
-            if event in ['SupercruiseEntry', 'SupercruiseExit']:
-                self.data = {'Location': self.data.get('Location')}
-                return result
+                # If a CMDR supercruises reset events tracking, still same location
+                if event in ['SupercruiseEntry', 'SupercruiseExit']:
+                    self.data = {'Location': self.data.get('Location')}
+                    return result
 
-            result = parser(self.eddb_session, loaded)
-            self.post_parsing(event, result)
+                result = parser(self.eddb_session, loaded)
+                self.post_parsing(event, result)
         except json.decoder.JSONDecodeError:
             logging.getLogger(__name__).error("Failed to JSON decode line: %s", line)
         except (ParserError, ValueError) as exc:
@@ -393,6 +412,96 @@ class Parser():
         pvp.schema.update_pvp_stats(self.eddb_session, self.cmdr_id)
 
         return to_return
+
+
+async def find_cmdr_name(fname):
+    """
+    Given a journal file, scan until you can identify the CMDR name.
+
+    Args:
+        fname: The filename of the journal.
+
+    Returns: The CMDR name if found printed in log, otherwise None if not found.
+    """
+    async with aiofiles.open(fname, 'r', encoding='utf-8') as fin:
+        async for line in fin:
+            try:
+                for event in load_journal_events(line):
+                    cmdr_name = parse_cmdr_name(event)
+                    if cmdr_name:
+                        return cmdr_name
+            except json.decoder.JSONDecodeError:
+                pass
+
+    return None
+
+
+def load_journal_events(json_line):
+    """
+    Best effort attempt to load JSON objects from a line.
+    Assume initially that it is one object per line.
+    On failure, split multiple objects and load again.
+
+    Args:
+        json_line: A line that is assumed to have some JSON on it, one or more.
+
+    Returns: A list of JSON objects, at least 1.
+
+    Raises: json.decoder.JSONDecodeError - Failed to load any JSON on line.
+    """
+    try:
+        events = [json.loads(json_line)]
+    except json.decoder.JSONDecodeError:
+        try:
+            parts = split_multiple_json(json_line)
+            events = [json.loads(part) for part in parts]
+        except json.decoder.JSONDecodeError:
+            logging.getLogger(__name__).error("CRITIAL ERROR JSON: %s", str(parts))
+            raise
+
+    return events
+
+
+def split_multiple_json(line):
+    """
+    Split a string with 1 or more JSON objects of form:
+
+        '{....}, {....}, {....}'
+
+    into a list of individual JSON strings like:
+
+        ['{....}', '{....}', '{....}']
+
+    Will also trim the whitespace.
+
+    Args:
+        line: A single line with one or more JSON objects assumed in it. If less than 2 JSON found returns list with line.
+
+    Returns: A list of strings.
+    """
+    parenthesis_stack = 0
+    parts, split_indices = [], []
+    line = line.strip()
+
+    for ind, char in enumerate(line):
+        if char == '{':
+            parenthesis_stack += 1
+
+        if char == '}' and parenthesis_stack == 1:
+            split_indices += [ind + 1]
+
+        if char == '}':
+            parenthesis_stack -= 1
+
+    # At least 1 other than closing index.
+    if split_indices[:-1]:
+        for split in split_indices:
+            parts += [line[:split].strip()]
+            line = line[split + 1:].lstrip()
+    else:
+        parts = [line]
+
+    return parts
 
 
 def clean_cmdr_name(name):

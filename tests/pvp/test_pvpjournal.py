@@ -119,6 +119,33 @@ def test_parse_fsdjump(f_pvp_testbed, eddb_session):
     assert location.system.name == "LP 98-132"
 
 
+def test_parse_cmdr_name():
+    data = json.loads('{ "timestamp":"2023-01-01T12:43:20Z", "event":"LoadGame", "FID":"F9999999", "Commander":"coolGuy", "Horizons":true, "Odyssey":false, "Ship":"Federation_Corvette", "Ship_Localised":"Federal Corvette", "ShipID":33, "ShipName":"ANS RELIANT", "ShipIdent":"FRC-03", "FuelLevel":32.000000, "FuelCapacity":32.000000, "GameMode":"Solo", "Credits":2969730326, "Loan":0, "language":"English/UK", "gameversion":"4.0.0.1476", "build":"r289925/r0 " }')
+    assert 'coolGuy' == pvp.journal.parse_cmdr_name(data)
+
+    data = json.loads('{ "timestamp":"2023-01-01T12:43:19Z", "event":"Commander", "FID":"F9999999", "Name":"coolGuy" }')
+    assert 'coolGuy' == pvp.journal.parse_cmdr_name(data)
+
+    data = json.loads('{ "timestamp":"2016-07-21T13:16:49Z", "event":"FSDJump", "StarSystem":"LP 98-132", "StarPos":[-26.781,37.031,-4.594], "Economy":"$economy_Extraction;", "Allegiance":"Federation", "Government":"$government_Anarchy;", "Security":"$SYSTEM_SECURITY_high_anarchy;", "JumpDist":5.230, "FuelUsed":0.355614, "FuelLevel":12.079949, "Faction":"Brotherhood of LP 98-132", "FactionState":"Outbreak" }')
+    assert not pvp.journal.parse_cmdr_name(data)
+
+
+@pytest.mark.asyncio
+async def test_find_cmdr_name():
+    cmdr_name = await pvp.journal.find_cmdr_name(JOURNAL_PATH)
+    assert "HRC1" == cmdr_name
+
+
+def test_split_multiple_json():
+    line = '{ "timestamp":"2016-06-10T14:31:00Z", "event":"FileHeader", "part":1, "gameversion":"2.2", "build":"r113684 " }, { "timestamp":"2016-06-10T14:32:03Z", "event":"LoadGame", "Commander":"HRC1", "Ship":"SideWinder", "ShipID":1, "GameMode":"Open", "Credits":600120, "Loan":0 }'
+    expect = [
+        '{ "timestamp":"2016-06-10T14:31:00Z", "event":"FileHeader", "part":1, "gameversion":"2.2", "build":"r113684 " }',
+        '{ "timestamp":"2016-06-10T14:32:03Z", "event":"LoadGame", "Commander":"HRC1", "Ship":"SideWinder", "ShipID":1, "GameMode":"Open", "Credits":600120, "Loan":0 }',
+    ]
+    results = pvp.journal.split_multiple_json(line)
+    assert expect == results
+
+
 def test_journal_parser_load(f_spy_ships, f_pvp_testbed, eddb_session):
     parser = pvp.journal.Parser(fname=JOURNAL_PATH, cmdr_id=1, eddb_session=eddb_session)
     parser.load()
