@@ -440,7 +440,7 @@ def load_journal_events(json_line):
     """
     Best effort attempt to load JSON objects from a line.
     Assume initially that it is one object per line.
-    On failure, split multiple objects and load again.
+    On failure, assume Frontier put multiple JSONs and add list around them.
 
     Args:
         json_line: A line that is assumed to have some JSON on it, one or more.
@@ -453,55 +453,12 @@ def load_journal_events(json_line):
         events = [json.loads(json_line)]
     except json.decoder.JSONDecodeError:
         try:
-            parts = split_multiple_json(json_line)
-            events = [json.loads(part) for part in parts]
+            events = json.loads(f'[ {json_line} ] ')
         except json.decoder.JSONDecodeError:
-            logging.getLogger(__name__).error("CRITIAL ERROR JSON: %s", str(parts))
+            logging.getLogger(__name__).error("Impossible to parse: %s", json_line)
             raise
 
     return events
-
-
-def split_multiple_json(line):
-    """
-    Split a string with 1 or more JSON objects of form:
-
-        '{....}, {....}, {....}'
-
-    into a list of individual JSON strings like:
-
-        ['{....}', '{....}', '{....}']
-
-    Will also trim the whitespace.
-
-    Args:
-        line: A single line with one or more JSON objects assumed in it. If less than 2 JSON found returns list with line.
-
-    Returns: A list of strings.
-    """
-    parenthesis_stack = 0
-    parts, split_indices = [], []
-    line = line.strip()
-
-    for ind, char in enumerate(line):
-        if char == '{':
-            parenthesis_stack += 1
-
-        if char == '}' and parenthesis_stack == 1:
-            split_indices += [ind + 1]
-
-        if char == '}':
-            parenthesis_stack -= 1
-
-    # At least 1 other than closing index.
-    if split_indices[:-1]:
-        for split in split_indices:
-            parts += [line[:split].strip()]
-            line = line[split + 1:].lstrip()
-    else:
-        parts = [line]
-
-    return parts
 
 
 def clean_cmdr_name(name):
