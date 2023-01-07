@@ -33,6 +33,31 @@ def register_parser(func):
 
 
 @register_parser
+def subs_admin(subs, prefix):
+    """ Subcommand parsing for admin """
+    desc = f"""Admin only commands. Examples:
+
+**{prefix}admin add @GearsandCogs  **
+        Add GearsandCogs to the admin group.
+**{prefix}admin remove @GearsandCogs**
+        Remove GearsandCogs from the admin group.
+**{prefix}admin reparse**
+        Use only when log corruption expected or change in log parsing.
+        Reparses all uploaded logs to regenerate database.
+    """
+    sub = subs.add_parser(prefix + 'admin', description=desc, formatter_class=RawHelp)
+    sub.set_defaults(cmd='Admin')
+    CMD_MAP['Admin'] = 'admin'
+    subcmds = sub.add_subparsers(title='subcommands',
+                                 description='Admin subcommands', dest='subcmd')
+    subcmd = subcmds.add_parser('add', help='Add an admin or permission.')
+    subcmd.add_argument('rule_cmds', nargs='*', help='The the command to restrict.')
+    subcmd = subcmds.add_parser('remove', help='Remove an admin or permission.')
+    subcmd.add_argument('rule_cmds', nargs='*', help='The the command to restrict.')
+    subcmd = subcmds.add_parser('regenerate', help='Regenerate the PVP database.')
+
+
+@register_parser
 def subs_log(subs, prefix):
     """ Subcommand parsing for log """
     desc = f"""To see the log of recent PVP tracked events.

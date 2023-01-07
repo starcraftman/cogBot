@@ -1,8 +1,11 @@
 """
 Specific actions for pvp bot
 """
+import asyncio
 import concurrent.futures as cfut
+import tempfile
 import functools
+import traceback
 
 import discord
 import discord.ui as dui
@@ -36,12 +39,116 @@ class PVPAction(Action):
         self.fname = kwargs.get('fname')
 
 
+class Admin(PVPAction):
+    """
+    Admin command console. For knowledgeable users only.
+    """
+    def check_cmd(self):
+        """ Sanity check that cmd exists. """
+        self.args.rule_cmds = [x.replace(',', '') for x in self.args.rule_cmds]
+        cmd_set = set(cog.parse.CMD_MAP.values())
+        cmd_set.remove('admin')
+        not_found = set(self.args.rule_cmds) - cmd_set
+        if not self.args.rule_cmds or len(not_found) != 0:
+            msg = f"""Rules require a command in following set:
+
+            {sorted(list(cmd_set))}
+
+            The following were not matched:
+            {', '.join(list(not_found))}
+            """
+            raise cog.exc.InvalidCommandArgs(msg)
+
+    async def add(self):
+        """
+        Takes one of the following actions:
+            1) Add 1 or more admins
+            2) Add a single channel rule
+            3) Add a single role rule
+        """
+        if not self.args.rule_cmds and self.msg.mentions:
+            for member in self.msg.mentions:
+                cogdb.query.add_admin(self.session, member)
+            response = "Admins added:\n\n" + '\n'.join([member.name for member in self.msg.mentions])
+
+        return response
+
+    async def remove(self, admin):
+        """
+        Takes one of the following actions:
+            1) Remove 1 or more admins
+            2) Remove a single channel rule
+            3) Remove a single role rule
+        """
+        if not self.args.rule_cmds and self.msg.mentions:
+            for member in self.msg.mentions:
+                admin.remove(self.session, cogdb.query.get_admin(self.session, member))
+            response = "Admins removed:\n\n" + '\n'.join([member.name for member in self.msg.mentions])
+
+        return response
+
+    async def regenerate(self):  # pragma: no cover, don't hit the guild repeatedly
+        """
+        Regenerate the PVP database by reparsing logs.
+        """
+        await self.bot.send_message(self.msg.channel, "Please halt bot usage while working.")
+        response = "Regenerating PVP database has completed."
+        pvp.schema.empty_tables(keep_cmdrs=True)
+
+        # Channel archiving pvp logs
+        log_chan = self.bot.get_channel(cog.util.CONF.channels.pvp_log)
+        try:
+            async for msg in log_chan.history(limit=1000000, oldest_first=True):
+                if not msg.content.startswith('Discord ID'):
+                    continue
+
+                discord_id = int(msg.content.split('\n')[0].replace('Discord ID: ', ''))
+
+                with tempfile.NamedTemporaryFile(suffix='.jsonl') as tfile:
+                    for attach in msg.attachments:
+                        await attach.save(tfile.name)
+                        await FileUpload(
+                            args=None, bot=self, msg=msg, session=self.session,
+                            eddb_session=self.eddb_session, fname=tfile.name
+                        ).parse_log(discord_id=discord_id, log_upload=False)
+        except discord.Forbidden:
+            response = f"Missing message history permission on: {log_chan.name} on {log_chan.guild.name}"
+        except discord.HTTPException:
+            response = "Received HTTP Error, may be intermittent issue. Investigate."
+
+        return response
+
+    async def execute(self):
+        try:
+            admin = cogdb.query.get_admin(self.session, self.duser)
+        except cog.exc.NoMatch as exc:
+            raise cog.exc.InvalidPerms(f"{self.msg.author.mention} You are not an admin!") from exc
+
+        try:
+            func = getattr(self, self.args.subcmd)
+            if self.args.subcmd == "remove":
+                response = await func(admin)
+            else:
+                response = await func()
+            if response:
+                await self.bot.send_message(self.msg.channel, response)
+        except (AttributeError, TypeError) as exc:
+            traceback.print_exc()
+            raise cog.exc.InvalidCommandArgs("Bad subcommand of `!admin`, see `!admin -h` for help.") from exc
+
+
 class FileUpload(PVPAction):
     """
     Handle a file upload and scan for pvp information.
     """
-    async def execute(self):
-        discord_id = self.msg.author.id
+    async def parse_log(self, *, discord_id, log_upload=True):
+        """
+        Helper to allow usage internally.
+
+        Args:
+            discord_id: The CMDR's ID.
+            log_upload: If True, upload a copy to archive channel.
+        """
         cmdr = pvp.schema.get_pvp_cmdr(self.eddb_session, cmdr_id=discord_id)
         if not cmdr:
             name = await pvp.journal.find_cmdr_name(self.fname)
@@ -50,15 +157,20 @@ class FileUpload(PVPAction):
                 return
 
         # Archive all uploaded logs to ensure ability to reconstruct database.
-        log_chan = self.bot.get_channel(cog.util.CONF.channels.pvp_log)
-        with open(self.fname, 'rb') as fin:
-            await log_chan.send(f"Discord ID: {cmdr.id}\nCMDR: {cmdr.name}", file=discord.File(fin))
+        if log_upload:
+            log_chan = self.bot.get_channel(cog.util.CONF.channels.pvp_log)
+            with open(self.fname, 'rb') as fin:
+                await log_chan.send(f"Discord ID: {cmdr.id}\nCMDR: {cmdr.name}", file=discord.File(fin))
 
         with cfut.ProcessPoolExecutor(max_workers=1) as pool:
-            events = await self.bot.loop.run_in_executor(
+            events = await asyncio.get_event_loop().run_in_executor(
                 pool, parse_in_process, self.fname, discord_id,
             )
 
+        return events
+
+    async def execute(self):
+        events = await self.parse_log(log_upload=True, discord_id=self.msg.author.id)
         await self.bot.send_message(self.msg.channel, f"Log parsed, {len(events)} events detected.")
 
 

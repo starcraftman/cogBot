@@ -43,6 +43,9 @@ from tests.data import CELLS_FORT, CELLS_FORT_FMT, CELLS_UM
 
 GITHUB_FAIL = pytest.mark.skipif(os.environ.get('GITHUB') == "True", reason="Failing only on github CI.")
 PVP_TIMESTAMP = 1671655377
+REASON_SLOW = 'Slow as blocking to sheet. To enable, ensure os.environ ALL_TESTS=True'
+SHEET_TEST = pytest.mark.skipif(not os.environ.get('ALL_TESTS'), reason=REASON_SLOW)
+PROC_TEST = SHEET_TEST
 
 
 @pytest.fixture(scope='function', autouse=True)
@@ -70,9 +73,18 @@ def around_all_tests():
     session.commit()
 
 
-REASON_SLOW = 'Slow as blocking to sheet. To enable, ensure os.environ ALL_TESTS=True'
-SHEET_TEST = pytest.mark.skipif(not os.environ.get('ALL_TESTS'), reason=REASON_SLOW)
-PROC_TEST = SHEET_TEST
+# At prsent, spy_ship fixture removes everything for test isolation.
+# To offset, put it back at end.
+@pytest.fixture(scope="session", autouse=True)
+def after_all_tests(request):
+    """ Perform one time finish. """
+    def finish():
+        """ Put spy_ships back. """
+        with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
+            eddb_session.query(spy.SpyShip).delete()
+            spy.preload_spy_tables(eddb_session)
+
+    request.addfinalizer(finish)
 
 
 @pytest.fixture

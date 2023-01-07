@@ -644,14 +644,16 @@ def drop_tables():  # pragma: no cover | destructive to test
             pass
 
 
-def empty_tables():
+def empty_tables(keep_cmdrs=False):
     """
     Empty all pvp related tables.
     See is_safe_to_drop for validation on if a table should be dropped.
     """
     sqla.orm.session.close_all_sessions()
+    tables = PVP_TABLES[:-1] if keep_cmdrs else PVP_TABLES
+
     with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
-        for table in PVP_TABLES:
+        for table in tables:
             eddb_session.query(table).delete()
 
 
