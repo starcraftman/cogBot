@@ -189,6 +189,7 @@ class Help(PVPAction):
         ])
         lines = [
             ['Command', 'Effect'],
+            ['{prefix}admin', 'The admininstrative commands'],
             ['{prefix}dist', 'Determine the distance from the first system to all others'],
             ['{prefix}donate', 'Information on supporting the dev.'],
             ['{prefix}feedback', 'Give feedback or report a bug'],
