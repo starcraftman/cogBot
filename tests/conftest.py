@@ -940,7 +940,7 @@ def f_pvp_testbed(f_spy_ships, eddb_session):
         PVPLocation(id=2, cmdr_id=1, system_id=1010, event_at=PVP_TIMESTAMP),
         PVPKill(id=1, cmdr_id=1, system_id=1000, victim_name='LeSuck', victim_rank=3, event_at=PVP_TIMESTAMP),
         PVPKill(id=2, cmdr_id=1, system_id=1000, victim_name='BadGuy', victim_rank=7, event_at=PVP_TIMESTAMP + 2),
-        PVPKill(id=3, cmdr_id=1, system_id=1000, victim_name='LeSuck', victim_rank=3, event_at=PVP_TIMESTAMP + 4),
+        PVPKill(id=3, cmdr_id=1, system_id=1001, victim_name='LeSuck', victim_rank=3, event_at=PVP_TIMESTAMP + 4),
         PVPKill(id=4, cmdr_id=2, victim_name='CanNotShoot', victim_rank=8, event_at=PVP_TIMESTAMP),
 
         PVPDeath(id=1, cmdr_id=1, system_id=1000, is_wing_kill=True, event_at=PVP_TIMESTAMP),

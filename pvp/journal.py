@@ -47,7 +47,7 @@ def parse_died(eddb_session, data):
         data['Killers'] = [{
             "Name": clean_cmdr_name(data["KillerName"]),
             "Ship": data["KillerShip"],
-            "Rank": data["KillerRank"],
+            "Rank": data.get("KillerRank", 'Harmless'),
         }]
 
     try:
@@ -110,7 +110,7 @@ def parse_pvpkill(eddb_session, data):
             cmdr_id=data.get('cmdr_id'),
             system_id=data['system_id'],
             victim_name=clean_cmdr_name(data['Victim']),
-            victim_rank=data['CombatRank'],
+            victim_rank=data.get('CombatRank'),
             event_at=data['event_at'],
         )
         eddb_session.add(kill)
@@ -145,7 +145,7 @@ def parse_pvpinterdiction(eddb_session, data):
             victim_name=clean_cmdr_name(data['Interdicted']),
             is_player=data['IsPlayer'],
             is_success=data['Success'],
-            victim_rank=data['CombatRank'] if data['IsPlayer'] else None,
+            victim_rank=data.get('CombatRank'),
             event_at=data['event_at'],
         )
         eddb_session.add(interdiction)
@@ -180,7 +180,7 @@ def parse_pvpinterdicted(eddb_session, data):
             did_submit=data['Submitted'],
             is_player=data['IsPlayer'],
             interdictor_name=clean_cmdr_name(data['Interdictor']),
-            interdictor_rank=data['CombatRank'] if data['IsPlayer'] else None,
+            interdictor_rank=data.get('CombatRank'),
             event_at=data['event_at'],
         )
         eddb_session.add(interdicted)
@@ -312,9 +312,10 @@ class Parser():
                 })
                 event, parser = get_parser(loaded)
 
-                # If a CMDR supercruises reset events tracking, still same location
-                if event in ['SupercruiseEntry', 'SupercruiseExit']:
+                # If a CMDR supercruises away reset events tracking, still same location
+                if event == 'SupercruiseEntry':
                     self.data = {'Location': self.data.get('Location')}
+                if event in ['SupercruiseEntry', 'SupercruiseExit']:  # Still same location
                     return result
 
                 result = parser(self.eddb_session, loaded)
@@ -472,8 +473,8 @@ EVENT_TO_PARSER = {
     "FSDJump": parse_location,
     "Interdicted": parse_pvpinterdicted,
     "Interdiction": parse_pvpinterdiction,
-    "SupercruiseEntry": parse_location,
-    "SupercruiseExit": parse_location,
+    "SupercruiseEntry": None,
+    "SupercruiseExit": None,
     "Location": parse_location,
     "PVPKill": parse_pvpkill,
 }

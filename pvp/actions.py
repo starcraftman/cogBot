@@ -171,7 +171,13 @@ class FileUpload(PVPAction):
 
     async def execute(self):
         events = await self.parse_log(log_upload=True, discord_id=self.msg.author.id)
-        await self.bot.send_message(self.msg.channel, f"Log parsed, {len(events)} events detected.")
+
+        with tempfile.NamedTemporaryFile(mode='w') as tfile:
+            tfile.write("__Parsed Events__\n\n" + '\n'.join(events))
+            tfile.flush()
+
+            await self.msg.channel.send('Logs parsed. Summary attached.',
+                                        file=discord.File(fp=tfile.name, filename='parsed.log'))
 
 
 class Help(PVPAction):
@@ -194,9 +200,11 @@ class Help(PVPAction):
             ['{prefix}donate', 'Information on supporting the dev.'],
             ['{prefix}feedback', 'Give feedback or report a bug'],
             ['{prefix}help', 'This help command.'],
+            ['{prefix}log', 'Show recent PVP events parsed'],
             ['{prefix}near', 'Find things near you.'],
             ['{prefix}repair', 'Show the nearest orbitals with shipyards'],
             ['{prefix}route', 'Plot the shortest route between these systems'],
+            ['{prefix}stats', 'PVP statistics for you or another CMDR'],
             ['{prefix}status', 'Info about this bot'],
             ['{prefix}time', 'Show game time and time to ticks'],
             ['{prefix}trigger', 'Calculate fort and um triggers for systems'],
@@ -252,7 +260,7 @@ class Stats(PVPAction):
                     'name': 'FedCAT',
                 },
                 'thumbnail': {
-                    'url': self.msg.author.display_avatar.url,
+                    'url': self.bot.get_member(cmdr.id).display_avatar.url,
                 },
                 'title': f"CMDR {stats.cmdr.name}",
                 "fields": stats.embed_values,
@@ -338,4 +346,5 @@ def parse_in_process(fname, discord_id):
     with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
         parser = pvp.journal.Parser(fname=fname, cmdr_id=discord_id, eddb_session=eddb_session)
         parser.load()
-        return parser.parse()
+        # Do not return unbound db objects.
+        return [str(x) for x in parser.parse()]

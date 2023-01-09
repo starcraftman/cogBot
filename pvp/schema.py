@@ -421,6 +421,7 @@ class PVPStat(ReprMixin, TimestampMixin, UpdatableMixin, Base):
     interdicteds = sqla.Column(sqla.Integer, default=0)
     most_visited_system_id = sqla.Column(sqla.Integer, default=0)
     least_visited_system_id = sqla.Column(sqla.Integer, default=0)
+    # TODO: Low priority, rename these fields.
 
     interdiction_kills = sqla.Column(sqla.Integer, default=0)
     interdiction_deaths = sqla.Column(sqla.Integer, default=0)
@@ -445,6 +446,8 @@ class PVPStat(ReprMixin, TimestampMixin, UpdatableMixin, Base):
     @property
     def embed_values(self):
         """ Return values for creating an embed. """
+        most_system = self.most_visited_system.name if self.most_visited_system else 'N/A'
+        least_system = self.least_visited_system.name if self.least_visited_system else 'N/A'
         return [
             {'name': "Kills", 'value': str(self.kills), 'inline': True},
             {'name': "Deaths", 'value': str(self.deaths), 'inline': True},
@@ -455,8 +458,8 @@ class PVPStat(ReprMixin, TimestampMixin, UpdatableMixin, Base):
             {'name': "Interdicteds", 'value': str(self.interdicteds), 'inline': True},
             {'name': "Interdicted -> Kill", 'value': str(self.interdicted_kills), 'inline': True},
             {'name': "Interdicted -> Death", 'value': str(self.interdicted_deaths), 'inline': True},
-            {'name': "Most Visited System", 'value': self.most_visited_system.name, 'inline': True},
-            {'name': "Least Visited System", 'value': self.least_visited_system.name, 'inline': True},
+            {'name': "Most PVP Kills", 'value': most_system, 'inline': True},
+            {'name': "Least PVP Kills", 'value': least_system, 'inline': True},
         ]
 
     def __eq__(self, other):
@@ -562,20 +565,22 @@ def update_pvp_stats(eddb_session, cmdr_id):
         eddb_session: A session onto the EDDB db.
         cmdr_id: The cmdr's id.
     """
-    count_system_id = sqla.func.count(PVPLocation.system_id)
+    count_system_id = sqla.func.count(PVPKill.system_id)
     try:
-        most_visited_id = eddb_session.query(PVPLocation.system_id, count_system_id).\
-            group_by(PVPLocation.system_id).\
+        most_visited_id = eddb_session.query(PVPKill.system_id, count_system_id).\
+            group_by(PVPKill.system_id).\
             order_by(count_system_id.desc()).\
-            limit(1).\
-            one()[0]
-        least_visited_id = eddb_session.query(PVPLocation.system_id, count_system_id).\
-            group_by(PVPLocation.system_id).\
-            order_by(count_system_id).\
             limit(1).\
             one()[0]
     except sqla.exc.NoResultFound:
         most_visited_id = None
+    try:
+        least_visited_id = eddb_session.query(PVPKill.system_id, count_system_id).\
+            group_by(PVPKill.system_id).\
+            order_by(count_system_id).\
+            limit(1).\
+            one()[0]
+    except sqla.exc.NoResultFound:
         least_visited_id = None
 
     kwargs = {
