@@ -4,7 +4,10 @@ Test util the grab all module.
 """
 import datetime
 import os
+import pathlib
 import tempfile
+import shutil
+import zipfile
 
 import mock
 import pytest
@@ -402,3 +405,20 @@ def test_clean_fname():
     assert 'cmdr++t7+++test5' == cog.util.clean_fname('cmdr/\\t7><:test5')
     assert 'cmdr++t7+++test5+' == cog.util.clean_fname('cmdr/\\t7><:test5.')
     assert 'cmdr++t7+++test5+' == cog.util.clean_fname('cmdr/\\t7><:test5\0')
+
+
+def test_extracted_archive():
+    # Create an archive on fly to test with.
+    pat = pathlib.Path(tempfile.mkdtemp())
+    archive = pathlib.Path(pat.parent.joinpath(pat.name + '.zip'))
+    try:
+        for fname in ['first.log', 'second.log', 'third.log', 'test.txt', 'works.fine']:
+            with open(pat.joinpath(fname), 'wb') as fout:
+                fout.write(b'This is a test file.')
+        shutil.make_archive(pat, 'zip', pat.parent, pat.name)
+        with cog.util.extracted_archive(archive) as logs:
+            assert ['first.log', 'second.log', 'third.log'] == [x.name for x in logs]
+
+    finally:
+        shutil.rmtree(pat)
+        shutil.rmtree(archive)

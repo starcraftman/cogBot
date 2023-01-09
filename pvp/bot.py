@@ -13,6 +13,7 @@ import re
 import sys
 import tempfile
 import time
+import zipfile
 
 import aiofiles
 import apiclient
@@ -39,6 +40,7 @@ SYNC_NOTICE = """Synchronizing sheet changes.
 Your command will resume after a short delay of about {} seconds. Thank you for waiting."""
 SYNC_RESUME = """{} Resuming your command:
     **{}**"""
+MAX_FILE_SIZE = 8 * 1024 * 1024
 
 
 class PVPBot(CogBot):
@@ -106,14 +108,33 @@ class PVPBot(CogBot):
         Any hooks to respond to dms.
         """
         tfile = None
-        for attach in message.attachments:
-            with cogdb.session_scope(cogdb.EDDBSession) as eddb_session,\
-                    tempfile.NamedTemporaryFile(suffix='.jsonl') as tfile:
-                await attach.save(tfile.name)
-                await pvp.actions.FileUpload(
-                    args=None, bot=self, msg=message, session=None,
-                    eddb_session=eddb_session, fname=tfile.name
-                ).execute()
+        with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
+            for attach in message.attachments:
+                if attach.size > MAX_FILE_SIZE:
+                    await self.send_message(message.channel, f'Rejecting file {attach.filename}, please upload files < 8MB')
+                    continue
+
+                # TODO: Archive zips instead of individual files in this case. Will cut down on storage/spam.
+                if attach.filename.endswith('.zip'):
+                    with tempfile.NamedTemporaryFile(suffix='.zip') as tfile:
+                        await attach.save(tfile.name)
+                        try:
+                            with cog.util.extracted_archive(tfile.name) as logs:
+                                for log in logs:
+                                    await pvp.actions.FileUpload(
+                                        args=None, bot=self, msg=message, session=None,
+                                        eddb_session=eddb_session, fname=log
+                                    ).execute()
+                        except zipfile.BadZipfile:
+                            await self.send_message(message.channel, f'Error unzipping {attach.filename}, please check archive.')
+
+                else:
+                    with tempfile.NamedTemporaryFile(suffix='.jsonl') as tfile:
+                        await attach.save(tfile.name)
+                        await pvp.actions.FileUpload(
+                            args=None, bot=self, msg=message, session=None,
+                            eddb_session=eddb_session, fname=tfile.name
+                        ).execute()
 
     async def on_message(self, message):
         """

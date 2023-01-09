@@ -9,6 +9,7 @@ Utility functions
     pastebin_new_paste - Upload something to pastebin.
 """
 import asyncio
+import contextlib
 import datetime
 import hashlib
 import json
@@ -16,7 +17,11 @@ import logging
 import logging.handlers
 import logging.config
 import os
+import pathlib
 import re
+import shutil
+import tempfile
+import zipfile
 
 import aiofiles
 import aiohttp
@@ -779,6 +784,46 @@ def clean_fname(fname, *, replacement=None, extras=None, replace_spaces=True):
         new_name = new_name[:-1] + replacement
 
     return new_name
+
+
+@contextlib.contextmanager
+def extracted_archive(archive, *, glob_pat=None):
+    """
+    Extract a given archive then return a generator of files inside it matching a glob.
+    The extracted folder and all files within will be deleted on exit.
+    The archive will NOT be deleted.
+
+    Args:
+        archive: A zip archive.
+        glob_pat: The glob pattern to match log files from extracted directory. Defaults: **/*.log
+
+    Returns: A generator of files matching the glob_pat.
+
+    Raises:
+        FileNotFoundError - The archive wasn't found.
+        zipfile.BadZipfile - File found is not a zip file.
+    """
+    if not glob_pat:
+        glob_pat = '**/*.log'
+
+    try:
+        archive = pathlib.Path(archive)
+        if not archive.exists():
+            raise FileNotFoundError(f'Zip archive expected at path: {archive}')
+
+        extract_to = pathlib.Path(tempfile.mkdtemp())
+        zipf = zipfile.ZipFile(archive)
+        zipf.testzip()
+        zipf.extractall(path=extract_to)
+
+        # Yield a generator of the log files found extracted anywhere underneath extract_to
+        yield extract_to.glob(glob_pat)
+    finally:
+        if extract_to.exists():
+            try:
+                shutil.rmtree(extract_to)
+            except OSError:
+                logging.getLogger(__name__).error("Critical error on extracted archive removal")
 
 
 #  # Scenario multiple readers, always allowed
