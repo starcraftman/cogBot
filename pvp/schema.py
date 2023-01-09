@@ -13,6 +13,7 @@ from sqlalchemy.schema import UniqueConstraint
 import cogdb.eddb
 from cogdb.eddb import LEN as EDDB_LEN
 from cogdb.spy_squirrel import Base
+import cog.util
 from cog.util import ReprMixin, TimestampMixin, UpdatableMixin
 
 
@@ -469,6 +470,31 @@ class PVPStat(ReprMixin, TimestampMixin, UpdatableMixin, Base):
         return hash(self.cmdr_id)
 
 
+class PVPLog(ReprMixin, TimestampMixin, Base):
+    """
+    Table to store hashes of uploaded logs or zip files.
+    """
+    __tablename__ = 'pvp_logs'
+    _repr_keys = ['id', 'cmdr_id', 'hash', 'updated_at']
+
+    id = sqla.Column(sqla.BigInteger, primary_key=True)
+    cmdr_id = sqla.Column(sqla.BigInteger, sqla.ForeignKey('pvp_cmdrs.id'))
+    func_used = sqla.Column(sqla.Integer, default=0)  # See PVP_HASH_FUNCS
+    file_hash = sqla.Column(sqla.String(EDDB_LEN['pvp_hash']))
+    file_name = sqla.Column(sqla.String(EDDB_LEN['pvp_fname']))  # This is the actual name of the file in msg.attachements
+    msg_id = sqla.Column(sqla.BigInteger)  # This is the message in archive channel
+
+    updated_at = sqla.Column(sqla.Integer, default=time.time, onupdate=time.time)
+
+    cmdr = sqla.orm.relationship('PVPCmdr', viewonly=True)
+
+    def __eq__(self, other):
+        return isinstance(other, PVPLog) and hash(self) == hash(other)
+
+    def __hash__(self):
+        return self.file_hash
+
+
 # Relationships that are back_populates
 PVPCmdr.kills = sqla_orm.relationship(
     'PVPKill', uselist=True, back_populates='cmdr', lazy='select')
@@ -636,6 +662,34 @@ def get_pvp_events(eddb_session, cmdr_id, *, last_n=10, event_classes=None):
     return list(reversed(sorted(objs, key=lambda x: x.event_at, reverse=True)[:last_n]))
 
 
+async def add_pvp_log(eddb_session, fname, *, cmdr_id):
+    """
+    Add a PVP log to the database and optionally update the client archive with it.
+    When a PVPLog is new, the msg_id and file_name will be None.
+
+    Args:
+        eddb_session: A session onto the EDDB db.
+        fname: The filename of the log locally.
+        cmdr_id: The cmdr's id.
+
+    Returns: The PVPLog that was created or already existed.
+    """
+    sha512 = await cog.util.hash_file(fname, alg='sha512')
+    try:
+        pvp_log = eddb_session.query(PVPLog).\
+            filter(PVPLog.file_hash == sha512).\
+            one()
+    except sqla.exc.NoResultFound:
+        pvp_log = PVPLog(
+            cmdr_id=cmdr_id,
+            file_hash=sha512,
+        )
+        eddb_session.add(pvp_log)
+        eddb_session.flush()
+
+    return pvp_log
+
+
 def drop_tables():  # pragma: no cover | destructive to test
     """
     Drop all tables related to this module.
@@ -733,8 +787,12 @@ def main():
 
 
 PVP_TABLES = [
-    PVPStat, PVPInterdictedKill, PVPInterdictedDeath, PVPInterdictionKill, PVPInterdictionDeath,
+    PVPLog, PVPStat, PVPInterdictedKill, PVPInterdictedDeath, PVPInterdictionKill, PVPInterdictionDeath,
     PVPInterdicted, PVPInterdiction, PVPDeathKiller, PVPDeath, PVPKill, PVPLocation, PVPCmdr
 ]
+# Mainly archival, in case need to move to other hashes.
+PVP_HASH_FUNCS = {
+    0: 'sha512',
+}
 if __name__ == "__main__":
     main()

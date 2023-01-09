@@ -3,6 +3,7 @@ Specific actions for pvp bot
 """
 import asyncio
 import concurrent.futures as cfut
+import datetime
 import tempfile
 import functools
 import traceback
@@ -158,9 +159,19 @@ class FileUpload(PVPAction):
 
         # Archive all uploaded logs to ensure ability to reconstruct database.
         if log_upload:
-            log_chan = self.bot.get_channel(cog.util.CONF.channels.pvp_log)
-            with open(self.fname, 'rb') as fin:
-                await log_chan.send(f"Discord ID: {cmdr.id}\nCMDR: {cmdr.name}", file=discord.File(fin))
+
+            # Files are hashed to check for dupes on add.
+            pvp_log = await pvp.schema.add_pvp_log(self.eddb_session, fname=self.fname, cmdr_id=cmdr.id)
+            if pvp_log.msg_id:
+                await self.msg.channel.send(f'Log already uploaded at {pvp_log.updated_date}. Will reparse.',)
+
+            else:
+                log_chan = self.bot.get_channel(cog.util.CONF.channels.pvp_log)
+                pvp_log.file_name = cmdr_log_name(cmdr.name, num=pvp_log.id % 1024)
+                with open(self.fname, 'rb') as fin:
+                    msg = await log_chan.send(f"Discord ID: {cmdr.id}\nCMDR: {cmdr.name}",
+                                              file=discord.File(fin, filename=pvp_log.file_name))
+                    pvp_log.msg_id = msg.id
 
         with cfut.ProcessPoolExecutor(max_workers=1) as pool:
             events = await asyncio.get_event_loop().run_in_executor(
@@ -331,6 +342,26 @@ async def cmdr_setup(eddb_session, client, msg, *, cmdr_name=None):
     await modal.wait()
 
     return pvp.schema.add_pvp_cmdr(eddb_session, msg.author.id, modal.name, modal.hex)
+
+
+def cmdr_log_name(cmdr_name, *, num=1):
+    """
+    Create a filename for log to upload into archive based on
+    a simple naming format including:
+    - CMDR name
+    - integer discriminator
+    - the current date.
+
+    Args:
+        cmdr_name: The name of the commander.
+        cnt: A simple integer discriminator.
+
+    Returns: A potential filename.
+    """
+    now = datetime.datetime.utcnow().strftime(cog.util.TIME_STRP)
+    fname = f'{cmdr_name}_{num}_{now}.jsonl'
+
+    return cog.util.clean_fname(fname)
 
 
 def parse_in_process(fname, discord_id):

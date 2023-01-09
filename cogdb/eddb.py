@@ -58,6 +58,8 @@ LEN = {  # Lengths for strings stored in the db
     "power_abv": 6,
     "power_state": 10,
     "pvp_name": 50,
+    "pvp_fname": 80,
+    "pvp_hash": 150,
     "security": 8,
     "settlement_security": 10,
     "settlement_size": 3,

@@ -10,6 +10,7 @@ Utility functions
 """
 import asyncio
 import datetime
+import hashlib
 import json
 import logging
 import logging.handlers
@@ -17,6 +18,7 @@ import logging.config
 import os
 import re
 
+import aiofiles
 import aiohttp
 import aiohttp.web_exceptions
 import aiohttp.client_exceptions
@@ -53,6 +55,10 @@ HEX_MAP.update({str(x): x for x in range(0, 10)})
 REV_HEX_MAP = {val: key for key, val in HEX_MAP.items()}
 TIME_STRP = "%Y-%m-%dT%H:%M:%SZ"
 TIME_STRP_MICRO = "%Y-%m-%dT%H:%M:%S.%fZ"
+FNAME_FORBIDDEN = [
+    '/', '\\', '<', '>', ':', '-', '|', '?', '*', '\0',
+    '[', ']', '(', ')', '{', '}',
+]
 
 
 class ReprMixin():
@@ -427,26 +433,6 @@ def pad_table_to_rectangle(table, pad_value=''):
     return table
 
 
-def clean_text(text, *, replace='_'):
-    """
-    Ensure input contains ONLY ASCII characters valid in filenames.
-    Any other character will be replaced with 'replace'.
-    Characters added in extras will be whitelisted in addiction to normal ASCII.
-
-    Args:
-        text: The text to clean.
-        replace: The replacement character to use.
-        extras: Additional characters to whitelist.
-
-    Returns:
-        The cleaned text.
-    """
-    text = re.sub(r'[^a-zA-Z0-9]', replace, text)
-    text = re.sub(r'{r}{r}+'.format(r=replace), replace, text)
-
-    return text
-
-
 def shorten_text(text, new_len):
     """
     Shorten text to a particular len.
@@ -737,6 +723,62 @@ async def emergency_notice(client, msg):  # pragma: no cover just a convenience,
     for user in [client.get_user(discord_id) for discord_id in cog.util.CONF.emergency.users]:
         msg += f" {user.mention}"
     await chan.send(msg)
+
+
+async def hash_file(fname, *, alg=None):
+    """
+    Hash a file and return the hex digest.
+
+    Args:
+        fname: The filename to hash.
+        alg: The hash algorithm to use. Default sha512.
+
+    Returns: The hexdigest
+    """
+    if not alg:
+        alg = 'sha512'
+
+    func = getattr(hashlib, alg, 'sha512')
+    async with aiofiles.open(fname, 'rb') as fin:
+        return func(await fin.read()).hexdigest()
+
+
+def clean_fname(fname, *, replacement=None, extras=None, replace_spaces=True):
+    """
+    Clean a potential filename for usage on system.
+    Any non ascii character or FNAME_FORBIDDEN characters will be replaced.
+    Brackets are technically valid but personal preference stipulates not in filenames.
+
+    Args:
+        fname; The potential filename.
+        replacement: The character to replace invalids with. Default: '+'
+        extras: A list of extra characters to exclude.
+        replace_spaces: Default True. If set True, replace spaces too.
+
+    Returns: A clean and usable filename on Unix or Windows.
+    """
+    if not extras:
+        extras = []
+    if replace_spaces:
+        extras += [' ']
+    excluded = set(FNAME_FORBIDDEN + extras)
+
+    if not replacement:
+        replacement = '+'
+    if replacement in excluded:
+        raise ValueError(f"Filename replacement character cannot be from illegal characters: {excluded}")
+
+    new_name = ''
+    for char in fname:
+        legal = replacement
+        if char.isascii() and char not in excluded:
+            legal = char
+        new_name += legal
+
+    if new_name[-1] in [' ', '.']:  # Windows corner case for last char
+        new_name = new_name[:-1] + replacement
+
+    return new_name
 
 
 #  # Scenario multiple readers, always allowed

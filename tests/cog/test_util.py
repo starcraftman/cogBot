@@ -139,11 +139,6 @@ async def test_wait_cb_send_resume_no_send():
     assert obj.num == 0
 
 
-def test_clean_text():
-    assert cog.util.clean_text(r'///---351Test+*;;:,.') == '_351Test_'
-    assert cog.util.clean_text(r'///---351Test+*;;:,.', replace='/') == '/351Test/'
-
-
 def test_shorten_text():
     assert cog.util.shorten_text("Dobrovolskiy Enterprise", 20) == "Dobrovolskiy Enterp."
     assert cog.util.shorten_text("Galileo", 20) == "Galileo"
@@ -385,3 +380,25 @@ def test_hex_encode():
 @pytest.mark.asyncio
 async def test_get_url():
     assert "google" in await cog.util.get_url('http://www.google.com')
+
+
+@pytest.mark.asyncio
+async def test_hash_file():
+    with tempfile.NamedTemporaryFile() as fout:
+        fout.write(b"This is a test file.")
+        fout.flush()
+
+        expect512 = 'b1df216b5b05e3965c469492744a5de0c945e0b103c42eb1e57476fbed8'\
+                    'f1d489f5cae9b792db37c5d823bc0c6c7d06b056176d6abe5ce076eeadaed414e17a3'
+        expect1 = '26d82f1931cbdbd83c2a6871b2cecd5cbcc8c26b'
+        assert expect512 == await cog.util.hash_file(fout.name)
+        assert expect1 == await cog.util.hash_file(fout.name, alg='sha1')
+
+
+def test_clean_fname():
+    assert '++++++351Test++;;+,+' == cog.util.clean_fname(r'///---351Test+*;;:,.')
+    with pytest.raises(ValueError):
+        assert cog.util.clean_fname(r'///---351Test+*;;:,.', replacement='/')
+    assert 'cmdr++t7+++test5' == cog.util.clean_fname('cmdr/\\t7><:test5')
+    assert 'cmdr++t7+++test5+' == cog.util.clean_fname('cmdr/\\t7><:test5.')
+    assert 'cmdr++t7+++test5+' == cog.util.clean_fname('cmdr/\\t7><:test5\0')

@@ -554,9 +554,9 @@ def log_fname(msg):
         timestamp = msg['header']['gatewayTimestamp']
 
     schema = '_'.join(msg["$schemaRef"].split('/')[-2:])
-    fname = f"{schema}_{timestamp}_{msg['header']['softwareName']}"
+    fname = f"{schema}_{timestamp}_{msg['header']['softwareName']}".strip()
 
-    return cog.util.clean_text(fname)
+    return cog.util.clean_fname(fname, replacement='_', replace_spaces=True)
 
 
 def log_msg(obj, *, path, fname):

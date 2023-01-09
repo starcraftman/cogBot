@@ -412,7 +412,7 @@ class FakeObject():
     @classmethod
     def next_id(cls):
         cls.oid += 1
-        return f'{cls.__name__}-{cls.oid}'
+        return cls.oid
 
     def __init__(self, name, id=None):
         if not id:
