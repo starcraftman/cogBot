@@ -252,7 +252,9 @@ class UMLDocs(Command):
             'dot -Tpng classes.dot -o ./extras/cog_class_diagram.png',
             'pyreverse cogdb',
             'dot -Tpng classes.dot -o ./extras/cogdb_class_diagram.png',
-            'pyreverse cog cogdb',
+            'pyreverse pvp',
+            'dot -Tpng classes.dot -o ./extras/pvp_class_diagram.png',
+            'pyreverse cog cogdb pvp',
             'dot -Tpng packages.dot -o ./extras/overall_module_diagram.png',
         ]
 
