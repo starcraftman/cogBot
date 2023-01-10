@@ -34,7 +34,7 @@ tests:
   variables:
     ALL_TESTS: "True"
   stage: test
-  script:
+  script: |
     /etc/init.d/mariadb start
     mysql -u root < "tests/mysql_tables.sql"
     curl "http://starcraftman.com/elite/eddb_v10.sql" > "eddb.sql"
