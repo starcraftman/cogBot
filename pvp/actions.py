@@ -362,11 +362,11 @@ async def archive_log(eddb_session, *, msg, cmdr, fname):
         await msg.channel.send(f'Log already uploaded at {pvp_log.updated_date}.',)
         return False
 
-    pvp_log.file_name = filename_for_upload(cmdr.name, id_num=pvp_log.id, archive=cog.util.is_zipfile(fname))
+    pvp_log.filename = filename_for_upload(cmdr.name, id_num=pvp_log.id, archive=cog.util.is_zipfile(fname))
     with open(fname, 'rb') as fin:
         log_chan = cog.util.BOT.get_channel(cog.util.CONF.channels.pvp_log)
         msg = await log_chan.send(f"Discord ID: {cmdr.id}\nCMDR: {cmdr.name}",
-                                  file=discord.File(fin, filename=pvp_log.file_name))
+                                  file=discord.File(fin, filename=pvp_log.filename))
         pvp_log.msg_id = msg.id
 
     return True
