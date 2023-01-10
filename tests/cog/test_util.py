@@ -416,7 +416,7 @@ def test_extracted_archive():
                 fout.write(b'This is a test file.')
         shutil.make_archive(pat, 'zip', pat.parent, pat.name)
         with cog.util.extracted_archive(archive) as logs:
-            assert ['first.log', 'second.log', 'third.log'] == [x.name for x in logs]
+            assert ['first.log', 'second.log', 'third.log'] == sorted([x.name for x in logs])
 
     finally:
         shutil.rmtree(pat)

@@ -19,7 +19,7 @@ JOURNAL_PATH = os.path.join(cog.util.ROOT_DIR, 'tests', 'pvp', 'player_journal.j
 
 
 def test_datetime_to_tstamp():
-    assert 1465583523 == pvp.journal.datetime_to_tstamp("2016-06-10T14:32:03Z")
+    assert 1465583523.0 == pvp.journal.datetime_to_tstamp("2016-06-10T14:32:03Z")
 
 
 def test_parse_died_simple(f_spy_ships, f_pvp_testbed, eddb_session):
