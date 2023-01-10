@@ -253,7 +253,7 @@ def datetime_to_tstamp(date_string):
         ValueError: The datetime did not conform to expected format.
     """
     try:
-        return datetime.datetime.strptime(date_string, TIME_STRP).timestamp()
+        return datetime.datetime.strptime(date_string, TIME_STRP).replace(tzinfo=datetime.timezone.utc).timestamp()
     except ValueError:
         logging.getLogger(__name__).error("Malformed timestamp on log line: %s", date_string)
         raise
