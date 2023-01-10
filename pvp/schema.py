@@ -230,7 +230,7 @@ class PVPInterdiction(ReprMixin, TimestampMixin, EventTimeMixin, Base):
     __table_args__ = (
         UniqueConstraint('cmdr_id', 'system_id', 'event_at', name='_pvp_interdiction_unique'),
     )
-    _repr_keys = ['id', 'cmdr_id', 'system_id', 'is_player', 'is_success', 'did_escape',
+    _repr_keys = ['id', 'cmdr_id', 'system_id', 'is_player', 'is_success', 'survived',
                   'victim_name', 'victim_rank', 'created_at', 'event_at']
 
     id = sqla.Column(sqla.BigInteger, primary_key=True)
@@ -239,7 +239,7 @@ class PVPInterdiction(ReprMixin, TimestampMixin, EventTimeMixin, Base):
 
     is_player = sqla.Column(sqla.Boolean, default=False)  # True if interdictor is player
     is_success = sqla.Column(sqla.Boolean, default=False)  # True if forced player out of super cruise
-    did_escape = sqla.Column(sqla.Boolean, default=False)  # True if the victim escaped
+    survived = sqla.Column(sqla.Boolean, default=True)  # True if the victim escaped
 
     victim_name = sqla.Column(sqla.String(EDDB_LEN["pvp_name"]), index=True)
     victim_rank = sqla.Column(sqla.Integer, default=0)
@@ -253,7 +253,7 @@ class PVPInterdiction(ReprMixin, TimestampMixin, EventTimeMixin, Base):
         except AttributeError:
             cmdr = self.id
 
-        return f"CMDR {cmdr} interdicted {'CMDR ' if self.is_player else ''}{self.victim_name} at {self.event_date}. Pulled from SC: {self.is_success} Escaped: {self.did_escape}"
+        return f"CMDR {cmdr} interdicted {'CMDR ' if self.is_player else ''}{self.victim_name} at {self.event_date}. Pulled from SC: {self.is_success} Escaped: {self.survived}"
 
     def __eq__(self, other):
         return isinstance(other, PVPInterdiction) and hash(self) == hash(other)
@@ -320,7 +320,7 @@ class PVPInterdicted(ReprMixin, TimestampMixin, EventTimeMixin, Base):
     __table_args__ = (
         UniqueConstraint('cmdr_id', 'system_id', 'event_at', name='_pvp_interdicted_unique'),
     )
-    _repr_keys = ['id', 'cmdr_id', 'system_id', 'is_player', 'did_submit', 'did_escape',
+    _repr_keys = ['id', 'cmdr_id', 'system_id', 'is_player', 'did_submit', 'survived',
                   'interdictor_name', 'interdictor_rank', 'created_at', 'event_at']
 
     id = sqla.Column(sqla.BigInteger, primary_key=True)
@@ -329,7 +329,7 @@ class PVPInterdicted(ReprMixin, TimestampMixin, EventTimeMixin, Base):
 
     is_player = sqla.Column(sqla.Boolean, default=False)  # True if interdictor is player
     did_submit = sqla.Column(sqla.Boolean, default=False)  # True if the fictim submitted
-    did_escape = sqla.Column(sqla.Boolean, default=False)  # True if the cmdr managed to escape
+    survived = sqla.Column(sqla.Boolean, default=True)  # True if the cmdr managed to escape
 
     interdictor_name = sqla.Column(sqla.String(EDDB_LEN["pvp_name"]), index=True)
     interdictor_rank = sqla.Column(sqla.Integer, default=0)
@@ -343,7 +343,7 @@ class PVPInterdicted(ReprMixin, TimestampMixin, EventTimeMixin, Base):
         except AttributeError:
             cmdr = self.id
 
-        return f"CMDR {cmdr} was interdicted by {'CMDR ' if self.is_player else ''}{self.interdictor_name} at {self.event_date}. Submitted: {self.did_submit}. Escaped: {self.did_escape}"
+        return f"CMDR {cmdr} was interdicted by {'CMDR ' if self.is_player else ''}{self.interdictor_name} at {self.event_date}. Submitted: {self.did_submit}. Escaped: {self.survived}"
 
     def __eq__(self, other):
         return isinstance(other, PVPInterdicted) and hash(self) == hash(other)
@@ -475,15 +475,15 @@ class PVPLog(ReprMixin, TimestampMixin, Base):
     Table to store hashes of uploaded logs or zip files.
     """
     __tablename__ = 'pvp_logs'
-    _repr_keys = ['id', 'cmdr_id', 'hash', 'updated_at']
+    _repr_keys = ['id', 'cmdr_id', 'func_used', 'file_hash', 'filename', 'msg_id', 'updated_at']
 
     id = sqla.Column(sqla.BigInteger, primary_key=True)
     cmdr_id = sqla.Column(sqla.BigInteger, sqla.ForeignKey('pvp_cmdrs.id'))
+
     func_used = sqla.Column(sqla.Integer, default=0)  # See PVP_HASH_FUNCS
     file_hash = sqla.Column(sqla.String(EDDB_LEN['pvp_hash']))
-    file_name = sqla.Column(sqla.String(EDDB_LEN['pvp_fname']))  # This is the actual name of the file in msg.attachements
+    filename = sqla.Column(sqla.String(EDDB_LEN['pvp_fname']))  # This is the actual name of the file in msg.attachements
     msg_id = sqla.Column(sqla.BigInteger)  # This is the message in archive channel
-
     updated_at = sqla.Column(sqla.Integer, default=time.time, onupdate=time.time)
 
     cmdr = sqla.orm.relationship('PVPCmdr', viewonly=True)
@@ -665,7 +665,7 @@ def get_pvp_events(eddb_session, cmdr_id, *, last_n=10, event_classes=None):
 async def add_pvp_log(eddb_session, fname, *, cmdr_id):
     """
     Add a PVP log to the database and optionally update the client archive with it.
-    When a PVPLog is new, the msg_id and file_name will be None.
+    When a PVPLog is new, the msg_id and filename will be None.
 
     Args:
         eddb_session: A session onto the EDDB db.
@@ -758,14 +758,14 @@ def main():
             PVPDeathKiller(cmdr_id=2, pvp_death_id=2, name='BadGuyWon', rank=7, ship_id=30),
             PVPDeathKiller(cmdr_id=3, pvp_death_id=3, name='BadGuyWon', rank=7, ship_id=30),
 
-            PVPInterdiction(id=1, cmdr_id=1, is_player=True, is_success=True, did_escape=False,
+            PVPInterdiction(id=1, cmdr_id=1, is_player=True, is_success=True, survived=False,
                             victim_name="LeSuck", victim_rank=3),
-            PVPInterdiction(id=2, cmdr_id=1, is_player=True, is_success=True, did_escape=True,
+            PVPInterdiction(id=2, cmdr_id=1, is_player=True, is_success=True, survived=True,
                             victim_name="LeSuck", victim_rank=3),
 
-            PVPInterdicted(id=1, cmdr_id=1, is_player=True, did_submit=False, did_escape=False,
+            PVPInterdicted(id=1, cmdr_id=1, is_player=True, did_submit=False, survived=False,
                            interdictor_name="BadGuyWon", interdictor_rank=7),
-            PVPInterdicted(id=2, cmdr_id=2, is_player=True, did_submit=True, did_escape=True,
+            PVPInterdicted(id=2, cmdr_id=2, is_player=True, did_submit=True, survived=True,
                            interdictor_name="BadGuyWon", interdictor_rank=7),
 
         ])

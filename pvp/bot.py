@@ -8,6 +8,7 @@ import asyncio
 import datetime
 import logging
 import os
+import pathlib
 import random
 import re
 import sys
@@ -107,9 +108,6 @@ class PVPBot(CogBot):
         """
         Any hooks to respond to dms.
         """
-        tfile = None
-        log_chan = self.bot.get_channel(cog.util.CONF.channels.pvp_log)
-
         with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
             for attach in msg.attachments:
                 if attach.size > MAX_FILE_SIZE:
@@ -124,15 +122,15 @@ class PVPBot(CogBot):
                             with cog.util.extracted_archive(tfile.name) as logs:
                                 await pvp.actions.process_logs(
                                     eddb_session, list(logs),
-                                    client=self, msg=msg, log_chan=log_chan, archive=tfile.name
+                                    client=self, msg=msg, archive=tfile.name
                                 )
                         except zipfile.BadZipfile:
                             await self.send_message(msg.channel, f'Error unzipping {attach.filename}, please check archive.')
 
                     else:
                         await pvp.actions.process_logs(
-                            eddb_session, [tfile.name],
-                            client=self, msg=msg, log_chan=log_chan, archive=tfile.name
+                            eddb_session, [pathlib.Path(tfile.name)],
+                            client=self, msg=msg, archive=tfile.name, orig_filename=attach.filename
                         )
 
     async def on_message(self, message):

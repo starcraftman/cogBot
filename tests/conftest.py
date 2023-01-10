@@ -951,14 +951,14 @@ def f_pvp_testbed(f_spy_ships, eddb_session):
         PVPDeathKiller(cmdr_id=2, pvp_death_id=2, name='BadGuyWon', rank=7, ship_id=30, event_at=PVP_TIMESTAMP),
         PVPDeathKiller(cmdr_id=3, pvp_death_id=3, name='BadGuyWon', rank=7, ship_id=30, event_at=PVP_TIMESTAMP),
 
-        PVPInterdiction(id=1, cmdr_id=1, system_id=1000, is_player=True, is_success=True, did_escape=False,
+        PVPInterdiction(id=1, cmdr_id=1, system_id=1000, is_player=True, is_success=True, survived=False,
                         victim_name="LeSuck", victim_rank=3, event_at=PVP_TIMESTAMP),
-        PVPInterdiction(id=2, cmdr_id=1, system_id=1001, is_player=True, is_success=True, did_escape=True,
+        PVPInterdiction(id=2, cmdr_id=1, system_id=1001, is_player=True, is_success=True, survived=True,
                         victim_name="LeSuck", victim_rank=3, event_at=PVP_TIMESTAMP + 2),
 
-        PVPInterdicted(id=1, cmdr_id=1, system_id=1000, is_player=True, did_submit=False, did_escape=False,
+        PVPInterdicted(id=1, cmdr_id=1, system_id=1000, is_player=True, did_submit=False, survived=False,
                        interdictor_name="BadGuyWon", interdictor_rank=7, event_at=PVP_TIMESTAMP),
-        PVPInterdicted(id=2, cmdr_id=2, is_player=True, did_submit=True, did_escape=True,
+        PVPInterdicted(id=2, cmdr_id=2, is_player=True, did_submit=True, survived=True,
                        interdictor_name="BadGuyWon", interdictor_rank=7, event_at=PVP_TIMESTAMP),
 
     ])

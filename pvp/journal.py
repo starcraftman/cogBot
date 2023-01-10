@@ -350,6 +350,7 @@ class Parser():
                 pvp_kill_id=result.id,
                 event_at=result.event_at,
             ))
+            self.data.get('Interdiction').survived = False
             self.eddb_session.flush()
 
         elif event == 'PVPKill' and self.data.get('Interdicted') and\
@@ -383,6 +384,7 @@ class Parser():
                 pvp_death_id=result.id,
                 event_at=result.event_at,
             ))
+            self.data.get('Interdicted').survived = False
             self.eddb_session.flush()
 
         # Always store event in data for later use

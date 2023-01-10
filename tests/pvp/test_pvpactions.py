@@ -79,7 +79,7 @@ async def test_cmd_file_upload(f_bot, f_spy_ships, f_pvp_testbed):
         assert len(eddb_session.query(pvp.schema.PVPDeath).all()) == 5
 
 
-def test_cmdr_log_name():
-    fname = pvp.actions.cmdr_log_name('<coolGuy{32}>', num=2)
-    assert fname.startswith('+coolGuy+32++_2')
-    assert fname.endswith('.jsonl')
+def test_filename_for_upload():
+    fname = pvp.actions.filename_for_upload('<coolGuy{32}>', id_num=2)
+    assert fname.startswith('coolGuy32_2')
+    assert fname.endswith('.log')

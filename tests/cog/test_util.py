@@ -7,7 +7,6 @@ import os
 import pathlib
 import tempfile
 import shutil
-import zipfile
 
 import mock
 import pytest
@@ -399,12 +398,12 @@ async def test_hash_file():
 
 
 def test_clean_fname():
-    assert '++++++351Test++;;+,+' == cog.util.clean_fname(r'///---351Test+*;;:,.')
+    assert '++++++351Test++;;+,+' == cog.util.clean_fname(r'///---351Test+*;;:,.', replacement='+')
     with pytest.raises(ValueError):
         assert cog.util.clean_fname(r'///---351Test+*;;:,.', replacement='/')
-    assert 'cmdr++t7+++test5' == cog.util.clean_fname('cmdr/\\t7><:test5')
-    assert 'cmdr++t7+++test5+' == cog.util.clean_fname('cmdr/\\t7><:test5.')
-    assert 'cmdr++t7+++test5+' == cog.util.clean_fname('cmdr/\\t7><:test5\0')
+    assert 'cmdr++t7+++test5' == cog.util.clean_fname('cmdr/\\t7><:test5', replacement='+')
+    assert 'cmdr++t7+++test5+' == cog.util.clean_fname('cmdr/\\t7><:test5.', replacement='+')
+    assert 'cmdr++t7+++test5+' == cog.util.clean_fname('cmdr/\\t7><:test5\0', replacement='+')
 
 
 def test_extracted_archive():
@@ -421,4 +420,4 @@ def test_extracted_archive():
 
     finally:
         shutil.rmtree(pat)
-        shutil.rmtree(archive)
+        os.remove(archive)

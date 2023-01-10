@@ -194,7 +194,7 @@ class Coverage(Command):
             pass
         report = os.path.join(cov_dir, 'index.html')
         cmds = [
-            'python -m pytest --cov=cog --cov=cogdb',
+            'python -m pytest --cov=cog --cov=cogdb --cov=pvp',
             'coverage html -d ' + cov_dir,
             'xdg-open ' + report,
         ]

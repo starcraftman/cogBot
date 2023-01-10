@@ -748,7 +748,7 @@ async def hash_file(fname, *, alg=None):
         return func(await fin.read()).hexdigest()
 
 
-def clean_fname(fname, *, replacement=None, extras=None, replace_spaces=True):
+def clean_fname(fname, *, replacement='', extras=None, replace_spaces=True):
     """
     Clean a potential filename for usage on system.
     Any non ascii character or FNAME_FORBIDDEN characters will be replaced.
@@ -756,7 +756,7 @@ def clean_fname(fname, *, replacement=None, extras=None, replace_spaces=True):
 
     Args:
         fname; The potential filename.
-        replacement: The character to replace invalids with. Default: '+'
+        replacement: The character to replace invalids with. Default: ''
         extras: A list of extra characters to exclude.
         replace_spaces: Default True. If set True, replace spaces too.
 
@@ -768,8 +768,6 @@ def clean_fname(fname, *, replacement=None, extras=None, replace_spaces=True):
         extras += [' ']
     excluded = set(FNAME_FORBIDDEN + extras)
 
-    if not replacement:
-        replacement = '+'
     if replacement in excluded:
         raise ValueError(f"Filename replacement character cannot be from illegal characters: {excluded}")
 

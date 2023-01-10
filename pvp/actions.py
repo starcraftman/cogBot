@@ -319,24 +319,27 @@ async def cmdr_setup(eddb_session, client, msg, *, cmdr_name=None):
     return pvp.schema.add_pvp_cmdr(eddb_session, msg.author.id, modal.name, modal.hex)
 
 
-def cmdr_log_name(cmdr_name, *, num=1):
+def filename_for_upload(cmdr_name, *, id_num=1, archive=False):
     """
-    Create a filename for log to upload into archive based on
-    a simple naming format including:
+    Create a filename for archiving a file based on a simple naming format including:
     - CMDR name
     - integer discriminator
     - the current date.
+    - correct extension based on type
 
     Args:
         cmdr_name: The name of the commander.
         cnt: A simple integer discriminator.
+        archive: True if a zip, otherwise a log.
 
-    Returns: A potential filename.
+    Returns: A potential filename that is cleaned for discord.
     """
     now = datetime.datetime.utcnow().strftime(cog.util.TIME_STRP)
-    fname = f'{cmdr_name}_{num}_{now}.jsonl'
+    id_num = id_num % (4 * 2 ** 10)
+    ext = 'zip' if archive else 'log'
+    fname = f'{cmdr_name}_{id_num}_{now}.{ext}'
 
-    return cog.util.clean_fname(fname)
+    return cog.util.clean_fname(fname, replacement='', extras=['-'])
 
 
 def parse_in_process(fname, discord_id):
@@ -356,7 +359,27 @@ def parse_in_process(fname, discord_id):
         return [str(x) for x in parser.parse()]
 
 
-async def upload_log(eddb_session, *, msg, log_chan, cmdr, fname):
+async def ensure_pvp_cmdr(eddb_session, *, client, fname, msg):
+    """
+    Ensure the PVP CMDR is registered.
+
+    Args:
+        eddb_session: A session onto the EDDB db.
+        client: The discord.py client.
+        fname: The filename of a particular log, must be extracted from zip.
+        msg: The msg that initiated the DM upload.
+
+    Returns: The PVPCmdr found or added.
+    """
+    cmdr = pvp.schema.get_pvp_cmdr(eddb_session, cmdr_id=msg.author.id)
+    if not cmdr:
+        cmdr_name = await pvp.journal.find_cmdr_name(fname)
+        cmdr = await cmdr_setup(eddb_session, client, msg, cmdr_name=cmdr_name)
+
+    return cmdr
+
+
+async def archive_log(eddb_session, *, msg, cmdr, fname):
     """
     Upload a copy of the log file or zip to the archiving channel set for server.
 
@@ -375,8 +398,9 @@ async def upload_log(eddb_session, *, msg, log_chan, cmdr, fname):
         await msg.channel.send(f'Log already uploaded at {pvp_log.updated_date}.',)
         return False
 
-    pvp_log.file_name = cmdr_log_name(cmdr.name, num=pvp_log.id % 1024)
+    pvp_log.file_name = filename_for_upload(cmdr.name, id_num=pvp_log.id, archive=cog.util.is_zipfile(fname))
     with open(fname, 'rb') as fin:
+        log_chan = cog.util.BOT.get_channel(cog.util.CONF.channels.pvp_log)
         msg = await log_chan.send(f"Discord ID: {cmdr.id}\nCMDR: {cmdr.name}",
                                   file=discord.File(fin, filename=pvp_log.file_name))
         pvp_log.msg_id = msg.id
@@ -384,31 +408,7 @@ async def upload_log(eddb_session, *, msg, log_chan, cmdr, fname):
     return True
 
 
-async def ensure_pvp_cmdr(eddb_session, *, client, fname, msg, discord_id=None):
-    """
-    Ensure the PVP CMDR is registered.
-
-    Args:
-        eddb_session: A session onto the EDDB db.
-        client: The discord.py client.
-        discord_id: The discord ID of the user.
-        fname: The filename of a particular log, must be extracted from zip.
-        msg: The msg that initiated the DM upload.
-
-    Returns: The PVPCmdr
-    """
-    if not discord_id:
-        discord_id = msg.author.id
-
-    cmdr = pvp.schema.get_pvp_cmdr(eddb_session, cmdr_id=discord_id)
-    if not cmdr:
-        cmdr_name = await pvp.journal.find_cmdr_name(fname)
-        cmdr = await cmdr_setup(eddb_session, client, msg, cmdr_name=cmdr_name)
-
-    return cmdr
-
-
-async def process_logs(eddb_session, logs, *, client, msg, log_chan, archive):
+async def process_logs(eddb_session, logs, *, client, msg, archive, orig_filename=None):
     """
     Process all logs received from a single upload to the bot.
 
@@ -417,17 +417,25 @@ async def process_logs(eddb_session, logs, *, client, msg, log_chan, archive):
         logs: A list of filenames to process.
         client: A instance of the bot.
         msg: The original discord.Message received by bot.
-        log_chan: The discord.TextChannel to send uploads to.
         archive: The original file received, be it zip or log file.
     """
     if not logs:
         return
 
-    cmdr = ensure_pvp_cmdr(eddb_session, client=client, fname=logs[0], msg=msg)
+    cmdr = await ensure_pvp_cmdr(eddb_session, client=client, fname=logs[0], msg=msg)
 
-    if upload_log(eddb_session, msg=msg, log_chan=log_chan, cmdr=cmdr, fname=archive):
+    if await archive_log(eddb_session, msg=msg, cmdr=cmdr, fname=archive):
+        events = []
         for log in logs:
-            await FileUpload(
+            events += [f'\nFile: {orig_filename if orig_filename else log.name}']
+            events += await FileUpload(
                 args=None, bot=client, msg=msg, session=None,
                 eddb_session=eddb_session, fname=log
-            ).execute()
+            ).parse_log(discord_id=cmdr.id)
+
+        with tempfile.NamedTemporaryFile(mode='w') as tfile:
+            tfile.write("__Parsed Events__\n" + '\n'.join(events))
+            tfile.flush()
+
+            await msg.channel.send('Logs parsed. Detailed per file summary attached.',
+                                   file=discord.File(fp=tfile.name, filename='parsed.log'))
