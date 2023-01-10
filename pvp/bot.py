@@ -103,38 +103,37 @@ class PVPBot(CogBot):
         if before.content != after.content and after.content.startswith(self.prefix):
             await self.on_message(after)
 
-    async def handle_dms(self, message):
+    async def handle_dms(self, msg):
         """
         Any hooks to respond to dms.
         """
         tfile = None
+        log_chan = self.bot.get_channel(cog.util.CONF.channels.pvp_log)
+
         with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
-            for attach in message.attachments:
+            for attach in msg.attachments:
                 if attach.size > MAX_FILE_SIZE:
-                    await self.send_message(message.channel, f'Rejecting file {attach.filename}, please upload files < 8MB')
+                    await self.send_message(msg.channel, f'Rejecting file {attach.filename}, please upload files < 8MB')
                     continue
 
-                # TODO: Archive zips instead of individual files in this case. Will cut down on storage/spam.
-                if attach.filename.endswith('.zip'):
-                    with tempfile.NamedTemporaryFile(suffix='.zip') as tfile:
-                        await attach.save(tfile.name)
+                with tempfile.NamedTemporaryFile() as tfile:
+                    await attach.save(tfile.name)
+
+                    if cog.util.is_zipfile(tfile):
                         try:
                             with cog.util.extracted_archive(tfile.name) as logs:
-                                for log in logs:
-                                    await pvp.actions.FileUpload(
-                                        args=None, bot=self, msg=message, session=None,
-                                        eddb_session=eddb_session, fname=log
-                                    ).execute()
+                                await pvp.actions.process_logs(
+                                    eddb_session, list(logs),
+                                    client=self, msg=msg, log_chan=log_chan, archive=tfile.name
+                                )
                         except zipfile.BadZipfile:
-                            await self.send_message(message.channel, f'Error unzipping {attach.filename}, please check archive.')
+                            await self.send_message(msg.channel, f'Error unzipping {attach.filename}, please check archive.')
 
-                else:
-                    with tempfile.NamedTemporaryFile(suffix='.jsonl') as tfile:
-                        await attach.save(tfile.name)
-                        await pvp.actions.FileUpload(
-                            args=None, bot=self, msg=message, session=None,
-                            eddb_session=eddb_session, fname=tfile.name
-                        ).execute()
+                    else:
+                        await pvp.actions.process_logs(
+                            eddb_session, [tfile.name],
+                            client=self, msg=msg, log_chan=log_chan, archive=tfile.name
+                        )
 
     async def on_message(self, message):
         """

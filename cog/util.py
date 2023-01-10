@@ -786,6 +786,25 @@ def clean_fname(fname, *, replacement=None, extras=None, replace_spaces=True):
     return new_name
 
 
+def is_zipfile(fname):
+    """
+    Is the file a zip?
+
+    Args:
+        fname: The filename.
+
+    Returns: A boolean.
+    """
+    try:
+        with zipfile.ZipFile(fname) as zipf:
+            zipf.testzip()
+            is_zip = True
+    except zipfile.BadZipfile:
+        is_zip = False
+
+    return is_zip
+
+
 @contextlib.contextmanager
 def extracted_archive(archive, *, glob_pat=None):
     """
