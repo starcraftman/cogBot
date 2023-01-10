@@ -907,9 +907,9 @@ def test_edmcjournal_flush_conflicts_to_db():
 
 def test_log_fname():
     msg = json.loads(EXAMPLE_JOURNAL_STATION)
-    expect = "journal_1_2020_08_03T11_04_11Z_E_D_Market_Connector_Windows_"
+    expect = "journal_1_2020_08_03T11_04_11Z_E_D_Market_Connector__Windows_"
 
-    assert cogdb.eddn.log_fname(msg) == expect
+    assert expect == cogdb.eddn.log_fname(msg)
 
 
 def test_log_msg():

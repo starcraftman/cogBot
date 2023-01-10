@@ -121,6 +121,7 @@ def action_map(fake_message, fake_bot):
 
 
 class FakeToWrap():
+    """ Dummy object to wrap. """
     def __init__(self):
         self.msg = aiomock.Mock(author=None, mentions=["FakeUser"])
         self.log = aiomock.AIOMock()

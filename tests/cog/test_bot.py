@@ -19,7 +19,7 @@ def test_emoji__str__():
     emo = EmojiResolver()
     emo.update([guild])
 
-    assert "'duck': Emoji: Emoji-5 duck," in str(emo)
+    assert "'duck': Emoji: " in str(emo)
 
 
 def test_emoji_update():

@@ -9,14 +9,21 @@ Utility functions
     pastebin_new_paste - Upload something to pastebin.
 """
 import asyncio
+import contextlib
 import datetime
+import hashlib
 import json
 import logging
 import logging.handlers
 import logging.config
 import os
+import pathlib
 import re
+import shutil
+import tempfile
+import zipfile
 
+import aiofiles
 import aiohttp
 import aiohttp.web_exceptions
 import aiohttp.client_exceptions
@@ -51,6 +58,12 @@ HEX_MAP = {
 }
 HEX_MAP.update({str(x): x for x in range(0, 10)})
 REV_HEX_MAP = {val: key for key, val in HEX_MAP.items()}
+TIME_STRP = "%Y-%m-%dT%H:%M:%SZ"
+TIME_STRP_MICRO = "%Y-%m-%dT%H:%M:%S.%fZ"
+FNAME_FORBIDDEN = [
+    '/', '\\', '<', '>', ':', '-', '|', '?', '*', '\0',
+    '[', ']', '(', ')', '{', '}',
+]
 
 
 class ReprMixin():
@@ -425,26 +438,6 @@ def pad_table_to_rectangle(table, pad_value=''):
     return table
 
 
-def clean_text(text, *, replace='_'):
-    """
-    Ensure input contains ONLY ASCII characters valid in filenames.
-    Any other character will be replaced with 'replace'.
-    Characters added in extras will be whitelisted in addiction to normal ASCII.
-
-    Args:
-        text: The text to clean.
-        replace: The replacement character to use.
-        extras: Additional characters to whitelist.
-
-    Returns:
-        The cleaned text.
-    """
-    text = re.sub(r'[^a-zA-Z0-9]', replace, text)
-    text = re.sub(r'{r}{r}+'.format(r=replace), replace, text)
-
-    return text
-
-
 def shorten_text(text, new_len):
     """
     Shorten text to a particular len.
@@ -735,6 +728,119 @@ async def emergency_notice(client, msg):  # pragma: no cover just a convenience,
     for user in [client.get_user(discord_id) for discord_id in cog.util.CONF.emergency.users]:
         msg += f" {user.mention}"
     await chan.send(msg)
+
+
+async def hash_file(fname, *, alg=None):
+    """
+    Hash a file and return the hex digest.
+
+    Args:
+        fname: The filename to hash.
+        alg: The hash algorithm to use. Default sha512.
+
+    Returns: The hexdigest
+    """
+    if not alg:
+        alg = 'sha512'
+
+    func = getattr(hashlib, alg, 'sha512')
+    async with aiofiles.open(fname, 'rb') as fin:
+        return func(await fin.read()).hexdigest()
+
+
+def clean_fname(fname, *, replacement='', extras=None, replace_spaces=True):
+    """
+    Clean a potential filename for usage on system.
+    Any non ascii character or FNAME_FORBIDDEN characters will be replaced.
+    Brackets are technically valid but personal preference stipulates not in filenames.
+
+    Args:
+        fname; The potential filename.
+        replacement: The character to replace invalids with. Default: ''
+        extras: A list of extra characters to exclude.
+        replace_spaces: Default True. If set True, replace spaces too.
+
+    Returns: A clean and usable filename on Unix or Windows.
+    """
+    if not extras:
+        extras = []
+    if replace_spaces:
+        extras += [' ']
+    excluded = set(FNAME_FORBIDDEN + extras)
+
+    if replacement in excluded:
+        raise ValueError(f"Filename replacement character cannot be from illegal characters: {excluded}")
+
+    new_name = ''
+    for char in fname:
+        legal = replacement
+        if char.isascii() and char not in excluded:
+            legal = char
+        new_name += legal
+
+    if new_name[-1] in [' ', '.']:  # Windows corner case for last char
+        new_name = new_name[:-1] + replacement
+
+    return new_name
+
+
+def is_zipfile(fname):
+    """
+    Is the file a zip?
+
+    Args:
+        fname: The filename.
+
+    Returns: A boolean.
+    """
+    try:
+        with zipfile.ZipFile(fname) as zipf:
+            zipf.testzip()
+            is_zip = True
+    except zipfile.BadZipfile:
+        is_zip = False
+
+    return is_zip
+
+
+@contextlib.contextmanager
+def extracted_archive(archive, *, glob_pat=None):
+    """
+    Extract a given archive then return a generator of files inside it matching a glob.
+    The extracted folder and all files within will be deleted on exit.
+    The archive will NOT be deleted.
+
+    Args:
+        archive: A zip archive.
+        glob_pat: The glob pattern to match log files from extracted directory. Defaults: **/*.log
+
+    Returns: A generator of files matching the glob_pat.
+
+    Raises:
+        FileNotFoundError - The archive wasn't found.
+        zipfile.BadZipfile - File found is not a zip file.
+    """
+    if not glob_pat:
+        glob_pat = '**/*.log'
+
+    try:
+        archive = pathlib.Path(archive)
+        if not archive.exists():
+            raise FileNotFoundError(f'Zip archive expected at path: {archive}')
+
+        extract_to = pathlib.Path(tempfile.mkdtemp())
+        zipf = zipfile.ZipFile(archive)
+        zipf.testzip()
+        zipf.extractall(path=extract_to)
+
+        # Yield a generator of the log files found extracted anywhere underneath extract_to
+        yield extract_to.glob(glob_pat)
+    finally:
+        if extract_to.exists():
+            try:
+                shutil.rmtree(extract_to)
+            except OSError:
+                logging.getLogger(__name__).error("Critical error on extracted archive removal")
 
 
 #  # Scenario multiple readers, always allowed

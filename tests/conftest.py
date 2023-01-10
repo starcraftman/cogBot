@@ -11,6 +11,7 @@ import aiofiles
 import aiomock
 import mock
 import pytest
+import sqlalchemy as sqla
 import sqlalchemy.orm as sql_orm
 try:
     import uvloop
@@ -26,16 +27,25 @@ except ImportError:
 import cog.util
 import cogdb
 import cogdb.query
+import cogdb.spy_squirrel as spy
+import pvp.schema
 from cogdb.schema import (DiscordUser, FortSystem, FortPrep, FortDrop, FortUser, FortOrder,
                           UMSystem, UMExpand, UMOppose, UMUser, UMHold, EUMSheet, KOS,
                           AdminPerm, ChannelPerm, RolePerm,
                           TrackSystem, TrackSystemCached, TrackByID,
                           Global, Vote, EVoteType,
                           Consolidation, SheetRecord)
+from pvp.schema import (PVPCmdr, PVPKill, PVPDeath, PVPDeathKiller, PVPInterdicted, PVPInterdiction,
+                        PVPInterdictedKill, PVPInterdictedDeath, PVPInterdictionKill, PVPInterdictionDeath,
+                        PVPLocation, PVPStat, PVPLog)
 from tests.data import CELLS_FORT, CELLS_FORT_FMT, CELLS_UM
 
 
 GITHUB_FAIL = pytest.mark.skipif(os.environ.get('GITHUB') == "True", reason="Failing only on github CI.")
+PVP_TIMESTAMP = 1671655377
+REASON_SLOW = 'Slow as blocking to sheet. To enable, ensure os.environ ALL_TESTS=True'
+SHEET_TEST = pytest.mark.skipif(not os.environ.get('ALL_TESTS'), reason=REASON_SLOW)
+PROC_TEST = SHEET_TEST
 
 
 @pytest.fixture(scope='function', autouse=True)
@@ -63,9 +73,18 @@ def around_all_tests():
     session.commit()
 
 
-REASON_SLOW = 'Slow as blocking to sheet. To enable, ensure os.environ ALL_TESTS=True'
-SHEET_TEST = pytest.mark.skipif(not os.environ.get('ALL_TESTS'), reason=REASON_SLOW)
-PROC_TEST = SHEET_TEST
+# At prsent, spy_ship fixture removes everything for test isolation.
+# To offset, put it back at end.
+@pytest.fixture(scope="session", autouse=True)
+def after_all_tests(request):
+    """ Perform one time finish. """
+    def finish():
+        """ Put spy_ships back. """
+        with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
+            eddb_session.query(spy.SpyShip).delete()
+            spy.preload_spy_tables(eddb_session)
+
+    request.addfinalizer(finish)
 
 
 @pytest.fixture
@@ -393,7 +412,7 @@ class FakeObject():
     @classmethod
     def next_id(cls):
         cls.oid += 1
-        return f'{cls.__name__}-{cls.oid}'
+        return cls.oid
 
     def __init__(self, name, id=None):
         if not id:
@@ -452,9 +471,6 @@ class Guild(FakeObject):
 
 
 class Emoji(FakeObject):
-    def __init__(self, name, id=None):
-        super().__init__(name, id)
-
     def __str__(self):
         return f"[{self.name}]"
 
@@ -464,7 +480,7 @@ class Channel(FakeObject):
         super().__init__(name, id)
         self.guild = srv
         self.all_delete_messages = []
-        self.send_messages = None
+        self.sent_messages = []
 
     # def __repr__(self):
         # return super().__repr__() + ", Server: {}".format(self.server.name)
@@ -478,8 +494,9 @@ class Channel(FakeObject):
             msg.is_deleted = True
         self.all_delete_messages += messages
 
-    async def send(self, embed, **kwargs):
-        return Message(embed, None, self.guild, None)
+    async def send(self, msg=None, **kwargs):
+        self.sent_messages += [[msg, kwargs]]
+        return Message(msg, None, self.guild, None)
 
 
 class Member(FakeObject):
@@ -488,6 +505,7 @@ class Member(FakeObject):
         self.discriminator = '12345'
         self.display_name = self.name
         self.roles = roles
+        self.display_avatar = aiomock.Mock(url='placeholder')
 
     @property
     def mention(self):
@@ -628,6 +646,8 @@ def f_bot():
     fake_bot.emoji.fix = lambda x, y: x
     fake_bot.guilds = fake_servers()
     fake_bot.get_channel_by_name.return_value = 'private_dev'
+    fake_bot.get_channel.return_value = Channel('pvp_chan')
+
     # fake_bot.msgs = []
     #
     # async def send_message_(_, msg):
@@ -885,3 +905,75 @@ def f_sheet_records(session):
     session.rollback()
     session.query(SheetRecord).delete()
     session.commit()
+
+
+@pytest.fixture
+def f_spy_ships(eddb_session):
+    try:
+        spy.preload_spy_tables(eddb_session)
+    except sqla.exc.IntegrityError:
+        eddb_session.rollback()
+
+    yield
+
+    eddb_session.query(spy.SpyShip).delete()
+
+
+@pytest.fixture
+def f_pvp_clean():
+    yield
+    pvp.schema.empty_tables()
+
+
+@pytest.fixture
+def f_pvp_testbed(f_spy_ships, eddb_session):
+    """
+    Massive fixture intializes an entire dummy testbed of pvp objects.
+    """
+    eddb_session.add_all([
+        PVPCmdr(id=1, name='coolGuy', hex='B20000', updated_at=PVP_TIMESTAMP),
+        PVPCmdr(id=2, name='shyGuy', hex='B20000', updated_at=PVP_TIMESTAMP),
+        PVPCmdr(id=3, name='shootsALot', hex='B20000', updated_at=PVP_TIMESTAMP),
+    ])
+    eddb_session.flush()
+    eddb_session.add_all([
+        PVPLocation(id=1, cmdr_id=1, system_id=1000, event_at=PVP_TIMESTAMP),
+        PVPLocation(id=2, cmdr_id=1, system_id=1010, event_at=PVP_TIMESTAMP),
+        PVPKill(id=1, cmdr_id=1, system_id=1000, victim_name='LeSuck', victim_rank=3, event_at=PVP_TIMESTAMP),
+        PVPKill(id=2, cmdr_id=1, system_id=1000, victim_name='BadGuy', victim_rank=7, event_at=PVP_TIMESTAMP + 2),
+        PVPKill(id=3, cmdr_id=1, system_id=1001, victim_name='LeSuck', victim_rank=3, event_at=PVP_TIMESTAMP + 4),
+        PVPKill(id=4, cmdr_id=2, victim_name='CanNotShoot', victim_rank=8, event_at=PVP_TIMESTAMP),
+
+        PVPDeath(id=1, cmdr_id=1, system_id=1000, is_wing_kill=True, event_at=PVP_TIMESTAMP),
+        PVPDeath(id=2, cmdr_id=1, system_id=1001, is_wing_kill=False, event_at=PVP_TIMESTAMP + 2),
+        PVPDeath(id=3, cmdr_id=3, is_wing_kill=False, event_at=PVP_TIMESTAMP),
+        PVPDeathKiller(cmdr_id=1, pvp_death_id=1, name='BadGuyWon', rank=7, ship_id=30, event_at=PVP_TIMESTAMP),
+        PVPDeathKiller(cmdr_id=1, pvp_death_id=1, name='BadGuyHelper', rank=5, ship_id=38, event_at=PVP_TIMESTAMP),
+        PVPDeathKiller(cmdr_id=2, pvp_death_id=2, name='BadGuyWon', rank=7, ship_id=30, event_at=PVP_TIMESTAMP),
+        PVPDeathKiller(cmdr_id=3, pvp_death_id=3, name='BadGuyWon', rank=7, ship_id=30, event_at=PVP_TIMESTAMP),
+
+        PVPInterdiction(id=1, cmdr_id=1, system_id=1000, is_player=True, is_success=True, survived=False,
+                        victim_name="LeSuck", victim_rank=3, event_at=PVP_TIMESTAMP),
+        PVPInterdiction(id=2, cmdr_id=1, system_id=1001, is_player=True, is_success=True, survived=True,
+                        victim_name="LeSuck", victim_rank=3, event_at=PVP_TIMESTAMP + 2),
+
+        PVPInterdicted(id=1, cmdr_id=1, system_id=1000, is_player=True, did_submit=False, survived=False,
+                       interdictor_name="BadGuyWon", interdictor_rank=7, event_at=PVP_TIMESTAMP),
+        PVPInterdicted(id=2, cmdr_id=2, is_player=True, did_submit=True, survived=True,
+                       interdictor_name="BadGuyWon", interdictor_rank=7, event_at=PVP_TIMESTAMP),
+        PVPLog(id=1, cmdr_id=1, file_hash='hash', filename='first.log', msg_id=1),
+        PVPLog(id=2, cmdr_id=2, file_hash='hash2', filename='second.log', msg_id=3),
+    ])
+    eddb_session.flush()
+    eddb_session.add_all([
+        PVPInterdictionKill(cmdr_id=1, pvp_interdiction_id=1, pvp_kill_id=1),
+        PVPInterdictionDeath(cmdr_id=2, pvp_interdiction_id=2, pvp_death_id=2),
+        PVPInterdictedKill(cmdr_id=3, pvp_interdicted_id=2, pvp_kill_id=3),
+        PVPInterdictedDeath(cmdr_id=1, pvp_interdicted_id=1, pvp_death_id=1),
+    ])
+    eddb_session.flush()
+    pvp.schema.update_pvp_stats(eddb_session, 1)
+    eddb_session.commit()
+
+    yield
+    pvp.schema.empty_tables()

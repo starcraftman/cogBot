@@ -4,7 +4,9 @@ Test util the grab all module.
 """
 import datetime
 import os
+import pathlib
 import tempfile
+import shutil
 
 import mock
 import pytest
@@ -92,6 +94,7 @@ def test_pad_table_to_rectangle():
 
 
 class NumObj():
+    """ Dummy object for wait callback tests. """
     def __init__(self):
         self.num = 0
 
@@ -136,11 +139,6 @@ async def test_wait_cb_send_resume_no_send():
 
     assert not wcb.notice_sent
     assert obj.num == 0
-
-
-def test_clean_text():
-    assert cog.util.clean_text(r'///---351Test+*;;:,.') == '_351Test_'
-    assert cog.util.clean_text(r'///---351Test+*;;:,.', replace='/') == '/351Test/'
 
 
 def test_shorten_text():
@@ -320,6 +318,7 @@ def test_cycle_to_start():
 
 
 class UpdatedAtObj(cog.util.TimestampMixin):
+    """ Dummy object for mixin test. """
     def __init__(self):
         self.updated_at = datetime.datetime(2021, 10, 21, 7, 0, tzinfo=datetime.timezone.utc).timestamp()
 
@@ -337,6 +336,7 @@ def test_timestampmixin_tz():
 
 
 class DummyUpdateObject(cog.util.ReprMixin, cog.util.UpdatableMixin):
+    """ Dummy object for mixin test. """
     _repr_keys = ['num', 'updated_at']
 
     def __init__(self):
@@ -382,3 +382,42 @@ def test_hex_encode():
 @pytest.mark.asyncio
 async def test_get_url():
     assert "google" in await cog.util.get_url('http://www.google.com')
+
+
+@pytest.mark.asyncio
+async def test_hash_file():
+    with tempfile.NamedTemporaryFile() as fout:
+        fout.write(b"This is a test file.")
+        fout.flush()
+
+        expect512 = 'b1df216b5b05e3965c469492744a5de0c945e0b103c42eb1e57476fbed8'\
+                    'f1d489f5cae9b792db37c5d823bc0c6c7d06b056176d6abe5ce076eeadaed414e17a3'
+        expect1 = '26d82f1931cbdbd83c2a6871b2cecd5cbcc8c26b'
+        assert expect512 == await cog.util.hash_file(fout.name)
+        assert expect1 == await cog.util.hash_file(fout.name, alg='sha1')
+
+
+def test_clean_fname():
+    assert '++++++351Test++;;+,+' == cog.util.clean_fname(r'///---351Test+*;;:,.', replacement='+')
+    with pytest.raises(ValueError):
+        assert cog.util.clean_fname(r'///---351Test+*;;:,.', replacement='/')
+    assert 'cmdr++t7+++test5' == cog.util.clean_fname('cmdr/\\t7><:test5', replacement='+')
+    assert 'cmdr++t7+++test5+' == cog.util.clean_fname('cmdr/\\t7><:test5.', replacement='+')
+    assert 'cmdr++t7+++test5+' == cog.util.clean_fname('cmdr/\\t7><:test5\0', replacement='+')
+
+
+def test_extracted_archive():
+    # Create an archive on fly to test with.
+    pat = pathlib.Path(tempfile.mkdtemp())
+    archive = pathlib.Path(pat.parent.joinpath(pat.name + '.zip'))
+    try:
+        for fname in ['first.log', 'second.log', 'third.log', 'test.txt', 'works.fine']:
+            with open(pat.joinpath(fname), 'wb') as fout:
+                fout.write(b'This is a test file.')
+        shutil.make_archive(pat, 'zip', pat.parent, pat.name)
+        with cog.util.extracted_archive(archive) as logs:
+            assert ['first.log', 'second.log', 'third.log'] == [x.name for x in logs]
+
+    finally:
+        shutil.rmtree(pat)
+        os.remove(archive)

@@ -1,0 +1,25 @@
+{ "timestamp":"2016-06-10T14:31:00Z", "event":"FileHeader", "part":1, "gameversion":"2.2", "build":"r113684 " }, { "timestamp":"2016-06-10T14:32:03Z", "event":"LoadGame", "Commander":"HRC1", "Ship":"SideWinder", "ShipID":1, "GameMode":"Open", "Credits":600120, "Loan":0 }
+{ "timestamp":"2016-06-10T14:32:03Z", "event":"Rank", "Combat":0, "Trade":0, "Explore":1, "Empire":0, "Federation":0, "CQC":0 }
+{ "timestamp":"2016-06-10T14:32:03Z", "event":"Progress", "Combat":0, "Trade":0, "Explore":73, "Empire":0, "Federation":0, "CQC":0 }
+{ "timestamp":"2016-06-10T14:32:15Z", "event":"Location", "StarSystem":"Asellus Primus", "StarPos":[-23.938,40.875,-1.344] }
+{ "timestamp":"2016-06-10T14:32:16Z", "event":"Docked", "StationName":"Beagle 2 Landing", "StationType":"Coriolis" }
+{ "timestamp":"2016-06-10T14:32:38Z", "event":"RefuelAll", "Cost":12, "Amount":0.234493 }
+{ "timestamp":"2016-06-10T14:34:25Z", "event":"Undocked", "StationName":"Beagle 2 Landing", "StationType":"Coriolis" }
+{ "timestamp":"2016-06-10T14:35:00Z", "event":"FSDJump", "StarSystem":"HIP 78085", "StarPos":[120.250,40.219,268.594], "JumpDist":36.034 }
+{ "timestamp":"2016-06-10T14:35:22Z", "event":"Scan", "BodyName":"HIP 78085 A", "StarType":"G" }
+{ "timestamp":"2016-06-10T14:36:10Z", "event":"FSDJump", "StarSystem":"Praea Euq NW-W b1-3", "StarPos":[120.719,34.188,271.750], "JumpDist":6.823 }
+{ "timestamp":"2016-06-10T14:36:42Z", "event":"Scan", "BodyName":"Praea Euq NW-W b1-3", "StarType":"M" }
+{ "timestamp":"2016-06-10T14:38:50Z", "event":"Scan", "BodyName":"Praea Euq NW-W b1-3 3", "Description":"Icy body with neon rich atmosphere and major water geysers volcanism" }
+{ "timestamp":"2016-06-10T14:39:08Z", "event":"Scan", "BodyName":"Praea Euq NW-W b1-3 3 a", "Description":"Tidally locked Icy body" }
+{ "timestamp":"2016-06-10T14:41:03Z", "event":"FSDJump", "StarSystem":"Asellus Primus", "StarPos":[-23.938,40.875,-1.344], "JumpDist":39.112 }
+{ "timestamp":"2016-06-10T14:41:26Z", "event":"SupercruiseExit", "StarSystem":"Asellus Primus", "Body":"Beagle 2 Landing" }
+{ "timestamp":"2016-06-10T14:41:29Z", "event":"Docked", "StationName":"Beagle 2 Landing", "StationType":"Coriolis" }
+{ "timestamp":"2016-06-10T14:41:58Z", "event":"SellExplorationData", "Systems":[ "HIP 78085", "Praea Euq NW-W b1-3" ], "Discovered":[ "HIP 78085 A", "Praea Euq NW-W b1-3", "Praea Euq NW-W b1-3 3 a", "Praea Euq NW-W b1-3 3" ], "BaseValue":10822, "Bonus":3959 }
+
+{ "timestamp":"2016-06-10T14:32:03Z", "event":"Died", "KillerName":"BadGuyWon", "KillerShip":"vulture", "KillerRank":"Deadly" }
+{ "timestamp":"2016-06-10T14:36:10Z", "event":"FSDJump", "StarSystem":"Rhea", "StarPos":[120.719,34.188,271.750], "JumpDist":6.823 }
+{ "timestamp":"2016-06-10T14:50:00Z", "event":"Interdiction", "Success":true, "Interdicted":"cmdr CanNotShoot", "IsPlayer":true, "CombatRank":5 }
+{ "timestamp":"2016-06-10T14:55:22Z", "event":"PVPKill", "Victim":"cmdr CanNotShoot", "CombatRank": 5}
+{ "timestamp":"2016-06-10T14:35:00Z", "event":"FSDJump", "StarSystem":"Rana", "StarPos":[120.250,40.219,268.594], "JumpDist":36.034 }
+{ "timestamp":"2016-06-10T17:12:43Z", "event":"Interdicted", "Submitted":false, "Interdictor":"cmdr BadGuyWon", "IsPlayer":true, "CombatRank": 8 }
+{ "timestamp":"2016-06-10T17:13:22Z", "event":"Died", "Killers":[ { "Name":"Cmdr BadGuyWon", "Ship":"Vulture", "Rank":"Elite" }, { "Name":"Cmdr Assisting", "Ship":"Python", "Rank":"Master" } ] }

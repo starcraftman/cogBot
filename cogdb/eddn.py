@@ -24,6 +24,7 @@ except ImportError:
     import json
 
 import cog.util
+from cog.util import TIME_STRP, TIME_STRP_MICRO
 import cogdb
 import cogdb.eddb
 import cogdb.query
@@ -43,8 +44,6 @@ SCHEMA_MAP = {
     #  "https://eddn.edcd.io/schemas/outfitting/2": "OutfitMsg",
     #  "https://eddn.edcd.io/schemas/shipyard/2": "ShipyardMsg",
 }
-TIME_STRP = "%Y-%m-%dT%H:%M:%SZ"
-TIME_STRP_MICRO = "%Y-%m-%dT%H:%M:%S.%fZ"
 LOG_FILE = "/tmp/eddn_log"
 ALL_MSGS = '/tmp/msgs'
 JOURNAL_MSGS = '/tmp/msgs_journal'
@@ -555,9 +554,9 @@ def log_fname(msg):
         timestamp = msg['header']['gatewayTimestamp']
 
     schema = '_'.join(msg["$schemaRef"].split('/')[-2:])
-    fname = f"{schema}_{timestamp}_{msg['header']['softwareName']}"
+    fname = f"{schema}_{timestamp}_{msg['header']['softwareName']}".strip()
 
-    return cog.util.clean_text(fname)
+    return cog.util.clean_fname(fname, replacement='_', replace_spaces=True)
 
 
 def log_msg(obj, *, path, fname):
