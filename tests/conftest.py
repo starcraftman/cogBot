@@ -37,7 +37,7 @@ from cogdb.schema import (DiscordUser, FortSystem, FortPrep, FortDrop, FortUser,
                           Consolidation, SheetRecord)
 from pvp.schema import (PVPCmdr, PVPKill, PVPDeath, PVPDeathKiller, PVPInterdicted, PVPInterdiction,
                         PVPInterdictedKill, PVPInterdictedDeath, PVPInterdictionKill, PVPInterdictionDeath,
-                        PVPLocation, PVPStat)
+                        PVPLocation, PVPStat, PVPLog)
 from tests.data import CELLS_FORT, CELLS_FORT_FMT, CELLS_UM
 
 
@@ -480,7 +480,7 @@ class Channel(FakeObject):
         super().__init__(name, id)
         self.guild = srv
         self.all_delete_messages = []
-        self.send_messages = None
+        self.sent_messages = []
 
     # def __repr__(self):
         # return super().__repr__() + ", Server: {}".format(self.server.name)
@@ -494,8 +494,9 @@ class Channel(FakeObject):
             msg.is_deleted = True
         self.all_delete_messages += messages
 
-    async def send(self, embed, **kwargs):
-        return Message(embed, None, self.guild, None)
+    async def send(self, msg=None, **kwargs):
+        self.sent_messages += [[msg, kwargs]]
+        return Message(msg, None, self.guild, None)
 
 
 class Member(FakeObject):
@@ -960,7 +961,8 @@ def f_pvp_testbed(f_spy_ships, eddb_session):
                        interdictor_name="BadGuyWon", interdictor_rank=7, event_at=PVP_TIMESTAMP),
         PVPInterdicted(id=2, cmdr_id=2, is_player=True, did_submit=True, survived=True,
                        interdictor_name="BadGuyWon", interdictor_rank=7, event_at=PVP_TIMESTAMP),
-
+        PVPLog(id=1, cmdr_id=1, file_hash='hash', filename='first.log', msg_id=1),
+        PVPLog(id=2, cmdr_id=2, file_hash='hash2', filename='second.log', msg_id=3),
     ])
     eddb_session.flush()
     eddb_session.add_all([

@@ -733,7 +733,7 @@ def recreate_tables():  # pragma: no cover | destructive to test
     Base.metadata.create_all(cogdb.eddb_engine)
 
 
-def main():
+def main():  # pragma: no cover
     """ Simple main to test pvp db. """
     recreate_tables()
 

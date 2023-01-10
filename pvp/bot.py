@@ -44,7 +44,7 @@ SYNC_RESUME = """{} Resuming your command:
 MAX_FILE_SIZE = 8 * 1024 * 1024
 
 
-class PVPBot(CogBot):
+class PVPBot(CogBot):  # pragma: no cover
     """
     The main bot, hooks onto on_message primarily and waits for commands.
     """
@@ -239,7 +239,7 @@ class PVPBot(CogBot):
             log.exception(line)
 
 
-async def presence_task(bot, delay=180):
+async def presence_task(bot, delay=180):  # pragma: no cover
     """
     Manage the ultra important task of bot's played game.
     """
@@ -259,7 +259,7 @@ async def presence_task(bot, delay=180):
         await asyncio.sleep(delay)
 
 
-async def simple_heartbeat(delay=30):
+async def simple_heartbeat(delay=30):  # pragma: no cover
     """ Simple heartbeat function to check liveness of main loop. """
     hfile = os.path.join(tempfile.gettempdir(), 'hbeatpvp')
     print(hfile)

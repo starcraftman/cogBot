@@ -44,22 +44,6 @@ class Admin(PVPAction):
     """
     Admin command console. For knowledgeable users only.
     """
-    def check_cmd(self):
-        """ Sanity check that cmd exists. """
-        self.args.rule_cmds = [x.replace(',', '') for x in self.args.rule_cmds]
-        cmd_set = set(cog.parse.CMD_MAP.values())
-        cmd_set.remove('admin')
-        not_found = set(self.args.rule_cmds) - cmd_set
-        if not self.args.rule_cmds or len(not_found) != 0:
-            msg = f"""Rules require a command in following set:
-
-            {sorted(list(cmd_set))}
-
-            The following were not matched:
-            {', '.join(list(not_found))}
-            """
-            raise cog.exc.InvalidCommandArgs(msg)
-
     async def add(self):
         """
         Takes one of the following actions:
@@ -270,7 +254,7 @@ class Status(PVPAction):
         await self.bot.send_message(self.msg.channel, cog.tbl.format_table(lines)[0])
 
 
-class CMDRRegistration(dui.Modal, title='CMDR Registration'):
+class CMDRRegistration(dui.Modal, title='CMDR Registration'):  # pragma: no cover
     """ Register a cmdr by getting name via a modal input. """
     hex = dui.TextInput(label='Hex colour for embeds. Red: B20000', min_length=6, max_length=6,
                         style=discord.TextStyle.short, placeholder="B20000", required=True)
@@ -282,7 +266,7 @@ class CMDRRegistration(dui.Modal, title='CMDR Registration'):
         await interaction.response.send_message(f'You are now registered, CMDR {self.name}!', ephemeral=True)
 
 
-async def cmdr_setup(eddb_session, client, msg, *, cmdr_name=None):
+async def cmdr_setup(eddb_session, client, msg, *, cmdr_name=None):  # pragma: no cover, heavily dependent on discord.py
     """
     Perform first time cmdr setup via interactive questions.
     """
@@ -359,26 +343,6 @@ def parse_in_process(fname, discord_id):
         return [str(x) for x in parser.parse()]
 
 
-async def ensure_pvp_cmdr(eddb_session, *, client, fname, msg):
-    """
-    Ensure the PVP CMDR is registered.
-
-    Args:
-        eddb_session: A session onto the EDDB db.
-        client: The discord.py client.
-        fname: The filename of a particular log, must be extracted from zip.
-        msg: The msg that initiated the DM upload.
-
-    Returns: The PVPCmdr found or added.
-    """
-    cmdr = pvp.schema.get_pvp_cmdr(eddb_session, cmdr_id=msg.author.id)
-    if not cmdr:
-        cmdr_name = await pvp.journal.find_cmdr_name(fname)
-        cmdr = await cmdr_setup(eddb_session, client, msg, cmdr_name=cmdr_name)
-
-    return cmdr
-
-
 async def archive_log(eddb_session, *, msg, cmdr, fname):
     """
     Upload a copy of the log file or zip to the archiving channel set for server.
@@ -422,7 +386,10 @@ async def process_logs(eddb_session, logs, *, client, msg, archive, orig_filenam
     if not logs:
         return
 
-    cmdr = await ensure_pvp_cmdr(eddb_session, client=client, fname=logs[0], msg=msg)
+    cmdr = pvp.schema.get_pvp_cmdr(eddb_session, cmdr_id=msg.author.id)
+    if not cmdr:
+        cmdr_name = await pvp.journal.find_cmdr_name(logs[0])
+        cmdr = await cmdr_setup(eddb_session, client, msg, cmdr_name=cmdr_name)
 
     if await archive_log(eddb_session, msg=msg, cmdr=cmdr, fname=archive):
         events = []

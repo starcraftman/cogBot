@@ -2,6 +2,7 @@
 """
 Tests for pvp.schema
 """
+import tempfile
 import datetime
 import pytest
 
@@ -69,6 +70,18 @@ def test_pvp_update_pvp_stats(f_pvp_testbed, eddb_session):
 def test_pvp_get_pvp_events(f_pvp_testbed, eddb_session):
     events = pvp.schema.get_pvp_events(eddb_session, 1)
     assert events[-1].victim_name == 'LeSuck'
+
+
+@pytest.mark.asyncio
+async def test_pvp_add_pvp_log(f_pvp_testbed, eddb_session):
+    with tempfile.NamedTemporaryFile(suffix='.log') as tfile:
+        tfile.write(b"This is a sample log file.")
+        tfile.flush()
+        pvp_log = await pvp.schema.add_pvp_log(eddb_session, fname=tfile.name, cmdr_id=1)
+        assert 1 == pvp_log.cmdr_id
+        expect_hash = 'efacef55cc78da2ce5cac8f50104e28d616c3bde9c27b1cdfb4dd8aa'\
+                     '6e5d6a46e4b6873b06c88b7b4c031400459a75366207dcb98e29623a170997da5aedb539'
+        assert expect_hash == pvp_log.file_hash
 
 
 def test_pvp_is_safe_to_drop():
