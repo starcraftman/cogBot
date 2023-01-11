@@ -58,6 +58,14 @@ def subs_admin(subs, prefix):
 
 
 @register_parser
+def subs_help(subs, prefix):
+    """ Subcommand parsing for help """
+    sub = subs.add_parser(prefix + 'help', description='Show overall help message.')
+    sub.set_defaults(cmd='Help')
+    CMD_MAP['Help'] = 'help'
+
+
+@register_parser
 def subs_log(subs, prefix):
     """ Subcommand parsing for log """
     desc = f"""To see the log of recent PVP tracked events.
@@ -95,13 +103,5 @@ def reuse_parsers():
 
 
 # On import register here all reused commands from cog
-if not PARSERS:
+if cog.parse.subs_dist not in PARSERS:
     reuse_parsers()
-
-
-@register_parser
-def subs_help(subs, prefix):
-    """ Subcommand parsing for help """
-    sub = subs.add_parser(prefix + 'help', description='Show overall help message.')
-    sub.set_defaults(cmd='Help')
-    CMD_MAP['Help'] = 'help'

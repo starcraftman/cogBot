@@ -73,7 +73,9 @@ async def test_cmd_help(f_bot, f_pvp_clean):
     expect = """Here is an overview of my commands.
 
 For more information do: `!Command -h`
-       Example: `!drop -h```` Command  |                           Effect
+       Example: `!drop -h`
+
+``` Command  |                           Effect
 --------- | ----------------------------------------------------------
 !admin    | The admininstrative commands
 !dist     | Determine the distance from the first system to all others

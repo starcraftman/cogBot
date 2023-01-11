@@ -442,7 +442,12 @@ class PVPStat(ReprMixin, TimestampMixin, UpdatableMixin, Base):
     @property
     def kill_ratio(self):
         """ Return the k/d of a user. """
-        return float(self.kills) / self.deaths
+        try:
+            ratio = round(float(self.kills) / self.deaths, 2)
+        except ZeroDivisionError:
+            ratio = 1.0
+
+        return ratio
 
     @property
     def embed_values(self):
