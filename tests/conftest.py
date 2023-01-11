@@ -37,7 +37,7 @@ from cogdb.schema import (DiscordUser, FortSystem, FortPrep, FortDrop, FortUser,
                           Consolidation, SheetRecord)
 from pvp.schema import (PVPCmdr, PVPKill, PVPDeath, PVPDeathKiller, PVPInterdicted, PVPInterdiction,
                         PVPInterdictedKill, PVPInterdictedDeath, PVPInterdictionKill, PVPInterdictionDeath,
-                        PVPLocation, PVPStat, PVPLog)
+                        PVPLocation, PVPLog)
 from tests.data import CELLS_FORT, CELLS_FORT_FMT, CELLS_UM
 
 

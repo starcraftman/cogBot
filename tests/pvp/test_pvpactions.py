@@ -14,7 +14,7 @@ import pvp.actions
 import pvp.parse
 import pvp.schema
 from pvp.schema import PVPLog
-from tests.conftest import fake_msg_gears, fake_msg_newuser, Interaction, Member
+from tests.conftest import fake_msg_gears, Member
 from tests.pvp.test_pvpjournal import JOURNAL_PATH
 
 

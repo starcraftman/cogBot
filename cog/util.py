@@ -9,6 +9,7 @@ Utility functions
     pastebin_new_paste - Upload something to pastebin.
 """
 import asyncio
+import concurrent.futures as cfut
 import contextlib
 import datetime
 import hashlib
@@ -803,6 +804,35 @@ def is_zipfile(fname):
     return is_zip
 
 
+async def is_zipfile_async(fname):
+    """
+    Is the file a zip?
+
+    Args:
+        fname: The filename.
+
+    Returns: A boolean.
+    """
+    with cfut.ProcessPoolExecutor(max_workers=1) as pool:
+        return await asyncio.get_event_loop().run_in_executor(pool, is_zipfile, fname)
+
+
+def extract_zipfile(fname, extract_to, glob_pat):
+    """
+    Extract a zipfile to a given path, then glob against the files.
+
+    Args:
+        fname: The filename of the zip.
+        extract_to: The pathlib.Path to extract the contents under.
+        glob_pat: A glob pattern to match to extracted files.
+
+    Returns: The files matching the glob_pat.
+    """
+    with zipfile.ZipFile(fname) as zipf:
+        zipf.extractall(path=extract_to)
+        return list(extract_to.glob(glob_pat))
+
+
 @contextlib.contextmanager
 def extracted_archive(archive, *, glob_pat=None):
     """
@@ -829,12 +859,47 @@ def extracted_archive(archive, *, glob_pat=None):
             raise FileNotFoundError(f'Zip archive expected at path: {archive}')
 
         extract_to = pathlib.Path(tempfile.mkdtemp())
-        zipf = zipfile.ZipFile(archive)
-        zipf.testzip()
-        zipf.extractall(path=extract_to)
 
-        # Yield a generator of the log files found extracted anywhere underneath extract_to
-        yield extract_to.glob(glob_pat)
+        # Yield a list of all found files
+        yield extract_zipfile(archive, extract_to, glob_pat)
+    finally:
+        if extract_to.exists():
+            try:
+                shutil.rmtree(extract_to)
+            except OSError:
+                logging.getLogger(__name__).error("Critical error on extracted archive removal")
+
+
+@contextlib.asynccontextmanager
+async def extracted_archive_async(archive, *, glob_pat=None):
+    """
+    Extract a given archive then return a generator of files inside it matching a glob.
+    The extracted folder and all files within will be deleted on exit.
+    The archive will NOT be deleted.
+
+    Args:
+        archive: A zip archive.
+        glob_pat: The glob pattern to match log files from extracted directory. Defaults: **/*.log
+
+    Returns: A generator of files matching the glob_pat.
+
+    Raises:
+        FileNotFoundError - The archive wasn't found.
+        zipfile.BadZipfile - File found is not a zip file.
+    """
+    if not glob_pat:
+        glob_pat = '**/*.log'
+
+    try:
+        archive = pathlib.Path(archive)
+        if not archive.exists():
+            raise FileNotFoundError(f'Zip archive expected at path: {archive}')
+
+        extract_to = pathlib.Path(tempfile.mkdtemp())
+        with cfut.ProcessPoolExecutor(max_workers=1) as pool:
+            # Yield a list of all found files
+            yield await asyncio.get_event_loop().\
+                run_in_executor(pool, extract_zipfile, archive, extract_to, glob_pat)
     finally:
         if extract_to.exists():
             try:

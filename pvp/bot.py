@@ -117,9 +117,9 @@ class PVPBot(CogBot):  # pragma: no cover
                 with tempfile.NamedTemporaryFile() as tfile:
                     await attach.save(tfile.name)
 
-                    if cog.util.is_zipfile(tfile):
+                    if await cog.util.is_zipfile_async(tfile):
                         try:
-                            with cog.util.extracted_archive(tfile.name) as logs:
+                            async with cog.util.extracted_archive_async(tfile.name) as logs:
                                 await pvp.actions.process_logs(
                                     eddb_session, list(logs),
                                     client=self, msg=msg, archive=tfile.name

@@ -6,8 +6,11 @@ import concurrent.futures as cfut
 import datetime
 import tempfile
 import functools
+import logging
 import traceback
+import zipfile
 
+import aiofiles
 import discord
 import discord.ui as dui
 
@@ -82,20 +85,49 @@ class Admin(PVPAction):
 
         # Channel archiving pvp logs
         log_chan = self.msg.guild.get_channel(cog.util.CONF.channels.pvp_log)
+        events = []
         try:
             async for msg in log_chan.history(limit=1000000, oldest_first=True):
                 if not msg.content.startswith('Discord ID'):
                     continue
 
                 discord_id = int(msg.content.split('\n')[0].replace('Discord ID: ', ''))
-                with tempfile.NamedTemporaryFile(suffix='.jsonl') as tfile:
+                cmdr = pvp.schema.get_pvp_cmdr(self.eddb_session, cmdr_id=discord_id)
+                if not cmdr:  # If you don't have the pvp_cmdr, fill it
+                    cmdr_name = msg.content.split('\n')[1].replace('CMDR: ', '')
+                    pvp.schema.add_pvp_cmdr(self.eddb_session, discord_id, cmdr_name, None)
+
+                with tempfile.NamedTemporaryFile() as tfile, cfut.ProcessPoolExecutor(max_workers=1) as pool:
                     for attach in msg.attachments:
                         await attach.save(tfile.name)
-                        await FileUpload(
-                            args=None, bot=self, msg=msg, session=self.session,
-                            eddb_session=self.eddb_session, fname=tfile.name
-                        ).parse_log(discord_id=discord_id)
-        except discord.Forbidden:
+                        print(f'Parsing: {attach.filename}')
+                        if await cog.util.is_zipfile_async(tfile.name):
+                            try:
+                                async with cog.util.extracted_archive_async(tfile.name) as logs:
+                                    for log in logs:
+                                        events += [f'\nFile: {log.name}']
+                                        events += await asyncio.get_event_loop().run_in_executor(
+                                            pool, parse_in_process, log, discord_id,
+                                        )
+                            except zipfile.BadZipfile:
+                                await self.send_message(msg.channel, f'Error unzipping {attach.filename}, please check archive.')
+
+                        else:
+                            events += [f'\nFile: {attach.filename}']
+                            events += await asyncio.get_event_loop().run_in_executor(
+                                pool, parse_in_process, tfile.name, discord_id,
+                            )
+
+            with tempfile.NamedTemporaryFile(mode='w') as tfile:
+                async with aiofiles.open(tfile.name, 'w', encoding='utf-8') as aout:
+                    await aout.write("__Parsed Events__\n" + '\n'.join(events))
+                    await aout.flush()
+
+                await self.msg.channel.send('Logs parsed. Summary attached.',
+                                            file=discord.File(fp=tfile.name, filename='parsed.log'))
+
+        except discord.Forbidden as exc:
+            logging.getLogger(__name__).error('Discord error: %s', exc)
             response = f"Missing message history permission on: {log_chan.name} on {log_chan.guild.name}"
         except discord.HTTPException:
             response = "Received HTTP Error, may be intermittent issue. Investigate."
@@ -143,9 +175,9 @@ class FileUpload(PVPAction):
         events = await self.parse_log(discord_id=self.msg.author.id)
 
         with tempfile.NamedTemporaryFile(mode='w') as tfile:
-            tfile.write("__Parsed Events__\n\n" + '\n'.join(events))
-            tfile.flush()
-
+            async with aiofiles.open(tfile.name, 'w', encoding='utf-8') as aout:
+                await aout.write("__Parsed Events__\n" + '\n'.join(events))
+                await aout.flush()
             await self.msg.channel.send('Logs parsed. Summary attached.',
                                         file=discord.File(fp=tfile.name, filename='parsed.log'))
 
@@ -399,8 +431,9 @@ async def process_logs(eddb_session, logs, *, client, msg, archive, orig_filenam
             ).parse_log(discord_id=cmdr.id)
 
         with tempfile.NamedTemporaryFile(mode='w') as tfile:
-            tfile.write("__Parsed Events__\n" + '\n'.join(events))
-            tfile.flush()
+            async with aiofiles.open(tfile.name, 'w', encoding='utf-8') as aout:
+                await aout.write("__Parsed Events__\n" + '\n'.join(events))
+                await aout.flush()
 
             await msg.channel.send('Logs parsed. Detailed per file summary attached.',
                                    file=discord.File(fp=tfile.name, filename='parsed.log'))

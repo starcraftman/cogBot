@@ -5,7 +5,6 @@ Tests for cog.inara
 import asyncio
 import os
 
-import aiomock
 import discord
 try:
     import rapidjson as json

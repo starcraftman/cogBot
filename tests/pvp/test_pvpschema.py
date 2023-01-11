@@ -8,8 +8,7 @@ import pytest
 
 import pvp.schema
 from pvp.schema import (
-    PVPStat, PVPInterdictedKill, PVPInterdictedDeath, PVPInterdictionKill, PVPInterdictionDeath,
-    PVPInterdicted, PVPInterdiction, PVPDeathKiller, PVPDeath, PVPKill, PVPCmdr
+    PVPStat, PVPInterdicted, PVPInterdiction, PVPDeathKiller, PVPDeath, PVPKill, PVPCmdr
 )
 
 
@@ -80,7 +79,7 @@ async def test_pvp_add_pvp_log(f_pvp_testbed, eddb_session):
         pvp_log = await pvp.schema.add_pvp_log(eddb_session, fname=tfile.name, cmdr_id=1)
         assert 1 == pvp_log.cmdr_id
         expect_hash = 'efacef55cc78da2ce5cac8f50104e28d616c3bde9c27b1cdfb4dd8aa'\
-                     '6e5d6a46e4b6873b06c88b7b4c031400459a75366207dcb98e29623a170997da5aedb539'
+                      '6e5d6a46e4b6873b06c88b7b4c031400459a75366207dcb98e29623a170997da5aedb539'
         assert expect_hash == pvp_log.file_hash
 
 

@@ -11,8 +11,7 @@ import cog.util
 import pvp.schema
 import pvp.journal
 from pvp.schema import (
-    PVPInterdictedKill, PVPInterdictedDeath, PVPInterdictionKill, PVPInterdictionDeath,
-    PVPInterdicted, PVPInterdiction, PVPDeathKiller, PVPDeath, PVPKill, PVPLocation, PVPCmdr
+    PVPInterdicted, PVPInterdiction, PVPDeath, PVPKill, PVPLocation,
 )
 from tests.conftest import PVP_TIMESTAMP
 

@@ -49,6 +49,8 @@ def parse_died(eddb_session, data):
             "Ship": data["KillerShip"],
             "Rank": data.get("KillerRank", 'Harmless'),
         }]
+    if not data.get('Killers'):  # Sometimes not present
+        data['Killers'] = []
 
     try:
         death = eddb_session.query(pvp.schema.PVPDeath).\
@@ -441,7 +443,7 @@ class Parser():
         except json.decoder.JSONDecodeError:
             logging.getLogger(__name__).error("Failed to JSON decode line: %s", line)
         except (ParserError, ValueError) as exc:
-            logging.getLogger(__name__).warning(str(exc))
+            logging.getLogger(__name__).debug(str(exc))
         except sqla.exc.IntegrityError:
             self.eddb_session.rollback()
             logging.getLogger(__name__).warning("Duplicate Event: %s", line)

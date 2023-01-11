@@ -1254,6 +1254,7 @@ def preload_spy_tables(eddb_session):
         SpyShip(id=36, text="Viper MK IV", traffic_text="viper_mkiv"),
         SpyShip(id=37, text="Viper Mk III", traffic_text="viper"),
         SpyShip(id=38, text="Vulture", traffic_text="vulture"),
+        SpyShip(id=39, text="PlayerCarrier", traffic_text="carrierdockb"),
     ])
     eddb_session.commit()
 
@@ -1345,8 +1346,8 @@ PARSER_MAP = {
 # Ensure the tables are created before use when this imported
 if cogdb.TEST_DB:
     recreate_tables()
-    with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
-        preload_spy_tables(eddb_session)
+    with cogdb.session_scope(cogdb.EDDBSession) as eddb_session_main:
+        preload_spy_tables(eddb_session_main)
 else:
     Base.metadata.create_all(cogdb.eddb_engine)
 
