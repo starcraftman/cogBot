@@ -1124,37 +1124,34 @@ class Help(Action):
             '',
             f'For more information do: `{prefix}Command -h`',
             f'       Example: `{prefix}drop -h`'
-            '',
         ])
         lines = [
             ['Command', 'Effect'],
-            ['{prefix}admin', 'Admin commands'],
-            ['{prefix}bgs', 'Display information related to BGS work'],
-            ['{prefix}dist', 'Determine the distance from the first system to all others'],
-            ['{prefix}donate', 'Information on supporting the dev.'],
-            ['{prefix}drop', 'Drop forts into the fort sheet'],
-            ['{prefix}feedback', 'Give feedback or report a bug'],
-            ['{prefix}fort', 'Get information about our fort systems'],
-            ['{prefix}help', 'This help command.'],
-            ['{prefix}hold', 'Declare held merits or redeem them'],
-            ['{prefix}kos', 'Manage or search kos list'],
-            ['{prefix}near', 'Find things near you.'],
-            ['{prefix}recruits', 'Manage recruits on the recruit sheet.'],
-            ['{prefix}repair', 'Show the nearest orbitals with shipyards'],
-            ['{prefix}route', 'Plot the shortest route between these systems'],
-            ['{prefix}scout', 'Generate a list of systems to scout'],
-            ['{prefix}status', 'Info about this bot'],
-            ['{prefix}time', 'Show game time and time to ticks'],
-            ['{prefix}track', 'Track carrier movement by system or id.'],
-            ['{prefix}trigger', 'Calculate fort and um triggers for systems'],
-            ['{prefix}um', 'Get information about undermining targets'],
-            ['{prefix}user', 'Manage your user, set sheet name and tag'],
-            ['{prefix}vote', 'Check and record cycle vote for prep/consolidation.'],
-            ['{prefix}whois', 'Search for commander on inara.cz'],
+            [f'{prefix}admin', 'Admin commands'],
+            [f'{prefix}bgs', 'Display information related to BGS work'],
+            [f'{prefix}dist', 'Determine the distance from the first system to all others'],
+            [f'{prefix}donate', 'Information on supporting the dev.'],
+            [f'{prefix}drop', 'Drop forts into the fort sheet'],
+            [f'{prefix}feedback', 'Give feedback or report a bug'],
+            [f'{prefix}fort', 'Get information about our fort systems'],
+            [f'{prefix}help', 'This help command.'],
+            [f'{prefix}hold', 'Declare held merits or redeem them'],
+            [f'{prefix}kos', 'Manage or search kos list'],
+            [f'{prefix}near', 'Find things near you.'],
+            [f'{prefix}recruits', 'Manage recruits on the recruit sheet.'],
+            [f'{prefix}repair', 'Show the nearest orbitals with shipyards'],
+            [f'{prefix}route', 'Plot the shortest route between these systems'],
+            [f'{prefix}scout', 'Generate a list of systems to scout'],
+            [f'{prefix}status', 'Info about this bot'],
+            [f'{prefix}time', 'Show game time and time to ticks'],
+            [f'{prefix}track', 'Track carrier movement by system or id.'],
+            [f'{prefix}trigger', 'Calculate fort and um triggers for systems'],
+            [f'{prefix}um', 'Get information about undermining targets'],
+            [f'{prefix}user', 'Manage your user, set sheet name and tag'],
+            [f'{prefix}vote', 'Check and record cycle vote for prep/consolidation.'],
+            [f'{prefix}whois', 'Search for commander on inara.cz'],
         ]
-        lines = [[line[0].format(prefix=prefix), line[1]] for line in lines]
-
-        response = overview + cog.tbl.format_table(lines, header=True)[0]
+        response = overview + '\n\n' + cog.tbl.format_table(lines, header=True)[0]
         await self.bot.send_ttl_message(self.msg.channel, response)
         try:
             await self.msg.delete()
@@ -1445,8 +1442,11 @@ class Near(Action):
             elif self.args.subcmd in self.TRADER_MAP:
                 msg = await self._get_traders(eddb_session)
             else:
-                self.log.error("Trace subcmd: %s", self.args.subcmd)  # TODO: Remove, tracing anomaly in crash
-                msg = await getattr(self, self.args.subcmd)(eddb_session)
+                try:
+                    self.log.error("Trace subcmd: %s", self.args.subcmd)  # TODO: Remove, tracing anomaly in crash
+                    msg = await getattr(self, self.args.subcmd)(eddb_session)
+                except TypeError:
+                    pass
 
         await self.bot.send_message(self.msg.channel, msg)
 

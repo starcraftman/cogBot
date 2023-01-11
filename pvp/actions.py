@@ -81,7 +81,7 @@ class Admin(PVPAction):
         pvp.schema.empty_tables(keep_cmdrs=True)
 
         # Channel archiving pvp logs
-        log_chan = self.bot.get_channel(cog.util.CONF.channels.pvp_log)
+        log_chan = self.msg.guild.get_channel(cog.util.CONF.channels.pvp_log)
         try:
             async for msg in log_chan.history(limit=1000000, oldest_first=True):
                 if not msg.content.startswith('Discord ID'):
@@ -161,28 +161,26 @@ class Help(PVPAction):
             '',
             f'For more information do: `{prefix}Command -h`',
             f'       Example: `{prefix}drop -h`'
-            '',
         ])
         lines = [
             ['Command', 'Effect'],
-            ['{prefix}admin', 'The admininstrative commands'],
-            ['{prefix}dist', 'Determine the distance from the first system to all others'],
-            ['{prefix}donate', 'Information on supporting the dev.'],
-            ['{prefix}feedback', 'Give feedback or report a bug'],
-            ['{prefix}help', 'This help command.'],
-            ['{prefix}log', 'Show recent PVP events parsed'],
-            ['{prefix}near', 'Find things near you.'],
-            ['{prefix}repair', 'Show the nearest orbitals with shipyards'],
-            ['{prefix}route', 'Plot the shortest route between these systems'],
-            ['{prefix}stats', 'PVP statistics for you or another CMDR'],
-            ['{prefix}status', 'Info about this bot'],
-            ['{prefix}time', 'Show game time and time to ticks'],
-            ['{prefix}trigger', 'Calculate fort and um triggers for systems'],
-            ['{prefix}whois', 'Search for commander on inara.cz'],
+            [f'{prefix}admin', 'The admininstrative commands'],
+            [f'{prefix}dist', 'Determine the distance from the first system to all others'],
+            [f'{prefix}donate', 'Information on supporting the dev.'],
+            [f'{prefix}feedback', 'Give feedback or report a bug'],
+            [f'{prefix}help', 'This help command.'],
+            [f'{prefix}log', 'Show recent PVP events parsed'],
+            [f'{prefix}near', 'Find things near you.'],
+            [f'{prefix}repair', 'Show the nearest orbitals with shipyards'],
+            [f'{prefix}route', 'Plot the shortest route between these systems'],
+            [f'{prefix}stats', 'PVP statistics for you or another CMDR'],
+            [f'{prefix}status', 'Info about this bot'],
+            [f'{prefix}time', 'Show game time and time to ticks'],
+            [f'{prefix}trigger', 'Calculate fort and um triggers for systems'],
+            [f'{prefix}whois', 'Search for commander on inara.cz'],
         ]
-        lines = [[line[0].format(prefix=prefix), line[1]] for line in lines]
-
-        response = overview + cog.tbl.format_table(lines, header=True)[0]
+        response = overview + '\n\n' + cog.tbl.format_table(lines, header=True)[0]
+        print(response)
         await self.bot.send_ttl_message(self.msg.channel, response)
         try:
             await self.msg.delete()
