@@ -228,7 +228,7 @@ class Stats(PVPAction):
                     'name': 'FedCAT',
                 },
                 'thumbnail': {
-                    'url': self.bot.get_member(cmdr.id).display_avatar.url,
+                    'url': self.msg.guild.get_member(cmdr.id).display_avatar.url,
                 },
                 'title': f"CMDR {stats.cmdr.name}",
                 "fields": stats.embed_values,
