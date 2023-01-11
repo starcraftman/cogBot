@@ -238,6 +238,124 @@ def parse_cmdr_name(data):
     return cmdr
 
 
+def link_interdiction_to_kill(eddb_session, interdiction, kill):
+    """
+    Link a PVPInterdiction event to a PVPKill event.
+
+    Args:
+        eddb_session: A session onto the EDDB db.
+        interdiction: An PVPInterdiction event.
+        kill: A PVPKill event.
+
+    Returns: The new or existing PVPInterdictionKill object.
+    """
+    try:
+        linked_event = eddb_session.query(pvp.schema.PVPInterdictionKill).\
+            filter(pvp.schema.PVPInterdictionKill.pvp_interdiction_id == interdiction.id,
+                   pvp.schema.PVPInterdictionKill.pvp_kill_id == kill.id).\
+            one()
+    except sqla.exc.NoResultFound:
+        linked_event = pvp.schema.PVPInterdictionKill(
+            cmdr_id=kill.cmdr_id,
+            pvp_interdiction_id=interdiction.id,
+            pvp_kill_id=kill.id,
+            event_at=kill.event_at,
+        )
+        eddb_session.add(linked_event)
+        interdiction.survived = False
+        eddb_session.flush()
+
+    return linked_event
+
+
+def link_interdiction_to_death(eddb_session, interdiction, death):
+    """
+    Link a PVPInterdiction event to a PVPDeath event.
+
+    Args:
+        eddb_session: A session onto the EDDB db.
+        interdiction: An PVPInterdiction event.
+        death: A PVPDeath event.
+
+    Returns: The new or existing PVPInterdictionKill object.
+    """
+    try:
+        linked_event = eddb_session.query(pvp.schema.PVPInterdictionDeath).\
+            filter(pvp.schema.PVPInterdictionDeath.pvp_interdiction_id == interdiction.id,
+                   pvp.schema.PVPInterdictionDeath.pvp_death_id == death.id).\
+            one()
+    except sqla.exc.NoResultFound:
+        linked_event = pvp.schema.PVPInterdictionDeath(
+            cmdr_id=death.cmdr_id,
+            pvp_interdiction_id=interdiction.id,
+            pvp_death_id=death.id,
+            event_at=death.event_at,
+        )
+        eddb_session.add(linked_event)
+        eddb_session.flush()
+
+    return linked_event
+
+
+def link_interdicted_to_kill(eddb_session, interdicted, kill):
+    """
+    Link a PVPInterdicted event to a PVPKill event.
+
+    Args:
+        eddb_session: A session onto the EDDB db.
+        interdicted: An PVPInterdicted event.
+        kill: A PVPKill event.
+
+    Returns: The new or existing PVPInterdictedKill object.
+    """
+    try:
+        linked_event = eddb_session.query(pvp.schema.PVPInterdictedKill).\
+            filter(pvp.schema.PVPInterdictedKill.pvp_interdicted_id == interdicted.id,
+                   pvp.schema.PVPInterdictedKill.pvp_kill_id == kill.id).\
+            one()
+    except sqla.exc.NoResultFound:
+        linked_event = pvp.schema.PVPInterdictedKill(
+            cmdr_id=kill.cmdr_id,
+            pvp_interdicted_id=interdicted.id,
+            pvp_kill_id=kill.id,
+            event_at=kill.event_at,
+        )
+        eddb_session.add(linked_event)
+        eddb_session.flush()
+
+    return linked_event
+
+
+def link_interdicted_to_death(eddb_session, interdicted, death):
+    """
+    Link a PVPInterdicted event to a PVPDeath event.
+
+    Args:
+        eddb_session: A session onto the EDDB db.
+        interdiction: An PVPInterdicted event.
+        death: A PVPDeath event.
+
+    Returns: The new or existing PVPInterdictionKill object.
+    """
+    try:
+        linked_event = eddb_session.query(pvp.schema.PVPInterdictedDeath).\
+            filter(pvp.schema.PVPInterdictedDeath.pvp_interdicted_id == interdicted.id,
+                   pvp.schema.PVPInterdictedDeath.pvp_death_id == death.id).\
+            one()
+    except sqla.exc.NoResultFound:
+        linked_event = pvp.schema.PVPInterdictedDeath(
+            cmdr_id=death.cmdr_id,
+            pvp_interdicted_id=interdicted.id,
+            pvp_death_id=death.id,
+            event_at=death.event_at,
+        )
+        interdicted.survived = False
+        eddb_session.add(linked_event)
+        eddb_session.flush()
+
+    return linked_event
+
+
 def datetime_to_tstamp(date_string):
     """
     Convert a tiemstamp string in a log line to a simpler integer timestamp
@@ -344,48 +462,22 @@ class Parser():
         if event == 'PVPKill' and self.data.get('Interdiction') and\
                 result.victim_name == self.data['Interdiction'].victim_name and\
                 result.event_at >= self.data['Interdiction'].event_at:
-            self.eddb_session.add(pvp.schema.PVPInterdictionKill(
-                cmdr_id=result.cmdr_id,
-                pvp_interdiction_id=self.data['Interdiction'].id,
-                pvp_kill_id=result.id,
-                event_at=result.event_at,
-            ))
-            self.data.get('Interdiction').survived = False
-            self.eddb_session.flush()
-
-        elif event == 'PVPKill' and self.data.get('Interdicted') and\
-                result.victim_name == self.data['Interdicted'].interdictor_name and\
-                result.event_at >= self.data['Interdicted'].event_at:
-            self.eddb_session.add(pvp.schema.PVPInterdictedKill(
-                cmdr_id=result.cmdr_id,
-                pvp_interdicted_id=self.data['Interdicted'].id,
-                pvp_kill_id=result.id,
-                event_at=result.event_at,
-            ))
-            self.eddb_session.flush()
+            link_interdiction_to_kill(self.eddb_session, self.data['Interdiction'], result)
 
         elif event == 'Died' and self.data.get('Interdiction') and\
                 result.killed_by(self.data['Interdiction'].victim_name) and\
                 result.event_at >= self.data['Interdiction'].event_at:
-            self.eddb_session.add(pvp.schema.PVPInterdictionDeath(
-                cmdr_id=result.cmdr_id,
-                pvp_interdiction_id=self.data['Interdiction'].id,
-                pvp_death_id=result.id,
-                event_at=result.event_at,
-            ))
-            self.eddb_session.flush()
+            link_interdiction_to_death(self.eddb_session, self.data['Interdiction'], result)
+
+        elif event == 'PVPKill' and self.data.get('Interdicted') and\
+                result.victim_name == self.data['Interdicted'].interdictor_name and\
+                result.event_at >= self.data['Interdicted'].event_at:
+            link_interdicted_to_kill(self.eddb_session, self.data['Interdicted'], result)
 
         elif event == 'Died' and self.data.get('Interdicted') and\
                 result.killed_by(self.data['Interdicted'].interdictor_name) and\
                 result.event_at >= self.data['Interdicted'].event_at:
-            self.eddb_session.add(pvp.schema.PVPInterdictedDeath(
-                cmdr_id=result.cmdr_id,
-                pvp_interdicted_id=self.data['Interdicted'].id,
-                pvp_death_id=result.id,
-                event_at=result.event_at,
-            ))
-            self.data.get('Interdicted').survived = False
-            self.eddb_session.flush()
+            link_interdicted_to_death(self.eddb_session, self.data['Interdicted'], result)
 
         # Always store event in data for later use
         if event in ['Interdiction', 'Interdicted', 'PVPKill']:

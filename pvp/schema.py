@@ -267,6 +267,9 @@ class PVPInterdictionKill(ReprMixin, TimestampMixin, EventTimeMixin, Base):
     Table to store the event where an interdiction lead to a pvp kill.
     """
     __tablename__ = 'pvp_interdictions_kills'
+    __table_args__ = (
+        UniqueConstraint('pvp_interdiction_id', 'pvp_kill_id', name='_pvp_interdiction_kill_unique'),
+    )
     _repr_keys = ['id', 'cmdr_id', 'pvp_interdiction_id', 'pvp_kill_id', 'created_at', 'event_at']
 
     id = sqla.Column(sqla.BigInteger, primary_key=True)
@@ -292,6 +295,9 @@ class PVPInterdictionDeath(ReprMixin, TimestampMixin, EventTimeMixin, Base):
     Table to store the event where an interdiction lead to a cmdr death.
     """
     __tablename__ = 'pvp_interdictions_deaths'
+    __table_args__ = (
+        UniqueConstraint('pvp_interdiction_id', 'pvp_death_id', name='_pvp_interdiction_death_unique'),
+    )
     _repr_keys = ['id', 'cmdr_id', 'pvp_interdiction_id', 'pvp_death_id', 'created_at', 'event_at']
 
     id = sqla.Column(sqla.BigInteger, primary_key=True)
@@ -357,6 +363,9 @@ class PVPInterdictedKill(ReprMixin, TimestampMixin, EventTimeMixin, Base):
     Table to store the event where a cmdr was interdicted and pvp killed.
     """
     __tablename__ = 'pvp_interdicteds_kills'
+    __table_args__ = (
+        UniqueConstraint('pvp_interdicted_id', 'pvp_kill_id', name='_pvp_interdicted_kill_unique'),
+    )
     _repr_keys = ['id', 'cmdr_id', 'pvp_interdicted_id', 'pvp_kill_id', 'created_at', 'event_at']
 
     id = sqla.Column(sqla.BigInteger, primary_key=True)
@@ -382,6 +391,9 @@ class PVPInterdictedDeath(ReprMixin, TimestampMixin, EventTimeMixin, Base):
     Table to store the event where a cmdr was interdicted and died.
     """
     __tablename__ = 'pvp_interdicteds_deaths'
+    __table_args__ = (
+        UniqueConstraint('pvp_interdicted_id', 'pvp_death_id', name='_pvp_interdicted_death_unique'),
+    )
     _repr_keys = ['id', 'cmdr_id', 'pvp_interdicted_id', 'pvp_death_id', 'created_at', 'event_at']
 
     id = sqla.Column(sqla.BigInteger, primary_key=True)

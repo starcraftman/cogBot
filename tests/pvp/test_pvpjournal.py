@@ -14,6 +14,7 @@ from pvp.schema import (
     PVPInterdictedKill, PVPInterdictedDeath, PVPInterdictionKill, PVPInterdictionDeath,
     PVPInterdicted, PVPInterdiction, PVPDeathKiller, PVPDeath, PVPKill, PVPLocation, PVPCmdr
 )
+from tests.conftest import PVP_TIMESTAMP
 
 JOURNAL_PATH = os.path.join(cog.util.ROOT_DIR, 'tests', 'pvp', 'player_journal.jsonl')
 
@@ -117,6 +118,54 @@ def test_parse_fsdjump(f_pvp_testbed, eddb_session):
     location = eddb_session.query(PVPLocation).filter(PVPLocation.system_id == 12533).one()
     assert location.cmdr.name == "coolGuy"
     assert location.system.name == "LP 98-132"
+
+
+def test_link_interdiction_to_kill(f_pvp_testbed, eddb_session):
+    kill = PVPKill(id=10, cmdr_id=1, system_id=1000, victim_name='LeSuck', victim_rank=3, event_at=PVP_TIMESTAMP + 10)
+    interdiction = PVPInterdiction(id=10, cmdr_id=1, system_id=1000, is_player=True, is_success=True, survived=False,
+                                   victim_name="LeSuck", victim_rank=3, event_at=PVP_TIMESTAMP + 10)
+    eddb_session.add_all([kill, interdiction])
+    eddb_session.flush()
+    linked = pvp.journal.link_interdiction_to_kill(eddb_session, interdiction, kill)
+    linked = pvp.journal.link_interdiction_to_kill(eddb_session, interdiction, kill)  # Will return found event
+    assert linked.pvp_kill_id == kill.id
+    assert linked.pvp_interdiction_id == interdiction.id
+
+
+def test_link_interdiction_to_death(f_pvp_testbed, eddb_session):
+    death = PVPDeath(id=10, cmdr_id=1, system_id=1000, is_wing_kill=True, event_at=PVP_TIMESTAMP + 10)
+    interdiction = PVPInterdiction(id=10, cmdr_id=1, system_id=1000, is_player=True, is_success=True, survived=False,
+                                   victim_name="LeSuck", victim_rank=3, event_at=PVP_TIMESTAMP + 10)
+    eddb_session.add_all([death, interdiction])
+    eddb_session.flush()
+    linked = pvp.journal.link_interdiction_to_death(eddb_session, interdiction, death)
+    linked = pvp.journal.link_interdiction_to_death(eddb_session, interdiction, death)  # Will return found event
+    assert linked.pvp_death_id == death.id
+    assert linked.pvp_interdiction_id == interdiction.id
+
+
+def test_link_interdicted_to_kill(f_pvp_testbed, eddb_session):
+    kill = PVPKill(id=10, cmdr_id=1, system_id=1000, victim_name='LeSuck', victim_rank=3, event_at=PVP_TIMESTAMP + 10)
+    interdicted = PVPInterdicted(id=10, cmdr_id=1, system_id=1000, is_player=True, did_submit=False, survived=False,
+                                 interdictor_name="BadGuyWon", interdictor_rank=7, event_at=PVP_TIMESTAMP + 10)
+    eddb_session.add_all([kill, interdicted])
+    eddb_session.flush()
+    linked = pvp.journal.link_interdicted_to_kill(eddb_session, interdicted, kill)
+    linked = pvp.journal.link_interdicted_to_kill(eddb_session, interdicted, kill)  # Will return found event
+    assert linked.pvp_kill_id == kill.id
+    assert linked.pvp_interdicted_id == interdicted.id
+
+
+def test_link_interdicted_to_death(f_pvp_testbed, eddb_session):
+    death = PVPDeath(id=10, cmdr_id=1, system_id=1000, is_wing_kill=True, event_at=PVP_TIMESTAMP + 10)
+    interdicted = PVPInterdicted(id=10, cmdr_id=1, system_id=1000, is_player=True, did_submit=False, survived=False,
+                                 interdictor_name="BadGuyWon", interdictor_rank=7, event_at=PVP_TIMESTAMP + 10)
+    eddb_session.add_all([death, interdicted])
+    eddb_session.flush()
+    linked = pvp.journal.link_interdicted_to_death(eddb_session, interdicted, death)
+    linked = pvp.journal.link_interdicted_to_death(eddb_session, interdicted, death)  # Will return found event
+    assert linked.pvp_death_id == death.id
+    assert linked.pvp_interdicted_id == interdicted.id
 
 
 def test_parse_cmdr_name():
