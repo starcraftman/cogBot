@@ -427,29 +427,54 @@ class PVPStat(ReprMixin, TimestampMixin, UpdatableMixin, Base):
 
     id = sqla.Column(sqla.BigInteger, primary_key=True)
     cmdr_id = sqla.Column(sqla.BigInteger, sqla.ForeignKey('pvp_cmdrs.id'))
+    last_location_id = sqla.Column(sqla.BigInteger, sqla.ForeignKey('pvp_locations.id'))
+    last_kill_id = sqla.Column(sqla.BigInteger, sqla.ForeignKey('pvp_kills.id'))
+    last_death_id = sqla.Column(sqla.BigInteger, sqla.ForeignKey('pvp_deaths.id'))
+    last_interdiction_id = sqla.Column(sqla.BigInteger, sqla.ForeignKey('pvp_interdictions.id'))
+    last_interdicted_id = sqla.Column(sqla.BigInteger, sqla.ForeignKey('pvp_interdicteds.id'))
 
     deaths = sqla.Column(sqla.Integer, default=0)
     kills = sqla.Column(sqla.Integer, default=0)
     interdictions = sqla.Column(sqla.Integer, default=0)
     interdicteds = sqla.Column(sqla.Integer, default=0)
-    most_visited_system_id = sqla.Column(sqla.Integer, default=0)
-    least_visited_system_id = sqla.Column(sqla.Integer, default=0)
-    # TODO: Low priority, rename these fields.
+    most_kills_system_id = sqla.Column(sqla.BigInteger, default=0)
+    most_deaths_system_id = sqla.Column(sqla.BigInteger, default=0)
 
     interdiction_kills = sqla.Column(sqla.Integer, default=0)
     interdiction_deaths = sqla.Column(sqla.Integer, default=0)
     interdicted_kills = sqla.Column(sqla.Integer, default=0)
     interdicted_deaths = sqla.Column(sqla.Integer, default=0)
 
+    # Information about other cmdrs
+    killed_most = sqla.Column(sqla.String(EDDB_LEN['pvp_name']))
+    most_deaths_from = sqla.Column(sqla.String(EDDB_LEN['pvp_name']))
+    most_interdictions = sqla.Column(sqla.String(EDDB_LEN['pvp_name']))
+    most_interdicted_from = sqla.Column(sqla.String(EDDB_LEN['pvp_name']))
+
     updated_at = sqla.Column(sqla.Integer, default=time.time, onupdate=time.time)
 
     cmdr = sqla.orm.relationship('PVPCmdr', viewonly=True)
-    most_visited_system = sqla.orm.relationship(
+    most_kills_system = sqla.orm.relationship(
         'System', uselist=False, lazy='joined', viewonly=True,
-        primaryjoin='foreign(PVPStat.most_visited_system_id) == System.id')
-    least_visited_system = sqla.orm.relationship(
+        primaryjoin='foreign(PVPStat.most_kills_system_id) == System.id')
+    most_deaths_system = sqla.orm.relationship(
         'System', uselist=False, lazy='joined', viewonly=True,
-        primaryjoin='foreign(PVPStat.least_visited_system_id) == System.id')
+        primaryjoin='foreign(PVPStat.most_deaths_system_id) == System.id')
+    last_location = sqla.orm.relationship(
+        'PVPlocation', uselist=False, lazy='joined', viewonly=True,
+        primaryjoin='foreign(PVPStat.last_location_id) == PVPLocation.id')
+    last_kill = sqla.orm.relationship(
+        'PVPKill', uselist=False, lazy='joined', viewonly=True,
+        primaryjoin='foreign(PVPStat.last_kill_id) == PVPKill.id')
+    last_death = sqla.orm.relationship(
+        'PVPDeath', uselist=False, lazy='joined', viewonly=True,
+        primaryjoin='foreign(PVPStat.last_death_id) == PVPDeath.id')
+    last_interdiction = sqla.orm.relationship(
+        'PVPInterdiction', uselist=False, lazy='joined', viewonly=True,
+        primaryjoin='foreign(PVPStat.last_interdiction_id) == PVPInterdiction.id')
+    last_interdicted = sqla.orm.relationship(
+        'PVPInterdicted', uselist=False, lazy='joined', viewonly=True,
+        primaryjoin='foreign(PVPStat.last_interdicted_id) == PVPInterdicted.id')
 
     @property
     def kill_ratio(self):
@@ -464,8 +489,8 @@ class PVPStat(ReprMixin, TimestampMixin, UpdatableMixin, Base):
     @property
     def embed_values(self):
         """ Return values for creating an embed. """
-        most_system = self.most_visited_system.name if self.most_visited_system else 'N/A'
-        least_system = self.least_visited_system.name if self.least_visited_system else 'N/A'
+        most_kills = self.most_kills_system.name if self.most_kills_system else 'N/A'
+        most_deaths = self.most_deaths_system.name if self.most_deaths_system else 'N/A'
         return [
             {'name': "Kills", 'value': str(self.kills), 'inline': True},
             {'name': "Deaths", 'value': str(self.deaths), 'inline': True},
@@ -476,8 +501,12 @@ class PVPStat(ReprMixin, TimestampMixin, UpdatableMixin, Base):
             {'name': "Interdicteds", 'value': str(self.interdicteds), 'inline': True},
             {'name': "Interdicted -> Kill", 'value': str(self.interdicted_kills), 'inline': True},
             {'name': "Interdicted -> Death", 'value': str(self.interdicted_deaths), 'inline': True},
-            {'name': "Most PVP Kills", 'value': most_system, 'inline': True},
-            {'name': "Least PVP Kills", 'value': least_system, 'inline': True},
+            {'name': "Most PVP Kills", 'value': most_kills, 'inline': True},
+            {'name': "Most PVP Deaths", 'value': most_deaths, 'inline': True},
+            {'name': "Most Killed", 'value': self.killed_most, 'inline': True},
+            {'name': "Most Deaths From", 'value': self.most_deaths_from, 'inline': True},
+            {'name': "Most Interdictions", 'value': self.most_interdictions, 'inline': True},
+            {'name': "Most Interdicted By", 'value': self.most_interdictions, 'inline': True},
         ]
 
     def __eq__(self, other):
@@ -608,48 +637,125 @@ def update_pvp_stats(eddb_session, cmdr_id):
         eddb_session: A session onto the EDDB db.
         cmdr_id: The cmdr's id.
     """
+    kwargs = {
+        'deaths': eddb_session.query(PVPDeath).filter(PVPDeath.cmdr_id == cmdr_id).count(),
+        'kills': eddb_session.query(PVPKill).filter(PVPKill.cmdr_id == cmdr_id).count(),
+        'interdictions':
+            eddb_session.query(PVPInterdiction).
+            filter(PVPInterdiction.cmdr_id == cmdr_id).
+            count(),
+        'interdicteds':
+            eddb_session.query(PVPInterdicted).
+            filter(PVPInterdicted.cmdr_id == cmdr_id).
+            count(),
+        'interdiction_deaths':
+            eddb_session.query(PVPInterdictionDeath).
+            filter(PVPInterdictionDeath.cmdr_id == cmdr_id).
+            count(),
+        'interdiction_kills':
+            eddb_session.query(PVPInterdictionKill).
+            filter(PVPInterdictionKill.cmdr_id == cmdr_id).
+            count(),
+        'interdicted_deaths':
+            eddb_session.query(PVPInterdictedDeath).
+            filter(PVPInterdictedDeath.cmdr_id == cmdr_id).
+            count(),
+        'interdicted_kills':
+            eddb_session.query(PVPInterdictedKill).
+            filter(PVPInterdictedKill.cmdr_id == cmdr_id).
+            count(),
+    }
+
     count_system_id = sqla.func.count(PVPKill.system_id)
     try:
-        most_visited_id = eddb_session.query(PVPKill.system_id, count_system_id).\
+        result = eddb_session.query(PVPKill.system_id, count_system_id).\
             group_by(PVPKill.system_id).\
             order_by(count_system_id.desc()).\
             limit(1).\
             one()[0]
     except sqla.exc.NoResultFound:
-        most_visited_id = None
+        result = None
+    kwargs['most_kills_system_id'] = result
     try:
-        least_visited_id = eddb_session.query(PVPKill.system_id, count_system_id).\
-            group_by(PVPKill.system_id).\
-            order_by(count_system_id).\
+        result = eddb_session.query(PVPDeath.system_id, count_system_id).\
+            group_by(PVPDeath.system_id).\
+            order_by(count_system_id.desc()).\
             limit(1).\
             one()[0]
     except sqla.exc.NoResultFound:
-        least_visited_id = None
+        result = None
+    kwargs['most_deaths_system_id'] = result
 
-    kwargs = {
-        'deaths': eddb_session.query(PVPDeath).filter(PVPDeath.cmdr_id == cmdr_id).count(),
-        'kills': eddb_session.query(PVPKill).filter(PVPKill.cmdr_id == cmdr_id).count(),
-        'interdictions': eddb_session.query(PVPInterdiction).filter(PVPInterdiction.cmdr_id == cmdr_id).count(),
-        'interdicteds': eddb_session.query(PVPInterdicted).filter(PVPInterdicted.cmdr_id == cmdr_id).count(),
-        'interdiction_deaths': eddb_session.query(PVPInterdictionDeath).
-        filter(PVPInterdictionDeath.cmdr_id == cmdr_id).
-        count(),
-        'interdiction_kills': eddb_session.query(PVPInterdictionKill).filter(PVPInterdictionKill.cmdr_id == cmdr_id).count(),
-        'interdicted_deaths': eddb_session.query(PVPInterdictedDeath).filter(PVPInterdictedDeath.cmdr_id == cmdr_id).count(),
-        'interdicted_kills': eddb_session.query(PVPInterdictedKill).filter(PVPInterdictedKill.cmdr_id == cmdr_id).count(),
-        'most_visited_system_id': most_visited_id,
-        'least_visited_system_id': least_visited_id,
-    }
+    for key, cls in [
+        ('last_location_id', PVPLocation),
+        ('last_kill_id', PVPKill),
+        ('last_death_id', PVPDeath),
+        ('last_interdiction_id', PVPInterdiction),
+        ('last_interdicted_id', PVPInterdicted),
+    ]:
+        try:
+            result = eddb_session.query(cls.id).\
+                filter(cls.cmdr_id == cmdr_id).\
+                order_by(cls.event_at.desc()).\
+                limit(1).\
+                one()[0]
+        except sqla.exc.NoResultFound:
+            result = None
+        kwargs[key] = result
+
+    try:
+        count = sqla.func.count(PVPKill.victim_name)
+        result = eddb_session.query(PVPKill.victim_name, count).\
+            group_by(PVPKill.victim_name).\
+            order_by(count.desc()).\
+            limit(1).\
+            one()[0]
+    except sqla.exc.NoResultFound:
+        result = 'N/A'
+    kwargs['killed_most'] = result
+    try:
+        count = sqla.func.count(PVPInterdiction.victim_name)
+        result = eddb_session.query(PVPInterdiction.victim_name, count).\
+            group_by(PVPInterdiction.victim_name).\
+            order_by(count.desc()).\
+            limit(1).\
+            one()[0]
+    except sqla.exc.NoResultFound:
+        result = 'N/A'
+    kwargs['most_interdictions'] = result
+    try:
+        count = sqla.func.count(PVPDeathKiller.name)
+        result = eddb_session.query(PVPDeathKiller.name, count).\
+            join(PVPDeath, PVPDeath.id == PVPDeathKiller.pvp_death_id).\
+            group_by(PVPDeathKiller.name).\
+            order_by(count.desc()).\
+            limit(1).\
+            one()[0]
+    except sqla.exc.NoResultFound:
+        result = 'N/A'
+    kwargs['most_deaths_from'] = result
+    try:
+        count = sqla.func.count(PVPInterdicted.interdictor_name)
+        result = eddb_session.query(PVPInterdicted.interdictor_name, count).\
+            group_by(PVPInterdicted.interdictor_name).\
+            order_by(count.desc()).\
+            limit(1).\
+            one()[0]
+    except sqla.exc.NoResultFound:
+        result = 'N/A'
+    kwargs['most_interdicted_from'] = result
+
     try:
         stat = eddb_session.query(PVPStat).\
             filter(PVPStat.cmdr_id == cmdr_id).\
             one()
+        stat.update(**kwargs)
     except sqla.exc.NoResultFound:
-        stat = PVPStat(cmdr_id=cmdr_id)
+        kwargs['cmdr_id'] = cmdr_id
+        stat = PVPStat(**kwargs)
         eddb_session.add(stat)
         eddb_session.flush()
 
-    stat.update(**kwargs)
     return stat
 
 
