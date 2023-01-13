@@ -497,7 +497,7 @@ class PVPStat(ReprMixin, TimestampMixin, UpdatableMixin, Base):
         'System', uselist=False, lazy='joined', viewonly=True,
         primaryjoin='foreign(PVPStat.most_deaths_system_id) == System.id')
     last_location = sqla.orm.relationship(
-        'PVPlocation', uselist=False, lazy='joined', viewonly=True,
+        'PVPLocation', uselist=False, lazy='joined', viewonly=True,
         primaryjoin='foreign(PVPStat.last_location_id) == PVPLocation.id')
     last_kill = sqla.orm.relationship(
         'PVPKill', uselist=False, lazy='joined', viewonly=True,
@@ -518,7 +518,7 @@ class PVPStat(ReprMixin, TimestampMixin, UpdatableMixin, Base):
         try:
             ratio = round(float(self.kills) / self.deaths, 2)
         except ZeroDivisionError:
-            ratio = 1.0
+            ratio = 0.0
 
         return ratio
 
@@ -551,14 +551,14 @@ class PVPStat(ReprMixin, TimestampMixin, UpdatableMixin, Base):
             ['Most Deaths In', self.most_deaths_system.name if self.most_deaths_system else 'N/A'],
             ['Last Location', self.last_location.embed() if self.last_location else 'N/A'],
             ['Last Kill', self.last_kill.embed() if self.last_kill else 'N/A'],
-            ['Last Location', self.last_death.embed() if self.death else 'N/A'],
-            ['Last Location', self.last_interdiction.embed() if self.last_interdiction else 'N/A'],
-            ['Last Location', self.last_interdicted.embed() if self.last_interdicted else 'N/A'],
+            ['Last Death By', self.last_death.embed() if self.last_death else 'N/A'],
+            ['Last Interdiction', self.last_interdiction.embed() if self.last_interdiction else 'N/A'],
+            ['Last Interdicted By', self.last_interdicted.embed() if self.last_interdicted else 'N/A'],
         ]
 
     def __str__(self):
         """ A string representation of PVPStat. """
-        return cog.tbl.format_table(self.table_cells(), header=True)
+        return cog.tbl.format_table(self.table_cells(), header=True, wrap_msgs=False)[0]
 
     def __eq__(self, other):
         return isinstance(other, PVPStat) and hash(self) == hash(other)
@@ -680,7 +680,7 @@ def get_pvp_stats(eddb_session, cmdr_id):
     return stat
 
 
-def pvp_get_event_cmdrs(eddb_session, *, cmdr_id):
+def get_pvp_event_cmdrs(eddb_session, *, cmdr_id):
     """
     Relative the CMDR specified by cmdr_id, get the names of CMDRs who were:
         - Been killed most by cmdr_id
@@ -710,7 +710,7 @@ def pvp_get_event_cmdrs(eddb_session, *, cmdr_id):
     try:
         count = sqla.func.count(PVPDeathKiller.name)
         result = eddb_session.query(PVPDeathKiller.name, count).\
-            filter(PVPKill.cmdr_id == cmdr_id).\
+            filter(PVPDeath.cmdr_id == cmdr_id).\
             join(PVPDeath, PVPDeath.id == PVPDeathKiller.pvp_death_id).\
             group_by(PVPDeathKiller.name).\
             order_by(count.desc()).\
@@ -722,7 +722,7 @@ def pvp_get_event_cmdrs(eddb_session, *, cmdr_id):
     try:
         count = sqla.func.count(PVPInterdiction.victim_name)
         result = eddb_session.query(PVPInterdiction.victim_name, count).\
-            filter(PVPKill.cmdr_id == cmdr_id).\
+            filter(PVPInterdiction.cmdr_id == cmdr_id).\
             group_by(PVPInterdiction.victim_name).\
             order_by(count.desc()).\
             limit(1).\
@@ -733,7 +733,7 @@ def pvp_get_event_cmdrs(eddb_session, *, cmdr_id):
     try:
         count = sqla.func.count(PVPInterdicted.interdictor_name)
         result = eddb_session.query(PVPInterdicted.interdictor_name, count).\
-            filter(PVPKill.cmdr_id == cmdr_id).\
+            filter(PVPInterdicted.cmdr_id == cmdr_id).\
             group_by(PVPInterdicted.interdictor_name).\
             order_by(count.desc()).\
             limit(1).\
@@ -745,7 +745,7 @@ def pvp_get_event_cmdrs(eddb_session, *, cmdr_id):
     return found
 
 
-def pvp_get_last_events(eddb_session, *, cmdr_id):
+def get_pvp_last_events(eddb_session, *, cmdr_id):
     """
     Find the IDs of the last events the CMDR uploaded for parsing.
     If no possible ID found for an event, it will return None.
@@ -815,8 +815,8 @@ def update_pvp_stats(eddb_session, *, cmdr_id):
             count(),
     }
 
-    count_system_id = sqla.func.count(PVPKill.system_id)
     try:
+        count_system_id = sqla.func.count(PVPKill.system_id)
         result = eddb_session.query(PVPKill.system_id, count_system_id).\
             group_by(PVPKill.system_id).\
             order_by(count_system_id.desc()).\
@@ -826,6 +826,7 @@ def update_pvp_stats(eddb_session, *, cmdr_id):
         result = None
     kwargs['most_kills_system_id'] = result
     try:
+        count_system_id = sqla.func.count(PVPDeath.system_id)
         result = eddb_session.query(PVPDeath.system_id, count_system_id).\
             group_by(PVPDeath.system_id).\
             order_by(count_system_id.desc()).\
@@ -835,8 +836,8 @@ def update_pvp_stats(eddb_session, *, cmdr_id):
         result = None
     kwargs['most_deaths_system_id'] = result
 
-    kwargs.update(pvp_get_last_events(eddb_session, cmdr_id=cmdr_id))
-    kwargs.update(pvp_get_event_cmdrs(eddb_session, cmdr_id=cmdr_id))
+    kwargs.update(get_pvp_last_events(eddb_session, cmdr_id=cmdr_id))
+    kwargs.update(get_pvp_event_cmdrs(eddb_session, cmdr_id=cmdr_id))
 
     try:
         stat = eddb_session.query(PVPStat).\

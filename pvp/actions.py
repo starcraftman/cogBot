@@ -225,7 +225,7 @@ class Log(PVPAction):
     Display the most recent parsed events.
     """
     async def execute(self):
-        events = pvp.schema.get_pvp_events(self.eddb_session, self.msg.author.id)
+        events = pvp.schema.get_pvp_events(self.eddb_session, cmdr_id=self.msg.author.id)
         msg = '__Most Recent Events__\n\n' + '\n'.join([str(x) for x in events])
         await self.bot.send_message(self.msg.channel, msg)
 
