@@ -101,7 +101,7 @@ def subs_match(subs, prefix):
     desc = f"""To prepare a match.
 
 **{prefix}match**
-        Join an organized match.
+        Join / Leave an organized match.
 **{prefix}match list**
         See current list of registred player.
 **{prefix}match setup 4,6,8,10**
@@ -113,6 +113,10 @@ def subs_match(subs, prefix):
         Remove Gears and Prozer to the list of players.
 **{prefix}match start**
         Create teams and start the match. Useless if player limits reached.
+**{prefix}match cancel**
+        Cancel current pending match.
+**{prefix}match reroll**
+        Reroll current teams match.
     """
     
     sub = subs.add_parser(prefix + 'match', description=desc, formatter_class=RawHelp)
@@ -128,6 +132,8 @@ def subs_match(subs, prefix):
     subcmd.add_argument('limits', nargs='*', type=int, default= 20, 
                         help='The total player limit. Default : 20.')
     subcmds.add_parser('start', help='Start the match.')
+    subcmds.add_parser('cancel', help='Cancel the match.')
+    subcmds.add_parser('reroll', help='Reroll teams.')
     subcmds.add_parser('list', 
                      help='Give the list of all registrer players for the current match.')
 

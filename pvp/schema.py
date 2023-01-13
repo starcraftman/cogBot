@@ -3,6 +3,8 @@ The database backend for pvp bot.
 """
 import datetime
 import time
+import random
+import math
 
 import sqlalchemy as sqla
 import sqlalchemy.orm as sqla_orm
@@ -615,9 +617,11 @@ class PvPMatch(ReprMixin, TimestampMixin, Base):
     id = sqla.Column(sqla.BigInteger, primary_key=True)
     limits = sqla.Column(sqla.Integer)
     started = sqla.Column(sqla.Boolean, default=False)
+    canceled = sqla.Column(sqla.Boolean, default=False)
+    finished = sqla.Column(sqla.Boolean, default=False)
     updated_at = sqla.Column(sqla.Integer, default=time.time, onupdate=time.time)
 
-    players = sqla.orm.relationship('PvPMatchPlayer')
+    players = sqla.orm.relationship('PvPMatchPlayer', viewonly=True)
 
     def __eq__(self, other):
         return isinstance(other, PvPMatch) and hash(self) == hash(other)
@@ -628,13 +632,15 @@ class PvPMatchPlayer(ReprMixin, TimestampMixin, Base):
     Table to store matches participants.
     """
     __tablename__ = 'pvp_match_players'
-    _repr_keys = ['id', 'cmdr_id', 'updated_at']
+    _repr_keys = ['id', 'cmdr_id', 'match_id', 'team', 'updated_at']
 
     id = sqla.Column(sqla.BigInteger, primary_key=True)
     cmdr_id = sqla.Column(sqla.BigInteger, sqla.ForeignKey('pvp_cmdrs.id'))
+    match_id = sqla.Column(sqla.BigInteger, sqla.ForeignKey('pvp_matchs.id'))
+    team = sqla.Column(sqla.Integer, default=0)
     updated_at = sqla.Column(sqla.Integer, default=time.time, onupdate=time.time)
-
-    match_id = sqla.Column(sqla.Integer, sqla.ForeignKey('pvp_match.id'))
+    
+    cmdr = sqla.orm.relationship('PVPCmdr', viewonly=True)
 
     def __eq__(self, other):
         return isinstance(other, PvPMatchPlayer) and hash(self) == hash(other)
@@ -978,12 +984,117 @@ def get_match_info(eddb_session):
     Returns: The PvPMatch if present and not started, None otherwise.
     """
     try:
-        match = eddb_session.query(PvPMatch).filter(PvPMatch.started == False).one()
+        match = eddb_session.query(PvPMatch).filter(
+            PvPMatch.started == False,
+            PvPMatch.canceled == False).one()
     except sqla.exc.NoResultFound:
         match = None
 
     return match
 
+
+def add_player_to_match(eddb_session, match_id, cmdr_id):
+    """
+    Add new player to match. If already in match, return None.
+
+    Args:
+        eddb_session: A session onto the EDDB db.
+        match_id: The match id to add the new player.
+        cmdr_id: The player id to add.
+
+    Returns: The PvPMatchPlayer. If already in match, return None.
+    """
+    try:
+        player = eddb_session.query(PvPMatchPlayer).filter(
+            PvPMatchPlayer.cmdr_id == cmdr_id).one()
+        if player.match_id == match_id:
+            return None
+        player.match_id = match_id
+        
+    except sqla.exc.NoResultFound:
+        player = PvPMatchPlayer(
+            cmdr_id=cmdr_id,
+            match_id=match_id,
+        )
+        eddb_session.add(player)
+        eddb_session.flush()
+
+    return player
+
+
+def remove_player_from_match(eddb_session, match_id, cmdr_id):
+    """
+    Remove player from match.
+
+    Args:
+        eddb_session: A session onto the EDDB db.
+        match_id: The match id to remoave the player.
+        cmdr_id: The player id to remove.
+
+    Returns: The PvPMatchPlayer.
+    """
+    try:
+        player = eddb_session.query(PvPMatchPlayer).filter(
+            PvPMatchPlayer.cmdr_id == cmdr_id,
+            PvPMatchPlayer.match_id == match_id).one()
+        player.match_id = None
+    except sqla.exc.NoResultFound:
+        player = None
+
+    return player
+
+
+def start_match(eddb_session, match_id):
+    """
+    Start the match and make teams
+
+    Args:
+        eddb_session: A session onto the EDDB db.
+        match_id: The match id to start.
+
+    Returns: A tuple of Team array (Team1, Team2).
+    """
+    match = eddb_session.query(PvPMatch).filter(
+        PvPMatch.id == match_id).one()
+    if match.limits == len(match.players):
+        match.started = True
+    teams = roll_teams(eddb_session)
+    return teams
+
+def roll_teams(eddb_session):
+    """
+    Teams creator.
+    
+    Args:
+        eddb_session: A session onto the EDDB db.
+
+    Returns: A tuple of Team array (Team1, Team2).
+    """
+
+    match = eddb_session.query(PvPMatch).\
+        filter(PvPMatch.started == True,
+               PvPMatch.finished == False).\
+        order_by(PvPMatch.updated_at.desc()).first()
+    all_players = [player.cmdr_id for player in match.players]
+    team1 = set(random.sample(all_players, random.randint(math.floor(len(all_players)/2), math.ceil(len(all_players)/2))))
+    team2 = set(all_players) - team1
+
+    query_players = eddb_session.query(PvPMatchPlayer).filter(
+        PvPMatchPlayer.cmdr_id.in_(team1),
+        PvPMatchPlayer.match_id == match.id).all()
+    team1 = []
+    for players in query_players:
+        players.team = 1
+        team1.append(players.cmdr.name)
+
+    query_players = eddb_session.query(PvPMatchPlayer).filter(
+        PvPMatchPlayer.cmdr_id.in_(team2),
+        PvPMatchPlayer.match_id == match.id).all()
+    team2 = []
+    for players in query_players:
+        players.team = 2
+        team2.append(players.cmdr.name)
+    return team1, team2
 
 def add_pvp_match(eddb_session, limits):
     """
@@ -1064,6 +1175,7 @@ def main():  # pragma: no cover
             PVPCmdr(id=1, name='coolGuy'),
             PVPCmdr(id=2, name='shyGuy'),
             PVPCmdr(id=3, name='shootsALot'),
+            PVPCmdr(id=253646075200667648, name='Prozer', hex="FF0000"),
         ])
         eddb_session.flush()
         eddb_session.add_all([
@@ -1089,6 +1201,8 @@ def main():  # pragma: no cover
                            interdictor_name="BadGuyWon", interdictor_rank=7),
             PVPInterdicted(id=2, cmdr_id=2, is_player=True, did_submit=True, survived=True,
                            interdictor_name="BadGuyWon", interdictor_rank=7),
+            PvPMatch(id=1, limits=10, started=True, finished=True),
+            PvPMatch(id=2, limits=20, canceled=True),
 
         ])
         eddb_session.flush()
@@ -1097,10 +1211,6 @@ def main():  # pragma: no cover
             PVPInterdictionDeath(cmdr_id=2, pvp_interdiction_id=2, pvp_death_id=2),
             PVPInterdictedKill(cmdr_id=3, pvp_interdicted_id=2, pvp_kill_id=3),
             PVPInterdictedDeath(cmdr_id=1, pvp_interdicted_id=1, pvp_death_id=1),
-        ])
-        eddb_session.add_all([
-            PvPMatch(limits=20),
-            PvPMatch(limits=10, started=True)
         ])
         eddb_session.commit()
 
@@ -1114,9 +1224,8 @@ def main():  # pragma: no cover
 
 
 PVP_TABLES = [
-    PVPLog, PVPStat, PVPInterdictedKill, PVPInterdictedDeath, PVPInterdictionKill, PVPInterdictionDeath,
-    PVPInterdicted, PVPInterdiction, PVPDeathKiller, PVPDeath, PVPKill, PVPLocation, PVPCmdr, PvPMatchPlayer,
-    PvPMatch
+    PvPMatchPlayer, PvPMatch, PVPLog, PVPStat, PVPInterdictedKill, PVPInterdictedDeath, PVPInterdictionKill, PVPInterdictionDeath,
+    PVPInterdicted, PVPInterdiction, PVPDeathKiller, PVPDeath, PVPKill, PVPLocation, PVPCmdr
 ]
 PVP_TABLES_KEEP = [PVPLog, PVPCmdr]
 # Mainly archival, in case need to move to other hashes.
