@@ -534,7 +534,6 @@ class PVPStat(ReprMixin, TimestampMixin, UpdatableMixin, Base):
         Returns a list of cells that contain all the information for string representations.
         """
         return [
-            ['Statistic', 'Value'],
             ['Kills', str(self.kills)],
             ['Deaths', str(self.deaths)],
             ['Interdictions', str(self.interdictions)],
@@ -558,7 +557,8 @@ class PVPStat(ReprMixin, TimestampMixin, UpdatableMixin, Base):
 
     def __str__(self):
         """ A string representation of PVPStat. """
-        return cog.tbl.format_table(self.table_cells(), header=True, wrap_msgs=False)[0]
+        return cog.tbl.format_table([['Statistic', 'Value']] + self.table_cells(),
+                                    header=True, wrap_msgs=False)[0]
 
     def __eq__(self, other):
         return isinstance(other, PVPStat) and hash(self) == hash(other)
