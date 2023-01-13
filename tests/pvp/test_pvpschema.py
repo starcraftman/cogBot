@@ -144,7 +144,6 @@ def test_pvpstat_kill_ratio(f_pvp_testbed, eddb_session):
 def test_pvpstat_embed_values(f_pvp_testbed, eddb_session):
     stat = eddb_session.query(PVPStat).filter(PVPStat.cmdr_id == 1).one()
     expect = [
-        {'inline': True, 'name': 'Statistic', 'value': 'Value'},
         {'inline': True, 'name': 'Kills', 'value': '3'},
         {'inline': True, 'name': 'Deaths', 'value': '2'},
         {'inline': True, 'name': 'Interdictions', 'value': '2'},
