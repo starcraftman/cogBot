@@ -1212,10 +1212,6 @@ def main():  # pragma: no cover
             PVPInterdictedKill(cmdr_id=3, pvp_interdicted_id=2, pvp_kill_id=3),
             PVPInterdictedDeath(cmdr_id=1, pvp_interdicted_id=1, pvp_death_id=1),
         ])
-        eddb_session.add_all([
-            PvPMatch(limits=20),
-            PvPMatch(limits=10, started=True)
-        ])
         eddb_session.commit()
 
         kill = eddb_session.query(PVPKill).first()
