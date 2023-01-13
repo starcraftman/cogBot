@@ -589,7 +589,7 @@ class Admin(Action):
         return reply
 
     async def execute(self):
-        #globe = cogdb.query.get_current_global(self.session)
+        globe = cogdb.query.get_current_global(self.session)
         try:
             admin = cogdb.query.get_admin(self.session, self.duser)
         except cog.exc.NoMatch as exc:
@@ -599,8 +599,8 @@ class Admin(Action):
             func = getattr(self, self.args.subcmd)
             if self.args.subcmd == "remove":
                 response = await func(admin)
-            #elif self.args.subcmd == "cycle":
-                #response = await func(globe)
+            elif self.args.subcmd == "cycle":
+                response = await func(globe)
             else:
                 response = await func()
             if response:
