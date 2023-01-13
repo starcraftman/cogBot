@@ -605,6 +605,41 @@ class PVPLog(ReprMixin, TimestampMixin, Base):
         return self.file_hash
 
 
+class PvPMatch(ReprMixin, TimestampMixin, Base):
+    """
+    Table to store matches.
+    """
+    __tablename__ = 'pvp_matchs'
+    _repr_keys = ['id', 'limits', 'started', 'updated_at']
+
+    id = sqla.Column(sqla.BigInteger, primary_key=True)
+    limits = sqla.Column(sqla.Integer)
+    started = sqla.Column(sqla.Boolean, default=False)
+    updated_at = sqla.Column(sqla.Integer, default=time.time, onupdate=time.time)
+
+    players = sqla.orm.relationship('PvPMatchPlayer')
+
+    def __eq__(self, other):
+        return isinstance(other, PvPMatch) and hash(self) == hash(other)
+
+
+class PvPMatchPlayer(ReprMixin, TimestampMixin, Base):
+    """
+    Table to store matches participants.
+    """
+    __tablename__ = 'pvp_match_players'
+    _repr_keys = ['id', 'cmdr_id', 'updated_at']
+
+    id = sqla.Column(sqla.BigInteger, primary_key=True)
+    cmdr_id = sqla.Column(sqla.BigInteger, sqla.ForeignKey('pvp_cmdrs.id'))
+    updated_at = sqla.Column(sqla.Integer, default=time.time, onupdate=time.time)
+
+    match_id = sqla.Column(sqla.Integer, sqla.ForeignKey('pvp_match.id'))
+
+    def __eq__(self, other):
+        return isinstance(other, PvPMatchPlayer) and hash(self) == hash(other)
+
+
 # Relationships that are back_populates
 PVPCmdr.kills = sqla_orm.relationship(
     'PVPKill', uselist=True, back_populates='cmdr', lazy='select')
@@ -936,6 +971,37 @@ def get_filtered_pvp_logs(eddb_session):
         all()
 
 
+def get_match_info(eddb_session):
+    """
+    Get the current match info.
+
+    Returns: The PvPMatch if present and not started, None otherwise.
+    """
+    try:
+        match = eddb_session.query(PvPMatch).filter(PvPMatch.started == False).one()
+    except sqla.exc.NoResultFound:
+        match = None
+
+    return match
+
+
+def add_pvp_match(eddb_session, limits):
+    """
+    Create a new match in DB.
+
+    Args:
+        eddb_session: A session onto the EDDB db.
+        limits: The player limits if set.
+
+    Returns: The added PvPMatch.
+    """
+    match = PvPMatch(limits=limits)
+    eddb_session.add(match)
+    eddb_session.commit()
+
+    return match
+
+
 def drop_tables(keep_cmdrs=False):  # pragma: no cover | destructive to test
     """
     Drop all tables related to this module.
@@ -1032,6 +1098,10 @@ def main():  # pragma: no cover
             PVPInterdictedKill(cmdr_id=3, pvp_interdicted_id=2, pvp_kill_id=3),
             PVPInterdictedDeath(cmdr_id=1, pvp_interdicted_id=1, pvp_death_id=1),
         ])
+        eddb_session.add_all([
+            PvPMatch(limits=20),
+            PvPMatch(limits=10, started=True)
+        ])
         eddb_session.commit()
 
         kill = eddb_session.query(PVPKill).first()
@@ -1045,7 +1115,8 @@ def main():  # pragma: no cover
 
 PVP_TABLES = [
     PVPLog, PVPStat, PVPInterdictedKill, PVPInterdictedDeath, PVPInterdictionKill, PVPInterdictionDeath,
-    PVPInterdicted, PVPInterdiction, PVPDeathKiller, PVPDeath, PVPKill, PVPLocation, PVPCmdr
+    PVPInterdicted, PVPInterdiction, PVPDeathKiller, PVPDeath, PVPKill, PVPLocation, PVPCmdr, PvPMatchPlayer,
+    PvPMatch
 ]
 PVP_TABLES_KEEP = [PVPLog, PVPCmdr]
 # Mainly archival, in case need to move to other hashes.

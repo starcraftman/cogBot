@@ -431,6 +431,52 @@ class Log(PVPAction):
         msg = '__Most Recent Events__\n\n' + '\n'.join([str(x) for x in events])
         await self.bot.send_message(self.msg.channel, msg)
 
+class Match(PVPAction):
+    """
+    Prepare a match between players.
+    """
+    async def execute(self):
+        if self.args.subcmd == "start":
+            # Start the match
+            pass
+        elif self.args.subcmd == "add":
+            # add cmdr to current match if there is one
+            pass
+        elif self.args.subcmd == "remove":
+            # remove cmdr to current match if there is one
+            pass
+        elif self.args.subcmd == "list":
+            # display current players
+            pass
+        elif self.args.subcmd == "setup":
+            match = pvp.schema.get_match_info(self.eddb_session)
+            if match:
+                msg = """__PvP Match__\n\n A match is already pending.
+                Please start it or cancel it before creating a new one."""
+                
+                await self.bot.send_message(self.msg.channel, msg)
+            else:
+                cmdr = pvp.schema.get_pvp_cmdr(self.eddb_session, cmdr_id=self.msg.author.id)
+                pvp.schema.add_pvp_match(self.eddb_session, self.args.limits)
+                embed = discord.Embed.from_dict({
+                    'color': cmdr.hex_value,
+                    'author': {
+                        'name': 'PvP Match organized by',
+                        'icon_url': self.bot.user.display_avatar.url,
+                    },
+                    'provider': {
+                        'name': 'FedCAT',
+                    },
+                    'title': f"Total allowed players :{self.args.limits}"
+                })
+                await self.bot.send_message(self.msg.channel, None, embed=embed)
+
+        else:
+            # add executing user to match
+            pass
+
+            
+
 
 class Stats(PVPAction):
     """

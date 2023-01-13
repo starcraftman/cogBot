@@ -96,6 +96,43 @@ def subs_log(subs, prefix):
 
 
 @register_parser
+def subs_match(subs, prefix):
+    """ Subcommand parsing for match """
+    desc = f"""To prepare a match.
+
+**{prefix}match**
+        Join an organized match.
+**{prefix}match list**
+        See current list of registred player.
+**{prefix}match setup 4,6,8,10**
+**{prefix}match setup**
+        Setup a match with limits if given, else any amount of players will be accepted.
+**{prefix}match add Gears, Prozer**
+        Add Gears and Prozer to the list of players.
+**{prefix}match remove Gears, Prozer**
+        Remove Gears and Prozer to the list of players.
+**{prefix}match start**
+        Create teams and start the match. Useless if player limits reached.
+    """
+    
+    sub = subs.add_parser(prefix + 'match', description=desc, formatter_class=RawHelp)
+    sub.set_defaults(cmd='Match')
+    CMD_MAP['Match'] = 'match'
+    subcmds = sub.add_subparsers(title='subcommands',
+                                 description='Match subcommands', dest='subcmd')
+    subcmd = subcmds.add_parser('add', help='Add the mentionned discord user(s) to the current match.')
+    subcmd.add_argument('players', nargs='+', help='The player to add.')
+    subcmd = subcmds.add_parser('remove', help='Remove the mentionned discord user(s) to the current match.')
+    subcmd.add_argument('players', nargs='+', help='The player to remove.')
+    subcmd = subcmds.add_parser('setup', help='Create a new match.')
+    subcmd.add_argument('limits', nargs='*', type=int, default= 20, 
+                        help='The total player limit. Default : 20.')
+    subcmds.add_parser('start', help='Start the match.')
+    subcmds.add_parser('list', 
+                     help='Give the list of all registrer players for the current match.')
+
+
+@register_parser
 def subs_stats(subs, prefix):
     """ Subcommand parsing for stats """
     desc = f"""To see your statistics.
