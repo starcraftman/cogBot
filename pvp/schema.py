@@ -1056,8 +1056,7 @@ def start_match(eddb_session, match_id):
     """
     match = eddb_session.query(PvPMatch).filter(
         PvPMatch.id == match_id).one()
-    if match.limits == len(match.players):
-        match.started = True
+    match.started = True
     teams = roll_teams(eddb_session)
     return teams
 

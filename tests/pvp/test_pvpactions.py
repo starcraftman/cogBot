@@ -107,6 +107,14 @@ async def test_cmd_log(f_bot, f_pvp_testbed):
 
 
 @pytest.mark.asyncio
+async def test_cmd_match(f_bot, f_pvp_testbed):
+    msg = fake_msg_gears("!match")
+
+    await action_map(msg, f_bot).execute()
+    assert "No pending match." in str(f_bot.send_message.call_args).replace("\\n", "\n")
+
+
+@pytest.mark.asyncio
 async def test_cmd_stats(f_bot, f_pvp_testbed):
     msg = fake_msg_gears("!stats")
 

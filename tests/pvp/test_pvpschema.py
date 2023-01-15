@@ -239,6 +239,41 @@ async def test_pvp_add_pvp_log(f_pvp_testbed, eddb_session):
         assert expect_hash == pvp_log.file_hash
 
 
+def test_pvp_get_match_info(f_pvp_testbed, eddb_session):
+    match = pvp.schema.get_match_info(eddb_session)
+    assert match is None
+    new_match = pvp.schema.add_pvp_match(eddb_session, 4)
+    match = pvp.schema.get_match_info(eddb_session)
+    assert match.id == new_match.id
+
+
+def test_pvp_add_player_to_match(f_pvp_testbed, eddb_session):
+    match = pvp.schema.add_pvp_match(eddb_session, 4)
+    player_match = pvp.schema.add_player_to_match(eddb_session, match.id, 1)
+    assert player_match.match_id == match.id
+    assert player_match.cmdr_id == 1
+    player_match = pvp.schema.add_player_to_match(eddb_session, match.id, 1)
+    assert player_match is None
+
+
+def test_pvp_remove_player_from_match(f_pvp_testbed, eddb_session):
+    match = pvp.schema.add_pvp_match(eddb_session, 4)
+    player_match = pvp.schema.add_player_to_match(eddb_session, match.id, 1)
+    player_match = pvp.schema.remove_player_from_match(eddb_session, match.id, 1)
+    assert player_match.match_id is None
+    assert player_match.cmdr_id == 1
+    player_match = pvp.schema.remove_player_from_match(eddb_session, match.id, 1)
+    assert player_match is None
+
+
+def test_pvp_start_match(f_pvp_testbed, eddb_session):
+    new_match = pvp.schema.add_pvp_match(eddb_session, 4)
+    player1 = pvp.schema.add_player_to_match(eddb_session, new_match.id,1)
+    player2 = pvp.schema.add_player_to_match(eddb_session, new_match.id,2)
+    teams = pvp.schema.start_match(eddb_session, new_match.id)
+    assert teams == (([player1.cmdr.name],[player2.cmdr.name]) or ([player2.cmdr.name],[player1.cmdr.name]))
+
+
 def test_pvp_is_safe_to_drop():
     assert pvp.schema.is_safe_to_drop('pvp_cmdrs')
     assert not pvp.schema.is_safe_to_drop('spy_ships')
