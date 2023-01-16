@@ -22,7 +22,6 @@ coverage:
     /etc/init.d/mariadb start
     mysql -u root < "tests/mysql_tables.sql"
     curl "http://starcraftman.com/elite/eddb_v10.sql" > "eddb.sql"
-    python -m pvp.schema
     mysql -u root -D eddb < "eddb.sql"
     doppler secrets substitute "tests/secrethub/secretConfig.yml" --output "data/config.yml"
     doppler secrets substitute "tests/secrethub/secretSheets.json" --output "data/service_sheets.json"
@@ -40,7 +39,6 @@ tests:
     /etc/init.d/mariadb start
     mysql -u root < "tests/mysql_tables.sql"
     curl "http://starcraftman.com/elite/eddb_v10.sql" > "eddb.sql"
-    python -m pvp.schema
     mysql -u root -D eddb < "eddb.sql"
     doppler secrets substitute "tests/secrethub/secretConfig.yml" --output "data/config.yml"
     doppler secrets substitute "tests/secrethub/secretSheets.json" --output "data/service_sheets.json"
