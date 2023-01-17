@@ -918,7 +918,7 @@ def drop_tables(keep_cmdrs=False):  # pragma: no cover | destructive to test
 
     tables = PVP_TABLES
     if keep_cmdrs:
-        for tbl in PVP_TABLES:
+        for tbl in PVP_TABLES_KEEP:
             tables.remove(tbl)
 
     for table in tables:
@@ -937,7 +937,7 @@ def empty_tables(keep_cmdrs=False):
 
     tables = PVP_TABLES
     if keep_cmdrs:
-        for tbl in PVP_TABLES:
+        for tbl in PVP_TABLES_KEEP:
             tables.remove(tbl)
 
     with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
