@@ -702,7 +702,8 @@ def get_pvp_event_cmdrs(eddb_session, *, cmdr_id):
             filter(PVPKill.cmdr_id == cmdr_id).\
             group_by(PVPKill.victim_name).\
             order_by(count.desc()).\
-            first()[0]
+            limit(1).\
+            one()[0]
     except sqla.exc.NoResultFound:
         result = 'N/A'
     found['killed_most'] = result
@@ -713,7 +714,8 @@ def get_pvp_event_cmdrs(eddb_session, *, cmdr_id):
             join(PVPDeath, PVPDeath.id == PVPDeathKiller.pvp_death_id).\
             group_by(PVPDeathKiller.name).\
             order_by(count.desc()).\
-            first()[0]
+            limit(1).\
+            one()[0]
     except sqla.exc.NoResultFound:
         result = 'N/A'
     found['most_deaths_by'] = result
@@ -723,7 +725,8 @@ def get_pvp_event_cmdrs(eddb_session, *, cmdr_id):
             filter(PVPInterdiction.cmdr_id == cmdr_id).\
             group_by(PVPInterdiction.victim_name).\
             order_by(count.desc()).\
-            first()[0]
+            limit(1).\
+            one()[0]
     except sqla.exc.NoResultFound:
         result = 'N/A'
     found['most_interdictions'] = result
@@ -733,7 +736,8 @@ def get_pvp_event_cmdrs(eddb_session, *, cmdr_id):
             filter(PVPInterdicted.cmdr_id == cmdr_id).\
             group_by(PVPInterdicted.interdictor_name).\
             order_by(count.desc()).\
-            first()[0]
+            limit(1).\
+            one()[0]
     except sqla.exc.NoResultFound:
         result = 'N/A'
     found['most_interdicted_by'] = result
@@ -765,7 +769,8 @@ def get_pvp_last_events(eddb_session, *, cmdr_id):
             result = eddb_session.query(cls.id).\
                 filter(cls.cmdr_id == cmdr_id).\
                 order_by(cls.event_at.desc()).\
-                first()[0]
+                limit(1).\
+                one()[0]
         except sqla.exc.NoResultFound:
             result = None
         found[key] = result
@@ -816,17 +821,19 @@ def update_pvp_stats(eddb_session, *, cmdr_id):
             filter(PVPKill.cmdr_id == cmdr_id).\
             group_by(PVPKill.system_id).\
             order_by(count_system_id.desc()).\
-            first()[0]
+            limit(1).\
+            one()[0]
     except sqla.exc.NoResultFound:
         result = None
     kwargs['most_kills_system_id'] = result
     try:
         count_system_id = sqla.func.count(PVPDeath.system_id)
         result = eddb_session.query(PVPDeath.system_id, count_system_id).\
-            filter(PVPKill.cmdr_id == cmdr_id).\
+            filter(PVPDeath.cmdr_id == cmdr_id).\
             group_by(PVPDeath.system_id).\
             order_by(count_system_id.desc()).\
-            first()[0]
+            limit(1).\
+            one()[0]
     except sqla.exc.NoResultFound:
         result = None
     kwargs['most_deaths_system_id'] = result
