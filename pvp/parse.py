@@ -55,6 +55,7 @@ def subs_admin(subs, prefix):
     subcmd = subcmds.add_parser('remove', help='Remove an admin or permission.')
     subcmd.add_argument('rule_cmds', nargs='*', help='The the command to restrict.')
     subcmd = subcmds.add_parser('regenerate', help='Regenerate the PVP database.')
+    subcmd = subcmds.add_parser('stats', help='Regenerate the PVPStats for cmdrs.')
 
 
 @register_parser
