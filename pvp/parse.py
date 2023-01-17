@@ -41,9 +41,11 @@ def subs_admin(subs, prefix):
         Add GearsandCogs to the admin group.
 **{prefix}admin remove @GearsandCogs**
         Remove GearsandCogs from the admin group.
-**{prefix}admin reparse**
+**{prefix}admin regenerate**
         Use only when log corruption expected or change in log parsing.
         Reparses all uploaded logs to regenerate database.
+**{prefix}admin stats**
+        Recreate the pvp stats table and recompute all stats.
     """
     sub = subs.add_parser(prefix + 'admin', description=desc, formatter_class=RawHelp)
     sub.set_defaults(cmd='Admin')
