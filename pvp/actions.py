@@ -78,10 +78,15 @@ class Admin(PVPAction):
     async def regenerate(self):  # pragma: no cover, don't hit the guild repeatedly
         """
         Regenerate the PVP database by reparsing logs.
+        This will:
+            - Drop and recreate all tables that aren't pvp_cmdrs.
+            - Process all logs in order of upload to archive channel on server.
+            - Import and parse selected events.
+            - Once done, regenerate all stats for each CMDR at the end.
         """
-        await self.bot.send_message(self.msg.channel, "Please halt bot usage while working.")
+        await self.bot.send_message(self.msg.channel, "All uploads will be denied while regeneration underway. Starting now.")
         response = "Regenerating PVP database has completed."
-        pvp.schema.empty_tables(keep_cmdrs=True)
+        pvp.schema.recreate_tables(keep_cmdrs=True)
 
         # Channel archiving pvp logs
         log_chan = self.msg.guild.get_channel(cog.util.CONF.channels.pvp_log)
@@ -134,6 +139,15 @@ class Admin(PVPAction):
 
         return response
 
+    async def stats(self):  # pragma: no cover, don't hit the guild repeatedly
+        """
+        Regenerate just the stats given the current set of events.
+        """
+        with cfut.ProcessPoolExecutor(max_workers=1) as pool:
+            await asyncio.get_event_loop().run_in_executor(pool, compute_all_stats)
+
+        return "Stats for all CMDRs have been redone."
+
     async def execute(self):
         try:
             admin = cogdb.query.get_admin(self.session, self.duser)
@@ -144,6 +158,12 @@ class Admin(PVPAction):
             func = getattr(self, self.args.subcmd)
             if self.args.subcmd == "remove":
                 response = await func(admin)
+            elif self.args.subcmd == "regenerate":
+                try:
+                    self.deny_commands = True
+                    response = await func()
+                finally:
+                    self.deny_commands = False
             else:
                 response = await func()
             if response:
@@ -151,6 +171,19 @@ class Admin(PVPAction):
         except (AttributeError, TypeError) as exc:
             traceback.print_exc()
             raise cog.exc.InvalidCommandArgs("Bad subcommand of `!admin`, see `!admin -h` for help.") from exc
+
+
+def compute_all_stats():
+    """
+    Recreate the PVPStat table only.
+    Then compute the PVPStats for all existing commanders again.
+    """
+    pvp.schema.PVPStat.__table__.drop(cogdb.eddb_engine)
+    pvp.schema.Base.metadata.create_all(cogdb.eddb_engine, tables=[pvp.schema.PVPStat])
+
+    with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
+        for cmdr in eddb_session.query(pvp.schema.PVPCmdr):
+            pvp.schema.update_pvp_stats(eddb_session, cmdr_id=cmdr.id)
 
 
 class FileUpload(PVPAction):

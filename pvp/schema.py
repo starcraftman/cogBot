@@ -702,8 +702,7 @@ def get_pvp_event_cmdrs(eddb_session, *, cmdr_id):
             filter(PVPKill.cmdr_id == cmdr_id).\
             group_by(PVPKill.victim_name).\
             order_by(count.desc()).\
-            limit(1).\
-            one()[0]
+            first()[0]
     except sqla.exc.NoResultFound:
         result = 'N/A'
     found['killed_most'] = result
@@ -714,8 +713,7 @@ def get_pvp_event_cmdrs(eddb_session, *, cmdr_id):
             join(PVPDeath, PVPDeath.id == PVPDeathKiller.pvp_death_id).\
             group_by(PVPDeathKiller.name).\
             order_by(count.desc()).\
-            limit(1).\
-            one()[0]
+            first()[0]
     except sqla.exc.NoResultFound:
         result = 'N/A'
     found['most_deaths_by'] = result
@@ -725,8 +723,7 @@ def get_pvp_event_cmdrs(eddb_session, *, cmdr_id):
             filter(PVPInterdiction.cmdr_id == cmdr_id).\
             group_by(PVPInterdiction.victim_name).\
             order_by(count.desc()).\
-            limit(1).\
-            one()[0]
+            first()[0]
     except sqla.exc.NoResultFound:
         result = 'N/A'
     found['most_interdictions'] = result
@@ -736,8 +733,7 @@ def get_pvp_event_cmdrs(eddb_session, *, cmdr_id):
             filter(PVPInterdicted.cmdr_id == cmdr_id).\
             group_by(PVPInterdicted.interdictor_name).\
             order_by(count.desc()).\
-            limit(1).\
-            one()[0]
+            first()[0]
     except sqla.exc.NoResultFound:
         result = 'N/A'
     found['most_interdicted_by'] = result
@@ -769,8 +765,7 @@ def get_pvp_last_events(eddb_session, *, cmdr_id):
             result = eddb_session.query(cls.id).\
                 filter(cls.cmdr_id == cmdr_id).\
                 order_by(cls.event_at.desc()).\
-                limit(1).\
-                one()[0]
+                first()[0]
         except sqla.exc.NoResultFound:
             result = None
         found[key] = result
@@ -820,8 +815,7 @@ def update_pvp_stats(eddb_session, *, cmdr_id):
         result = eddb_session.query(PVPKill.system_id, count_system_id).\
             group_by(PVPKill.system_id).\
             order_by(count_system_id.desc()).\
-            limit(1).\
-            one()[0]
+            first()[0]
     except sqla.exc.NoResultFound:
         result = None
     kwargs['most_kills_system_id'] = result
@@ -830,8 +824,7 @@ def update_pvp_stats(eddb_session, *, cmdr_id):
         result = eddb_session.query(PVPDeath.system_id, count_system_id).\
             group_by(PVPDeath.system_id).\
             order_by(count_system_id.desc()).\
-            limit(1).\
-            one()[0]
+            first()[0]
     except sqla.exc.NoResultFound:
         result = None
     kwargs['most_deaths_system_id'] = result
@@ -907,13 +900,14 @@ async def add_pvp_log(eddb_session, fname, *, cmdr_id):
     return pvp_log
 
 
-def drop_tables():  # pragma: no cover | destructive to test
+def drop_tables(keep_cmdrs=False):  # pragma: no cover | destructive to test
     """
     Drop all tables related to this module.
     See is_safe_to_drop for validation on if a table should be dropped.
     """
     sqla.orm.session.close_all_sessions()
-    for table in PVP_TABLES:
+    tables = PVP_TABLES[:-1] if keep_cmdrs else PVP_TABLES
+    for table in tables:
         try:
             table.__table__.drop(cogdb.eddb_engine)
         except sqla.exc.OperationalError:
@@ -941,12 +935,12 @@ def is_safe_to_drop(tbl_name):
     return tbl_name.startswith('pvp_')
 
 
-def recreate_tables():  # pragma: no cover | destructive to test
+def recreate_tables(keep_cmdrs=False):  # pragma: no cover | destructive to test
     """
     Recreate all tables in the database, mainly for schema changes and testing.
     """
     sqlalchemy.orm.session.close_all_sessions()
-    drop_tables()
+    drop_tables(keep_cmdrs)
     Base.metadata.create_all(cogdb.eddb_engine)
 
 
@@ -995,7 +989,7 @@ def main():  # pragma: no cover
         ])
         eddb_session.commit()
 
-        kill = eddb_session.query(PVPKill).limit(1).one()
+        kill = eddb_session.query(PVPKill).first()
         print(repr(kill))
         print(kill.cmdr)
         print(kill.event_date)

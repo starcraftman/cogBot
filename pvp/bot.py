@@ -52,6 +52,7 @@ class PVPBot(CogBot):  # pragma: no cover
         super().__init__(prefix, **kwargs)
         # Replace the parser with pvp one.
         self.parser = pvp.parse.make_parser(prefix)
+        self.deny_commands = True
         self.once = False
 
     async def on_ready(self):
@@ -108,6 +109,9 @@ class PVPBot(CogBot):  # pragma: no cover
         """
         Any hooks to respond to dms.
         """
+        if self.deny_commands:
+            await self.send_message(msg.channel, 'Uploads are disabled at this time. Please try again later.')
+
         with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
             for attach in msg.attachments:
                 if attach.size > MAX_FILE_SIZE:
