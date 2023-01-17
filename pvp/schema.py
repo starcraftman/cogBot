@@ -918,7 +918,8 @@ def drop_tables(keep_cmdrs=False):  # pragma: no cover | destructive to test
 
     tables = PVP_TABLES
     if keep_cmdrs:
-        tables = list(set(PVP_TABLES) - set(PVP_TABLES_KEEP))
+        for tbl in PVP_TABLES:
+            tables.remove(tbl)
 
     for table in tables:
         try:
@@ -935,10 +936,9 @@ def empty_tables(keep_cmdrs=False):
     sqla.orm.session.close_all_sessions()
 
     tables = PVP_TABLES
-    __import__('pprint').pprint(tables)
     if keep_cmdrs:
-        tables = list(set(PVP_TABLES) - set(PVP_TABLES_KEEP))
-    __import__('pprint').pprint(tables)
+        for tbl in PVP_TABLES:
+            tables.remove(tbl)
 
     with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
         for table in tables:
