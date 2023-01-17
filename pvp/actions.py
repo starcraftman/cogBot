@@ -283,6 +283,10 @@ class Stats(PVPAction):
         stats = pvp.schema.get_pvp_stats(self.eddb_session, cmdr.id)
         if stats:
             msg = None
+            avatar = self.bot.user.display_avatar.url
+            cmdr_member = self.msg.guild.get_member(cmdr.id)
+            if cmdr_member:
+                avatar = cmdr_member.display_avatar.url
             embed = discord.Embed.from_dict({
                 'color': cmdr.hex_value,
                 'author': {
@@ -293,7 +297,7 @@ class Stats(PVPAction):
                     'name': 'FedCAT',
                 },
                 'thumbnail': {
-                    'url': self.msg.guild.get_member(cmdr.id).display_avatar.url,
+                    'url': avatar
                 },
                 'title': f"CMDR {stats.cmdr.name}",
                 "fields": stats.embed_values,
