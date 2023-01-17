@@ -107,9 +107,9 @@ def subs_match(subs, prefix):
 **{prefix}match setup 4,6,8,10**
 **{prefix}match setup**
         Setup a match with limits if given, else any amount of players will be accepted.
-**{prefix}match add Gears, Prozer**
+**{prefix}match add Gears, @Prozer**
         Add Gears and Prozer to the list of players.
-**{prefix}match remove Gears, Prozer**
+**{prefix}match remove Gears, @Prozer**
         Remove Gears and Prozer to the list of players.
 **{prefix}match start**
         Create teams and start the match. Useless if player limits reached.
@@ -117,6 +117,8 @@ def subs_match(subs, prefix):
         Cancel current pending match.
 **{prefix}match reroll**
         Reroll current teams match.
+**{prefix}match win Gears or @Prozer**
+        The started match concluded with a victory from the Gears' / Prozer's Team.
     """
     
     sub = subs.add_parser(prefix + 'match', description=desc, formatter_class=RawHelp)
@@ -128,6 +130,8 @@ def subs_match(subs, prefix):
     subcmd.add_argument('players', nargs='+', help='The player to add.')
     subcmd = subcmds.add_parser('remove', help='Remove the mentionned discord user(s) to the current match.')
     subcmd.add_argument('players', nargs='+', help='The player to remove.')
+    subcmd = subcmds.add_parser('win', help='Terminate a match by giving a win to a team.')
+    subcmd.add_argument('player', nargs='?', help='The player within the winning team.')
     subcmd = subcmds.add_parser('setup', help='Create a new match.')
     subcmd.add_argument('limits', nargs='*', type=int, default= 20, 
                         help='The total player limit. Default : 20.')

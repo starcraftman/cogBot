@@ -517,7 +517,7 @@ class Match(PVPAction):
             embed.add_field(name='Team 1', value='\n'.join(teams[0]), inline=True)
             embed.add_field(name='Team 2', value='\n'.join(teams[1]), inline=True)
         await self.bot.send_message(self.msg.channel, cmdr_msg, embed=embed)
-            
+
     async def remove(self):
         """
         Remove player from Match.
@@ -632,6 +632,58 @@ class Match(PVPAction):
         embed.add_field(name='Team 1', value='\n'.join(teams[0]), inline=True)
         embed.add_field(name='Team 2', value='\n'.join(teams[1]), inline=True)
         await self.bot.send_message(self.msg.channel, msg, embed=embed)
+
+    async def win(self):
+        """
+        Conclude a match with victory for the mentionned Team member.
+        """
+        cmdr_msg = ""
+        teams = None
+        embed = None
+        if self.msg.mentions:
+            cmdr = pvp.schema.get_player_match(self.eddb_session, cmdr_id=self.msg.mentions[0].id)
+            match = pvp.schema.get_started_match_info(self.eddb_session, cmdr.cmdr_id)
+            if cmdr and match:
+                players = pvp.schema.get_match_team_player(self.eddb_session, match.id, cmdr.team)
+                for winner in players:
+                    cmdr_msg += f"CMDR {winner.cmdr.name} from Team {cmdr.team} win the match!\n"
+                pvp.schema.finish_match(self.eddb_session, match.id, cmdr.team)
+            elif match and cmdr is None:
+                cmdr_msg += f"CMDR {self.msg.author.name} not found!\n"
+            else:
+                cmdr_msg = f"""No match found with this CMDR in a team."""
+        if self.args.player:
+            match = None
+            cmdr = pvp.schema.get_pvp_cmdr(self.eddb_session, cmdr_name=self.args.player)
+            if cmdr:
+                cmdr = pvp.schema.get_player_match(self.eddb_session, cmdr_id=cmdr.id)
+                match = pvp.schema.get_started_match_info(self.eddb_session, cmdr.cmdr_id)
+            if cmdr and match:
+                players = pvp.schema.get_match_team_player(self.eddb_session, match.id, cmdr.team)
+                for winner in players:
+                    cmdr_msg += f"CMDR {winner.cmdr.name} from Team {cmdr.team} win the match!\n"
+                pvp.schema.finish_match(self.eddb_session, match.id, cmdr.team)
+            elif match and cmdr is None:
+                cmdr_msg += f"CMDR {self.msg.author.name} not found!\n"
+            else:
+                cmdr_msg = f"""No match found with this CMDR in a team."""
+        cmdr_msg = f"__PvP Match__\n\n {cmdr_msg}"
+        
+        if teams:
+            embed = discord.Embed.from_dict({
+                'color': 0xff0000,
+                'author': {
+                    'name': 'PvP Match START',
+                    'icon_url': self.bot.user.display_avatar.url,
+                },
+                'provider': {
+                    'name': 'FedCAT',
+                },
+                'title': "Match starts :",
+            })
+            embed.add_field(name='Team 1', value='\n'.join(teams[0]), inline=True)
+            embed.add_field(name='Team 2', value='\n'.join(teams[1]), inline=True)
+        await self.bot.send_message(self.msg.channel, cmdr_msg, embed=embed)
 
         
     async def execute(self):
