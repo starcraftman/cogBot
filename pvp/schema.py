@@ -813,6 +813,7 @@ def update_pvp_stats(eddb_session, *, cmdr_id):
     try:
         count_system_id = sqla.func.count(PVPKill.system_id)
         result = eddb_session.query(PVPKill.system_id, count_system_id).\
+            filter(PVPKill.cmdr_id == cmdr_id).\
             group_by(PVPKill.system_id).\
             order_by(count_system_id.desc()).\
             first()[0]
@@ -822,6 +823,7 @@ def update_pvp_stats(eddb_session, *, cmdr_id):
     try:
         count_system_id = sqla.func.count(PVPDeath.system_id)
         result = eddb_session.query(PVPDeath.system_id, count_system_id).\
+            filter(PVPKill.cmdr_id == cmdr_id).\
             group_by(PVPDeath.system_id).\
             order_by(count_system_id.desc()).\
             first()[0]
