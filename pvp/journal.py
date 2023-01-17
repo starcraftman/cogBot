@@ -563,7 +563,7 @@ def clean_died_killers(data):
         }]
 
     cleaned = []
-    for killer in data.get('Killers'):
+    for killer in data.get('Killers', []):
         try:
             if not killer['Name'].startswith('$'):
                 cleaned += [killer]
