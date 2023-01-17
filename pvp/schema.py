@@ -915,7 +915,11 @@ def drop_tables(keep_cmdrs=False):  # pragma: no cover | destructive to test
     See is_safe_to_drop for validation on if a table should be dropped.
     """
     sqla.orm.session.close_all_sessions()
-    tables = PVP_TABLES[:-1] if keep_cmdrs else PVP_TABLES
+
+    tables = PVP_TABLES
+    if keep_cmdrs:
+        tables = list(set(PVP_TABLES) - set(PVP_TABLES_KEEP))
+
     for table in tables:
         try:
             table.__table__.drop(cogdb.eddb_engine)
@@ -929,7 +933,12 @@ def empty_tables(keep_cmdrs=False):
     See is_safe_to_drop for validation on if a table should be dropped.
     """
     sqla.orm.session.close_all_sessions()
-    tables = PVP_TABLES[:-1] if keep_cmdrs else PVP_TABLES
+
+    tables = PVP_TABLES
+    __import__('pprint').pprint(tables)
+    if keep_cmdrs:
+        tables = list(set(PVP_TABLES) - set(PVP_TABLES_KEEP))
+    __import__('pprint').pprint(tables)
 
     with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
         for table in tables:
@@ -1010,6 +1019,7 @@ PVP_TABLES = [
     PVPLog, PVPStat, PVPInterdictedKill, PVPInterdictedDeath, PVPInterdictionKill, PVPInterdictionDeath,
     PVPInterdicted, PVPInterdiction, PVPDeathKiller, PVPDeath, PVPKill, PVPLocation, PVPCmdr
 ]
+PVP_TABLES_KEEP = [PVPLog, PVPCmdr]
 # Mainly archival, in case need to move to other hashes.
 PVP_HASH_FUNCS = {
     0: 'sha512',
