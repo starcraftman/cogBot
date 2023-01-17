@@ -43,14 +43,9 @@ def parse_died(eddb_session, data):
     Returns: The added object.
     """
     is_wing_kill = "Killers" in data
-    if 'KillerName' in data:  # Reformat object so single case same as wing
-        data['Killers'] = [{
-            "Name": clean_cmdr_name(data["KillerName"]),
-            "Ship": data["KillerShip"],
-            "Rank": data.get("KillerRank", 'Harmless'),
-        }]
-    if not data.get('Killers'):  # Sometimes not present
-        data['Killers'] = []
+    data = clean_died_killers(data)
+    if not data.get("Killers"):
+        return None
 
     try:
         death = eddb_session.query(pvp.schema.PVPDeath).\
@@ -91,7 +86,7 @@ def parse_died(eddb_session, data):
     return death
 
 
-def parse_pvpkill(eddb_session, data):
+def parse_kill(eddb_session, data):
     """
     Parse PVPKill messages in log file.
 
@@ -121,7 +116,7 @@ def parse_pvpkill(eddb_session, data):
     return kill
 
 
-def parse_pvpinterdiction(eddb_session, data):
+def parse_interdiction(eddb_session, data):
     """
     Parse Interdiction messages in log file.
 
@@ -131,7 +126,7 @@ def parse_pvpinterdiction(eddb_session, data):
 
     Returns: The added object.
     """
-    if not data['IsPlayer']:
+    if not data['IsPlayer'] or not data.get('Interdicted'):
         return None
 
     try:
@@ -156,7 +151,7 @@ def parse_pvpinterdiction(eddb_session, data):
     return interdiction
 
 
-def parse_pvpinterdicted(eddb_session, data):
+def parse_interdicted(eddb_session, data):
     """
     Parse Interdiction messages in log file.
 
@@ -166,7 +161,7 @@ def parse_pvpinterdicted(eddb_session, data):
 
     Returns: The added object.
     """
-    if not data['IsPlayer']:
+    if not data['IsPlayer'] or not data.get('Interdictor'):
         return None
 
     try:
@@ -551,26 +546,57 @@ def clean_cmdr_name(name):
     return name[:EDDB_LEN['pvp_name']]
 
 
+def clean_died_killers(data):
+    """
+    Prune all entries that are NPCs.
+
+    Args:
+        data: The JSON object of data.
+
+    Returns: The cleaned list of dillers.
+    """
+    if 'KillerName' in data and not data.get('Killers'):  # Reformat object so single case same as wing
+        data['Killers'] = [{
+            "Name": data["KillerName"],
+            "Ship": data["KillerShip"],
+            "Rank": data.get("KillerRank", 'Harmless'),
+        }]
+
+    cleaned = []
+    for killer in data.get('Killers'):
+        try:
+            if not killer['Name'].startswith('$'):
+                cleaned += [killer]
+        except KeyError:
+            pass
+    data['Killers'] = cleaned
+
+    return data
+
+
 def ship_name_map():
     """
     Generate a map of possibly seen names to IDs in the db.
 
     Returns: A dictionary of names onto ids.
     """
-    ship_map = ship_type_to_id_map(traffic_text=True)
-    ship_map.update(ship_type_to_id_map(traffic_text=False))
-    ship_map.update({key.lower(): value for key, value in ship_map.items() if key[0].isupper()})
+    if not CACHED.get('ship_map'):
+        ship_map = ship_type_to_id_map(traffic_text=True)
+        ship_map.update(ship_type_to_id_map(traffic_text=False))
+        ship_map.update({key.lower(): value for key, value in ship_map.items() if key[0].isupper()})
+        CACHED['ship_map'] = ship_map
 
-    return ship_map
+    return CACHED['ship_map']
 
 
+CACHED = {}
 EVENT_TO_PARSER = {
     "Died": parse_died,
     "FSDJump": parse_location,
-    "Interdicted": parse_pvpinterdicted,
-    "Interdiction": parse_pvpinterdiction,
+    "Interdicted": parse_interdicted,
+    "Interdiction": parse_interdiction,
     "SupercruiseEntry": None,
     "SupercruiseExit": None,
     "Location": parse_location,
-    "PVPKill": parse_pvpkill,
+    "PVPKill": parse_kill,
 }

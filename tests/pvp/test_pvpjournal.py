@@ -22,8 +22,16 @@ def test_datetime_to_tstamp():
     assert 1465569123.0 == pvp.journal.datetime_to_tstamp("2016-06-10T14:32:03Z")
 
 
-def test_parse_died_simple(f_spy_ships, f_pvp_testbed, eddb_session):
+def test_parse_died_simple_npc(f_spy_ships, f_pvp_testbed, eddb_session):
     data = json.loads('{ "timestamp":"2016-06-10T14:32:03Z", "event":"Died", "KillerName":"$ShipName_Police_Independent;", "KillerShip":"viper", "KillerRank":"Deadly" }')
+    data['cmdr_id'] = 1
+    data['system_id'] = 1005
+    data['event_at'] = pvp.journal.datetime_to_tstamp(data['timestamp'])
+    assert not pvp.journal.parse_died(eddb_session, data)
+
+
+def test_parse_died_simple(f_spy_ships, f_pvp_testbed, eddb_session):
+    data = json.loads('{ "timestamp":"2016-06-10T14:32:03Z", "event":"Died", "KillerName":"CMDR Ruin", "KillerShip":"viper", "KillerRank":"Deadly" }')
     data['cmdr_id'] = 1
     data['system_id'] = 1005
     data['event_at'] = pvp.journal.datetime_to_tstamp(data['timestamp'])
@@ -33,7 +41,7 @@ def test_parse_died_simple(f_spy_ships, f_pvp_testbed, eddb_session):
     death = eddb_session.query(PVPDeath).filter(PVPDeath.system_id == 1005).one()
     assert 1 == death.cmdr_id
     assert len(death.killers) == 1
-    assert death.killers[0].name.startswith("$ShipName_Police")
+    assert death.killers[0].name.startswith("Ruin")
 
 
 def test_parse_died_many(f_spy_ships, f_pvp_testbed, eddb_session):
@@ -55,7 +63,7 @@ def test_parse_pvpkill(f_pvp_testbed, eddb_session):
     data['cmdr_id'] = 1
     data['system_id'] = 1005
     data['event_at'] = pvp.journal.datetime_to_tstamp(data['timestamp'])
-    pvp.journal.parse_pvpkill(eddb_session, data)
+    pvp.journal.parse_kill(eddb_session, data)
     eddb_session.commit()
 
     kill = eddb_session.query(PVPKill).filter(PVPKill.system_id == 1005).one()
@@ -68,7 +76,7 @@ def test_parse_interdiction(f_pvp_testbed, eddb_session):
     data['cmdr_id'] = 1
     data['system_id'] = 1005
     data['event_at'] = pvp.journal.datetime_to_tstamp(data['timestamp'])
-    pvp.journal.parse_pvpinterdiction(eddb_session, data)
+    pvp.journal.parse_interdiction(eddb_session, data)
     eddb_session.commit()
 
     interdiction = eddb_session.query(PVPInterdiction).filter(PVPInterdiction.system_id == 1005).one()
@@ -83,7 +91,7 @@ def test_parse_interdicted(f_pvp_testbed, eddb_session):
     data['cmdr_id'] = 1
     data['system_id'] = 1005
     data['event_at'] = pvp.journal.datetime_to_tstamp(data['timestamp'])
-    pvp.journal.parse_pvpinterdicted(eddb_session, data)
+    pvp.journal.parse_interdicted(eddb_session, data)
     eddb_session.commit()
 
     interdicted = eddb_session.query(PVPInterdicted).filter(PVPInterdicted.system_id == 1005).one()
@@ -220,3 +228,28 @@ def test_ship_name_map(f_spy_ships):
 def test_clean_cmdr_name():
     assert "NotReallyCool" == pvp.journal.clean_cmdr_name("cMdR   NotReallyCool ")
     assert "thisisareallylongnamethatshouldbecutshortforthedat" == pvp.journal.clean_cmdr_name("cmdr thisisareallylongnamethatshouldbecutshortforthedatabase")
+
+
+def test_clean_died_killers():
+    data = {
+        'Killers': [
+            {'Name': '$ShipName_Police_Independent'},
+            {'Name': '$ShipName_Police_Independent'},
+            {'Name': 'CMDR Ruin'},
+        ]
+    }
+    data = pvp.journal.clean_died_killers(data)
+    assert [x['Name'] for x in data['Killers']] == ['CMDR Ruin']
+
+    data = {
+        'KillerName': '$ShipName_Police_Indepenent', 'KillerShip': 'Python',
+
+    }
+    data = pvp.journal.clean_died_killers(data)
+    assert not [x['Name'] for x in data['Killers']]
+
+    data = {
+        'KillerName': 'CMDR Ruin', 'KillerShip': 'Python',
+    }
+    data = pvp.journal.clean_died_killers(data)
+    assert [x['Name'] for x in data['Killers']] == ['CMDR Ruin']
