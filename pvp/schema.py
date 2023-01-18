@@ -702,7 +702,7 @@ def get_pvp_event_cmdrs(eddb_session, *, cmdr_id):
         result = eddb_session.query(PVPKill.victim_name, count).\
             filter(PVPKill.cmdr_id == cmdr_id).\
             group_by(PVPKill.victim_name).\
-            order_by(count.desc()).\
+            order_by(count.desc(), PVPKill.id.desc()).\
             limit(1).\
             one()[0]
     except sqla.exc.NoResultFound:
@@ -714,7 +714,7 @@ def get_pvp_event_cmdrs(eddb_session, *, cmdr_id):
             filter(PVPDeath.cmdr_id == cmdr_id).\
             join(PVPDeath, PVPDeath.id == PVPDeathKiller.pvp_death_id).\
             group_by(PVPDeathKiller.name).\
-            order_by(count.desc()).\
+            order_by(count.desc(), PVPDeath.id.desc()).\
             limit(1).\
             one()[0]
     except sqla.exc.NoResultFound:
@@ -725,7 +725,7 @@ def get_pvp_event_cmdrs(eddb_session, *, cmdr_id):
         result = eddb_session.query(PVPInterdiction.victim_name, count).\
             filter(PVPInterdiction.cmdr_id == cmdr_id).\
             group_by(PVPInterdiction.victim_name).\
-            order_by(count.desc()).\
+            order_by(count.desc(), PVPInterdiction.id.desc()).\
             limit(1).\
             one()[0]
     except sqla.exc.NoResultFound:
@@ -736,7 +736,7 @@ def get_pvp_event_cmdrs(eddb_session, *, cmdr_id):
         result = eddb_session.query(PVPInterdicted.interdictor_name, count).\
             filter(PVPInterdicted.cmdr_id == cmdr_id).\
             group_by(PVPInterdicted.interdictor_name).\
-            order_by(count.desc()).\
+            order_by(count.desc(), PVPInterdicted.id.desc()).\
             limit(1).\
             one()[0]
     except sqla.exc.NoResultFound:
@@ -821,7 +821,7 @@ def update_pvp_stats(eddb_session, *, cmdr_id):
         result = eddb_session.query(PVPKill.system_id, count_system_id).\
             filter(PVPKill.cmdr_id == cmdr_id).\
             group_by(PVPKill.system_id).\
-            order_by(count_system_id.desc()).\
+            order_by(count_system_id.desc(), PVPKill.id.desc()).\
             limit(1).\
             one()[0]
     except sqla.exc.NoResultFound:
@@ -832,7 +832,7 @@ def update_pvp_stats(eddb_session, *, cmdr_id):
         result = eddb_session.query(PVPDeath.system_id, count_system_id).\
             filter(PVPDeath.cmdr_id == cmdr_id).\
             group_by(PVPDeath.system_id).\
-            order_by(count_system_id.desc()).\
+            order_by(count_system_id.desc(), PVPDeath.id.desc()).\
             limit(1).\
             one()[0]
     except sqla.exc.NoResultFound:

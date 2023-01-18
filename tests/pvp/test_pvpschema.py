@@ -124,7 +124,7 @@ Most Deaths By        | CMDR BadGuyWon
 Most Interdictions    | CMDR LeSuck
 Most Interdicted By   | CMDR BadGuyWon
 Most Kills In         | Anja
-Most Deaths In        | Anja
+Most Deaths In        | Anjana
 Last Location         | Anja (2022-12-21 20:42:57)
 Last Kill             | CMDR LeSuck (2022-12-21 20:43:01)
 Last Death By         | CMDR BadGuyWon (Python) (2022-12-21 20:42:59)
@@ -159,7 +159,7 @@ def test_pvpstat_embed_values(f_pvp_testbed, eddb_session):
         {'inline': True, 'name': 'Most Interdictions', 'value': 'CMDR LeSuck'},
         {'inline': True, 'name': 'Most Interdicted By', 'value': 'CMDR BadGuyWon'},
         {'inline': True, 'name': 'Most Kills In', 'value': 'Anja'},
-        {'inline': True, 'name': 'Most Deaths In', 'value': 'Anja'},
+        {'inline': True, 'name': 'Most Deaths In', 'value': 'Anjana'},
         {'inline': True, 'name': 'Last Location', 'value': 'Anja (2022-12-21 20:42:57)'},
         {'inline': True, 'name': 'Last Kill', 'value': 'CMDR LeSuck (2022-12-21 20:43:01)'},
         {'inline': True, 'name': 'Last Death By', 'value': 'CMDR BadGuyWon (Python) (2022-12-21 20:42:59)'},
