@@ -133,7 +133,7 @@ class PVPKill(ReprMixin, TimestampMixin, EventTimeMixin, Base):
 
     def embed(self):
         """ Short string representation for embed. """
-        return f'{self.victim_name} ({self.event_date})'
+        return f'CMDR {self.victim_name} ({self.event_date})'
 
     def __str__(self):
         """ Show PVPKill information. """
@@ -271,7 +271,7 @@ class PVPInterdiction(ReprMixin, TimestampMixin, EventTimeMixin, Base):
 
     def embed(self):
         """ Short string representation for embed. """
-        return f'{self.victim_name} ({self.event_date})'
+        return f'CMDR {self.victim_name} ({self.event_date})'
 
     def __str__(self):
         """ Show a single interdiction by the cmdr. """
@@ -371,7 +371,7 @@ class PVPInterdicted(ReprMixin, TimestampMixin, EventTimeMixin, Base):
 
     def embed(self):
         """ Short string representation for embed. """
-        return f'{self.interdictor_name} ({self.event_date})'
+        return f'CMDR {self.interdictor_name} ({self.event_date})'
 
     def __str__(self):
         """ Show a single time cmdr was interdicted by another. """
@@ -536,16 +536,17 @@ class PVPStat(ReprMixin, TimestampMixin, UpdatableMixin, Base):
         return [
             ['Kills', str(self.kills)],
             ['Deaths', str(self.deaths)],
+            ['K/D', str(self.kill_ratio)],
             ['Interdictions', str(self.interdictions)],
             ['Interdiction -> Kill', str(self.interdiction_kills)],
             ['Interdiction -> Death', str(self.interdiction_deaths)],
             ['Interdicteds', str(self.interdicteds)],
             ['Interdicted -> Kill', str(self.interdicted_kills)],
             ['Interdicted -> Death', str(self.interdicted_deaths)],
-            ['Most Kills', self.killed_most],
-            ['Most Deaths By', self.most_deaths_by],
-            ['Most Interdictions', self.most_interdictions],
-            ['Most Interdicted By', self.most_interdicted_by],
+            ['Most Kills', f'CMDR {self.killed_most}'],
+            ['Most Deaths By', f'CMDR {self.most_deaths_by}'],
+            ['Most Interdictions', f'CMDR {self.most_interdictions}'],
+            ['Most Interdicted By', f'CMDR {self.most_interdicted_by}'],
             ['Most Kills In', self.most_kills_system.name if self.most_kills_system else 'N/A'],
             ['Most Deaths In', self.most_deaths_system.name if self.most_deaths_system else 'N/A'],
             ['Last Location', self.last_location.embed() if self.last_location else 'N/A'],
