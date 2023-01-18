@@ -1014,6 +1014,7 @@ def main():  # pragma: no cover
         print(kill.event_date)
         death = eddb_session.query(PVPDeath).filter(PVPDeath.id == 1).one()
         print(death.killers)
+        empty_tables()
 
 
 PVP_TABLES = [
