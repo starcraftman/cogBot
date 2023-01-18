@@ -456,22 +456,22 @@ class Parser():
             result: The parsed database object.
         """
         # Link events that were connected for later statistics
-        if event == 'PVPKill' and self.data.get('Interdiction') and\
+        if result and event == 'PVPKill' and self.data.get('Interdiction') and\
                 result.victim_name == self.data['Interdiction'].victim_name and\
                 result.event_at >= self.data['Interdiction'].event_at:
             link_interdiction_to_kill(self.eddb_session, self.data['Interdiction'], result)
 
-        elif event == 'Died' and self.data.get('Interdiction') and\
+        elif result and event == 'Died' and self.data.get('Interdiction') and\
                 result.killed_by(self.data['Interdiction'].victim_name) and\
                 result.event_at >= self.data['Interdiction'].event_at:
             link_interdiction_to_death(self.eddb_session, self.data['Interdiction'], result)
 
-        elif event == 'PVPKill' and self.data.get('Interdicted') and\
+        elif result and event == 'PVPKill' and self.data.get('Interdicted') and\
                 result.victim_name == self.data['Interdicted'].interdictor_name and\
                 result.event_at >= self.data['Interdicted'].event_at:
             link_interdicted_to_kill(self.eddb_session, self.data['Interdicted'], result)
 
-        elif event == 'Died' and self.data.get('Interdicted') and\
+        elif result and event == 'Died' and self.data.get('Interdicted') and\
                 result.killed_by(self.data['Interdicted'].interdictor_name) and\
                 result.event_at >= self.data['Interdicted'].event_at:
             link_interdicted_to_death(self.eddb_session, self.data['Interdicted'], result)

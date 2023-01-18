@@ -461,3 +461,18 @@ async def test_extracted_archive_async(f_test_zip):
 def test_extracted_archive(f_test_zip):
     with cog.util.extracted_archive(f_test_zip) as logs:
         assert ['first.log', 'second.log', 'third.log'] == sorted([x.name for x in logs])
+
+
+@pytest.mark.asyncio
+async def test_is_log_file_async(f_test_zip):
+    assert not await cog.util.is_log_file_async(f_test_zip)
+
+    with tempfile.NamedTemporaryFile() as tfile:
+        tfile.write(b'This is a text file.')
+        tfile.flush()
+        assert not await cog.util.is_log_file_async(tfile.name)
+
+    with tempfile.NamedTemporaryFile() as tfile:
+        tfile.write(b'{ "timestamp":"2016-06-10T14:31:00Z", "event":"FileHeader", "part":1, "gameversion":"2.2", "build":"r113684 " }, { "timestamp":"2016-06-10T14:32:03Z", "event":"LoadGame", "Commander":"HRC1", "Ship":"SideWinder", "ShipID":1, "GameMode":"Open", "Credits":600120, "Loan":0 }')
+        tfile.flush()
+        assert not await cog.util.is_log_file_async(tfile.name)

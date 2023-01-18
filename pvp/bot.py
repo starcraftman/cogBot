@@ -131,11 +131,14 @@ class PVPBot(CogBot):  # pragma: no cover
                         except zipfile.BadZipfile:
                             await self.send_message(msg.channel, f'Error unzipping {attach.filename}, please check archive.')
 
-                    else:
+                    elif await cog.util.is_log_file_async(tfile.name):
                         await pvp.actions.process_logs(
                             eddb_session, [pathlib.Path(tfile.name)],
                             client=self, msg=msg, archive=tfile.name, orig_filename=attach.filename
                         )
+
+                    else:
+                        await self.send_message(msg.channel, "File not recognized. Please upload a zip of logs or individual player journals.")
 
     async def on_message(self, message):
         """

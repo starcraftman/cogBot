@@ -110,6 +110,9 @@ class Admin(PVPAction):
                             try:
                                 async with cog.util.extracted_archive_async(tfile.name) as logs:
                                     for log in logs:
+                                        if not await cog.util.is_log_file_async(log.name):  # Ignore non valid logs
+                                            continue
+
                                         events += [f'\nFile: {log.name}']
                                         events += await asyncio.get_event_loop().run_in_executor(
                                             pool, parse_in_process, log, discord_id,
@@ -117,11 +120,14 @@ class Admin(PVPAction):
                             except zipfile.BadZipfile:
                                 await self.send_message(msg.channel, f'Error unzipping {attach.filename}, please check archive.')
 
-                        else:
+                        elif await cog.util.is_log_file_async(tfile.name):
                             events += [f'\nFile: {attach.filename}']
                             events += await asyncio.get_event_loop().run_in_executor(
                                 pool, parse_in_process, tfile.name, discord_id,
                             )
+
+                        else:
+                            self.log.error("Regenerate: Invalid file %s", attach.filename)
 
             with tempfile.NamedTemporaryFile(mode='w') as tfile:
                 async with aiofiles.open(tfile.name, 'w', encoding='utf-8') as aout:

@@ -817,6 +817,26 @@ async def is_zipfile_async(fname):
         return await asyncio.get_event_loop().run_in_executor(pool, is_zipfile, fname)
 
 
+async def is_log_file_async(fname):
+    """
+    Is the file a player journal?
+
+    Args:
+        fname: The filename.
+
+    Returns: A boolean.
+    """
+    try:
+        async with aiofiles.open(fname, 'r', encoding='utf-8') as fin:
+            line = (await fin.readline()).strip()
+            datas = json.loads(f'[ {line} ] ')
+            return 'Fileheader' == datas[0]['event']
+    except (KeyError, UnicodeDecodeError, json.decoder.JSONDecodeError):
+        pass
+
+    return False
+
+
 def extract_zipfile(fname, extract_to, glob_pat):
     """
     Extract a zipfile to a given path, then glob against the files.
