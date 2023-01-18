@@ -4,7 +4,9 @@ Tests for pvp.journal
 """
 import os
 import json
+import tempfile
 
+import aiofiles
 import pytest
 
 import cog.util
@@ -253,3 +255,12 @@ def test_clean_died_killers():
     }
     data = pvp.journal.clean_died_killers(data)
     assert [x['Name'] for x in data['Killers']] == ['CMDR Ruin']
+
+
+@pytest.mark.asyncio
+async def test_prefilter_log():
+    with tempfile.NamedTemporaryFile() as tfile:
+        await pvp.journal.prefilter_log(JOURNAL_PATH, tfile.name)
+        async with aiofiles.open(tfile.name, 'r', encoding='utf-8') as fin:
+            async for line in fin:
+                assert '"event":"Scan"' not in line

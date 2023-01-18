@@ -9,6 +9,7 @@ Reference:
 import datetime
 import json
 import logging
+import re
 
 import aiofiles
 import sqlalchemy as sqla
@@ -23,6 +24,10 @@ import pvp.schema
 
 COMBAT_RANK_TO_VALUE = {x: ind for ind, x in enumerate(cog.inara.COMBAT_RANKS)}
 VALUE_TO_COMBAT_RANK = {y: x for x, y in COMBAT_RANK_TO_VALUE.items()}
+PARSED_EVENTS = [
+    'FileHeader', 'Location', 'FSDJump', 'SupercruiseEntry', 'SupercruiseExit',
+    'PVPKill', 'Died', 'Interdiction', 'Interdicted'
+]
 
 
 class ParserError(Exception):
@@ -526,6 +531,32 @@ async def find_cmdr_name(fname):
                 logging.getLogger(__name__).error("Impossible to parse: %s", line)
 
     return None
+
+
+async def prefilter_log(fname, output, *, events=None):
+    """
+    Prefilter a log file to retain only those
+
+    Args:
+        fname: The filename to filter.
+        output: The output file to write to.
+        events: A list of strings, the names of events to look for.
+
+    Returns: The name of the file output.
+    """
+    if not events:
+        events = PARSED_EVENTS
+
+    events_str = '|'.join(events)
+    rex = re.compile(f'event":"({events_str})"')
+
+    async with aiofiles.open(fname, 'r', encoding='utf-8') as fin,\
+            aiofiles.open(output, 'w', encoding='utf-8') as fout:
+        async for line in fin:
+            if rex.search(line):
+                await fout.write(line)
+
+    return output
 
 
 def clean_cmdr_name(name):
