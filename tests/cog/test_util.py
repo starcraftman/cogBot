@@ -406,26 +406,6 @@ def test_clean_fname():
     assert 'cmdr++t7+++test5+' == cog.util.clean_fname('cmdr/\\t7><:test5\0', replacement='+')
 
 
-@pytest.fixture
-def f_test_zip():
-    """
-    Create a test zip with fake player logs and text files.
-    Don't try to parse the log files.
-    """
-    pat = pathlib.Path(tempfile.mkdtemp())
-    archive = pathlib.Path(pat.parent.joinpath(pat.name + '.zip'))
-    try:
-        for fname in ['first.log', 'second.log', 'third.log', 'test.txt', 'works.fine']:
-            with open(pat.joinpath(fname), 'wb') as fout:
-                fout.write(b'This is a test file.')
-        shutil.make_archive(pat, 'zip', pat.parent, pat.name)
-
-        yield archive
-    finally:
-        shutil.rmtree(pat)
-        os.remove(archive)
-
-
 def test_is_zipfile(f_test_zip):
     assert cog.util.is_zipfile(f_test_zip)
     with tempfile.NamedTemporaryFile() as tfile:

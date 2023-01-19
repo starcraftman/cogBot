@@ -41,11 +41,16 @@ def subs_admin(subs, prefix):
         Add GearsandCogs to the admin group.
 **{prefix}admin remove @GearsandCogs**
         Remove GearsandCogs from the admin group.
+**{prefix}admin filter**
+        Rerun the filtering stage on all past uploads.
+        Filtered versions of uploads will be created and uploaded to archive channel.
 **{prefix}admin regenerate**
         Use only when log corruption expected or change in log parsing.
         Reparses all uploaded logs to regenerate database.
 **{prefix}admin stats**
         Recreate the pvp stats table and recompute all stats.
+**{prefix}admin prune**
+        Delete all messages in mentioned channels.
     """
     sub = subs.add_parser(prefix + 'admin', description=desc, formatter_class=RawHelp)
     sub.set_defaults(cmd='Admin')
@@ -56,8 +61,10 @@ def subs_admin(subs, prefix):
     subcmd.add_argument('rule_cmds', nargs='*', help='The the command to restrict.')
     subcmd = subcmds.add_parser('remove', help='Remove an admin or permission.')
     subcmd.add_argument('rule_cmds', nargs='*', help='The the command to restrict.')
+    subcmd = subcmds.add_parser('filter', help='Filter all existing log uploads for events of interest.')
     subcmd = subcmds.add_parser('regenerate', help='Regenerate the PVP database.')
-    subcmd = subcmds.add_parser('stats', help='Regenerate the PVPStats for cmdrs.')
+    subcmd = subcmds.add_parser('stats', help='Regenerate the PVPStats for all CMDRs.')
+    subcmd = subcmds.add_parser('prune', help='Delete messages in one or more mentioned channels.')
 
 
 @register_parser

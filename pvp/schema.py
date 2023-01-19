@@ -573,15 +573,18 @@ class PVPLog(ReprMixin, TimestampMixin, Base):
     Table to store hashes of uploaded logs or zip files.
     """
     __tablename__ = 'pvp_logs'
-    _repr_keys = ['id', 'cmdr_id', 'func_used', 'file_hash', 'filename', 'msg_id', 'updated_at']
+    _repr_keys = ['id', 'cmdr_id', 'func_used', 'file_hash',
+                  'filename', 'msg_id', 'filtered_filename', 'filtered_msg_id', 'updated_at']
 
     id = sqla.Column(sqla.BigInteger, primary_key=True)
     cmdr_id = sqla.Column(sqla.BigInteger, sqla.ForeignKey('pvp_cmdrs.id'))
 
     func_used = sqla.Column(sqla.Integer, default=0)  # See PVP_HASH_FUNCS
-    file_hash = sqla.Column(sqla.String(EDDB_LEN['pvp_hash']))
+    file_hash = sqla.Column(sqla.String(EDDB_LEN['pvp_hash']), index=True)
     filename = sqla.Column(sqla.String(EDDB_LEN['pvp_fname']))  # This is the actual name of the file in msg.attachements
     msg_id = sqla.Column(sqla.BigInteger)  # This is the message in archive channel
+    filtered_filename = sqla.Column(sqla.String(EDDB_LEN['pvp_fname'] + 6))  # This is the actual name of the file in msg.attachements
+    filtered_msg_id = sqla.Column(sqla.BigInteger)  # This is the message in archive channel
     updated_at = sqla.Column(sqla.Integer, default=time.time, onupdate=time.time)
 
     cmdr = sqla.orm.relationship('PVPCmdr', viewonly=True)

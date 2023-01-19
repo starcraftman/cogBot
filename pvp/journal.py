@@ -6,12 +6,18 @@ Provide ability to read, parse and insert events into the database.
 Reference:
     https://edcodex.info/?m=doc
 """
+import asyncio
 import datetime
+import functools
 import json
 import logging
+import pathlib
 import re
+import shutil
+import zipfile
 
 import aiofiles
+import discord
 import sqlalchemy as sqla
 
 import cogdb
@@ -19,7 +25,7 @@ import cogdb.eddb
 from cogdb.eddb import LEN as EDDB_LEN
 from cogdb.spy_squirrel import ship_type_to_id_map
 import cog.inara
-from cog.util import TIME_STRP
+from cog.util import TIME_STRP, DISCORD_RATE_LIMIT
 import pvp.schema
 
 COMBAT_RANK_TO_VALUE = {x: ind for ind, x in enumerate(cog.inara.COMBAT_RANKS)}
@@ -379,7 +385,7 @@ def datetime_to_tstamp(date_string):
         raise
 
 
-def get_parser(data):
+def get_event_parser(data):
     """
     Lookup the required parser for a given event in the data.
 
@@ -430,7 +436,7 @@ class Parser():
                     'cmdr_id': self.cmdr_id,
                     'system_id': self.data['Location'].system_id if self.data.get('Location') else None,
                 })
-                event, parser = get_parser(loaded)
+                event, parser = get_event_parser(loaded)
 
                 # If a CMDR supercruises away reset events tracking, still same location
                 if event == 'SupercruiseEntry':
@@ -533,16 +539,17 @@ async def find_cmdr_name(fname):
     return None
 
 
-async def prefilter_log(fname, output, *, events=None):
+def filter_log(fname, output, *, events=None):
     """
-    Prefilter a log file to retain only those
+    filter a log file to retain only those events required.
+    Preserve the order of the events of original while writing matching lines to output.
 
     Args:
-        fname: The filename to filter.
-        output: The output file to write to.
+        fname: The pathlib.Path filename to filter.
+        output: The pathlib.Path output file to write to.
         events: A list of strings, the names of events to look for.
 
-    Returns: The name of the file output.
+    Returns: The filename of the filtered log.
     """
     if not events:
         events = PARSED_EVENTS
@@ -550,13 +557,110 @@ async def prefilter_log(fname, output, *, events=None):
     events_str = '|'.join(events)
     rex = re.compile(f'event":"({events_str})"')
 
-    async with aiofiles.open(fname, 'r', encoding='utf-8') as fin,\
-            aiofiles.open(output, 'w', encoding='utf-8') as fout:
-        async for line in fin:
+    with open(fname, 'r', encoding='utf-8') as fin, open(output, 'w', encoding='utf-8') as fout:
+        for line in fin:
             if rex.search(line):
-                await fout.write(line)
+                fout.write(line)
 
     return output
+
+
+def filter_archive(fname, *, output_d, orig_fname, events=None):
+    """
+    filter a zipfile to retain only those events required.
+    Preserve the order of the events of original while writing matching lines to output.
+    The archive will be created as output, containing all the original files filtered.
+
+    Args:
+        fname: The zipfile to filter.
+        output_d: The output filename archive name to write to.
+        orig_name: The original name of the zipfile.
+        events: A list of strings, the names of events to look for.
+
+    Returns: The filename of the new filtered archive.
+    """
+    new_archive = None
+    try:
+        dest = output_d / orig_fname.replace('.zip', '.filter')
+        dest.mkdir()
+        with cog.util.extracted_archive(fname) as logs:
+            for log in logs:
+                if cog.util.is_log_file(log):  # Ignore non valid logs
+                    filtered_fname = dest / log.name.replace('.log', '.filter.log')
+                    filter_log(log, filtered_fname, events=events)
+        shutil.make_archive(dest, 'zip', dest.parent, dest.name)
+        shutil.rmtree(dest)
+        new_archive = f'{dest}.zip'
+
+    except (zipfile.BadZipfile, OSError):
+        pass
+
+    return new_archive
+
+
+async def filter_tempfile(*, pool, dest_dir, tfile, attach):
+    """
+    filter the tempfile, depending on what is in the attachment.
+    Handles both zipfiles and normal text logfiles.
+
+    Args:
+        pool: A ProcessPoolExecutor.
+        dest_dir: The destination directory holding all filtered logs.
+        tfile: The tempfile storing the log file or archive to filter.
+        attach: The actual discord.Attachment object.
+
+    Raises:
+        pvp.journal.ParserError - The saved attachment is not supported.
+
+    Returns: A coro if one was started to process an archive. Otherwise None.
+    """
+    func = None
+    if await cog.util.is_log_file_async(tfile.name):
+        func = functools.partial(
+            filter_log,
+            tfile.name, dest_dir / attach.filename.replace('.log', '.filter.log')
+        )
+
+    elif await cog.util.is_zipfile_async(tfile.name):
+        func = functools.partial(
+            filter_archive,
+            tfile.name, output_d=dest_dir, orig_fname=attach.filename
+        )
+
+    else:
+        raise pvp.journal.ParserError(f"Unsupported file uploaded. Please try zip or log file. You uploaded: {attach.filename}")
+
+    return asyncio.get_event_loop().run_in_executor(pool, func)
+
+
+async def upload_filtered_logs(filtered_logs, *, log_chan):
+    """
+    Upload the generated filter file to the log channel.
+    If existing filtered files are already set in the database, delete and nullify those.
+
+    Args:
+        filtered_logs: A list of form [[PVPLog, coro], ...].
+                       The coro is the result of filter_tempfile and result returns the new filtered fname.
+        log_chan: The log channel to push the filtered logs to.
+    """
+    for pvp_cmdr, pvp_log, coro in filtered_logs:
+        filtered_fname = pathlib.Path(coro.result())
+        if pvp_log.filtered_msg_id:
+            try:
+                msg = await log_chan.fetch_message(pvp_log.filtered_msg_id)
+                await msg.delete()
+            except (discord.NotFound, discord.Forbidden):
+                pass
+            pvp_log.filtered_msg_id = None
+            pvp_log.filtered_fname = None
+
+        if filtered_fname.stat().st_size:
+            msg = await log_chan.send(f"Discord ID: {pvp_cmdr.id}\nCMDR: {pvp_cmdr.name}",
+                                      file=discord.File(fp=filtered_fname))
+            pvp_log.filtered_fname = filtered_fname
+            pvp_log.filtered_msg_id = msg.id
+
+        await asyncio.sleep(DISCORD_RATE_LIMIT)
 
 
 def clean_cmdr_name(name):

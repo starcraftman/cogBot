@@ -5,7 +5,10 @@ Used for pytest fixtures and anything else test setup/teardown related.
 import copy
 import datetime
 import os
+import pathlib
+import shutil
 import sys
+import tempfile
 
 import aiofiles
 import aiomock
@@ -977,3 +980,23 @@ def f_pvp_testbed(f_spy_ships, eddb_session):
 
     yield
     pvp.schema.empty_tables()
+
+
+@pytest.fixture
+def f_test_zip():
+    """
+    Create a test zip with fake player logs and text files.
+    Don't try to parse the log files.
+    """
+    pat = pathlib.Path(tempfile.mkdtemp())
+    archive = pathlib.Path(pat.parent.joinpath(pat.name + '.zip'))
+    try:
+        for fname in ['first.log', 'second.log', 'third.log', 'test.txt', 'works.fine']:
+            with open(pat.joinpath(fname), 'wb') as fout:
+                fout.write(b'This is a test file.')
+        shutil.make_archive(pat, 'zip', pat.parent, pat.name)
+
+        yield archive
+    finally:
+        shutil.rmtree(pat)
+        os.remove(archive)

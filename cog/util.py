@@ -65,6 +65,7 @@ FNAME_FORBIDDEN = [
     '/', '\\', '<', '>', ':', '-', '|', '?', '*', '\0',
     '[', ']', '(', ')', '{', '}',
 ]
+DISCORD_RATE_LIMIT = 2  # Seconds
 
 
 class ReprMixin():
@@ -817,7 +818,7 @@ async def is_zipfile_async(fname):
         return await asyncio.get_event_loop().run_in_executor(pool, is_zipfile, fname)
 
 
-async def is_log_file_async(fname):
+def is_log_file(fname):
     """
     Is the file a player journal?
 
@@ -827,14 +828,27 @@ async def is_log_file_async(fname):
     Returns: A boolean.
     """
     try:
-        async with aiofiles.open(fname, 'r', encoding='utf-8') as fin:
-            line = (await fin.readline()).strip()
+        with open(fname, 'r', encoding='utf-8') as fin:
+            line = fin.readline().strip()
             datas = json.loads(f'[ {line} ] ')
             return 'Fileheader' == datas[0]['event']
-    except (KeyError, UnicodeDecodeError, json.decoder.JSONDecodeError):
+    except (IndexError, KeyError, UnicodeDecodeError, json.decoder.JSONDecodeError):
         pass
 
     return False
+
+
+async def is_log_file_async(fname):
+    """
+    Is the file a player journal?
+
+    Args:
+        fname: The filename.
+
+    Returns: A boolean.
+    """
+    with cfut.ProcessPoolExecutor(max_workers=1) as pool:
+        return await asyncio.get_event_loop().run_in_executor(pool, is_log_file, fname)
 
 
 def extract_zipfile(fname, extract_to, glob_pat):

@@ -7,6 +7,9 @@ import datetime
 import tempfile
 import functools
 import logging
+import os
+import pathlib
+import shutil
 import traceback
 import zipfile
 
@@ -75,6 +78,86 @@ class Admin(PVPAction):
 
         return response
 
+    async def prune(self):
+        """
+        Prune all messages from a mentioned channel.
+        """
+        for chan in self.msg.channel_mentions:
+            await self.msg.channel.send(f"Please confirm channel pruning {chan.name}. Y/N")
+            resp = await self.bot.wait_for(
+                'message',
+                check=lambda m: m.author == self.msg.author and m.channel == self.msg.channel,
+                timeout=30
+            )
+
+            if resp.content.lower().startswith('y'):
+                await self.msg.channel.send("Carrying out prune, limiting deletions to 1 per 2s.")
+                try:
+                    async for msg in chan.history(limit=100000):
+                        await msg.delete()
+                        await asyncio.sleep(cog.util.DISCORD_RATE_LIMIT)
+                except discord.Forbidden:
+                    await self.msg.channel.send("Likely missing perms for channel, need manage messages and read history.")
+                except discord.NotFound:
+                    pass
+
+        await self.msg.channel.send("All prune operations completed.")
+
+    async def filter(self):  # pragma: no cover, too costly to run live
+        """
+        Regenerate just the stats given the current set of events.
+        """
+        filter_dir = pathlib.Path(tempfile.mkdtemp(suffix='filter'))
+        down_dir = tempfile.mkdtemp(suffix='downs')
+        print('Temp downloads and destination.', down_dir, filter_dir)
+
+        log_chan = self.msg.guild.get_channel(cog.util.CONF.channels.pvp_log)
+        coros, to_clean, upload_stage = [], [], []
+        try:
+            with cfut.ProcessPoolExecutor(max_workers=10) as pool:
+                async for msg in log_chan.history(limit=100000, oldest_first=True):
+                    if not msg.content.startswith('Discord ID'):
+                        continue
+
+                    discord_id = int(msg.content.split('\n')[0].replace('Discord ID: ', ''))
+                    cmdr = pvp.schema.get_pvp_cmdr(self.eddb_session, cmdr_id=discord_id)
+                    if not cmdr:  # If you don't have the pvp_cmdr, fill it
+                        cmdr_name = msg.content.split('\n')[1].replace('CMDR: ', '')
+                        cmdr = pvp.schema.add_pvp_cmdr(self.eddb_session, discord_id, cmdr_name, None)
+
+                    for attach in msg.attachments:
+                        with tempfile.NamedTemporaryFile(dir=down_dir, delete=False) as tfile:
+                            to_clean += [tfile.name]
+                            await attach.save(tfile.name)
+                            tfile.close()
+                            print(f'Parsing: {attach.filename}')
+
+                            # Ensure log exists
+                            pvp_log = await pvp.schema.add_pvp_log(self.eddb_session, tfile.name, cmdr_id=cmdr.id)
+                            pvp_log.filename = attach.filename
+                            pvp_log.msg_id = msg.id
+
+                            try:
+                                coro = await pvp.journal.filter_tempfile(
+                                    pool=pool, dest_dir=filter_dir,
+                                    tfile=tfile, attach=attach
+                                )
+                                coros += [coro]
+                                upload_stage += [[cmdr, pvp_log, coro]]
+                            except pvp.journal.ParserError as exc:
+                                await self.msg.channel.send(str(exc))
+
+                await asyncio.wait(coros)
+
+                filter_chan = self.msg.guild.get_channel(cog.util.CONF.channels.pvp_filter)
+                await pvp.journal.upload_filtered_logs(upload_stage, log_chan=filter_chan)
+
+        finally:
+            shutil.rmtree(down_dir)
+            shutil.rmtree(filter_dir)
+
+        return f"Filtered: {len(to_clean)} files in {filter_dir}."
+
     async def regenerate(self):  # pragma: no cover, don't hit the guild repeatedly
         """
         Regenerate the PVP database by reparsing logs.
@@ -89,10 +172,10 @@ class Admin(PVPAction):
         pvp.schema.recreate_tables(keep_cmdrs=True)
 
         # Channel archiving pvp logs
-        log_chan = self.msg.guild.get_channel(cog.util.CONF.channels.pvp_log)
+        filter_chan = self.msg.guild.get_channel(cog.util.CONF.channels.pvp_filter)
         events = []
         try:
-            async for msg in log_chan.history(limit=1000000, oldest_first=True):
+            async for msg in filter_chan.history(limit=1000000, oldest_first=True):
                 if not msg.content.startswith('Discord ID'):
                     continue
 
@@ -100,7 +183,7 @@ class Admin(PVPAction):
                 cmdr = pvp.schema.get_pvp_cmdr(self.eddb_session, cmdr_id=discord_id)
                 if not cmdr:  # If you don't have the pvp_cmdr, fill it
                     cmdr_name = msg.content.split('\n')[1].replace('CMDR: ', '')
-                    pvp.schema.add_pvp_cmdr(self.eddb_session, discord_id, cmdr_name, None)
+                    cmdr = pvp.schema.add_pvp_cmdr(self.eddb_session, discord_id, cmdr_name, None)
 
                 with tempfile.NamedTemporaryFile() as tfile, cfut.ProcessPoolExecutor(max_workers=1) as pool:
                     for attach in msg.attachments:
@@ -118,7 +201,7 @@ class Admin(PVPAction):
                                             pool, parse_in_process, log, discord_id,
                                         )
                             except zipfile.BadZipfile:
-                                await self.send_message(msg.channel, f'Error unzipping {attach.filename}, please check archive.')
+                                await self.bot.send_message(msg.channel, f'Error unzipping {attach.filename}, please check archive.')
 
                         elif await cog.util.is_log_file_async(tfile.name):
                             events += [f'\nFile: {attach.filename}']
@@ -139,7 +222,7 @@ class Admin(PVPAction):
 
         except discord.Forbidden as exc:
             logging.getLogger(__name__).error('Discord error: %s', exc)
-            response = f"Missing message history permission on: {log_chan.name} on {log_chan.guild.name}"
+            response = f"Missing message history permission on: {filter_chan.name} on {filter_chan.guild.name}"
         except discord.HTTPException:
             response = "Received HTTP Error, may be intermittent issue. Investigate."
 
@@ -436,11 +519,10 @@ async def archive_log(eddb_session, *, msg, cmdr, fname):
         return False
 
     pvp_log.filename = filename_for_upload(cmdr.name, id_num=pvp_log.id, archive=cog.util.is_zipfile(fname))
-    with open(fname, 'rb') as fin:
-        log_chan = cog.util.BOT.get_channel(cog.util.CONF.channels.pvp_log)
-        msg = await log_chan.send(f"Discord ID: {cmdr.id}\nCMDR: {cmdr.name}",
-                                  file=discord.File(fin, filename=pvp_log.filename))
-        pvp_log.msg_id = msg.id
+    log_chan = cog.util.BOT.get_channel(cog.util.CONF.channels.pvp_log)
+    msg = await log_chan.send(f"Discord ID: {cmdr.id}\nCMDR: {cmdr.name}",
+                              file=discord.File(fp=fname, filename=pvp_log.filename))
+    pvp_log.msg_id = msg.id
 
     return True
 

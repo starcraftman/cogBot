@@ -4,6 +4,8 @@ Tests for pvp.journal
 """
 import os
 import json
+import pathlib
+import shutil
 import tempfile
 
 import aiofiles
@@ -209,8 +211,8 @@ def test_journal_parser_parse(f_spy_ships, f_pvp_testbed, eddb_session):
     assert isinstance(results[-1], PVPDeath)
 
 
-def test_get_parser():
-    event, parser = pvp.journal.get_parser({'event': 'Died'})
+def test_get_event_parser():
+    event, parser = pvp.journal.get_event_parser({'event': 'Died'})
     assert event == 'Died'
     assert parser == pvp.journal.parse_died
 
@@ -257,10 +259,27 @@ def test_clean_died_killers():
     assert [x['Name'] for x in data['Killers']] == ['CMDR Ruin']
 
 
-@pytest.mark.asyncio
-async def test_prefilter_log():
+def test_filter_log():
     with tempfile.NamedTemporaryFile() as tfile:
-        await pvp.journal.prefilter_log(JOURNAL_PATH, tfile.name)
-        async with aiofiles.open(tfile.name, 'r', encoding='utf-8') as fin:
-            async for line in fin:
+        pvp.journal.filter_log(JOURNAL_PATH, tfile.name)
+        with open(tfile.name, 'r', encoding='utf-8') as fin:
+            for line in fin:
                 assert '"event":"Scan"' not in line
+
+
+# TODO: FIX by generating input path
+def test_filter_archive():
+    path = pathlib.Path('/tmp/generated')
+    out = path.parent / 'tmpfilter'
+    expect = out / path.name.replace('.zip', '.filter.zip')
+
+    try:
+        try:
+            shutil.rmtree(out)
+        except FileNotFoundError:
+            pass
+        out.mkdir()
+        assert str(expect) == pvp.journal.filter_archive(path, output_d=out, orig_fname=path.name)
+        assert expect.exists()
+    finally:
+        shutil.rmtree(out)
