@@ -153,25 +153,6 @@ def test_filename_for_upload():
     assert fname.endswith('.log')
 
 
-def test_parse_in_process(f_pvp_testbed):
-    first = 'CMDR coolGuy located in Asellus Primus'
-    last = 'CMDR coolGuy was killed by: [CMDR Assisting (Python)'
-    events = pvp.actions.parse_in_process(JOURNAL_PATH, discord_id=1)
-    assert first in events[0]
-    assert last in events[-1]
-
-
-@pytest.mark.asyncio
-async def test_parse_logs(f_bot, f_pvp_testbed, eddb_session):
-    msg = fake_msg_gears('This is a fake file upload.')
-    await pvp.actions.process_logs(eddb_session, [JOURNAL_PATH, JOURNAL_PATH],
-                                   client=f_bot, msg=msg, archive=JOURNAL_PATH, orig_filename='player.log')
-    msg, kwargs = msg.channel.sent_messages[0]
-
-    assert 'Logs parsed. Detailed per file summary attached.' == msg
-    assert 'parsed.log' == kwargs['file'].filename
-
-
 @pytest.mark.asyncio
 async def test_archive_log(f_bot, f_pvp_testbed, eddb_session):
     save_bot = cog.util.BOT

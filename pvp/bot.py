@@ -5,10 +5,10 @@ This is the PVP bot. Everything is started upon main() execution. To invoke from
 See cog.bot for more information.
 """
 import asyncio
+import concurrent.futures as cfut
 import datetime
 import logging
 import os
-import pathlib
 import random
 import re
 import sys
@@ -41,7 +41,6 @@ SYNC_NOTICE = """Synchronizing sheet changes.
 Your command will resume after a short delay of about {} seconds. Thank you for waiting."""
 SYNC_RESUME = """{} Resuming your command:
     **{}**"""
-MAX_FILE_SIZE = 8 * 1024 * 1024
 
 
 class PVPBot(CogBot):  # pragma: no cover
@@ -111,34 +110,12 @@ class PVPBot(CogBot):  # pragma: no cover
         """
         if self.deny_commands:
             await self.send_message(msg.channel, 'Uploads are disabled at this time. Please try again later.')
+            return
 
         with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
-            for attach in msg.attachments:
-                if attach.size > MAX_FILE_SIZE:
-                    await self.send_message(msg.channel, f'Rejecting file {attach.filename}, please upload files < 8MB')
-                    continue
-
-                with tempfile.NamedTemporaryFile() as tfile:
-                    await attach.save(tfile.name)
-
-                    if await cog.util.is_zipfile_async(tfile.name):
-                        try:
-                            async with cog.util.extracted_archive_async(tfile.name) as logs:
-                                await pvp.actions.process_logs(
-                                    eddb_session, list(logs),
-                                    client=self, msg=msg, archive=tfile.name
-                                )
-                        except zipfile.BadZipfile:
-                            await self.send_message(msg.channel, f'Error unzipping {attach.filename}, please check archive.')
-
-                    elif await cog.util.is_log_file_async(tfile.name):
-                        await pvp.actions.process_logs(
-                            eddb_session, [pathlib.Path(tfile.name)],
-                            client=self, msg=msg, archive=tfile.name, orig_filename=attach.filename
-                        )
-
-                    else:
-                        await self.send_message(msg.channel, "File not recognized. Please upload a zip of logs or individual player journals.")
+            await pvp.actions.FileUpload(
+                args=None, bot=self, msg=msg, session=None, eddb_session=eddb_session
+            ).execute()
 
     async def on_message(self, message):
         """

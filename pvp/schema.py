@@ -913,6 +913,20 @@ async def add_pvp_log(eddb_session, fname, *, cmdr_id):
     return pvp_log
 
 
+def get_filtered_pvp_logs(eddb_session):
+    """
+    Get all PVPLogs that have been filtered and have useful information to process.
+
+    Args:
+        eddb_session: A session onto the EDDB db.
+
+    Returns: A list of PVPLogs with filtered files to retrieve.
+    """
+    return eddb_session.query(PVPLog).\
+        filter(PVPLog.filtered_msg_id).\
+        all()
+
+
 def drop_tables(keep_cmdrs=False):  # pragma: no cover | destructive to test
     """
     Drop all tables related to this module.

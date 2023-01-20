@@ -545,8 +545,8 @@ def filter_log(fname, output, *, events=None):
     Preserve the order of the events of original while writing matching lines to output.
 
     Args:
-        fname: The pathlib.Path filename to filter.
-        output: The pathlib.Path output file to write to.
+        fname: The filename to filter.
+        output: Thei output filename to write to.
         events: A list of strings, the names of events to look for.
 
     Returns: The filename of the filtered log.
@@ -655,12 +655,23 @@ async def upload_filtered_logs(filtered_logs, *, log_chan):
             pvp_log.filtered_fname = None
 
         if filtered_fname.stat().st_size:
-            msg = await log_chan.send(f"Discord ID: {pvp_cmdr.id}\nCMDR: {pvp_cmdr.name}",
-                                      file=discord.File(fp=filtered_fname))
+            msg = await log_chan.send(upload_text(pvp_cmdr), file=discord.File(fp=filtered_fname))
             pvp_log.filtered_fname = filtered_fname
             pvp_log.filtered_msg_id = msg.id
 
         await asyncio.sleep(DISCORD_RATE_LIMIT)
+
+
+def upload_text(cmdr):
+    """
+    Generate the message content for an upload of a log.
+
+    Args:
+        cmdr: A PVPCmdr.
+
+    Returns: A string.
+    """
+    return f"Discord ID: {cmdr.id}\nCMDR: {cmdr.name}"
 
 
 def clean_cmdr_name(name):
