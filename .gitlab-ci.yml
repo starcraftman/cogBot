@@ -26,7 +26,7 @@ coverage:
     doppler secrets substitute "tests/secrethub/secretConfig.yml" --output "data/config.yml"
     doppler secrets substitute "tests/secrethub/secretSheets.json" --output "data/service_sheets.json"
     python -m pvp.schema
-    python -m pytest --cov=cog --cov=cogdb
+    python -m pytest --cov=cog --cov=cogdb --cov=pvp
     coveralls || true
 
 tests:
@@ -43,7 +43,7 @@ tests:
     doppler secrets substitute "tests/secrethub/secretConfig.yml" --output "data/config.yml"
     doppler secrets substitute "tests/secrethub/secretSheets.json" --output "data/service_sheets.json"
     python -m pvp.schema
-    python -m pytest --cov=cog --cov=cogdb
+    python -m pytest
 
 # pylint:
   # stage: test

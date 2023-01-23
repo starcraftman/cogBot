@@ -46,6 +46,7 @@ jobs:
         run: |
           doppler secrets substitute "tests/secrethub/secretConfig.yml" --output "data/config.yml"
           doppler secrets substitute "tests/secrethub/secretSheets.json" --output "data/service_sheets.json"
+          python -m pvp.schema
 
       - name: Run unit tests
         env:
