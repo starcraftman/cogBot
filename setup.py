@@ -149,7 +149,7 @@ class Test(Command):
             sub_env = os.environ.copy()
             sub_env['ALL_TESTS'] = 'True'
             os.chdir(ROOT)
-            sub.run(shlex.split('python -m pytest --cov=cog --cov=cogdb'), check=True, env=sub_env)
+            sub.run(shlex.split('python -m pytest --cov=cog --cov=cogdb --cov=pvp'), check=True, env=sub_env)
         finally:
             os.chdir(old_cwd)
 

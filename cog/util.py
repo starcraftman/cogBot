@@ -887,12 +887,11 @@ def extracted_archive(archive, *, glob_pat=None):
     if not glob_pat:
         glob_pat = '**/*.log'
 
+    extract_to = pathlib.Path(tempfile.mkdtemp())
     try:
         archive = pathlib.Path(archive)
         if not archive.exists():
             raise FileNotFoundError(f'Zip archive expected at path: {archive}')
-
-        extract_to = pathlib.Path(tempfile.mkdtemp())
 
         # Yield a list of all found files
         yield extract_zipfile(archive, extract_to, glob_pat)
@@ -924,12 +923,12 @@ async def extracted_archive_async(archive, *, glob_pat=None):
     if not glob_pat:
         glob_pat = '**/*.log'
 
+    extract_to = pathlib.Path(tempfile.mkdtemp())
     try:
         archive = pathlib.Path(archive)
         if not archive.exists():
             raise FileNotFoundError(f'Zip archive expected at path: {archive}')
 
-        extract_to = pathlib.Path(tempfile.mkdtemp())
         with cfut.ProcessPoolExecutor(max_workers=1) as pool:
             # Yield a list of all found files
             yield await asyncio.get_event_loop().\

@@ -454,7 +454,10 @@ class Guild(FakeObject):
         return list(self.mapped.values())
 
     def get_channel(self, channel_id):
-        return [channel for channel in self.channels if channel.id == channel_id][0]
+        try:
+            return [channel for channel in self.channels if channel.id == channel_id][0]
+        except IndexError:
+            return self.channels[0]
 
     def get_role(self, role_id):
         return [role for role in self.roles if role.id == role_id][0]
@@ -964,8 +967,8 @@ def f_pvp_testbed(f_spy_ships, eddb_session):
                        interdictor_name="BadGuyWon", interdictor_rank=7, created_at=PVP_TIMESTAMP, event_at=PVP_TIMESTAMP),
         PVPInterdicted(id=2, cmdr_id=2, is_player=True, did_submit=True, survived=True,
                        interdictor_name="BadGuyWon", interdictor_rank=7, created_at=PVP_TIMESTAMP, event_at=PVP_TIMESTAMP),
-        PVPLog(id=1, cmdr_id=1, file_hash='hash', filename='first.log', msg_id=1, updated_at=PVP_TIMESTAMP),
-        PVPLog(id=2, cmdr_id=2, file_hash='hash2', filename='second.log', msg_id=3, updated_at=PVP_TIMESTAMP + 2),
+        PVPLog(id=1, cmdr_id=1, file_hash='hash', filename='first.log', msg_id=1, filtered_msg_id=10, updated_at=PVP_TIMESTAMP),
+        PVPLog(id=2, cmdr_id=2, file_hash='hash2', filename='second.log', msg_id=3, filtered_msg_id=12, updated_at=PVP_TIMESTAMP + 2),
     ])
     eddb_session.flush()
     eddb_session.add_all([
@@ -990,13 +993,41 @@ def f_test_zip():
     """
     pat = pathlib.Path(tempfile.mkdtemp())
     archive = pathlib.Path(pat.parent.joinpath(pat.name + '.zip'))
+    file_pairs = [
+        ['first.log', [
+            b'{ "timestamp":"2016-06-10T14:31:00Z", "event":"FileHeader", "part":1, "gameversion":"2.2", "build":"r113684 " }, { "timestamp":"2016-06-10T14:32:03Z", "event":"LoadGame", "Commander":"HRC1", "Ship":"SideWinder", "ShipID":1, "GameMode":"Open", "Credits":600120, "Loan":0 }',
+            b'{ "timestamp":"2016-06-10T14:50:00Z", "event":"Interdiction", "Success":true, "Interdicted":"cmdr CanNotShoot", "IsPlayer":true, "CombatRank":5 }',
+            b'{ "timestamp":"2016-06-10T14:55:22Z", "event":"PVPKill", "Victim":"cmdr CanNotShoot", "CombatRank": 5}',
+            b'{ "timestamp":"2016-06-10T14:35:00Z", "event":"FSDJump", "StarSystem":"Rana", "StarPos":[120.250,40.219,268.594], "JumpDist":36.034 }',
+            b'{ "timestamp":"2016-06-10T14:36:10Z", "event":"FSDJump", "StarSystem":"Rhea", "StarPos":[120.719,34.188,271.750], "JumpDist":6.823 }',
+        ]],
+        ['second.log', [
+            b'{ "timestamp":"2016-06-10T14:31:00Z", "event":"FileHeader", "part":1, "gameversion":"2.2", "build":"r113684 " }, { "timestamp":"2016-06-10T14:32:03Z", "event":"LoadGame", "Commander":"HRC1", "Ship":"SideWinder", "ShipID":1, "GameMode":"Open", "Credits":600120, "Loan":0 }',
+            b'{ "timestamp":"2016-06-10T14:38:50Z", "event":"Scan", "BodyName":"Praea Euq NW-W b1-3 3", "Description":"Icy body with neon rich atmosphere and major water geysers volcanism" }',
+            b'{ "timestamp":"2016-06-10T14:39:08Z", "event":"Scan", "BodyName":"Praea Euq NW-W b1-3 3 a", "Description":"Tidally locked Icy body" }',
+            b'{ "timestamp":"2016-06-10T14:41:29Z", "event":"Docked", "StationName":"Beagle 2 Landing", "StationType":"Coriolis" }',
+        ]],
+        ['third.log', [
+            b'{ "timestamp":"2016-06-10T14:31:00Z", "event":"FileHeader", "part":1, "gameversion":"2.2", "build":"r113684 " }, { "timestamp":"2016-06-10T14:32:03Z", "event":"LoadGame", "Commander":"HRC1", "Ship":"SideWinder", "ShipID":1, "GameMode":"Open", "Credits":600120, "Loan":0 }',
+            b'{ "timestamp":"2016-06-10T14:32:15Z", "event":"Location", "StarSystem":"Asellus Primus", "StarPos":[-23.938,40.875,-1.344] }',
+            b'{ "timestamp":"2016-06-10T14:35:00Z", "event":"FSDJump", "StarSystem":"HIP 78085", "StarPos":[120.250,40.219,268.594], "JumpDist":36.034 }',
+        ]],
+        ['test.txt', [b'This is a test file, it does nothing.']],
+        ['works.fine', [b'This is a work file. It should not be read.']],
+    ]
     try:
-        for fname in ['first.log', 'second.log', 'third.log', 'test.txt', 'works.fine']:
+        for fname, lines in file_pairs:
             with open(pat.joinpath(fname), 'wb') as fout:
-                fout.write(b'This is a test file.')
+                fout.writelines(lines)
         shutil.make_archive(pat, 'zip', pat.parent, pat.name)
 
         yield archive
     finally:
-        shutil.rmtree(pat)
-        os.remove(archive)
+        try:
+            shutil.rmtree(pat)
+        except OSError:
+            pass
+        try:
+            os.remove(archive)
+        except OSError:
+            pass

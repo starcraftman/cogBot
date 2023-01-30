@@ -2,13 +2,13 @@
 """
 Tests for pvp.journal
 """
+import concurrent.futures as cfut
 import os
 import json
 import pathlib
 import shutil
 import tempfile
 
-import aiofiles
 import pytest
 
 import cog.util
@@ -267,19 +267,39 @@ def test_filter_log():
                 assert '"event":"Scan"' not in line
 
 
-# TODO: FIX by generating input path
-def test_filter_archive():
-    path = pathlib.Path('/tmp/generated')
-    out = path.parent / 'tmpfilter'
-    expect = out / path.name.replace('.zip', '.filter.zip')
+def test_filter_archive(f_test_zip):
+    tempd = pathlib.Path('/tmp/tmpfilter')
+    expect = tempd / f_test_zip.name.replace('.zip', '.filter.zip')
 
     try:
         try:
-            shutil.rmtree(out)
+            shutil.rmtree(tempd)
         except FileNotFoundError:
             pass
-        out.mkdir()
-        assert str(expect) == pvp.journal.filter_archive(path, output_d=out, orig_fname=path.name)
+        tempd.mkdir()
+        assert str(expect) == pvp.journal.filter_archive(f_test_zip, output_d=tempd, orig_fname=f_test_zip.name)
         assert expect.exists()
     finally:
-        shutil.rmtree(out)
+        shutil.rmtree(tempd)
+
+
+@pytest.mark.asyncio
+async def test_filter_tempfile_zip(f_test_zip):
+    tempd = pathlib.Path('/tmp/tmpfilter')
+    expect = f_test_zip.parent / f_test_zip.name.replace('.zip', '.filter.zip')
+    print(expect)
+
+    with cfut.ProcessPoolExecutor(1) as pool:
+        try:
+            try:
+                shutil.rmtree(tempd)
+            except FileNotFoundError:
+                pass
+            tempd.mkdir()
+            fut = await pvp.journal.filter_tempfile(pool=pool, dest_dir=tempd, tfile=f_test_zip, attach_fname='original.zip')
+            await fut
+            input()
+
+            assert expect.exists()
+        finally:
+            shutil.rmtree(tempd)

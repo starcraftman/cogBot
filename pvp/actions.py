@@ -140,7 +140,7 @@ class Admin(PVPAction):
                             try:
                                 coro = await pvp.journal.filter_tempfile(
                                     pool=pool, dest_dir=filter_dir,
-                                    tfile=tfile, attach=attach
+                                    tfile=tfile, attach_fname=attach.filename
                                 )
                                 coros += [coro]
                                 upload_stage += [[cmdr, pvp_log, coro]]
@@ -311,7 +311,7 @@ class FileUpload(PVPAction):
                     # Filter first
                     filter_coro = await pvp.journal.filter_tempfile(
                         pool=pool, dest_dir=filter_dir,
-                        tfile=tfile, attach=attach
+                        tfile=tfile, attach_fname=attach.filename
                     )
                     upload_stage = [[cmdr, pvp_log, filter_coro]]
                     await filter_coro
@@ -320,7 +320,7 @@ class FileUpload(PVPAction):
                     # Process the log that was filtered
                     process_coro = await pvp.actions.process_tempfile(
                         pool=pool, cmdr_id=self.msg.author.id,
-                        tfile=filter_coro.result(), attach=attach
+                        tfile=filter_coro.result(), attach_fname=attach.filename
                     )
                     await process_coro
                     return process_coro.result()
@@ -550,13 +550,13 @@ async def archive_log(eddb_session, *, msg, cmdr, fname):
     return pvp_log
 
 
-def process_archive(fname, *, attach, cmdr_id):
+def process_archive(fname, *, attach_fname, cmdr_id):
     """
     Parse an entire archive and return events parsed as a list of strings.
 
     Args:
         fname: The filename of the journal fragment.
-        attach: The original discord.Attachment.
+        attach_fname: The original discord.Attachment.filename.
         cmdr_id: The discord id of the CMDR.
 
     Returns: A list of strings of the events parsed.
@@ -570,7 +570,7 @@ def process_archive(fname, *, attach, cmdr_id):
 
                 events += process_log(log, cmdr_id=cmdr_id, eddb_session=eddb_session)
     except zipfile.BadZipfile:
-        msg = f'ERROR unzipping {attach.filename}, please check archive.'
+        msg = f'ERROR unzipping {attach_fname}, please check archive.'
         log.error(msg)
         raise
 
@@ -602,7 +602,7 @@ def process_log(fname, *, cmdr_id, eddb_session=None):
         return [f'\nFile: {fname}'] + [str(x) for x in parser.parse()]
 
 
-async def process_tempfile(*, attach, tfile, pool, cmdr_id):
+async def process_tempfile(*, attach_fname, tfile, pool, cmdr_id):
     """
     High level process a tempfile. Handle parsing contents if it is a log or zip.
     """
@@ -613,7 +613,7 @@ async def process_tempfile(*, attach, tfile, pool, cmdr_id):
 
     elif await cog.util.is_zipfile_async(tfile.name):
         func = functools.partial(
-            process_archive, tfile.name, attach=attach, cmdr_id=cmdr_id
+            process_archive, tfile.name, attach_fname=attach_fname, cmdr_id=cmdr_id
         )
 
     return asyncio.get_event_loop().run_in_executor(pool, func)

@@ -574,7 +574,7 @@ class PVPLog(ReprMixin, TimestampMixin, Base):
     """
     __tablename__ = 'pvp_logs'
     _repr_keys = ['id', 'cmdr_id', 'func_used', 'file_hash',
-                  'filename', 'msg_id', 'filtered_filename', 'filtered_msg_id', 'updated_at']
+                  'filename', 'msg_id', 'filtered_msg_id', 'updated_at']
 
     id = sqla.Column(sqla.BigInteger, primary_key=True)
     cmdr_id = sqla.Column(sqla.BigInteger, sqla.ForeignKey('pvp_cmdrs.id'))
@@ -583,11 +583,20 @@ class PVPLog(ReprMixin, TimestampMixin, Base):
     file_hash = sqla.Column(sqla.String(EDDB_LEN['pvp_hash']), index=True)
     filename = sqla.Column(sqla.String(EDDB_LEN['pvp_fname']))  # This is the actual name of the file in msg.attachements
     msg_id = sqla.Column(sqla.BigInteger)  # This is the message in archive channel
-    filtered_filename = sqla.Column(sqla.String(EDDB_LEN['pvp_fname'] + 6))  # This is the actual name of the file in msg.attachements
     filtered_msg_id = sqla.Column(sqla.BigInteger)  # This is the message in archive channel
     updated_at = sqla.Column(sqla.Integer, default=time.time, onupdate=time.time)
 
     cmdr = sqla.orm.relationship('PVPCmdr', viewonly=True)
+
+    @property
+    def filtered_filename(self):
+        """ The filtered filename for zips and logs. """
+        fname = self.filename
+
+        if fname.endswith('.zip') or fname.endswith('.log'):
+            fname = fname[:-4] + '.filter' + fname[-4:]
+
+        return fname
 
     def __eq__(self, other):
         return isinstance(other, PVPLog) and hash(self) == hash(other)

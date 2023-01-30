@@ -585,6 +585,7 @@ def filter_archive(fname, *, output_d, orig_fname, events=None):
         dest.mkdir()
         with cog.util.extracted_archive(fname) as logs:
             for log in logs:
+                print("LOG", log)
                 if cog.util.is_log_file(log):  # Ignore non valid logs
                     filtered_fname = dest / log.name.replace('.log', '.filter.log')
                     filter_log(log, filtered_fname, events=events)
@@ -595,10 +596,11 @@ def filter_archive(fname, *, output_d, orig_fname, events=None):
     except (zipfile.BadZipfile, OSError):
         pass
 
+    print("Ret", new_archive)
     return new_archive
 
 
-async def filter_tempfile(*, pool, dest_dir, tfile, attach):
+async def filter_tempfile(*, pool, dest_dir, tfile, attach_fname):
     """
     filter the tempfile, depending on what is in the attachment.
     Handles both zipfiles and normal text logfiles.
@@ -607,7 +609,7 @@ async def filter_tempfile(*, pool, dest_dir, tfile, attach):
         pool: A ProcessPoolExecutor.
         dest_dir: The destination directory holding all filtered logs.
         tfile: The tempfile storing the log file or archive to filter.
-        attach: The actual discord.Attachment object.
+        attach_fname: The actual discord.Attachment.name String.
 
     Raises:
         pvp.journal.ParserError - The saved attachment is not supported.
@@ -615,25 +617,26 @@ async def filter_tempfile(*, pool, dest_dir, tfile, attach):
     Returns: A coro if one was started to process an archive. Otherwise None.
     """
     func = None
-    if await cog.util.is_log_file_async(tfile.name):
+    if await cog.util.is_log_file_async(tfile):
         func = functools.partial(
             filter_log,
-            tfile.name, dest_dir / attach.filename.replace('.log', '.filter.log')
+            tfile.name, dest_dir / attach_fname.replace('.log', '.filter.log')
         )
 
-    elif await cog.util.is_zipfile_async(tfile.name):
+    elif await cog.util.is_zipfile_async(tfile):
+        print('here')
         func = functools.partial(
             filter_archive,
-            tfile.name, output_d=dest_dir, orig_fname=attach.filename
+            tfile.name, output_d=dest_dir, orig_fname=attach_fname
         )
 
     else:
-        raise pvp.journal.ParserError(f"Unsupported file uploaded. Please try zip or log file. You uploaded: {attach.filename}")
+        raise pvp.journal.ParserError(f"Unsupported file uploaded. Please try zip or log file. You uploaded: {attach_fname}")
 
     return asyncio.get_event_loop().run_in_executor(pool, func)
 
 
-async def upload_filtered_logs(filtered_logs, *, log_chan):
+async def upload_filtered_logs(filtered_logs, *, log_chan):  # pragma: no cover, not worth testing
     """
     Upload the generated filter file to the log channel.
     If existing filtered files are already set in the database, delete and nullify those.

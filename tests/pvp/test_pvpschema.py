@@ -172,7 +172,7 @@ def test_pvpstat_embed_values(f_pvp_testbed, eddb_session):
 
 def test_pvplog__repr__(f_pvp_testbed, eddb_session):
     log = eddb_session.query(PVPLog).filter(PVPLog.id == 1).one()
-    assert "PVPLog(id=1, cmdr_id=1, func_used=0, file_hash='hash', filename='first.log', msg_id=1, updated_at=1671655377)" == repr(log)
+    assert "PVPLog(id=1, cmdr_id=1, func_used=0, file_hash='hash', filename='first.log', msg_id=1, filtered_msg_id=10, updated_at=1671655377)" == repr(log)
 
 
 def test_pvp_get_pvp_cmdr(f_pvp_testbed, eddb_session):
