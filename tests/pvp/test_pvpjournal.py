@@ -267,9 +267,9 @@ def test_filter_log():
                 assert '"event":"Scan"' not in line
 
 
-def test_filter_archive(f_test_zip):
+def test_filter_archive(f_plog_zip):
     tempd = pathlib.Path('/tmp/tmpfilter')
-    expect = tempd / f_test_zip.name.replace('.zip', '.filter.zip')
+    expect = tempd / f_plog_zip.name.replace('.zip', '.filter.zip')
 
     try:
         try:
@@ -277,17 +277,16 @@ def test_filter_archive(f_test_zip):
         except FileNotFoundError:
             pass
         tempd.mkdir()
-        assert str(expect) == pvp.journal.filter_archive(f_test_zip, output_d=tempd, orig_fname=f_test_zip.name)
+        assert str(expect) == pvp.journal.filter_archive(f_plog_zip, output_d=tempd, orig_fname=f_plog_zip.name)
         assert expect.exists()
     finally:
         shutil.rmtree(tempd)
 
 
 @pytest.mark.asyncio
-async def test_filter_tempfile_zip(f_test_zip):
+async def test_filter_tempfile_log(f_plog_file):
     tempd = pathlib.Path('/tmp/tmpfilter')
-    expect = f_test_zip.parent / f_test_zip.name.replace('.zip', '.filter.zip')
-    print(expect)
+    expect = f_plog_file.parent.joinpath(f_plog_file.name.replace('.log', '.filter.log'))
 
     with cfut.ProcessPoolExecutor(1) as pool:
         try:
@@ -296,10 +295,48 @@ async def test_filter_tempfile_zip(f_test_zip):
             except FileNotFoundError:
                 pass
             tempd.mkdir()
-            fut = await pvp.journal.filter_tempfile(pool=pool, dest_dir=tempd, tfile=f_test_zip, attach_fname='original.zip')
+            fut = await pvp.journal.filter_tempfile(pool=pool, dest_dir=tempd, tfile=f_plog_file, attach_fname=str(f_plog_file))
             await fut
-            input()
 
             assert expect.exists()
+        finally:
+            shutil.rmtree(tempd)
+
+
+@pytest.mark.asyncio
+async def test_filter_tempfile_zip(f_plog_zip):
+    tempd = pathlib.Path('/tmp/tmpfilter')
+    expect = f_plog_zip.parent.joinpath(f_plog_zip.name.replace('.zip', '.filter.zip'))
+
+    with cfut.ProcessPoolExecutor(1) as pool:
+        try:
+            try:
+                shutil.rmtree(tempd)
+            except FileNotFoundError:
+                pass
+            tempd.mkdir()
+            fut = await pvp.journal.filter_tempfile(pool=pool, dest_dir=tempd, tfile=f_plog_zip, attach_fname=str(f_plog_zip))
+            await fut
+            assert expect.exists()
+        finally:
+            shutil.rmtree(tempd)
+
+
+@pytest.mark.asyncio
+async def test_filter_tempfile_fails(f_plog_file):
+    tempd = pathlib.Path('/tmp/tmpfilter')
+    with open(f_plog_file, 'wb') as fout:
+        fout.write(b"This isn't a valid player log.")
+
+    with cfut.ProcessPoolExecutor(1) as pool:
+        try:
+            try:
+                shutil.rmtree(tempd)
+            except FileNotFoundError:
+                pass
+            tempd.mkdir()
+            with pytest.raises(pvp.journal.ParserError):
+                fut = await pvp.journal.filter_tempfile(pool=pool, dest_dir=tempd, tfile=f_plog_file, attach_fname=str(f_plog_file))
+                await fut
         finally:
             shutil.rmtree(tempd)

@@ -406,53 +406,55 @@ def test_clean_fname():
     assert 'cmdr++t7+++test5+' == cog.util.clean_fname('cmdr/\\t7><:test5\0', replacement='+')
 
 
-def test_is_zipfile(f_test_zip):
-    assert cog.util.is_zipfile(f_test_zip)
+def test_is_log_file(f_plog_zip, f_plog_file):
+    assert not cog.util.is_log_file(f_plog_zip)
+
     with tempfile.NamedTemporaryFile() as tfile:
         tfile.write(b'This is a text file.')
         tfile.flush()
-        assert not cog.util.is_zipfile(tfile.name)
+        assert not cog.util.is_log_file(tfile.name)
+
+    assert cog.util.is_log_file(f_plog_file)
 
 
 @pytest.mark.asyncio
-async def test_is_zipfile_async(f_test_zip):
-    assert await cog.util.is_zipfile_async(f_test_zip)
+async def test_is_log_file_async(f_plog_zip, f_plog_file):
+    assert not await cog.util.is_log_file_async(f_plog_zip)
+
     with tempfile.NamedTemporaryFile() as tfile:
         tfile.write(b'This is a text file.')
         tfile.flush()
-        assert not await cog.util.is_zipfile_async(tfile.name)
+        assert not await cog.util.is_log_file_async(tfile.name)
+
+    assert await cog.util.is_log_file_async(f_plog_file)
 
 
-def test_extract_zipfile(f_test_zip):
+def test_is_zipfile(f_plog_zip, f_plog_file):
+    assert cog.util.is_zipfile(f_plog_zip)
+    assert not cog.util.is_zipfile(f_plog_file)
+
+
+@pytest.mark.asyncio
+async def test_is_zipfile_async(f_plog_zip, f_plog_file):
+    assert await cog.util.is_zipfile_async(f_plog_zip)
+    assert not await cog.util.is_zipfile_async(f_plog_file)
+
+
+def test_extract_zipfile(f_plog_zip):
     try:
         extract_to = tempfile.mkdtemp()
-        logs = cog.util.extract_zipfile(f_test_zip, pathlib.Path(extract_to), '**/*.log')
+        logs = cog.util.extract_zipfile(f_plog_zip, pathlib.Path(extract_to), '**/*.log')
         assert ['first.log', 'second.log', 'third.log'] == sorted([x.name for x in logs])
     finally:
         shutil.rmtree(extract_to)
 
 
-@pytest.mark.asyncio
-async def test_extracted_archive_async(f_test_zip):
-    async with cog.util.extracted_archive_async(f_test_zip) as logs:
-        assert ['first.log', 'second.log', 'third.log'] == sorted([x.name for x in logs])
-
-
-def test_extracted_archive(f_test_zip):
-    with cog.util.extracted_archive(f_test_zip) as logs:
+def test_extracted_archive(f_plog_zip):
+    with cog.util.extracted_archive(f_plog_zip) as logs:
         assert ['first.log', 'second.log', 'third.log'] == sorted([x.name for x in logs])
 
 
 @pytest.mark.asyncio
-async def test_is_log_file_async(f_test_zip):
-    assert not await cog.util.is_log_file_async(f_test_zip)
-
-    with tempfile.NamedTemporaryFile() as tfile:
-        tfile.write(b'This is a text file.')
-        tfile.flush()
-        assert not await cog.util.is_log_file_async(tfile.name)
-
-    with tempfile.NamedTemporaryFile() as tfile:
-        tfile.write(b'{ "timestamp":"2016-06-10T14:31:00Z", "event":"FileHeader", "part":1, "gameversion":"2.2", "build":"r113684 " }, { "timestamp":"2016-06-10T14:32:03Z", "event":"LoadGame", "Commander":"HRC1", "Ship":"SideWinder", "ShipID":1, "GameMode":"Open", "Credits":600120, "Loan":0 }')
-        tfile.flush()
-        assert not await cog.util.is_log_file_async(tfile.name)
+async def test_extracted_archive_async(f_plog_zip):
+    async with cog.util.extracted_archive_async(f_plog_zip) as logs:
+        assert ['first.log', 'second.log', 'third.log'] == sorted([x.name for x in logs])

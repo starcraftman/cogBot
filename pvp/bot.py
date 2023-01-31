@@ -5,7 +5,6 @@ This is the PVP bot. Everything is started upon main() execution. To invoke from
 See cog.bot for more information.
 """
 import asyncio
-import concurrent.futures as cfut
 import datetime
 import logging
 import os
@@ -14,7 +13,6 @@ import re
 import sys
 import tempfile
 import time
-import zipfile
 
 import aiofiles
 import apiclient

@@ -585,7 +585,6 @@ def filter_archive(fname, *, output_d, orig_fname, events=None):
         dest.mkdir()
         with cog.util.extracted_archive(fname) as logs:
             for log in logs:
-                print("LOG", log)
                 if cog.util.is_log_file(log):  # Ignore non valid logs
                     filtered_fname = dest / log.name.replace('.log', '.filter.log')
                     filter_log(log, filtered_fname, events=events)
@@ -593,10 +592,10 @@ def filter_archive(fname, *, output_d, orig_fname, events=None):
         shutil.rmtree(dest)
         new_archive = f'{dest}.zip'
 
-    except (zipfile.BadZipfile, OSError):
-        pass
+    except (zipfile.BadZipfile, OSError) as exc:
+        logging.getLogger(__name__).error("Critial Error: %s", exc)
+        raise
 
-    print("Ret", new_archive)
     return new_archive
 
 
@@ -620,14 +619,13 @@ async def filter_tempfile(*, pool, dest_dir, tfile, attach_fname):
     if await cog.util.is_log_file_async(tfile):
         func = functools.partial(
             filter_log,
-            tfile.name, dest_dir / attach_fname.replace('.log', '.filter.log')
+            tfile, dest_dir / attach_fname.replace('.log', '.filter.log')
         )
 
     elif await cog.util.is_zipfile_async(tfile):
-        print('here')
         func = functools.partial(
             filter_archive,
-            tfile.name, output_d=dest_dir, orig_fname=attach_fname
+            tfile, output_d=dest_dir, orig_fname=attach_fname
         )
 
     else:

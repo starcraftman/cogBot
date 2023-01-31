@@ -1171,7 +1171,6 @@ def get_system_ages(session, controls, cutoff=1):
 
 def main():  # pragma: no cover
     """ Main function to test against side. """
-    pass
     #  with cogdb.session_scope(cogdb.SideSession) as side_session:
     # system_ids = get_monitor_systems(side_session, WATCH_BUBBLES)
     # print(monitor_dictators(side_session, ["Othime", "Frey"]))

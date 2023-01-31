@@ -831,7 +831,7 @@ def is_log_file(fname):
         with open(fname, 'r', encoding='utf-8') as fin:
             line = fin.readline().strip()
             datas = json.loads(f'[ {line} ] ')
-            return 'Fileheader' == datas[0]['event']
+            return 'FileHeader' in {x['event'] for x in datas}
     except (IndexError, KeyError, UnicodeDecodeError, json.decoder.JSONDecodeError):
         pass
 

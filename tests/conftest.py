@@ -986,34 +986,52 @@ def f_pvp_testbed(f_spy_ships, eddb_session):
 
 
 @pytest.fixture
-def f_test_zip():
+def f_plog_file():
+    """
+    Create a valid log file temporarily and return the location.
+    """
+    with tempfile.NamedTemporaryFile(prefix='player', suffix='.log', mode='wb', delete=False) as tfile:
+        tfile.writelines([
+            b'{ "timestamp":"2016-06-10T14:31:00Z", "event":"FileHeader", "part":1, "gameversion":"2.2", "build":"r113684 " }, { "timestamp":"2016-06-10T14:32:03Z", "event":"LoadGame", "Commander":"HRC1", "Ship":"SideWinder", "ShipID":1, "GameMode":"Open", "Credits":600120, "Loan":0 }\n',
+            b'{ "timestamp":"2016-06-10T14:50:00Z", "event":"Interdiction", "Success":true, "Interdicted":"cmdr CanNotShoot", "IsPlayer":true, "CombatRank":5 }\n',
+            b'{ "timestamp":"2016-06-10T14:55:22Z", "event":"PVPKill", "Victim":"cmdr CanNotShoot", "CombatRank": 5}\n',
+            b'{ "timestamp":"2016-06-10T14:35:00Z", "event":"FSDJump", "StarSystem":"Rana", "StarPos":[120.250,40.219,268.594], "JumpDist":36.034 }\n',
+            b'{ "timestamp":"2016-06-10T14:36:10Z", "event":"FSDJump", "StarSystem":"Rhea", "StarPos":[120.719,34.188,271.750], "JumpDist":6.823 }\n',
+        ])
+        tfile.flush()
+
+        yield pathlib.Path(tfile.name)
+
+
+@pytest.fixture
+def f_plog_zip():
     """
     Create a test zip with fake player logs and text files.
-    Don't try to parse the log files.
+    The player logs are valid and can be parsed.
     """
     pat = pathlib.Path(tempfile.mkdtemp())
-    archive = pathlib.Path(pat.parent.joinpath(pat.name + '.zip'))
+    archive = pat.parent.joinpath(pat.name + '.zip')
     file_pairs = [
         ['first.log', [
-            b'{ "timestamp":"2016-06-10T14:31:00Z", "event":"FileHeader", "part":1, "gameversion":"2.2", "build":"r113684 " }, { "timestamp":"2016-06-10T14:32:03Z", "event":"LoadGame", "Commander":"HRC1", "Ship":"SideWinder", "ShipID":1, "GameMode":"Open", "Credits":600120, "Loan":0 }',
-            b'{ "timestamp":"2016-06-10T14:50:00Z", "event":"Interdiction", "Success":true, "Interdicted":"cmdr CanNotShoot", "IsPlayer":true, "CombatRank":5 }',
-            b'{ "timestamp":"2016-06-10T14:55:22Z", "event":"PVPKill", "Victim":"cmdr CanNotShoot", "CombatRank": 5}',
-            b'{ "timestamp":"2016-06-10T14:35:00Z", "event":"FSDJump", "StarSystem":"Rana", "StarPos":[120.250,40.219,268.594], "JumpDist":36.034 }',
-            b'{ "timestamp":"2016-06-10T14:36:10Z", "event":"FSDJump", "StarSystem":"Rhea", "StarPos":[120.719,34.188,271.750], "JumpDist":6.823 }',
+            b'{ "timestamp":"2016-06-10T14:31:00Z", "event":"FileHeader", "part":1, "gameversion":"2.2", "build":"r113684 " }, { "timestamp":"2016-06-10T14:32:03Z", "event":"LoadGame", "Commander":"HRC1", "Ship":"SideWinder", "ShipID":1, "GameMode":"Open", "Credits":600120, "Loan":0 }\n',
+            b'{ "timestamp":"2016-06-10T14:50:00Z", "event":"Interdiction", "Success":true, "Interdicted":"cmdr CanNotShoot", "IsPlayer":true, "CombatRank":5 }\n',
+            b'{ "timestamp":"2016-06-10T14:55:22Z", "event":"PVPKill", "Victim":"cmdr CanNotShoot", "CombatRank": 5}\n',
+            b'{ "timestamp":"2016-06-10T14:35:00Z", "event":"FSDJump", "StarSystem":"Rana", "StarPos":[120.250,40.219,268.594], "JumpDist":36.034 }\n',
+            b'{ "timestamp":"2016-06-10T14:36:10Z", "event":"FSDJump", "StarSystem":"Rhea", "StarPos":[120.719,34.188,271.750], "JumpDist":6.823 }\n',
         ]],
         ['second.log', [
-            b'{ "timestamp":"2016-06-10T14:31:00Z", "event":"FileHeader", "part":1, "gameversion":"2.2", "build":"r113684 " }, { "timestamp":"2016-06-10T14:32:03Z", "event":"LoadGame", "Commander":"HRC1", "Ship":"SideWinder", "ShipID":1, "GameMode":"Open", "Credits":600120, "Loan":0 }',
-            b'{ "timestamp":"2016-06-10T14:38:50Z", "event":"Scan", "BodyName":"Praea Euq NW-W b1-3 3", "Description":"Icy body with neon rich atmosphere and major water geysers volcanism" }',
-            b'{ "timestamp":"2016-06-10T14:39:08Z", "event":"Scan", "BodyName":"Praea Euq NW-W b1-3 3 a", "Description":"Tidally locked Icy body" }',
-            b'{ "timestamp":"2016-06-10T14:41:29Z", "event":"Docked", "StationName":"Beagle 2 Landing", "StationType":"Coriolis" }',
+            b'{ "timestamp":"2016-06-10T14:31:00Z", "event":"FileHeader", "part":1, "gameversion":"2.2", "build":"r113684 " }, { "timestamp":"2016-06-10T14:32:03Z", "event":"LoadGame", "Commander":"HRC1", "Ship":"SideWinder", "ShipID":1, "GameMode":"Open", "Credits":600120, "Loan":0 }\n',
+            b'{ "timestamp":"2016-06-10T14:38:50Z", "event":"Scan", "BodyName":"Praea Euq NW-W b1-3 3", "Description":"Icy body with neon rich atmosphere and major water geysers volcanism" }\n',
+            b'{ "timestamp":"2016-06-10T14:39:08Z", "event":"Scan", "BodyName":"Praea Euq NW-W b1-3 3 a", "Description":"Tidally locked Icy body" }\n',
+            b'{ "timestamp":"2016-06-10T14:41:29Z", "event":"Docked", "StationName":"Beagle 2 Landing", "StationType":"Coriolis" }\n',
         ]],
         ['third.log', [
-            b'{ "timestamp":"2016-06-10T14:31:00Z", "event":"FileHeader", "part":1, "gameversion":"2.2", "build":"r113684 " }, { "timestamp":"2016-06-10T14:32:03Z", "event":"LoadGame", "Commander":"HRC1", "Ship":"SideWinder", "ShipID":1, "GameMode":"Open", "Credits":600120, "Loan":0 }',
-            b'{ "timestamp":"2016-06-10T14:32:15Z", "event":"Location", "StarSystem":"Asellus Primus", "StarPos":[-23.938,40.875,-1.344] }',
-            b'{ "timestamp":"2016-06-10T14:35:00Z", "event":"FSDJump", "StarSystem":"HIP 78085", "StarPos":[120.250,40.219,268.594], "JumpDist":36.034 }',
+            b'{ "timestamp":"2016-06-10T14:31:00Z", "event":"FileHeader", "part":1, "gameversion":"2.2", "build":"r113684 " }, { "timestamp":"2016-06-10T14:32:03Z", "event":"LoadGame", "Commander":"HRC1", "Ship":"SideWinder", "ShipID":1, "GameMode":"Open", "Credits":600120, "Loan":0 }\n',
+            b'{ "timestamp":"2016-06-10T14:32:15Z", "event":"Location", "StarSystem":"Asellus Primus", "StarPos":[-23.938,40.875,-1.344] }\n',
+            b'{ "timestamp":"2016-06-10T14:35:00Z", "event":"FSDJump", "StarSystem":"HIP 78085", "StarPos":[120.250,40.219,268.594], "JumpDist":36.034 }\n',
         ]],
-        ['test.txt', [b'This is a test file, it does nothing.']],
-        ['works.fine', [b'This is a work file. It should not be read.']],
+        ['test.txt', [b'This is a test file, it does nothing.\n']],
+        ['works.fine', [b'This is a work file. It should not be read.\n']],
     ]
     try:
         for fname, lines in file_pairs:

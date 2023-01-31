@@ -2,7 +2,9 @@
 """
 Tests for pvp.actions
 """
+import concurrent.futures as cfut
 import tempfile
+import zipfile
 
 import pytest
 import sqlalchemy as sqla
@@ -15,7 +17,6 @@ import pvp.parse
 import pvp.schema
 from pvp.schema import PVPLog
 from tests.conftest import fake_msg_gears, Member
-from tests.pvp.test_pvpjournal import JOURNAL_PATH
 
 
 def action_map(fake_message, fake_bot):
@@ -131,24 +132,6 @@ async def test_cmd_stats_help(f_bot, f_pvp_clean):
         await action_map(msg, f_bot).execute()
 
 
-# FIXME: Broken
-@pytest.mark.skip(reason='broken')
-@pytest.mark.asyncio
-async def test_cmd_file_upload(f_bot, f_spy_ships, f_pvp_testbed):
-    cls = getattr(pvp.actions, 'FileUpload')
-    msg = fake_msg_gears("upload")  # Not real command
-
-    with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
-        assert len(eddb_session.query(pvp.schema.PVPDeath).all()) == 3
-
-    with cogdb.session_scope(cogdb.Session) as session,\
-            cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
-        await cls(args=None, bot=f_bot, msg=msg, fname=JOURNAL_PATH, session=session, eddb_session=eddb_session).execute()
-
-    with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
-        assert len(eddb_session.query(pvp.schema.PVPDeath).all()) == 5
-
-
 def test_filename_for_upload():
     fname = pvp.actions.filename_for_upload('<coolGuy{32}>', id_num=2)
     assert fname.startswith('coolGuy32_2')
@@ -174,3 +157,55 @@ async def test_archive_log(f_bot, f_pvp_testbed, eddb_session):
             assert 1 == latest_log.cmdr_id
     finally:
         cog.util.BOT = save_bot
+
+
+def test_process_log(f_pvp_testbed, f_plog_file, eddb_session):
+    found = pvp.actions.process_log(fname=f_plog_file, cmdr_id=3, eddb_session=eddb_session)
+    assert 'CMDR shootsALot killed CMDR CanNotShoot at 2016-06-10 14:55:22' in found
+
+
+def test_process_log_fails(f_pvp_testbed, f_plog_zip, eddb_session):
+    found = pvp.actions.process_log(fname=f_plog_zip, cmdr_id=3, eddb_session=eddb_session)
+    assert not found
+
+
+def test_process_log_noeddb(f_pvp_testbed, f_plog_file, eddb_session):
+    found = pvp.actions.process_log(fname=f_plog_file, cmdr_id=3)
+    assert 'CMDR shootsALot killed CMDR CanNotShoot at 2016-06-10 14:55:22' in found
+
+
+def test_process_archive(f_pvp_testbed, f_plog_zip, eddb_session):
+    found = pvp.actions.process_archive(fname=f_plog_zip, cmdr_id=3, attach_fname='/tmp/original.zip')
+    assert 'CMDR shootsALot killed CMDR CanNotShoot at 2016-06-10 14:55:22' in found
+
+
+def test_process_archive_fails(f_pvp_testbed, f_plog_file, eddb_session):
+    with pytest.raises(zipfile.BadZipfile):
+        pvp.actions.process_archive(fname=f_plog_file, cmdr_id=3, attach_fname='/tmp/original.zip')
+
+
+@pytest.mark.asyncio
+async def test_process_tempfile_log(f_pvp_testbed, f_plog_file, eddb_session):
+    with cfut.ProcessPoolExecutor(1) as pool:
+        coro = await pvp.actions.process_tempfile(attach_fname='/tmp/original.log', tfile=f_plog_file, cmdr_id=3, pool=pool)
+        await coro
+        assert 'CMDR shootsALot killed CMDR CanNotShoot at 2016-06-10 14:55:22' in coro.result()
+
+
+@pytest.mark.asyncio
+async def test_process_tempfile_archive(f_pvp_testbed, f_plog_zip, eddb_session):
+    with cfut.ProcessPoolExecutor(1) as pool:
+        coro = await pvp.actions.process_tempfile(attach_fname='/tmp/original.zip', tfile=f_plog_zip, cmdr_id=3, pool=pool)
+        await coro
+        assert 'CMDR shootsALot killed CMDR CanNotShoot at 2016-06-10 14:55:22' in coro.result()
+
+
+@pytest.mark.asyncio
+async def test_process_tempfile_fails(f_pvp_testbed, f_plog_zip, eddb_session):
+    with tempfile.NamedTemporaryFile() as tfile, cfut.ProcessPoolExecutor(1) as pool:
+        tfile.write(b"Bad file.")
+        tfile.flush()
+
+        with pytest.raises(pvp.journal.ParserError):
+            coro = await pvp.actions.process_tempfile(attach_fname='/tmp/original.rar', tfile=tfile.name, cmdr_id=3, pool=pool)
+            await coro

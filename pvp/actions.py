@@ -7,7 +7,6 @@ import datetime
 import tempfile
 import functools
 import logging
-import os
 import pathlib
 import shutil
 import traceback
@@ -79,7 +78,7 @@ class Admin(PVPAction):
 
         return response
 
-    async def prune(self):
+    async def prune(self):  # pragma: no cover, requires deletions
         """
         Prune all messages from a mentioned channel.
         """
@@ -272,7 +271,7 @@ def compute_all_stats():
             pvp.schema.update_pvp_stats(eddb_session, cmdr_id=cmdr.id)
 
 
-class FileUpload(PVPAction):
+class FileUpload(PVPAction):  # pragma: no cover
     """
     Handle a file upload and scan for pvp information.
     """
@@ -565,13 +564,10 @@ def process_archive(fname, *, attach_fname, cmdr_id):
     try:
         with cog.util.extracted_archive(fname) as logs, cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
             for log in logs:
-                if not cog.util.is_log_file(log.name):  # Ignore non valid logs
-                    continue
-
                 events += process_log(log, cmdr_id=cmdr_id, eddb_session=eddb_session)
     except zipfile.BadZipfile:
         msg = f'ERROR unzipping {attach_fname}, please check archive.'
-        log.error(msg)
+        logging.getLogger(__name__).error(msg)
         raise
 
     return events
@@ -584,9 +580,13 @@ def process_log(fname, *, cmdr_id, eddb_session=None):
     Args:
         fname: The filename of the journal fragment.
         cmdr_id: The discord id of the CMDR.
+        eddb_session: Optionally pass in the session onto EDDB to use. If not passed, will create a new session.
 
     Returns: A list of strings of the events parsed.
     """
+    if not cog.util.is_log_file(fname):  # Ignore non valid logs
+        return []
+
     if eddb_session:
         parser = pvp.journal.Parser(fname=fname, cmdr_id=cmdr_id, eddb_session=eddb_session)
         parser.load()
@@ -605,30 +605,47 @@ def process_log(fname, *, cmdr_id, eddb_session=None):
 async def process_tempfile(*, attach_fname, tfile, pool, cmdr_id):
     """
     High level process a tempfile. Handle parsing contents if it is a log or zip.
+
+    Args:
+        attach_fname: The original name of the discord.Attachment.
+        file: The filename of the local file.
+        pool: An instance of cfut.ProcessPoolExecutor.
+        cmdr_id: The id of the cmdr who is associated with log.
+
+    Raises:
+        pvp.journal.ParserError: Unsupported file type.
+
+    Returns: The events found in the tempfile, a list of strings.
     """
-    if await cog.util.is_log_file_async(tfile.name):
+    if await cog.util.is_log_file_async(tfile):
         func = functools.partial(
-            process_log, tfile.name, cmdr_id=cmdr_id
+            process_log, tfile, cmdr_id=cmdr_id
         )
 
-    elif await cog.util.is_zipfile_async(tfile.name):
+    elif await cog.util.is_zipfile_async(tfile):
         func = functools.partial(
-            process_archive, tfile.name, attach_fname=attach_fname, cmdr_id=cmdr_id
+            process_archive, tfile, attach_fname=attach_fname, cmdr_id=cmdr_id
         )
+
+    else:
+        raise pvp.journal.ParserError("Unsupported file type.")
 
     return asyncio.get_event_loop().run_in_executor(pool, func)
 
 
-async def ensure_cmdr_exists(eddb_session, *, client, msg, tfile):
+async def ensure_cmdr_exists(eddb_session, *, client, msg, tfile):  # pragma: no cover, relies on underlying interactive cmdr_setup
     """
     Ensure a PVPCmdr exists for the author of the msg.
     In the case it doesn't, peek in the log file or archive and find cmdr name.
     Then run the cmdr registration.
+
     Args:
         eddb_session: A session onto the EDDB db.
         client: A instance of the bot.
         msg: The originating message.
         tfile: The temporary file where the attachment was saved.
+
+    Returns: The PVPCmdr that has the discord id of the msg.
     """
     cmdr = pvp.schema.get_pvp_cmdr(eddb_session, cmdr_id=msg.author.id)
     if not cmdr:
