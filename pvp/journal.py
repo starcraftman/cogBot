@@ -31,7 +31,7 @@ import pvp.schema
 COMBAT_RANK_TO_VALUE = {x: ind for ind, x in enumerate(cog.inara.COMBAT_RANKS)}
 VALUE_TO_COMBAT_RANK = {y: x for x, y in COMBAT_RANK_TO_VALUE.items()}
 PARSED_EVENTS = [
-    'FileHeader', 'Location', 'FSDJump', 'SupercruiseEntry', 'SupercruiseExit',
+    'Fileheader', 'FileHeader', 'Location', 'FSDJump', 'SupercruiseEntry', 'SupercruiseExit',
     'PVPKill', 'Died', 'Interdiction', 'Interdicted'
 ]
 
@@ -599,7 +599,7 @@ def filter_archive(fname, *, output_d, orig_fname, events=None):
     return new_archive
 
 
-async def filter_tempfile(*, pool, dest_dir, tfile, attach_fname):
+async def filter_tempfile(*, pool, dest_dir, fname, attach_fname):
     """
     filter the tempfile, depending on what is in the attachment.
     Handles both zipfiles and normal text logfiles.
@@ -607,7 +607,7 @@ async def filter_tempfile(*, pool, dest_dir, tfile, attach_fname):
     Args:
         pool: A ProcessPoolExecutor.
         dest_dir: The destination directory holding all filtered logs.
-        tfile: The tempfile storing the log file or archive to filter.
+        fname: The tempfile storing the log file or archive to filter.
         attach_fname: The actual discord.Attachment.name String.
 
     Raises:
@@ -616,16 +616,16 @@ async def filter_tempfile(*, pool, dest_dir, tfile, attach_fname):
     Returns: A coro if one was started to process an archive. Otherwise None.
     """
     func = None
-    if await cog.util.is_log_file_async(tfile):
+    if await cog.util.is_log_file_async(fname):
         func = functools.partial(
             filter_log,
-            tfile, dest_dir / attach_fname.replace('.log', '.filter.log')
+            fname, dest_dir / attach_fname.replace('.log', '.filter.log')
         )
 
-    elif await cog.util.is_zipfile_async(tfile):
+    elif await cog.util.is_zipfile_async(fname):
         func = functools.partial(
             filter_archive,
-            tfile, output_d=dest_dir, orig_fname=attach_fname
+            fname, output_d=dest_dir, orig_fname=attach_fname
         )
 
     else:
@@ -634,6 +634,7 @@ async def filter_tempfile(*, pool, dest_dir, tfile, attach_fname):
     return asyncio.get_event_loop().run_in_executor(pool, func)
 
 
+# TODO: Attach 10 files at a time, send only when at 10 or last amount
 async def upload_filtered_logs(filtered_logs, *, log_chan):  # pragma: no cover, not worth testing
     """
     Upload the generated filter file to the log channel.
@@ -646,6 +647,8 @@ async def upload_filtered_logs(filtered_logs, *, log_chan):  # pragma: no cover,
     """
     for pvp_cmdr, pvp_log, coro in filtered_logs:
         filtered_fname = pathlib.Path(coro.result())
+
+        # If reuploading, delete old filters
         if pvp_log.filtered_msg_id:
             try:
                 msg = await log_chan.fetch_message(pvp_log.filtered_msg_id)

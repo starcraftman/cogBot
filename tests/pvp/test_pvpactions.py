@@ -187,7 +187,7 @@ def test_process_archive_fails(f_pvp_testbed, f_plog_file, eddb_session):
 @pytest.mark.asyncio
 async def test_process_tempfile_log(f_pvp_testbed, f_plog_file, eddb_session):
     with cfut.ProcessPoolExecutor(1) as pool:
-        coro = await pvp.actions.process_tempfile(attach_fname='/tmp/original.log', tfile=f_plog_file, cmdr_id=3, pool=pool)
+        coro = await pvp.actions.process_tempfile(attach_fname='/tmp/original.log', fname=f_plog_file, cmdr_id=3, pool=pool)
         await coro
         assert 'CMDR shootsALot killed CMDR CanNotShoot at 2016-06-10 14:55:22' in coro.result()
 
@@ -195,7 +195,7 @@ async def test_process_tempfile_log(f_pvp_testbed, f_plog_file, eddb_session):
 @pytest.mark.asyncio
 async def test_process_tempfile_archive(f_pvp_testbed, f_plog_zip, eddb_session):
     with cfut.ProcessPoolExecutor(1) as pool:
-        coro = await pvp.actions.process_tempfile(attach_fname='/tmp/original.zip', tfile=f_plog_zip, cmdr_id=3, pool=pool)
+        coro = await pvp.actions.process_tempfile(attach_fname='/tmp/original.zip', fname=f_plog_zip, cmdr_id=3, pool=pool)
         await coro
         assert 'CMDR shootsALot killed CMDR CanNotShoot at 2016-06-10 14:55:22' in coro.result()
 
@@ -207,5 +207,5 @@ async def test_process_tempfile_fails(f_pvp_testbed, f_plog_zip, eddb_session):
         tfile.flush()
 
         with pytest.raises(pvp.journal.ParserError):
-            coro = await pvp.actions.process_tempfile(attach_fname='/tmp/original.rar', tfile=tfile.name, cmdr_id=3, pool=pool)
+            coro = await pvp.actions.process_tempfile(attach_fname='/tmp/original.rar', fname=tfile.name, cmdr_id=3, pool=pool)
             await coro

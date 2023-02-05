@@ -65,7 +65,7 @@ FNAME_FORBIDDEN = [
     '/', '\\', '<', '>', ':', '-', '|', '?', '*', '\0',
     '[', ']', '(', ')', '{', '}',
 ]
-DISCORD_RATE_LIMIT = 2  # Seconds
+DISCORD_RATE_LIMIT = 1  # Seconds
 
 
 class ReprMixin():
@@ -831,7 +831,7 @@ def is_log_file(fname):
         with open(fname, 'r', encoding='utf-8') as fin:
             line = fin.readline().strip()
             datas = json.loads(f'[ {line} ] ')
-            return 'FileHeader' in {x['event'] for x in datas}
+            return 'fileheader' in {x['event'].lower() for x in datas}
     except (IndexError, KeyError, UnicodeDecodeError, json.decoder.JSONDecodeError):
         pass
 

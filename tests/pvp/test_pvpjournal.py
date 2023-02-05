@@ -199,7 +199,7 @@ async def test_find_cmdr_name():
 def test_journal_parser_load(f_spy_ships, f_pvp_testbed, eddb_session):
     parser = pvp.journal.Parser(fname=JOURNAL_PATH, cmdr_id=1, eddb_session=eddb_session)
     parser.load()
-    assert 'FileHeader' in parser.lines[0]
+    assert 'Fileheader' in parser.lines[0]
 
 
 def test_journal_parser_parse(f_spy_ships, f_pvp_testbed, eddb_session):
@@ -295,7 +295,7 @@ async def test_filter_tempfile_log(f_plog_file):
             except FileNotFoundError:
                 pass
             tempd.mkdir()
-            fut = await pvp.journal.filter_tempfile(pool=pool, dest_dir=tempd, tfile=f_plog_file, attach_fname=str(f_plog_file))
+            fut = await pvp.journal.filter_tempfile(pool=pool, dest_dir=tempd, fname=f_plog_file, attach_fname=str(f_plog_file))
             await fut
 
             assert expect.exists()
@@ -315,7 +315,7 @@ async def test_filter_tempfile_zip(f_plog_zip):
             except FileNotFoundError:
                 pass
             tempd.mkdir()
-            fut = await pvp.journal.filter_tempfile(pool=pool, dest_dir=tempd, tfile=f_plog_zip, attach_fname=str(f_plog_zip))
+            fut = await pvp.journal.filter_tempfile(pool=pool, dest_dir=tempd, fname=f_plog_zip, attach_fname=str(f_plog_zip))
             await fut
             assert expect.exists()
         finally:
@@ -336,7 +336,7 @@ async def test_filter_tempfile_fails(f_plog_file):
                 pass
             tempd.mkdir()
             with pytest.raises(pvp.journal.ParserError):
-                fut = await pvp.journal.filter_tempfile(pool=pool, dest_dir=tempd, tfile=f_plog_file, attach_fname=str(f_plog_file))
+                fut = await pvp.journal.filter_tempfile(pool=pool, dest_dir=tempd, fname=f_plog_file, attach_fname=str(f_plog_file))
                 await fut
         finally:
             shutil.rmtree(tempd)

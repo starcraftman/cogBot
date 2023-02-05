@@ -992,7 +992,7 @@ def f_plog_file():
     """
     with tempfile.NamedTemporaryFile(prefix='player', suffix='.log', mode='wb', delete=False) as tfile:
         tfile.writelines([
-            b'{ "timestamp":"2016-06-10T14:31:00Z", "event":"FileHeader", "part":1, "gameversion":"2.2", "build":"r113684 " }, { "timestamp":"2016-06-10T14:32:03Z", "event":"LoadGame", "Commander":"HRC1", "Ship":"SideWinder", "ShipID":1, "GameMode":"Open", "Credits":600120, "Loan":0 }\n',
+            b'{ "timestamp":"2016-06-10T14:31:00Z", "event":"Fileheader", "part":1, "gameversion":"2.2", "build":"r113684 " }, { "timestamp":"2016-06-10T14:32:03Z", "event":"LoadGame", "Commander":"HRC1", "Ship":"SideWinder", "ShipID":1, "GameMode":"Open", "Credits":600120, "Loan":0 }\n',
             b'{ "timestamp":"2016-06-10T14:50:00Z", "event":"Interdiction", "Success":true, "Interdicted":"cmdr CanNotShoot", "IsPlayer":true, "CombatRank":5 }\n',
             b'{ "timestamp":"2016-06-10T14:55:22Z", "event":"PVPKill", "Victim":"cmdr CanNotShoot", "CombatRank": 5}\n',
             b'{ "timestamp":"2016-06-10T14:35:00Z", "event":"FSDJump", "StarSystem":"Rana", "StarPos":[120.250,40.219,268.594], "JumpDist":36.034 }\n',
@@ -1013,20 +1013,20 @@ def f_plog_zip():
     archive = pat.parent.joinpath(pat.name + '.zip')
     file_pairs = [
         ['first.log', [
-            b'{ "timestamp":"2016-06-10T14:31:00Z", "event":"FileHeader", "part":1, "gameversion":"2.2", "build":"r113684 " }, { "timestamp":"2016-06-10T14:32:03Z", "event":"LoadGame", "Commander":"HRC1", "Ship":"SideWinder", "ShipID":1, "GameMode":"Open", "Credits":600120, "Loan":0 }\n',
+            b'{ "timestamp":"2016-06-10T14:31:00Z", "event":"Fileheader", "part":1, "gameversion":"2.2", "build":"r113684 " }, { "timestamp":"2016-06-10T14:32:03Z", "event":"LoadGame", "Commander":"HRC1", "Ship":"SideWinder", "ShipID":1, "GameMode":"Open", "Credits":600120, "Loan":0 }\n',
             b'{ "timestamp":"2016-06-10T14:50:00Z", "event":"Interdiction", "Success":true, "Interdicted":"cmdr CanNotShoot", "IsPlayer":true, "CombatRank":5 }\n',
             b'{ "timestamp":"2016-06-10T14:55:22Z", "event":"PVPKill", "Victim":"cmdr CanNotShoot", "CombatRank": 5}\n',
             b'{ "timestamp":"2016-06-10T14:35:00Z", "event":"FSDJump", "StarSystem":"Rana", "StarPos":[120.250,40.219,268.594], "JumpDist":36.034 }\n',
             b'{ "timestamp":"2016-06-10T14:36:10Z", "event":"FSDJump", "StarSystem":"Rhea", "StarPos":[120.719,34.188,271.750], "JumpDist":6.823 }\n',
         ]],
         ['second.log', [
-            b'{ "timestamp":"2016-06-10T14:31:00Z", "event":"FileHeader", "part":1, "gameversion":"2.2", "build":"r113684 " }, { "timestamp":"2016-06-10T14:32:03Z", "event":"LoadGame", "Commander":"HRC1", "Ship":"SideWinder", "ShipID":1, "GameMode":"Open", "Credits":600120, "Loan":0 }\n',
+            b'{ "timestamp":"2016-06-10T14:31:00Z", "event":"Fileheader", "part":1, "gameversion":"2.2", "build":"r113684 " }, { "timestamp":"2016-06-10T14:32:03Z", "event":"LoadGame", "Commander":"HRC1", "Ship":"SideWinder", "ShipID":1, "GameMode":"Open", "Credits":600120, "Loan":0 }\n',
             b'{ "timestamp":"2016-06-10T14:38:50Z", "event":"Scan", "BodyName":"Praea Euq NW-W b1-3 3", "Description":"Icy body with neon rich atmosphere and major water geysers volcanism" }\n',
             b'{ "timestamp":"2016-06-10T14:39:08Z", "event":"Scan", "BodyName":"Praea Euq NW-W b1-3 3 a", "Description":"Tidally locked Icy body" }\n',
             b'{ "timestamp":"2016-06-10T14:41:29Z", "event":"Docked", "StationName":"Beagle 2 Landing", "StationType":"Coriolis" }\n',
         ]],
         ['third.log', [
-            b'{ "timestamp":"2016-06-10T14:31:00Z", "event":"FileHeader", "part":1, "gameversion":"2.2", "build":"r113684 " }, { "timestamp":"2016-06-10T14:32:03Z", "event":"LoadGame", "Commander":"HRC1", "Ship":"SideWinder", "ShipID":1, "GameMode":"Open", "Credits":600120, "Loan":0 }\n',
+            b'{ "timestamp":"2016-06-10T14:31:00Z", "event":"Fileheader", "part":1, "gameversion":"2.2", "build":"r113684 " }, { "timestamp":"2016-06-10T14:32:03Z", "event":"LoadGame", "Commander":"HRC1", "Ship":"SideWinder", "ShipID":1, "GameMode":"Open", "Credits":600120, "Loan":0 }\n',
             b'{ "timestamp":"2016-06-10T14:32:15Z", "event":"Location", "StarSystem":"Asellus Primus", "StarPos":[-23.938,40.875,-1.344] }\n',
             b'{ "timestamp":"2016-06-10T14:35:00Z", "event":"FSDJump", "StarSystem":"HIP 78085", "StarPos":[120.250,40.219,268.594], "JumpDist":36.034 }\n',
         ]],

@@ -44,12 +44,17 @@ def subs_admin(subs, prefix):
 **{prefix}admin filter**
         Rerun the filtering stage on all past uploads.
         Filtered versions of uploads will be created and uploaded to archive channel.
+**{prefix}admin filter attachment_name**
+        Rerun the filtering stage on all past uploads.
+        Resume AFTER the provided attachment seen.
 **{prefix}admin regenerate**
         Use only when log corruption expected or change in log parsing.
         Reparses all uploaded logs to regenerate database.
 **{prefix}admin stats**
         Recreate the pvp stats table and recompute all stats.
-**{prefix}admin prune**
+**{prefix}admin prune #mention_channel_1 #mention_channel_2**
+        Delete all messages in mentioned channels.
+**{prefix}admin prune_bulk #mention_channel_1 #mention_channel_2**
         Delete all messages in mentioned channels.
     """
     sub = subs.add_parser(prefix + 'admin', description=desc, formatter_class=RawHelp)
@@ -62,9 +67,12 @@ def subs_admin(subs, prefix):
     subcmd = subcmds.add_parser('remove', help='Remove an admin or permission.')
     subcmd.add_argument('rule_cmds', nargs='*', help='The the command to restrict.')
     subcmd = subcmds.add_parser('filter', help='Filter all existing log uploads for events of interest.')
+    subcmd.add_argument('attachment', nargs='*', help='The name of the attachment to start AFTER..')
     subcmd = subcmds.add_parser('regenerate', help='Regenerate the PVP database.')
+    subcmd.add_argument('attachment', nargs='*', help='The name of the attachment to start AFTER..')
     subcmd = subcmds.add_parser('stats', help='Regenerate the PVPStats for all CMDRs.')
     subcmd = subcmds.add_parser('prune', help='Delete messages in one or more mentioned channels.')
+    subcmd = subcmds.add_parser('prune_bulk', help='Delete messages in bulk for one or more mentioned channels.')
 
 
 @register_parser
