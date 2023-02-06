@@ -25,20 +25,17 @@ jobs:
           curl -sLf --retry 3 --tlsv1.2 --proto "=https" 'https://packages.doppler.com/public/cli/gpg.DE2A7741A397C129.key' | sudo apt-key add -
           echo "deb https://packages.doppler.com/public/cli/deb/debian any-version main" | sudo tee /etc/apt/sources.list.d/doppler-cli.list
           sudo apt-get update
-          sudo apt-get install -y git build-essential python3-dev python3-pip libyajl2 jq doppler
+          sudo apt-get install -y git build-essential python3-dev python3-pip libyajl2 jq doppler mariadb-server mariadb-client
 
       - name: Install pip dependencies
         run: python setup.py deps --force=yes
 
       - name: Setup database, tables and import EDDB dump.
-        env:
-          DB_USER: root
-          DB_PASSWORD: root
         run: |
           sudo /etc/init.d/mysql start
-          mysql -u${{ env.DB_USER }} -p${{ env.DB_PASSWORD }} < "tests/mysql_tables.sql"
+          sudo mysql < "tests/mysql_tables.sql"
           curl "http://starcraftman.com/elite/eddb_v10.sql" > "eddb.sql"
-          mysql -u${{ env.DB_USER }} -p${{ env.DB_PASSWORD }} -D eddb < "eddb.sql"
+          sudo mysql -D eddb < "eddb.sql"
 
       - name: Generate secret config files
         env:
@@ -46,10 +43,11 @@ jobs:
         run: |
           doppler secrets substitute "tests/secrethub/secretConfig.yml" --output "data/config.yml"
           doppler secrets substitute "tests/secrethub/secretSheets.json" --output "data/service_sheets.json"
-          python -m pvp.schema
 
       - name: Run unit tests
         env:
           DOPPLER_TOKEN: ${{secrets.DOPPLER_TOKEN}}
         # Running without full tests due to rate limiting of inara. See gitlab for full run and coverage.
-        run: python -m pytest --cov=cog --cov=cogdb
+        run: |
+          python -m pvp.schema
+          python -m pytest --cov=cog --cov=cogdb --cov=pvp
