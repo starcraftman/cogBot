@@ -69,7 +69,6 @@ def subs_admin(subs, prefix):
     subcmd = subcmds.add_parser('filter', help='Filter all existing log uploads for events of interest.')
     subcmd.add_argument('attachment', nargs='*', help='The name of the attachment to start AFTER..')
     subcmd = subcmds.add_parser('regenerate', help='Regenerate the PVP database.')
-    subcmd.add_argument('attachment', nargs='*', help='The name of the attachment to start AFTER..')
     subcmd = subcmds.add_parser('stats', help='Regenerate the PVPStats for all CMDRs.')
     subcmd = subcmds.add_parser('prune', help='Delete messages in one or more mentioned channels.')
     subcmd = subcmds.add_parser('prune_bulk', help='Delete messages in bulk for one or more mentioned channels.')
