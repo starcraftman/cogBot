@@ -431,192 +431,183 @@ class Log(PVPAction):
         msg = '__Most Recent Events__\n\n' + '\n'.join([str(x) for x in events])
         await self.bot.send_message(self.msg.channel, msg)
 
+
 class Match(PVPAction):
     """
     Prepare a match between players.
     """
-    async def start(self):
+    def _validate_cmdrs(self):
+        """
+        Validate the CMDRs mentioned or listed as arguments.
+
+        Raises:
+            ValueError: One or more CMDRs could not be found.
+
+        Returns: A list of PVPCmdrs to process.
+        """
+        cmdrs = []
+        failed = []
+        for mention in self.msg.mentions:
+            cmdr = pvp.schema.get_pvp_cmdr(self.eddb_session, cmdr_id=mention.id)
+            if not cmdr:
+                failed += [f"CMDR not found for: {mention.mention}"]
+
+        for name in self.args.players:
+            cmdr = pvp.schema.get_pvp_cmdr(self.eddb_session, cmdr_name=name)
+            if not cmdr:
+                failed += [f"CMDR not found for: {name}"]
+
+        if failed:
+            raise ValueError('\n'.join(failed))
+
+        return cmdrs
+
+    async def start(self, match):
         """
         Start the Match.
         """
-        match = pvp.schema.get_match_info(self.eddb_session)
         if match:
             match.started = True
-            msg = """__PvP Match__\n\n The current match has been started."""
+            response = """__PvP Match__\n\n The current match has been started."""
         else:
             prefix = self.bot.prefix
-            msg = f"""__PvP Match__\n\n No match to start.\nPlease setup one using `{prefix}match setup`"""
-        await self.bot.send_message(self.msg.channel, msg)
+            response = f"""__PvP Match__\n\n No match to start.\nPlease setup one using `{prefix}match setup`"""
 
-    async def cancel(self):
+        return response, None
+
+    async def cancel(self, match):
         """
         Cancel a Match.
         """
-        match = pvp.schema.get_match_info(self.eddb_session)
         if match:
             for players in match.players:
                 pvp.schema.remove_player_from_match(self.eddb_session, match.id, players.cmdr_id)
-            match.canceled = True
-            msg = """__PvP Match__\n\n The current match has been canceled."""
+            match.cancelled = True
+            response = """__PvP Match__\n\n The current match has been cancelled."""
         else:
             prefix = self.bot.prefix
-            msg = f"""__PvP Match__\n\n No match to cancel.\nPlease setup one using `{prefix}match setup`"""
-        await self.bot.send_message(self.msg.channel, msg)
+            response = f"""__PvP Match__\n\n No match to cancel.\nPlease setup one using `{prefix}match setup`"""
 
-    async def add(self):
+        return response, None
+
+    async def add(self, match):
         """
         Add player to Match.
         """
-        cmdr_msg = ""
-        teams = None
+        response = ""
         embed = None
-        for players in self.msg.mentions:
-            cmdr = pvp.schema.get_pvp_cmdr(self.eddb_session, cmdr_id=players.id)
-            match = pvp.schema.get_match_info(self.eddb_session)
-            if cmdr and match:
-                pvp.schema.add_player_to_match(self.eddb_session, cmdr_id=cmdr.id, match_id=match.id)
-                cmdr_msg += f"CMDR {cmdr.name} added to match!\n"
-                if len(match.players) == match.limits:
-                    teams = pvp.schema.start_match(self.eddb_session, match_id=match.id)
-                    break
-            elif match and cmdr is None:
-                cmdr_msg += f"CMDR {self.msg.author.name} not found!\n"
-            else:
-                prefix = self.bot.prefix
-                cmdr_msg = f"""No pending match.\nPlease setup one using `{prefix}match setup`"""
-                break
-        for players in self.args.players:
-            cmdr = pvp.schema.get_pvp_cmdr(self.eddb_session, cmdr_name=players)
-            match = pvp.schema.get_match_info(self.eddb_session)
-            if cmdr and match:
-                pvp.schema.add_player_to_match(self.eddb_session, cmdr_id=cmdr.id, match_id=match.id)
-                cmdr_msg += f"CMDR {cmdr.name} added to match!\n"
-                if len(match.players) == match.limits:
-                    teams = pvp.schema.start_match(self.eddb_session, match_id=match.id)
-                    break
-            elif match and cmdr is None:
-                cmdr_msg += f"CMDR {self.msg.author.name} not found!\n"
-            else:
-                prefix = self.bot.prefix
-                cmdr_msg = f"""No pending match.\nPlease setup one using `{prefix}match setup`"""
-                break
-        cmdr_msg = f"__PvP Match__\n\n {cmdr_msg}"
-        
-        if teams:
-            embed = discord.Embed.from_dict({
-                'color': 0xff0000,
-                'author': {
-                    'name': 'PvP Match START',
-                    'icon_url': self.bot.user.display_avatar.url,
-                },
-                'provider': {
-                    'name': 'FedCAT',
-                },
-                'title': "Match starts :",
-            })
-            embed.add_field(name='Team 1', value='\n'.join(teams[0]), inline=True)
-            embed.add_field(name='Team 2', value='\n'.join(teams[1]), inline=True)
-        await self.bot.send_message(self.msg.channel, cmdr_msg, embed=embed)
 
-    async def remove(self):
+        try:
+            for cmdr in self.validate_cmdrs():
+                pvp.schema.add_player_to_match(self.eddb_session, cmdr_id=cmdr.id, match_id=match.id)
+                response += f"CMDR {cmdr.name} added to match!\n"
+
+                if len(match.players) == match.limits:
+
+                    # TODO: Move to start method
+                    teams = pvp.schema.start_match(self.eddb_session, match_id=match.id)
+                    embed = discord.Embed.from_dict({
+                        'color': 0xff0000,
+                        'author': {
+                            'name': 'PvP Match START',
+                            'icon_url': self.bot.user.display_avatar.url,
+                        },
+                        'provider': {
+                            'name': 'FedCAT',
+                        },
+                        'title': "Match starts :",
+                    })
+                    embed.add_field(name='Team 1', value='\n'.join(teams[0]), inline=True)
+                    embed.add_field(name='Team 2', value='\n'.join(teams[1]), inline=True)
+
+                    break
+
+            response = f"__PvP Match__\n\n {response}"
+        except ValueError as exc:
+            response = str(exc)
+
+        return response, embed
+
+    async def remove(self, match):
         """
         Remove player from Match.
         """
-        cmdr_msg = ""
-        for players in self.msg.mentions:
-            cmdr = pvp.schema.get_pvp_cmdr(self.eddb_session, cmdr_id=players.id)
-            match = pvp.schema.get_match_info(self.eddb_session)
-            if cmdr and match:
-                pvp.schema.remove_player_from_match(self.eddb_session, cmdr_id=cmdr.id, match_id=match.id)
-                cmdr_msg += f"CMDR {cmdr.name} removed from match!\n"
-            elif match and cmdr is None:
-                cmdr_msg += f"CMDR {self.msg.author.name} not found!\n"
-            else:
-                prefix = self.bot.prefix
-                cmdr_msg = f"""No pending match.\nPlease setup one using `{prefix}match setup`"""
-                break
-        for players in self.args.players:
-            cmdr = pvp.schema.get_pvp_cmdr(self.eddb_session, cmdr_name=players)
-            match = pvp.schema.get_match_info(self.eddb_session)
-            if cmdr and match:
-                pvp.schema.remove_player_from_match(self.eddb_session, cmdr_id=cmdr.id, match_id=match.id)
-                cmdr_msg += f"CMDR {cmdr.name} removed from match!\n"
-            elif match and cmdr is None:
-                cmdr_msg += f"CMDR {self.msg.author.name} not found!\n"
-            else:
-                prefix = self.bot.prefix
-                cmdr_msg = f"""No pending match.\nPlease setup one using `{prefix}match setup`"""
-                break
-        cmdr_msg = f"__PvP Match__\n\n {cmdr_msg}"
-        await self.bot.send_message(self.msg.channel, cmdr_msg)
+        response = ""
 
-    async def list(self):
+        try:
+            for cmdr in self.validate_cmdrs():
+                pvp.schema.remove_player_from_match(self.eddb_session, cmdr_id=cmdr.id, match_id=match.id)
+                response += f"CMDR {cmdr.name} removed from match!\n"
+
+        except ValueError as exc:
+            response = str(exc)
+
+        return f"__PvP Match__\n\n {response}", None
+
+    async def list(self, match):
         """
         Display current Match player list.
         """
-        msg = None
+        response = None
         embed = None
-        match = pvp.schema.get_match_info(self.eddb_session)
-        if match:
-            cmdr = pvp.schema.get_pvp_cmdr(self.eddb_session, cmdr_id=self.msg.author.id)
-            color = 0x0dd42e
-            if cmdr:
-                color = cmdr.hex_value
-            embed_values = [{'name': players.cmdr.name, 'value': index, 'inline': True} for index, players in enumerate(match.players, start=1)]
-            embed = discord.Embed.from_dict({
-                'color': color,
-                'author': {
-                    'name': 'PvP Match List',
-                    'icon_url': self.bot.user.display_avatar.url,
-                },
-                'provider': {
-                    'name': 'FedCAT',
-                },
-                'title': f"Total allowed players : {match.limits}",
-                "fields": embed_values,
-            })
-        else:
-            prefix = self.bot.prefix
-            msg = f"""__PvP Match__\n\n There is no match.\nPlease setup one using `{prefix}match setup`"""
-        await self.bot.send_message(self.msg.channel, msg, embed=embed)
 
-    async def setup(self):
+        cmdr = pvp.schema.get_pvp_cmdr(self.eddb_session, cmdr_id=self.response.author.id)
+        color = cmdr.hex_value if cmdr else 0x0dd42e
+
+        embed_values = [
+            {'name': players.cmdr.name, 'value': index, 'inline': True}
+            for index, players in enumerate(match.players, start=1)
+        ]
+        embed = discord.Embed.from_dict({
+            'color': color,
+            'author': {
+                'name': 'PvP Match List',
+                'icon_url': self.bot.user.display_avatar.url,
+            },
+            'provider': {
+                'name': 'FedCAT',
+            },
+            'title': f"Total allowed players : {match.limits}",
+            "fields": embed_values,
+        })
+
+        return response, embed
+
+    async def setup(self, match):
         """
         Setup a new Match.
         """
-        msg = None
+        response = None
         embed = None
-        match = pvp.schema.get_match_info(self.eddb_session)
         if match:
-            msg = """__PvP Match__\n\n A match is already pending.\nPlease start it or cancel it before creating a new one."""
-        else:
-            cmdr = pvp.schema.get_pvp_cmdr(self.eddb_session, cmdr_id=self.msg.author.id)
-            color = 0x0dd42e
-            limits = 20
-            if cmdr:
-                color = cmdr.hex_value
-            if self.args.limits != 20:
-                limits = self.args.limits[0]
-            pvp.schema.add_pvp_match(self.eddb_session, limits)
-            embed = discord.Embed.from_dict({
-                'color': color,
-                'author': {
-                    'name': 'PvP Match Setup',
-                    'icon_url': self.bot.user.display_avatar.url,
-                },
-                'provider': {
-                    'name': 'FedCAT',
-                },
-                'title': f"Total allowed players : {limits}"
-            })
-        await self.bot.send_message(self.msg.channel, msg, embed=embed)
+            response = """__PvP Match__\n\n A match is already pending.\nPlease start it or cancel it before creating a new one.""", None
 
-    async def reroll(self):
+        cmdr = pvp.schema.get_pvp_cmdr(self.eddb_session, cmdr_id=self.msg.author.id)
+        color = 0x0dd42e
+        limits = 20
+        if cmdr:
+            color = cmdr.hex_value
+        if self.args.limits != 20:
+            limits = self.args.limits[0]
+        pvp.schema.add_pvp_match(self.eddb_session, limits)
+        embed = discord.Embed.from_dict({
+            'color': color,
+            'author': {
+                'name': 'PvP Match Setup',
+                'icon_url': self.bot.user.display_avatar.url,
+            },
+            'provider': {
+                'name': 'FedCAT',
+            },
+            'title': f"Total allowed players : {limits}"
+        })
+
+        return response, embed
+
+    async def reroll(self, _):
         """
         Reroll teams.
         """
-        embed = None
-        msg = None
         teams = pvp.schema.roll_teams(self.eddb_session)
         embed = discord.Embed.from_dict({
                 'color': 0xff0000,
@@ -631,27 +622,30 @@ class Match(PVPAction):
             })
         embed.add_field(name='Team 1', value='\n'.join(teams[0]), inline=True)
         embed.add_field(name='Team 2', value='\n'.join(teams[1]), inline=True)
-        await self.bot.send_message(self.msg.channel, msg, embed=embed)
 
-    async def win(self):
+        return None, embed
+
+    async def win(self, match):
         """
         Conclude a match with victory for the mentionned Team member.
         """
-        cmdr_msg = ""
+        response = ""
         teams = None
         embed = None
+
+        # TODO: Rewrite this with validate_cmdrs
         if self.msg.mentions:
             cmdr = pvp.schema.get_player_match(self.eddb_session, cmdr_id=self.msg.mentions[0].id)
             match = pvp.schema.get_started_match_info(self.eddb_session, cmdr.cmdr_id)
             if cmdr and match:
                 players = pvp.schema.get_match_team_player(self.eddb_session, match.id, cmdr.team)
                 for winner in players:
-                    cmdr_msg += f"CMDR {winner.cmdr.name} from Team {cmdr.team} win the match!\n"
+                    response += f"CMDR {winner.cmdr.name} from Team {cmdr.team} win the match!\n"
                 pvp.schema.finish_match(self.eddb_session, match.id, cmdr.team)
             elif match and cmdr is None:
-                cmdr_msg += f"CMDR {self.msg.author.name} not found!\n"
+                response += f"CMDR {self.msg.author.name} not found!\n"
             else:
-                cmdr_msg = f"""No match found with this CMDR in a team."""
+                response = f"""No match found with this CMDR in a team."""
         if self.args.player:
             match = None
             cmdr = pvp.schema.get_pvp_cmdr(self.eddb_session, cmdr_name=self.args.player)
@@ -661,14 +655,14 @@ class Match(PVPAction):
             if cmdr and match:
                 players = pvp.schema.get_match_team_player(self.eddb_session, match.id, cmdr.team)
                 for winner in players:
-                    cmdr_msg += f"CMDR {winner.cmdr.name} from Team {cmdr.team} win the match!\n"
+                    response += f"CMDR {winner.cmdr.name} from Team {cmdr.team} win the match!\n"
                 pvp.schema.finish_match(self.eddb_session, match.id, cmdr.team)
             elif match and cmdr is None:
-                cmdr_msg += f"CMDR {self.msg.author.name} not found!\n"
+                response += f"CMDR {self.msg.author.name} not found!\n"
             else:
-                cmdr_msg = f"""No match found with this CMDR in a team."""
-        cmdr_msg = f"__PvP Match__\n\n {cmdr_msg}"
-        
+                response = f"""No match found with this CMDR in a team."""
+        response = f"__PvP Match__\n\n {response}"
+
         if teams:
             embed = discord.Embed.from_dict({
                 'color': 0xff0000,
@@ -683,16 +677,29 @@ class Match(PVPAction):
             })
             embed.add_field(name='Team 1', value='\n'.join(teams[0]), inline=True)
             embed.add_field(name='Team 2', value='\n'.join(teams[1]), inline=True)
-        await self.bot.send_message(self.msg.channel, cmdr_msg, embed=embed)
 
-        
+        return response, embed
+
     async def execute(self):
+        """
+        All methods will take the match in question. If one not created, make it for channel.
+        """
         try:
+            match = pvp.schema.get_match_info(self.eddb_session)
+            if not match and self.args.subcmd in {'add', 'remove', 'list', 'reroll', 'win'}:
+                prefix = self.bot.prefix
+                return f"""No pending match.\nPlease setup one using `{prefix}match setup`""", None
+
             func = getattr(self, self.args.subcmd)
-            await func()
+            response, embed = await func(match)
+            if response or embed:
+                await self.bot.send_message(self.msg.channel, response, embed=embed)
+
         except AttributeError as exc:
             traceback.print_exc()
             raise cog.exc.InvalidCommandArgs("Bad subcommand of `!match`, see `!match -h` for help.") from exc
+
+        # TODO: This code too long, consolidate in method or move elsewhere
         except TypeError as exc:
             cmdr = pvp.schema.get_pvp_cmdr(self.eddb_session, cmdr_id=self.msg.author.id)
             match = pvp.schema.get_match_info(self.eddb_session)
@@ -706,7 +713,7 @@ class Match(PVPAction):
                         teams = pvp.schema.start_match(self.eddb_session, match_id=match.id)
                 else:
                     pvp.schema.remove_player_from_match(self.eddb_session, cmdr_id=cmdr.id, match_id=match.id)
-                    msg = f"__CMDR Statistics__\n\nCMDR {cmdr.name} canceled his registration!"
+                    msg = f"__CMDR Statistics__\n\nCMDR {cmdr.name} cancelled his registration!"
             elif match and cmdr is None:
                 msg = f"__CMDR Statistics__\n\nCMDR {self.msg.author.name} not found!"
             else:
@@ -727,6 +734,7 @@ class Match(PVPAction):
                 })
                 embed.add_field(name='Team 1', value='\n'.join(teams[0]), inline=True)
                 embed.add_field(name='Team 2', value='\n'.join(teams[1]), inline=True)
+
             await self.bot.send_message(self.msg.channel, msg, embed=embed)
 
 

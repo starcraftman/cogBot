@@ -6,6 +6,7 @@ import time
 import random
 import math
 
+import discord
 import sqlalchemy as sqla
 import sqlalchemy.orm as sqla_orm
 import sqlalchemy.orm.session
@@ -607,28 +608,80 @@ class PVPLog(ReprMixin, TimestampMixin, Base):
         return self.file_hash
 
 
-class PvPMatch(ReprMixin, TimestampMixin, Base):
+# TODO: Limited to one match that is active atm, add ability to start more than one match.
+# TODO: Likely add fields for match.name and match.description
+class PVPMatch(ReprMixin, TimestampMixin, Base):
     """
     Table to store matches.
     """
     __tablename__ = 'pvp_matchs'
-    _repr_keys = ['id', 'limits', 'started', 'updated_at']
+    _repr_keys = ['id', 'limits', 'cancelled', 'started', 'finished', 'updated_at']
 
     id = sqla.Column(sqla.BigInteger, primary_key=True)
-    limits = sqla.Column(sqla.Integer)
+    limits = sqla.Column(sqla.Integer, default=2)
     started = sqla.Column(sqla.Boolean, default=False)
-    canceled = sqla.Column(sqla.Boolean, default=False)
+    cancelled = sqla.Column(sqla.Boolean, default=False)
     finished = sqla.Column(sqla.Boolean, default=False)
     updated_at = sqla.Column(sqla.Integer, default=time.time, onupdate=time.time)
 
-    players = sqla.orm.relationship('PvPMatchPlayer', viewonly=True)
-    winners = sqla.orm.relationship('PvPMatchWinners', viewonly=True)
+    players = sqla.orm.relationship('PVPMatchPlayer', viewonly=True)
 
     def __eq__(self, other):
-        return isinstance(other, PvPMatch) and hash(self) == hash(other)
+        return isinstance(other, PVPMatch) and hash(self) == hash(other)
+
+    def __hash__(self):
+        return self.id
+
+    def teams_dict(self):
+        """
+        Generate a dictionary that separates players by teams.
+        """
+        teams = {}
+
+        for player in self.players:
+            try:
+                teams[player.team] += [player.name]
+            except KeyError:
+                teams[player.team] = [player.name]
+
+        return teams
+
+    def embed_dict(self):
+        """
+        Generate an embed that describes the current state of a match.
+        """
+        state = 'Preparing'
+        if self.started:
+            state = 'Started'
+        elif self.cancelled:
+            state = 'Cancelled'
+        elif self.finished:
+            state = 'Finished'
+
+        embed_values = [{'name': 'State', 'value': state, 'inline': True}] + [
+            {'name': f'Team {team_num}', 'value': '\n'.join(players), 'inline': True}
+            for team_num, players in self.teams_dict().items()
+        ]
+        return {
+            'color': 0x0dd42e,
+            'author': {
+                'name': 'PvP Match',
+                'icon_url': cog.util.BOT.user.display_avatar.url if cog.util.BOT else None,
+            },
+            'provider': {
+                'name': cog.util.BOT.user.name if cog.util.BOT else None,
+            },
+            'title': f'PVP Match: {len(self.players)}/{self.limits}',
+            "fields": embed_values,
+        }
+
+    @property
+    def winners(self):
+        """ Return the list of winners from the match. """
+        return [x for x in self.players if x.won]
 
 
-class PvPMatchPlayer(ReprMixin, TimestampMixin, Base):
+class PVPMatchPlayer(ReprMixin, TimestampMixin, Base):
     """
     Table to store matches participants.
     """
@@ -639,30 +692,17 @@ class PvPMatchPlayer(ReprMixin, TimestampMixin, Base):
     cmdr_id = sqla.Column(sqla.BigInteger, sqla.ForeignKey('pvp_cmdrs.id'))
     match_id = sqla.Column(sqla.BigInteger, sqla.ForeignKey('pvp_matchs.id'))
     team = sqla.Column(sqla.Integer, default=0)
+    won = sqla.Column(sqla.Boolean, default=False)
     updated_at = sqla.Column(sqla.Integer, default=time.time, onupdate=time.time)
 
+    match = sqla.orm.relationship('PVPMatch', viewonly=True)
     cmdr = sqla.orm.relationship('PVPCmdr', viewonly=True)
 
     def __eq__(self, other):
-        return isinstance(other, PvPMatchPlayer) and hash(self) == hash(other)
+        return isinstance(other, PVPMatchPlayer) and hash(self) == hash(other)
 
-
-class PvPMatchWinners(ReprMixin, TimestampMixin, Base):
-    """
-    Table to store matches winners.
-    """
-    __tablename__ = 'pvp_match_winners'
-    _repr_keys = ['id', 'cmdr_id', 'match_id', 'updated_at']
-
-    id = sqla.Column(sqla.BigInteger, primary_key=True)
-    cmdr_id = sqla.Column(sqla.BigInteger, sqla.ForeignKey('pvp_match_players.id'))
-    match_id = sqla.Column(sqla.BigInteger, sqla.ForeignKey('pvp_matchs.id'))
-    updated_at = sqla.Column(sqla.Integer, default=time.time, onupdate=time.time)
-
-    cmdr = sqla.orm.relationship('PvPMatchPlayer', viewonly=True)
-
-    def __eq__(self, other):
-        return isinstance(other, PvPMatchPlayer) and hash(self) == hash(other)
+    def __hash__(self):
+        return hash(f'{self.match_id}_{self.cmdr_id}')
 
 
 # Relationships that are back_populates
@@ -996,24 +1036,28 @@ def get_filtered_pvp_logs(eddb_session):
         all()
 
 
-def get_match_info(eddb_session):
+def get_match(eddb_session):
     """
     Get the current match info.
 
-    Returns: The PvPMatch if present and not started, None otherwise.
+    Args:
+        eddb_session: A session onto the EDDB db.
+
+    Returns: The PVPMatch if present and not started, None otherwise.
     """
     try:
-        match = eddb_session.query(PvPMatch).filter(
-            PvPMatch.started == False,
-            PvPMatch.canceled == False,
-            PvPMatch.finished == False).one()
+        match = eddb_session.query(PVPMatch).\
+            filter(sqla.not_(PVPMatch.started),
+                   sqla.not_(PVPMatch.cancelled),
+                   sqla.not_(PVPMatch.finished)).\
+            one()
     except sqla.exc.NoResultFound:
         match = None
 
     return match
 
 
-def get_started_match_info(eddb_session, cmdr_id):
+def get_match_by_player(eddb_session, cmdr_id):
     """
     Get the started match info base of cmdr id.
 
@@ -1021,17 +1065,16 @@ def get_started_match_info(eddb_session, cmdr_id):
         eddb_session: A session onto the EDDB db.
         cmdr_id: The cmdr's id.
 
-    Returns: The PvPMatch if present started and not finished, None otherwise.
+    Returns: The PVPMatch if present started and not finished, None otherwise.
     """
     try:
-        player_match_id = eddb_session.query(PvPMatchPlayer.match_id).filter(
-            PvPMatchPlayer.cmdr_id == cmdr_id
-        ).one()
-        match = eddb_session.query(PvPMatch).filter(
-            PvPMatch.started == True,
-            PvPMatch.canceled == False,
-            PvPMatch.finished == False,
-            PvPMatch.id == player_match_id[0]).one()
+        match = eddb_session.query(PVPMatch).\
+            join(PVPMatchPlayer, PVPMatchPlayer.match_id == PVPMatch.id).\
+            filter(PVPMatch.started,
+                   sqla.not_(PVPMatch.cancelled),
+                   sqla.not_(PVPMatch.finished),
+                   PVPMatchPlayer.cmdr_id == cmdr_id).\
+            one()
     except sqla.exc.NoResultFound:
         match = None
 
@@ -1047,17 +1090,18 @@ def add_player_to_match(eddb_session, match_id, cmdr_id):
         match_id: The match id to add the new player.
         cmdr_id: The player id to add.
 
-    Returns: The PvPMatchPlayer. If already in match, return None.
+    Returns: The PVPMatchPlayer. If already in match, return None.
     """
     try:
-        player = eddb_session.query(PvPMatchPlayer).filter(
-            PvPMatchPlayer.cmdr_id == cmdr_id).one()
+        player = eddb_session.query(PVPMatchPlayer).\
+            filter(PVPMatchPlayer.cmdr_id == cmdr_id).\
+            one()
         if player.match_id == match_id:
             return None
         player.match_id = match_id
 
     except sqla.exc.NoResultFound:
-        player = PvPMatchPlayer(
+        player = PVPMatchPlayer(
             cmdr_id=cmdr_id,
             match_id=match_id,
         )
@@ -1076,12 +1120,13 @@ def remove_player_from_match(eddb_session, match_id, cmdr_id):
         match_id: The match id to remoave the player.
         cmdr_id: The player id to remove.
 
-    Returns: The PvPMatchPlayer.
+    Returns: The PVPMatchPlayer.
     """
     try:
-        player = eddb_session.query(PvPMatchPlayer).filter(
-            PvPMatchPlayer.cmdr_id == cmdr_id,
-            PvPMatchPlayer.match_id == match_id).one()
+        player = eddb_session.query(PVPMatchPlayer).\
+            filter(PVPMatchPlayer.cmdr_id == cmdr_id,
+                   PVPMatchPlayer.match_id == match_id).\
+            one()
         player.match_id = None
     except sqla.exc.NoResultFound:
         player = None
@@ -1097,11 +1142,12 @@ def get_player_match(eddb_session, cmdr_id):
         eddb_session: A session onto the EDDB db.
         cmdr_id: The player id to get.
 
-    Returns: The PvPMatchPlayer.
+    Returns: The PVPMatchPlayer.
     """
     try:
-        player = eddb_session.query(PvPMatchPlayer).filter(
-            PvPMatchPlayer.cmdr_id == cmdr_id).one()
+        player = eddb_session.query(PVPMatchPlayer).\
+            filter(PVPMatchPlayer.cmdr_id == cmdr_id).\
+            one()
     except sqla.exc.NoResultFound:
         player = None
 
@@ -1118,8 +1164,9 @@ def start_match(eddb_session, match_id):
 
     Returns: A tuple of Team array (Team1, Team2).
     """
-    match = eddb_session.query(PvPMatch).filter(
-        PvPMatch.id == match_id).one()
+    match = eddb_session.query(PVPMatch).\
+        filter(PVPMatch.id == match_id).\
+        one()
     match.started = True
     teams = roll_teams(eddb_session)
     return teams
@@ -1137,10 +1184,10 @@ def get_match_team_player(eddb_session, match_id, team_id):
     Returns: A list of players. None if cannot find.
     """
     try:
-        winners = eddb_session.query(PvPMatchPlayer).filter(
-            PvPMatchPlayer.match_id == match_id,
-            PvPMatchPlayer.team == team_id
-        ).all()
+        winners = eddb_session.query(PVPMatchPlayer).\
+            filter(PVPMatchPlayer.match_id == match_id,
+                   PVPMatchPlayer.team == team_id).\
+            all()
     except sqla.exc.NoResultFound:
         winners = None
 
@@ -1156,13 +1203,14 @@ def finish_match(eddb_session, match_id, winner_team):
         match_id: The match id to start.
         winner_team: The team number than won.
 
-    Returns: The PvPMatch.
+    Returns: The PVPMatch.
     """
     winners = get_match_team_player(eddb_session, match_id, winner_team)
     for player in winners:
-        add_winner(eddb_session, match_id, player.cmdr_id)
-    match = eddb_session.query(PvPMatch).filter(
-        PvPMatch.id == match_id).one()
+        player.won = True
+    match = eddb_session.query(PVPMatch).\
+        filter(PVPMatch.id == match_id).\
+        one()
     match.finished = True
     return match
 
@@ -1177,30 +1225,36 @@ def roll_teams(eddb_session):
     Returns: A tuple of Team array (Team1, Team2).
     """
 
-    match = eddb_session.query(PvPMatch).\
-        filter(PvPMatch.started == True,
-               PvPMatch.finished == False).\
-        order_by(PvPMatch.updated_at.desc()).first()
+    match = eddb_session.query(PVPMatch).\
+        filter(PVPMatch.started,
+               sqla.not_(PVPMatch.finished)).\
+        order_by(PVPMatch.updated_at.desc()).\
+        first()
     all_players = [player.cmdr_id for player in match.players]
-    team1 = set(random.sample(all_players, random.randint(math.floor(len(all_players)/2), math.ceil(len(all_players)/2))))
+    half_players = len(all_players) / 2
+    team1 = set(random.sample(all_players, random.randint(math.floor(half_players), math.ceil(half_players))))
     team2 = set(all_players) - team1
 
-    query_players = eddb_session.query(PvPMatchPlayer).filter(
-        PvPMatchPlayer.cmdr_id.in_(team1),
-        PvPMatchPlayer.match_id == match.id).all()
+    query_players = eddb_session.query(PVPMatchPlayer).\
+        filter(PVPMatchPlayer.cmdr_id.in_(team1),
+               PVPMatchPlayer.match_id == match.id).\
+        all()
     team1 = []
     for players in query_players:
         players.team = 1
         team1.append(players.cmdr.name)
 
-    query_players = eddb_session.query(PvPMatchPlayer).filter(
-        PvPMatchPlayer.cmdr_id.in_(team2),
-        PvPMatchPlayer.match_id == match.id).all()
+    query_players = eddb_session.query(PVPMatchPlayer).\
+        filter(PVPMatchPlayer.cmdr_id.in_(team2),
+               PVPMatchPlayer.match_id == match.id).\
+        all()
     team2 = []
     for players in query_players:
         players.team = 2
         team2.append(players.cmdr.name)
+
     return team1, team2
+
 
 def add_pvp_match(eddb_session, limits):
     """
@@ -1210,37 +1264,13 @@ def add_pvp_match(eddb_session, limits):
         eddb_session: A session onto the EDDB db.
         limits: The player limits if set.
 
-    Returns: The added PvPMatch.
+    Returns: The added PVPMatch.
     """
-    match = PvPMatch(limits=limits)
+    match = PVPMatch(limits=limits)
     eddb_session.add(match)
     eddb_session.commit()
 
     return match
-
-
-def add_winner(eddb_session, match_id, cmdr_id):
-    """
-    Reset player match id and add new winner.
-
-    Args:
-        eddb_session: A session onto the EDDB db.
-        match_id: The match id.
-        cmdr_id: The player id.
-
-    Returns: The PvPMatchWinner.
-    """
-    player = eddb_session.query(PvPMatchPlayer).filter(
-        PvPMatchPlayer.cmdr_id == cmdr_id
-    ).one()
-    player.match_id = None
-    winner = PvPMatchWinners(
-        match_id=match_id,
-    )
-    eddb_session.add(winner)
-    eddb_session.flush()
-
-    return winner
 
 
 def drop_tables(keep_cmdrs=False):  # pragma: no cover | destructive to test
@@ -1331,8 +1361,8 @@ def main():  # pragma: no cover
                            interdictor_name="BadGuyWon", interdictor_rank=7),
             PVPInterdicted(id=2, cmdr_id=2, is_player=True, did_submit=True, survived=True,
                            interdictor_name="BadGuyWon", interdictor_rank=7),
-            PvPMatch(id=1, limits=10, started=True, finished=True),
-            PvPMatch(id=2, limits=20, canceled=True),
+            PVPMatch(id=1, limits=10, started=True, finished=True),
+            PVPMatch(id=2, limits=20, cancelled=True),
 
         ])
         eddb_session.flush()
@@ -1354,7 +1384,8 @@ def main():  # pragma: no cover
 
 
 PVP_TABLES = [
-    PvPMatchWinners, PvPMatchPlayer, PvPMatch, PVPLog, PVPStat, PVPInterdictedKill, PVPInterdictedDeath, PVPInterdictionKill, PVPInterdictionDeath,
+    PVPMatchWinners, PVPMatchPlayer, PVPMatch,
+    PVPLog, PVPStat, PVPInterdictedKill, PVPInterdictedDeath, PVPInterdictionKill, PVPInterdictionDeath,
     PVPInterdicted, PVPInterdiction, PVPDeathKiller, PVPDeath, PVPKill, PVPLocation, PVPCmdr
 ]
 PVP_TABLES_KEEP = [PVPLog, PVPCmdr]

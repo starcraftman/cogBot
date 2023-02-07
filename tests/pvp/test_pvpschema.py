@@ -242,6 +242,7 @@ async def test_pvp_add_pvp_log(f_pvp_testbed, eddb_session):
 def test_pvp_get_match_info(f_pvp_testbed, eddb_session):
     match = pvp.schema.get_match_info(eddb_session)
     assert match is None
+
     new_match = pvp.schema.add_pvp_match(eddb_session, 4)
     match = pvp.schema.get_match_info(eddb_session)
     assert match.id == new_match.id
@@ -268,10 +269,10 @@ def test_pvp_remove_player_from_match(f_pvp_testbed, eddb_session):
 
 def test_pvp_start_match(f_pvp_testbed, eddb_session):
     new_match = pvp.schema.add_pvp_match(eddb_session, 4)
-    player1 = pvp.schema.add_player_to_match(eddb_session, new_match.id,1)
-    player2 = pvp.schema.add_player_to_match(eddb_session, new_match.id,2)
+    player1 = pvp.schema.add_player_to_match(eddb_session, new_match.id, 1)
+    player2 = pvp.schema.add_player_to_match(eddb_session, new_match.id, 2)
     teams = pvp.schema.start_match(eddb_session, new_match.id)
-    assert teams == (([player1.cmdr.name],[player2.cmdr.name]) or ([player2.cmdr.name],[player1.cmdr.name]))
+    assert teams == (([player1.cmdr.name], [player2.cmdr.name]) or ([player2.cmdr.name], [player1.cmdr.name]))
 
 
 def test_pvp_is_safe_to_drop():
