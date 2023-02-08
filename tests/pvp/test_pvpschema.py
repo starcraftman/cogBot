@@ -6,9 +6,11 @@ import tempfile
 import datetime
 import pytest
 
+import cog.exc
 import pvp.schema
 from pvp.schema import (
-    PVPLog, PVPStat, PVPInterdicted, PVPInterdiction, PVPDeathKiller, PVPDeath, PVPKill, PVPLocation, PVPCmdr
+    PVPMatchState, PVPMatch, PVPMatchPlayer, PVPLog, PVPStat,
+    PVPInterdicted, PVPInterdiction, PVPDeathKiller, PVPDeath, PVPKill, PVPLocation, PVPCmdr
 )
 
 
@@ -175,6 +177,130 @@ def test_pvplog__repr__(f_pvp_testbed, eddb_session):
     assert "PVPLog(id=1, cmdr_id=1, func_used=0, file_hash='hash', filename='first.log', msg_id=1, filtered_msg_id=10, updated_at=1671655377)" == repr(log)
 
 
+def test_pvpmatch__repr__(f_pvp_testbed, eddb_session):
+    match = eddb_session.query(PVPMatch).filter(PVPMatch.id == 1).one()
+    assert "PVPMatch(id=1, limit=10, state=0, created_at=1671655377, updated_at=1671655377)" == repr(match)
+
+
+def test_pvpmatch_validate_state(f_pvp_testbed, eddb_session):
+    match = eddb_session.query(PVPMatch).filter(PVPMatch.id == 1).one()
+    match.state = 1
+    assert 1 == match.state
+    match.state = PVPMatchState.FINISHED
+    assert 2 == match.state
+
+    with pytest.raises(cog.exc.ValidationFail):
+        match.state = 'aaa'
+
+
+def test_pvpmatch_players(f_pvp_testbed, eddb_session):
+    match = eddb_session.query(PVPMatch).filter(PVPMatch.id == 1).one()
+    assert match.players
+    assert len(match.players) == 3
+
+
+def test_pvpmatch_clone(f_pvp_testbed, eddb_session):
+    match = eddb_session.query(PVPMatch).filter(PVPMatch.id == 1).one()
+    match.roll_teams()
+    new_match = match.clone(eddb_session)
+
+    assert new_match.id
+    assert match.id != new_match.id
+    assert match.state == new_match.state
+    for player, new_player in zip(match.players, new_match.players):
+        assert new_player.id
+        assert player.id != new_player.id
+        assert player.team == new_player.team
+
+
+def test_pvpmatch_roll_teams(f_pvp_testbed, eddb_session):
+    match = eddb_session.query(PVPMatch).filter(PVPMatch.id == 1).one()
+    assert {0} == {x.team for x in match.players}
+    match.roll_teams()
+    assert {1, 2} == {x.team for x in match.players}
+
+
+def test_pvpmatch_finish(f_pvp_testbed, eddb_session):
+    match = eddb_session.query(PVPMatch).filter(PVPMatch.id == 1).one()
+    for player in match.players:
+        assert not player.won
+        assert player.team == 0
+
+    match.roll_teams()
+    match.finish(winning_team=1)
+    teams = match.teams_dict()
+
+    for player in teams[1]:
+        assert player.won
+    for player in teams[2]:
+        assert not player.won
+
+
+def test_pvpmatch_winners(f_pvp_testbed, eddb_session):
+    match = eddb_session.query(PVPMatch).filter(PVPMatch.id == 1).one()
+    for player in match.players[1:]:
+        player.won = True
+
+    assert match.players[1:] == match.winners
+
+
+def test_pvpmatch_get_player(f_pvp_testbed, eddb_session):
+    match = eddb_session.query(PVPMatch).filter(PVPMatch.id == 1).one()
+
+    assert match.players[0] == match.get_player(cmdr_id=1)
+
+
+def test_pvpmatch_add_player(f_pvp_testbed, eddb_session):
+    match = eddb_session.query(PVPMatch).filter(PVPMatch.id == 1).one()
+    assert not match.add_player(eddb_session, cmdr_id=1)
+    assert match.add_player(eddb_session, cmdr_id=4)
+    assert 4 == len(match.players)
+
+
+def test_pvpmatch_teams_dict(f_pvp_testbed, eddb_session):
+    match = eddb_session.query(PVPMatch).filter(PVPMatch.id == 1).one()
+    teams = match.teams_dict()
+    assert list(teams.keys()) == [0]
+    expect = list(sorted(match.players))
+    assert expect == list(sorted(teams[0]))
+
+
+def test_pvpmatch_embed_dict(f_pvp_testbed, eddb_session):
+    match = eddb_session.query(PVPMatch).filter(PVPMatch.id == 1).one()
+    expect = {
+        'author': {'icon_url': None, 'name': 'PvP Match'},
+        'color': 906286,
+        'fields': [
+            {'inline': True, 'name': 'State', 'value': 'Setup'},
+            {'inline': True, 'name': 'Team 0', 'value': 'coolGuy\nshootsALot\nshyGuy'}
+        ],
+        'provider': {'name': 'N/A'},
+        'title': 'PVP Match: 3/10'
+    }
+    assert expect == match.embed_dict()
+
+
+def test_pvpmatch_cascade_delete(f_pvp_testbed, eddb_session):
+    match = eddb_session.query(PVPMatch).filter(PVPMatch.id == 1).one()
+    eddb_session.delete(match)
+    eddb_session.commit()
+
+    assert len(eddb_session.query(PVPMatch).all()) == 1
+    assert len(eddb_session.query(PVPMatchPlayer).all()) == 0
+
+
+def test_pvpmatchplayer__repr__(f_pvp_testbed, eddb_session):
+    player = eddb_session.query(PVPMatchPlayer).filter(PVPMatchPlayer.id == 1).one()
+    assert "PVPMatchPlayer(id=1, cmdr_id=1, match_id=1, team=0, updated_at=1671655377)" == repr(player)
+
+
+def test_pvpmatchplayer__lt__(f_pvp_testbed, eddb_session):
+    player = eddb_session.query(PVPMatchPlayer).filter(PVPMatchPlayer.id == 1).one()
+    player2 = eddb_session.query(PVPMatchPlayer).filter(PVPMatchPlayer.id == 2).one()
+    assert player < player2
+    assert not player2 < player
+
+
 def test_pvp_get_pvp_cmdr(f_pvp_testbed, eddb_session):
     assert pvp.schema.get_pvp_cmdr(eddb_session, cmdr_id=1)
     assert not pvp.schema.get_pvp_cmdr(eddb_session, cmdr_id=1000)
@@ -239,40 +365,36 @@ async def test_pvp_add_pvp_log(f_pvp_testbed, eddb_session):
         assert expect_hash == pvp_log.file_hash
 
 
-def test_pvp_get_match_info(f_pvp_testbed, eddb_session):
-    match = pvp.schema.get_match_info(eddb_session)
-    assert match is None
+def test_pvp_add_pvp_match(f_pvp_testbed, eddb_session):
+    old_match = eddb_session.query(PVPMatch).order_by(PVPMatch.id.desc()).limit(1).one()
+    assert 10 != old_match.limit
 
-    new_match = pvp.schema.add_pvp_match(eddb_session, 4)
-    match = pvp.schema.get_match_info(eddb_session)
+    pvp.schema.add_pvp_match(eddb_session, limit=10)
+
+    match = eddb_session.query(PVPMatch).order_by(PVPMatch.id.desc()).limit(1).one()
+    assert 10 == match.limit
+    assert match.id != old_match.id
+
+
+def test_pvp_get_match(f_pvp_testbed, eddb_session):
+    match = pvp.schema.get_match(eddb_session)
+    assert match.id == 2
+
+    match = pvp.schema.get_match(eddb_session, state=PVPMatchState.SETUP)
+    assert match.id == 1
+
+    new_match = pvp.schema.add_pvp_match(eddb_session, limit=4)
+    match = pvp.schema.get_match(eddb_session)
     assert match.id == new_match.id
 
 
-def test_pvp_add_player_to_match(f_pvp_testbed, eddb_session):
-    match = pvp.schema.add_pvp_match(eddb_session, 4)
-    player_match = pvp.schema.add_player_to_match(eddb_session, match.id, 1)
-    assert player_match.match_id == match.id
-    assert player_match.cmdr_id == 1
-    player_match = pvp.schema.add_player_to_match(eddb_session, match.id, 1)
-    assert player_match is None
+def test_pvp_remove_players_from_match(f_pvp_testbed, eddb_session):
+    match = eddb_session.query(PVPMatch).filter(PVPMatch.id == 1).one()
+    assert len(match.players) == 3
 
+    pvp.schema.remove_players_from_match(eddb_session, match_id=match.id, cmdr_ids=[1, 2])
 
-def test_pvp_remove_player_from_match(f_pvp_testbed, eddb_session):
-    match = pvp.schema.add_pvp_match(eddb_session, 4)
-    player_match = pvp.schema.add_player_to_match(eddb_session, match.id, 1)
-    player_match = pvp.schema.remove_player_from_match(eddb_session, match.id, 1)
-    assert player_match.match_id is None
-    assert player_match.cmdr_id == 1
-    player_match = pvp.schema.remove_player_from_match(eddb_session, match.id, 1)
-    assert player_match is None
-
-
-def test_pvp_start_match(f_pvp_testbed, eddb_session):
-    new_match = pvp.schema.add_pvp_match(eddb_session, 4)
-    player1 = pvp.schema.add_player_to_match(eddb_session, new_match.id, 1)
-    player2 = pvp.schema.add_player_to_match(eddb_session, new_match.id, 2)
-    teams = pvp.schema.start_match(eddb_session, new_match.id)
-    assert teams == (([player1.cmdr.name], [player2.cmdr.name]) or ([player2.cmdr.name], [player1.cmdr.name]))
+    assert len(match.players) == 1
 
 
 def test_pvp_is_safe_to_drop():

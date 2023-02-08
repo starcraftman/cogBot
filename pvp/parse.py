@@ -104,15 +104,16 @@ def subs_match(subs, prefix):
         Join / Leave an organized match.
 **{prefix}match list**
         See current list of registred player.
-**{prefix}match setup 4,6,8,10**
+**{prefix}match setup num_players**
 **{prefix}match setup**
-        Setup a match with limits if given, else any amount of players will be accepted.
+        Setup a match with num_players as maximum (>=2).
+        If no number provided, default max is 20.
 **{prefix}match add Gears, @Prozer**
         Add Gears and Prozer to the list of players.
 **{prefix}match remove Gears, @Prozer**
         Remove Gears and Prozer to the list of players.
 **{prefix}match start**
-        Create teams and start the match. Useless if player limits reached.
+        Create teams and start the match. Useless if player limit reached.
 **{prefix}match cancel**
         Cancel current pending match.
 **{prefix}match reroll**
@@ -120,26 +121,25 @@ def subs_match(subs, prefix):
 **{prefix}match win Gears or @Prozer**
         The started match concluded with a victory from the Gears' / Prozer's Team.
     """
-    
+
     sub = subs.add_parser(prefix + 'match', description=desc, formatter_class=RawHelp)
     sub.set_defaults(cmd='Match')
     CMD_MAP['Match'] = 'match'
     subcmds = sub.add_subparsers(title='subcommands',
                                  description='Match subcommands', dest='subcmd')
     subcmd = subcmds.add_parser('add', help='Add the mentionned discord user(s) to the current match.')
-    subcmd.add_argument('players', nargs='+', help='The player to add.')
+    subcmd.add_argument('players', nargs='*', help='The player to add.')
     subcmd = subcmds.add_parser('remove', help='Remove the mentionned discord user(s) to the current match.')
-    subcmd.add_argument('players', nargs='+', help='The player to remove.')
+    subcmd.add_argument('players', nargs='*', help='The player to remove.')
     subcmd = subcmds.add_parser('win', help='Terminate a match by giving a win to a team.')
-    subcmd.add_argument('player', nargs='?', help='The player within the winning team.')
+    subcmd.add_argument('player', nargs='*', help='The player within the winning team.')
     subcmd = subcmds.add_parser('setup', help='Create a new match.')
-    subcmd.add_argument('limits', nargs='*', type=int, default= 20, 
-                        help='The total player limit. Default : 20.')
+    subcmd.add_argument('limit', nargs='?', type=int, default=20,
+                        help='The total player limit. Default: 20.')
     subcmds.add_parser('start', help='Start the match.')
     subcmds.add_parser('cancel', help='Cancel the match.')
     subcmds.add_parser('reroll', help='Reroll teams.')
-    subcmds.add_parser('list', 
-                     help='Give the list of all registrer players for the current match.')
+    subcmds.add_parser('show', help='Show the current teams of match.')
 
 
 @register_parser

@@ -40,7 +40,7 @@ from cogdb.schema import (DiscordUser, FortSystem, FortPrep, FortDrop, FortUser,
                           Consolidation, SheetRecord)
 from pvp.schema import (PVPCmdr, PVPKill, PVPDeath, PVPDeathKiller, PVPInterdicted, PVPInterdiction,
                         PVPInterdictedKill, PVPInterdictedDeath, PVPInterdictionKill, PVPInterdictionDeath,
-                        PVPLocation, PVPLog, PVPMatch)
+                        PVPLocation, PVPLog, PVPMatch, PVPMatchPlayer, PVPMatchState)
 from tests.data import CELLS_FORT, CELLS_FORT_FMT, CELLS_UM
 
 
@@ -940,6 +940,7 @@ def f_pvp_testbed(f_spy_ships, eddb_session):
         PVPCmdr(id=1, name='coolGuy', hex='B20000', updated_at=PVP_TIMESTAMP),
         PVPCmdr(id=2, name='shyGuy', hex='B20000', updated_at=PVP_TIMESTAMP),
         PVPCmdr(id=3, name='shootsALot', hex='B20000', updated_at=PVP_TIMESTAMP),
+        PVPCmdr(id=4, name='newbie', hex='B20000', updated_at=PVP_TIMESTAMP),
     ])
     eddb_session.flush()
     eddb_session.add_all([
@@ -969,8 +970,11 @@ def f_pvp_testbed(f_spy_ships, eddb_session):
                        interdictor_name="BadGuyWon", interdictor_rank=7, created_at=PVP_TIMESTAMP, event_at=PVP_TIMESTAMP),
         PVPLog(id=1, cmdr_id=1, file_hash='hash', filename='first.log', msg_id=1, filtered_msg_id=10, updated_at=PVP_TIMESTAMP),
         PVPLog(id=2, cmdr_id=2, file_hash='hash2', filename='second.log', msg_id=3, filtered_msg_id=12, updated_at=PVP_TIMESTAMP + 2),
-        PVPMatch(id=1, limits=10, started=True, finished=True),
-        PVPMatch(id=2, limits=20, cancelled=True),
+        PVPMatch(id=1, limit=10, state=PVPMatchState.SETUP, created_at=PVP_TIMESTAMP, updated_at=PVP_TIMESTAMP),
+        PVPMatch(id=2, limit=20, state=PVPMatchState.FINISHED, created_at=PVP_TIMESTAMP + 2, updated_at=PVP_TIMESTAMP + 4),
+        PVPMatchPlayer(id=1, cmdr_id=1, match_id=1, team=0, won=False, updated_at=PVP_TIMESTAMP),
+        PVPMatchPlayer(id=2, cmdr_id=2, match_id=1, team=0, won=False, updated_at=PVP_TIMESTAMP + 2),
+        PVPMatchPlayer(id=3, cmdr_id=3, match_id=1, team=0, won=False, updated_at=PVP_TIMESTAMP + 4),
     ])
     eddb_session.flush()
     eddb_session.add_all([
