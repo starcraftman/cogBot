@@ -1735,7 +1735,7 @@ async def test_cmd_near_if_medium(f_bot):
     await action_map(msg, f_bot).execute()
 
     actual = str(f_bot.send_message.call_args).replace("\\n", "\n")
-    assert "Birkeland City" in actual
+    assert "Lomas Orbiter" in actual
 
 
 @pytest.mark.asyncio

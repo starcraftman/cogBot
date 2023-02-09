@@ -243,12 +243,12 @@ class TestCMDMatch:
         assert dembed['fields'][-1]['name'] == 'Team 2'
 
     async def test_win_nomatch(self, f_bot, f_pvp_testbed):
-        msg = fake_msg_gears("!match reroll")
+        msg = fake_msg_gears("!match win")
 
         await action_map(msg, f_bot).execute()
         assert 'No pending match.' in f_bot.send_message.call_args[0][-1]
 
-    # TODO: Involves interaction stub
+    @pytest.mark.skip(reason='Difficult to test atm.')
     async def test_win_channel(self, f_bot, f_pvp_testbed):
         pass
 
