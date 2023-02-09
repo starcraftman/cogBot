@@ -660,6 +660,9 @@ class PVPMatch(ReprMixin, TimestampMixin, Base):
         """
         Get a player in this match with cmdr_id.
 
+        Args:
+            cmdr_id: The cmdr id to look for.
+
         Returns: The PVPMatchPlayer requested or None if not found.
         """
         found = [x for x in self.players if x.cmdr_id == cmdr_id]
@@ -693,6 +696,9 @@ class PVPMatch(ReprMixin, TimestampMixin, Base):
         """
         Given an existing match and players, create a new match with same players and teams.
 
+        Args:
+            eddb_session: A session onto the EDDB db.
+
         Returns: The new PVPMatch.
         """
         new_match = PVPMatch(state=PVPMatchState.SETUP, limit=self.limit)
@@ -708,9 +714,6 @@ class PVPMatch(ReprMixin, TimestampMixin, Base):
     def roll_teams(self):
         """
         Roll new teams based on current players.
-
-        Args:
-            eddb_session: A session onto the EDDB db.
 
         Returns: A tuple of Team array (Team1, Team2).
         """
@@ -733,7 +736,6 @@ class PVPMatch(ReprMixin, TimestampMixin, Base):
         Finish a match.
 
         Args:
-            eddb_session: A session onto the EDDB db.
             winning_team: The team number than won.
 
         Returns: The PVPMatch.
@@ -1170,7 +1172,7 @@ def add_pvp_match(eddb_session, *, limit=None):
     return match
 
 
-def get_match(eddb_session, *, match_id=None, state=None):
+def get_pvp_match(eddb_session, *, match_id=None, state=None):
     """
     Get the latest match with the state requested.
 
@@ -1211,28 +1213,6 @@ def remove_players_from_match(eddb_session, *, match_id, cmdr_ids):
                PVPMatchPlayer.match_id == match_id).\
         delete()
     eddb_session.commit()
-
-
-def get_player_match(eddb_session, *, match_id, cmdr_id):
-    """
-    Get a PVPMatchPlayer for a given match.
-
-    Args:
-        eddb_session: A session onto the EDDB db.
-        match_id: The match id of the match player in.
-        cmdr_id: The player id to get.
-
-    Returns: The PVPMatchPlayer.
-    """
-    try:
-        player = eddb_session.query(PVPMatchPlayer).\
-            filter(PVPMatchPlayer.cmdr_id == cmdr_id,
-                   PVPMatchPlayer.match_id == match_id).\
-            one()
-    except sqla.exc.NoResultFound:
-        player = None
-
-    return player
 
 
 def drop_tables(keep_cmdrs=False):  # pragma: no cover | destructive to test

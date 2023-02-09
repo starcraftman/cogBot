@@ -376,15 +376,15 @@ def test_pvp_add_pvp_match(f_pvp_testbed, eddb_session):
     assert match.id != old_match.id
 
 
-def test_pvp_get_match(f_pvp_testbed, eddb_session):
-    match = pvp.schema.get_match(eddb_session)
+def test_pvp_get_pvp_match(f_pvp_testbed, eddb_session):
+    match = pvp.schema.get_pvp_match(eddb_session)
     assert match.id == 2
 
-    match = pvp.schema.get_match(eddb_session, state=PVPMatchState.SETUP)
+    match = pvp.schema.get_pvp_match(eddb_session, state=PVPMatchState.SETUP)
     assert match.id == 1
 
     new_match = pvp.schema.add_pvp_match(eddb_session, limit=4)
-    match = pvp.schema.get_match(eddb_session)
+    match = pvp.schema.get_pvp_match(eddb_session)
     assert match.id == new_match.id
 
 

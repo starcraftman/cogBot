@@ -400,10 +400,12 @@ class Help(PVPAction):
             ['Command', 'Effect'],
             [f'{prefix}admin', 'The admininstrative commands'],
             [f'{prefix}dist', 'Determine the distance from the first system to all others'],
+            [f'{prefix}cmdr', 'Setup and modify your cmdr settings.'],
             [f'{prefix}donate', 'Information on supporting the dev.'],
             [f'{prefix}feedback', 'Give feedback or report a bug'],
             [f'{prefix}help', 'This help command.'],
             [f'{prefix}log', 'Show recent PVP events parsed'],
+            [f'{prefix}match', 'Create and manage pvp matches.'],
             [f'{prefix}near', 'Find things near you.'],
             [f'{prefix}repair', 'Show the nearest orbitals with shipyards'],
             [f'{prefix}route', 'Plot the shortest route between these systems'],
@@ -419,6 +421,14 @@ class Help(PVPAction):
             await self.msg.delete()
         except discord.HTTPException:
             pass
+
+
+class Cmdr(PVPAction):
+    """
+    Provide a management interface for cmdr settings.
+    """
+    async def execute(self):
+        await cmdr_setup(self.eddb_session, self.bot, self.msg, cmdr_name=None)
 
 
 class Log(PVPAction):
@@ -479,6 +489,26 @@ class Match(PVPAction):
 
         return response, None
 
+    async def join(self, match):
+        """
+        Join yourself to a match. A shortcut to using add with self mention.
+        """
+        response, embed = "", None
+
+        cmdr = pvp.schema.get_pvp_cmdr(self.eddb_session, cmdr_id=self.msg.author.id)
+        if not cmdr:
+            response += f"CMDR not found for: {self.msg.author.mention}"
+
+        else:
+            player = match.add_player(self.eddb_session, cmdr_id=cmdr.id)
+            if player:
+                response += f"CMDR {cmdr.name} added to match!\n"
+            if len(match.players) == match.limit:
+                temp_resp, embed = await self.start(match)
+                response += f'\n{temp_resp}'
+
+        return response, embed
+
     async def add(self, match):
         """
         Add player to Match.
@@ -487,13 +517,13 @@ class Match(PVPAction):
 
         try:
             for cmdr in self._validate_cmdrs():
-                if len(match.players) == match.limit:
-                    response, embed = await self.start(match)
-                    break
-
                 player = match.add_player(self.eddb_session, cmdr_id=cmdr.id)
                 if player:
                     response += f"CMDR {cmdr.name} added to match!\n"
+
+                if len(match.players) == match.limit:
+                    response, embed = await self.start(match)
+                    break
 
         except ValueError as exc:
             response = str(exc)
@@ -540,7 +570,7 @@ class Match(PVPAction):
         if match:
             response = "A match is already pending.\nPlease start it or cancel it before creating a new one."
         else:
-            pvp.schema.add_pvp_match(self.eddb_session, limit=self.args.limit)
+            match = pvp.schema.add_pvp_match(self.eddb_session, limit=self.args.limit)
             embed = discord.Embed.from_dict(match.embed_dict())
 
         return response, embed
@@ -589,7 +619,7 @@ class Match(PVPAction):
         """
         All methods will take the match in question. If one not created, make it for channel.
         """
-        match = pvp.schema.get_match(self.eddb_session)
+        match = pvp.schema.get_pvp_match(self.eddb_session)
         try:
             if not match and self.args.subcmd not in {'setup'}:
                 await self.bot.send_message(
@@ -607,8 +637,7 @@ class Match(PVPAction):
             traceback.print_exc()
             raise cog.exc.InvalidCommandArgs("Bad subcommand of `!match`, see `!match -h` for help.") from exc
 
-        except TypeError:
-            traceback.print_exc()
+        except TypeError:  # Default case, no subcmd set
             response, embed = await self.show(match)
             await self.bot.send_message(self.msg.channel, response, embed=embed)
 
