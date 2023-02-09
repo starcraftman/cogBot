@@ -533,7 +533,7 @@ class Role(FakeObject):
 
 class Message(FakeObject):
     def __init__(self, content, author, srv, channel, *, id=None,
-                 mentions=None, channel_mentions=None, role_mentions=None):
+                 mentions=[], channel_mentions=[], role_mentions=[]):
         super().__init__(None, id)
         self.author = author
         self.channel = channel
@@ -609,7 +609,7 @@ def fake_servers():
     return [srv]
 
 
-def fake_msg_gears(content, *, mentions=None, channel_mentions=None, role_mentions=None):
+def fake_msg_gears(content, *, mentions=[], channel_mentions=[], role_mentions=[]):
     """ Generate fake message with User1 as author. """
     srv = fake_servers()[0]
     roles = [Role('Cookie Lord', srv), Role('Hudson', srv, id=3001)]
@@ -617,12 +617,12 @@ def fake_msg_gears(content, *, mentions=None, channel_mentions=None, role_mentio
     return Message(content, aut, srv, srv.channels[1], mentions=mentions, channel_mentions=channel_mentions, role_mentions=role_mentions)
 
 
-def fake_msg_newuser(content, *, mentions=None, channel_mentions=None):
+def fake_msg_newuser(content, *, mentions=[], channel_mentions=[]):
     """ Generate fake message with NewUser as author. """
     srv = fake_servers()[0]
     roles = [Role('Hudson', srv)]
     aut = Member("NewUser", roles, id=4)
-    return Message(content, aut, srv, srv.channels[1], mentions=None)
+    return Message(content, aut, srv, srv.channels[1], mentions=mentions)
 
 
 @pytest.fixture
@@ -970,11 +970,13 @@ def f_pvp_testbed(f_spy_ships, eddb_session):
                        interdictor_name="BadGuyWon", interdictor_rank=7, created_at=PVP_TIMESTAMP, event_at=PVP_TIMESTAMP),
         PVPLog(id=1, cmdr_id=1, file_hash='hash', filename='first.log', msg_id=1, filtered_msg_id=10, updated_at=PVP_TIMESTAMP),
         PVPLog(id=2, cmdr_id=2, file_hash='hash2', filename='second.log', msg_id=3, filtered_msg_id=12, updated_at=PVP_TIMESTAMP + 2),
-        PVPMatch(id=1, limit=10, state=PVPMatchState.SETUP, created_at=PVP_TIMESTAMP, updated_at=PVP_TIMESTAMP),
-        PVPMatch(id=2, limit=20, state=PVPMatchState.FINISHED, created_at=PVP_TIMESTAMP + 2, updated_at=PVP_TIMESTAMP + 4),
+        PVPMatch(id=1, discord_channel_id=99, limit=10, state=PVPMatchState.SETUP, created_at=PVP_TIMESTAMP, updated_at=PVP_TIMESTAMP),
+        PVPMatch(id=2, discord_channel_id=100, limit=20, state=PVPMatchState.FINISHED, created_at=PVP_TIMESTAMP + 2, updated_at=PVP_TIMESTAMP + 4),
+        PVPMatch(id=3, discord_channel_id=101, limit=2, state=PVPMatchState.SETUP, created_at=PVP_TIMESTAMP, updated_at=PVP_TIMESTAMP + 4),
         PVPMatchPlayer(id=1, cmdr_id=1, match_id=1, team=0, won=False, updated_at=PVP_TIMESTAMP),
         PVPMatchPlayer(id=2, cmdr_id=2, match_id=1, team=0, won=False, updated_at=PVP_TIMESTAMP + 2),
         PVPMatchPlayer(id=3, cmdr_id=3, match_id=1, team=0, won=False, updated_at=PVP_TIMESTAMP + 4),
+        PVPMatchPlayer(id=4, cmdr_id=1, match_id=3, team=0, won=False, updated_at=PVP_TIMESTAMP),
     ])
     eddb_session.flush()
     eddb_session.add_all([

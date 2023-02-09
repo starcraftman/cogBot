@@ -80,10 +80,12 @@ For more information do: `!Command -h`
 --------- | ----------------------------------------------------------
 !admin    | The admininstrative commands
 !dist     | Determine the distance from the first system to all others
+!cmdr     | Setup and modify your cmdr settings.
 !donate   | Information on supporting the dev.
 !feedback | Give feedback or report a bug
 !help     | This help command.
 !log      | Show recent PVP events parsed
+!match    | Create and manage pvp matches.
 !near     | Find things near you.
 !repair   | Show the nearest orbitals with shipyards
 !route    | Plot the shortest route between these systems
@@ -107,11 +109,163 @@ async def test_cmd_log(f_bot, f_pvp_testbed):
 
 
 @pytest.mark.asyncio
-async def test_cmd_match(f_bot, f_pvp_testbed):
-    msg = fake_msg_gears("!match")
+class TestCMDMatch:
+    """ Tests for the `!match` command of pvp bot. """
+    async def test_start_nomatch(self, f_bot, f_pvp_testbed):
+        msg = fake_msg_gears("!match start")
 
-    await action_map(msg, f_bot).execute()
-    assert "No pending match." in str(f_bot.send_message.call_args).replace("\\n", "\n")
+        await action_map(msg, f_bot).execute()
+        assert 'No pending match.' in f_bot.send_message.call_args[0][-1]
+
+    async def test_start_channel(self, f_bot, f_pvp_testbed):
+        msg = fake_msg_gears("!match start")
+        msg.channel.id = 99
+
+        await action_map(msg, f_bot).execute()
+        assert 'The current match has been started.' in f_bot.send_message.call_args[0][-1]
+        dembed = f_bot.send_message.call_args[1]['embed'].to_dict()
+        assert dembed['title'] == 'PVP Match: 3/10'
+        assert dembed['fields'][0]['value'] == 'Started'
+        assert dembed['fields'][-2]['name'] == 'Team 1'
+        assert dembed['fields'][-1]['name'] == 'Team 2'
+
+    async def test_cancel_nomatch(self, f_bot, f_pvp_testbed):
+        msg = fake_msg_gears("!match cancel")
+
+        await action_map(msg, f_bot).execute()
+        assert 'No pending match.' in f_bot.send_message.call_args[0][-1]
+
+    async def test_cancel_channel(self, f_bot, f_pvp_testbed):
+        msg = fake_msg_gears("!match cancel")
+        msg.channel.id = 99
+
+        await action_map(msg, f_bot).execute()
+        assert 'The current match has been cancelled.' == f_bot.send_message.call_args[0][-1]
+
+    async def test_add_nomatch(self, f_bot, f_pvp_testbed):
+        msg = fake_msg_gears("!match add")
+
+        await action_map(msg, f_bot).execute()
+        assert 'No pending match.' in f_bot.send_message.call_args[0][-1]
+
+    async def test_add_channel(self, f_bot, f_pvp_testbed):
+        msg = fake_msg_gears("!match add newbie")
+        msg.channel.id = 99
+
+        await action_map(msg, f_bot).execute()
+        assert 'CMDR newbie added to match!\n' in f_bot.send_message.call_args[0][-1]
+
+    async def test_add_channel_start(self, f_bot, f_pvp_testbed):
+        msg = fake_msg_gears("!match add newbie")
+        msg.channel.id = 101
+
+        await action_map(msg, f_bot).execute()
+
+        assert 'CMDR newbie added to match!\n' in f_bot.send_message.call_args[0][-1]
+        assert 'match has been started' in f_bot.send_message.call_args[0][-1]
+
+        dembed = f_bot.send_message.call_args[1]['embed'].to_dict()
+        assert dembed['title'] == 'PVP Match: 2/2'
+        assert dembed['fields'][0]['value'] == 'Started'
+        assert dembed['fields'][-2]['name'] == 'Team 1'
+        assert dembed['fields'][-1]['name'] == 'Team 2'
+
+    async def test_remove_nomatch(self, f_bot, f_pvp_testbed):
+        msg = fake_msg_gears("!match remove")
+
+        await action_map(msg, f_bot).execute()
+        assert 'No pending match.' in f_bot.send_message.call_args[0][-1]
+
+    async def test_remove_channel(self, f_bot, f_pvp_testbed):
+        msg = fake_msg_gears("!match remove coolguy")
+        msg.channel.id = 99
+
+        await action_map(msg, f_bot).execute()
+        assert 'CMDR coolGuy removed from match!' in f_bot.send_message.call_args[0][-1]
+
+    async def test_join_nomatch(self, f_bot, f_pvp_testbed):
+        msg = fake_msg_gears("!match join")
+
+        await action_map(msg, f_bot).execute()
+        assert 'No pending match.' in f_bot.send_message.call_args[0][-1]
+
+    async def test_join_channel(self, f_bot, f_pvp_testbed):
+        msg = fake_msg_gears("!match join")
+        msg.channel.id = 99
+        msg.author.id = 4
+
+        await action_map(msg, f_bot).execute()
+        assert 'CMDR newbie added to match!\n' == f_bot.send_message.call_args[0][-1]
+
+    async def test_leave_nomatch(self, f_bot, f_pvp_testbed):
+        msg = fake_msg_gears("!match leave")
+
+        await action_map(msg, f_bot).execute()
+        assert 'No pending match.' in f_bot.send_message.call_args[0][-1]
+
+    async def test_leave_channel(self, f_bot, f_pvp_testbed):
+        msg = fake_msg_gears("!match leave")
+        msg.channel.id = 99
+        msg.author.id = 1
+
+        await action_map(msg, f_bot).execute()
+        assert 'CMDR coolGuy removed from match!\n' == f_bot.send_message.call_args[0][-1]
+
+    async def test_setup_nomatch(self, f_bot, f_pvp_testbed):
+        msg = fake_msg_gears("!match setup")
+
+        await action_map(msg, f_bot).execute()
+        dembed = f_bot.send_message.call_args[1]['embed'].to_dict()
+        assert dembed['title'] == 'PVP Match: 0/20'
+        assert dembed['fields'][0]['value'] == 'Setup'
+
+    async def test_setup_channel(self, f_bot, f_pvp_testbed):
+        msg = fake_msg_gears("!match setup")
+        msg.channel.id = 99
+
+        await action_map(msg, f_bot).execute()
+        assert 'A match is already pending.' in f_bot.send_message.call_args[0][-1]
+
+    async def test_reroll_nomatch(self, f_bot, f_pvp_testbed):
+        msg = fake_msg_gears("!match reroll")
+
+        await action_map(msg, f_bot).execute()
+        assert 'No pending match.' in f_bot.send_message.call_args[0][-1]
+
+    async def test_reroll_channel(self, f_bot, f_pvp_testbed):
+        msg = fake_msg_gears("!match reroll")
+        msg.channel.id = 99
+
+        await action_map(msg, f_bot).execute()
+        dembed = f_bot.send_message.call_args[1]['embed'].to_dict()
+        assert dembed['title'] == 'PVP Match: 3/10'
+        assert dembed['fields'][-2]['name'] == 'Team 1'
+        assert dembed['fields'][-1]['name'] == 'Team 2'
+
+    async def test_win_nomatch(self, f_bot, f_pvp_testbed):
+        msg = fake_msg_gears("!match reroll")
+
+        await action_map(msg, f_bot).execute()
+        assert 'No pending match.' in f_bot.send_message.call_args[0][-1]
+
+    # TODO: Involves interaction stub
+    async def test_win_channel(self, f_bot, f_pvp_testbed):
+        pass
+
+    # The same as using the !match show command, won't test it twice.
+    async def test_nocmd_nomatch(self, f_bot, f_pvp_testbed):
+        msg = fake_msg_gears("!match")
+
+        await action_map(msg, f_bot).execute()
+        assert "No pending match." in str(f_bot.send_message.call_args).replace("\\n", "\n")
+
+    async def test_nocmd_channel(self, f_bot, f_pvp_testbed):
+        msg = fake_msg_gears("!match")
+        msg.channel.id = 99
+
+        await action_map(msg, f_bot).execute()
+        dembed = f_bot.send_message.call_args[1]['embed'].to_dict()
+        assert "coolGuy\nshootsALot\nshyGuy" == dembed['fields'][-1]['value']
 
 
 @pytest.mark.asyncio

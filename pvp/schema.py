@@ -622,8 +622,6 @@ class PVPMatchState(enum.IntEnum):
     FINISHED = 2
 
 
-# TODO: Limited to one match that is active atm, add ability to start more than one match.
-# TODO: Likely add fields for match.name and match.description
 class PVPMatch(ReprMixin, TimestampMixin, Base):
     """
     Table to store matches.
@@ -632,6 +630,7 @@ class PVPMatch(ReprMixin, TimestampMixin, Base):
     _repr_keys = ['id', 'limit', 'state', 'created_at', 'updated_at']
 
     id = sqla.Column(sqla.BigInteger, primary_key=True)
+    discord_channel_id = sqla.Column(sqla.BigInteger, default=0)
     limit = sqla.Column(sqla.Integer, default=20)
     state = sqla.Column(sqla.Integer, default=int(PVPMatchState.SETUP))
     created_at = sqla.Column(sqla.Integer, default=time.time)
@@ -778,6 +777,7 @@ class PVPMatch(ReprMixin, TimestampMixin, Base):
         for team_num, players in self.teams_dict().items():
             player_names = [x.cmdr.name for x in players]
             embed_values += [{'name': f'Team {team_num}', 'value': '\n'.join(player_names), 'inline': True}]
+        embed_values = sorted(embed_values, key=lambda x: x['name'])
 
         return {
             'color': color,
@@ -1155,40 +1155,43 @@ def get_filtered_pvp_logs(eddb_session):
         all()
 
 
-def add_pvp_match(eddb_session, *, limit=None):
+def add_pvp_match(eddb_session, *, discord_channel_id, limit=None):
     """
     Create a new match in DB.
 
     Args:
         eddb_session: A session onto the EDDB db.
+        discord_channel_id: The channel ID where the match was started.
         limit: The player limit if set.
 
     Returns: The added PVPMatch.
     """
-    match = PVPMatch(limit=limit)
+    match = PVPMatch(discord_channel_id=discord_channel_id, limit=limit)
     eddb_session.add(match)
     eddb_session.commit()
 
     return match
 
 
-def get_pvp_match(eddb_session, *, match_id=None, state=None):
+def get_pvp_match(eddb_session, *, discord_channel_id, match_id=None, state=None):
     """
     Get the latest match with the state requested.
 
     Args:
         eddb_session: A session onto the EDDB db.
+        discord_channel_id: The channel ID where the match was started.
+        match_id: If present, filter for this exact id.
         state: The state requested, see PVPMatchState.
 
     Returns: The PVPMatch if present and not started, None otherwise.
     """
     try:
-        match = eddb_session.query(PVPMatch)
+        match = eddb_session.query(PVPMatch).filter(PVPMatch.discord_channel_id == discord_channel_id)
 
-        if state is not None:
-            match = match.filter(PVPMatch.state == int(state))
         if match_id is not None:
             match = match.filter(PVPMatch.id == match_id)
+        elif state is not None:
+            match = match.filter(PVPMatch.state == int(state))
 
         match = match.order_by(PVPMatch.id.desc()).limit(1).one()
     except sqla.exc.NoResultFound:
@@ -1302,8 +1305,8 @@ def main():  # pragma: no cover
                            interdictor_name="BadGuyWon", interdictor_rank=7),
             PVPInterdicted(id=2, cmdr_id=2, is_player=True, did_submit=True, survived=True,
                            interdictor_name="BadGuyWon", interdictor_rank=7),
-            PVPMatch(id=1, limit=10, state=PVPMatchState.SETUP),
-            PVPMatch(id=2, limit=20, state=PVPMatchState.FINISHED),
+            PVPMatch(id=1, discord_channel_id=99, limit=10, state=PVPMatchState.SETUP),
+            PVPMatch(id=2, discord_channel_id=100, limit=20, state=PVPMatchState.FINISHED),
             PVPMatchPlayer(id=1, cmdr_id=1, match_id=1, team=1, won=False),
             PVPMatchPlayer(id=2, cmdr_id=2, match_id=1, team=2, won=False),
             PVPMatchPlayer(id=3, cmdr_id=3, match_id=1, team=2, won=False),

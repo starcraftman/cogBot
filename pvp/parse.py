@@ -121,6 +121,8 @@ def subs_match(subs, prefix):
         If no number provided, default max is 20.
 **{prefix}match join**
         Join yourself to the current match.
+**{prefix}match leave**
+        Leave yourself from the current match.
 **{prefix}match add Gears or @Prozer**
         Add Gears and Prozer to the list of players.
 **{prefix}match remove Gears or @Prozer**
@@ -153,6 +155,7 @@ def subs_match(subs, prefix):
     subcmds.add_parser('cancel', help='Cancel the match.')
     subcmds.add_parser('reroll', help='Reroll teams.')
     subcmds.add_parser('join', help='Join the current match.')
+    subcmds.add_parser('leave', help='Leave the current match.')
 
 
 @register_parser

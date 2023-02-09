@@ -285,8 +285,8 @@ def test_pvpmatch_cascade_delete(f_pvp_testbed, eddb_session):
     eddb_session.delete(match)
     eddb_session.commit()
 
-    assert len(eddb_session.query(PVPMatch).all()) == 1
-    assert len(eddb_session.query(PVPMatchPlayer).all()) == 0
+    assert len(eddb_session.query(PVPMatch).all()) == 2
+    assert len(eddb_session.query(PVPMatchPlayer).all()) == 1
 
 
 def test_pvpmatchplayer__repr__(f_pvp_testbed, eddb_session):
@@ -369,22 +369,23 @@ def test_pvp_add_pvp_match(f_pvp_testbed, eddb_session):
     old_match = eddb_session.query(PVPMatch).order_by(PVPMatch.id.desc()).limit(1).one()
     assert 10 != old_match.limit
 
-    pvp.schema.add_pvp_match(eddb_session, limit=10)
+    pvp.schema.add_pvp_match(eddb_session, discord_channel_id=200, limit=10)
 
     match = eddb_session.query(PVPMatch).order_by(PVPMatch.id.desc()).limit(1).one()
     assert 10 == match.limit
     assert match.id != old_match.id
+    assert match.discord_channel_id == 200
 
 
 def test_pvp_get_pvp_match(f_pvp_testbed, eddb_session):
-    match = pvp.schema.get_pvp_match(eddb_session)
+    match = pvp.schema.get_pvp_match(eddb_session, discord_channel_id=100)
     assert match.id == 2
 
-    match = pvp.schema.get_pvp_match(eddb_session, state=PVPMatchState.SETUP)
+    match = pvp.schema.get_pvp_match(eddb_session, discord_channel_id=99, state=PVPMatchState.SETUP)
     assert match.id == 1
 
-    new_match = pvp.schema.add_pvp_match(eddb_session, limit=4)
-    match = pvp.schema.get_pvp_match(eddb_session)
+    new_match = pvp.schema.add_pvp_match(eddb_session, discord_channel_id=99, limit=4)
+    match = pvp.schema.get_pvp_match(eddb_session, discord_channel_id=99)
     assert match.id == new_match.id
 
 
