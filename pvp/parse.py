@@ -110,6 +110,18 @@ def subs_log(subs, prefix):
 
 
 @register_parser
+def subs_r(subs, prefix):
+    """ Subcommand parsing for log """
+    desc = f"""To register for a pvp event setup in the channel.
+
+**{prefix}r**
+        Join the existing pvp event in this channel.
+    """
+    sub = subs.add_parser(prefix + 'r', description=desc, formatter_class=RawHelp)
+    sub.set_defaults(cmd='Match', subcmd='join')
+
+
+@register_parser
 def subs_match(subs, prefix):
     """ Subcommand parsing for match """
     desc = f"""To prepare a match.
