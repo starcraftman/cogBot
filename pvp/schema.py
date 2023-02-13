@@ -1178,7 +1178,7 @@ def get_filtered_pvp_logs(eddb_session):
 
 
 @contextlib.contextmanager
-def create_log_of_events(eddb_session, *, cmdr_id, events=None):
+def create_log_of_events(eddb_session, *, cmdr_id, events=None, last_n=None, after=None):
     """
     Generate a complete log dump of all recorded events for a player.
     This is a context manager, returns the files created with the information.
@@ -1187,6 +1187,8 @@ def create_log_of_events(eddb_session, *, cmdr_id, events=None):
         eddb_session: A session onto the EDDB db.
         cmdr_id: The id of the cmdr to get logs for.
         events: If passed in, filter only these events into log.
+        last_n: If passed in, show only last n events found.
+        after: If passed in, only show events after this timestamp.
 
     Returns: A list of files that were written for log upload.
     """
@@ -1195,11 +1197,19 @@ def create_log_of_events(eddb_session, *, cmdr_id, events=None):
 
     all_logs = []
     for cls in events:
-        all_logs += eddb_session.query(cls).\
-            filter(cls.cmdr_id == cmdr_id).\
+        query = eddb_session.query(cls).\
+            filter(cls.cmdr_id == cmdr_id)
+
+        if after:
+            query = query.filter(cls.event_at >= after)
+
+        all_logs += query.\
             order_by(cls.event_at).\
             all()
     all_logs = [f'{x}\n' for x in sorted(all_logs)]
+
+    if last_n:
+        all_logs = all_logs[-last_n:]
 
     tdir = tempfile.mkdtemp()
     try:

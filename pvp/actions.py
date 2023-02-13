@@ -449,9 +449,14 @@ class Log(PVPAction):
             events = None
             if self.args.events:
                 events = [getattr(pvp.schema, LOG_MAP[x]) for x in self.args.events]
+            if self.args.after:
+                self.args.after = datetime.datetime.strptime(
+                    self.args.after, cog.util.TIME_STRP[:-1]
+                ).replace(tzinfo=datetime.timezone.utc).timestamp()
 
             with pvp.schema.create_log_of_events(self.eddb_session, cmdr_id=self.msg.author.id,
-                                                 events=events) as log_files:
+                                                 events=events, last_n=self.args.limit,
+                                                 after=self.args.after) as log_files:
                 if not log_files:
                     await self.bot.send_message(self.msg.channel, 'No recorded PVP events for CMDR.')
 
@@ -461,6 +466,9 @@ class Log(PVPAction):
 
         except KeyError:
             await self.bot.send_message(self.msg.channel, f'Invalid log event, choose from: {list(LOG_MAP.keys())}')
+
+        except ValueError:
+            await self.bot.send_message(self.msg.channel, 'Invalid after format. Write dates like: 2023-04-30T20:10:44')
 
 
 class Match(PVPAction):

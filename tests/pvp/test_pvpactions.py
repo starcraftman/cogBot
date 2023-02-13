@@ -127,6 +127,32 @@ async def test_cmd_log_invalid(f_bot, f_pvp_testbed):
 
 
 @pytest.mark.asyncio
+async def test_cmd_log_limit(f_bot, f_pvp_testbed):
+    msg = fake_msg_gears("!log --limit 4")
+
+    await action_map(msg, f_bot).execute()
+    dfile = f_bot.send_message.call_args[1]['file']
+    assert dfile.filename.endswith('file_01.txt')
+
+
+@pytest.mark.asyncio
+async def test_cmd_log_after(f_bot, f_pvp_testbed):
+    msg = fake_msg_gears("!log --after 2016-06-10T14:32:38")
+
+    await action_map(msg, f_bot).execute()
+    dfile = f_bot.send_message.call_args[1]['file']
+    assert dfile.filename.endswith('file_01.txt')
+
+
+@pytest.mark.asyncio
+async def test_cmd_log_after_invalid(f_bot, f_pvp_testbed):
+    msg = fake_msg_gears("!log --after invalid")
+
+    await action_map(msg, f_bot).execute()
+    assert 'Invalid after format. Write dates like:' in str(f_bot.send_message.call_args).replace("\\n", "\n")
+
+
+@pytest.mark.asyncio
 class TestCMDMatch:
     """ Tests for the `!match` command of pvp bot. """
     async def test_start_nomatch(self, f_bot, f_pvp_testbed):
