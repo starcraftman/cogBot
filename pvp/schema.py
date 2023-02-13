@@ -1,12 +1,15 @@
 """
 The database backend for pvp bot.
 """
+import contextlib
 import datetime
 import enum
 import functools
 import time
 import random
 import math
+import shutil
+import tempfile
 
 import sqlalchemy as sqla
 import sqlalchemy.orm as sqla_orm
@@ -67,7 +70,7 @@ class PVPCmdr(ReprMixin, TimestampMixin, Base):
     def __hash__(self):
         return hash(self.id)
 
-
+@functools.total_ordering
 class PVPLocation(ReprMixin, TimestampMixin, EventTimeMixin, Base):
     """
     Table to store location of a given player.
@@ -114,10 +117,14 @@ class PVPLocation(ReprMixin, TimestampMixin, EventTimeMixin, Base):
     def __eq__(self, other):
         return isinstance(other, PVPLocation) and hash(self) == hash(other)
 
+    def __lt__(self, other):
+        return self.event_at < other.event_at
+
     def __hash__(self):
         return hash(f'{self.cmdr_id}_{self.system_id}_{self.event_at}')
 
 
+@functools.total_ordering
 class PVPKill(ReprMixin, TimestampMixin, EventTimeMixin, Base):
     """
     Table to store PVP kills reported by a user.
@@ -153,10 +160,14 @@ class PVPKill(ReprMixin, TimestampMixin, EventTimeMixin, Base):
     def __eq__(self, other):
         return isinstance(other, PVPKill) and hash(self) == hash(other)
 
+    def __lt__(self, other):
+        return self.event_at < other.event_at
+
     def __hash__(self):
         return hash(f'{self.cmdr_id}_{self.system_id}_{self.event_at}')
 
 
+@functools.total_ordering
 class PVPDeath(ReprMixin, TimestampMixin, EventTimeMixin, Base):
     """
     Table to store any deaths of a cmdr.
@@ -209,6 +220,9 @@ class PVPDeath(ReprMixin, TimestampMixin, EventTimeMixin, Base):
     def __eq__(self, other):
         return isinstance(other, PVPDeath) and hash(self) == hash(other)
 
+    def __lt__(self, other):
+        return self.event_at < other.event_at
+
     def __hash__(self):
         return hash(f'{self.cmdr_id}_{self.system_id}_{self.event_at}')
 
@@ -251,6 +265,7 @@ class PVPDeathKiller(ReprMixin, TimestampMixin, EventTimeMixin, Base):
         return hash(f'{self.pvp_death_id}_{self.name}')
 
 
+@functools.total_ordering
 class PVPInterdiction(ReprMixin, TimestampMixin, EventTimeMixin, Base):
     """
     Table to store events where cmdr interdicted other players to initiate combat.
@@ -290,6 +305,9 @@ class PVPInterdiction(ReprMixin, TimestampMixin, EventTimeMixin, Base):
 
     def __eq__(self, other):
         return isinstance(other, PVPInterdiction) and hash(self) == hash(other)
+
+    def __lt__(self, other):
+        return self.event_at < other.event_at
 
     def __hash__(self):
         return hash(f'{self.cmdr_id}_{self.system_id}_{self.event_at}')
@@ -351,6 +369,7 @@ class PVPInterdictionDeath(ReprMixin, TimestampMixin, EventTimeMixin, Base):
         return hash(self.id)
 
 
+@functools.total_ordering
 class PVPInterdicted(ReprMixin, TimestampMixin, EventTimeMixin, Base):
     """
     Table to store events when a cmdr was interdicted by other players.
@@ -390,6 +409,9 @@ class PVPInterdicted(ReprMixin, TimestampMixin, EventTimeMixin, Base):
 
     def __eq__(self, other):
         return isinstance(other, PVPInterdicted) and hash(self) == hash(other)
+
+    def __lt__(self, other):
+        return self.event_at < other.event_at
 
     def __hash__(self):
         return hash(f'{self.cmdr_id}_{self.system_id}_{self.event_at}')
@@ -1153,6 +1175,44 @@ def get_filtered_pvp_logs(eddb_session):
     return eddb_session.query(PVPLog).\
         filter(PVPLog.filtered_msg_id).\
         all()
+
+
+@contextlib.contextmanager
+def create_log_of_events(eddb_session, *, cmdr_id, events=None):
+    """
+    Generate a complete log dump of all recorded events for a player.
+    This is a context manager, returns the files created with the information.
+
+    Args:
+        eddb_session: A session onto the EDDB db.
+        cmdr_id: The id of the cmdr to get logs for.
+        events: If passed in, filter only these events into log.
+
+    Returns: A list of files that were written for log upload.
+    """
+    if not events:
+        events = [PVPLocation, PVPKill, PVPDeath, PVPInterdicted, PVPInterdiction]
+
+    all_logs = []
+    for cls in events:
+        all_logs += eddb_session.query(cls).\
+            filter(cls.cmdr_id == cmdr_id).\
+            order_by(cls.event_at).\
+            all()
+    all_logs = [f'{x}\n' for x in sorted(all_logs)]
+
+    tdir = tempfile.mkdtemp()
+    try:
+        yield cog.util.grouped_text_to_files(
+            grouped_lines=cog.util.group_by_filesize(all_logs),
+            tdir=tdir, fname_gen=lambda num: f'file_{num:02}.txt'
+        )
+
+    finally:
+        try:
+            shutil.rmtree(tdir)
+        except OSError:
+            pass
 
 
 def add_pvp_match(eddb_session, *, discord_channel_id, limit=None):

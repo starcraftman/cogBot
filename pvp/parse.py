@@ -106,6 +106,7 @@ def subs_log(subs, prefix):
     sub = subs.add_parser(prefix + 'log', description=desc, formatter_class=RawHelp)
     sub.set_defaults(cmd='Log')
     CMD_MAP['Log'] = 'log'
+    sub.add_argument('events', nargs='*', default=[], help='The log events to put in file.')
 
 
 @register_parser

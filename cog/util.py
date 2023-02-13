@@ -66,6 +66,7 @@ FNAME_FORBIDDEN = [
     '[', ']', '(', ')', '{', '}',
 ]
 DISCORD_RATE_LIMIT = 1  # Seconds
+DISCORD_FILE_LIMIT = 7.5 * 1024 ** 2  # Stay safely under 8MB limit
 
 
 class ReprMixin():
@@ -939,6 +940,61 @@ async def extracted_archive_async(archive, *, glob_pat=None):
                 shutil.rmtree(extract_to)
             except OSError:
                 logging.getLogger(__name__).error("Critical error on extracted archive removal")
+
+
+def group_by_filesize(lines, *, limit=DISCORD_FILE_LIMIT):
+    """
+    Transform a list of lines of text, to a list of grouped lines where each
+    group is made of groups that exceed the limit. That is every group has at least
+    limit bytes in group.
+
+    Args:
+        lines: A list of strings to write to file.
+        limit: The limit in bytes to write to each file. Default is DISCORD_FILE_LIMIT
+
+    Returns: A list of lists of strings.
+    """
+    group, grouped, cnt = [], [], 0
+
+    for line in lines:
+        cnt += len(line)
+        group += [line]
+        if cnt > limit:
+            grouped += [group]
+            group = []
+            cnt = 0
+
+    if group:
+        grouped += [group]
+
+    return grouped
+
+
+def grouped_text_to_files(grouped_lines, *, tdir, fname_gen):
+    """
+    Take a list of grouped lines and write them out to files in the same directory according
+    to the names returned by fname_template.
+
+    Args:
+        grouped_lines: A list of a list of lines, each group goes to a separate file.
+        tdir: The target directory to write files to.
+        fname_template: The template to use when making fnames, should return a string.
+            Is a function of form fname_gen(num) -> String
+
+    Returns: The directory where all the files were written to.
+    """
+    tdir = pathlib.Path(tdir)
+    if not tdir.exists():
+        tdir.mkdir()
+
+    fnames = []
+    for ind, group in enumerate(grouped_lines, start=1):
+        fname = tdir / fname_gen(ind)
+        fnames += [fname]
+        with open(fname, 'w', encoding='utf-8') as fout:
+            fout.writelines(group)
+
+    return fnames
 
 
 #  # Scenario multiple readers, always allowed

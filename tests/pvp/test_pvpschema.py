@@ -398,6 +398,37 @@ def test_pvp_remove_players_from_match(f_pvp_testbed, eddb_session):
     assert len(match.players) == 1
 
 
+def test_create_log_of_events(f_pvp_testbed, eddb_session):
+    expect = """CMDR coolGuy located in Anja at 2022-12-21 20:42:57.
+CMDR coolGuy located in Anna Perenna at 2022-12-21 20:42:57.
+CMDR coolGuy killed CMDR LeSuck at 2022-12-21 20:42:57
+CMDR coolGuy was killed by: [CMDR BadGuyHelper (Vulture), CMDR BadGuyWon (Python)] at 2022-12-21 20:42:57
+CMDR coolGuy was interdicted by CMDR BadGuyWon at 2022-12-21 20:42:57. Submitted: False. Escaped: False
+CMDR coolGuy interdicted CMDR LeSuck at 2022-12-21 20:42:57. Pulled from SC: True Escaped: False
+CMDR coolGuy killed CMDR BadGuy at 2022-12-21 20:42:59
+CMDR coolGuy was killed by: CMDR BadGuyWon (Python) at 2022-12-21 20:42:59
+CMDR coolGuy interdicted CMDR LeSuck at 2022-12-21 20:42:59. Pulled from SC: True Escaped: True
+CMDR coolGuy killed CMDR LeSuck at 2022-12-21 20:43:01
+"""
+
+    with pvp.schema.create_log_of_events(eddb_session, cmdr_id=1) as log_files:
+        assert len(log_files) == 1
+        with open(log_files[0], encoding='utf-8') as fin:
+            assert expect == fin.read()
+
+
+def test_create_log_of_events_filtered(f_pvp_testbed, eddb_session):
+    expect = """CMDR coolGuy killed CMDR LeSuck at 2022-12-21 20:42:57
+CMDR coolGuy killed CMDR BadGuy at 2022-12-21 20:42:59
+CMDR coolGuy killed CMDR LeSuck at 2022-12-21 20:43:01
+"""
+
+    with pvp.schema.create_log_of_events(eddb_session, cmdr_id=1, events=[pvp.schema.PVPKill]) as log_files:
+        assert len(log_files) == 1
+        with open(log_files[0], encoding='utf-8') as fin:
+            assert expect == fin.read()
+
+
 def test_pvp_is_safe_to_drop():
     assert pvp.schema.is_safe_to_drop('pvp_cmdrs')
     assert not pvp.schema.is_safe_to_drop('spy_ships')

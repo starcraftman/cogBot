@@ -458,3 +458,68 @@ def test_extracted_archive(f_plog_zip):
 async def test_extracted_archive_async(f_plog_zip):
     async with cog.util.extracted_archive_async(f_plog_zip) as logs:
         assert ['first.log', 'second.log', 'third.log'] == sorted([x.name for x in logs])
+
+
+def test_group_by_filesize():
+    expect = [
+        [
+            'This is a single line of text.\n',
+            'This is another line of text.\n',
+            'This is a single line of text.\n',
+            'This is another line of text.\n',
+            'This is a single line of text.\n',
+        ],
+        [
+            'This is another line of text.\n',
+            'This is a single line of text.\n',
+            'This is another line of text.\n',
+            'This is a single line of text.\n',
+            'This is another line of text.\n',
+        ],
+    ]
+    lines = [
+        "This is a single line of text.",
+        "This is another line of text.",
+        "This is a single line of text.",
+        "This is another line of text.",
+        "This is a single line of text.",
+        "This is another line of text.",
+        "This is a single line of text.",
+        "This is another line of text.",
+        "This is a single line of text.",
+        "This is another line of text.",
+    ]
+    lines = [f'{x}\n' for x in lines]
+
+    assert expect == cog.util.group_by_filesize(lines, limit=130)
+
+
+def test_text_to_files():
+    lines = [
+        "This is a single line of text.",
+        "This is another line of text.",
+        "This is a single line of text.",
+        "This is another line of text.",
+        "This is a single line of text.",
+        "This is another line of text.",
+        "This is a single line of text.",
+        "This is another line of text.",
+        "This is a single line of text.",
+        "This is another line of text.",
+    ]
+    lines = [f'{x}\n' for x in lines]
+    tdir = pathlib.Path(tempfile.mkdtemp())
+    try:
+        grouped = cog.util.group_by_filesize(lines, limit=130)
+        cog.util.grouped_text_to_files(grouped_lines=grouped, tdir=tdir, fname_gen=lambda num: f"file_{num:02}.txt")
+        expect = """This is a single line of text.
+This is another line of text.
+This is a single line of text.
+This is another line of text.
+This is a single line of text.
+"""
+        with open(tdir / 'file_01.txt', 'r', encoding='utf-8') as fin:
+            assert expect == fin.read()
+
+    finally:
+        shutil.rmtree(tdir)

@@ -378,7 +378,7 @@ class CogBot(discord.Client):
             logging.getLogger(__name__).info('Command %s released lock.', msg.content)
 
     # TODO: Signature changed in library, update later.
-    async def send_message(self, destination, content=None, *, tts=False, embed=None, view=None):
+    async def send_message(self, destination, content=None, *, tts=False, embed=None, view=None, file=None, files=None):
         """
         Behaves excactly like Client.send_message except it:
 
@@ -394,7 +394,7 @@ class CogBot(discord.Client):
         attempts = 4
         while attempts:
             try:
-                return await destination.send(content, tts=tts, embed=embed, view=view)
+                return await destination.send(content, tts=tts, embed=embed, view=view, file=file, files=files)
             except discord.HTTPException:
                 # Catching these due to infrequent issues with discord remote.
                 await asyncio.sleep(1.5)
