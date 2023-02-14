@@ -348,11 +348,6 @@ def test_pvp_update_pvp_stats(f_pvp_testbed, eddb_session):
     assert 3 == stats.kills
 
 
-def test_pvp_get_pvp_events(f_pvp_testbed, eddb_session):
-    events = pvp.schema.get_pvp_events(eddb_session, cmdr_id=1)
-    assert events[-1].victim_name == 'LeSuck'
-
-
 @pytest.mark.asyncio
 async def test_pvp_add_pvp_log(f_pvp_testbed, eddb_session):
     with tempfile.NamedTemporaryFile(suffix='.log') as tfile:
@@ -398,7 +393,8 @@ def test_pvp_remove_players_from_match(f_pvp_testbed, eddb_session):
     assert len(match.players) == 1
 
 
-def test_create_log_of_events(f_pvp_testbed, eddb_session):
+@pytest.mark.asyncio
+async def test_create_log_of_events(f_pvp_testbed, eddb_session):
     expect = """CMDR coolGuy located in Anja at 2022-12-21 20:42:57.
 CMDR coolGuy located in Anna Perenna at 2022-12-21 20:42:57.
 CMDR coolGuy killed CMDR LeSuck at 2022-12-21 20:42:57
@@ -411,44 +407,47 @@ CMDR coolGuy interdicted CMDR LeSuck at 2022-12-21 20:42:59. Pulled from SC: Tru
 CMDR coolGuy killed CMDR LeSuck at 2022-12-21 20:43:01
 """
 
-    with pvp.schema.create_log_of_events(eddb_session, cmdr_id=1) as log_files:
+    async with pvp.schema.create_log_of_events(eddb_session, cmdr_id=1) as log_files:
         assert len(log_files) == 1
         with open(log_files[0], encoding='utf-8') as fin:
             assert expect == fin.read()
 
 
-def test_create_log_of_events_filtered(f_pvp_testbed, eddb_session):
+@pytest.mark.asyncio
+async def test_create_log_of_events_filtered(f_pvp_testbed, eddb_session):
     expect = """CMDR coolGuy killed CMDR LeSuck at 2022-12-21 20:42:57
 CMDR coolGuy killed CMDR BadGuy at 2022-12-21 20:42:59
 CMDR coolGuy killed CMDR LeSuck at 2022-12-21 20:43:01
 """
 
-    with pvp.schema.create_log_of_events(eddb_session, cmdr_id=1, events=[pvp.schema.PVPKill]) as log_files:
+    async with pvp.schema.create_log_of_events(eddb_session, cmdr_id=1, events=[pvp.schema.PVPKill]) as log_files:
         assert len(log_files) == 1
         with open(log_files[0], encoding='utf-8') as fin:
             assert expect == fin.read()
 
 
-def test_create_log_of_events_limit(f_pvp_testbed, eddb_session):
+@pytest.mark.asyncio
+async def test_create_log_of_events_limit(f_pvp_testbed, eddb_session):
     expect = """CMDR coolGuy was killed by: CMDR BadGuyWon (Python) at 2022-12-21 20:42:59
 CMDR coolGuy interdicted CMDR LeSuck at 2022-12-21 20:42:59. Pulled from SC: True Escaped: True
 CMDR coolGuy killed CMDR LeSuck at 2022-12-21 20:43:01
 """
 
-    with pvp.schema.create_log_of_events(eddb_session, cmdr_id=1, last_n=3) as log_files:
+    async with pvp.schema.create_log_of_events(eddb_session, cmdr_id=1, last_n=3) as log_files:
         assert len(log_files) == 1
         with open(log_files[0], encoding='utf-8') as fin:
             assert expect == fin.read()
 
 
-def test_create_log_of_events_after(f_pvp_testbed, eddb_session):
+@pytest.mark.asyncio
+async def test_create_log_of_events_after(f_pvp_testbed, eddb_session):
     expect = """CMDR coolGuy killed CMDR BadGuy at 2022-12-21 20:42:59
 CMDR coolGuy was killed by: CMDR BadGuyWon (Python) at 2022-12-21 20:42:59
 CMDR coolGuy interdicted CMDR LeSuck at 2022-12-21 20:42:59. Pulled from SC: True Escaped: True
 CMDR coolGuy killed CMDR LeSuck at 2022-12-21 20:43:01
 """
 
-    with pvp.schema.create_log_of_events(eddb_session, cmdr_id=1, after=1671655379) as log_files:
+    async with pvp.schema.create_log_of_events(eddb_session, cmdr_id=1, after=1671655379) as log_files:
         assert len(log_files) == 1
         with open(log_files[0], encoding='utf-8') as fin:
             assert expect == fin.read()

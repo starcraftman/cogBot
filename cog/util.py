@@ -970,10 +970,11 @@ def group_by_filesize(lines, *, limit=DISCORD_FILE_LIMIT):
     return grouped
 
 
-def grouped_text_to_files(grouped_lines, *, tdir, fname_gen):
+async def grouped_text_to_files(grouped_lines, *, tdir, fname_gen):
     """
     Take a list of grouped lines and write them out to files in the same directory according
     to the names returned by fname_template.
+    Async version.
 
     Args:
         grouped_lines: A list of a list of lines, each group goes to a separate file.
@@ -991,8 +992,8 @@ def grouped_text_to_files(grouped_lines, *, tdir, fname_gen):
     for ind, group in enumerate(grouped_lines, start=1):
         fname = tdir / fname_gen(ind)
         fnames += [fname]
-        with open(fname, 'w', encoding='utf-8') as fout:
-            fout.writelines(group)
+        async with aiofiles.open(fname, 'w', encoding='utf-8') as fout:
+            await fout.writelines(group)
 
     return fnames
 

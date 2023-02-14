@@ -1109,32 +1109,6 @@ def update_pvp_stats(eddb_session, *, cmdr_id):
     return stat
 
 
-def get_pvp_events(eddb_session, *, cmdr_id, last_n=10, event_classes=None):
-    """
-    Fetch the most recent tracked events to display to a user.
-
-    Args:
-        eddb_session: A session onto the EDDB db.
-        cmdr_id: The cmdr's id.
-        last_n: The amount of recent events to be displayed.
-        event_classes: The PVP events to fetch, a list of classes like PVPKill and PVPDeath. If None, all.
-
-    Returns: A list of db objects to display.
-    """
-    objs = []
-    if not event_classes:
-        event_classes = [PVPLocation, PVPKill, PVPDeath, PVPInterdiction, PVPInterdiction]
-
-    for cls in event_classes:
-        objs += eddb_session.query(cls).\
-            filter(cls.cmdr_id == cmdr_id).\
-            order_by(cls.event_at.desc()).\
-            limit(last_n).\
-            all()
-
-    return list(reversed(sorted(objs, key=lambda x: x.event_at, reverse=True)[:last_n]))
-
-
 async def add_pvp_log(eddb_session, fname, *, cmdr_id):
     """
     Add a PVP log to the database and optionally update the client archive with it.
@@ -1177,8 +1151,8 @@ def get_filtered_pvp_logs(eddb_session):
         all()
 
 
-@contextlib.contextmanager
-def create_log_of_events(eddb_session, *, cmdr_id, events=None, last_n=None, after=None):
+@contextlib.asynccontextmanager
+async def create_log_of_events(eddb_session, *, cmdr_id, events=None, last_n=None, after=None):
     """
     Generate a complete log dump of all recorded events for a player.
     This is a context manager, returns the files created with the information.
@@ -1213,7 +1187,7 @@ def create_log_of_events(eddb_session, *, cmdr_id, events=None, last_n=None, aft
 
     tdir = tempfile.mkdtemp()
     try:
-        yield cog.util.grouped_text_to_files(
+        yield await cog.util.grouped_text_to_files(
             grouped_lines=cog.util.group_by_filesize(all_logs),
             tdir=tdir, fname_gen=lambda num: f'file_{num:02}.txt'
         )

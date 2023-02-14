@@ -494,7 +494,8 @@ def test_group_by_filesize():
     assert expect == cog.util.group_by_filesize(lines, limit=130)
 
 
-def test_text_to_files():
+@pytest.mark.asyncio
+async def test_grouped_text_to_files():
     lines = [
         "This is a single line of text.",
         "This is another line of text.",
@@ -511,7 +512,9 @@ def test_text_to_files():
     tdir = pathlib.Path(tempfile.mkdtemp())
     try:
         grouped = cog.util.group_by_filesize(lines, limit=130)
-        cog.util.grouped_text_to_files(grouped_lines=grouped, tdir=tdir, fname_gen=lambda num: f"file_{num:02}.txt")
+        await cog.util.grouped_text_to_files(
+            grouped_lines=grouped, tdir=tdir, fname_gen=lambda num: f"file_{num:02}.txt"
+        )
         expect = """This is a single line of text.
 This is another line of text.
 This is a single line of text.
