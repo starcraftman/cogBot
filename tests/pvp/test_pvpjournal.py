@@ -281,6 +281,8 @@ def test_filter_archive(f_plog_zip):
         assert expect.exists()
     finally:
         shutil.rmtree(tempd)
+        if expect.exists():
+            os.remove(expect)
 
 
 @pytest.mark.asyncio
@@ -301,6 +303,8 @@ async def test_filter_tempfile_log(f_plog_file):
             assert expect.exists()
         finally:
             shutil.rmtree(tempd)
+            if expect.exists():
+                os.remove(expect)
 
 
 @pytest.mark.asyncio
@@ -320,6 +324,9 @@ async def test_filter_tempfile_zip(f_plog_zip):
             assert expect.exists()
         finally:
             shutil.rmtree(tempd)
+            if expect.exists():
+                os.remove(expect)
+
 
 
 @pytest.mark.asyncio

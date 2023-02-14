@@ -998,7 +998,7 @@ def f_plog_file():
     """
     Create a valid log file temporarily and return the location.
     """
-    with tempfile.NamedTemporaryFile(prefix='player', suffix='.log', mode='wb', delete=False) as tfile:
+    with tempfile.NamedTemporaryFile(prefix='player', suffix='.log', mode='wb', delete=True) as tfile:
         tfile.writelines([
             b'{ "timestamp":"2016-06-10T14:31:00Z", "event":"Fileheader", "part":1, "gameversion":"2.2", "build":"r113684 " }, { "timestamp":"2016-06-10T14:32:03Z", "event":"LoadGame", "Commander":"HRC1", "Ship":"SideWinder", "ShipID":1, "GameMode":"Open", "Credits":600120, "Loan":0 }\n',
             b'{ "timestamp":"2016-06-10T14:50:00Z", "event":"Interdiction", "Success":true, "Interdicted":"cmdr CanNotShoot", "IsPlayer":true, "CombatRank":5 }\n',
