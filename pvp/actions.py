@@ -31,7 +31,6 @@ Your in game name will be read from logs and linked to your Discord ID as well (
 
 Do you consent to this use of your data?
 """
-MAX_FILE_SIZE = 8 * 1024 * 1024
 
 
 class PVPAction(Action):
@@ -333,7 +332,7 @@ class FileUpload(PVPAction):  # pragma: no cover
         filter_chan = self.bot.get_channel(cog.util.CONF.channels.pvp_filter)
 
         for attach in self.msg.attachments:
-            if attach.size > MAX_FILE_SIZE:
+            if attach.size > cog.util.DISCORD_FILE_LIMIT:
                 await self.bot.send_message(self.msg.channel, f'Rejecting file {attach.filename}, please upload files < 8MB')
                 continue
 
