@@ -435,6 +435,7 @@ LOG_MAP = {
     'deaths': 'PVPDeath',
     'interdictions': 'PVPInterdiction',
     'interdicteds': 'PVPInterdicted',
+    'escapes': 'PVPEscapedInterdicted',
     'locations': 'PVPLocation',
 }
 

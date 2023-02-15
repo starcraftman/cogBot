@@ -32,7 +32,7 @@ COMBAT_RANK_TO_VALUE = {x: ind for ind, x in enumerate(cog.inara.COMBAT_RANKS)}
 VALUE_TO_COMBAT_RANK = {y: x for x, y in COMBAT_RANK_TO_VALUE.items()}
 PARSED_EVENTS = [
     'Fileheader', 'FileHeader', 'Location', 'FSDJump', 'SupercruiseEntry', 'SupercruiseExit',
-    'PVPKill', 'Died', 'Interdiction', 'Interdicted'
+    'PVPKill', 'Died', 'Interdiction', 'Interdicted', 'EscapeInterdiction',
 ]
 
 
@@ -195,6 +195,38 @@ def parse_interdicted(eddb_session, data):
         eddb_session.flush()
 
     return interdicted
+
+
+def parse_escaped_interdiction(eddb_session, data):
+    """
+    Parse the EscapedInterdiction messages in the log file.
+    Args:
+        eddb_session: A session onto the db.
+        data: A JSON object with the data to parse.
+
+    Returns: The added object.
+    """
+    if not data['IsPlayer'] or not data.get('Interdictor'):
+        return None
+
+    try:
+        escape = eddb_session.query(pvp.schema.PVPEscapedInterdicted).\
+            filter(pvp.schema.PVPEscapedInterdicted.cmdr_id == data['cmdr_id'],
+                   pvp.schema.PVPEscapedInterdicted.system_id == data['system_id'],
+                   pvp.schema.PVPEscapedInterdicted.event_at == data['event_at']).\
+            one()
+    except sqla.exc.NoResultFound:
+        escape = pvp.schema.PVPEscapedInterdicted(
+            cmdr_id=data['cmdr_id'],
+            system_id=data['system_id'],
+            event_at=data['event_at'],
+            interdictor_name=data['Interdictor'],
+            is_player=data['IsPlayer'],
+        )
+        eddb_session.add(escape)
+        eddb_session.flush()
+
+    return escape
 
 
 def parse_location(eddb_session, data):
@@ -742,6 +774,7 @@ def ship_name_map():
 CACHED = {}
 EVENT_TO_PARSER = {
     "Died": parse_died,
+    "EscapeInterdiction": parse_escaped_interdiction,
     "FSDJump": parse_location,
     "Interdicted": parse_interdicted,
     "Interdiction": parse_interdiction,

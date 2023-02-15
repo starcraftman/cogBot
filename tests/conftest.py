@@ -40,7 +40,7 @@ from cogdb.schema import (DiscordUser, FortSystem, FortPrep, FortDrop, FortUser,
                           Consolidation, SheetRecord)
 from pvp.schema import (PVPCmdr, PVPKill, PVPDeath, PVPDeathKiller, PVPInterdicted, PVPInterdiction,
                         PVPInterdictedKill, PVPInterdictedDeath, PVPInterdictionKill, PVPInterdictionDeath,
-                        PVPLocation, PVPLog, PVPMatch, PVPMatchPlayer, PVPMatchState)
+                        PVPEscapedInterdicted, PVPLocation, PVPLog, PVPMatch, PVPMatchPlayer, PVPMatchState)
 from tests.data import CELLS_FORT, CELLS_FORT_FMT, CELLS_UM
 
 
@@ -968,6 +968,10 @@ def f_pvp_testbed(f_spy_ships, eddb_session):
                        interdictor_name="BadGuyWon", interdictor_rank=7, created_at=PVP_TIMESTAMP, event_at=PVP_TIMESTAMP),
         PVPInterdicted(id=2, cmdr_id=2, is_player=True, did_submit=True, survived=True,
                        interdictor_name="BadGuyWon", interdictor_rank=7, created_at=PVP_TIMESTAMP, event_at=PVP_TIMESTAMP),
+        PVPEscapedInterdicted(id=1, cmdr_id=1, system_id=1000, interdictor_name='BadGuyWon', is_player=True,
+                              created_at=PVP_TIMESTAMP,  event_at=PVP_TIMESTAMP),
+        PVPEscapedInterdicted(id=2, cmdr_id=1, system_id=1000, interdictor_name='BadGuyWon', is_player=True,
+                              created_at=PVP_TIMESTAMP + 2,  event_at=PVP_TIMESTAMP + 2),
         PVPLog(id=1, cmdr_id=1, file_hash='hash', filename='first.log', msg_id=1, filtered_msg_id=10, updated_at=PVP_TIMESTAMP),
         PVPLog(id=2, cmdr_id=2, file_hash='hash2', filename='second.log', msg_id=3, filtered_msg_id=12, updated_at=PVP_TIMESTAMP + 2),
         PVPMatch(id=1, discord_channel_id=99, limit=10, state=PVPMatchState.SETUP, created_at=PVP_TIMESTAMP, updated_at=PVP_TIMESTAMP),

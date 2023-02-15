@@ -473,6 +473,52 @@ class PVPInterdictedDeath(ReprMixin, TimestampMixin, EventTimeMixin, Base):
         return hash(self.id)
 
 
+@functools.total_ordering
+class PVPEscapedInterdicted(ReprMixin, TimestampMixin, EventTimeMixin, Base):
+    """
+    Table to store events when a cmdr was interdicted by other players.
+    """
+    __tablename__ = 'pvp_escaped_interdicteds'
+    __table_args__ = (
+        UniqueConstraint('cmdr_id', 'system_id', 'event_at', name='_pvp_interdicted_escape_unique'),
+    )
+    _repr_keys = ['id', 'cmdr_id', 'system_id', 'is_player', 'interdictor_name',
+                  'created_at', 'event_at']
+
+    id = sqla.Column(sqla.BigInteger, primary_key=True)
+    cmdr_id = sqla.Column(sqla.BigInteger, sqla.ForeignKey('pvp_cmdrs.id'))
+    system_id = sqla.Column(sqla.Integer)
+
+    is_player = sqla.Column(sqla.Boolean, default=False)  # True if interdictor is player
+    interdictor_name = sqla.Column(sqla.String(EDDB_LEN["pvp_name"]), index=True)
+    created_at = sqla.Column(sqla.Integer, default=time.time)
+    event_at = sqla.Column(sqla.Integer, default=time.time)  # Set to time in log
+
+    cmdr = sqla.orm.relationship('PVPCmdr', viewonly=True)
+
+    def embed(self):
+        """ Short string representation for embed. """
+        return f'CMDR {self.interdictor_name} ({self.event_date})'
+
+    def __str__(self):
+        """ Show a single time cmdr escaped interdiction. """
+        try:
+            cmdr = self.cmdr.name
+        except AttributeError:
+            cmdr = self.id
+
+        return f"CMDR {cmdr} escaped interdiction by {'CMDR ' if self.is_player else ''}{self.interdictor_name} at {self.event_date}"
+
+    def __eq__(self, other):
+        return isinstance(other, PVPEscapedInterdicted) and hash(self) == hash(other)
+
+    def __lt__(self, other):
+        return self.event_at < other.event_at
+
+    def __hash__(self):
+        return hash(f'{self.cmdr_id}_{self.system_id}_{self.event_at}')
+
+
 class PVPStat(ReprMixin, TimestampMixin, UpdatableMixin, Base):
     """
     Table to store derived stats from pvp tracking.
@@ -482,10 +528,12 @@ class PVPStat(ReprMixin, TimestampMixin, UpdatableMixin, Base):
     __tablename__ = 'pvp_stats'
     _repr_keys = [
         'id', 'cmdr_id',
-        'last_location_id', 'last_kill_id', 'last_death_id', 'last_interdicted_id', 'last_interdicted_id',
-        'deaths', 'kills', 'interdictions', 'interdicteds', 'most_kills_system_id', 'most_deaths_system_id',
+        'last_location_id', 'last_kill_id', 'last_death_id',
+        'last_interdicted_id', 'last_interdicted_id', 'last_escaped_interdicted_id',
+        'deaths', 'kills', 'interdictions', 'interdicteds', 'escaped_interdicteds',
+        'most_kills_system_id', 'most_deaths_system_id',
         'interdicted_kills', 'interdiction_deaths', 'interdicted_kills', 'interdicted_deaths',
-        'killed_most', 'most_deaths_by', 'most_interdictions', 'most_interdicted_by',
+        'killed_most', 'most_deaths_by', 'most_interdictions', 'most_interdicted_by', 'most_escaped_interdictions_from'
         'updated_at'
     ]
 
@@ -496,11 +544,13 @@ class PVPStat(ReprMixin, TimestampMixin, UpdatableMixin, Base):
     last_death_id = sqla.Column(sqla.BigInteger, sqla.ForeignKey('pvp_deaths.id'))
     last_interdiction_id = sqla.Column(sqla.BigInteger, sqla.ForeignKey('pvp_interdictions.id'))
     last_interdicted_id = sqla.Column(sqla.BigInteger, sqla.ForeignKey('pvp_interdicteds.id'))
+    last_escaped_interdicted_id = sqla.Column(sqla.BigInteger, sqla.ForeignKey('pvp_escaped_interdicteds.id'))
 
     deaths = sqla.Column(sqla.Integer, default=0)
     kills = sqla.Column(sqla.Integer, default=0)
     interdictions = sqla.Column(sqla.Integer, default=0)
     interdicteds = sqla.Column(sqla.Integer, default=0)
+    escaped_interdicteds = sqla.Column(sqla.Integer, default=0)
     most_kills_system_id = sqla.Column(sqla.BigInteger, default=0)
     most_deaths_system_id = sqla.Column(sqla.BigInteger, default=0)
 
@@ -514,6 +564,7 @@ class PVPStat(ReprMixin, TimestampMixin, UpdatableMixin, Base):
     most_deaths_by = sqla.Column(sqla.String(EDDB_LEN['pvp_name']))
     most_interdictions = sqla.Column(sqla.String(EDDB_LEN['pvp_name']))
     most_interdicted_by = sqla.Column(sqla.String(EDDB_LEN['pvp_name']))
+    most_escaped_interdictions_from = sqla.Column(sqla.String(EDDB_LEN['pvp_name']))
 
     updated_at = sqla.Column(sqla.Integer, default=time.time, onupdate=time.time)
 
@@ -533,6 +584,9 @@ class PVPStat(ReprMixin, TimestampMixin, UpdatableMixin, Base):
     last_death = sqla.orm.relationship(
         'PVPDeath', uselist=False, lazy='joined', viewonly=True,
         primaryjoin='foreign(PVPStat.last_death_id) == PVPDeath.id')
+    last_escaped_interdicted = sqla.orm.relationship(
+        'PVPEscapedInterdicted', uselist=False, lazy='joined', viewonly=True,
+        primaryjoin='foreign(PVPStat.last_escaped_interdicted_id) == PVPEscapedInterdicted.id')
     last_interdiction = sqla.orm.relationship(
         'PVPInterdiction', uselist=False, lazy='joined', viewonly=True,
         primaryjoin='foreign(PVPStat.last_interdiction_id) == PVPInterdiction.id')
@@ -571,10 +625,12 @@ class PVPStat(ReprMixin, TimestampMixin, UpdatableMixin, Base):
             ['Interdicteds', str(self.interdicteds)],
             ['Interdicted -> Kill', str(self.interdicted_kills)],
             ['Interdicted -> Death', str(self.interdicted_deaths)],
+            ['Escapes From Interdiction', str(self.escaped_interdicteds)],
             ['Most Kills', f'CMDR {self.killed_most}'],
             ['Most Deaths By', f'CMDR {self.most_deaths_by}'],
             ['Most Interdictions', f'CMDR {self.most_interdictions}'],
             ['Most Interdicted By', f'CMDR {self.most_interdicted_by}'],
+            ['Most Escaped Interdictions From', f'CMDR {self.most_escaped_interdictions_from}'],
             ['Most Kills In', self.most_kills_system.name if self.most_kills_system else 'N/A'],
             ['Most Deaths In', self.most_deaths_system.name if self.most_deaths_system else 'N/A'],
             ['Last Location', self.last_location.embed() if self.last_location else 'N/A'],
@@ -582,6 +638,7 @@ class PVPStat(ReprMixin, TimestampMixin, UpdatableMixin, Base):
             ['Last Death By', self.last_death.embed() if self.last_death else 'N/A'],
             ['Last Interdiction', self.last_interdiction.embed() if self.last_interdiction else 'N/A'],
             ['Last Interdicted By', self.last_interdicted.embed() if self.last_interdicted else 'N/A'],
+            ['Last Escaped From', self.last_escaped_interdicted.embed() if self.last_escaped_interdicted else 'N/A'],
         ]
 
     def __str__(self):
@@ -995,6 +1052,17 @@ def get_pvp_event_cmdrs(eddb_session, *, cmdr_id):
     except sqla.exc.NoResultFound:
         result = 'N/A'
     found['most_interdicted_by'] = result
+    try:
+        count = sqla.func.count(PVPEscapedInterdicted.interdictor_name)
+        result = eddb_session.query(PVPEscapedInterdicted.interdictor_name, count).\
+            filter(PVPEscapedInterdicted.cmdr_id == cmdr_id).\
+            group_by(PVPEscapedInterdicted.interdictor_name).\
+            order_by(count.desc(), PVPEscapedInterdicted.id.desc()).\
+            limit(1).\
+            one()[0]
+    except sqla.exc.NoResultFound:
+        result = 'N/A'
+    found['most_escaped_interdictions_from'] = result
 
     return found
 
@@ -1016,6 +1084,7 @@ def get_pvp_last_events(eddb_session, *, cmdr_id):
         ('last_location_id', PVPLocation),
         ('last_kill_id', PVPKill),
         ('last_death_id', PVPDeath),
+        ('last_escaped_interdicted_id', PVPEscapedInterdicted),
         ('last_interdiction_id', PVPInterdiction),
         ('last_interdicted_id', PVPInterdicted),
     ]:
@@ -1046,6 +1115,10 @@ def update_pvp_stats(eddb_session, *, cmdr_id):
         'interdictions':
             eddb_session.query(PVPInterdiction).
             filter(PVPInterdiction.cmdr_id == cmdr_id).
+            count(),
+        'escaped_interdicteds':
+            eddb_session.query(PVPEscapedInterdicted).
+            filter(PVPEscapedInterdicted.cmdr_id == cmdr_id).
             count(),
         'interdicteds':
             eddb_session.query(PVPInterdicted).
@@ -1167,7 +1240,7 @@ async def create_log_of_events(eddb_session, *, cmdr_id, events=None, last_n=Non
     Returns: A list of files that were written for log upload.
     """
     if not events:
-        events = [PVPLocation, PVPKill, PVPDeath, PVPInterdicted, PVPInterdiction]
+        events = [PVPLocation, PVPKill, PVPDeath, PVPInterdicted, PVPInterdiction, PVPEscapedInterdicted]
 
     all_logs = []
     for cls in events:
@@ -1376,7 +1449,7 @@ def main():  # pragma: no cover
 PVP_TABLES = [
     PVPMatchPlayer, PVPMatch,
     PVPLog, PVPStat, PVPInterdictedKill, PVPInterdictedDeath, PVPInterdictionKill, PVPInterdictionDeath,
-    PVPInterdicted, PVPInterdiction, PVPDeathKiller, PVPDeath, PVPKill, PVPLocation, PVPCmdr
+    PVPEscapedInterdicted, PVPInterdicted, PVPInterdiction, PVPDeathKiller, PVPDeath, PVPKill, PVPLocation, PVPCmdr
 ]
 PVP_TABLES_KEEP = [PVPLog, PVPCmdr]
 # Mainly archival, in case need to move to other hashes.

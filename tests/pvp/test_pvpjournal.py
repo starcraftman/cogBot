@@ -15,7 +15,7 @@ import cog.util
 import pvp.schema
 import pvp.journal
 from pvp.schema import (
-    PVPInterdicted, PVPInterdiction, PVPDeath, PVPKill, PVPLocation,
+    PVPEscapedInterdicted, PVPInterdicted, PVPInterdiction, PVPDeath, PVPKill, PVPLocation,
 )
 from tests.conftest import PVP_TIMESTAMP
 
@@ -73,6 +73,19 @@ def test_parse_pvpkill(f_pvp_testbed, eddb_session):
     kill = eddb_session.query(PVPKill).filter(PVPKill.system_id == 1005).one()
     assert 1 == kill.cmdr_id
     assert kill.victim_name == "BadGuy"
+
+
+def test_parse_pvpescapedinterdiction(f_pvp_testbed, eddb_session):
+    data = json.loads('{"timestamp":"2016-06-10T14:32:03Z", "event":"EscapeInterdiction", "Interdictor":"Hrc1", "IsPlayer":true }')
+    data['cmdr_id'] = 1
+    data['system_id'] = 1005
+    data['event_at'] = pvp.journal.datetime_to_tstamp(data['timestamp'])
+    pvp.journal.parse_escaped_interdiction(eddb_session, data)
+    eddb_session.commit()
+
+    escape = eddb_session.query(PVPEscapedInterdicted).filter(PVPEscapedInterdicted.system_id == 1005).one()
+    assert 1 == escape.cmdr_id
+    assert escape.interdictor_name == "Hrc1"
 
 
 def test_parse_interdiction(f_pvp_testbed, eddb_session):
