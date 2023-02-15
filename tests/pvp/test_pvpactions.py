@@ -87,6 +87,7 @@ For more information do: `!Command -h`
 !log      | Show recent PVP events parsed
 !match    | Create and manage pvp matches.
 !near     | Find things near you.
+!privacy  | Display the privacy explanation.
 !repair   | Show the nearest orbitals with shipyards
 !route    | Plot the shortest route between these systems
 !stats    | PVP statistics for you or another CMDR
@@ -310,6 +311,19 @@ class TestCMDMatch:
         await action_map(msg, f_bot).execute()
         dembed = f_bot.send_message.call_args[1]['embed'].to_dict()
         assert "coolGuy\nshootsALot\nshyGuy" == dembed['fields'][-1]['value']
+
+
+@pytest.mark.asyncio
+async def test_cmd_privacy(f_bot, f_pvp_testbed):
+    expect = """This bot will take uploads of logs from you and process them to derive statistics.
+On first upload your in game name will be read from logs and linked to your Discord ID.
+This bot will link all this information to your discord id so you can retrieve it by command.
+Beyond this bot having access to your logs, uploading files to the bot naturally means
+that discord the company has a copy."""
+    msg = fake_msg_gears("!privacy")
+
+    await action_map(msg, f_bot).execute()
+    assert expect in str(f_bot.send_message.call_args).replace("\\n", "\n")
 
 
 @pytest.mark.asyncio

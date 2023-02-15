@@ -26,11 +26,29 @@ from cog.actions import (Action, Dist, Donate, Feedback, Near,
                          Repair, Route, Time, Trigger, WhoIs)  # noqa: F401 pylint: disable=unused-import
 
 DISCLAIMER = """
-This bot will store information derived from logs uploaded and link it to your Discord ID.
-Your in game name will be read from logs and linked to your Discord ID as well (if present).
+This bot will take uploads of logs from you and process them to derive statistics.
+On first upload your in game name will be read from logs and linked to your Discord ID.
+This bot will link all this information to your discord id so you can retrieve it by command.
+Beyond this bot having access to your logs, uploading files to the bot naturally means
+that discord the company has a copy.
 
-Do you consent to this use of your data?
-"""
+The bot will ...
+    - Upload an archival copy of your log to a private channel accesible only by devs
+    - Read through your log and select events of interest for statistics, i.e. kills, deaths, locations
+    - Store parsed information in the bot's database on the server hosting the bots.
+    - Store derived statistics from these events
+    - The bot will store information about matches and outcomes.
+
+This bot is not intended to spy. It is for entertainment and amusement.
+Data collected and processed will not be shared with anyone.
+Only the server owner and the dev team have access.
+
+This is not a legal notice, the author is not a lawayer. If you have questions contact the devs.
+This privacy statement may be updated as new features are added, the version will be incremented when it is.
+Version 1.0 """
+DISCLAIMER_QUERY = """
+
+Do you consent to this use of your data?"""
 
 
 class PVPAction(Action):
@@ -406,6 +424,7 @@ class Help(PVPAction):
             [f'{prefix}log', 'Show recent PVP events parsed'],
             [f'{prefix}match', 'Create and manage pvp matches.'],
             [f'{prefix}near', 'Find things near you.'],
+            [f'{prefix}privacy', 'Display the privacy explanation.'],
             [f'{prefix}repair', 'Show the nearest orbitals with shipyards'],
             [f'{prefix}route', 'Plot the shortest route between these systems'],
             [f'{prefix}stats', 'PVP statistics for you or another CMDR'],
@@ -793,6 +812,14 @@ class Stats(PVPAction):
         await self.bot.send_message(self.msg.channel, msg, embed=embed)
 
 
+class Privacy(PVPAction):
+    """
+    Display the privacy statement of the bot.
+    """
+    async def execute(self):
+        await self.bot.send_message(self.msg.channel, DISCLAIMER)
+
+
 class Status(PVPAction):
     """
     Display the status of this bot.
@@ -834,7 +861,7 @@ async def cmdr_setup(eddb_session, client, msg, *, cmdr_name=None):  # pragma: n
         add_item(dui.Button(label="Yes", custom_id="Yes", style=discord.ButtonStyle.green)).\
         add_item(dui.Button(label="No", custom_id="No", style=discord.ButtonStyle.red))
 
-    sent = await msg.channel.send(DISCLAIMER, view=view)
+    sent = await msg.channel.send(DISCLAIMER + DISCLAIMER_QUERY, view=view)
     inter = await client.wait_for('interaction', check=functools.partial(check_button, msg.author, sent))
 
     if inter.data['custom_id'] == "No":

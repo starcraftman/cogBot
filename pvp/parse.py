@@ -119,6 +119,18 @@ def subs_log(subs, prefix):
 
 
 @register_parser
+def subs_privacy(subs, prefix):
+    """ Subcommand parsing for privacy """
+    desc = f"""Provide the privacy statement to user.
+
+**{prefix}privacy**
+        Print the privacy statement for user to view.
+    """
+    sub = subs.add_parser(prefix + 'privacy', description=desc, formatter_class=RawHelp)
+    sub.set_defaults(cmd='Privacy')
+
+
+@register_parser
 def subs_r(subs, prefix):
     """ Subcommand parsing for log """
     desc = f"""To register for a pvp event setup in the channel.
