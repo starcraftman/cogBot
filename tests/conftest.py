@@ -953,16 +953,20 @@ def f_pvp_testbed(f_spy_ships, eddb_session):
 
         PVPDeath(id=1, cmdr_id=1, system_id=1000, is_wing_kill=True, created_at=PVP_TIMESTAMP, event_at=PVP_TIMESTAMP),
         PVPDeath(id=2, cmdr_id=1, system_id=1001, is_wing_kill=False, created_at=PVP_TIMESTAMP, event_at=PVP_TIMESTAMP + 2),
-        PVPDeath(id=3, cmdr_id=3, is_wing_kill=False, created_at=PVP_TIMESTAMP, event_at=PVP_TIMESTAMP),
+        PVPDeath(id=3, cmdr_id=2, is_wing_kill=False, created_at=PVP_TIMESTAMP, event_at=PVP_TIMESTAMP),
         PVPDeathKiller(cmdr_id=1, pvp_death_id=1, name='BadGuyWon', rank=7, ship_id=30, created_at=PVP_TIMESTAMP, event_at=PVP_TIMESTAMP),
         PVPDeathKiller(cmdr_id=1, pvp_death_id=1, name='BadGuyHelper', rank=5, ship_id=38, created_at=PVP_TIMESTAMP, event_at=PVP_TIMESTAMP),
-        PVPDeathKiller(cmdr_id=2, pvp_death_id=2, name='BadGuyWon', rank=7, ship_id=30, created_at=PVP_TIMESTAMP, event_at=PVP_TIMESTAMP),
-        PVPDeathKiller(cmdr_id=3, pvp_death_id=3, name='BadGuyWon', rank=7, ship_id=30, created_at=PVP_TIMESTAMP, event_at=PVP_TIMESTAMP),
+        PVPDeathKiller(cmdr_id=1, pvp_death_id=2, name='BadGuyWon', rank=7, ship_id=30, created_at=PVP_TIMESTAMP, event_at=PVP_TIMESTAMP),
+        PVPDeathKiller(cmdr_id=1, pvp_death_id=2, name='BadGuyHelper', rank=7, ship_id=30, created_at=PVP_TIMESTAMP, event_at=PVP_TIMESTAMP),
+        PVPDeathKiller(cmdr_id=2, pvp_death_id=3, name='BadGuyWon', rank=7, ship_id=30, created_at=PVP_TIMESTAMP, event_at=PVP_TIMESTAMP),
+        PVPDeathKiller(cmdr_id=2, pvp_death_id=3, name='LeSuck', rank=7, ship_id=22, created_at=PVP_TIMESTAMP, event_at=PVP_TIMESTAMP),
 
         PVPInterdiction(id=1, cmdr_id=1, system_id=1000, is_player=True, is_success=True, survived=False,
                         victim_name="LeSuck", victim_rank=3, created_at=PVP_TIMESTAMP, event_at=PVP_TIMESTAMP),
         PVPInterdiction(id=2, cmdr_id=1, system_id=1001, is_player=True, is_success=True, survived=True,
                         victim_name="LeSuck", victim_rank=3, created_at=PVP_TIMESTAMP, event_at=PVP_TIMESTAMP + 2),
+        PVPInterdiction(id=3, cmdr_id=2, system_id=1001, is_player=True, is_success=True, survived=True,
+                        victim_name="CanNotShoot", victim_rank=3, created_at=PVP_TIMESTAMP, event_at=PVP_TIMESTAMP + 2),
 
         PVPInterdicted(id=1, cmdr_id=1, system_id=1000, is_player=True, did_submit=False, survived=False,
                        interdictor_name="BadGuyWon", interdictor_rank=7, created_at=PVP_TIMESTAMP, event_at=PVP_TIMESTAMP),
@@ -985,8 +989,8 @@ def f_pvp_testbed(f_spy_ships, eddb_session):
     eddb_session.flush()
     eddb_session.add_all([
         PVPInterdictionKill(cmdr_id=1, pvp_interdiction_id=1, pvp_kill_id=1),
-        PVPInterdictionDeath(cmdr_id=2, pvp_interdiction_id=2, pvp_death_id=2),
-        PVPInterdictedKill(cmdr_id=3, pvp_interdicted_id=2, pvp_kill_id=3),
+        PVPInterdictionDeath(cmdr_id=1, pvp_interdiction_id=2, pvp_death_id=2),
+        PVPInterdictedKill(cmdr_id=2, pvp_interdicted_id=2, pvp_kill_id=4),
         PVPInterdictedDeath(cmdr_id=1, pvp_interdicted_id=1, pvp_death_id=1),
     ])
     eddb_session.flush()

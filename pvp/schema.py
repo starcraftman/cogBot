@@ -1037,7 +1037,7 @@ def get_pvp_event_cmdrs(eddb_session, *, cmdr_id):
             filter(PVPDeath.cmdr_id == cmdr_id).\
             join(PVPDeath, PVPDeath.id == PVPDeathKiller.pvp_death_id).\
             group_by(PVPDeathKiller.name).\
-            order_by(count.desc(), PVPDeath.id.desc()).\
+            order_by(count.desc(), PVPDeath.id.desc(), PVPDeathKiller.name).\
             limit(1).\
             one()[0]
     except sqla.exc.NoResultFound:
@@ -1345,6 +1345,28 @@ def remove_players_from_match(eddb_session, *, match_id, cmdr_ids):
         filter(PVPMatchPlayer.cmdr_id.in_(cmdr_ids),
                PVPMatchPlayer.match_id == match_id).\
         delete()
+    eddb_session.commit()
+
+
+def purge_cmdr(eddb_session, *, cmdr_id):
+    """
+    Purge all information relating to a given CMDR.
+    This action is final and will be committed.
+
+    Args:
+        eddb_session: A session onto the EDDB db.
+        cmdr_id: The cmdr id to match.
+    """
+    for cls in PVP_TABLES:
+        if cls in [PVPMatch, PVPCmdr]:
+            continue
+
+        eddb_session.query(cls).\
+            filter(cls.cmdr_id == cmdr_id).\
+            delete()
+    eddb_session.flush()
+
+    eddb_session.query(PVPCmdr).filter(PVPCmdr.id == cmdr_id).delete()
     eddb_session.commit()
 
 

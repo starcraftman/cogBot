@@ -814,12 +814,28 @@ class Stats(PVPAction):
         await self.bot.send_message(self.msg.channel, msg, embed=embed)
 
 
-class Privacy(PVPAction):
+class Privacy(PVPAction):  # Pragma no cover, very destructive test.
     """
-    Display the privacy statement of the bot.
+    Manage all privacy related functions of the bot, including disclosure and information deletion.
     """
     async def execute(self):
-        await self.bot.send_message(self.msg.channel, DISCLAIMER)
+        response = DISCLAIMER
+
+        if self.args.delete:
+            await self.bot.send_message(self.msg.channel, "This may take a while due to rate limiting. We will ping you when finished.")
+
+            cmdr_id = self.msg.author.id
+            log_chan = self.msg.guild.get_channel(cog.util.CONF.channels.pvp_log)
+            filter_chan = self.bot.get_channel(cog.util.CONF.channels.pvp_filter)
+            await pvp.journal.purge_uploaded_logs(log_chan=log_chan, cmdr_id=cmdr_id)
+            if filter_chan != log_chan:
+                await pvp.journal.purge_uploaded_logs(log_chan=filter_chan, cmdr_id=cmdr_id)
+
+            pvp.schema.purge_cmdr(self.eddb_session, cmdr_id=cmdr_id)
+
+            response = f"{self.msg.author.mention} All your information has been deleted. Have a nice day."
+
+        await self.bot.send_message(self.msg.channel, response)
 
 
 class Status(PVPAction):

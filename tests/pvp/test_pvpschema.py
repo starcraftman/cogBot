@@ -126,20 +126,20 @@ def test_pvpinterdicted_embed(f_pvp_testbed, eddb_session):
 
 
 def test_pvpstat__str__(f_pvp_testbed, eddb_session):
-    expect = """           Statistic            |                     Value
-------------------------------- | ---------------------------------------------
+    expect = """           Statistic            |                                   Value
+------------------------------- | -------------------------------------------------------------------------
 Kills                           | 3
 Deaths                          | 2
 K/D                             | 1.5
 Interdictions                   | 2
 Interdiction -> Kill            | 1
-Interdiction -> Death           | 0
+Interdiction -> Death           | 1
 Interdicteds                    | 1
 Interdicted -> Kill             | 0
 Interdicted -> Death            | 1
 Escapes From Interdiction       | 2
 Most Kills                      | CMDR LeSuck
-Most Deaths By                  | CMDR BadGuyWon
+Most Deaths By                  | CMDR BadGuyHelper
 Most Interdictions              | CMDR LeSuck
 Most Interdicted By             | CMDR BadGuyWon
 Most Escaped Interdictions From | CMDR BadGuyWon
@@ -147,10 +147,11 @@ Most Kills In                   | Anja
 Most Deaths In                  | Anjana
 Last Location                   | Anja (2022-12-21 20:42:57)
 Last Kill                       | CMDR LeSuck (2022-12-21 20:43:01)
-Last Death By                   | CMDR BadGuyWon (Python) (2022-12-21 20:42:59)
+Last Death By                   | CMDR BadGuyHelper (Python), CMDR BadGuyWon (Python) (2022-12-21 20:42:59)
 Last Interdiction               | CMDR LeSuck (2022-12-21 20:42:59)
 Last Interdicted By             | CMDR BadGuyWon (2022-12-21 20:42:57)
 Last Escaped From               | CMDR BadGuyWon (2022-12-21 20:42:59)"""
+
     stat = eddb_session.query(PVPStat).filter(PVPStat.cmdr_id == 1).one()
     assert expect == str(stat)
 
@@ -171,13 +172,13 @@ def test_pvpstat_embed_values(f_pvp_testbed, eddb_session):
         {'inline': True, 'name': 'K/D', 'value': '1.5'},
         {'inline': True, 'name': 'Interdictions', 'value': '2'},
         {'inline': True, 'name': 'Interdiction -> Kill', 'value': '1'},
-        {'inline': True, 'name': 'Interdiction -> Death', 'value': '0'},
+        {'inline': True, 'name': 'Interdiction -> Death', 'value': '1'},
         {'inline': True, 'name': 'Interdicteds', 'value': '1'},
         {'inline': True, 'name': 'Interdicted -> Kill', 'value': '0'},
         {'inline': True, 'name': 'Interdicted -> Death', 'value': '1'},
         {'inline': True, 'name': 'Escapes From Interdiction', 'value': '2'},
         {'inline': True, 'name': 'Most Kills', 'value': 'CMDR LeSuck'},
-        {'inline': True, 'name': 'Most Deaths By', 'value': 'CMDR BadGuyWon'},
+        {'inline': True, 'name': 'Most Deaths By', 'value': 'CMDR BadGuyHelper'},
         {'inline': True, 'name': 'Most Interdictions', 'value': 'CMDR LeSuck'},
         {'inline': True, 'name': 'Most Interdicted By', 'value': 'CMDR BadGuyWon'},
         {'inline': True, 'name': 'Most Escaped Interdictions From', 'value': 'CMDR BadGuyWon'},
@@ -185,7 +186,7 @@ def test_pvpstat_embed_values(f_pvp_testbed, eddb_session):
         {'inline': True, 'name': 'Most Deaths In', 'value': 'Anjana'},
         {'inline': True, 'name': 'Last Location', 'value': 'Anja (2022-12-21 20:42:57)'},
         {'inline': True, 'name': 'Last Kill', 'value': 'CMDR LeSuck (2022-12-21 20:43:01)'},
-        {'inline': True, 'name': 'Last Death By', 'value': 'CMDR BadGuyWon (Python) (2022-12-21 20:42:59)'},
+        {'inline': True, 'name': 'Last Death By', 'value': 'CMDR BadGuyHelper (Python), CMDR BadGuyWon (Python) (2022-12-21 20:42:59)'},
         {'inline': True, 'name': 'Last Interdiction', 'value': 'CMDR LeSuck (2022-12-21 20:42:59)'},
         {'inline': True, 'name': 'Last Interdicted By', 'value': 'CMDR BadGuyWon (2022-12-21 20:42:57)'},
         {'inline': True, 'name': 'Last Escaped From', 'value': 'CMDR BadGuyWon (2022-12-21 20:42:59)'}
@@ -346,7 +347,7 @@ def test_pvp_get_event_cmdrs(f_pvp_testbed, eddb_session):
     found = pvp.schema.get_pvp_event_cmdrs(eddb_session, cmdr_id=1)
     expect = {
         'killed_most': 'LeSuck',
-        'most_deaths_by': 'BadGuyWon',
+        'most_deaths_by': 'BadGuyHelper',
         'most_escaped_interdictions_from': 'BadGuyWon',
         'most_interdicted_by': 'BadGuyWon',
         'most_interdictions': 'LeSuck'
@@ -429,7 +430,7 @@ CMDR coolGuy was interdicted by CMDR BadGuyWon at 2022-12-21 20:42:57. Submitted
 CMDR coolGuy interdicted CMDR LeSuck at 2022-12-21 20:42:57. Pulled from SC: True Escaped: False
 CMDR coolGuy escaped interdiction by CMDR BadGuyWon at 2022-12-21 20:42:57
 CMDR coolGuy killed CMDR BadGuy at 2022-12-21 20:42:59
-CMDR coolGuy was killed by: CMDR BadGuyWon (Python) at 2022-12-21 20:42:59
+CMDR coolGuy was killed by: CMDR BadGuyHelper (Python), CMDR BadGuyWon (Python) at 2022-12-21 20:42:59
 CMDR coolGuy interdicted CMDR LeSuck at 2022-12-21 20:42:59. Pulled from SC: True Escaped: True
 CMDR coolGuy escaped interdiction by CMDR BadGuyWon at 2022-12-21 20:42:59
 CMDR coolGuy killed CMDR LeSuck at 2022-12-21 20:43:01
@@ -470,7 +471,7 @@ CMDR coolGuy killed CMDR LeSuck at 2022-12-21 20:43:01
 @pytest.mark.asyncio
 async def test_create_log_of_events_after(f_pvp_testbed, eddb_session):
     expect = """CMDR coolGuy killed CMDR BadGuy at 2022-12-21 20:42:59
-CMDR coolGuy was killed by: CMDR BadGuyWon (Python) at 2022-12-21 20:42:59
+CMDR coolGuy was killed by: CMDR BadGuyHelper (Python), CMDR BadGuyWon (Python) at 2022-12-21 20:42:59
 CMDR coolGuy interdicted CMDR LeSuck at 2022-12-21 20:42:59. Pulled from SC: True Escaped: True
 CMDR coolGuy escaped interdiction by CMDR BadGuyWon at 2022-12-21 20:42:59
 CMDR coolGuy killed CMDR LeSuck at 2022-12-21 20:43:01
@@ -480,6 +481,11 @@ CMDR coolGuy killed CMDR LeSuck at 2022-12-21 20:43:01
         assert len(log_files) == 1
         with open(log_files[0], encoding='utf-8') as fin:
             assert expect == fin.read()
+
+
+def test_purge_cmdr(f_pvp_testbed, eddb_session):
+    pvp.schema.purge_cmdr(eddb_session, cmdr_id=1)
+    assert not eddb_session.query(PVPCmdr).filter(PVPCmdr.id == 1).all()
 
 
 def test_pvp_is_safe_to_drop():

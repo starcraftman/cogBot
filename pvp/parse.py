@@ -125,9 +125,12 @@ def subs_privacy(subs, prefix):
 
 **{prefix}privacy**
         Print the privacy statement for user to view.
+**{prefix}privacy --delete**
+        Upon confirmation perform a complete deletion of all information stored about you in bot.
     """
     sub = subs.add_parser(prefix + 'privacy', description=desc, formatter_class=RawHelp)
     sub.set_defaults(cmd='Privacy')
+    sub.add_argument('--delete', action='store_true', help='Permanently purge your information.')
 
 
 @register_parser

@@ -698,6 +698,27 @@ async def upload_filtered_logs(filtered_logs, *, log_chan):  # pragma: no cover,
         await asyncio.sleep(DISCORD_RATE_LIMIT)
 
 
+async def purge_uploaded_logs(*, log_chan, cmdr_id):
+    """
+    Purge any uploaded logs from the channel matching a given cmdr_id.
+    Warning: This will be slow going due to rate limits.
+
+    Args:
+        log_chan: A valid discord.TextChannel to search.
+        cmdr_id: The cmdr id to match on.
+    """
+    async for msg in log_chan.history(limit=1000000, oldest_first=True):
+        if not msg.content.startswith('Discord ID:'):
+            continue
+
+        msg_did = int(msg.content.split('\n')[0].replace('Discord ID: ', ''))
+        if msg_did == cmdr_id:
+            await msg.delete()
+            await asyncio.sleep(cog.util.DISCORD_RATE_LIMIT)
+
+        await asyncio.sleep(cog.util.DISCORD_RATE_LIMIT / 10)
+
+
 def upload_text(cmdr):
     """
     Generate the message content for an upload of a log.
