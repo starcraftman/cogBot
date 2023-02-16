@@ -175,7 +175,8 @@ class Admin(PVPAction):
                     cmdr = pvp.schema.get_pvp_cmdr(self.eddb_session, cmdr_id=discord_id)
                     if not cmdr:  # If you don't have the pvp_cmdr, fill it
                         cmdr_name = msg.content.split('\n')[1].replace('CMDR: ', '')
-                        cmdr = pvp.schema.add_pvp_cmdr(self.eddb_session, discord_id, cmdr_name, None)
+                        cmdr = pvp.schema.update_pvp_cmdr(self.eddb_session, discord_id,
+                                                          name=cmdr_name, hex_colour=None)
 
                     for attach in msg.attachments:
                         with tempfile.NamedTemporaryFile(dir=down_dir, delete=False) as tfile:
@@ -239,7 +240,8 @@ class Admin(PVPAction):
                     cmdr = pvp.schema.get_pvp_cmdr(self.eddb_session, cmdr_id=discord_id)
                     if not cmdr:  # If you don't have the pvp_cmdr, fill it
                         cmdr_name = msg.content.split('\n')[1].replace('CMDR: ', '')
-                        cmdr = pvp.schema.add_pvp_cmdr(self.eddb_session, discord_id, cmdr_name, None)
+                        cmdr = pvp.schema.update_pvp_cmdr(self.eddb_session, discord_id,
+                                                          name=cmdr_name, hex_colour=None)
 
                     for attach in msg.attachments:
                         with tempfile.NamedTemporaryFile(dir=down_dir, delete=False) as tfile:
@@ -881,7 +883,7 @@ async def cmdr_setup(eddb_session, client, msg, *, cmdr_name=None):  # pragma: n
     await inter.response.send_modal(modal)
     await modal.wait()
 
-    return pvp.schema.add_pvp_cmdr(eddb_session, msg.author.id, modal.name, modal.hex)
+    return pvp.schema.update_pvp_cmdr(eddb_session, msg.author.id, name=modal.name, hex_colour=modal.hex)
 
 
 def filename_for_upload(cmdr_name, *, id_num=1, archive=False):

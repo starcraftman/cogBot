@@ -953,9 +953,9 @@ def get_pvp_cmdr(eddb_session, *, cmdr_id=None, cmdr_name=None):
     return cmdr
 
 
-def add_pvp_cmdr(eddb_session, discord_id, name, hex_colour):
+def update_pvp_cmdr(eddb_session, discord_id, *, name, hex_colour):
     """
-    Ensure the one time setup of commander is performed.
+    Update (or add) the cmdr with the attached information.
 
     Args:
         eddb_session: A session onto the EDDB db.
@@ -964,9 +964,16 @@ def add_pvp_cmdr(eddb_session, discord_id, name, hex_colour):
 
     Returns: The added PVPCmdr.
     """
-    cmdr = PVPCmdr(id=discord_id, name=name, hex=hex_colour)
-    eddb_session.add(cmdr)
-    eddb_session.commit()
+    try:
+        cmdr = eddb_session.query(PVPCmdr).\
+            filter(PVPCmdr.id == discord_id).\
+            one()
+        cmdr.name = name
+        cmdr.hex_colour = hex_colour
+    except sqla.exc.NoResultFound:
+        cmdr = PVPCmdr(id=discord_id, name=name, hex=hex_colour)
+        eddb_session.add(cmdr)
+        eddb_session.commit()
 
     return cmdr
 

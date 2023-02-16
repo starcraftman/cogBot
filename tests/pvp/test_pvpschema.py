@@ -329,9 +329,11 @@ def test_pvp_get_pvp_cmdr(f_pvp_testbed, eddb_session):
     assert pvp.schema.get_pvp_cmdr(eddb_session, cmdr_name='coolGuy')
 
 
-def test_pvp_add_pvp_cmdr(f_pvp_testbed, eddb_session):
-    assert pvp.schema.add_pvp_cmdr(eddb_session, 10, 'NewGuy', '666666')
-    assert pvp.schema.get_pvp_cmdr(eddb_session, cmdr_id=10)
+def test_pvp_update_pvp_cmdr(f_pvp_testbed, eddb_session):
+    assert pvp.schema.update_pvp_cmdr(eddb_session, 10, name='NewGuy', hex_colour='666666')
+    assert pvp.schema.get_pvp_cmdr(eddb_session, cmdr_id=10).name == 'NewGuy'
+    assert pvp.schema.update_pvp_cmdr(eddb_session, 10, name='NewName', hex_colour='666666')
+    assert pvp.schema.get_pvp_cmdr(eddb_session, cmdr_id=10).name == 'NewName'
 
 
 def test_pvp_get_pvp_stats(f_pvp_testbed, eddb_session):
