@@ -376,14 +376,14 @@ class FileUpload(PVPAction):  # pragma: no cover
                     # Filter first
                     filter_coro = await pvp.journal.filter_tempfile(
                         pool=pool, dest_dir=filter_dir,
-                        fname=tfile.name, attach_fname=attach.filename
+                        fname=tfile.name, output_fname=pvp_log.filtered_filename, attach_fname=attach.filename
                     )
                     upload_stage = [[cmdr, pvp_log, filter_coro]]
                     await filter_coro
                     await pvp.journal.upload_filtered_logs(upload_stage, log_chan=filter_chan)
 
                     # Process the log that was filtered
-                    process_coro = await pvp.actions.process_tempfile(
+                    process_coro = await process_tempfile(
                         pool=pool, cmdr_id=self.msg.author.id,
                         fname=filter_coro.result(), attach_fname=attach.filename
                     )
@@ -899,7 +899,7 @@ class CMDRRegistration(dui.Modal, title='CMDR Registration'):  # pragma: no cove
         await interaction.response.send_message(f'You are now registered, CMDR {self.name}!', ephemeral=True)
 
     async def on_error(self, interaction: discord.Interaction, error):
-        await interaction.response.send_message(f'Registration failed, please try again.', ephemeral=True)
+        await interaction.response.send_message('Registration failed, please try again.', ephemeral=True)
 
 
 async def cmdr_setup(eddb_session, client, msg, *, cmdr_name=None):  # pragma: no cover, heavily dependent on discord.py

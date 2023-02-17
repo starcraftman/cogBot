@@ -571,14 +571,14 @@ async def find_cmdr_name(fname):
     return None
 
 
-def filter_log(fname, output, *, events=None):
+def filter_log(fname, filtered_log, *, events=None):
     """
     filter a log file to retain only those events required.
     Preserve the order of the events of original while writing matching lines to output.
 
     Args:
         fname: The filename to filter.
-        output: Thei output filename to write to.
+        filtered_log: The output filename to write to.
         events: A list of strings, the names of events to look for.
 
     Returns: The filename of the filtered log.
@@ -589,15 +589,15 @@ def filter_log(fname, output, *, events=None):
     events_str = '|'.join(events)
     rex = re.compile(f'event":"({events_str})"')
 
-    with open(fname, 'r', encoding='utf-8') as fin, open(output, 'w', encoding='utf-8') as fout:
+    with open(fname, 'r', encoding='utf-8') as fin, open(filtered_log, 'w', encoding='utf-8') as fout:
         for line in fin:
             if rex.search(line):
                 fout.write(line)
 
-    return output
+    return filtered_log
 
 
-def filter_archive(fname, *, output_d, orig_fname, events=None):
+def filter_archive(fname, *, output_d, filtered_archive, events=None):
     """
     filter a zipfile to retain only those events required.
     Preserve the order of the events of original while writing matching lines to output.
@@ -606,14 +606,14 @@ def filter_archive(fname, *, output_d, orig_fname, events=None):
     Args:
         fname: The zipfile to filter.
         output_d: The output filename archive name to write to.
-        orig_name: The original name of the zipfile.
+        filtered_archive: The filename of the output archive with filtered logs.
         events: A list of strings, the names of events to look for.
 
     Returns: The filename of the new filtered archive.
     """
     new_archive = None
     try:
-        dest = output_d / orig_fname.replace('.zip', '.filter')
+        dest = output_d / str(filtered_archive).replace('.zip', '')
         dest.mkdir()
         with cog.util.extracted_archive(fname) as logs:
             for log in logs:
@@ -631,7 +631,7 @@ def filter_archive(fname, *, output_d, orig_fname, events=None):
     return new_archive
 
 
-async def filter_tempfile(*, pool, dest_dir, fname, attach_fname):
+async def filter_tempfile(*, pool, dest_dir, fname, output_fname, attach_fname):
     """
     filter the tempfile, depending on what is in the attachment.
     Handles both zipfiles and normal text logfiles.
@@ -640,7 +640,7 @@ async def filter_tempfile(*, pool, dest_dir, fname, attach_fname):
         pool: A ProcessPoolExecutor.
         dest_dir: The destination directory holding all filtered logs.
         fname: The tempfile storing the log file or archive to filter.
-        attach_fname: The actual discord.Attachment.name String.
+        output_fname: The output filename to output work to.
 
     Raises:
         pvp.journal.ParserError - The saved attachment is not supported.
@@ -651,13 +651,13 @@ async def filter_tempfile(*, pool, dest_dir, fname, attach_fname):
     if await cog.util.is_log_file_async(fname):
         func = functools.partial(
             filter_log,
-            fname, dest_dir / attach_fname.replace('.log', '.filter.log')
+            fname, dest_dir / output_fname
         )
 
     elif await cog.util.is_zipfile_async(fname):
         func = functools.partial(
             filter_archive,
-            fname, output_d=dest_dir, orig_fname=attach_fname
+            fname, output_d=dest_dir, filtered_archive=output_fname
         )
 
     else:

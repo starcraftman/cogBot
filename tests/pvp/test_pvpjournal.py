@@ -290,7 +290,7 @@ def test_filter_archive(f_plog_zip):
         except FileNotFoundError:
             pass
         tempd.mkdir()
-        assert str(expect) == pvp.journal.filter_archive(f_plog_zip, output_d=tempd, orig_fname=f_plog_zip.name)
+        assert str(expect) == pvp.journal.filter_archive(f_plog_zip, output_d=tempd, filtered_archive=expect)
         assert expect.exists()
     finally:
         shutil.rmtree(tempd)
@@ -310,7 +310,7 @@ async def test_filter_tempfile_log(f_plog_file):
             except FileNotFoundError:
                 pass
             tempd.mkdir()
-            fut = await pvp.journal.filter_tempfile(pool=pool, dest_dir=tempd, fname=f_plog_file, attach_fname=str(f_plog_file))
+            fut = await pvp.journal.filter_tempfile(pool=pool, dest_dir=tempd, fname=f_plog_file, output_fname=expect, attach_fname='origina')
             await fut
 
             assert expect.exists()
@@ -332,7 +332,7 @@ async def test_filter_tempfile_zip(f_plog_zip):
             except FileNotFoundError:
                 pass
             tempd.mkdir()
-            fut = await pvp.journal.filter_tempfile(pool=pool, dest_dir=tempd, fname=f_plog_zip, attach_fname=str(f_plog_zip))
+            fut = await pvp.journal.filter_tempfile(pool=pool, dest_dir=tempd, fname=f_plog_zip, output_fname=expect, attach_fname='original')
             await fut
             assert expect.exists()
         finally:
@@ -345,6 +345,7 @@ async def test_filter_tempfile_zip(f_plog_zip):
 @pytest.mark.asyncio
 async def test_filter_tempfile_fails(f_plog_file):
     tempd = pathlib.Path('/tmp/tmpfilter')
+    expect = f_plog_file.parent.joinpath(f_plog_file.name.replace('.log', '.filter.log'))
     with open(f_plog_file, 'wb') as fout:
         fout.write(b"This isn't a valid player log.")
 
@@ -356,7 +357,7 @@ async def test_filter_tempfile_fails(f_plog_file):
                 pass
             tempd.mkdir()
             with pytest.raises(pvp.journal.ParserError):
-                fut = await pvp.journal.filter_tempfile(pool=pool, dest_dir=tempd, fname=f_plog_file, attach_fname=str(f_plog_file))
+                fut = await pvp.journal.filter_tempfile(pool=pool, dest_dir=tempd, fname=f_plog_file, output_fname=expect, attach_fname='origina')
                 await fut
         finally:
             shutil.rmtree(tempd)
