@@ -962,18 +962,24 @@ def update_pvp_cmdr(eddb_session, discord_id, *, name, hex_colour):
         discord_id: The discord id of the CMDR.
         name: The name of the CMDR.
 
+    Raises:
+        cog.exc.InvalidCommandArgs - Invalid hex_colour was selected.
+
     Returns: The added PVPCmdr.
     """
     try:
+        int(hex_colour, 16)
         cmdr = eddb_session.query(PVPCmdr).\
             filter(PVPCmdr.id == discord_id).\
             one()
         cmdr.name = name
-        cmdr.hex_colour = hex_colour
+        cmdr.hex = hex_colour
     except sqla.exc.NoResultFound:
         cmdr = PVPCmdr(id=discord_id, name=name, hex=hex_colour)
         eddb_session.add(cmdr)
         eddb_session.commit()
+    except ValueError as exc:
+        raise cog.exc.InvalidCommandArgs(f"Bad hex colour value: {hex_colour}") from exc
 
     return cmdr
 

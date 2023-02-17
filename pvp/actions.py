@@ -840,18 +840,34 @@ class Status(PVPAction):
 class CMDRRegistration(dui.Modal, title='CMDR Registration'):  # pragma: no cover
     """ Register a cmdr by getting name via a modal input. """
     hex = dui.TextInput(label='Hex colour for embeds. Red: B20000', min_length=6, max_length=6,
-                        style=discord.TextStyle.short, placeholder="B20000", required=True)
-    name = None
+                        style=discord.TextStyle.short, default="B20000", placeholder="B20000", required=True)
+    name = dui.TextInput(label='In Game CMDR Name', min_length=5, max_length=EDDB_LEN['pvp_name'],
+                         style=discord.TextStyle.short, placeholder="Your in game name", required=True)
+
+    def __init__(self, *args, existing, cmdr_name=None, **kwargs):
+        if existing:
+            self.hex.default = existing.hex
+            self.name.default = existing.name
+            self.title = 'Update CMDR Registration'
+        if cmdr_name:
+            self.name.default = cmdr_name
+
+        super().__init__(*args, **kwargs)
 
     async def on_submit(self, interaction: discord.Interaction):
-        if not self.name:
-            self.name = pvp.journal.clean_cmdr_name(self.children[-1].value)
+        if self.name:
+            self.name = pvp.journal.clean_cmdr_name(str(self.name))
+
+        int(str(self.hex), 16)  # Validate the hex here
         await interaction.response.send_message(f'You are now registered, CMDR {self.name}!', ephemeral=True)
+
+    async def on_error(self, interaction: discord.Interaction, error):
+        await interaction.response.send_message(f'Registration failed, please try again.', ephemeral=True)
 
 
 async def cmdr_setup(eddb_session, client, msg, *, cmdr_name=None):  # pragma: no cover, heavily dependent on discord.py
     """
-    Perform first time cmdr setup via interactive questions.
+    Perform cmdr setup via interactive questions. If exists, update answers.
     """
     def check_button(orig_author, sent, inter):
         """
@@ -870,20 +886,15 @@ async def cmdr_setup(eddb_session, client, msg, *, cmdr_name=None):  # pragma: n
         await inter.response.send_message('Aborting registration. No data stored.', ephemeral=True)
         return False
 
-    modal = CMDRRegistration()
-    modal.name = cmdr_name
-    if not modal.name:
-        modal.add_item(
-            dui.TextInput(
-                label='In Game CMDR Name', min_length=5, max_length=EDDB_LEN['pvp_name'],
-                style=discord.TextStyle.short, placeholder="Your in game name", required=True
-            )
-        )
+    existing = pvp.schema.get_pvp_cmdr(eddb_session, cmdr_id=msg.author.id)
+    modal = CMDRRegistration(existing=existing, cmdr_name=cmdr_name, timeout=cog.util.DISCORD_TIMEOUT)
 
     await inter.response.send_modal(modal)
-    await modal.wait()
+    if await modal.wait():
+        await msg.channel.send('Timeout on registration, please try again.')
+        return False
 
-    return pvp.schema.update_pvp_cmdr(eddb_session, msg.author.id, name=modal.name, hex_colour=modal.hex)
+    return pvp.schema.update_pvp_cmdr(eddb_session, msg.author.id, name=str(modal.name), hex_colour=str(modal.hex))
 
 
 def filename_for_upload(cmdr_name, *, id_num=1, archive=False):

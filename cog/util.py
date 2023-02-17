@@ -67,6 +67,7 @@ FNAME_FORBIDDEN = [
 ]
 DISCORD_RATE_LIMIT = 1  # Seconds
 DISCORD_FILE_LIMIT = 7.5 * 1024 ** 2  # Stay safely under 8MB limit
+DISCORD_TIMEOUT = 300
 
 
 class ReprMixin():
