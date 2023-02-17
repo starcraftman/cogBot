@@ -49,6 +49,12 @@ Version 1.0 """
 DISCLAIMER_QUERY = """
 
 Do you consent to this use of your data?"""
+DELETION_WARNING = """WARNING: This is FINAL and IRREVOCABLE.
+Proceding will purge all uploaded logs and all information in the database associated
+with your discord id.
+
+Do you wish to delete all your information? yes/no
+"""
 
 
 class PVPAction(Action):
@@ -818,22 +824,37 @@ class Privacy(PVPAction):  # Pragma no cover, very destructive test.
     """
     Manage all privacy related functions of the bot, including disclosure and information deletion.
     """
+    async def delete(self):
+        """
+        Handle deleting of a users data.
+        """
+        await self.bot.send_message(self.msg.channel, "This may take a while due to rate limiting. We will ping you when finished.")
+
+        cmdr_id = self.msg.author.id
+        log_chan = self.msg.guild.get_channel(cog.util.CONF.channels.pvp_log)
+        filter_chan = self.bot.get_channel(cog.util.CONF.channels.pvp_filter)
+        await pvp.journal.purge_uploaded_logs(log_chan=log_chan, cmdr_id=cmdr_id)
+        if filter_chan != log_chan:
+            await pvp.journal.purge_uploaded_logs(log_chan=filter_chan, cmdr_id=cmdr_id)
+
+        pvp.schema.purge_cmdr(self.eddb_session, cmdr_id=cmdr_id)
+
+        return f"{self.msg.author.mention} All your information has been deleted. Have a nice day."
+
     async def execute(self):
         response = DISCLAIMER
 
         if self.args.delete:
-            await self.bot.send_message(self.msg.channel, "This may take a while due to rate limiting. We will ping you when finished.")
+            await self.bot.send_message(self.msg.channel, DELETION_WARNING)
+            resp = await self.bot.wait_for(
+                'message',
+                check=lambda m: m.author == self.msg.author and m.channel == self.msg.channel,
+                timeout=60
+            )
 
-            cmdr_id = self.msg.author.id
-            log_chan = self.msg.guild.get_channel(cog.util.CONF.channels.pvp_log)
-            filter_chan = self.bot.get_channel(cog.util.CONF.channels.pvp_filter)
-            await pvp.journal.purge_uploaded_logs(log_chan=log_chan, cmdr_id=cmdr_id)
-            if filter_chan != log_chan:
-                await pvp.journal.purge_uploaded_logs(log_chan=filter_chan, cmdr_id=cmdr_id)
-
-            pvp.schema.purge_cmdr(self.eddb_session, cmdr_id=cmdr_id)
-
-            response = f"{self.msg.author.mention} All your information has been deleted. Have a nice day."
+            response = "Aborting data deletion."
+            if resp.content.lower().startswith('y'):
+                response = await self.delete()
 
         await self.bot.send_message(self.msg.channel, response)
 
