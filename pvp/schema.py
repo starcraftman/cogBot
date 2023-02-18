@@ -968,7 +968,8 @@ def update_pvp_cmdr(eddb_session, discord_id, *, name, hex_colour):
     Returns: The added PVPCmdr.
     """
     try:
-        int(hex_colour, 16)
+        if hex_colour is not None:
+            int(hex_colour, 16)
         cmdr = eddb_session.query(PVPCmdr).\
             filter(PVPCmdr.id == discord_id).\
             one()
@@ -1486,7 +1487,7 @@ PVP_TABLES = [
     PVPLog, PVPStat, PVPInterdictedKill, PVPInterdictedDeath, PVPInterdictionKill, PVPInterdictionDeath,
     PVPEscapedInterdicted, PVPInterdicted, PVPInterdiction, PVPDeathKiller, PVPDeath, PVPKill, PVPLocation, PVPCmdr
 ]
-PVP_TABLES_KEEP = [PVPLog, PVPCmdr]
+PVP_TABLES_KEEP = [PVPLog, PVPCmdr, PVPMatchPlayer, PVPMatch]
 # Mainly archival, in case need to move to other hashes.
 PVP_HASH_FUNCS = {
     0: 'sha512',

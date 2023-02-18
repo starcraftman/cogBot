@@ -198,7 +198,8 @@ class Admin(PVPAction):
                             try:
                                 coro = await pvp.journal.filter_tempfile(
                                     pool=pool, dest_dir=filter_dir,
-                                    fname=tfile.name, attach_fname=attach.filename
+                                    fname=tfile.name, output_fname=pvp_log.filtered_filename,
+                                    attach_fname=attach.filename
                                 )
                                 coros += [coro]
                                 upload_stage += [[cmdr, pvp_log, coro]]
