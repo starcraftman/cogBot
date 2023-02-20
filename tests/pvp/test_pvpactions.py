@@ -30,8 +30,7 @@ def action_map(fake_message, fake_bot):
     args = parser.parse_args(fake_message.content.split(" "))
     cls = getattr(pvp.actions, args.cmd)
 
-    with cogdb.session_scope(cogdb.Session) as session,\
-            cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
+    with cogdb.session_scope(cogdb.Session) as session, cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
         return cls(args=args, bot=fake_bot, msg=fake_message, session=session, eddb_session=eddb_session)
 
 

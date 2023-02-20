@@ -225,7 +225,7 @@ def test_pvpmatch_players(f_pvp_testbed, eddb_session):
 def test_pvpmatch_clone(f_pvp_testbed, eddb_session):
     match = eddb_session.query(PVPMatch).filter(PVPMatch.id == 1).one()
     match.roll_teams()
-    new_match = match.clone(eddb_session)
+    new_match = match.clone()
 
     assert new_match.id
     assert match.id != new_match.id
@@ -275,8 +275,8 @@ def test_pvpmatch_get_player(f_pvp_testbed, eddb_session):
 
 def test_pvpmatch_add_player(f_pvp_testbed, eddb_session):
     match = eddb_session.query(PVPMatch).filter(PVPMatch.id == 1).one()
-    assert not match.add_player(eddb_session, cmdr_id=1)
-    assert match.add_player(eddb_session, cmdr_id=4)
+    assert not match.add_player(cmdr_id=1)
+    assert match.add_player(cmdr_id=4)
     assert 4 == len(match.players)
 
 

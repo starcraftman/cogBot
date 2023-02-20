@@ -578,7 +578,7 @@ class Match(PVPAction):
         response, embed = "", None
 
         for cmdr in self._validate_cmdrs():
-            player = match.add_player(self.eddb_session, cmdr_id=cmdr.id)
+            player = match.add_player(cmdr_id=cmdr.id)
             if player:
                 response += f"CMDR {cmdr.name} added to match!\n"
             else:
@@ -624,7 +624,7 @@ class Match(PVPAction):
             response += f"CMDR not found for: {self.msg.author.mention}. Please register yourself with: {self.bot.prefix}cmdr"
 
         else:
-            player = match.add_player(self.eddb_session, cmdr_id=cmdr.id)
+            player = match.add_player(cmdr_id=cmdr.id)
             if player:
                 response += f"CMDR {cmdr.name} added to match!\n"
             else:
@@ -732,7 +732,7 @@ class Match(PVPAction):
             timeout=30
         )
         if answer.content.lower().startswith('y'):
-            match.clone(self.eddb_session)
+            match.clone()
             response += f"A new match has been created with existing teams. To randomize teams: {self.bot.prefix}match reroll\n"
 
         response += "Team {player.team} has won!\n\nCongrats: "
@@ -753,10 +753,11 @@ class Match(PVPAction):
                 )
                 return
 
-            if match and self.args.subcmd not in {'add', 'remove', 'join', 'leave'} and match.state == pvp.schema.PVPMatchState.STARTED:
+            # FIXME: Add tests for this case
+            if match and self.args.subcmd in {'start', 'add', 'remove', 'join', 'leave'} and match.state == pvp.schema.PVPMatchState.STARTED:
                 await self.bot.send_message(
                     self.msg.channel,
-                    f"Please finish started match with: `{self.bot.prefix}match win` or `{self.bot.prefix}match cancel"
+                    f"Please finish started match with: `{self.bot.prefix}match win` or `{self.bot.prefix}match cancel`"
                 )
                 return
 
@@ -764,6 +765,7 @@ class Match(PVPAction):
             response, embed = await func(match)
             if response or embed:
                 await self.bot.send_message(self.msg.channel, response, embed=embed)
+            self.eddb_session.commit()  # FIXME: Shouldn't be needed, fails only with tests
 
         except AttributeError as exc:
             traceback.print_exc()

@@ -633,7 +633,7 @@ def is_near_tick():  # pragma: no cover, relies on moving date
 
     now = datetime.datetime.utcnow().replace(microsecond=0)
     weekly_tick = next_weekly_tick(now)
-    tick_diff = (weekly_tick - now)
+    tick_diff = weekly_tick - now
     hours_left = tick_diff.seconds // 3600 + tick_diff.days * 24
 
     return hours_left <= hours_to_tick

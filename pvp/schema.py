@@ -24,6 +24,11 @@ import cog.util
 from cog.util import ReprMixin, TimestampMixin, UpdatableMixin
 
 PVP_DEFAULT_HEX = 0x0dd42e
+MATCH_STATES = {
+    0: "Setup",
+    1: "Started",
+    2: "Finished",
+}
 
 
 class EventTimeMixin():
@@ -69,6 +74,7 @@ class PVPCmdr(ReprMixin, TimestampMixin, Base):
 
     def __hash__(self):
         return hash(self.id)
+
 
 @functools.total_ordering
 class PVPLocation(ReprMixin, TimestampMixin, EventTimeMixin, Base):
@@ -690,11 +696,6 @@ class PVPLog(ReprMixin, TimestampMixin, Base):
         return self.file_hash
 
 
-MATCH_STATES = {
-    0: "Setup",
-    1: "Started",
-    2: "Finished",
-}
 class PVPMatchState(enum.IntEnum):
     SETUP = 0
     STARTED = 1
@@ -747,13 +748,12 @@ class PVPMatch(ReprMixin, TimestampMixin, Base):
 
         return found[0] if found else None
 
-    def add_player(self, eddb_session, *, cmdr_id):
+    def add_player(self, *, cmdr_id):
         """
         Add new player to match. If already in match, return None.
         Assumption: There must be a PVPCmdr for given cmdr_id already existing.
 
         Args:
-            eddb_session: A session onto the EDDB db.
             match_id: The match id to add the new player.
             cmdr_id: The player id to add.
 
@@ -765,12 +765,13 @@ class PVPMatch(ReprMixin, TimestampMixin, Base):
             return None
 
         player = PVPMatchPlayer(match_id=self.id, cmdr_id=cmdr_id)
+        eddb_session = sqla.inspect(self).session
         eddb_session.add(player)
         eddb_session.commit()
 
         return player
 
-    def clone(self, eddb_session):
+    def clone(self):
         """
         Given an existing match and players, create a new match with same players and teams.
 
@@ -780,6 +781,7 @@ class PVPMatch(ReprMixin, TimestampMixin, Base):
         Returns: The new PVPMatch.
         """
         new_match = PVPMatch(state=PVPMatchState.SETUP, limit=self.limit)
+        eddb_session = sqla.inspect(self).session
         eddb_session.add(new_match)
         eddb_session.flush()
 

@@ -341,7 +341,6 @@ async def test_filter_tempfile_zip(f_plog_zip):
                 os.remove(expect)
 
 
-
 @pytest.mark.asyncio
 async def test_filter_tempfile_fails(f_plog_file):
     tempd = pathlib.Path('/tmp/tmpfilter')
