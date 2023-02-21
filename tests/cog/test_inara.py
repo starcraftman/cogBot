@@ -338,3 +338,9 @@ def test_kos_lookup_cmdr_embeds(session, f_kos):
 def test_wrap_json_loads():
     with pytest.raises(cog.exc.RemoteError):
         cog.inara.wrap_json_loads(None)
+
+
+@pytest.mark.asyncio
+async def test_fetch_inara_info():
+    info = await cog.inara.fetch_inara_info(88153)
+    assert 'Shorts McFadden' == info['name']

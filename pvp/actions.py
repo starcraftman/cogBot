@@ -8,6 +8,7 @@ import tempfile
 import functools
 import logging
 import pathlib
+import re
 import shutil
 import traceback
 import zipfile
@@ -883,6 +884,8 @@ class CMDRRegistration(dui.Modal, title='CMDR Registration'):  # pragma: no cove
                         style=discord.TextStyle.short, default="B20000", placeholder="B20000", required=True)
     name = dui.TextInput(label='In Game CMDR Name', min_length=5, max_length=EDDB_LEN['pvp_name'],
                          style=discord.TextStyle.short, placeholder="Your in game name", required=True)
+    inara = dui.TextInput(label='Link to your inara.cz CMDR URL (optional)', min_length=25, max_length=75,
+                          style=discord.TextStyle.short, placeholder="URL: inara.cz/elite/cmdr/...", required=False)
 
     def __init__(self, *args, existing, cmdr_name=None, **kwargs):
         if existing:
@@ -899,6 +902,14 @@ class CMDRRegistration(dui.Modal, title='CMDR Registration'):  # pragma: no cove
             self.name = pvp.journal.clean_cmdr_name(str(self.name))
 
         int(str(self.hex), 16)  # Validate the hex here
+
+        mat = re.match(r'.*//inara.cz/elite/cmdr/(\d+)', self.inara)
+        try:
+            if mat:
+                self.inara = int(mat.group(1))
+        except ValueError:
+            pass
+
         await interaction.response.send_message(f'You are now registered, CMDR {self.name}!', ephemeral=True)
 
     async def on_error(self, interaction: discord.Interaction, error):
@@ -934,7 +945,15 @@ async def cmdr_setup(eddb_session, client, msg, *, cmdr_name=None):  # pragma: n
         await msg.channel.send('Timeout on registration, please try again.')
         return False
 
-    return pvp.schema.update_pvp_cmdr(eddb_session, msg.author.id, name=str(modal.name), hex_colour=str(modal.hex))
+    if modal.inara:
+        inara_info = await cog.inara.fetch_inara_info(modal.inara)
+        inara_info['discord_id'] = msg.author.id
+        await pvp.schema.update_pvp_inara(eddb_session, inara_info)
+
+    return pvp.schema.update_pvp_cmdr(
+        eddb_session, msg.author.id,
+        name=str(modal.name), hex_colour=str(modal.hex),
+    )
 
 
 def filename_for_upload(cmdr_name, *, id_num=1, archive=False):

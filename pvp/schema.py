@@ -57,7 +57,7 @@ class PVPCmdr(ReprMixin, TimestampMixin, Base):
 
     id = sqla.Column(sqla.BigInteger, primary_key=True)  # Discord id
     name = sqla.Column(sqla.String(EDDB_LEN['pvp_name']))
-    hex = sqla.Column(sqla.String(6))  # Hex strings, no leading 0x: B20000
+    hex = sqla.Column(sqla.String(6), default='')  # Hex strings, no leading 0x: B20000
     updated_at = sqla.Column(sqla.Integer, default=time.time, onupdate=time.time)
 
     @property
@@ -71,6 +71,64 @@ class PVPCmdr(ReprMixin, TimestampMixin, Base):
 
     def __eq__(self, other):
         return isinstance(other, PVPCmdr) and self.id == other.id
+
+    def __hash__(self):
+        return hash(self.id)
+
+
+class PVPInara(ReprMixin, TimestampMixin, Base):
+    """
+    Table to store inara specific information for the cmdr.
+    """
+    __tablename__ = 'pvp_inaras'
+    _repr_keys = ['id', 'squad_id', 'discord_id', 'name', 'updated_at']
+
+    id = sqla.Column(sqla.Integer, primary_key=True)  # Inara CMDR id
+    squad_id = sqla.Column(sqla.Integer, sqla.ForeignKey('pvp_inara_squads.id'))
+    discord_id = sqla.Column(sqla.BigInteger, unique=True)
+
+    name = sqla.Column(sqla.String(EDDB_LEN['pvp_name']))
+    updated_at = sqla.Column(sqla.Integer, default=time.time, onupdate=time.time)
+
+    squad = sqla.orm.relationship('PVPInaraSquad', viewonly=True, lazy='joined')
+
+    @property
+    def cmdr_page(self):
+        return f'https://inara.cz/elite/cmdr/{self.id}'
+
+    @property
+    def squad_page(self):
+        return f'https://inara.cz/elite/squadron/{self.squad_id}'
+
+    def __str__(self):
+        """ Convenient string representation of this object. """
+        squad = self.squad.name if self.squad else 'N/A'
+        return f'CMDR {self.name} ({squad})'
+
+    def __eq__(self, other):
+        return isinstance(other, PVPInara) and self.id == other.id
+
+    def __hash__(self):
+        return hash(self.id)
+
+
+class PVPInaraSquad(ReprMixin, TimestampMixin, Base):
+    """
+    Table to store inara specific information for the cmdr.
+    """
+    __tablename__ = 'pvp_inara_squads'
+    _repr_keys = ['id', 'name', 'updated_at']
+
+    id = sqla.Column(sqla.Integer, primary_key=True)  # Actual inara squad id
+    name = sqla.Column(sqla.String(EDDB_LEN['pvp_name']))
+    updated_at = sqla.Column(sqla.Integer, default=time.time, onupdate=time.time)
+
+    def __str__(self):
+        """ Convenient string representation of this object. """
+        return f'{self.name}'
+
+    def __eq__(self, other):
+        return isinstance(other, PVPInaraSquad) and self.id == other.id
 
     def __hash__(self):
         return hash(self.id)
@@ -906,6 +964,12 @@ PVPCmdr.kills = sqla_orm.relationship(
     'PVPKill', uselist=True, back_populates='cmdr', lazy='select')
 PVPKill.cmdr = sqla_orm.relationship(
     'PVPCmdr', uselist=False, back_populates='kills', lazy='select')
+PVPCmdr.inara = sqla_orm.relationship(
+    'PVPInara', uselist=False, back_populates='cmdr', lazy='joined',
+    primaryjoin='foreign(PVPInara.discord_id) == PVPCmdr.id')
+PVPInara.cmdr = sqla_orm.relationship(
+    'PVPCmdr', uselist=False, back_populates='inara', lazy='joined',
+    primaryjoin='foreign(PVPInara.discord_id) == PVPCmdr.id')
 PVPCmdr.deaths = sqla_orm.relationship(
     'PVPDeath', uselist=True, back_populates='cmdr', lazy='select')
 PVPDeath.cmdr = sqla_orm.relationship(
@@ -985,6 +1049,46 @@ def update_pvp_cmdr(eddb_session, discord_id, *, name, hex_colour):
         raise cog.exc.InvalidCommandArgs(f"Bad hex colour value: {hex_colour}") from exc
 
     return cmdr
+
+
+async def update_pvp_inara(eddb_session, info):
+    """
+    Update the inara information cached for the given CMDR.
+
+    Args:
+        eddb_session: A session onto the EDDB db.
+        info: A dictionary object with info retrieved from CMDR's inara page.
+            See: cog.inara.fetch_cmdr_info
+
+    Returns: cmdr, squad: The cmdr and squad objects updated into the db.
+    """
+    try:
+        squad = eddb_session.query(PVPInaraSquad).\
+            filter(PVPInaraSquad.id == info['squad_id']).\
+            one()
+        squad.name = info['inara_squad']
+    except sqla.exc.NoResultFound:
+        squad = PVPInaraSquad(id=info['squad_id'], name=info['squad'])
+        eddb_session.add(squad)
+        eddb_session.flush()
+
+    try:
+        cmdr = eddb_session.query(PVPInara).\
+            filter(PVPInara.id == info['id']).\
+            one()
+        cmdr.name = info['name']
+        cmdr.squad_id = info['squad_id']
+        cmdr.discord_id = info['discord_id']
+    except sqla.exc.NoResultFound:
+        cmdr = PVPInara(
+            id=info['id'],
+            squad_id=info['squad_id'],
+            discord_id=info['discord_id'],
+            name=info['name'],
+        )
+        eddb_session.add(cmdr)
+
+    return cmdr, squad
 
 
 def get_pvp_stats(eddb_session, cmdr_id):
@@ -1361,7 +1465,7 @@ def purge_cmdr(eddb_session, *, cmdr_id):
         cmdr_id: The cmdr id to match.
     """
     for cls in PVP_TABLES:
-        if cls in [PVPMatch, PVPCmdr]:
+        if cls in [PVPMatch, PVPCmdr, PVPInara, PVPInaraSquad]:
             continue
 
         eddb_session.query(cls).\
@@ -1369,6 +1473,7 @@ def purge_cmdr(eddb_session, *, cmdr_id):
             delete()
     eddb_session.flush()
 
+    eddb_session.query(PVPInara).filter(PVPInara.discord_id == cmdr_id).delete()
     eddb_session.query(PVPCmdr).filter(PVPCmdr.id == cmdr_id).delete()
     eddb_session.commit()
 
@@ -1487,7 +1592,8 @@ def main():  # pragma: no cover
 PVP_TABLES = [
     PVPMatchPlayer, PVPMatch,
     PVPLog, PVPStat, PVPInterdictedKill, PVPInterdictedDeath, PVPInterdictionKill, PVPInterdictionDeath,
-    PVPEscapedInterdicted, PVPInterdicted, PVPInterdiction, PVPDeathKiller, PVPDeath, PVPKill, PVPLocation, PVPCmdr
+    PVPEscapedInterdicted, PVPInterdicted, PVPInterdiction, PVPDeathKiller, PVPDeath, PVPKill, PVPLocation,
+    PVPInara, PVPInaraSquad, PVPCmdr
 ]
 PVP_TABLES_KEEP = [PVPLog, PVPCmdr, PVPMatchPlayer, PVPMatch]
 # Mainly archival, in case need to move to other hashes.

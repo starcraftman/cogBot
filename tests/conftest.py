@@ -40,7 +40,8 @@ from cogdb.schema import (DiscordUser, FortSystem, FortPrep, FortDrop, FortUser,
                           Consolidation, SheetRecord)
 from pvp.schema import (PVPCmdr, PVPKill, PVPDeath, PVPDeathKiller, PVPInterdicted, PVPInterdiction,
                         PVPInterdictedKill, PVPInterdictedDeath, PVPInterdictionKill, PVPInterdictionDeath,
-                        PVPEscapedInterdicted, PVPLocation, PVPLog, PVPMatch, PVPMatchPlayer, PVPMatchState)
+                        PVPEscapedInterdicted, PVPLocation, PVPLog, PVPMatch, PVPMatchPlayer, PVPMatchState,
+                        PVPInara, PVPInaraSquad)
 from tests.data import CELLS_FORT, CELLS_FORT_FMT, CELLS_UM
 
 
@@ -936,69 +937,76 @@ def f_pvp_testbed(f_spy_ships, eddb_session):
     """
     Massive fixture intializes an entire dummy testbed of pvp objects.
     """
-    eddb_session.add_all([
-        PVPCmdr(id=1, name='coolGuy', hex='B20000', updated_at=PVP_TIMESTAMP),
-        PVPCmdr(id=2, name='shyGuy', hex='B20000', updated_at=PVP_TIMESTAMP),
-        PVPCmdr(id=3, name='shootsALot', hex='B20000', updated_at=PVP_TIMESTAMP),
-        PVPCmdr(id=4, name='newbie', hex='B20000', updated_at=PVP_TIMESTAMP),
-    ])
-    eddb_session.flush()
-    eddb_session.add_all([
-        PVPLocation(id=1, cmdr_id=1, system_id=1000, created_at=PVP_TIMESTAMP, event_at=PVP_TIMESTAMP),
-        PVPLocation(id=2, cmdr_id=1, system_id=1010, created_at=PVP_TIMESTAMP, event_at=PVP_TIMESTAMP),
-        PVPKill(id=1, cmdr_id=1, system_id=1000, victim_name='LeSuck', victim_rank=3, created_at=PVP_TIMESTAMP, event_at=PVP_TIMESTAMP),
-        PVPKill(id=2, cmdr_id=1, system_id=1000, victim_name='BadGuy', victim_rank=7, created_at=PVP_TIMESTAMP, event_at=PVP_TIMESTAMP + 2),
-        PVPKill(id=3, cmdr_id=1, system_id=1001, victim_name='LeSuck', victim_rank=3, created_at=PVP_TIMESTAMP, event_at=PVP_TIMESTAMP + 4),
-        PVPKill(id=4, cmdr_id=2, victim_name='CanNotShoot', victim_rank=8, created_at=PVP_TIMESTAMP, event_at=PVP_TIMESTAMP),
+    try:
+        eddb_session.add_all([
+            PVPCmdr(id=1, name='coolGuy', hex='B20000', updated_at=PVP_TIMESTAMP),
+            PVPCmdr(id=2, name='shyGuy', hex='B20000', updated_at=PVP_TIMESTAMP),
+            PVPCmdr(id=3, name='shootsALot', hex='B20000', updated_at=PVP_TIMESTAMP),
+            PVPCmdr(id=4, name='newbie', hex='B20000', updated_at=PVP_TIMESTAMP),
+        ])
+        eddb_session.commit()
+        eddb_session.add_all([
+            PVPInaraSquad(id=1, name='cool guys', updated_at=PVP_TIMESTAMP),
+        ])
+        eddb_session.flush()
+        eddb_session.add_all([
+            PVPInara(id=1, squad_id=1, discord_id=1, name='CoolGuyYeah', updated_at=PVP_TIMESTAMP),
+            PVPLocation(id=1, cmdr_id=1, system_id=1000, created_at=PVP_TIMESTAMP, event_at=PVP_TIMESTAMP),
+            PVPLocation(id=2, cmdr_id=1, system_id=1010, created_at=PVP_TIMESTAMP, event_at=PVP_TIMESTAMP),
+            PVPKill(id=1, cmdr_id=1, system_id=1000, victim_name='LeSuck', victim_rank=3, created_at=PVP_TIMESTAMP, event_at=PVP_TIMESTAMP),
+            PVPKill(id=2, cmdr_id=1, system_id=1000, victim_name='BadGuy', victim_rank=7, created_at=PVP_TIMESTAMP, event_at=PVP_TIMESTAMP + 2),
+            PVPKill(id=3, cmdr_id=1, system_id=1001, victim_name='LeSuck', victim_rank=3, created_at=PVP_TIMESTAMP, event_at=PVP_TIMESTAMP + 4),
+            PVPKill(id=4, cmdr_id=2, victim_name='CanNotShoot', victim_rank=8, created_at=PVP_TIMESTAMP, event_at=PVP_TIMESTAMP),
 
-        PVPDeath(id=1, cmdr_id=1, system_id=1000, is_wing_kill=True, created_at=PVP_TIMESTAMP, event_at=PVP_TIMESTAMP),
-        PVPDeath(id=2, cmdr_id=1, system_id=1001, is_wing_kill=False, created_at=PVP_TIMESTAMP, event_at=PVP_TIMESTAMP + 2),
-        PVPDeath(id=3, cmdr_id=2, is_wing_kill=False, created_at=PVP_TIMESTAMP, event_at=PVP_TIMESTAMP),
-        PVPDeathKiller(cmdr_id=1, pvp_death_id=1, name='BadGuyWon', rank=7, ship_id=30, created_at=PVP_TIMESTAMP, event_at=PVP_TIMESTAMP),
-        PVPDeathKiller(cmdr_id=1, pvp_death_id=1, name='BadGuyHelper', rank=5, ship_id=38, created_at=PVP_TIMESTAMP, event_at=PVP_TIMESTAMP),
-        PVPDeathKiller(cmdr_id=1, pvp_death_id=2, name='BadGuyWon', rank=7, ship_id=30, created_at=PVP_TIMESTAMP, event_at=PVP_TIMESTAMP),
-        PVPDeathKiller(cmdr_id=1, pvp_death_id=2, name='BadGuyHelper', rank=7, ship_id=30, created_at=PVP_TIMESTAMP, event_at=PVP_TIMESTAMP),
-        PVPDeathKiller(cmdr_id=2, pvp_death_id=3, name='BadGuyWon', rank=7, ship_id=30, created_at=PVP_TIMESTAMP, event_at=PVP_TIMESTAMP),
-        PVPDeathKiller(cmdr_id=2, pvp_death_id=3, name='LeSuck', rank=7, ship_id=22, created_at=PVP_TIMESTAMP, event_at=PVP_TIMESTAMP),
+            PVPDeath(id=1, cmdr_id=1, system_id=1000, is_wing_kill=True, created_at=PVP_TIMESTAMP, event_at=PVP_TIMESTAMP),
+            PVPDeath(id=2, cmdr_id=1, system_id=1001, is_wing_kill=False, created_at=PVP_TIMESTAMP, event_at=PVP_TIMESTAMP + 2),
+            PVPDeath(id=3, cmdr_id=2, is_wing_kill=False, created_at=PVP_TIMESTAMP, event_at=PVP_TIMESTAMP),
+            PVPDeathKiller(cmdr_id=1, pvp_death_id=1, name='BadGuyWon', rank=7, ship_id=30, created_at=PVP_TIMESTAMP, event_at=PVP_TIMESTAMP),
+            PVPDeathKiller(cmdr_id=1, pvp_death_id=1, name='BadGuyHelper', rank=5, ship_id=38, created_at=PVP_TIMESTAMP, event_at=PVP_TIMESTAMP),
+            PVPDeathKiller(cmdr_id=1, pvp_death_id=2, name='BadGuyWon', rank=7, ship_id=30, created_at=PVP_TIMESTAMP, event_at=PVP_TIMESTAMP),
+            PVPDeathKiller(cmdr_id=1, pvp_death_id=2, name='BadGuyHelper', rank=7, ship_id=30, created_at=PVP_TIMESTAMP, event_at=PVP_TIMESTAMP),
+            PVPDeathKiller(cmdr_id=2, pvp_death_id=3, name='BadGuyWon', rank=7, ship_id=30, created_at=PVP_TIMESTAMP, event_at=PVP_TIMESTAMP),
+            PVPDeathKiller(cmdr_id=2, pvp_death_id=3, name='LeSuck', rank=7, ship_id=22, created_at=PVP_TIMESTAMP, event_at=PVP_TIMESTAMP),
 
-        PVPInterdiction(id=1, cmdr_id=1, system_id=1000, is_player=True, is_success=True, survived=False,
-                        victim_name="LeSuck", victim_rank=3, created_at=PVP_TIMESTAMP, event_at=PVP_TIMESTAMP),
-        PVPInterdiction(id=2, cmdr_id=1, system_id=1001, is_player=True, is_success=True, survived=True,
-                        victim_name="LeSuck", victim_rank=3, created_at=PVP_TIMESTAMP, event_at=PVP_TIMESTAMP + 2),
-        PVPInterdiction(id=3, cmdr_id=2, system_id=1001, is_player=True, is_success=True, survived=True,
-                        victim_name="CanNotShoot", victim_rank=3, created_at=PVP_TIMESTAMP, event_at=PVP_TIMESTAMP + 2),
+            PVPInterdiction(id=1, cmdr_id=1, system_id=1000, is_player=True, is_success=True, survived=False,
+                            victim_name="LeSuck", victim_rank=3, created_at=PVP_TIMESTAMP, event_at=PVP_TIMESTAMP),
+            PVPInterdiction(id=2, cmdr_id=1, system_id=1001, is_player=True, is_success=True, survived=True,
+                            victim_name="LeSuck", victim_rank=3, created_at=PVP_TIMESTAMP, event_at=PVP_TIMESTAMP + 2),
+            PVPInterdiction(id=3, cmdr_id=2, system_id=1001, is_player=True, is_success=True, survived=True,
+                            victim_name="CanNotShoot", victim_rank=3, created_at=PVP_TIMESTAMP, event_at=PVP_TIMESTAMP + 2),
 
-        PVPInterdicted(id=1, cmdr_id=1, system_id=1000, is_player=True, did_submit=False, survived=False,
-                       interdictor_name="BadGuyWon", interdictor_rank=7, created_at=PVP_TIMESTAMP, event_at=PVP_TIMESTAMP),
-        PVPInterdicted(id=2, cmdr_id=2, is_player=True, did_submit=True, survived=True,
-                       interdictor_name="BadGuyWon", interdictor_rank=7, created_at=PVP_TIMESTAMP, event_at=PVP_TIMESTAMP),
-        PVPEscapedInterdicted(id=1, cmdr_id=1, system_id=1000, interdictor_name='BadGuyWon', is_player=True,
-                              created_at=PVP_TIMESTAMP, event_at=PVP_TIMESTAMP),
-        PVPEscapedInterdicted(id=2, cmdr_id=1, system_id=1000, interdictor_name='BadGuyWon', is_player=True,
-                              created_at=PVP_TIMESTAMP + 2, event_at=PVP_TIMESTAMP + 2),
-        PVPLog(id=1, cmdr_id=1, file_hash='hash', filename='first.log', msg_id=1, filtered_msg_id=10, updated_at=PVP_TIMESTAMP),
-        PVPLog(id=2, cmdr_id=2, file_hash='hash2', filename='second.log', msg_id=3, filtered_msg_id=12, updated_at=PVP_TIMESTAMP + 2),
-        PVPMatch(id=1, discord_channel_id=99, limit=10, state=PVPMatchState.SETUP, created_at=PVP_TIMESTAMP, updated_at=PVP_TIMESTAMP),
-        PVPMatch(id=2, discord_channel_id=100, limit=20, state=PVPMatchState.FINISHED, created_at=PVP_TIMESTAMP + 2, updated_at=PVP_TIMESTAMP + 4),
-        PVPMatch(id=3, discord_channel_id=101, limit=2, state=PVPMatchState.SETUP, created_at=PVP_TIMESTAMP, updated_at=PVP_TIMESTAMP + 4),
-        PVPMatchPlayer(id=1, cmdr_id=1, match_id=1, team=0, won=False, updated_at=PVP_TIMESTAMP),
-        PVPMatchPlayer(id=2, cmdr_id=2, match_id=1, team=0, won=False, updated_at=PVP_TIMESTAMP + 2),
-        PVPMatchPlayer(id=3, cmdr_id=3, match_id=1, team=0, won=False, updated_at=PVP_TIMESTAMP + 4),
-        PVPMatchPlayer(id=4, cmdr_id=1, match_id=3, team=0, won=False, updated_at=PVP_TIMESTAMP),
-    ])
-    eddb_session.flush()
-    eddb_session.add_all([
-        PVPInterdictionKill(cmdr_id=1, pvp_interdiction_id=1, pvp_kill_id=1),
-        PVPInterdictionDeath(cmdr_id=1, pvp_interdiction_id=2, pvp_death_id=2),
-        PVPInterdictedKill(cmdr_id=2, pvp_interdicted_id=2, pvp_kill_id=4),
-        PVPInterdictedDeath(cmdr_id=1, pvp_interdicted_id=1, pvp_death_id=1),
-    ])
-    eddb_session.flush()
-    pvp.schema.update_pvp_stats(eddb_session, cmdr_id=1)
-    eddb_session.commit()
+            PVPInterdicted(id=1, cmdr_id=1, system_id=1000, is_player=True, did_submit=False, survived=False,
+                        interdictor_name="BadGuyWon", interdictor_rank=7, created_at=PVP_TIMESTAMP, event_at=PVP_TIMESTAMP),
+            PVPInterdicted(id=2, cmdr_id=2, is_player=True, did_submit=True, survived=True,
+                        interdictor_name="BadGuyWon", interdictor_rank=7, created_at=PVP_TIMESTAMP, event_at=PVP_TIMESTAMP),
+            PVPEscapedInterdicted(id=1, cmdr_id=1, system_id=1000, interdictor_name='BadGuyWon', is_player=True,
+                                created_at=PVP_TIMESTAMP, event_at=PVP_TIMESTAMP),
+            PVPEscapedInterdicted(id=2, cmdr_id=1, system_id=1000, interdictor_name='BadGuyWon', is_player=True,
+                                created_at=PVP_TIMESTAMP + 2, event_at=PVP_TIMESTAMP + 2),
+            PVPLog(id=1, cmdr_id=1, file_hash='hash', filename='first.log', msg_id=1, filtered_msg_id=10, updated_at=PVP_TIMESTAMP),
+            PVPLog(id=2, cmdr_id=2, file_hash='hash2', filename='second.log', msg_id=3, filtered_msg_id=12, updated_at=PVP_TIMESTAMP + 2),
+            PVPMatch(id=1, discord_channel_id=99, limit=10, state=PVPMatchState.SETUP, created_at=PVP_TIMESTAMP, updated_at=PVP_TIMESTAMP),
+            PVPMatch(id=2, discord_channel_id=100, limit=20, state=PVPMatchState.FINISHED, created_at=PVP_TIMESTAMP + 2, updated_at=PVP_TIMESTAMP + 4),
+            PVPMatch(id=3, discord_channel_id=101, limit=2, state=PVPMatchState.SETUP, created_at=PVP_TIMESTAMP, updated_at=PVP_TIMESTAMP + 4),
+            PVPMatchPlayer(id=1, cmdr_id=1, match_id=1, team=0, won=False, updated_at=PVP_TIMESTAMP),
+            PVPMatchPlayer(id=2, cmdr_id=2, match_id=1, team=0, won=False, updated_at=PVP_TIMESTAMP + 2),
+            PVPMatchPlayer(id=3, cmdr_id=3, match_id=1, team=0, won=False, updated_at=PVP_TIMESTAMP + 4),
+            PVPMatchPlayer(id=4, cmdr_id=1, match_id=3, team=0, won=False, updated_at=PVP_TIMESTAMP),
+        ])
+        eddb_session.flush()
+        eddb_session.add_all([
+            PVPInterdictionKill(cmdr_id=1, pvp_interdiction_id=1, pvp_kill_id=1),
+            PVPInterdictionDeath(cmdr_id=1, pvp_interdiction_id=2, pvp_death_id=2),
+            PVPInterdictedKill(cmdr_id=2, pvp_interdicted_id=2, pvp_kill_id=4),
+            PVPInterdictedDeath(cmdr_id=1, pvp_interdicted_id=1, pvp_death_id=1),
+        ])
+        eddb_session.flush()
+        pvp.schema.update_pvp_stats(eddb_session, cmdr_id=1)
+        eddb_session.commit()
 
-    yield
-    pvp.schema.empty_tables()
+        yield
+    finally:
+        pvp.schema.empty_tables()
 
 
 @pytest.fixture

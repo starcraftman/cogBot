@@ -800,4 +800,39 @@ def wrap_json_loads(string):
         raise cog.exc.RemoteError('Inara API responded with bad JSON.') from exc
 
 
+async def fetch_inara_info(inara_cmdr_id):
+    """
+    Get information on a CMDRs public inara.cz page.
+
+    Args:
+        inara_cmdr_id: The integer ID of the inara.cz CMDR.
+
+    Raises:
+        cog.exc.RemoteError: Failed to connect to inara.cz to scrape info.
+
+    Returns: inara_info: A dictionary with the required information.
+    """
+    page_src = await cog.util.get_url(f'https://inara.cz/elite/cmdr/{inara_cmdr_id}')
+    soup = bs4.BeautifulSoup(page_src, 'html.parser')
+    header_td = soup.find('td', class_='header')
+    inara_info = {
+        'name': header_td.text.replace('Cmdr ', ''),
+        'id': int(inara_cmdr_id),
+    }
+
+    squad_td = soup('td', class_='pflcol3')[-1]
+    mat = re.match(r'.*elite/squadron/(\d+)', squad_td.a['href'])
+    if mat:
+        try:
+            inara_info.update({
+                'squad_id': int(mat.group(1)),
+                'squad': squad_td.a.text.replace('Squadron', ''),
+            })
+        except ValueError:
+            pass
+    print(inara_info)
+
+    return inara_info
+
+
 api = InaraApi()  # use as module, needs "bot" to be set. pylint: disable=C0103

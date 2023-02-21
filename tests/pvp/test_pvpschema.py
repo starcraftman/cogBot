@@ -11,7 +11,8 @@ import pvp.schema
 from pvp.schema import (
     PVPMatchState, PVPMatch, PVPMatchPlayer, PVPLog, PVPStat,
     PVPEscapedInterdicted, PVPInterdicted, PVPInterdiction,
-    PVPDeathKiller, PVPDeath, PVPKill, PVPLocation, PVPCmdr
+    PVPDeathKiller, PVPDeath, PVPKill, PVPLocation,
+    PVPInara, PVPInaraSquad, PVPCmdr
 )
 
 
@@ -23,6 +24,36 @@ def test_pvpcmdr__str__(f_pvp_testbed, eddb_session):
 def test_pvpcmdr__repr__(f_pvp_testbed, eddb_session):
     cmdr = eddb_session.query(PVPCmdr).filter(PVPCmdr.id == 1).one()
     assert "PVPCmdr(id=1, name='coolGuy', updated_at=1671655377)" == repr(cmdr)
+
+
+def test_pvpinara__repr__(f_pvp_testbed, eddb_session):
+    inara = eddb_session.query(PVPInara).filter(PVPInara.id == 1).one()
+    assert "PVPInara(id=1, squad_id=1, discord_id=1, name='CoolGuyYeah', updated_at=1671655377)" == repr(inara)
+
+
+def test_pvpinara__str__(f_pvp_testbed, eddb_session):
+    inara = eddb_session.query(PVPInara).filter(PVPInara.id == 1).one()
+    assert "CMDR CoolGuyYeah (cool guys)" == str(inara)
+
+
+def test_pvpinara_cmdr_page(f_pvp_testbed, eddb_session):
+    inara = eddb_session.query(PVPInara).filter(PVPInara.id == 1).one()
+    assert "https://inara.cz/elite/cmdr/1" == inara.cmdr_page
+
+
+def test_pvpinara_squad_page(f_pvp_testbed, eddb_session):
+    inara = eddb_session.query(PVPInara).filter(PVPInara.id == 1).one()
+    assert "https://inara.cz/elite/squadron/1" == inara.squad_page
+
+
+def test_pvpinarasquad__repr__(f_pvp_testbed, eddb_session):
+    squad = eddb_session.query(PVPInaraSquad).filter(PVPInaraSquad.id == 1).one()
+    assert "PVPInaraSquad(id=1, name='cool guys', updated_at=1671655377)" == repr(squad)
+
+
+def test_pvpinarasquad__str__(f_pvp_testbed, eddb_session):
+    squad = eddb_session.query(PVPInaraSquad).filter(PVPInaraSquad.id == 1).one()
+    assert "cool guys" == str(squad)
 
 
 def test_pvplocation__str__(f_pvp_testbed, eddb_session):
@@ -335,6 +366,24 @@ def test_pvp_update_pvp_cmdr(f_pvp_testbed, eddb_session):
     assert pvp.schema.get_pvp_cmdr(eddb_session, cmdr_id=10).name == 'NewGuy'
     assert pvp.schema.update_pvp_cmdr(eddb_session, 10, name='NewName', hex_colour='666666')
     assert pvp.schema.get_pvp_cmdr(eddb_session, cmdr_id=10).name == 'NewName'
+
+
+@pytest.mark.asyncio
+async def test_pvp_update_inara_info(f_pvp_testbed, eddb_session):
+    info = {
+        'id': 88153,
+        'squad_id': 2,
+        'discord_id': 4,
+        'name': 'Shorts McFadden',
+        'squad': 'Exodus Coalition',
+    }
+    await pvp.schema.update_pvp_inara(eddb_session, info)
+    eddb_session.commit()
+
+    inara = eddb_session.query(PVPInara).filter(PVPInara.id == 88153).one()
+    assert inara.name == info['name']
+    squad = eddb_session.query(PVPInaraSquad).filter(PVPInaraSquad.id == 2).one()
+    assert squad.name == info['squad']
 
 
 def test_pvp_get_pvp_stats(f_pvp_testbed, eddb_session):
