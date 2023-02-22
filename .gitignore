@@ -5,6 +5,7 @@
 .python-version
 .tox
 .idea
+*.diff
 
 build
 data

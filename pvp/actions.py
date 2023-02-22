@@ -39,6 +39,8 @@ The bot will ...
     - Store parsed information in the bot's database on the server hosting the bots.
     - Store derived statistics from these events
     - The bot will store information about matches and outcomes.
+    - If you provide your inara.cz CMDR page to registration the bot will parse public information,
+      for instance your squad and name. This will be used for grouped statistics and display.
 
 This bot is not intended to spy. It is for entertainment and amusement.
 Data collected and processed will not be shared with anyone.
@@ -46,7 +48,7 @@ Only the server owner and the dev team have access.
 
 This is not a legal notice, the author is not a lawayer. If you have questions contact the devs.
 This privacy statement may be updated as new features are added, the version will be incremented when it is.
-Version 1.0 """
+Version 2.0 """
 DISCLAIMER_QUERY = """
 
 Do you consent to this use of your data?"""
@@ -878,6 +880,7 @@ class Status(PVPAction):
         await self.bot.send_message(self.msg.channel, cog.tbl.format_table(lines)[0])
 
 
+# N.B. Due to mobile limitations, only TextInput allowed by API limitation of mobile client
 class CMDRRegistration(dui.Modal, title='CMDR Registration'):  # pragma: no cover
     """ Register a cmdr by getting name via a modal input. """
     hex = dui.TextInput(label='Hex colour for embeds. Red: B20000', min_length=6, max_length=6,

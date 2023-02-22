@@ -208,6 +208,8 @@ class PVPBot(CogBot):  # pragma: no cover
                 except discord.DiscordException:
                     pass
             else:
+                print('Discord Error:', exc)
+                log.error('Discord Error: %s', exc)
                 gears = self.get_member_by_substr("gearsand").mention
                 await self.send_message(channel, f"A critical discord error! {gears}.")
             line = "Discord.py Library raised an exception"
