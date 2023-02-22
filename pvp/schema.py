@@ -1019,7 +1019,7 @@ def get_pvp_cmdr(eddb_session, *, cmdr_id=None, cmdr_name=None):
     return cmdr
 
 
-def update_pvp_cmdr(eddb_session, discord_id, *, name, hex_colour):
+def update_pvp_cmdr(eddb_session, discord_id, *, name, hex_colour=None):
     """
     Update (or add) the cmdr with the attached information.
 
@@ -1077,6 +1077,7 @@ async def update_pvp_inara(eddb_session, info):
             filter(PVPInara.id == info['id']).\
             one()
         cmdr.name = info['name']
+        cmdr.id = info['id']
         cmdr.squad_id = info['squad_id']
         cmdr.discord_id = info['discord_id']
     except sqla.exc.NoResultFound:
@@ -1485,7 +1486,7 @@ def drop_tables(keep_cmdrs=False):  # pragma: no cover | destructive to test
     """
     sqla.orm.session.close_all_sessions()
 
-    tables = PVP_TABLES
+    tables = PVP_TABLES[:]
     if keep_cmdrs:
         for tbl in PVP_TABLES_KEEP:
             tables.remove(tbl)

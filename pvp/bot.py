@@ -158,6 +158,7 @@ class PVPBot(CogBot):  # pragma: no cover
                     cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
                 # Check permissions before full parsing
                 cmd = cog.bot.cmd_from_content(self.prefix, content)
+                # FIXME: This takes too long, blocking main loop
                 cogdb.query.check_perms(session, message, cmd)
 
                 args = self.parser.parse_args(re.split(r'\s+', content))

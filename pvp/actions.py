@@ -207,59 +207,65 @@ class Admin(PVPAction):
             - Import and parse selected events.
             - Once done, regenerate all stats for each CMDR at the end.
         """
-        await self.bot.send_message(self.msg.channel, "All uploads will be denied while regeneration underway.")
+        await self.bot.send_message(self.msg.channel, "All uploads will be denied while regeneration underway. Please wait while downloading filtered logs.")
         response = "Regenerating PVP database has completed."
         pvp.schema.recreate_tables(keep_cmdrs=True)
 
         down_dir = tempfile.mkdtemp(suffix='downs')
         print(f"Regeneration down dir: {down_dir}")
-        coros = []
+        cmdr_to_info = {}
+
+        pvp_logs = pvp.schema.get_filtered_pvp_logs(self.eddb_session)
+        if not pvp_logs:
+            await self.msg.channel.send('No PVPLogs found.')
+            return
+
         try:
             # Channel archiving filtered pvp_logs
             filter_chan = self.bot.get_channel(cog.util.CONF.channels.pvp_filter)
+            for pvp_log in pvp_logs:
+                msg = await filter_chan.fetch_message(pvp_log.filtered_msg_id)
+
+                discord_id = int(msg.content.split('\n')[0].replace('Discord ID: ', ''))
+                cmdr = pvp.schema.get_pvp_cmdr(self.eddb_session, cmdr_id=discord_id)
+                if not cmdr:  # If you don't have the pvp_cmdr, fill it
+                    cmdr_name = msg.content.split('\n')[1].replace('CMDR: ', '')
+                    cmdr = pvp.schema.update_pvp_cmdr(self.eddb_session, discord_id, name=cmdr_name)
+
+                for attach in msg.attachments:
+                    with tempfile.NamedTemporaryFile(dir=down_dir, delete=False) as tfile:
+                        await attach.save(tfile.name)
+                    print(f'Downloaded: {attach.filename}')
+
+                    try:
+                        record = {
+                            'fname': tfile.name,
+                            'attach_fname': attach.filename,
+                        }
+                        cmdr_to_info[discord_id] += [record]
+                    except KeyError:
+                        cmdr_to_info[discord_id] = [record]
+
+            self.eddb_session.commit()  # Flush any added CMDRs
+            await self.msg.channel.send("Parsing the logs.")
+
+            coros = []
+            loop = asyncio.get_event_loop()
             with cfut.ProcessPoolExecutor(max_workers=10) as pool:
-                for pvp_log in pvp.schema.get_filtered_pvp_logs(self.eddb_session):
-                    msg = await filter_chan.fetch_message(pvp_log.filtered_msg_id)
-                    if not msg.content.startswith('Discord ID'):
-                        continue
-
-                    discord_id = int(msg.content.split('\n')[0].replace('Discord ID: ', ''))
-                    cmdr = pvp.schema.get_pvp_cmdr(self.eddb_session, cmdr_id=discord_id)
-                    if not cmdr:  # If you don't have the pvp_cmdr, fill it
-                        cmdr_name = msg.content.split('\n')[1].replace('CMDR: ', '')
-                        cmdr = pvp.schema.update_pvp_cmdr(self.eddb_session, discord_id,
-                                                          name=cmdr_name, hex_colour=None)
-
-                    for attach in msg.attachments:
-                        with tempfile.NamedTemporaryFile(dir=down_dir, delete=False) as tfile:
-                            await attach.save(tfile.name)
-                            tfile.close()
-                            print(f'Parsing: {attach.filename}')
-
-                            try:
-                                coro = await process_tempfile(
-                                    pool=pool, cmdr_id=discord_id,
-                                    fname=tfile.name, attach_fname=attach.filename
-                                )
-                                coros += [coro]
-                                await coro  # TODO: Possible dupes if parallel.
-                            except (pvp.journal.ParserError, zipfile.BadZipfile) as exc:
-                                await self.msg.channel.send(str(exc))
-
-                if not coros:
-                    await self.msg.channel.send('No PVPLogs set, please import database from a source.')
-                    return
+                for cmdr_id, info in cmdr_to_info.items():
+                    coros += [loop.run_in_executor(pool, functools.partial(process_cmdr_tempfiles, cmdr_id=cmdr_id, info=info))]
 
                 await asyncio.wait(coros)
-                events = functools.reduce(lambda x, y: x + y, [x.result() for x in coros])
 
-            with tempfile.NamedTemporaryFile(mode='w') as tfile:
-                async with aiofiles.open(tfile.name, 'w', encoding='utf-8') as aout:
-                    await aout.write("__Parsed Events__\n" + '\n'.join(events))
-                    await aout.flush()
-
-                await self.msg.channel.send('Logs parsed. Summary attached.',
-                                            file=discord.File(fp=tfile.name, filename='parsed.log'))
+            events = functools.reduce(lambda x, y: x + y, [x.result() for x in coros])
+            events = [f'{x}\n' for x in events]
+            fnames = await cog.util.grouped_text_to_files(
+                grouped_lines=cog.util.group_by_filesize(events),
+                tdir=down_dir, fname_gen=lambda num: f'parsed_{num:02}.txt'
+            )
+            for num, fname in enumerate(fnames, start=1):
+                await self.msg.channel.send(f'All logs parsed. Part {num} of parsed events log.',
+                                            file=discord.File(fp=fname))
 
         except discord.Forbidden as exc:
             logging.getLogger(__name__).error('Discord error: %s', exc)
@@ -267,7 +273,10 @@ class Admin(PVPAction):
         except discord.HTTPException:
             response = "Received HTTP Error, may be intermittent issue. Investigate."
         finally:
-            shutil.rmtree(down_dir)
+            try:
+                shutil.rmtree(down_dir)
+            except OSError:
+                self.log.error("Critical error during rmtree of: %s", down_dir)
 
         return response
 
@@ -364,9 +373,12 @@ class FileUpload(PVPAction):  # pragma: no cover
                     await pvp.journal.upload_filtered_logs(upload_stage, log_chan=filter_chan)
 
                     # Process the log that was filtered
-                    process_coro = await process_tempfile(
-                        pool=pool, cmdr_id=self.msg.author.id,
-                        fname=filter_coro.result(), attach_fname=attach.filename
+                    process_coro = await asyncio.get_event_loop().run_in_executor(
+                        pool, functools.partial(
+                            process_cmdr_tempfiles,
+                            cmdr_id=self.msg.author.id,
+                            info=[{'fname': filter_coro.result(), 'attach_fname': attach.filename}]
+                        )
                     )
                     await process_coro
                     return process_coro.result()
@@ -1003,7 +1015,7 @@ async def archive_log(eddb_session, *, msg, cmdr, fname):
     return pvp_log
 
 
-def process_archive(fname, *, attach_fname, cmdr_id):
+def process_archive(fname, *, attach_fname, cmdr_id, eddb_session):
     """
     Parse an entire archive and return events parsed as a list of strings.
 
@@ -1016,7 +1028,7 @@ def process_archive(fname, *, attach_fname, cmdr_id):
     """
     events = [f'Archive: {fname}']
     try:
-        with cog.util.extracted_archive(fname) as logs, cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
+        with cog.util.extracted_archive(fname) as logs:
             for log in logs:
                 events += process_log(log, cmdr_id=cmdr_id, eddb_session=eddb_session)
     except zipfile.BadZipfile:
@@ -1027,7 +1039,7 @@ def process_archive(fname, *, attach_fname, cmdr_id):
     return events
 
 
-def process_log(fname, *, cmdr_id, eddb_session=None):
+def process_log(fname, *, cmdr_id, eddb_session):
     """
     Parse a single log file and return events parsed as a list of strings.
 
@@ -1041,50 +1053,42 @@ def process_log(fname, *, cmdr_id, eddb_session=None):
     if not cog.util.is_log_file(fname):  # Ignore non valid logs
         return []
 
-    if eddb_session:
-        parser = pvp.journal.Parser(fname=fname, cmdr_id=cmdr_id, eddb_session=eddb_session)
-        parser.load()
+    parser = pvp.journal.Parser(fname=fname, cmdr_id=cmdr_id, eddb_session=eddb_session)
+    parser.load()
 
-        # Do not return unbound db objects.
-        return [f'\nFile: {fname}'] + [str(x) for x in parser.parse()]
-
-    with cogdb.session_scope(cogdb.EDDBSession) as eddb_session_new:
-        parser = pvp.journal.Parser(fname=fname, cmdr_id=cmdr_id, eddb_session=eddb_session_new)
-        parser.load()
-
-        # Do not return unbound db objects.
-        return [f'\nFile: {fname}'] + [str(x) for x in parser.parse()]
+    # Do not return unbound db objects.
+    return [f'\nFile: {fname}'] + [str(x) for x in parser.parse()]
 
 
-async def process_tempfile(*, attach_fname, fname, pool, cmdr_id):
+def process_cmdr_tempfiles(*, cmdr_id, info):
     """
-    High level process a tempfile. Handle parsing contents if it is a log or zip.
+    Process ALL associated files in info list.
+    Run this function in another process.
 
     Args:
-        attach_fname: The original name of the discord.Attachment.
-        file: The filename of the local file.
-        pool: An instance of cfut.ProcessPoolExecutor.
-        cmdr_id: The id of the cmdr who is associated with log.
-
-    Raises:
-        pvp.journal.ParserError: Unsupported file type.
+        cmdr_id: The id of the cmdr who is associated with all provided logs.
+        info: A list of dictionary objects, each object has following keys:
+            attach_fname: The original name of the discord.Attachment.
+            fname: The absolute path of the local file.
 
     Returns: The events found in the tempfile, a list of strings.
     """
-    if await cog.util.is_log_file_async(fname):
-        func = functools.partial(
-            process_log, fname, cmdr_id=cmdr_id
-        )
+    logs = []
+    with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
+        for entry in info:
+            if cog.util.is_log_file(entry['fname']):
+                logs += process_log(entry['fname'], cmdr_id=cmdr_id, eddb_session=eddb_session)
 
-    elif await cog.util.is_zipfile_async(fname):
-        func = functools.partial(
-            process_archive, fname, attach_fname=attach_fname, cmdr_id=cmdr_id
-        )
+            elif cog.util.is_zipfile(entry['fname']):
+                logs += process_archive(
+                    entry['fname'], attach_fname=entry['attach_fname'],
+                    cmdr_id=cmdr_id, eddb_session=eddb_session
+                )
 
-    else:
-        raise pvp.journal.ParserError("Unsupported file type.")
+            else:
+                logs += [f"\nFile: {entry['fname']}", f"Unsupported file type: {entry['attach_fname']}"]
 
-    return asyncio.get_event_loop().run_in_executor(pool, func)
+    return logs
 
 
 def get_privacy_versions(privacy_dir):

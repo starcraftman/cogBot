@@ -3,6 +3,7 @@
 Tests for pvp.actions
 """
 import concurrent.futures as cfut
+import functools
 import tempfile
 import zipfile
 
@@ -407,45 +408,55 @@ def test_process_log_fails(f_pvp_testbed, f_plog_zip, eddb_session):
 
 
 def test_process_log_noeddb(f_pvp_testbed, f_plog_file, eddb_session):
-    found = pvp.actions.process_log(fname=f_plog_file, cmdr_id=3)
+    found = pvp.actions.process_log(fname=f_plog_file, cmdr_id=3, eddb_session=eddb_session)
     assert 'CMDR shootsALot killed CMDR CanNotShoot at 2016-06-10 14:55:22' in found
 
 
 def test_process_archive(f_pvp_testbed, f_plog_zip, eddb_session):
-    found = pvp.actions.process_archive(fname=f_plog_zip, cmdr_id=3, attach_fname='/tmp/original.zip')
+    found = pvp.actions.process_archive(fname=f_plog_zip, cmdr_id=3, attach_fname='/tmp/original.zip', eddb_session=eddb_session)
     assert 'CMDR shootsALot killed CMDR CanNotShoot at 2016-06-10 14:55:22' in found
 
 
 def test_process_archive_fails(f_pvp_testbed, f_plog_file, eddb_session):
     with pytest.raises(zipfile.BadZipfile):
-        pvp.actions.process_archive(fname=f_plog_file, cmdr_id=3, attach_fname='/tmp/original.zip')
+        pvp.actions.process_archive(fname=f_plog_file, cmdr_id=3, attach_fname='/tmp/original.zip', eddb_session=eddb_session)
 
 
 @pytest.mark.asyncio
-async def test_process_tempfile_log(f_pvp_testbed, f_plog_file, eddb_session):
+async def test_process_tempfile_log(f_pvp_testbed, f_plog_file, eddb_session, event_loop):
+    info = [{'attach_fname': '/tmp/original.log', 'fname': f_plog_file}]
     with cfut.ProcessPoolExecutor(1) as pool:
-        coro = await pvp.actions.process_tempfile(attach_fname='/tmp/original.log', fname=f_plog_file, cmdr_id=3, pool=pool)
+        coro = event_loop.run_in_executor(
+            pool, functools.partial(pvp.actions.process_cmdr_tempfiles, cmdr_id=3, info=info)
+        )
         await coro
         assert 'CMDR shootsALot killed CMDR CanNotShoot at 2016-06-10 14:55:22' in coro.result()
 
 
 @pytest.mark.asyncio
-async def test_process_tempfile_archive(f_pvp_testbed, f_plog_zip, eddb_session):
+async def test_process_tempfile_archive(f_pvp_testbed, f_plog_zip, eddb_session, event_loop):
+    info = [{'attach_fname': '/tmp/original.log', 'fname': f_plog_zip}]
     with cfut.ProcessPoolExecutor(1) as pool:
-        coro = await pvp.actions.process_tempfile(attach_fname='/tmp/original.zip', fname=f_plog_zip, cmdr_id=3, pool=pool)
+        coro = event_loop.run_in_executor(
+            pool, functools.partial(pvp.actions.process_cmdr_tempfiles, cmdr_id=3, info=info)
+        )
         await coro
         assert 'CMDR shootsALot killed CMDR CanNotShoot at 2016-06-10 14:55:22' in coro.result()
 
 
 @pytest.mark.asyncio
-async def test_process_tempfile_fails(f_pvp_testbed, f_plog_zip, eddb_session):
+async def test_process_tempfile_fails(f_pvp_testbed, f_plog_zip, eddb_session, event_loop):
     with tempfile.NamedTemporaryFile() as tfile, cfut.ProcessPoolExecutor(1) as pool:
         tfile.write(b"Bad file.")
         tfile.flush()
 
-        with pytest.raises(pvp.journal.ParserError):
-            coro = await pvp.actions.process_tempfile(attach_fname='/tmp/original.rar', fname=tfile.name, cmdr_id=3, pool=pool)
-            await coro
+        info = [{'attach_fname': '/tmp/original.log', 'fname': tfile.name}]
+        coro = event_loop.run_in_executor(
+            pool, functools.partial(pvp.actions.process_cmdr_tempfiles, cmdr_id=3, info=info)
+        )
+
+        await coro
+        assert 'Unsupported file type: /tmp/original.log' in coro.result()
 
 
 def test_get_privacy_versions():
