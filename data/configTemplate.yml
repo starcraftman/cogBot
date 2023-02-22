@@ -50,6 +50,7 @@ paths:
   donate: data/donate.txt
   json: data/sheets.json
   log_conf: data/log.yml
+  privacy: privacy
   service_json: data/service_sheets.json
   token: data/sheets.token
 ports:
