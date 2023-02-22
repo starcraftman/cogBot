@@ -288,13 +288,13 @@ class CogBot(discord.Client):
         try:
             content = re.sub(r'<[#@]\S+>', '', content).strip()  # Strip mentions from text
 
-            with cogdb.session_scope(cogdb.Session) as session:
-                # Check permissions before full parsing
-                cmd = cmd_from_content(self.prefix, content)
-                await asyncio.get_event_loop().run_in_executor(
-                    None, cogdb.query.check_perms, session, message, cmd)
+            # Check permissions before full parsing
+            cmd = cmd_from_content(self.prefix, content)
+            await asyncio.get_event_loop().run_in_executor(
+                None, cogdb.query.check_perms, message, cmd)
 
-                args = self.parser.parse_args(re.split(r'\s+', content))
+            args = self.parser.parse_args(re.split(r'\s+', content))
+            with cogdb.session_scope(cogdb.Session) as session:
                 await self.dispatch_command(args=args, bot=self, msg=message, session=session)
 
         except cog.exc.ArgumentParseError as exc:

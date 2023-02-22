@@ -154,15 +154,15 @@ class PVPBot(CogBot):  # pragma: no cover
         try:
             content = re.sub(r'<[#@]\S+>', '', content).strip()  # Strip mentions from text
 
+            # Check permissions before full parsing
+            cmd = cog.bot.cmd_from_content(self.prefix, content)
+            await asyncio.get_event_loop().run_in_executor(
+                None, cogdb.query.check_perms, message, cmd)
+
+            args = self.parser.parse_args(re.split(r'\s+', content))
+            cls = getattr(pvp.actions, args.cmd)
             with cogdb.session_scope(cogdb.Session) as session,\
                     cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
-                # Check permissions before full parsing
-                cmd = cog.bot.cmd_from_content(self.prefix, content)
-                # FIXME: This takes too long, blocking main loop
-                cogdb.query.check_perms(session, message, cmd)
-
-                args = self.parser.parse_args(re.split(r'\s+', content))
-                cls = getattr(pvp.actions, args.cmd)
                 await cls(args=args, bot=self, msg=message, session=session, eddb_session=eddb_session).execute()
 
         except cog.exc.ArgumentParseError as exc:

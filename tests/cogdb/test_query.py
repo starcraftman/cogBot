@@ -460,7 +460,7 @@ def test_remove_role_perms(session, f_rperms):
     cogdb.query.remove_role_perms(session, [perm.cmd], server, [role])
 
 
-def test_check_perms(session, f_cperms, f_rperms):
+def test_check_perms(f_cperms, f_rperms):
     cog.parse.make_parser('!')  # Need to force CMD_MAP to populate.
     ops_channel = Channel("Operations", id=2001)
     server = Guild('Test', id=10)
@@ -472,17 +472,17 @@ def test_check_perms(session, f_cperms, f_rperms):
     msg.channel = ops_channel
     msg.channel.guild = server
 
-    cogdb.query.check_perms(session, msg, 'drop')  # Silent pass
+    cogdb.query.check_perms(msg, 'drop')  # Silent pass
 
     with pytest.raises(cog.exc.InvalidPerms):
         msg.author.roles = [Role('Winters', id=3002)]
-        cogdb.query.check_perms(session, msg, 'drop')
+        cogdb.query.check_perms(msg, 'drop')
 
     with pytest.raises(cog.exc.InvalidPerms):
         msg.author.roles = roles
         msg.channel.name = 'Not Operations'
         msg.channel.id = 9999
-        cogdb.query.check_perms(session, msg, 'drop')
+        cogdb.query.check_perms(msg, 'drop')
 
 
 def test_check_channel_perms(session, f_cperms):

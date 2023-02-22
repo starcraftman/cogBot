@@ -837,15 +837,16 @@ def remove_role_perms(session, cmds, guild, roles):
     session.commit()
 
 
-def check_perms(session, msg, cmd):
+def check_perms(msg, cmd):
     """
     Check if a user is authorized to issue this command.
     Checks will be made against channel and user roles.
 
     Raises InvalidPerms if any permission issue.
     """
-    check_channel_perms(session, cmd, msg.channel.guild, msg.channel)
-    check_role_perms(session, cmd, msg.channel.guild, msg.author.roles)
+    with cogdb.session_scope(cogdb.Session) as session:
+        check_channel_perms(session, cmd, msg.channel.guild, msg.channel)
+        check_role_perms(session, cmd, msg.channel.guild, msg.author.roles)
 
 
 def check_channel_perms(session, cmd, server, channel):
