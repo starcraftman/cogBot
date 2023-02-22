@@ -326,6 +326,24 @@ that discord the company has a copy."""
 
 
 @pytest.mark.asyncio
+async def test_cmd_privacy_version_none(f_bot, f_pvp_testbed):
+    expect = 'versions: 1.0, 2.0'
+    msg = fake_msg_gears("!privacy version")
+
+    await action_map(msg, f_bot).execute()
+    assert expect in str(f_bot.send_message.call_args).replace("\\n", "\n")
+
+
+@pytest.mark.asyncio
+async def test_cmd_privacy_version_selected(f_bot, f_pvp_testbed):
+    expect = 'Version 1.0'
+    msg = fake_msg_gears("!privacy version 1.0")
+
+    await action_map(msg, f_bot).execute()
+    assert expect in str(f_bot.send_message.call_args).replace("\\n", "\n")
+
+
+@pytest.mark.asyncio
 async def test_cmd_stats(f_bot, f_pvp_testbed):
     msg = fake_msg_gears("!stats")
 
@@ -428,3 +446,21 @@ async def test_process_tempfile_fails(f_pvp_testbed, f_plog_zip, eddb_session):
         with pytest.raises(pvp.journal.ParserError):
             coro = await pvp.actions.process_tempfile(attach_fname='/tmp/original.rar', fname=tfile.name, cmdr_id=3, pool=pool)
             await coro
+
+
+def test_get_privacy_versions():
+    expect = [1.0, 2.0]
+    found = pvp.actions.get_privacy_versions(cog.util.CONF.paths.privacy)
+    for item in expect:
+        assert item in found
+
+
+@pytest.mark.asyncio
+async def test_get_privacy_stmt():
+    assert "Version 2.0" in await pvp.actions.get_privacy_stmt(cog.util.CONF.paths.privacy, version=2.0)
+
+
+@pytest.mark.asyncio
+async def test_get_privacy_stmt_fails():
+    with pytest.raises(cog.exc.InvalidCommandArgs):
+        await pvp.actions.get_privacy_stmt(cog.util.CONF.paths.privacy, version='bad')

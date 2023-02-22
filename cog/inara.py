@@ -809,6 +809,7 @@ async def fetch_inara_info(inara_cmdr_id):
 
     Raises:
         cog.exc.RemoteError: Failed to connect to inara.cz to scrape info.
+        ValueError: Invalid inara_cmdr_id was passed in.
 
     Returns: inara_info: A dictionary with the required information.
     """
@@ -830,7 +831,6 @@ async def fetch_inara_info(inara_cmdr_id):
             })
         except ValueError:
             pass
-    print(inara_info)
 
     return inara_info
 

@@ -124,13 +124,21 @@ def subs_privacy(subs, prefix):
     desc = f"""Provide the privacy statement to user.
 
 **{prefix}privacy**
-        Print the privacy statement for user to view.
+        Print the latest privacy statement for user to view.
 **{prefix}privacy --delete**
         Upon confirmation perform a complete deletion of all information stored about you in bot.
+**{prefix}privacy version 1.0**
+        Print the privacy statement requested.
+**{prefix}privacy version**
+        Print the available privacy versions
     """
     sub = subs.add_parser(prefix + 'privacy', description=desc, formatter_class=RawHelp)
     sub.set_defaults(cmd='Privacy')
-    sub.add_argument('--delete', action='store_true', help='Permanently purge your information.')
+    subcmds = sub.add_subparsers(title='subcommands',
+                                 description='Privacy subcommands', dest='subcmd')
+    subcmd = subcmds.add_parser('delete', help='Delete all CMDR info.')
+    subcmd = subcmds.add_parser('version', help='Display a selected version.')
+    subcmd.add_argument('num', nargs='?', type=float, help='The version number.')
 
 
 @register_parser

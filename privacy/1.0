@@ -1,0 +1,20 @@
+This bot will take uploads of logs from you and process them to derive statistics.
+On first upload your in game name will be read from logs and linked to your Discord ID.
+This bot will link all this information to your discord id so you can retrieve it by command.
+Beyond this bot having access to your logs, uploading files to the bot naturally means
+that discord the company has a copy.
+
+The bot will ...
+    - Upload an archival copy of your log to a private channel accesible only by devs
+    - Read through your log and select events of interest for statistics, i.e. kills, deaths, locations
+    - Store parsed information in the bot's database on the server hosting the bots.
+    - Store derived statistics from these events
+    - The bot will store information about matches and outcomes.
+
+This bot is not intended to spy. It is for entertainment and amusement.
+Data collected and processed will not be shared with anyone.
+Only the server owner and the dev team have access.
+
+This is not a legal notice, the author is not a lawayer. If you have questions contact the devs.
+This privacy statement may be updated as new features are added, the version will be incremented when it is.
+Version 1.0

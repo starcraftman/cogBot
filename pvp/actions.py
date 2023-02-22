@@ -26,29 +26,6 @@ import pvp.journal
 from cog.actions import (Action, Dist, Donate, Feedback, Near,
                          Repair, Route, Time, Trigger, WhoIs)  # noqa: F401 pylint: disable=unused-import
 
-DISCLAIMER = """
-This bot will take uploads of logs from you and process them to derive statistics.
-On first upload your in game name will be read from logs and linked to your Discord ID.
-This bot will link all this information to your discord id so you can retrieve it by command.
-Beyond this bot having access to your logs, uploading files to the bot naturally means
-that discord the company has a copy.
-
-The bot will ...
-    - Upload an archival copy of your log to a private channel accesible only by devs
-    - Read through your log and select events of interest for statistics, i.e. kills, deaths, locations
-    - Store parsed information in the bot's database on the server hosting the bots.
-    - Store derived statistics from these events
-    - The bot will store information about matches and outcomes.
-    - If you provide your inara.cz CMDR page to registration the bot will parse public information,
-      for instance your squad and name. This will be used for grouped statistics and display.
-
-This bot is not intended to spy. It is for entertainment and amusement.
-Data collected and processed will not be shared with anyone.
-Only the server owner and the dev team have access.
-
-This is not a legal notice, the author is not a lawayer. If you have questions contact the devs.
-This privacy statement may be updated as new features are added, the version will be incremented when it is.
-Version 2.0 """
 DISCLAIMER_QUERY = """
 
 Do you consent to this use of your data?"""
@@ -848,9 +825,8 @@ class Privacy(PVPAction):  # Pragma no cover, very destructive test.
         return f"{self.msg.author.mention} All your information has been deleted. Have a nice day."
 
     async def execute(self):
-        response = DISCLAIMER
-
-        if self.args.delete:
+        privacy_dir = cog.util.CONF.paths.privacy
+        if self.args.subcmd == 'delete':
             await self.bot.send_message(self.msg.channel, DELETION_WARNING)
             resp = await self.bot.wait_for(
                 'message',
@@ -861,6 +837,13 @@ class Privacy(PVPAction):  # Pragma no cover, very destructive test.
             response = "Aborting data deletion."
             if resp.content.lower().startswith('y'):
                 response = await self.delete()
+        elif self.args.subcmd == 'version':
+            if self.args.num:
+                response = await get_privacy_stmt(privacy_dir, version=self.args.num)
+            else:
+                response = f"Available versions: {', '.join(str(x) for x in get_privacy_versions(privacy_dir))}"
+        else:
+            response = await get_privacy_stmt(privacy_dir)
 
         await self.bot.send_message(self.msg.channel, response)
 
@@ -895,6 +878,8 @@ class CMDRRegistration(dui.Modal, title='CMDR Registration'):  # pragma: no cove
             self.hex.default = existing.hex
             self.name.default = existing.name
             self.title = 'Update CMDR Registration'
+            if existing.inara:
+                self.inara.default = existing.inara.cmdr_page
         if cmdr_name:
             self.name.default = cmdr_name
 
@@ -903,20 +888,26 @@ class CMDRRegistration(dui.Modal, title='CMDR Registration'):  # pragma: no cove
     async def on_submit(self, interaction: discord.Interaction):
         if self.name:
             self.name = pvp.journal.clean_cmdr_name(str(self.name))
+            if not self.name:
+                raise ValueError("Invalid CMDR name.")
 
-        int(str(self.hex), 16)  # Validate the hex here
-
-        mat = re.match(r'.*//inara.cz/elite/cmdr/(\d+)', self.inara)
         try:
+            int(str(self.hex), 16)  # Validate the hex here
+        except ValueError as exc:
+            raise ValueError("Invalid hex code.") from exc
+
+        if str(self.inara):
+            mat = re.match(r'.*//inara.cz/elite/cmdr/(\d+)', str(self.inara))
             if mat:
                 self.inara = int(mat.group(1))
-        except ValueError:
-            pass
+            else:
+                raise ValueError("Invalid inara.cz URL.")
 
         await interaction.response.send_message(f'You are now registered, CMDR {self.name}!', ephemeral=True)
 
     async def on_error(self, interaction: discord.Interaction, error):
-        await interaction.response.send_message('Registration failed, please try again.', ephemeral=True)
+        logging.getLogger(__name__).error("Failed registration: %s", error)
+        await interaction.response.send_message(f'Failed regitration, error: {str(error)}', ephemeral=True)
 
 
 async def cmdr_setup(eddb_session, client, msg, *, cmdr_name=None):  # pragma: no cover, heavily dependent on discord.py
@@ -933,7 +924,8 @@ async def cmdr_setup(eddb_session, client, msg, *, cmdr_name=None):  # pragma: n
         add_item(dui.Button(label="Yes", custom_id="Yes", style=discord.ButtonStyle.green)).\
         add_item(dui.Button(label="No", custom_id="No", style=discord.ButtonStyle.red))
 
-    sent = await msg.channel.send(DISCLAIMER + DISCLAIMER_QUERY, view=view)
+    privacy_stmt = await get_privacy_stmt(cog.util.CONF.paths.privacy)
+    sent = await msg.channel.send(privacy_stmt + DISCLAIMER_QUERY, view=view)
     inter = await client.wait_for('interaction', check=functools.partial(check_button, msg.author, sent))
 
     if inter.data['custom_id'] == "No":
@@ -948,8 +940,8 @@ async def cmdr_setup(eddb_session, client, msg, *, cmdr_name=None):  # pragma: n
         await msg.channel.send('Timeout on registration, please try again.')
         return False
 
-    if modal.inara:
-        inara_info = await cog.inara.fetch_inara_info(modal.inara)
+    if str(modal.inara):
+        inara_info = await cog.inara.fetch_inara_info(str(modal.inara))
         inara_info['discord_id'] = msg.author.id
         await pvp.schema.update_pvp_inara(eddb_session, inara_info)
 
@@ -1093,6 +1085,46 @@ async def process_tempfile(*, attach_fname, fname, pool, cmdr_id):
         raise pvp.journal.ParserError("Unsupported file type.")
 
     return asyncio.get_event_loop().run_in_executor(pool, func)
+
+
+def get_privacy_versions(privacy_dir):
+    """
+    Get available privacy versions.
+
+    Args:
+        privacy_dir: The directory where privacy statements reside.
+
+    Retuns: A list floats of versions of privacy statement.
+    """
+    return list(sorted([float(x.name) for x in pathlib.Path(privacy_dir).glob('*')]))
+
+
+async def get_privacy_stmt(privacy_dir, *, version=None):
+    """
+    Fetch a version of the privacy statement for display to users.
+
+    Args:
+        privacy_dir: The directory where privacy statements reside.
+        version: The version desired, should be float. If None, highest version found.
+
+    Raises:
+        cog.exc.InvalidCommandArgs: The version selected was not found.
+
+    Returns: The text of the privacy version selected.
+    """
+    pdir = pathlib.Path(privacy_dir)
+    versions = get_privacy_versions(privacy_dir)
+
+    try:
+        if version and float(version) not in versions:
+            raise ValueError
+        if not version:
+            version = versions[-1]
+    except (TypeError, ValueError) as exc:
+        raise cog.exc.InvalidCommandArgs(f"Invalid privacy version number. Select from: {', '.join(str(x) for x in versions)}") from exc
+
+    async with aiofiles.open(pdir / str(version), 'r', encoding='utf-8') as fin:
+        return await fin.read()
 
 
 async def ensure_cmdr_exists(eddb_session, *, client, msg, fname):  # pragma: no cover, relies on underlying interactive cmdr_setup
