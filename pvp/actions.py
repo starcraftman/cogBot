@@ -140,63 +140,45 @@ class Admin(PVPAction):
         down_dir = tempfile.mkdtemp(suffix='downs')
         print('Temp downloads and destination.', down_dir, filter_dir)
 
-        log_chan = self.msg.guild.get_channel(cog.util.CONF.channels.pvp_log)
-        coros, upload_stage = [], []
-        if self.args.attachment:
-            self.args.attachment = ' '.join(self.args.attachment)
-            await self.bot.send_message(self.msg.channel, f"Resuming filter generation after: {self.args.attachment}")
+        filter_chan = self.bot.get_channel(cog.util.CONF.channels.pvp_filter)
+        await deleted_existing_filtered_msgs(filter_chan=filter_chan, eddb_session=self.eddb_session)
 
         try:
             with cfut.ProcessPoolExecutor(max_workers=10) as pool:
-                async for msg in log_chan.history(limit=1000000, oldest_first=True):
-                    attach_names = {x.filename for x in msg.attachments}
-                    if not msg.content.startswith('Discord ID') or \
-                            (self.args.attachment and self.args.attachment not in attach_names):
-                        continue
-                    if self.args.attachment and self.args.attachment in attach_names:
-                        self.args.attachment = None  # Start reading next one
-                        continue
+                cmdr_to_filters = await retrieve_filter_logs(
+                    eddb_session=self.eddb_session, pool=pool,
+                    log_chan=self.msg.guild.get_channel(cog.util.CONF.channels.pvp_log),
+                    down_dir=down_dir, filter_dir=filter_dir,
+                    callback_errors=self.msg.channel.send,
+                )
 
-                    discord_id = int(msg.content.split('\n')[0].replace('Discord ID: ', ''))
-                    cmdr = pvp.schema.get_pvp_cmdr(self.eddb_session, cmdr_id=discord_id)
-                    if not cmdr:  # If you don't have the pvp_cmdr, fill it
-                        cmdr_name = msg.content.split('\n')[1].replace('CMDR: ', '')
-                        cmdr = pvp.schema.update_pvp_cmdr(self.eddb_session, discord_id,
-                                                          name=cmdr_name, hex_colour=None)
+            loop = asyncio.get_event_loop()
+            for info in cmdr_to_filters.values():
+                grouped = await loop.run_in_executor(
+                    None,
+                    functools.partial(
+                        pvp.journal.group_filtered_logs,
+                        filtered_logs=info['records']
+                    )
+                )
 
-                    for attach in msg.attachments:
-                        with tempfile.NamedTemporaryFile(dir=down_dir, delete=False) as tfile:
-                            await attach.save(tfile.name)
-                            tfile.close()
-                            print(f'Filtering: {attach.filename}')
+                archives = await loop.run_in_executor(
+                    None,
+                    functools.partial(
+                        pvp.journal.archive_filtered_logs,
+                        target_dir=filter_dir, base_name=info['cmdr'].name, grouped_logs=grouped
+                    )
+                )
 
-                            # Ensure log exists
-                            pvp_log = await pvp.schema.add_pvp_log(self.eddb_session, tfile.name, cmdr_id=cmdr.id)
-                            pvp_log.filename = attach.filename
-                            pvp_log.msg_id = msg.id
-
-                            try:
-                                coro = await pvp.journal.filter_tempfile(
-                                    pool=pool, dest_dir=filter_dir,
-                                    fname=tfile.name, output_fname=pvp_log.filtered_filename,
-                                    attach_fname=attach.filename
-                                )
-                                coros += [coro]
-                                upload_stage += [[cmdr, pvp_log, coro]]
-                            except pvp.journal.ParserError as exc:
-                                await self.msg.channel.send(str(exc))
-
-                self.eddb_session.commit()
-                await asyncio.wait(coros)
-
-                filter_chan = self.bot.get_channel(cog.util.CONF.channels.pvp_filter)
-                await pvp.journal.upload_filtered_logs(upload_stage, log_chan=filter_chan)
-
+                await pvp.journal.upload_filtered_archives(filter_chan=filter_chan, cmdr=info['cmdr'], archives=archives)
         finally:
-            shutil.rmtree(down_dir)
-            shutil.rmtree(filter_dir)
+            try:
+                shutil.rmtree(down_dir)
+                shutil.rmtree(filter_dir)
+            except OSError:
+                self.log.error("Critical error cleaning: %s and %s", down_dir, filter_dir)
 
-        return f"Filtered: {len(coros)} files in {filter_dir}."
+        return "Filtering operation completed."
 
     async def regenerate(self):  # pragma: no cover, don't hit the guild repeatedly
         """
@@ -1159,3 +1141,106 @@ async def ensure_cmdr_exists(eddb_session, *, client, msg, fname):  # pragma: no
         cmdr = await cmdr_setup(eddb_session, client, msg, cmdr_name=cmdr_name)
 
     return cmdr
+
+
+async def deleted_existing_filtered_msgs(*, filter_chan, eddb_session):
+    """
+    Delete all existing filtered message uploads from filter_chan.
+    """
+    for msg_id in pvp.schema.get_filtered_msg_ids(eddb_session):
+        try:
+            msg = await filter_chan.fetch_message(msg_id)
+            await msg.delete()
+        except (discord.NotFound, discord.Forbidden):
+            pass
+
+
+# FIXME:Small issue, need to deal with duplicate uploads being downloaded and assigned same PVPLog in grouping state of filtering.
+async def retrieve_filter_logs(*, eddb_session, pool, log_chan, down_dir, filter_dir, callback_errors):  # pragma: no cover
+    """
+    Retrieve and filter logs at a high level. This is a multi step process.
+        0) Validate the message was an upload, and if needed make a PVPCmdr and PVPLog record for it.
+           This step allows the reconstruction of the database from blank.
+        1) Download all log files uploaded on log_chan to down_dir to a temporary file.
+        2) While downloading, every file (log or archive) should be filtered while downloads occurring.
+        3) Await all downloads and filter operations complete.
+
+    Args:
+        eddb_session: A session onto the EDDB db.
+        pool: An instance of ProcessPoolExecutor, to offload filtering.
+        log_chan: The dicord.TextChannel where original logs uploaded (unfiltered).
+        down_dir: The directory to download logs to.
+        filter_dir: The directory to place filtered logs.
+        callback_errors: A callback to emit errors during processing of downloaded logs.
+
+    Returns: cmdr_to_filters: A complex nested object describing the mapping of cmdrs to their filtered logs and the PVPLog for each.
+
+        {
+            <discord_id>: {
+                'cmdr': <PVPCmdr>,
+                'records': [
+                    {
+                        'pvplog': <PVPLog>,
+                        'fname': path to filtered file
+                    },
+                    ...
+                ],
+            },
+            ...
+        }
+    """
+    coros, cmdr_to_filters = [], {}
+
+    async for msg in log_chan.history(limit=10000000, oldest_first=True):
+        if not msg.content.startswith('Discord ID'):  # Sanity guard against non upload messages
+            continue
+
+        lines = msg.content.split('\n')
+        discord_id = int(lines[0].replace('Discord ID: ', ''))
+        cmdr = pvp.schema.get_pvp_cmdr(eddb_session, cmdr_id=discord_id)
+        if not cmdr:  # If you don't have the pvp_cmdr, fill it
+            cmdr = pvp.schema.update_pvp_cmdr(
+                eddb_session, discord_id, name=lines[1].replace('CMDR: ', '')
+            )
+            eddb_session.commit()
+
+        for attach in msg.attachments:
+            with tempfile.NamedTemporaryFile(dir=down_dir, delete=False) as tfile:
+                await attach.save(tfile.name)
+                print(f'Saved: {attach.filename}')
+
+                # Ensure log exists for each attachment
+                pvp_log = await pvp.schema.add_pvp_log(eddb_session, tfile.name, cmdr_id=discord_id)
+                pvp_log.filename = attach.filename
+                pvp_log.msg_id = msg.id
+
+                try:
+                    coro = await pvp.journal.filter_tempfile(
+                        pool=pool, dest_dir=filter_dir,
+                        fname=tfile.name, output_fname=pvp_log.filtered_filename,
+                        attach_fname=attach.filename
+                    )
+                    coros += [coro]
+
+                    record = {
+                        'pvplog': pvp_log,
+                        'fname': coro,  # coro.result() is the fname of filtered file when done
+                    }
+                    try:
+                        cmdr_to_filters[discord_id]['records'] += [record]
+                    except KeyError:
+                        cmdr_to_filters[discord_id] = {
+                            'cmdr': cmdr,
+                            'records': [record]
+                        }
+                except pvp.journal.ParserError as exc:
+                    await callback_errors(str(exc))
+
+    # On resuming, all download and filter operations done
+    await asyncio.wait(coros)
+
+    for _, info in cmdr_to_filters.items():  # Replace coros with their result filenames
+        for record in info['records']:
+            record['fname'] = record['fname'].result()
+
+    return cmdr_to_filters

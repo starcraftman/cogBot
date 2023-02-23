@@ -360,3 +360,39 @@ async def test_filter_tempfile_fails(f_plog_file):
                 await fut
         finally:
             shutil.rmtree(tempd)
+
+
+def test_group_filtered_logs(f_plog_file, f_plog_zip):
+    filtered_logs = [
+        {'fname': f_plog_file},
+        {'fname': f_plog_file},
+        {'fname': f_plog_zip},
+        {'fname': f_plog_zip},
+    ]
+    log_size = f_plog_zip.stat().st_size
+
+    groups = pvp.journal.group_filtered_logs(filtered_logs=filtered_logs, size_limit=log_size)
+    assert len(groups) == 3
+    assert groups[0] == [{'fname': f_plog_file}, {'fname': f_plog_file}]
+    assert groups[-1] == [{'fname': f_plog_zip}]
+
+
+def test_archive_filtered_logs(f_plog_file, f_plog_zip):
+    tempd = pathlib.Path('/tmp/tmpfilter')
+    tempd.mkdir()
+    filtered_logs = [
+        {'fname': f_plog_file},
+        {'fname': f_plog_file},
+        {'fname': f_plog_zip},
+        {'fname': f_plog_zip},
+    ]
+    log_size = f_plog_zip.stat().st_size
+
+    try:
+        groups = pvp.journal.group_filtered_logs(filtered_logs=filtered_logs, size_limit=log_size)
+        result = pvp.journal.archive_filtered_logs(target_dir=tempd, base_name='test', grouped_filtered_logs=groups)
+        assert len(result) == 3
+        fname, _ = list(result.items())[0]
+        assert pathlib.Path(fname).exists()
+    finally:
+        shutil.rmtree(tempd)

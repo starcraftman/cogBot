@@ -737,6 +737,7 @@ class PVPLog(ReprMixin, TimestampMixin, Base):
 
     cmdr = sqla.orm.relationship('PVPCmdr', viewonly=True)
 
+    # TODO: This should be obsoleted given filtering changes
     @property
     def filtered_filename(self):
         """ The filtered filename for zips and logs. """
@@ -1329,6 +1330,22 @@ async def add_pvp_log(eddb_session, fname, *, cmdr_id):
         eddb_session.flush()
 
     return pvp_log
+
+
+def get_filtered_msg_ids(eddb_session):
+    """
+    Get all unique filtered msg IDs.
+
+    Args:
+        eddb_session: A session onto the EDDB db.
+
+    Returns: A set of unique discord message IDs.
+    """
+    return {
+        x[0] for x in eddb_session.query(PVPLog.filtered_msg_id).
+        filter(PVPLog.filtered_msg_id).
+        group_by(PVPLog.filtered_msg_id)
+    }
 
 
 def get_filtered_pvp_logs(eddb_session):

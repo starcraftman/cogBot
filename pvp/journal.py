@@ -666,34 +666,79 @@ async def filter_tempfile(*, pool, dest_dir, fname, output_fname, attach_fname):
     return asyncio.get_event_loop().run_in_executor(pool, func)
 
 
-# TODO: Attach 10 files at a time, send only when at 10 or last amount
-async def upload_filtered_logs(filtered_logs, *, log_chan):  # pragma: no cover, not worth testing
+def group_filtered_logs(*, filtered_logs, size_limit=cog.util.DISCORD_FILE_LIMIT):
+    """
+    Map filtered logs onto groupings less than size_limit.
+    Groups will be comprised of at least 1 file and will be under size_limit unless
+    the single file exceeds it.
+
+    Args:
+        filtered_logs: The list of objects to group by local size of file, of form: [{'fname': <path>}]
+        size_limit: The limit of total size of all files in a grouping.
+
+    Returns: The groupings of filtered_logs records.
+    """
+    group, groups = [], []
+    total_size = 0
+
+    for log in filtered_logs:
+        fname = pathlib.Path(log['fname'])
+        size = fname.stat().st_size
+
+        if group and total_size + size > size_limit:
+            groups += [group]
+            group = []
+            total_size = 0
+
+        total_size += size
+        group += [log]
+
+    if group:
+        groups += [group]
+
+    return groups
+
+
+def archive_filtered_logs(*, target_dir, base_name, grouped_logs):
+    """
+    Archive a collection of filtered logs associated to one CMDR.
+    Break the archives into the LEAST amount that fit under cog.util.DISCORD_FILE_LIMIT
+
+    Args:
+        base_name: The base pathlib.Path object containing the common root for all archives.
+        groups: The groupings of logs to map onto archives.
+    """
+    mapped_archives = {}
+
+    for num, group in enumerate(grouped_logs):
+        ddir = pathlib.Path(target_dir) / f'{base_name}_{num:02}'
+        ddir.mkdir()
+        for rec in group:
+            shutil.copy2(rec['fname'], ddir)
+
+        shutil.make_archive(ddir, 'zip', ddir.parent, ddir.name)
+
+        archive = ddir.parent / (ddir.name + '.zip')
+        mapped_archives[str(archive)] = group
+
+    return mapped_archives
+
+
+async def upload_filtered_archives(*, filter_chan, cmdr, archives):  # pragma: no cover, not worth testing
     """
     Upload the generated filter file to the log channel.
     If existing filtered files are already set in the database, delete and nullify those.
 
     Args:
-        filtered_logs: A list of form [[PVPLog, coro], ...].
-                       The coro is the result of filter_tempfile and result returns the new filtered fname.
         log_chan: The log channel to push the filtered logs to.
+        filtered_archives: A list of archive objects as created by archive_filtered_logs.
     """
-    for pvp_cmdr, pvp_log, coro in filtered_logs:
-        filtered_fname = pathlib.Path(coro.result())
+    for archive, records in archives.items():
+        archive_msg = await filter_chan.send(upload_text(cmdr), file=discord.File(fp=archive))
 
-        # If reuploading, delete old filters
-        if pvp_log.filtered_msg_id:
-            try:
-                msg = await log_chan.fetch_message(pvp_log.filtered_msg_id)
-                await msg.delete()
-            except (discord.NotFound, discord.Forbidden):
-                pass
-            pvp_log.filtered_msg_id = None
-            pvp_log.filtered_fname = None
-
-        if filtered_fname.stat().st_size:
-            msg = await log_chan.send(upload_text(pvp_cmdr), file=discord.File(fp=filtered_fname))
-            pvp_log.filtered_fname = filtered_fname
-            pvp_log.filtered_msg_id = msg.id
+        # Update all pvplogs for files in this archive to point to the uploaded msg
+        for record in records:
+            record['pvplog'].filtered_msg_id = archive_msg.id
 
         await asyncio.sleep(DISCORD_RATE_LIMIT)
 

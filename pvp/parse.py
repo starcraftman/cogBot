@@ -44,9 +44,6 @@ def subs_admin(subs, prefix):
 **{prefix}admin filter**
         Rerun the filtering stage on all past uploads.
         Filtered versions of uploads will be created and uploaded to archive channel.
-**{prefix}admin filter attachment_name**
-        Rerun the filtering stage on all past uploads.
-        Resume AFTER the provided attachment seen.
 **{prefix}admin regenerate**
         Use only when log corruption expected or change in log parsing.
         Reparses all uploaded logs to regenerate database.
@@ -67,7 +64,6 @@ def subs_admin(subs, prefix):
     subcmd = subcmds.add_parser('remove', help='Remove an admin or permission.')
     subcmd.add_argument('rule_cmds', nargs='*', help='The the command to restrict.')
     subcmd = subcmds.add_parser('filter', help='Filter all existing log uploads for events of interest.')
-    subcmd.add_argument('attachment', nargs='*', help='The name of the attachment to start AFTER..')
     subcmd = subcmds.add_parser('regenerate', help='Regenerate the PVP database.')
     subcmd = subcmds.add_parser('stats', help='Regenerate the PVPStats for all CMDRs.')
     subcmd = subcmds.add_parser('prune', help='Delete messages in one or more mentioned channels.')
