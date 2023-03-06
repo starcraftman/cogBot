@@ -7,6 +7,7 @@ import datetime
 import tempfile
 import functools
 import logging
+import os
 import pathlib
 import re
 import shutil
@@ -136,15 +137,17 @@ class Admin(PVPAction):
         """
         Regenerate just the stats given the current set of events.
         """
+        await self.bot.send_message(self.msg.channel, "All uploads will be denied while regeneration underway. Please wait while downloading original logs, may take a while.")
         filter_dir = pathlib.Path(tempfile.mkdtemp(suffix='filter'))
         down_dir = tempfile.mkdtemp(suffix='downs')
         print('Temp downloads and destination.', down_dir, filter_dir)
 
+        loop = asyncio.get_event_loop()
         filter_chan = self.bot.get_channel(cog.util.CONF.channels.pvp_filter)
-        await deleted_existing_filtered_msgs(filter_chan=filter_chan, eddb_session=self.eddb_session)
+        await delete_existing_filtered_msgs(filter_chan=filter_chan, eddb_session=self.eddb_session)
 
         try:
-            with cfut.ProcessPoolExecutor(max_workers=10) as pool:
+            with cfut.ProcessPoolExecutor(max_workers=os.cpu_count()) as pool:
                 cmdr_to_filters = await retrieve_filter_logs(
                     eddb_session=self.eddb_session, pool=pool,
                     log_chan=self.msg.guild.get_channel(cog.util.CONF.channels.pvp_log),
@@ -152,7 +155,7 @@ class Admin(PVPAction):
                     callback_errors=self.msg.channel.send,
                 )
 
-            loop = asyncio.get_event_loop()
+            await self.bot.send_message(self.msg.channel, "Downloads and filtering complete, proceding to upload phase.")
             for info in cmdr_to_filters.values():
                 grouped = await loop.run_in_executor(
                     None,
@@ -193,66 +196,45 @@ class Admin(PVPAction):
         response = "Regenerating PVP database has completed."
         pvp.schema.recreate_tables(keep_cmdrs=True)
 
-        down_dir = tempfile.mkdtemp(suffix='downs')
+        down_dir = pathlib.Path(tempfile.mkdtemp(suffix='downs'))
         print(f"Regeneration down dir: {down_dir}")
-        cmdr_to_info = {}
 
         pvp_logs = pvp.schema.get_filtered_pvp_logs(self.eddb_session)
         if not pvp_logs:
             await self.msg.channel.send('No PVPLogs found.')
             return
 
+        loop = asyncio.get_event_loop()
+        filter_chan = self.bot.get_channel(cog.util.CONF.channels.pvp_filter)
+
+        cmdr_logs = await loop.run_in_executor(
+            None,
+            pvp.schema.get_filtered_archives_by_cmdr, self.eddb_session
+        )
         try:
-            # Channel archiving filtered pvp_logs
-            filter_chan = self.bot.get_channel(cog.util.CONF.channels.pvp_filter)
-            for pvp_log in pvp_logs:
-                msg = await filter_chan.fetch_message(pvp_log.filtered_msg_id)
+            with cfut.ProcessPoolExecutor(max_workers=os.cpu_count()) as pool:
+                coros, to_handle, log_fnames = await fetch_filtred_archives(
+                    filter_chan=filter_chan, cmdr_logs=cmdr_logs, down_dir=down_dir, pool=pool, loop=loop
+                )
 
-                discord_id = int(msg.content.split('\n')[0].replace('Discord ID: ', ''))
-                cmdr = pvp.schema.get_pvp_cmdr(self.eddb_session, cmdr_id=discord_id)
-                if not cmdr:  # If you don't have the pvp_cmdr, fill it
-                    cmdr_name = msg.content.split('\n')[1].replace('CMDR: ', '')
-                    cmdr = pvp.schema.update_pvp_cmdr(self.eddb_session, discord_id, name=cmdr_name)
+                await self.msg.channel.send("Waiting while logs are parsed.")
 
-                for attach in msg.attachments:
-                    with tempfile.NamedTemporaryFile(dir=down_dir, delete=False) as tfile:
-                        await attach.save(tfile.name)
-                    print(f'Downloaded: {attach.filename}')
+                # Allow max one job per cmdr_id concurrently
+                while coros:
+                    await asyncio.wait(coros, return_when=asyncio.FIRST_COMPLETED)
+                    func = functools.partial(update_regenerate_coros,
+                                             coros=coros, to_handle=to_handle, pool=pool, loop=loop)
+                    coros = await loop.run_in_executor(None, func)
 
-                    try:
-                        record = {
-                            'fname': tfile.name,
-                            'attach_fname': attach.filename,
-                        }
-                        cmdr_to_info[discord_id] += [record]
-                    except KeyError:
-                        cmdr_to_info[discord_id] = [record]
-
-            self.eddb_session.commit()  # Flush any added CMDRs
-            await self.msg.channel.send("Parsing the logs.")
-
-            coros = []
-            loop = asyncio.get_event_loop()
-            with cfut.ProcessPoolExecutor(max_workers=10) as pool:
-                for cmdr_id, info in cmdr_to_info.items():
-                    coros += [loop.run_in_executor(pool, functools.partial(process_cmdr_tempfiles, cmdr_id=cmdr_id, info=info))]
-
-                await asyncio.wait(coros)
-
-            events = functools.reduce(lambda x, y: x + y, [x.result() for x in coros])
-            events = [f'{x}\n' for x in events]
-            fnames = await cog.util.grouped_text_to_files(
-                grouped_lines=cog.util.group_by_filesize(events),
-                tdir=down_dir, fname_gen=lambda num: f'parsed_{num:02}.txt'
-            )
-            for num, fname in enumerate(fnames, start=1):
-                await self.msg.channel.send(f'All logs parsed. Part {num} of parsed events log.',
-                                            file=discord.File(fp=fname))
+                for num, fname in enumerate(log_fnames, start=1):
+                    await self.msg.channel.send(f'All logs parsed. Part {num} of {len(log_fnames)} parsed events log.',
+                                                file=discord.File(fp=fname))
 
         except discord.Forbidden as exc:
             logging.getLogger(__name__).error('Discord error: %s', exc)
             response = f"Missing message history permission on: {filter_chan.name} on {filter_chan.guild.name}"
-        except discord.HTTPException:
+        except discord.HTTPException as exc:
+            logging.getLogger(__name__).error('Discord error: %s', exc)
             response = "Received HTTP Error, may be intermittent issue. Investigate."
         finally:
             try:
@@ -1073,6 +1055,62 @@ def process_cmdr_tempfiles(*, cmdr_id, info):
     return logs
 
 
+def process_filtered_archive(*, fname, cmdr_id, attach_fname, log_fname):
+    """
+    Process a downloaded filtered archive.
+    Run this in a separate process per file.
+
+    Args:
+        fname: The absolute path to the archive containing filtered logs and zips for a single CMDR.
+        cmdr_id: The ID of the CMDR whose logs are being processed.
+        attach_fname: The name of the original attachment containing all records.
+        logs_fname: The absolute path to a file to write out all processed log information.
+
+    Returns: A tuple of: (cmdr_id, logs_fname)
+        cmdr_id: The ID of the CMDR
+        log_fname: The filename containing all the parsed information.
+    """
+    lines = []
+
+    with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
+        with cog.util.extracted_archive(fname, glob_pat='**/*.log') as logs:
+            for logf in logs:
+                lines += process_log(logf, cmdr_id=cmdr_id, eddb_session=eddb_session)
+
+        with cog.util.extracted_archive(fname, glob_pat='**/*.zip') as logs:
+            for logf in logs:
+                lines += process_archive(logf, attach_fname=attach_fname, cmdr_id=cmdr_id, eddb_session=eddb_session)
+
+    with open(log_fname, 'w', encoding='utf-8') as fout:
+        fout.writelines([f'{line}\n' for line in lines])
+
+    return cmdr_id
+
+
+def update_regenerate_coros(*, coros, to_handle, pool, loop):  # pragma: no cover
+    """
+    Manage running coros during the regeneration operation.
+
+    Args:
+        coros: The list of coroutines running, they are Future objects.
+        to_handle: A dictionary of jobs to start indexed by cmdr, see Admin.regenerate
+        pool: A ProcessPoolExecutor instance.
+        loop: The active running loop.
+
+    Returns: Coros that still need to finish. If done, it will be empty list.
+    """
+    not_finished = [x for x in coros if not x.done()]
+
+    for finished in [x for x in coros if x.done()]:
+        cmdr_id = finished.result()
+        if to_handle[cmdr_id]:
+            next_job = to_handle[cmdr_id].pop()
+            func = functools.partial(process_filtered_archive, **next_job)
+            not_finished += [loop.run_in_executor(pool, func)]
+
+    return not_finished
+
+
 def get_privacy_versions(privacy_dir):
     """
     Get available privacy versions.
@@ -1143,16 +1181,18 @@ async def ensure_cmdr_exists(eddb_session, *, client, msg, fname):  # pragma: no
     return cmdr
 
 
-async def deleted_existing_filtered_msgs(*, filter_chan, eddb_session):
+async def delete_existing_filtered_msgs(*, filter_chan, eddb_session):
     """
     Delete all existing filtered message uploads from filter_chan.
     """
+    log = logging.getLogger(__name__)
     for msg_id in pvp.schema.get_filtered_msg_ids(eddb_session):
         try:
             msg = await filter_chan.fetch_message(msg_id)
             await msg.delete()
-        except (discord.NotFound, discord.Forbidden):
-            pass
+            log.error("Deleted: %s", str(msg_id))
+        except (discord.NotFound, discord.Forbidden) as exc:
+            log.error("Failed to delete: %s, %s", str(msg_id), str(exc))
 
 
 # FIXME:Small issue, need to deal with duplicate uploads being downloaded and assigned same PVPLog in grouping state of filtering.
@@ -1244,3 +1284,49 @@ async def retrieve_filter_logs(*, eddb_session, pool, log_chan, down_dir, filter
             record['fname'] = record['fname'].result()
 
     return cmdr_to_filters
+
+
+async def fetch_filtred_archives(*, filter_chan, cmdr_logs, down_dir, loop, pool):  # pragma: no cover
+    """
+    Fetch all filtered archives and start processing jobs on the pool provided.
+
+    Args:
+        filter_chan: The discord.TextChannel object that stores the msgs to retrieve.
+        cmdr_logs: The map of cmdr_ids onto the msg_ids needed to download.
+        down_dir: The pathlib.Path to a directory to store all downloaded attachments.
+        loop: The active loop running.
+        pool: An instance of ProcessPoolExecutor to start jobs on.
+
+    Returns: (coros, to_handle, log_fnames)
+        coros: The coroutines that have started to process downloaded archives.
+        to_handle: The stored information for following jobs once the coros have completed.
+        log_fnames: The filenames of logs that will have the processed information.
+    """
+    coros, log_fnames = [], []
+    to_handle = {}
+
+    for cmdr_id, msg_ids in cmdr_logs.items():
+        for msg_id in msg_ids:
+            cmdr_logs[cmdr_id] = cmdr_logs[cmdr_id][1:]
+            msg = await filter_chan.fetch_message(msg_id)
+            for attach in msg.attachments:
+                with tempfile.NamedTemporaryFile(dir=str(down_dir), delete=False) as tfile:
+                    await attach.save(tfile.name)
+
+                print(f'Downloaded: {attach.filename}')
+                kwargs = {
+                    'cmdr_id': cmdr_id,
+                    'attach_fname': attach.filename,
+                    'fname': tfile.name,
+                    'log_fname': down_dir / f'{attach.filename}.log',
+                }
+                log_fnames += [kwargs['log_fname']]
+                try:
+                    to_handle[cmdr_id] += [kwargs]
+                except KeyError:
+                    to_handle[cmdr_id] = [kwargs]
+                    # Start first job while downloading
+                    func = functools.partial(process_filtered_archive, **kwargs)
+                    coros += [loop.run_in_executor(pool, func)]
+
+    return coros, to_handle, log_fnames

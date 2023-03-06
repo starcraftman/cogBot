@@ -390,7 +390,7 @@ def test_archive_filtered_logs(f_plog_file, f_plog_zip):
 
     try:
         groups = pvp.journal.group_filtered_logs(filtered_logs=filtered_logs, size_limit=log_size)
-        result = pvp.journal.archive_filtered_logs(target_dir=tempd, base_name='test', grouped_filtered_logs=groups)
+        result = pvp.journal.archive_filtered_logs(target_dir=tempd, base_name='test', grouped_logs=groups)
         assert len(result) == 3
         fname, _ = list(result.items())[0]
         assert pathlib.Path(fname).exists()

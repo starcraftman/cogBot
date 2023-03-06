@@ -1073,3 +1073,27 @@ def f_plog_zip():
             os.remove(archive)
         except OSError:
             pass
+
+
+@pytest.fixture
+def f_plog_filtered(f_plog_zip, f_plog_file):
+    """
+    Create an example filtered archive, has a log and a zip of logs inside.
+    """
+    pat = pathlib.Path(tempfile.mkdtemp())
+    archive = pat.parent.joinpath(pat.name + '.zip')
+    try:
+        shutil.copy(f_plog_zip, pat)
+        shutil.copy(f_plog_file, pat)
+        shutil.make_archive(pat, 'zip', pat.parent, pat.name)
+
+        yield archive
+    finally:
+        try:
+            shutil.rmtree(pat)
+        except OSError:
+            pass
+        try:
+            os.remove(archive)
+        except OSError:
+            pass

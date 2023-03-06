@@ -1348,6 +1348,31 @@ def get_filtered_msg_ids(eddb_session):
     }
 
 
+def get_filtered_archives_by_cmdr(eddb_session):
+    """
+    Get a list of all messages with filtered archives.
+    Create a map of cmdr_ids -> list of archives with logs for that cmdr.
+
+    Args:
+        eddb_session: A session onto the EDDB db.
+
+    Returns: A list of PVPLogs with filtered files to retrieve.
+    """
+    pvp_logs = eddb_session.query(PVPLog).\
+        filter(PVPLog.filtered_msg_id).\
+        group_by(PVPLog.filtered_msg_id).\
+        all()
+
+    mapped_logs = {}
+    for pvp_log in pvp_logs:
+        try:
+            mapped_logs[pvp_log.cmdr_id] += [pvp_log.filtered_msg_id]
+        except KeyError:
+            mapped_logs[pvp_log.cmdr_id] = [pvp_log.filtered_msg_id]
+
+    return mapped_logs
+
+
 def get_filtered_pvp_logs(eddb_session):
     """
     Get all PVPLogs that have been filtered and have useful information to process.

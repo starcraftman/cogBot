@@ -705,8 +705,9 @@ def archive_filtered_logs(*, target_dir, base_name, grouped_logs):
     Break the archives into the LEAST amount that fit under cog.util.DISCORD_FILE_LIMIT
 
     Args:
-        base_name: The base pathlib.Path object containing the common root for all archives.
-        groups: The groupings of logs to map onto archives.
+        target_dir: The target directory to put the archive in.
+        base_name: The base filename without extension to name the archive.
+        grouped_logs: The groupings of logs to map onto archives.
     """
     mapped_archives = {}
 

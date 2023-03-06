@@ -4,6 +4,7 @@ Tests for pvp.actions
 """
 import concurrent.futures as cfut
 import functools
+import shutil
 import tempfile
 import zipfile
 
@@ -475,3 +476,10 @@ async def test_get_privacy_stmt():
 async def test_get_privacy_stmt_fails():
     with pytest.raises(cog.exc.InvalidCommandArgs):
         await pvp.actions.get_privacy_stmt(cog.util.CONF.paths.privacy, version='bad')
+
+
+def test_process_filtered_archive(f_pvp_testbed, f_plog_filtered):
+    with tempfile.NamedTemporaryFile() as log:
+        pvp.actions.process_filtered_archive(fname=f_plog_filtered, cmdr_id=1, attach_fname='fixture_00.zip', log_fname=log.name)
+        with open(log.name, 'r', encoding='utf-8') as fin:
+            assert fin.read()
