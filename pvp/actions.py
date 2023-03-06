@@ -300,8 +300,10 @@ class FileUpload(PVPAction):  # pragma: no cover
         Handle the file upload. Parts that are long will offload to the pool.
         This involves several steps now for each attachment:
         - Upload to archive if new.
-        - Filter the file and upload a filtered version to filter channel.
+        - Filter the file to just the lines needed
         - Process all events in the file and return a message to user with processed information.
+
+        N.B. We will not upload filtered to filter channel, rerun the filtering command manually to resolve.
 
         Args:
             pool: An instance of ProcessPoolExecutor.
@@ -309,8 +311,6 @@ class FileUpload(PVPAction):  # pragma: no cover
 
         Returns: A list of events parsed from the log uploaded.
         """
-        filter_chan = self.bot.get_channel(cog.util.CONF.channels.pvp_filter)
-
         for attach in self.msg.attachments:
             if attach.size > cog.util.DISCORD_FILE_LIMIT:
                 await self.bot.send_message(self.msg.channel, f'Rejecting file {attach.filename}, please upload files < 8MB')
@@ -332,9 +332,6 @@ class FileUpload(PVPAction):  # pragma: no cover
                         pool=pool, dest_dir=filter_dir,
                         fname=tfile.name, output_fname=pvp_log.filtered_filename, attach_fname=attach.filename
                     )
-                    upload_stage = [[cmdr, pvp_log, filter_coro]]
-                    await filter_coro
-                    await pvp.journal.upload_filtered_logs(upload_stage, log_chan=filter_chan)
 
                     # Process the log that was filtered
                     process_coro = await asyncio.get_event_loop().run_in_executor(
