@@ -342,6 +342,10 @@ class FileUpload(PVPAction):  # pragma: no cover
                         )
                     )
                     await process_coro
+                    await asyncio.get_event_loop().run_in_executor(
+                        None,
+                        pvp.schema.update_pvp_stats, self.eddb_session, self.msg.author.id
+                    )
                     return process_coro.result()
 
                 except (pvp.journal.ParserError, zipfile.BadZipfile):
@@ -1304,7 +1308,6 @@ async def fetch_filtred_archives(*, filter_chan, cmdr_logs, down_dir, loop, pool
 
     for cmdr_id, msg_ids in cmdr_logs.items():
         for msg_id in msg_ids:
-            cmdr_logs[cmdr_id] = cmdr_logs[cmdr_id][1:]
             msg = await filter_chan.fetch_message(msg_id)
             for attach in msg.attachments:
                 with tempfile.NamedTemporaryFile(dir=str(down_dir), delete=False) as tfile:
@@ -1323,7 +1326,6 @@ async def fetch_filtred_archives(*, filter_chan, cmdr_logs, down_dir, loop, pool
                 except KeyError:
                     to_handle[cmdr_id] = [kwargs]
                     # Start first job while downloading
-                    func = functools.partial(process_filtered_archive, **kwargs)
-                    coros += [loop.run_in_executor(pool, func)]
+                    coros += [loop.run_in_executor(pool, functools.partial(process_filtered_archive, **kwargs))]
 
     return coros, to_handle, log_fnames
