@@ -707,7 +707,6 @@ class Match(PVPAction):
                 )
                 return
 
-            # FIXME: Add tests for this case
             if match and self.args.subcmd in {'start', 'add', 'remove', 'join', 'leave'} and match.state == pvp.schema.PVPMatchState.STARTED:
                 await self.bot.send_message(
                     self.msg.channel,

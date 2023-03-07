@@ -174,6 +174,15 @@ class TestCMDMatch:
         assert dembed['fields'][-2]['name'] == 'Team 1'
         assert dembed['fields'][-1]['name'] == 'Team 2'
 
+    async def test_start_warning(self, f_bot, f_pvp_testbed):
+        msg = fake_msg_gears("!match start")
+        msg.channel.id = 99
+
+        await action_map(msg, f_bot).execute()
+        assert 'The current match has been started.' in f_bot.send_message.call_args[0][-1]
+        await action_map(msg, f_bot).execute()
+        assert 'Please finish started match' in f_bot.send_message.call_args[0][-1]
+
     async def test_cancel_nomatch(self, f_bot, f_pvp_testbed):
         msg = fake_msg_gears("!match cancel")
 
