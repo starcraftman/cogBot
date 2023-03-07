@@ -1169,6 +1169,31 @@ def get_system_ages(session, controls, cutoff=1):
     return map_ages
 
 
+def service_status(side_session):
+    """
+    Poll sidewinder remote and return useful information based on state.
+    Used for dashboard summary.
+
+    Args:
+        side_session: A session onto Sidewinder's db.
+
+    Returns: A list of cells to format into a 2 column wide table.
+    """
+    try:
+        estimate = side_session.query(BGSTick).order_by(BGSTick.unix_from.desc()).limit(1).one()
+        cells = [
+            ['Sidewinder DB', 'Up'],
+            ['Last estimated tick', f'{estimate.tick}'],
+        ]
+    except sqla_exe.OperationalError:
+        cells = [
+            ['Sidewinder DB', 'Down'],
+            ['Last estimated tick', 'Unknown'],
+        ]
+
+    return cells
+
+
 def main():  # pragma: no cover
     """ Main function to test against side. """
     #  with cogdb.session_scope(cogdb.SideSession) as side_session:

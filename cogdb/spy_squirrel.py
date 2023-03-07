@@ -391,6 +391,11 @@ class SpySystem(ReprMixin, TimestampMixin, Base):
     def __hash__(self):
         return hash(f"{self.power_id}_{self.ed_system_id}")
 
+    @property
+    def held_updated_date(self):
+        """The update at date as a naive datetime object."""
+        return datetime.datetime.utcfromtimestamp(self.held_updated_at)
+
     @hybrid_property
     def is_expansion(self):
         """ Is this an expansion system? """
@@ -1257,6 +1262,58 @@ def preload_spy_tables(eddb_session):
         SpyShip(id=39, text="PlayerCarrier", traffic_text="carrierdockb"),
     ])
     eddb_session.commit()
+
+
+async def service_status(eddb_session):
+    """
+    Poll for the status of the spy service.
+
+    Args:
+        eddb_session: A session onto the EDDB db.
+
+    Returns: A list of cells to format into a 2 column wide table.
+    """
+    now = datetime.datetime.utcnow()
+    try:
+        await cog.util.get_url(cog.util.CONF.scrape.url)  # Sanity check service up
+        liveness = 'Up'
+    except cog.exc.RemoteError:
+        liveness = 'Down'
+
+    try:
+        recent = eddb_session.query(SpySystem).\
+            order_by(SpySystem.updated_at.asc(), SpySystem.system_name).\
+            limit(1).\
+            one()
+        hudson_power = eddb_session.query(Power.id).filter(Power.text.ilike("%hudson")).scalar()
+        hudson = eddb_session.query(SpySystem).\
+            join(Power, Power.id == SpySystem.power_id).\
+            filter(SpySystem.power_id == hudson_power).\
+            order_by(SpySystem.held_updated_at.asc(), SpySystem.system_name).\
+            limit(1).\
+            one()
+        winters_power = eddb_session.query(Power.id).filter(Power.text.ilike("%winters")).scalar()
+        winters = eddb_session.query(SpySystem).\
+            filter(SpySystem.power_id == winters_power).\
+            order_by(SpySystem.held_updated_at.asc(), SpySystem.system_name).\
+            limit(1).\
+            one()
+
+        cells = [
+            ['Spy Squirrel', liveness],
+            ['Oldest Fort Info', f'{recent.system_name} ({now - recent.updated_date} ago)'],
+            ['Hudson Oldest Held Merits', f'{hudson.system_name} ({now - hudson.held_updated_date} ago)'],
+            ['Winters Oldest Held Merits', f'{winters.system_name} ({now - winters.held_updated_date} ago)'],
+        ]
+    except sqla_orm.exc.NoResultFound:
+        cells = [
+            ['Spy Squirrel', liveness],
+            ['Oldest Fort Info', 'N/A'],
+            ['Hudson Oldest Held Merits', 'N/A'],
+            ['Winters Oldest Held Merits', 'N/A'],
+        ]
+
+    return cells
 
 
 def drop_tables():  # pragma: no cover | destructive to test

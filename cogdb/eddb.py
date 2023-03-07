@@ -2593,6 +2593,32 @@ def add_history_influence(eddb_session, latest_inf):
         eddb_session.add(HistoryInfluence.from_influence(latest_inf))
 
 
+def service_status(eddb_session):
+    """
+    Poll for the status of the local EDDB database.
+
+    Args:
+        eddb_session: A session onto the EDDB db.
+
+    Returns: A list of cells to format into a 2 column wide table.
+    """
+    now = datetime.datetime.utcnow()
+    try:
+        oldest = eddb_session.query(System).\
+            order_by(System.updated_at.desc()).\
+            limit(1).\
+            one()
+        cells = [
+            ['Latest EDDB System Update', f'{oldest.name} ({now - oldest.updated_date} ago)']
+        ]
+    except sqla_orm.exc.NoResultFound:
+        cells = [
+            ['Oldest EDDB System', 'EDDB Database Empty'],
+        ]
+
+    return cells
+
+
 def dump_db(session, classes, fname):
     """
     Dump db to a file.

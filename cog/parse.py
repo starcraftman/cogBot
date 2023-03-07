@@ -201,6 +201,21 @@ def subs_bgs(subs, prefix):
 
 
 @register_parser
+def subs_dash(subs, prefix):
+    """ Subcommand parsing for dash """
+    desc = f"""Show a dashboard of connection to bots external services.
+This command is restricted to admin users only.
+    Examples:
+
+**{prefix}dash
+        Display the dashboard status of the bot.
+    """
+    sub = subs.add_parser(prefix + 'dash', description=desc, formatter_class=RawHelp)
+    CMD_MAP['Dashboard'] = 'dash'
+    sub.set_defaults(cmd='Dashboard')
+
+
+@register_parser
 def subs_dist(subs, prefix):
     """ Subcommand parsing for dist """
     desc = f"""Determine the distance from the first system to all others.

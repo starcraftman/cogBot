@@ -826,6 +826,30 @@ If we should contact Gears or Sidewinder"""
             response = str(exc)
 
 
+class Dashboard(Action):
+    """
+    Handle logic related to displaying the dashboard of services.
+    """
+    async def execute(self):
+        loop = asyncio.get_event_loop()
+        response = "__Dashboard__\n\n"
+
+        with cogdb.session_scope(cogdb.SideSession) as side_session:
+            cells = await loop.run_in_executor(
+                None,
+                cogdb.side.service_status, side_session
+            )
+        with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
+            cells += await cogdb.spy_squirrel.service_status(eddb_session)
+            cells += await loop.run_in_executor(
+                None,
+                cogdb.eddb.service_status, eddb_session
+            )
+
+        response += cog.tbl.format_table(cells, header=False)[0]
+        await self.bot.send_message(self.msg.channel, response)
+
+
 class Dist(Action):
     """
     Handle logic related to finding the distance between a start system and any following systems.
