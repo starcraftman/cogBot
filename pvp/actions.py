@@ -213,7 +213,7 @@ class Admin(PVPAction):
         )
         try:
             with cfut.ProcessPoolExecutor(max_workers=os.cpu_count()) as pool:
-                coros, to_handle, log_fnames = await fetch_filtred_archives(
+                coros, to_handle, log_fnames = await fetch_filtered_archives(
                     filter_chan=filter_chan, cmdr_logs=cmdr_logs, down_dir=down_dir, pool=pool, loop=loop
                 )
 
@@ -283,9 +283,6 @@ def compute_all_stats():
     Recreate the PVPStat table only.
     Then compute the PVPStats for all existing commanders again.
     """
-    pvp.schema.PVPStat.__table__.drop(cogdb.eddb_engine)
-    pvp.schema.Base.metadata.create_all(cogdb.eddb_engine, tables=[pvp.schema.PVPStat])
-
     with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
         for cmdr in eddb_session.query(pvp.schema.PVPCmdr):
             pvp.schema.update_pvp_stats(eddb_session, cmdr_id=cmdr.id)
@@ -1182,7 +1179,7 @@ async def ensure_cmdr_exists(eddb_session, *, client, msg, fname):  # pragma: no
     return cmdr
 
 
-async def delete_existing_filtered_msgs(*, filter_chan, eddb_session):
+async def delete_existing_filtered_msgs(*, filter_chan, eddb_session):  # pragma: no cover, destructive
     """
     Delete all existing filtered message uploads from filter_chan.
     """
@@ -1287,7 +1284,7 @@ async def retrieve_filter_logs(*, eddb_session, pool, log_chan, down_dir, filter
     return cmdr_to_filters
 
 
-async def fetch_filtred_archives(*, filter_chan, cmdr_logs, down_dir, loop, pool):  # pragma: no cover
+async def fetch_filtered_archives(*, filter_chan, cmdr_logs, down_dir, loop, pool):  # pragma: no cover
     """
     Fetch all filtered archives and start processing jobs on the pool provided.
 
@@ -1324,7 +1321,7 @@ async def fetch_filtred_archives(*, filter_chan, cmdr_logs, down_dir, loop, pool
                 try:
                     to_handle[cmdr_id] += [kwargs]
                 except KeyError:
-                    to_handle[cmdr_id] = [kwargs]
+                    to_handle[cmdr_id] = []
                     # Start first job while downloading
                     coros += [loop.run_in_executor(pool, functools.partial(process_filtered_archive, **kwargs))]
 

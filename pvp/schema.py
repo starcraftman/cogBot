@@ -597,7 +597,7 @@ class PVPStat(ReprMixin, TimestampMixin, UpdatableMixin, Base):
         'deaths', 'kills', 'interdictions', 'interdicteds', 'escaped_interdicteds',
         'most_kills_system_id', 'most_deaths_system_id',
         'interdicted_kills', 'interdiction_deaths', 'interdicted_kills', 'interdicted_deaths',
-        'killed_most', 'most_deaths_by', 'most_interdictions', 'most_interdicted_by', 'most_escaped_interdictions_from'
+        'killed_most', 'most_deaths_by', 'most_interdictions', 'most_interdicted_by', 'most_escaped_interdictions_from',
         'updated_at'
     ]
 

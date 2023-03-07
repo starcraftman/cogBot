@@ -744,7 +744,7 @@ async def upload_filtered_archives(*, filter_chan, cmdr, archives):  # pragma: n
         await asyncio.sleep(DISCORD_RATE_LIMIT)
 
 
-async def purge_uploaded_logs(*, log_chan, cmdr_id):
+async def purge_uploaded_logs(*, log_chan, cmdr_id):  # pragma: no cover, destructive to test
     """
     Purge any uploaded logs from the channel matching a given cmdr_id.
     Warning: This will be slow going due to rate limits.
