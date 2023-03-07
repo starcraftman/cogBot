@@ -368,8 +368,17 @@ def test_pvp_update_pvp_cmdr(f_pvp_testbed, eddb_session):
     assert pvp.schema.get_pvp_cmdr(eddb_session, cmdr_id=10).name == 'NewName'
 
 
-@pytest.mark.asyncio
-async def test_pvp_update_inara_info(f_pvp_testbed, eddb_session):
+def test_remove_pvp_inara(f_pvp_testbed, eddb_session):
+    assert eddb_session.query(PVPInara).all()
+    assert eddb_session.query(PVPInaraSquad).all()
+
+    pvp.schema.remove_pvp_inara(eddb_session, cmdr_id=1)
+
+    assert not eddb_session.query(PVPInara).all()
+    assert not eddb_session.query(PVPInaraSquad).all()
+
+
+def test_update_pvp_inara(f_pvp_testbed, eddb_session):
     info = {
         'id': 88153,
         'squad_id': 2,
@@ -377,7 +386,7 @@ async def test_pvp_update_inara_info(f_pvp_testbed, eddb_session):
         'name': 'Shorts McFadden',
         'squad': 'Exodus Coalition',
     }
-    await pvp.schema.update_pvp_inara(eddb_session, info)
+    pvp.schema.update_pvp_inara(eddb_session, info)
     eddb_session.commit()
 
     inara = eddb_session.query(PVPInara).filter(PVPInara.id == 88153).one()

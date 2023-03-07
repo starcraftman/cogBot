@@ -1052,7 +1052,37 @@ def update_pvp_cmdr(eddb_session, discord_id, *, name, hex_colour=None):
     return cmdr
 
 
-async def update_pvp_inara(eddb_session, info):
+def remove_pvp_inara(eddb_session, *, cmdr_id):
+    """
+    Remove the inara information for a given CMDR id.
+    Squads removed only when last CMDR in it removed.
+
+    Args:
+        eddb_session: A session onto the EDDB db.
+        cmdr_id: The CMDR id.
+    """
+    try:
+        inara = eddb_session.query(PVPInara).\
+            filter(PVPInara.discord_id == cmdr_id).\
+            one()
+        squad_id = inara.squad_id
+        eddb_session.delete(inara)
+        eddb_session.commit()
+
+        if squad_id:
+            inaras_with_squad = eddb_session.query(PVPInara).\
+                filter(PVPInara.squad_id == squad_id).\
+                all()
+            if not inaras_with_squad:  # No remaining other PVPInara with squad
+                eddb_session.query(PVPInaraSquad).\
+                    filter(PVPInaraSquad.id == squad_id).\
+                    delete()
+                eddb_session.commit()
+    except sqla.exc.NoResultFound:
+        pass
+
+
+def update_pvp_inara(eddb_session, info):
     """
     Update the inara information cached for the given CMDR.
 
@@ -1072,10 +1102,12 @@ async def update_pvp_inara(eddb_session, info):
         squad = PVPInaraSquad(id=info['squad_id'], name=info['squad'])
         eddb_session.add(squad)
         eddb_session.flush()
+    except KeyError:  # CMDR has no squad
+        pass
 
     try:
         cmdr = eddb_session.query(PVPInara).\
-            filter(PVPInara.id == info['id']).\
+            filter(PVPInara.discord_id == info['discord_id']).\
             one()
         cmdr.name = info['name']
         cmdr.id = info['id']

@@ -843,7 +843,7 @@ class CMDRRegistration(dui.Modal, title='CMDR Registration'):  # pragma: no cove
                         style=discord.TextStyle.short, default="B20000", placeholder="B20000", required=True)
     name = dui.TextInput(label='In Game CMDR Name', min_length=5, max_length=EDDB_LEN['pvp_name'],
                          style=discord.TextStyle.short, placeholder="Your in game name", required=True)
-    inara = dui.TextInput(label='Link to your inara.cz CMDR URL (optional)', min_length=25, max_length=75,
+    inara = dui.TextInput(label='Link to your inara.cz CMDR URL (optional)', max_length=75,
                           style=discord.TextStyle.short, placeholder="URL: inara.cz/elite/cmdr/...", required=False)
 
     def __init__(self, *args, existing, cmdr_name=None, **kwargs):
@@ -916,7 +916,9 @@ async def cmdr_setup(eddb_session, client, msg, *, cmdr_name=None):  # pragma: n
     if str(modal.inara):
         inara_info = await cog.inara.fetch_inara_info(str(modal.inara))
         inara_info['discord_id'] = msg.author.id
-        await pvp.schema.update_pvp_inara(eddb_session, inara_info)
+        pvp.schema.update_pvp_inara(eddb_session, inara_info)
+    else:
+        pvp.schema.remove_pvp_inara(eddb_session, cmdr_id=msg.author.id)
 
     return pvp.schema.update_pvp_cmdr(
         eddb_session, msg.author.id,

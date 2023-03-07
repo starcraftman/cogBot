@@ -819,18 +819,20 @@ async def fetch_inara_info(inara_cmdr_id):
     inara_info = {
         'name': header_td.text.replace('Cmdr ', ''),
         'id': int(inara_cmdr_id),
+        'squad_id': None,
+        'squad': '',
     }
 
     squad_td = soup('td', class_='pflcol3')[-1]
-    mat = re.match(r'.*elite/squadron/(\d+)', squad_td.a['href'])
-    if mat:
-        try:
+    try:
+        mat = re.match(r'.*elite/squadron/(\d+)', squad_td.a['href'])
+        if mat:
             inara_info.update({
                 'squad_id': int(mat.group(1)),
                 'squad': squad_td.a.text.replace('Squadron', ''),
             })
-        except ValueError:
-            pass
+    except (TypeError, ValueError):
+        pass
 
     return inara_info
 
