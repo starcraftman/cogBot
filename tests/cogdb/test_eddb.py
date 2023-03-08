@@ -597,3 +597,9 @@ def test_get_power_by_name_fails(eddb_session):
         cogdb.eddb.get_power_by_name(eddb_session, 'ADD')
     except cog.exc.InvalidCommandArgs as exc:
         print(str(exc))
+
+
+def test_service_status(eddb_session):
+    cells = cogdb.eddb.service_status(eddb_session)
+    assert 'Latest EDDB' in cells[0][0]
+    assert 'ago)' in cells[0][1]

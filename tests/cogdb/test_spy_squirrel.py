@@ -98,6 +98,20 @@ def spy_test_bed(eddb_session):
             updated_at=FIXED_TIMESTAMP,
             held_updated_at=time.time(),
         ),
+        spy.SpySystem(
+            id=3,
+            ed_system_id=11665533904241,
+            system_name="Rhea",
+            power_id=6,
+            power_state_id=64,
+            income=0,
+            upkeep_current=0,
+            upkeep_default=0,
+            fort_trigger=6666,
+            um_trigger=5666,
+            updated_at=FIXED_TIMESTAMP,
+            held_updated_at=time.time(),
+        ),
         spy.SpyTraffic(
             id=1,
             cnt=1,
@@ -642,3 +656,13 @@ def test_get_vote_of_power(empty_spy, eddb_session, spy_test_bed):
 @GITHUB_FAIL
 def test_get_controls_outdated_held(empty_spy, db_cleanup, spy_test_bed, eddb_session):
     assert "Rana" in [x.name for x in spy.get_controls_outdated_held(eddb_session, power='%hudson')]
+
+
+@pytest.mark.asyncio
+async def test_service_status(spy_test_bed, eddb_session):
+    eddb_session.commit()
+    cells = await spy.service_status(eddb_session)
+
+    assert 'Spy Squirrel' in cells[0][0]
+    assert cells[0][1] in ['Up', 'Down']
+    assert 'Rana' in cells[2][1]

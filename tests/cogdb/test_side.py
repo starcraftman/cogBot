@@ -256,3 +256,10 @@ def test_monitor_factions(side_session):
     results = cogdb.side.monitor_factions(side_session, faction_names)
 
     assert "Sol         | Sol            | Sol Workers' Par | Dem |" in '\n'.join(results)
+
+
+def test_service_status(side_session):
+    cells = cogdb.side.service_status(side_session)
+    assert 'Sidewinder DB' in cells[0][0]
+    assert cells[0][1] in ['Up', 'Down']
+    assert 'Last estimated tick' in cells[1][0]

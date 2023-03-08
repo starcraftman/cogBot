@@ -1630,6 +1630,18 @@ Burr       | 2200 | 5800```"""
 
 
 @pytest.mark.asyncio
+async def test_cmd_dash(f_bot):
+    msg = fake_msg_gears("!dash")
+
+    await action_map(msg, f_bot).execute()
+
+    capture = str(f_bot.send_message.call_args).replace("\\n", "\n")
+    assert 'Sidewinder' in capture
+    assert 'Spy Squirrel' in capture
+    assert 'Latest EDDB' in capture
+
+
+@pytest.mark.asyncio
 async def test_cmd_dist(f_bot):
     msg = fake_msg_gears("!dist sol, frey, adeo")
 
