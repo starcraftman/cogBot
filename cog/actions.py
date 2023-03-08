@@ -831,6 +831,11 @@ class Dashboard(Action):
     Handle logic related to displaying the dashboard of services.
     """
     async def execute(self):
+        try:
+            cogdb.query.get_admin(self.session, self.duser)
+        except cog.exc.NoMatch as exc:
+            raise cog.exc.InvalidPerms(f"{self.msg.author.mention} You are not an admin!") from exc
+
         loop = asyncio.get_event_loop()
         response = "__Dashboard__\n\n"
 

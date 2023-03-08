@@ -1630,7 +1630,7 @@ Burr       | 2200 | 5800```"""
 
 
 @pytest.mark.asyncio
-async def test_cmd_dash(f_bot):
+async def test_cmd_dash(f_dusers, f_admins, f_bot):
     msg = fake_msg_gears("!dash")
 
     await action_map(msg, f_bot).execute()
@@ -1639,6 +1639,14 @@ async def test_cmd_dash(f_bot):
     assert 'Sidewinder' in capture
     assert 'Spy Squirrel' in capture
     assert 'Latest EDDB' in capture
+
+
+@pytest.mark.asyncio
+async def test_cmd_dash_denied(f_bot, db_cleanup):
+    msg = fake_msg_gears("!dash")
+
+    with pytest.raises(cog.exc.InvalidPerms):
+        await action_map(msg, f_bot).execute()
 
 
 @pytest.mark.asyncio
