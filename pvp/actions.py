@@ -424,7 +424,7 @@ LOG_MAP = {
 
 class Log(PVPAction):
     """
-    Display the most recent parsed events.
+    Display the complete log of requested events.
     """
     async def execute(self):
         try:
@@ -437,7 +437,7 @@ class Log(PVPAction):
                 ).replace(tzinfo=datetime.timezone.utc).timestamp()
 
             async with pvp.schema.create_log_of_events(self.eddb_session, cmdr_id=self.msg.author.id,
-                                                       events=events, last_n=self.args.limit,
+                                                       events=events, limit=self.args.limit,
                                                        after=self.args.after) as log_files:
                 if not log_files:
                     await self.bot.send_message(self.msg.channel, 'No recorded PVP events for CMDR.')
@@ -445,6 +445,46 @@ class Log(PVPAction):
                 for ind, fname in enumerate(log_files, start=1):
                     await self.bot.send_message(self.msg.channel, f'Part {ind} of logs requested.',
                                                 file=discord.File(fp=fname))
+
+        except KeyError:
+            await self.bot.send_message(self.msg.channel, f'Invalid log event, choose from: {list(LOG_MAP.keys())}')
+
+        except ValueError:
+            await self.bot.send_message(self.msg.channel, 'Invalid after format. Write dates like: 2023-04-30T20:10:44')
+
+
+class Recent(PVPAction):
+    """
+    Display the recent events of particular events requested.
+    """
+    async def execute(self):
+        try:
+            events = None
+            if self.args.events:
+                events = [getattr(pvp.schema, LOG_MAP[x]) for x in self.args.events]
+            if self.args.after:
+                self.args.after = datetime.datetime.strptime(
+                    self.args.after, cog.util.TIME_STRP[:-1]
+                ).replace(tzinfo=datetime.timezone.utc).timestamp()
+
+            events = await asyncio.get_event_loop().run_in_executor(
+                None,
+                functools.partial(
+                    pvp.schema.list_of_events,
+                    self.eddb_session, cmdr_id=self.msg.author.id, events=events,
+                    limit=self.args.limit, after=self.args.after, target_cmdr=self.args.cmdr
+                )
+            )
+
+            response = '__Matching Events__\n\n'
+            while len(response) < 1900 and events:
+                response += events[0]
+                events = events[1:]
+
+            if len(response) > 1900 and events:
+                response += '\n\nResponse truncated due to message limit. Select lower limit.'
+
+            await self.bot.send_message(self.msg.channel, response)
 
         except KeyError:
             await self.bot.send_message(self.msg.channel, f'Invalid log event, choose from: {list(LOG_MAP.keys())}')

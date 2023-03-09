@@ -1,6 +1,7 @@
 """
 The database backend for pvp bot.
 """
+import asyncio
 import contextlib
 import datetime
 import enum
@@ -1419,11 +1420,30 @@ def get_filtered_pvp_logs(eddb_session):
         all()
 
 
-@contextlib.asynccontextmanager
-async def create_log_of_events(eddb_session, *, cmdr_id, events=None, last_n=None, after=None):
+def query_target_cmdr(query, *, cls, target_cmdr):
     """
-    Generate a complete log dump of all recorded events for a player.
-    This is a context manager, returns the files created with the information.
+    If possible narrow down a query to just events involving a target_cmdr.
+
+    Args:
+        query: The already partially builty query.
+        cls: The base class of the query, i.e. PVPKill
+        target_cmdr: The name of the CMDR to look for.
+
+    Returns: The query passed in, modified to narrow down if possible.
+    """
+    if cls.__name__ == 'PVPDeath':
+        query = query.join(PVPDeathKiller).filter(PVPDeathKiller.name == target_cmdr)
+    elif cls.__name__ in ['PVPKill', 'PVPInterdiction']:
+        query = query.filter(cls.victim_name == target_cmdr)
+    elif cls.__name__ in ['PVPInterdicted', 'PVPEscapedInterdicted']:
+        query = query.filter(PVPInterdicted.interdictor_name == target_cmdr)
+
+    return query
+
+
+def list_of_events(eddb_session, *, cmdr_id, events=None, limit=None, after=None, target_cmdr=None):
+    """
+    Query all PVP events (or a subset) depending on a series of optional qualifiers.
 
     Args:
         eddb_session: A session onto the EDDB db.
@@ -1431,8 +1451,9 @@ async def create_log_of_events(eddb_session, *, cmdr_id, events=None, last_n=Non
         events: If passed in, filter only these events into log.
         last_n: If passed in, show only last n events found.
         after: If passed in, only show events after this timestamp.
+        target_cmdr: If passed, events will be filtered such that they include this CMDR.
 
-    Returns: A list of files that were written for log upload.
+    Returns: A list of strings of the matching db objects.
     """
     if not events:
         events = [PVPLocation, PVPKill, PVPDeath, PVPInterdicted, PVPInterdiction, PVPEscapedInterdicted]
@@ -1442,16 +1463,48 @@ async def create_log_of_events(eddb_session, *, cmdr_id, events=None, last_n=Non
         query = eddb_session.query(cls).\
             filter(cls.cmdr_id == cmdr_id)
 
+        if target_cmdr:
+            query = query_target_cmdr(query, cls=cls, target_cmdr=target_cmdr)
         if after:
             query = query.filter(cls.event_at >= after)
 
-        all_logs += query.\
-            order_by(cls.event_at).\
-            all()
-    all_logs = [f'{x}\n' for x in sorted(all_logs)]
+        query = query.order_by(cls.event_at)
 
-    if last_n:
-        all_logs = all_logs[-last_n:]
+        if limit and isinstance(limit, type(0)):
+            query = query.limit(limit)
+
+        all_logs += query.all()
+
+    all_logs = [f'{x}\n' for x in sorted(all_logs)]
+    if limit and isinstance(limit, type(0)):
+        all_logs = all_logs[-limit:]  # pylint: disable=invalid-unary-operand-type
+
+    return all_logs
+
+
+@contextlib.asynccontextmanager
+async def create_log_of_events(eddb_session, *, cmdr_id, events=None, limit=0, after=None, target_cmdr=None):
+    """
+    Generate a complete log dump of all recorded events for a player.
+    This is a context manager, returns the files created with the information.
+
+    Args:
+        eddb_session: A session onto the EDDB db.
+        cmdr_id: The id of the cmdr to get logs for.
+        events: If passed in, filter only these events into log.
+        limit: If passed in, show only last n events found.
+        after: If passed in, only show events after this timestamp.
+
+    Returns: A list of files that were written for log upload.
+    """
+    all_logs = await asyncio.get_event_loop().run_in_executor(
+        None,
+        functools.partial(
+            list_of_events,
+            eddb_session, cmdr_id=cmdr_id, events=events,
+            limit=limit, after=after, target_cmdr=target_cmdr
+        )
+    )
 
     tdir = tempfile.mkdtemp()
     try:
@@ -1459,7 +1512,6 @@ async def create_log_of_events(eddb_session, *, cmdr_id, events=None, last_n=Non
             grouped_lines=cog.util.group_by_filesize(all_logs),
             tdir=tdir, fname_gen=lambda num: f'file_{num:02}.txt'
         )
-
     finally:
         try:
             shutil.rmtree(tdir)
