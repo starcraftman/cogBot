@@ -324,22 +324,22 @@ class FileUpload(PVPAction):  # pragma: no cover
                     continue
 
                 try:
-
                     # Process the log that was filtered
-                    process_coro = await asyncio.get_event_loop().run_in_executor(
+                    logs = await asyncio.get_event_loop().run_in_executor(
                         pool, functools.partial(
                             process_cmdr_tempfiles,
                             cmdr_id=self.msg.author.id,
                             info=[{'fname': tfile.name, 'attach_fname': attach.filename}]
                         )
                     )
-                    await process_coro
 
                     await asyncio.get_event_loop().run_in_executor(
                         None,
-                        pvp.schema.update_pvp_stats, self.eddb_session, self.msg.author.id
+                        functools.partial(
+                            pvp.schema.update_pvp_stats, self.eddb_session, cmdr_id=self.msg.author.id
+                        )
                     )
-                    return process_coro.result()
+                    return logs
 
                 except (pvp.journal.ParserError, zipfile.BadZipfile):
                     await self.bot.send_message(self.msg.channel, f'Error with {attach.filename}. We only support zips and text files.')
