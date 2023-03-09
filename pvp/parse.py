@@ -95,22 +95,28 @@ def subs_help(subs, prefix):
 def subs_log(subs, prefix):
     """ Subcommand parsing for log """
     desc = f"""To see the complete log of your PVP events.
+Order is based on earliest first.
 
 **{prefix}log**
-        Get files that show all events present in PVP database.
+        Get files that list ALL events recorded inthe database, most recent first.
 **{prefix}log kills locations**
-        Get files that show all location and kill events in the databse.
+        Get files that list ALL location and kills recorded inthe database, most recent first.
 **{prefix}log -l 10**
 **{prefix}log --limit 10**
-        See the last 10 events the database has.
+        Get files that list the last 10 most recent events.
+**{prefix}log --cmdr BadGuy**
+        Get files that list ALL events recorded in the database.
+        Where an event involves a second commander (Kill, Death, Interdiction), only select those with BadGuy involved.
+        Where an event doesn't involve a second commander (Location), show those as normal.
 **{prefix}log --after 2022-06-10T14:31:00**
-        See all events AFTER the date specified. Format required.
+        Get files that list ALL events AFTER the date specified. Format required.
     """
     sub = subs.add_parser(prefix + 'log', description=desc, formatter_class=RawHelp)
     sub.set_defaults(cmd='Log')
     CMD_MAP['Log'] = 'log'
     sub.add_argument('events', nargs='*', default=[], help='The log events to put in file.')
     sub.add_argument('--after', nargs='?', help='Show events after this date.')
+    sub.add_argument('--cmdr', nargs='*', help='Limit query to CMDR named.')
     sub.add_argument('-l', '--limit', nargs='?', type=int, help='Limit to the most recent num events.')
 
 
@@ -118,23 +124,28 @@ def subs_log(subs, prefix):
 def subs_recent(subs, prefix):
     """ Subcommand parsing for recent """
     desc = f"""To see a limited subset of recent logs (or ones after a date).
+Order is based on most recent first.
 
 **{prefix}recent**
-        Get files that show all events present in PVP database.
+        Show a combined list of all recent events, most recent first.
 **{prefix}recent kills locations**
-        Get files that show all location and kill events in the databse.
+        Show a list of all recent location and kill events, most recent first.
 **{prefix}recent -l 10**
 **{prefix}recent --limit 10**
-        See the last 10 events the database has.
+        Show a combined list of the 10 most recent events, most recent first.
+**{prefix}recent --cmdr BadGuy**
+        Show a combined list of the most recent events.
+        Where an event involves a second commander (Kill, Death, Interdiction), only select those with BadGuy involved.
+        Where an event doesn't involve a second commander (Location), show those.
 **{prefix}recent --after 2022-06-10T14:31:00**
-        See up to limit events AFTER the date specified. Format required.
+        Show a combined list of the recent events after the date specified.
     """
     sub = subs.add_parser(prefix + 'recent', description=desc, formatter_class=RawHelp)
     sub.set_defaults(cmd='Recent')
     CMD_MAP['Recent'] = 'recent'
     sub.add_argument('events', nargs='*', default=[], help='The log events to put in file.')
     sub.add_argument('--after', nargs='?', help='Show events after this date.')
-    sub.add_argument('--cmdr', nargs='?', help='Limit query to CMDR named.')
+    sub.add_argument('--cmdr', nargs='*', help='Limit query to CMDR named.')
     sub.add_argument('-l', '--limit', nargs='?', default=50, type=int, help='Limit to the most recent num events.')
 
 

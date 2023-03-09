@@ -324,21 +324,17 @@ class FileUpload(PVPAction):  # pragma: no cover
                     continue
 
                 try:
-                    # Filter first
-                    filter_coro = await pvp.journal.filter_tempfile(
-                        pool=pool, dest_dir=filter_dir,
-                        fname=tfile.name, output_fname=pvp_log.filtered_filename, attach_fname=attach.filename
-                    )
 
                     # Process the log that was filtered
                     process_coro = await asyncio.get_event_loop().run_in_executor(
                         pool, functools.partial(
                             process_cmdr_tempfiles,
                             cmdr_id=self.msg.author.id,
-                            info=[{'fname': filter_coro.result(), 'attach_fname': attach.filename}]
+                            info=[{'fname': tfile.name, 'attach_fname': attach.filename}]
                         )
                     )
                     await process_coro
+
                     await asyncio.get_event_loop().run_in_executor(
                         None,
                         pvp.schema.update_pvp_stats, self.eddb_session, self.msg.author.id
@@ -435,10 +431,18 @@ class Log(PVPAction):
                 self.args.after = datetime.datetime.strptime(
                     self.args.after, cog.util.TIME_STRP[:-1]
                 ).replace(tzinfo=datetime.timezone.utc).timestamp()
+            if self.args.cmdr:
+                self.args.cmdr = ' '.join(self.args.cmdr)
 
-            async with pvp.schema.create_log_of_events(self.eddb_session, cmdr_id=self.msg.author.id,
-                                                       events=events, limit=self.args.limit,
-                                                       after=self.args.after) as log_files:
+            events = await asyncio.get_event_loop().run_in_executor(
+                None,
+                functools.partial(
+                    pvp.schema.list_of_events,
+                    self.eddb_session, cmdr_id=self.msg.author.id, events=events,
+                    limit=self.args.limit, after=self.args.after, target_cmdr=self.args.cmdr
+                )
+            )
+            async with pvp.schema.create_log_of_events(events) as log_files:
                 if not log_files:
                     await self.bot.send_message(self.msg.channel, 'No recorded PVP events for CMDR.')
 
@@ -466,6 +470,8 @@ class Recent(PVPAction):
                 self.args.after = datetime.datetime.strptime(
                     self.args.after, cog.util.TIME_STRP[:-1]
                 ).replace(tzinfo=datetime.timezone.utc).timestamp()
+            if self.args.cmdr:
+                self.args.cmdr = ' '.join(self.args.cmdr)
 
             events = await asyncio.get_event_loop().run_in_executor(
                 None,
@@ -477,12 +483,13 @@ class Recent(PVPAction):
             )
 
             response = '__Matching Events__\n\n'
-            while len(response) < 1900 and events:
+            msg_limit = cog.util.MSG_LIMIT - 75
+            while events and len(response + events[0]) < msg_limit:
                 response += events[0]
                 events = events[1:]
 
-            if len(response) > 1900 and events:
-                response += '\n\nResponse truncated due to message limit. Select lower limit.'
+            if events:
+                response += '\nLimited by message length. Use `!log` for complete list.'
 
             await self.bot.send_message(self.msg.channel, response)
 
@@ -1213,7 +1220,7 @@ async def ensure_cmdr_exists(eddb_session, *, client, msg, fname):  # pragma: no
             async with cog.util.extracted_archive_async(fname) as logs:
                 for log in logs:
                     if await cog.util.is_log_file_async(log):
-                        cmdr_name = await pvp.journal.find_cmdr_name(fname)
+                        cmdr_name = await pvp.journal.find_cmdr_name(log)
                         break
         cmdr = await cmdr_setup(eddb_session, client, msg, cmdr_name=cmdr_name)
 

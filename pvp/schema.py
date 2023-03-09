@@ -1436,12 +1436,13 @@ def query_target_cmdr(query, *, cls, target_cmdr):
     elif cls.__name__ in ['PVPKill', 'PVPInterdiction']:
         query = query.filter(cls.victim_name == target_cmdr)
     elif cls.__name__ in ['PVPInterdicted', 'PVPEscapedInterdicted']:
-        query = query.filter(PVPInterdicted.interdictor_name == target_cmdr)
+        query = query.filter(cls.interdictor_name == target_cmdr)
 
     return query
 
 
-def list_of_events(eddb_session, *, cmdr_id, events=None, limit=None, after=None, target_cmdr=None):
+def list_of_events(eddb_session, *, cmdr_id, events=None, limit=0,
+                   after=None, target_cmdr=None, earliest_first=False):
     """
     Query all PVP events (or a subset) depending on a series of optional qualifiers.
 
@@ -1450,7 +1451,7 @@ def list_of_events(eddb_session, *, cmdr_id, events=None, limit=None, after=None
         cmdr_id: The id of the cmdr to get logs for.
         events: If passed in, filter only these events into log.
         last_n: If passed in, show only last n events found.
-        after: If passed in, only show events after this timestamp.
+        after: If passed in, only show events after this UNIX timestamp.
         target_cmdr: If passed, events will be filtered such that they include this CMDR.
 
     Returns: A list of strings of the matching db objects.
@@ -1468,48 +1469,36 @@ def list_of_events(eddb_session, *, cmdr_id, events=None, limit=None, after=None
         if after:
             query = query.filter(cls.event_at >= after)
 
-        query = query.order_by(cls.event_at)
+        query = query.order_by(cls.event_at if earliest_first else cls.event_at.desc())
 
         if limit and isinstance(limit, type(0)):
             query = query.limit(limit)
 
         all_logs += query.all()
 
-    all_logs = [f'{x}\n' for x in sorted(all_logs)]
+    sorted_events = sorted(all_logs) if earliest_first else reversed(sorted(all_logs))
+    all_logs = [f'{x}\n' for x in sorted_events]
     if limit and isinstance(limit, type(0)):
-        all_logs = all_logs[-limit:]  # pylint: disable=invalid-unary-operand-type
+        all_logs = all_logs[-limit:]
 
     return all_logs
 
 
 @contextlib.asynccontextmanager
-async def create_log_of_events(eddb_session, *, cmdr_id, events=None, limit=0, after=None, target_cmdr=None):
+async def create_log_of_events(events):
     """
-    Generate a complete log dump of all recorded events for a player.
+    Generate a complete log dump of all events requested.
     This is a context manager, returns the files created with the information.
 
     Args:
-        eddb_session: A session onto the EDDB db.
-        cmdr_id: The id of the cmdr to get logs for.
-        events: If passed in, filter only these events into log.
-        limit: If passed in, show only last n events found.
-        after: If passed in, only show events after this timestamp.
+        events: The list of string events to be writtent to files.
 
     Returns: A list of files that were written for log upload.
     """
-    all_logs = await asyncio.get_event_loop().run_in_executor(
-        None,
-        functools.partial(
-            list_of_events,
-            eddb_session, cmdr_id=cmdr_id, events=events,
-            limit=limit, after=after, target_cmdr=target_cmdr
-        )
-    )
-
     tdir = tempfile.mkdtemp()
     try:
         yield await cog.util.grouped_text_to_files(
-            grouped_lines=cog.util.group_by_filesize(all_logs),
+            grouped_lines=cog.util.group_by_filesize(events),
             tdir=tdir, fname_gen=lambda num: f'file_{num:02}.txt'
         )
     finally:

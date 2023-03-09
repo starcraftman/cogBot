@@ -498,18 +498,18 @@ def test_query_target_death(f_pvp_testbed, eddb_session):
 
 
 def test_list_of_events(f_pvp_testbed, eddb_session):
-    expect = """CMDR coolGuy located in Anja at 2022-12-21 20:42:57.
-CMDR coolGuy located in Anna Perenna at 2022-12-21 20:42:57.
-CMDR coolGuy killed CMDR LeSuck at 2022-12-21 20:42:57
-CMDR coolGuy was killed by: [CMDR BadGuyHelper (Vulture), CMDR BadGuyWon (Python)] at 2022-12-21 20:42:57
-CMDR coolGuy was interdicted by CMDR BadGuyWon at 2022-12-21 20:42:57. Submitted: False. Escaped: False
-CMDR coolGuy interdicted CMDR LeSuck at 2022-12-21 20:42:57. Pulled from SC: True Escaped: False
-CMDR coolGuy escaped interdiction by CMDR BadGuyWon at 2022-12-21 20:42:57
-CMDR coolGuy killed CMDR BadGuy at 2022-12-21 20:42:59
-CMDR coolGuy was killed by: CMDR BadGuyHelper (Python), CMDR BadGuyWon (Python) at 2022-12-21 20:42:59
-CMDR coolGuy interdicted CMDR LeSuck at 2022-12-21 20:42:59. Pulled from SC: True Escaped: True
+    expect = """CMDR coolGuy killed CMDR LeSuck at 2022-12-21 20:43:01
 CMDR coolGuy escaped interdiction by CMDR BadGuyWon at 2022-12-21 20:42:59
-CMDR coolGuy killed CMDR LeSuck at 2022-12-21 20:43:01
+CMDR coolGuy interdicted CMDR LeSuck at 2022-12-21 20:42:59. Pulled from SC: True Escaped: True
+CMDR coolGuy was killed by: CMDR BadGuyHelper (Python), CMDR BadGuyWon (Python) at 2022-12-21 20:42:59
+CMDR coolGuy killed CMDR BadGuy at 2022-12-21 20:42:59
+CMDR coolGuy escaped interdiction by CMDR BadGuyWon at 2022-12-21 20:42:57
+CMDR coolGuy interdicted CMDR LeSuck at 2022-12-21 20:42:57. Pulled from SC: True Escaped: False
+CMDR coolGuy was interdicted by CMDR BadGuyWon at 2022-12-21 20:42:57. Submitted: False. Escaped: False
+CMDR coolGuy was killed by: [CMDR BadGuyHelper (Vulture), CMDR BadGuyWon (Python)] at 2022-12-21 20:42:57
+CMDR coolGuy killed CMDR LeSuck at 2022-12-21 20:42:57
+CMDR coolGuy located in Anna Perenna at 2022-12-21 20:42:57.
+CMDR coolGuy located in Anja at 2022-12-21 20:42:57.
 """
 
     events = pvp.schema.list_of_events(eddb_session, cmdr_id=1)
@@ -518,15 +518,50 @@ CMDR coolGuy killed CMDR LeSuck at 2022-12-21 20:43:01
 
 @pytest.mark.asyncio
 async def test_list_of_events_target_cmdr(f_pvp_testbed, eddb_session):
-    expect = """CMDR coolGuy located in Anja at 2022-12-21 20:42:57.
-CMDR coolGuy located in Anna Perenna at 2022-12-21 20:42:57.
-CMDR coolGuy killed CMDR LeSuck at 2022-12-21 20:42:57
-CMDR coolGuy interdicted CMDR LeSuck at 2022-12-21 20:42:57. Pulled from SC: True Escaped: False
+    expect = """CMDR coolGuy killed CMDR LeSuck at 2022-12-21 20:43:01
 CMDR coolGuy interdicted CMDR LeSuck at 2022-12-21 20:42:59. Pulled from SC: True Escaped: True
-CMDR coolGuy killed CMDR LeSuck at 2022-12-21 20:43:01
+CMDR coolGuy interdicted CMDR LeSuck at 2022-12-21 20:42:57. Pulled from SC: True Escaped: False
+CMDR coolGuy killed CMDR LeSuck at 2022-12-21 20:42:57
+CMDR coolGuy located in Anna Perenna at 2022-12-21 20:42:57.
+CMDR coolGuy located in Anja at 2022-12-21 20:42:57.
 """
 
     events = pvp.schema.list_of_events(eddb_session, cmdr_id=1, target_cmdr='LeSuck')
+    assert expect == ''.join(events)
+
+
+@pytest.mark.asyncio
+async def test_list_of_events_filtered(f_pvp_testbed, eddb_session):
+    expect = """CMDR coolGuy killed CMDR LeSuck at 2022-12-21 20:43:01
+CMDR coolGuy killed CMDR BadGuy at 2022-12-21 20:42:59
+CMDR coolGuy killed CMDR LeSuck at 2022-12-21 20:42:57
+"""
+
+    events = pvp.schema.list_of_events(eddb_session, cmdr_id=1, events=[pvp.schema.PVPKill])
+    assert expect == ''.join(events)
+
+
+@pytest.mark.asyncio
+async def test_list_of_events_limit(f_pvp_testbed, eddb_session):
+    expect = """CMDR coolGuy killed CMDR LeSuck at 2022-12-21 20:42:57
+CMDR coolGuy located in Anna Perenna at 2022-12-21 20:42:57.
+CMDR coolGuy located in Anja at 2022-12-21 20:42:57.
+"""
+
+    events = pvp.schema.list_of_events(eddb_session, cmdr_id=1, limit=3)
+    assert expect == ''.join(events)
+
+
+@pytest.mark.asyncio
+async def test_list_of_events_after(f_pvp_testbed, eddb_session):
+    expect = """CMDR coolGuy killed CMDR LeSuck at 2022-12-21 20:43:01
+CMDR coolGuy escaped interdiction by CMDR BadGuyWon at 2022-12-21 20:42:59
+CMDR coolGuy interdicted CMDR LeSuck at 2022-12-21 20:42:59. Pulled from SC: True Escaped: True
+CMDR coolGuy was killed by: CMDR BadGuyHelper (Python), CMDR BadGuyWon (Python) at 2022-12-21 20:42:59
+CMDR coolGuy killed CMDR BadGuy at 2022-12-21 20:42:59
+"""
+
+    events = pvp.schema.list_of_events(eddb_session, cmdr_id=1, after=1671655379)
     assert expect == ''.join(events)
 
 
@@ -546,48 +581,8 @@ CMDR coolGuy escaped interdiction by CMDR BadGuyWon at 2022-12-21 20:42:59
 CMDR coolGuy killed CMDR LeSuck at 2022-12-21 20:43:01
 """
 
-    async with pvp.schema.create_log_of_events(eddb_session, cmdr_id=1) as log_files:
-        assert len(log_files) == 1
-        with open(log_files[0], encoding='utf-8') as fin:
-            assert expect == fin.read()
-
-
-@pytest.mark.asyncio
-async def test_create_log_of_events_filtered(f_pvp_testbed, eddb_session):
-    expect = """CMDR coolGuy killed CMDR LeSuck at 2022-12-21 20:42:57
-CMDR coolGuy killed CMDR BadGuy at 2022-12-21 20:42:59
-CMDR coolGuy killed CMDR LeSuck at 2022-12-21 20:43:01
-"""
-
-    async with pvp.schema.create_log_of_events(eddb_session, cmdr_id=1, events=[pvp.schema.PVPKill]) as log_files:
-        assert len(log_files) == 1
-        with open(log_files[0], encoding='utf-8') as fin:
-            assert expect == fin.read()
-
-
-@pytest.mark.asyncio
-async def test_create_log_of_events_limit(f_pvp_testbed, eddb_session):
-    expect = """CMDR coolGuy interdicted CMDR LeSuck at 2022-12-21 20:42:59. Pulled from SC: True Escaped: True
-CMDR coolGuy escaped interdiction by CMDR BadGuyWon at 2022-12-21 20:42:59
-CMDR coolGuy killed CMDR LeSuck at 2022-12-21 20:43:01
-"""
-
-    async with pvp.schema.create_log_of_events(eddb_session, cmdr_id=1, limit=3) as log_files:
-        assert len(log_files) == 1
-        with open(log_files[0], encoding='utf-8') as fin:
-            assert expect == fin.read()
-
-
-@pytest.mark.asyncio
-async def test_create_log_of_events_after(f_pvp_testbed, eddb_session):
-    expect = """CMDR coolGuy killed CMDR BadGuy at 2022-12-21 20:42:59
-CMDR coolGuy was killed by: CMDR BadGuyHelper (Python), CMDR BadGuyWon (Python) at 2022-12-21 20:42:59
-CMDR coolGuy interdicted CMDR LeSuck at 2022-12-21 20:42:59. Pulled from SC: True Escaped: True
-CMDR coolGuy escaped interdiction by CMDR BadGuyWon at 2022-12-21 20:42:59
-CMDR coolGuy killed CMDR LeSuck at 2022-12-21 20:43:01
-"""
-
-    async with pvp.schema.create_log_of_events(eddb_session, cmdr_id=1, after=1671655379) as log_files:
+    events = pvp.schema.list_of_events(eddb_session, cmdr_id=1, earliest_first=True)
+    async with pvp.schema.create_log_of_events(events) as log_files:
         assert len(log_files) == 1
         with open(log_files[0], encoding='utf-8') as fin:
             assert expect == fin.read()
