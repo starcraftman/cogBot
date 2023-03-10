@@ -1131,6 +1131,7 @@ async def execute_power_scrape(eddb_session, power_name, *, callback=None, hours
 
     systems = get_controls_outdated_held(eddb_session, power=power_name, hours_old=hours_old)
     sys_names = ", ".join([x.name for x in systems])
+
     if callback:
         msg = f"Will update the following systems:\n\n{sys_names}"
         await callback(msg)
@@ -1167,8 +1168,19 @@ async def post_systems(systems, callback=None):  # pragma: no cover, would ping 
     delay_values = [random.randint(x - 4, x + 8) for x in HELD_DELAY]  # Randomly choose bounds too
     for sys in systems:
         log.warning("POSTAPI Request: %s.", sys.name)
-        response_text = await cog.util.post_json_url(cog.util.CONF.scrape.api,
-                                                     {sys.name: sys.ed_system_id})
+
+        retry = 0
+        while retry < 180:
+            try:
+                response_text = await cog.util.post_json_url(
+                    cog.util.CONF.scrape.api, {sys.name: sys.ed_system_id}
+                )
+                break
+            except cog.exc.RemoteError:
+                retry += 30
+                log.error("POSTAPI Timeout: %s. Retry in %d seconds.", sys.name, retry)
+                await asyncio.sleep(retry)  # Linear retry backoff
+
         response_json = json.loads(str(response_text))
         log.warning("POSTAPI Received: %s.", sys.name)
         with cfut.ProcessPoolExecutor(max_workers=1) as pool:
@@ -1280,38 +1292,38 @@ async def service_status(eddb_session):
     except cog.exc.RemoteError:
         liveness = 'Down'
 
+    cells = [['Spy Squirrel', liveness]]
     try:
         recent = eddb_session.query(SpySystem).\
             order_by(SpySystem.updated_at.asc(), SpySystem.system_name).\
             limit(1).\
             one()
+        cells += [['Oldest Fort Info', f'{recent.system_name} ({now - recent.updated_date} ago)']]
+    except sqla_orm.exc.NoResultFound:
+        cells += [['Oldest Fort Info', 'N/A']]
+    try:
         hudson_power = eddb_session.query(Power.id).filter(Power.text.ilike("%hudson")).scalar()
         hudson = eddb_session.query(SpySystem).\
             join(Power, Power.id == SpySystem.power_id).\
-            filter(SpySystem.power_id == hudson_power).\
+            filter(SpySystem.power_id == hudson_power,
+                   SpySystem.power_state_id == 16).\
             order_by(SpySystem.held_updated_at.asc(), SpySystem.system_name).\
             limit(1).\
             one()
+        cells += [['Hudson Oldest Held Merits', f'{hudson.system_name} ({now - hudson.held_updated_date} ago)']]
+    except sqla_orm.exc.NoResultFound:
+        cells += [['Hudson Oldest Held Merits', 'N/A']]
+    try:
         winters_power = eddb_session.query(Power.id).filter(Power.text.ilike("%winters")).scalar()
         winters = eddb_session.query(SpySystem).\
-            filter(SpySystem.power_id == winters_power).\
+            filter(SpySystem.power_id == winters_power,
+                   SpySystem.power_state_id == 16).\
             order_by(SpySystem.held_updated_at.asc(), SpySystem.system_name).\
             limit(1).\
             one()
-
-        cells = [
-            ['Spy Squirrel', liveness],
-            ['Oldest Fort Info', f'{recent.system_name} ({now - recent.updated_date} ago)'],
-            ['Hudson Oldest Held Merits', f'{hudson.system_name} ({now - hudson.held_updated_date} ago)'],
-            ['Winters Oldest Held Merits', f'{winters.system_name} ({now - winters.held_updated_date} ago)'],
-        ]
+        cells += [['Winters Oldest Held Merits', f'{winters.system_name} ({now - winters.held_updated_date} ago)']]
     except sqla_orm.exc.NoResultFound:
-        cells = [
-            ['Spy Squirrel', liveness],
-            ['Oldest Fort Info', 'N/A'],
-            ['Hudson Oldest Held Merits', 'N/A'],
-            ['Winters Oldest Held Merits', 'N/A'],
-        ]
+        cells += [['Winters Oldest Held Merits', 'N/A']]
 
     return cells
 

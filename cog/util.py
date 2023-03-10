@@ -689,7 +689,7 @@ async def get_url(url, params=None):
             raise cog.exc.RemoteError("Some unexpected failure on GET.") from exc
 
 
-async def post_json_url(url, payload, *, headers=None):
+async def post_json_url(url, payload, *, headers=None, timeout=60):
     """POST to a url asynchronously and await a response json.
 
     Default headers used with be JSON.
@@ -699,9 +699,10 @@ async def post_json_url(url, payload, *, headers=None):
         url: The full URL to POST.
         payload: The dictionary object that contains the payload to POST. Will be json.dumped
         headers: Optionally, a different set than default headers.
+        timeout: The read timeout, raises RemoteError after.
 
     Raises:
-        cog.exc.RemoteError: The remote did not respond, likely down.
+        cog.exc.RemoteError: The remote did not respond or timeout was reached.
     """
     if not headers:
         headers = {
@@ -710,7 +711,7 @@ async def post_json_url(url, payload, *, headers=None):
             'Content-Type': 'application/json',
         }
 
-    async with aiohttp.ClientSession(read_timeout=0) as http:
+    async with aiohttp.ClientSession(read_timeout=timeout) as http:
         try:
             async with http.post(url, data=json.dumps(payload), headers=headers) as resp:
                 if resp.status != 200:

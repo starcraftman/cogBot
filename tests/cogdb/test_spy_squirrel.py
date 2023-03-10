@@ -103,7 +103,7 @@ def spy_test_bed(eddb_session):
             ed_system_id=11665533904241,
             system_name="Rhea",
             power_id=6,
-            power_state_id=64,
+            power_state_id=16,
             income=0,
             upkeep_current=0,
             upkeep_default=0,
