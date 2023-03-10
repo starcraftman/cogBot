@@ -83,12 +83,11 @@ async def monitor_pools(delay=120):
     """
     Runs forever and just logs the status of each pool.
     """
-    await asyncio.sleep(delay)
-    log = logging.getLogger(__name__)
-    for name, eng in zip(("local", "eddb", "side"), (engine, eddb_engine, side_engine)):
-        log.info("POOL %s: %s", name, eng.pool.status())
-
-    asyncio.ensure_future(monitor_pools(delay))
+    while True:
+        await asyncio.sleep(delay)
+        log = logging.getLogger(__name__)
+        for name, eng in zip(("local", "eddb", "side"), (engine, eddb_engine, side_engine)):
+            log.info("POOL %s: %s", name, eng.pool.status())
 
 
 @contextmanager

@@ -49,6 +49,7 @@ import cog.parse
 import cog.scheduler
 import cog.sheets
 import cog.util
+from cog.task_monitor import TASK_MON
 import cogdb
 import cogdb.scanners
 import cogdb.query
@@ -195,21 +196,46 @@ class CogBot(discord.Client):
             # separate to force crash if port busy, essential connection for scheduler
             await self.sched.connect_sub()
             await asyncio.sleep(0.2)
+            next_carrier_summary = datetime.datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+            next_carrier_summary = next_carrier_summary + datetime.timedelta(days=1)
 
-            next_summary = datetime.datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
-            next_summary = next_summary + datetime.timedelta(days=1)
-            asyncio.ensure_future(asyncio.gather(
-                presence_task(self),
-                simple_heartbeat(),
-                cog.util.CONF.monitor(),
-                cog.actions.monitor_carrier_events(self, next_summary=next_summary, delay=60),
-                cog.actions.monitor_snipe_merits(self),
-                cog.actions.monitor_spy_site(self, repeat=True, delay=900),
-                cog.actions.monitor_powerplay_api(self, repeat=False, delay=75),  # Runs scrape right after launch once
-                cog.actions.monitor_powerplay_api(self, repeat=True, delay=1800),  # Every 30 mins scrape
-                cogdb.eddb.monitor_eddb_caches(),
-                cogdb.monitor_pools(),
-            ))
+            groups = [
+                [functools.partial(presence_task, self), 'Presence', 'Updates the presence of bot'],
+                [simple_heartbeat, 'Heartbeat', 'Heartbeat ensuring main loop runs'],
+                [cog.util.CONF.monitor, 'ConfigMonitor', 'Monitors file for config changes'],
+                [cogdb.eddb.monitor_eddb_caches, 'EDDBMonitor', 'Monitors cached tables of EDDB'],
+                [cogdb.monitor_pools, 'SQLPoolMonitor', 'Logs state of the SQLAlchemy pools'],
+                [
+                    functools.partial(cog.actions.monitor_spy_site, self, repeat=True, delay=900),
+                    'SpySiteMonitor', 'Monitors spy site for outages',
+                ],
+                [
+                    functools.partial(
+                        cog.actions.monitor_snipe_merits, self,
+                    ),
+                    'SnipeMeritMonitor', 'Notifies snipe users before tick',
+                ],
+                [
+                    functools.partial(
+                        cog.actions.monitor_carrier_events, self, next_summary=next_carrier_summary, delay=60
+                    ),
+                    'CarrierMonitor', 'Notifies ops of carrier events',
+                ],
+                [
+                    functools.partial(
+                        cog.actions.monitor_powerplay_api, self, repeat=True, delay=1800,
+                    ),
+                    'PowerplayMonitor', 'Updates powerplay info on schedule',
+                ]
+            ]
+
+            for func, name, description in groups:
+                TASK_MON.add_task(func, name=name, description=description)
+
+            # Runs right after launch after short delay, ensuring bot ready
+            asyncio.ensure_future(
+                cog.actions.monitor_powerplay_api(self, repeat=False, delay=75)
+            )
 
             self.deny_commands = False
 

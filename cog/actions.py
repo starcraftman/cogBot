@@ -33,6 +33,7 @@ import cogdb.scrape
 import cogdb.side
 import cogdb.spy_squirrel as spy
 import cog.inara
+import cog.task_monitor
 import cog.tbl
 import cog.util
 from cogdb.schema import FortUser, UMUser, EUMSheet
@@ -851,7 +852,10 @@ class Dashboard(Action):
                 cogdb.eddb.service_status, eddb_session
             )
 
-        response += cog.tbl.format_table(cells, header=False)[0]
+        response = f"""{cog.tbl.format_table(cells, header=False)[0]}
+{cog.task_monitor.TASK_MON.format_table(header=True, wrap_msgs=True)}
+SnipeMeritMonitor will stop if not configured properly.
+This is most likely the case in dev environments."""
         await self.bot.send_message(self.msg.channel, response)
 
 
@@ -2393,40 +2397,34 @@ async def monitor_carrier_events(client, *, next_summary, last_timestamp=None, d
         last_seen_time: Last known timestamp for a TrackByID.
         delay: The short delay between normal summaries, in seconds.
     """
-    start = datetime.datetime.utcnow()
-    if not last_timestamp:
-        last_timestamp = start
+    while True:
+        start = datetime.datetime.utcnow()
+        if not last_timestamp:
+            last_timestamp = start
 
-    await asyncio.sleep(delay)
+        await asyncio.sleep(delay)
 
-    with cogdb.session_scope(cogdb.Session) as session:
-        if datetime.datetime.utcnow() < next_summary:
-            header = f"__Fleet Carriers Detected Last {delay} Seconds__\n"
-            tracks = await client.loop.run_in_executor(
-                None, cogdb.query.track_ids_newer_than, session, last_timestamp
-            )
-        else:
-            header = f"__Daily Fleet Carrier Summary For {next_summary}__\n"
-            yesterday = next_summary - datetime.timedelta(days=1)
-            next_summary = next_summary + datetime.timedelta(days=1)
-            tracks = await client.loop.run_in_executor(
-                None, cogdb.query.track_ids_newer_than, session, yesterday
-            )
-        if tracks:
-            last_timestamp = tracks[-1].updated_at
+        with cogdb.session_scope(cogdb.Session) as session:
+            if datetime.datetime.utcnow() < next_summary:
+                header = f"__Fleet Carriers Detected Last {delay} Seconds__\n"
+                tracks = await client.loop.run_in_executor(
+                    None, cogdb.query.track_ids_newer_than, session, last_timestamp
+                )
+            else:
+                header = f"__Daily Fleet Carrier Summary For {next_summary}__\n"
+                yesterday = next_summary - datetime.timedelta(days=1)
+                next_summary = next_summary + datetime.timedelta(days=1)
+                tracks = await client.loop.run_in_executor(
+                    None, cogdb.query.track_ids_newer_than, session, yesterday
+                )
+            if tracks:
+                last_timestamp = tracks[-1].updated_at
 
-        msgs = cog.util.generative_split(tracks, str, header=header)
+            msgs = cog.util.generative_split(tracks, str, header=header)
 
-    # Only send messages if generated and channel set
-    if msgs != [header]:
-        await report_to_leadership(client, msgs)
-
-    asyncio.ensure_future(
-        monitor_carrier_events(
-            client, next_summary=next_summary,
-            last_timestamp=last_timestamp, delay=delay
-        )
-    )
+        # Only send messages if generated and channel set
+        if msgs != [header]:
+            await report_to_leadership(client, msgs)
 
 
 async def monitor_snipe_merits(client, *, repeat=True):  # pragma: no cover
@@ -2439,52 +2437,50 @@ async def monitor_snipe_merits(client, *, repeat=True):  # pragma: no cover
     Kwargs:
         repeat: If true, will schedule itself infinitely.
     """
-    guild = [x for x in client.guilds if x.name == FUC_GUILD]
-    if guild:
-        guild = guild[0]
-    chan_id = cog.util.CONF.channels.snipe
-    if not guild or not chan_id:  # Don't bother if not set
-        return
-    snipe_chan = client.get_channel(chan_id)
-    next_cycle = cog.util.next_weekly_tick(datetime.datetime.utcnow())
+    while repeat:
+        guild = [x for x in client.guilds if x.name == FUC_GUILD]
+        if guild:
+            guild = guild[0]
+        chan_id = cog.util.CONF.channels.snipe
 
-    # 12 hours to tick, ping here
-    next_date = next_cycle - datetime.timedelta(hours=12)
-    now = datetime.datetime.utcnow()
-    if now < next_date:
-        diff_dates = next_date - now
-        delay_seconds = diff_dates.seconds + diff_dates.days * 24 * 60 * 60
-        await asyncio.sleep(delay_seconds)
+        if not guild or not chan_id:  # Don't bother if not set
+            return
 
-        # Notify here
-        with cogdb.session_scope(cogdb.Session) as session:
-            if cogdb.query.get_all_snipe_holds(session):
-                client.send_message(
-                    snipe_chan,
-                    "@here Snipe members it is tick day and there are 12 hours remaining."
-                )
+        snipe_chan = client.get_channel(chan_id)
+        next_cycle = cog.util.next_weekly_tick(datetime.datetime.utcnow())
 
-    # 30 mins to tick ping remaining in message
-    next_date = next_cycle - datetime.timedelta(minutes=30)
-    now = datetime.datetime.utcnow()
-    if now < next_date:
-        diff_dates = next_date - now
-        delay_seconds = diff_dates.seconds + diff_dates.days * 24 * 60 * 60
-        await asyncio.sleep(delay_seconds)
+        # 12 hours to tick, ping here
+        next_date = next_cycle - datetime.timedelta(hours=12)
+        now = datetime.datetime.utcnow()
+        if now < next_date:
+            diff_dates = next_date - now
+            delay_seconds = diff_dates.seconds + diff_dates.days * 24 * 60 * 60
+            await asyncio.sleep(delay_seconds)
 
-        # Notify members holding
-        with cogdb.session_scope(cogdb.Session) as session:
-            if cogdb.query.get_all_snipe_holds(session):
-                to_contact = cogdb.query.get_snipe_members_holding(session, client)
-                msg = """__Final Snipe Reminder__
-    There are less than **30 minutes left**. The following members are still holding.
-    """
-                client.send_message(snipe_chan, msg + to_contact)
+            # Notify here
+            with cogdb.session_scope(cogdb.Session) as session:
+                if cogdb.query.get_all_snipe_holds(session):
+                    client.send_message(
+                        snipe_chan,
+                        "@here Snipe members it is tick day and there are 12 hours remaining."
+                    )
 
-    if repeat:
-        asyncio.ensure_future(
-            monitor_snipe_merits(client, repeat=repeat)
-        )
+        # 30 mins to tick ping remaining in message
+        next_date = next_cycle - datetime.timedelta(minutes=30)
+        now = datetime.datetime.utcnow()
+        if now < next_date:
+            diff_dates = next_date - now
+            delay_seconds = diff_dates.seconds + diff_dates.days * 24 * 60 * 60
+            await asyncio.sleep(delay_seconds)
+
+            # Notify members holding
+            with cogdb.session_scope(cogdb.Session) as session:
+                if cogdb.query.get_all_snipe_holds(session):
+                    to_contact = cogdb.query.get_snipe_members_holding(session, client)
+                    msg = """__Final Snipe Reminder__
+        There are less than **30 minutes left**. The following members are still holding.
+        """
+                    client.send_message(snipe_chan, msg + to_contact)
 
 
 async def push_spy_to_gal_scanner():  # pragma: no cover | tested elsewhere
@@ -2567,41 +2563,44 @@ async def monitor_powerplay_api(client, *, repeat=True, delay=1800):
         repeat: If True schedule self at end of execution to run again.
         delay: The delay in seconds between checks.
     """
-    await asyncio.sleep(delay)
-    if repeat:
-        asyncio.ensure_future(monitor_powerplay_api(client, repeat=repeat, delay=delay))
-
     log = logging.getLogger(__name__)
-    try:
-        await cog.util.get_url(cog.util.CONF.scrape.url)  # Sanity check service up
 
-        log.warning("Start monitor powerplay.")
-        base_text = await cog.util.get_url(os.path.join(cog.util.CONF.scrape.api, 'getraw', 'base.json'))
-        ref_text = await cog.util.get_url(os.path.join(cog.util.CONF.scrape.api, 'getraw', 'refined.json'))
+    while True:
+        await asyncio.sleep(delay)
 
-        with cfut.ProcessPoolExecutor(max_workers=4) as pool:
-            try:
-                log.warning("Parse retrieved json.")
-                await client.loop.run_in_executor(
-                    pool, spy.load_base_json, base_text,
-                )
-                await client.loop.run_in_executor(
-                    pool, spy.load_refined_json, ref_text,
-                )
+        try:
+            await cog.util.get_url(cog.util.CONF.scrape.url)  # Sanity check service up
 
-            except (asyncio.CancelledError, asyncio.InvalidStateError) as exc:
-                log.error("Error with future: %s", str(exc))
+            log.warning("Start monitor powerplay.")
+            base_text = await cog.util.get_url(os.path.join(cog.util.CONF.scrape.api, 'getraw', 'base.json'))
+            ref_text = await cog.util.get_url(os.path.join(cog.util.CONF.scrape.api, 'getraw', 'refined.json'))
 
-        log.warning("Handle sheet updates.")
-        await push_spy_to_gal_scanner()
-        await push_spy_to_sheets()
+            with cfut.ProcessPoolExecutor(max_workers=4) as pool:
+                try:
+                    log.warning("Parse retrieved json.")
+                    await client.loop.run_in_executor(
+                        pool, spy.load_base_json, base_text,
+                    )
+                    await client.loop.run_in_executor(
+                        pool, spy.load_refined_json, ref_text,
+                    )
 
-        log.warning("Check held for federal.")
-        await spy.check_federal_held()
-        log.warning("End monitor powerplay.")
-    except cog.exc.RemoteError:
-        if repeat:
-            log.error("Spy service not operating. Will try again in %d seconds.", delay)
+                except (asyncio.CancelledError, asyncio.InvalidStateError) as exc:
+                    log.error("Error with future: %s", str(exc))
+
+            log.warning("Handle sheet updates.")
+            await push_spy_to_gal_scanner()
+            await push_spy_to_sheets()
+
+            log.warning("Check held for federal.")
+            await spy.check_federal_held()
+            log.warning("End monitor powerplay.")
+        except cog.exc.RemoteError:
+            if repeat:
+                log.error("Spy service not operating. Will try again in %d seconds.", delay)
+
+        if not repeat:
+            break
 
 
 async def monitor_spy_site(client, *, repeat=True, delay=900):
