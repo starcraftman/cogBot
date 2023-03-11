@@ -2886,18 +2886,13 @@ async def monitor_eddb_caches(*, delay_hours=4):  # pragma: no cover
     Kwargs:
         delay_hours: The hours between refreshing cached tables. Default: 2
     """
-    await asyncio.sleep(delay_hours * 3600)
+    while True:
+        await asyncio.sleep(delay_hours * 3600)
 
-    with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
-        await asyncio.get_event_loop().run_in_executor(
-            None, populate_system_controls, eddb_session
-        )
-
-    asyncio.ensure_future(
-        monitor_eddb_caches(
-            delay_hours=delay_hours
-        )
-    )
+        with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
+            await asyncio.get_event_loop().run_in_executor(
+                None, populate_system_controls, eddb_session
+            )
 
 
 def main_test_area(eddb_session):  # pragma: no cover
