@@ -782,8 +782,8 @@ def test_get_all_snipe_holds(session, f_bot, f_dusers, f_um_testbed):
 
 
 def test_get_snipe_members_holding(session, f_bot, f_dusers, f_um_testbed):
-    expected = 'User3 is holding 5000 merits in ToSnipe\n'
-    results = cogdb.query.get_snipe_members_holding(session, f_bot.guilds[0])
+    expected = '<@3> is holding 5000 merits in ToSnipe\n'
+    results = cogdb.query.get_snipe_members_holding(session)
     assert results == expected
 
 

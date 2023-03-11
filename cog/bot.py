@@ -213,7 +213,7 @@ class CogBot(discord.Client):
                     functools.partial(
                         cog.actions.monitor_snipe_merits, self,
                     ),
-                    'SnipeMeritMonitor', 'Notifies snipe users before tick',
+                    'SnipeMeritsMonitor', 'Notifies snipe users before tick',
                 ],
                 [
                     functools.partial(

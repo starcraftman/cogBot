@@ -1265,7 +1265,7 @@ def get_all_snipe_holds(session):
         all()
 
 
-def get_snipe_members_holding(session, guild):
+def get_snipe_members_holding(session):
     """
     Find the members who are holding merits on the snipe sheet.
     For each found member, attempt to resolve them with the guild to mention them.
@@ -1274,18 +1274,16 @@ def get_snipe_members_holding(session, guild):
 
     Args:
         session: A session onto the db.
-        guild: The guild of the server in question.
+        guild: The guild of the server in question. Optional.
+               If not provided, use pref_name otherwise directly mention.
 
     Returns:
         A string formatted mentioning or naming all users with snipe merits.
     """
-    template_msg = "{} is holding {} merits in {}\n"
     reply = ""
     for hold in get_all_snipe_holds(session):
         duser = hold.user.discord_user
-        found = guild.get_member_named(duser.pref_name)
-        mention = found.mention if found else duser.pref_name
-        reply += template_msg.format(mention, hold.held, hold.system.name)
+        reply += f"{duser.mention} is holding {hold.held} merits in {hold.system.name}\n"
 
     return reply
 

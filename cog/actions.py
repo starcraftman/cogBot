@@ -2437,30 +2437,29 @@ async def monitor_snipe_merits(client, *, repeat=True):  # pragma: no cover
     Kwargs:
         repeat: If true, will schedule itself infinitely.
     """
-    while repeat:
-        guild = [x for x in client.guilds if x.name == FUC_GUILD]
-        if guild:
-            guild = guild[0]
-        chan_id = cog.util.CONF.channels.snipe
+    log = logging.getLogger(__name__)
 
-        if not guild or not chan_id:  # Don't bother if not set
+    while repeat:
+        snipe_chan = client.get_channel(cog.util.CONF.channels.snipe)
+        log.error('Snipe Reminder Channel: %s', snipe_chan)
+        if not snipe_chan:  # Don't bother if not set
             return
 
-        snipe_chan = client.get_channel(chan_id)
-        next_cycle = cog.util.next_weekly_tick(datetime.datetime.utcnow())
-
-        # 12 hours to tick, ping here
-        next_date = next_cycle - datetime.timedelta(hours=12)
+        #  # 12 hours to tick, ping here
         now = datetime.datetime.utcnow()
+        next_cycle = cog.util.next_weekly_tick(now)
+        next_date = next_cycle - datetime.timedelta(hours=12)
         if now < next_date:
             diff_dates = next_date - now
             delay_seconds = diff_dates.seconds + diff_dates.days * 24 * 60 * 60
+            log.warning("Sleeping for %d seconds until 12 hour reminder at %s", delay_seconds, next_date)
             await asyncio.sleep(delay_seconds)
 
             # Notify here
+            log.warning("Issuing 12 hour notice to snipe channel.")
             with cogdb.session_scope(cogdb.Session) as session:
                 if cogdb.query.get_all_snipe_holds(session):
-                    client.send_message(
+                    await client.send_message(
                         snipe_chan,
                         "@here Snipe members it is tick day and there are 12 hours remaining."
                     )
@@ -2471,16 +2470,18 @@ async def monitor_snipe_merits(client, *, repeat=True):  # pragma: no cover
         if now < next_date:
             diff_dates = next_date - now
             delay_seconds = diff_dates.seconds + diff_dates.days * 24 * 60 * 60
+            log.warning("Sleeping for %d seconds until 30 minute reminder at %s", delay_seconds, next_date)
             await asyncio.sleep(delay_seconds)
 
             # Notify members holding
+            log.warning("Issuing 30 notice to snipe channel.")
             with cogdb.session_scope(cogdb.Session) as session:
-                if cogdb.query.get_all_snipe_holds(session):
-                    to_contact = cogdb.query.get_snipe_members_holding(session, client)
+                to_contact = cogdb.query.get_snipe_members_holding(session)
+                if to_contact:
                     msg = """__Final Snipe Reminder__
         There are less than **30 minutes left**. The following members are still holding.
         """
-                    client.send_message(snipe_chan, msg + to_contact)
+                    await client.send_message(snipe_chan, msg + to_contact)
 
 
 async def push_spy_to_gal_scanner():  # pragma: no cover | tested elsewhere
