@@ -2440,9 +2440,10 @@ async def monitor_snipe_merits(client, *, repeat=True):  # pragma: no cover
     log = logging.getLogger(__name__)
 
     while repeat:
-        snipe_chan = client.get_channel(cog.util.CONF.channels.snipe)
-        log.error('Snipe Reminder Channel: %s', snipe_chan)
-        if not snipe_chan:  # Don't bother if not set
+        snipe_chans = [client.get_channel(x) for x in cog.util.CONF.channels.snipe]
+        for snipe_chan in snipe_chans:
+            log.error('Snipe Reminder Channel: %s', snipe_chan)
+        if not snipe_chans:  # Don't bother if not set
             return
 
         #  # 12 hours to tick, ping here
@@ -2459,10 +2460,11 @@ async def monitor_snipe_merits(client, *, repeat=True):  # pragma: no cover
             log.warning("Issuing 12 hour notice to snipe channel.")
             with cogdb.session_scope(cogdb.Session) as session:
                 if cogdb.query.get_all_snipe_holds(session):
-                    await client.send_message(
-                        snipe_chan,
-                        "@here Snipe members it is tick day and there are 12 hours remaining."
-                    )
+                    for chan in snipe_chans:
+                        await client.send_message(
+                            chan,
+                            "@here Snipe members it is tick day and there are 12 hours remaining."
+                        )
 
         # 30 mins to tick ping remaining in message
         next_date = next_cycle - datetime.timedelta(minutes=30)
@@ -2481,7 +2483,8 @@ async def monitor_snipe_merits(client, *, repeat=True):  # pragma: no cover
                     msg = """__Final Snipe Reminder__
         There are less than **30 minutes left**. The following members are still holding.
         """
-                    await client.send_message(snipe_chan, msg + to_contact)
+                    for chan in snipe_chans:
+                        await client.send_message(chan, msg + to_contact)
 
 
 async def push_spy_to_gal_scanner():  # pragma: no cover | tested elsewhere
