@@ -837,25 +837,34 @@ class Dashboard(Action):
         except cog.exc.NoMatch as exc:
             raise cog.exc.InvalidPerms(f"{self.msg.author.mention} You are not an admin!") from exc
 
-        loop = asyncio.get_event_loop()
-        response = "__Dashboard__\n\n"
+        if self.args.subcmd == "restart":
+            task_name = ' '.join(self.args.task)
+            try:
+                await cog.task_monitor.TASK_MON.restart_task(name=task_name)
+                response = f"Restart of {task_name} complete."
+            except ValueError as exc:
+                response = str(exc)
 
-        with cogdb.session_scope(cogdb.SideSession) as side_session:
-            cells = await loop.run_in_executor(
-                None,
-                cogdb.side.service_status, side_session
-            )
-        with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
-            cells += await cogdb.spy_squirrel.service_status(eddb_session)
-            cells += await loop.run_in_executor(
-                None,
-                cogdb.eddb.service_status, eddb_session
-            )
+        else:
+            loop = asyncio.get_event_loop()
+            with cogdb.session_scope(cogdb.SideSession) as side_session:
+                cells = await loop.run_in_executor(
+                    None,
+                    cogdb.side.service_status, side_session
+                )
+            with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
+                cells += await cogdb.spy_squirrel.service_status(eddb_session)
+                cells += await loop.run_in_executor(
+                    None,
+                    cogdb.eddb.service_status, eddb_session
+                )
+            response = f"""__Dashboard__
 
-        response = f"""{cog.tbl.format_table(cells, header=False)[0]}
+{cog.tbl.format_table(cells, header=False)[0]}
 {cog.task_monitor.TASK_MON.format_table(header=True, wrap_msgs=True)}
 SnipeMeritMonitor will stop if not configured properly.
 This is most likely the case in dev environments."""
+
         await self.bot.send_message(self.msg.channel, response)
 
 
@@ -2542,19 +2551,22 @@ async def push_spy_to_sheets():  # pragma: no cover | tested elsewhere
             await scanner.send_batch(payloads, input_opt='USER_ENTERED')
 
         scanner = cogdb.scanners.get_scanner("hudson_snipe")
-        snipe_cycle = int(scanner.asheet.sheet_page[1:])  # Format: "C384"
-        if cog.util.current_cycle() == snipe_cycle:
-            umsystems = spy.compare_sheet_um_systems_to_spy(session, eddb_session, sheet_src=EUMSheet.snipe)
-            __import__('pprint').pprint(umsystems)
-            payloads = []
-            for umsys in umsystems:
-                payloads += scanner.update_systemum_dict(
-                    umsys['sheet_col'], umsys['progress_us'], umsys['progress_them'], umsys['map_offset']
-                )
-            print("Snipe Payloads")
-            __import__('pprint').pprint(payloads)
-            log.error("Snipe sheet will be updated.")
-            await scanner.send_batch(payloads, input_opt='USER_ENTERED')
+        try:
+            snipe_cycle = int(scanner.asheet.sheet_page[1:])  # Format: "C384"
+            if cog.util.current_cycle() == snipe_cycle:
+                umsystems = spy.compare_sheet_um_systems_to_spy(session, eddb_session, sheet_src=EUMSheet.snipe)
+                __import__('pprint').pprint(umsystems)
+                payloads = []
+                for umsys in umsystems:
+                    payloads += scanner.update_systemum_dict(
+                        umsys['sheet_col'], umsys['progress_us'], umsys['progress_them'], umsys['map_offset']
+                    )
+                print("Snipe Payloads")
+                __import__('pprint').pprint(payloads)
+                log.error("Snipe sheet will be updated.")
+                await scanner.send_batch(payloads, input_opt='USER_ENTERED')
+        except ValueError:
+            pass  # Cycle not available in named page
 
 
 async def monitor_powerplay_api(client, *, repeat=True, delay=1800):

@@ -18,50 +18,63 @@ class TaskMonitor():
     def __str__(self):
         return self.format_table()
 
-    def add_task(self, func, *, description, name=None, key=None):
+    def add_task(self, func, *, description, name=None):
         """
         Add a task to the monitor.
 
         Args:
             func: A function that can be called to create a coroutine to run as a Task.
             description: The description of the task.
-            name: The name of the task.
-            key: The desired key within the tasks to use. By default, numerically increments from 0.
+            name: The name of the task, it must be unique.
+
+        Raises:
+            ValueError: Name collision with another existing task.
 
         Returns: TaskMonitor for daisy chaining.
         """
-        if not key:
-            key = len(self.tasks)
+        if name in self.tasks:
+            raise ValueError("Invalid name for task in TaskMonitor. Please choose a unique name.")
 
-        self.tasks[key] = {
+        self.tasks[name] = {
             'func': func,
             'task': asyncio.create_task(func()),
-            'name': name if name else key,
+            'name': name,
             'description': description,
         }
 
         return self
 
-    async def restart_task(self, *, key):
+    async def restart_task(self, *, name):
         """
         Cancel if needed and then restart the associated Task for a given coroutine.
 
         Args:
-            key: Restart the task with this associated key.
+            name: Restart the task with this associated key.
 
         Raises:
-            KeyError: Invalid key to the dictionary of tasks.
+            ValueError: Invalid name of the task provided.
 
         Returns: The old asyncio.Task that was done or cancelled
         """
-        info = self.tasks[key]
-        task = info['task']
-        if not task.done():
-            task.cancel('New task will be created.')
+        try:
+            info = self.tasks[name]
+            task = info['task']
 
-        info['task'] = asyncio.create_task(info['func']())
+            if task.done():
+                try:
+                    reason = f"Exception raised by task: {task.exception()}"
+                except (asyncio.CancelledError, asyncio.InvalidStateError):
+                    reason = "The task either was cancelled or is still running!"
+                logging.getLogger(__name__).error("TASKMON: %s failed, reason: %s", info['name'], reason)
+            else:
+                task.cancel('New task will be created.')
 
-        return task
+            info['task'] = asyncio.create_task(info['func']())
+
+            return task
+        except KeyError as exc:
+            possible = '\n'.join(sorted(self.tasks.keys()))
+            raise ValueError(f"Task not found: {name}\nSelect from these tasks:\n\n{possible}") from exc
 
     def format_table(self, *, header=False, wrap_msgs=False):
         """

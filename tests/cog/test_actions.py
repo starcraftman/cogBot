@@ -4,6 +4,7 @@ Tests against the cog.actions module.
 These tests act as integration tests, checking almost the whole path.
 Importantly, I have stubbed/mocked everything to do with discord.py and the gsheets calls.
 """
+import asyncio
 import os
 import re
 import tempfile
@@ -1647,6 +1648,42 @@ async def test_cmd_dash_denied(f_bot, db_cleanup):
 
     with pytest.raises(cog.exc.InvalidPerms):
         await action_map(msg, f_bot).execute()
+
+
+@pytest.mark.asyncio
+async def test_cmd_dash_bad_name(f_dusers, f_admins, f_bot):
+    try:
+        msg = fake_msg_gears("!dash restart Bye")
+        expect = """Task not found: Bye
+Select from these tasks:
+
+Hello"""
+
+        async def func():
+            await asyncio.sleep(1)
+        cog.task_monitor.TASK_MON.add_task(func, name='Hello', description='World')
+
+        await action_map(msg, f_bot).execute()
+
+        f_bot.send_message.assert_called_with(msg.channel, expect)
+    finally:
+        cog.task_monitor.TASK_MON.tasks.clear()
+
+
+@pytest.mark.asyncio
+async def test_cmd_dash_restart(f_dusers, f_admins, f_bot):
+    try:
+        msg = fake_msg_gears("!dash restart Hello")
+
+        async def func():
+            await asyncio.sleep(1)
+        cog.task_monitor.TASK_MON.add_task(func, name='Hello', description='World')
+
+        await action_map(msg, f_bot).execute()
+
+        f_bot.send_message.assert_called_with(msg.channel, 'Restart of Hello complete.')
+    finally:
+        cog.task_monitor.TASK_MON.tasks.clear()
 
 
 @pytest.mark.asyncio

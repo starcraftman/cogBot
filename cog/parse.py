@@ -209,10 +209,16 @@ This command is restricted to admin users only.
 
 **{prefix}dash
         Display the dashboard status of the bot.
+**{prefix}dash restart PowerplayMonitor
+        Restart the powerplay monitor, will write information on failure to log.
     """
     sub = subs.add_parser(prefix + 'dash', description=desc, formatter_class=RawHelp)
     CMD_MAP['Dashboard'] = 'dash'
-    sub.set_defaults(cmd='Dashboard')
+    sub.set_defaults(cmd='Dashboard', subcmd='display')
+    subcmds = sub.add_subparsers(title='subcommands',
+                                 description='Dash subcommands', dest='subcmd')
+    subcmd = subcmds.add_parser('restart', help='Restart tasks')
+    subcmd.add_argument('task', nargs='+', help='The task to restart.')
 
 
 @register_parser
