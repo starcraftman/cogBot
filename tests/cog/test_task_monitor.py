@@ -57,7 +57,7 @@ async def test_task_monitor__str__():
 InfoName | Running | InfoDescription"""
         assert expect == str(mon)
     finally:
-        await mon.tasks[0]['task']
+        await mon.tasks['InfoName']['task']
 
 
 @pytest.mark.asyncio
@@ -67,10 +67,10 @@ async def test_task_monitor_add():
         mon.add_task(functools.partial(func_info, 'FuncCoro'), name='InfoName', description='InfoDescription')
 
         assert mon.tasks
-        assert mon.tasks[0]['name'] == 'InfoName'
-        assert not mon.tasks[0]['task'].done()
+        assert mon.tasks['InfoName']['name'] == 'InfoName'
+        assert not mon.tasks['InfoName']['task'].done()
     finally:
-        await mon.tasks[0]['task']
+        await mon.tasks['InfoName']['task']
 
 
 @pytest.mark.asyncio
@@ -79,13 +79,13 @@ async def test_task_monitor_restart():
     try:
         mon.add_task(functools.partial(func_info, 'FuncCoro'), name='InfoName', description='InfoDescription')
         assert mon.tasks
-        old_task = await mon.restart_task(key=0)
+        old_task = await mon.restart_task(name='InfoName')
         await asyncio.sleep(0.1)
 
         assert old_task.done()
-        assert not mon.tasks[0]['task'].done()
+        assert not mon.tasks['InfoName']['task'].done()
     finally:
-        await mon.tasks[0]['task']
+        await mon.tasks['InfoName']['task']
 
 
 @pytest.mark.asyncio
@@ -99,7 +99,7 @@ async def test_task_monitor_table_cells():
         ]
         assert expect == mon.table_cells()
     finally:
-        await mon.tasks[0]['task']
+        await mon.tasks['InfoName']['task']
 
 
 @pytest.mark.asyncio
@@ -112,4 +112,4 @@ async def test_task_monitor_format_table():
 InfoName | Running | InfoDescription```"""
         assert expect == mon.format_table(header=True, wrap_msgs=True)
     finally:
-        await mon.tasks[0]['task']
+        await mon.tasks['InfoName']['task']
