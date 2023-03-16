@@ -207,9 +207,9 @@ def subs_dash(subs, prefix):
 This command is restricted to admin users only.
     Examples:
 
-**{prefix}dash
+**{prefix}dash**
         Display the dashboard status of the bot.
-**{prefix}dash restart PowerplayMonitor
+**{prefix}dash restart PowerplayMonitor**
         Restart the powerplay monitor, will write information on failure to log.
     """
     sub = subs.add_parser(prefix + 'dash', description=desc, formatter_class=RawHelp)
