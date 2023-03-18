@@ -21,7 +21,7 @@ coverage:
   script: |
     /etc/init.d/mariadb start
     mysql -u root < "tests/mysql_tables.sql"
-    curl "http://starcraftman.com/elite/eddb_v11.sql" > "eddb.sql"
+    curl "http://starcraftman.com/elite/eddb_v12.sql" > "eddb.sql"
     mysql -u root -D eddb < "eddb.sql"
     doppler secrets substitute "tests/secrethub/secretConfig.yml" --output "data/config.yml"
     doppler secrets substitute "tests/secrethub/secretSheets.json" --output "data/service_sheets.json"
@@ -38,7 +38,7 @@ tests:
   script: |
     /etc/init.d/mariadb start
     mysql -u root < "tests/mysql_tables.sql"
-    curl "http://starcraftman.com/elite/eddb_v11.sql" > "eddb.sql"
+    curl "http://starcraftman.com/elite/eddb_v12.sql" > "eddb.sql"
     mysql -u root -D eddb < "eddb.sql"
     doppler secrets substitute "tests/secrethub/secretConfig.yml" --output "data/config.yml"
     doppler secrets substitute "tests/secrethub/secretSheets.json" --output "data/service_sheets.json"
