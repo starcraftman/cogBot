@@ -804,12 +804,14 @@ class SquadStats(PVPAction):
             if self.args.name:
                 squad_name = ' '.join(self.args.name)
                 cmdr_ids = [x.id for x in pvp.schema.get_squad_cmdrs(self.eddb_session, squad_name=squad_name)]
+                if not cmdr_ids:
+                    msg += f"Squad {squad_name} has no members registered!"
             else:
                 cmdr = pvp.schema.get_pvp_cmdr(self.eddb_session, cmdr_id=self.msg.author.id)
                 squad_name = cmdr.inara.squad.name
                 cmdr_ids = [x.id for x in pvp.schema.get_squad_cmdrs(self.eddb_session, cmdr_id=cmdr.id)]
-            if not cmdr_ids:
-                msg += f"Squad {squad_name} has no members registered!"
+        except AttributeError:  # No inara.squad association
+            msg += "You aren't registered to a squad. See `!cmdr` to register your Inara profile."
         except cog.exc.NoMatch:
             msg += f"Squad {squad_name} not found!"
         if not cmdr_ids:
