@@ -37,7 +37,7 @@ if 'pytest' in sys.modules:
     CREDS['db'] = CUR_DB
     TEST_DB = True
 else:
-    CUR_DB = os.environ.get('COG_TOKEN', 'dev')
+    CUR_DB = os.environ.get('TOKEN', 'dev')
     CREDS['db'] = CUR_DB
 
 #  engine = sqlalchemy.create_engine(MYSQL_SPEC.format(**CREDS), echo=False, pool_pre_ping=True, pool_recycle=3600, pool_size=20)

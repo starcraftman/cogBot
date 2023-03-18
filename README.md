@@ -42,29 +42,29 @@ NB: libczmq3 may not be available on some systems. Not to be confused with simil
 
 Next is the database. At a bare minimum you require a running mysql/mariadb instance with at least 1 user.
 That user must have access to a database named **dev**. This is the default database.
-The database used is tied to the COG_TOKEN set in os.environ on startup. See below.
+The database used is tied to the TOKEN set in os.environ on startup. See below.
 
 To complete installation, you need to fill the data directory with configuration files from separate dev kit.
 Inside the main config you will have to edit the information about connecting to your local db (user/pass).
 There may be additional details in the dev kit, please read them.
 
-#### COG_TOKEN Explained
+#### TOKEN Explained
 
-The COG_TOKEN environment variable does two main things. Let us consider the example:
+The TOKEN environment variable does two main things. Let us consider the example:
 
-`COG_TOKEN=live python -m cog.bot`
+`TOKEN=live python -m cog.bot`
 
 1) Selects the local database to use. In this case, the mysql driver will login locally and select `live` database.
 1) Tells bot on startup what bot account to login to discord with. This is important. In the `config.yml` file
 there is a key called **discord**. Under this key, is a series of key/value pairs. In our example, the running
 bot would log in with the discord token under the 'live' key.
 
-If COG_TOKEN variable doesn't exist, default is 'dev'. I suggest you use that to start with.
+If TOKEN variable doesn't exist, default is 'dev'. I suggest you use that to start with.
 The main reason token also selects a different database is to allow side by side execution of the bot.
 
 ### Running Bot
 
-To run the main bot do as follows. Take note of above, you'll be implying COG_TOKEN=dev by default.
+To run the main bot do as follows. Take note of above, you'll be implying TOKEN=dev by default.
 
 ```
 python -m cog.bot

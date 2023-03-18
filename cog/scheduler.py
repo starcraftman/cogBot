@@ -232,7 +232,7 @@ def done_cb(wrap, fut):  # pragma: no cover
         return
 
     log = logging.getLogger(__name__)
-    env = os.environ.get('COG_TOKEN', 'dev')
+    env = os.environ.get('TOKEN', 'dev')
     chan_name = 'private_dev'
     if env in ['prod', 'live']:
         chan_name = f'private_{env}'

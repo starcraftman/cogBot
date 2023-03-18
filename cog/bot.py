@@ -511,7 +511,7 @@ async def presence_task(bot, delay=180):
 
 async def simple_heartbeat(delay=30):
     """ Simple heartbeat function to check liveness of main loop. """
-    hfile = os.path.join(tempfile.gettempdir(), 'hbeat' + os.environ.get('COG_TOKEN', 'dev'))
+    hfile = os.path.join(tempfile.gettempdir(), 'hbeat' + os.environ.get('TOKEN', 'dev'))
     print(hfile)
     while True:
         async with aiofiles.open(hfile, 'w') as fout:
@@ -551,7 +551,7 @@ def main():  # pragma: no cover
     cog.util.BOT = CogBot("!", scheduler_delay=cog.util.CONF.constants.scheduler_delay,
                           intents=intents)
 
-    token = cog.util.CONF.discord.unwrap.get(os.environ.get('COG_TOKEN', 'dev'))
+    token = cog.util.CONF.discord.unwrap.get(os.environ.get('TOKEN', 'dev'))
     print("Waiting on connection to Discord ...")
     try:
         loop = asyncio.get_event_loop()

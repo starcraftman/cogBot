@@ -28,7 +28,7 @@ def dump_db(session):  # pragma: no cover
     """
     Purely debug function, shunts db contents into file for examination.
     """
-    fname = os.path.join(tempfile.gettempdir(), 'dbdump_' + os.environ.get('COG_TOKEN', 'dev'))
+    fname = os.path.join(tempfile.gettempdir(), 'dbdump_' + os.environ.get('TOKEN', 'dev'))
     print("Dumping db contents to:", fname)
     with open(fname, 'w', encoding='utf-8') as fout:
         for cls in [DiscordUser, FortUser, FortSystem, FortDrop, FortOrder,
