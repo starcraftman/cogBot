@@ -379,6 +379,33 @@ async def test_cmd_stats_help(f_bot, f_pvp_clean):
         await action_map(msg, f_bot).execute()
 
 
+@pytest.mark.asyncio
+async def test_cmd_squad(f_bot, f_pvp_testbed):
+    msg = fake_msg_gears("!squad")
+    msg.author.id = 1
+
+    await action_map(msg, f_bot).execute()
+    _, kwargs = f_bot.send_message.call_args_list[0]
+    assert '3' == kwargs['embed'].fields[0].value
+
+
+@pytest.mark.asyncio
+async def test_cmd_squad_name(f_bot, f_pvp_testbed):
+    msg = fake_msg_gears("!squad cool guys")
+
+    await action_map(msg, f_bot).execute()
+    _, kwargs = f_bot.send_message.call_args_list[0]
+    assert '3' == kwargs['embed'].fields[0].value
+
+
+@pytest.mark.asyncio
+async def test_cmd_squad_name_notfound(f_bot, f_pvp_testbed):
+    msg = fake_msg_gears("!squad bad guys")
+
+    await action_map(msg, f_bot).execute()
+    f_bot.send_message.assert_any_call(msg.channel, '__Squad Statistics__\n\nSquad bad guys not found!')
+
+
 def test_filename_for_upload():
     fname = pvp.actions.filename_for_upload('<coolGuy{32}>', id_num=2)
     assert fname.startswith('coolGuy32_2')

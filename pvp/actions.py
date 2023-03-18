@@ -770,7 +770,6 @@ class Stats(PVPAction):
             return
 
         msg = None
-        stats = pvp.schema.get_pvp_stats(self.eddb_session, cmdr_ids=[cmdr.id])
         avatar = self.bot.user.display_avatar.url
         cmdr_member = self.msg.guild.get_member(cmdr.id)
         if cmdr_member:
@@ -787,8 +786,8 @@ class Stats(PVPAction):
             'thumbnail': {
                 'url': avatar
             },
-            'title': f"CMDR {stats.cmdr.name}",
-            "fields": stats.embed_values,
+            'title': f"CMDR {cmdr.name}",
+            "fields": pvp.schema.get_pvp_stats(self.eddb_session, cmdr_ids=[cmdr.id]),
         })
 
         await self.bot.send_message(self.msg.channel, msg, embed=embed)
@@ -818,10 +817,9 @@ class SquadStats(PVPAction):
             return
 
         msg = None
-        stats = pvp.schema.get_pvp_stats(self.eddb_session, cmdr_ids=cmdr_ids)
         avatar = self.bot.user.display_avatar.url
         embed = discord.Embed.from_dict({
-            'color': cmdr.hex_value,
+            'color': 0xB20000,
             'author': {
                 'name': 'PVP Squad Statistics',
                 'icon_url': self.bot.user.display_avatar.url,
@@ -833,7 +831,7 @@ class SquadStats(PVPAction):
                 'url': avatar
             },
             'title': f"Squad {squad_name}",
-            "fields": stats.embed_values,
+            "fields": pvp.schema.get_pvp_stats(self.eddb_session, cmdr_ids=cmdr_ids),
         })
 
         await self.bot.send_message(self.msg.channel, msg, embed=embed)

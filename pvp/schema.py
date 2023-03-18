@@ -914,7 +914,7 @@ def get_squad_cmdrs(eddb_session, *, squad_name=None, cmdr_id=None):
                 filter(PVPInaraSquad.name == squad_name).\
                 one()
     except sqla.exc.NoResultFound as exc:
-        raise cog.exc.NoMatch from exc
+        raise cog.exc.NoMatch(squad_name, PVPInaraSquad) from exc
 
     return eddb_session.query(PVPCmdr).\
         join(PVPInara, PVPCmdr.id == PVPInara.discord_id).\
