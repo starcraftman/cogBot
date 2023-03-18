@@ -491,16 +491,3 @@ def test_process_filtered_archive(f_pvp_testbed, f_plog_filtered):
         pvp.actions.process_filtered_archive(fname=f_plog_filtered, cmdr_id=1, attach_fname='fixture_00.zip', log_fname=log.name)
         with open(log.name, 'r', encoding='utf-8') as fin:
             assert fin.read()
-
-
-def test_compute_all_stats(f_pvp_testbed, eddb_session):
-    stat = eddb_session.query(pvp.schema.PVPStat).filter(pvp.schema.PVPStat.cmdr_id == 1).one()
-    stat.kills = 0
-    stat.deaths = 0
-    eddb_session.commit()
-    eddb_session.close()
-
-    pvp.actions.compute_all_stats()
-
-    found = eddb_session.query(pvp.schema.PVPStat).filter(pvp.schema.PVPStat.cmdr_id == 1).one()
-    assert found.kills == 3

@@ -47,8 +47,6 @@ def subs_admin(subs, prefix):
 **{prefix}admin regenerate**
         Use only when log corruption expected or change in log parsing.
         Reparses all uploaded logs to regenerate database.
-**{prefix}admin stats**
-        Recreate the pvp stats table and recompute all stats.
 **{prefix}admin prune #mention_channel_1 #mention_channel_2**
         Delete all messages in mentioned channels.
 **{prefix}admin prune_bulk #mention_channel_1 #mention_channel_2**
@@ -65,7 +63,6 @@ def subs_admin(subs, prefix):
     subcmd.add_argument('rule_cmds', nargs='*', help='The the command to restrict.')
     subcmd = subcmds.add_parser('filter', help='Filter all existing log uploads for events of interest.')
     subcmd = subcmds.add_parser('regenerate', help='Regenerate the PVP database.')
-    subcmd = subcmds.add_parser('stats', help='Regenerate the PVPStats for all CMDRs.')
     subcmd = subcmds.add_parser('prune', help='Delete messages in one or more mentioned channels.')
     subcmd = subcmds.add_parser('prune_bulk', help='Delete messages in bulk for one or more mentioned channels.')
 
@@ -248,6 +245,22 @@ def subs_stats(subs, prefix):
     sub.set_defaults(cmd='Stats')
     CMD_MAP['Stats'] = 'stats'
     sub.add_argument('name', nargs='*', default=None, help='The cmdr name to look up.')
+
+
+@register_parser
+def subs_squadstats(subs, prefix):
+    """ Subcommand parsing for squadron stats """
+    desc = f"""To see squadron statistics
+
+**{prefix}squad**
+        See the combined stats of your squadron.
+**{prefix}squad Best Squad Ever**
+        See the stats for the named squadron. This is not case sensitive.
+    """
+    sub = subs.add_parser(prefix + 'squad', description=desc, formatter_class=RawHelp)
+    sub.set_defaults(cmd='SquadStats')
+    CMD_MAP['SquadStats'] = 'squad'
+    sub.add_argument('name', nargs='*', default=None, help='The squadron name to look up.')
 
 
 def reuse_parsers():

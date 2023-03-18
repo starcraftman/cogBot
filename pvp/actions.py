@@ -244,15 +244,6 @@ class Admin(PVPAction):
 
         return response
 
-    async def stats(self):  # pragma: no cover, don't hit the guild repeatedly
-        """
-        Regenerate just the stats given the current set of events.
-        """
-        with cfut.ProcessPoolExecutor(max_workers=1) as pool:
-            await asyncio.get_event_loop().run_in_executor(pool, compute_all_stats)
-
-        return "Stats for all CMDRs have been redone."
-
     async def execute(self):
         try:
             admin = cogdb.query.get_admin(self.session, self.duser)
@@ -276,16 +267,6 @@ class Admin(PVPAction):
         except (AttributeError, TypeError) as exc:
             traceback.print_exc()
             raise cog.exc.InvalidCommandArgs("Bad subcommand of `!admin`, see `!admin -h` for help.") from exc
-
-
-def compute_all_stats():
-    """
-    Recreate the PVPStat table only.
-    Then compute the PVPStats for all existing commanders again.
-    """
-    with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
-        for cmdr in eddb_session.query(pvp.schema.PVPCmdr):
-            pvp.schema.update_pvp_stats(eddb_session, cmdr_id=cmdr.id)
 
 
 class FileUpload(PVPAction):  # pragma: no cover
@@ -325,21 +306,13 @@ class FileUpload(PVPAction):  # pragma: no cover
 
                 try:
                     # Process the log that was filtered
-                    logs = await asyncio.get_event_loop().run_in_executor(
+                    return await asyncio.get_event_loop().run_in_executor(
                         pool, functools.partial(
                             process_cmdr_tempfiles,
                             cmdr_id=self.msg.author.id,
                             info=[{'fname': tfile.name, 'attach_fname': attach.filename}]
                         )
                     )
-
-                    await asyncio.get_event_loop().run_in_executor(
-                        None,
-                        functools.partial(
-                            pvp.schema.update_pvp_stats, self.eddb_session, cmdr_id=self.msg.author.id
-                        )
-                    )
-                    return logs
 
                 except (pvp.journal.ParserError, zipfile.BadZipfile):
                     await self.bot.send_message(self.msg.channel, f'Error with {attach.filename}. We only support zips and text files.')
@@ -796,29 +769,72 @@ class Stats(PVPAction):
             await self.bot.send_message(self.msg.channel, msg)
             return
 
-        embed = None
-        stats = pvp.schema.get_pvp_stats(self.eddb_session, cmdr.id)
-        if stats:
-            msg = None
-            avatar = self.bot.user.display_avatar.url
-            cmdr_member = self.msg.guild.get_member(cmdr.id)
-            if cmdr_member:
-                avatar = cmdr_member.display_avatar.url
-            embed = discord.Embed.from_dict({
-                'color': cmdr.hex_value,
-                'author': {
-                    'name': 'PVP Statistics',
-                    'icon_url': self.bot.user.display_avatar.url,
-                },
-                'provider': {
-                    'name': 'FedCAT',
-                },
-                'thumbnail': {
-                    'url': avatar
-                },
-                'title': f"CMDR {stats.cmdr.name}",
-                "fields": stats.embed_values,
-            })
+        msg = None
+        stats = pvp.schema.get_pvp_stats(self.eddb_session, cmdr_ids=[cmdr.id])
+        avatar = self.bot.user.display_avatar.url
+        cmdr_member = self.msg.guild.get_member(cmdr.id)
+        if cmdr_member:
+            avatar = cmdr_member.display_avatar.url
+        embed = discord.Embed.from_dict({
+            'color': cmdr.hex_value,
+            'author': {
+                'name': 'PVP Statistics',
+                'icon_url': self.bot.user.display_avatar.url,
+            },
+            'provider': {
+                'name': 'FedCAT',
+            },
+            'thumbnail': {
+                'url': avatar
+            },
+            'title': f"CMDR {stats.cmdr.name}",
+            "fields": stats.embed_values,
+        })
+
+        await self.bot.send_message(self.msg.channel, msg, embed=embed)
+
+
+class SquadStats(PVPAction):
+    """
+    Display statistics based on file uploads to bot.
+    """
+    async def execute(self):
+        msg = "__Squad Statistics__\n\n"
+        cmdr_ids = None
+        try:
+            if self.args.name:
+                squad_name = ' '.join(self.args.name)
+                cmdr_ids = [x.id for x in pvp.schema.get_squad_cmdrs(self.eddb_session, squad_name=squad_name)]
+            else:
+                cmdr = pvp.schema.get_pvp_cmdr(self.eddb_session, cmdr_id=self.msg.author.id)
+                squad_name = cmdr.inara.squad.name
+                cmdr_ids = [x.id for x in pvp.schema.get_squad_cmdrs(self.eddb_session, cmdr_id=cmdr.id)]
+            if not cmdr_ids:
+                msg += f"Squad {squad_name} has no members registered!"
+        except cog.exc.NoMatch:
+            msg += f"Squad {squad_name} not found!"
+        if not cmdr_ids:
+            await self.bot.send_message(self.msg.channel, msg)
+            return
+
+        msg = None
+        stats = pvp.schema.get_pvp_stats(self.eddb_session, cmdr_ids=cmdr_ids)
+        avatar = self.bot.user.display_avatar.url
+        embed = discord.Embed.from_dict({
+            'color': cmdr.hex_value,
+            'author': {
+                'name': 'PVP Squad Statistics',
+                'icon_url': self.bot.user.display_avatar.url,
+            },
+            'provider': {
+                'name': 'FedCAT',
+            },
+            'thumbnail': {
+                'url': avatar
+            },
+            'title': f"Squad {squad_name}",
+            "fields": stats.embed_values,
+        })
 
         await self.bot.send_message(self.msg.channel, msg, embed=embed)
 

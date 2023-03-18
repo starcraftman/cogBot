@@ -30,6 +30,7 @@ MATCH_STATES = {
     1: "Started",
     2: "Finished",
 }
+EMPTY = 'N/A'
 
 
 class EventTimeMixin():
@@ -103,7 +104,7 @@ class PVPInara(ReprMixin, TimestampMixin, Base):
 
     def __str__(self):
         """ Convenient string representation of this object. """
-        squad = self.squad.name if self.squad else 'N/A'
+        squad = self.squad.name if self.squad else EMPTY
         return f'CMDR {self.name} ({squad})'
 
     def __eq__(self, other):
@@ -584,140 +585,6 @@ class PVPEscapedInterdicted(ReprMixin, TimestampMixin, EventTimeMixin, Base):
         return hash(f'{self.cmdr_id}_{self.system_id}_{self.event_at}')
 
 
-class PVPStat(ReprMixin, TimestampMixin, UpdatableMixin, Base):
-    """
-    Table to store derived stats from pvp tracking.
-    All stats are relative the single CMDR identified by cmdr_id.
-    These stats are cached and fixed until a new log uploaded, then regenerate.
-    """
-    __tablename__ = 'pvp_stats'
-    _repr_keys = [
-        'id', 'cmdr_id',
-        'last_location_id', 'last_kill_id', 'last_death_id',
-        'last_interdicted_id', 'last_interdicted_id', 'last_escaped_interdicted_id',
-        'deaths', 'kills', 'interdictions', 'interdicteds', 'escaped_interdicteds',
-        'most_kills_system_id', 'most_deaths_system_id',
-        'interdicted_kills', 'interdiction_deaths', 'interdicted_kills', 'interdicted_deaths',
-        'killed_most', 'most_deaths_by', 'most_interdictions', 'most_interdicted_by', 'most_escaped_interdictions_from',
-        'updated_at'
-    ]
-
-    id = sqla.Column(sqla.BigInteger, primary_key=True)
-    cmdr_id = sqla.Column(sqla.BigInteger, sqla.ForeignKey('pvp_cmdrs.id'))
-    last_location_id = sqla.Column(sqla.BigInteger, sqla.ForeignKey('pvp_locations.id'))
-    last_kill_id = sqla.Column(sqla.BigInteger, sqla.ForeignKey('pvp_kills.id'))
-    last_death_id = sqla.Column(sqla.BigInteger, sqla.ForeignKey('pvp_deaths.id'))
-    last_interdiction_id = sqla.Column(sqla.BigInteger, sqla.ForeignKey('pvp_interdictions.id'))
-    last_interdicted_id = sqla.Column(sqla.BigInteger, sqla.ForeignKey('pvp_interdicteds.id'))
-    last_escaped_interdicted_id = sqla.Column(sqla.BigInteger, sqla.ForeignKey('pvp_escaped_interdicteds.id'))
-
-    deaths = sqla.Column(sqla.Integer, default=0)
-    kills = sqla.Column(sqla.Integer, default=0)
-    interdictions = sqla.Column(sqla.Integer, default=0)
-    interdicteds = sqla.Column(sqla.Integer, default=0)
-    escaped_interdicteds = sqla.Column(sqla.Integer, default=0)
-    most_kills_system_id = sqla.Column(sqla.BigInteger, default=0)
-    most_deaths_system_id = sqla.Column(sqla.BigInteger, default=0)
-
-    interdiction_kills = sqla.Column(sqla.Integer, default=0)
-    interdiction_deaths = sqla.Column(sqla.Integer, default=0)
-    interdicted_kills = sqla.Column(sqla.Integer, default=0)
-    interdicted_deaths = sqla.Column(sqla.Integer, default=0)
-
-    # Names of CMDRS not guaranteed in db, could just be from logs.
-    killed_most = sqla.Column(sqla.String(EDDB_LEN['pvp_name']))
-    most_deaths_by = sqla.Column(sqla.String(EDDB_LEN['pvp_name']))
-    most_interdictions = sqla.Column(sqla.String(EDDB_LEN['pvp_name']))
-    most_interdicted_by = sqla.Column(sqla.String(EDDB_LEN['pvp_name']))
-    most_escaped_interdictions_from = sqla.Column(sqla.String(EDDB_LEN['pvp_name']))
-
-    updated_at = sqla.Column(sqla.Integer, default=time.time, onupdate=time.time)
-
-    cmdr = sqla.orm.relationship('PVPCmdr', viewonly=True)
-    most_kills_system = sqla.orm.relationship(
-        'System', uselist=False, lazy='joined', viewonly=True,
-        primaryjoin='foreign(PVPStat.most_kills_system_id) == System.id')
-    most_deaths_system = sqla.orm.relationship(
-        'System', uselist=False, lazy='joined', viewonly=True,
-        primaryjoin='foreign(PVPStat.most_deaths_system_id) == System.id')
-    last_location = sqla.orm.relationship(
-        'PVPLocation', uselist=False, lazy='joined', viewonly=True,
-        primaryjoin='foreign(PVPStat.last_location_id) == PVPLocation.id')
-    last_kill = sqla.orm.relationship(
-        'PVPKill', uselist=False, lazy='joined', viewonly=True,
-        primaryjoin='foreign(PVPStat.last_kill_id) == PVPKill.id')
-    last_death = sqla.orm.relationship(
-        'PVPDeath', uselist=False, lazy='joined', viewonly=True,
-        primaryjoin='foreign(PVPStat.last_death_id) == PVPDeath.id')
-    last_escaped_interdicted = sqla.orm.relationship(
-        'PVPEscapedInterdicted', uselist=False, lazy='joined', viewonly=True,
-        primaryjoin='foreign(PVPStat.last_escaped_interdicted_id) == PVPEscapedInterdicted.id')
-    last_interdiction = sqla.orm.relationship(
-        'PVPInterdiction', uselist=False, lazy='joined', viewonly=True,
-        primaryjoin='foreign(PVPStat.last_interdiction_id) == PVPInterdiction.id')
-    last_interdicted = sqla.orm.relationship(
-        'PVPInterdicted', uselist=False, lazy='joined', viewonly=True,
-        primaryjoin='foreign(PVPStat.last_interdicted_id) == PVPInterdicted.id')
-
-    @property
-    def kill_ratio(self):
-        """ Return the k/d of a user. """
-        try:
-            ratio = round(float(self.kills) / self.deaths, 2)
-        except ZeroDivisionError:
-            ratio = 0.0
-
-        return ratio
-
-    @property
-    def embed_values(self):
-        """ Return values for creating an embed. """
-        return [
-            {'name': name, 'value': value, 'inline': True} for name, value in self.table_cells()
-        ]
-
-    def table_cells(self):
-        """
-        Returns a list of cells that contain all the information for string representations.
-        """
-        return [
-            ['Kills', str(self.kills)],
-            ['Deaths', str(self.deaths)],
-            ['K/D', str(self.kill_ratio)],
-            ['Interdictions', str(self.interdictions)],
-            ['Interdiction -> Kill', str(self.interdiction_kills)],
-            ['Interdiction -> Death', str(self.interdiction_deaths)],
-            ['Interdicteds', str(self.interdicteds)],
-            ['Interdicted -> Kill', str(self.interdicted_kills)],
-            ['Interdicted -> Death', str(self.interdicted_deaths)],
-            ['Escapes From Interdiction', str(self.escaped_interdicteds)],
-            ['Most Kills', f'CMDR {self.killed_most}'],
-            ['Most Deaths By', f'CMDR {self.most_deaths_by}'],
-            ['Most Interdictions', f'CMDR {self.most_interdictions}'],
-            ['Most Interdicted By', f'CMDR {self.most_interdicted_by}'],
-            ['Most Escaped Interdictions From', f'CMDR {self.most_escaped_interdictions_from}'],
-            ['Most Kills In', self.most_kills_system.name if self.most_kills_system else 'N/A'],
-            ['Most Deaths In', self.most_deaths_system.name if self.most_deaths_system else 'N/A'],
-            ['Last Location', self.last_location.embed() if self.last_location else 'N/A'],
-            ['Last Kill', self.last_kill.embed() if self.last_kill else 'N/A'],
-            ['Last Death By', self.last_death.embed() if self.last_death else 'N/A'],
-            ['Last Interdiction', self.last_interdiction.embed() if self.last_interdiction else 'N/A'],
-            ['Last Interdicted By', self.last_interdicted.embed() if self.last_interdicted else 'N/A'],
-            ['Last Escaped From', self.last_escaped_interdicted.embed() if self.last_escaped_interdicted else 'N/A'],
-        ]
-
-    def __str__(self):
-        """ A string representation of PVPStat. """
-        return cog.tbl.format_table([['Statistic', 'Value']] + self.table_cells(),
-                                    header=True, wrap_msgs=False)[0]
-
-    def __eq__(self, other):
-        return isinstance(other, PVPStat) and hash(self) == hash(other)
-
-    def __hash__(self):
-        return hash(self.cmdr_id)
-
-
 class PVPLog(ReprMixin, TimestampMixin, Base):
     """
     Table to store hashes of uploaded logs or zip files.
@@ -927,7 +794,7 @@ class PVPMatch(ReprMixin, TimestampMixin, Base):
                 'icon_url': cog.util.BOT.user.display_avatar.url if cog.util.BOT else None,
             },
             'provider': {
-                'name': cog.util.BOT.user.name if cog.util.BOT else 'N/A',
+                'name': cog.util.BOT.user.name if cog.util.BOT else EMPTY,
             },
             'title': f'PVP Match: {len(self.players)}/{self.limit}',
             "fields": embed_values,
@@ -1019,6 +886,41 @@ def get_pvp_cmdr(eddb_session, *, cmdr_id=None, cmdr_name=None):
         cmdr = None
 
     return cmdr
+
+
+def get_squad_cmdrs(eddb_session, *, squad_name=None, cmdr_id=None):
+    """
+    Get all PVPCmdrs in a given squad, the sqaud can be found by:
+        - providing the squad name
+        - providing a cmdr_id of a given cmdr inside the squad
+
+    Args:
+        eddb_session: A session onto the EDDB db.
+        squad_name: The name of the CMDR.
+
+    Raises:
+        cog.exc.NoMatch: The squadron is not present in the database at present.
+
+    Returns: The list of all PVPCmdrs in that squad. Empty list if not matched.
+    """
+    try:
+        if cmdr_id:
+            squad = eddb_session.query(PVPInaraSquad).\
+                join(PVPInara, PVPInara.squad_id == PVPInaraSquad.id).\
+                filter(PVPInara.discord_id == cmdr_id).\
+                one()
+        else:
+            squad = eddb_session.query(PVPInaraSquad).\
+                filter(PVPInaraSquad.name == squad_name).\
+                one()
+    except sqla.exc.NoResultFound as exc:
+        raise cog.exc.NoMatch from exc
+
+    return eddb_session.query(PVPCmdr).\
+        join(PVPInara, PVPCmdr.id == PVPInara.discord_id).\
+        join(PVPInaraSquad, PVPInara.squad_id == PVPInaraSquad.id).\
+        filter(PVPInaraSquad.id == squad.id).\
+        all()
 
 
 def update_pvp_cmdr(eddb_session, discord_id, *, name, hex_colour=None):
@@ -1126,27 +1028,7 @@ def update_pvp_inara(eddb_session, info):
     return cmdr, squad
 
 
-def get_pvp_stats(eddb_session, cmdr_id):
-    """
-    Update the statistics for a commander. To be called after a major change to events tracked.
-
-    Args:
-        eddb_session: A session onto the EDDB db.
-        cmdr_id: The cmdr's id.
-
-    Returns: The PVPStat for the cmdr. If no stats recorded, None.
-    """
-    try:
-        stat = eddb_session.query(PVPStat).\
-            filter(PVPStat.cmdr_id == cmdr_id).\
-            one()
-    except sqla.exc.NoResultFound:
-        stat = None
-
-    return stat
-
-
-def get_pvp_event_cmdrs(eddb_session, *, cmdr_id):
+def get_pvp_event_cmdrs(eddb_session, *, cmdr_ids):
     """
     Relative the CMDR specified by cmdr_id, get the names of CMDRs who were:
         - Been killed most by cmdr_id
@@ -1156,7 +1038,7 @@ def get_pvp_event_cmdrs(eddb_session, *, cmdr_id):
 
     Args:
         eddb_session: A session onto the EDDB db.
-        cmdr_id: The ID of a cmdr in the database.
+        cmdr_ids: The list of CMDR ids to group for information.
 
     Returns: A dictionary of these results. If entry not found, will be 'N/A'.
     """
@@ -1165,90 +1047,90 @@ def get_pvp_event_cmdrs(eddb_session, *, cmdr_id):
     try:
         count = sqla.func.count(PVPKill.victim_name)
         result = eddb_session.query(PVPKill.victim_name, count).\
-            filter(PVPKill.cmdr_id == cmdr_id).\
+            filter(PVPKill.cmdr_id.in_(cmdr_ids)).\
             group_by(PVPKill.victim_name).\
             order_by(count.desc(), PVPKill.id.desc()).\
             limit(1).\
             one()[0]
     except sqla.exc.NoResultFound:
-        result = 'N/A'
+        result = EMPTY
     found['killed_most'] = result
     try:
         count = sqla.func.count(PVPDeathKiller.name)
         result = eddb_session.query(PVPDeathKiller.name, count).\
-            filter(PVPDeath.cmdr_id == cmdr_id).\
+            filter(PVPDeath.cmdr_id.in_(cmdr_ids)).\
             join(PVPDeath, PVPDeath.id == PVPDeathKiller.pvp_death_id).\
             group_by(PVPDeathKiller.name).\
             order_by(count.desc(), PVPDeath.id.desc(), PVPDeathKiller.name).\
             limit(1).\
             one()[0]
     except sqla.exc.NoResultFound:
-        result = 'N/A'
+        result = EMPTY
     found['most_deaths_by'] = result
     try:
         count = sqla.func.count(PVPInterdiction.victim_name)
         result = eddb_session.query(PVPInterdiction.victim_name, count).\
-            filter(PVPInterdiction.cmdr_id == cmdr_id).\
+            filter(PVPInterdiction.cmdr_id.in_(cmdr_ids)).\
             group_by(PVPInterdiction.victim_name).\
             order_by(count.desc(), PVPInterdiction.id.desc()).\
             limit(1).\
             one()[0]
     except sqla.exc.NoResultFound:
-        result = 'N/A'
+        result = EMPTY
     found['most_interdictions'] = result
     try:
         count = sqla.func.count(PVPInterdicted.interdictor_name)
         result = eddb_session.query(PVPInterdicted.interdictor_name, count).\
-            filter(PVPInterdicted.cmdr_id == cmdr_id).\
+            filter(PVPInterdicted.cmdr_id.in_(cmdr_ids)).\
             group_by(PVPInterdicted.interdictor_name).\
             order_by(count.desc(), PVPInterdicted.id.desc()).\
             limit(1).\
             one()[0]
     except sqla.exc.NoResultFound:
-        result = 'N/A'
+        result = EMPTY
     found['most_interdicted_by'] = result
     try:
         count = sqla.func.count(PVPEscapedInterdicted.interdictor_name)
         result = eddb_session.query(PVPEscapedInterdicted.interdictor_name, count).\
-            filter(PVPEscapedInterdicted.cmdr_id == cmdr_id).\
+            filter(PVPEscapedInterdicted.cmdr_id.in_(cmdr_ids)).\
             group_by(PVPEscapedInterdicted.interdictor_name).\
             order_by(count.desc(), PVPEscapedInterdicted.id.desc()).\
             limit(1).\
             one()[0]
     except sqla.exc.NoResultFound:
-        result = 'N/A'
+        result = EMPTY
     found['most_escaped_interdictions_from'] = result
 
     return found
 
 
-def get_pvp_last_events(eddb_session, *, cmdr_id):
+def get_pvp_last_events(eddb_session, *, cmdr_ids):
     """
     Find the IDs of the last events the CMDR uploaded for parsing.
     If no possible ID found for an event, it will return None.
 
     Args:
         eddb_session: A session onto the EDDB db.
-        cmdr_id: The ID of a cmdr in the database.
+        cmdr_ids: The list of CMDR ids to group and get last events for.
 
     Returns: A dictionary of these results. If entry not found, will be None.
     """
     found = {}
 
     for key, cls in [
-        ('last_location_id', PVPLocation),
-        ('last_kill_id', PVPKill),
-        ('last_death_id', PVPDeath),
-        ('last_escaped_interdicted_id', PVPEscapedInterdicted),
-        ('last_interdiction_id', PVPInterdiction),
-        ('last_interdicted_id', PVPInterdicted),
+        ('last_location', PVPLocation),
+        ('last_kill', PVPKill),
+        ('last_death', PVPDeath),
+        ('last_escaped_interdicted', PVPEscapedInterdicted),
+        ('last_interdiction', PVPInterdiction),
+        ('last_interdicted', PVPInterdicted),
     ]:
         try:
-            result = eddb_session.query(cls.id).\
-                filter(cls.cmdr_id == cmdr_id).\
+            result = eddb_session.query(cls).\
+                filter(cls.cmdr_id.in_(cmdr_ids)).\
                 order_by(cls.event_at.desc()).\
                 limit(1).\
-                one()[0]
+                one()
         except sqla.exc.NoResultFound:
             result = None
         found[key] = result
@@ -1256,85 +1138,122 @@ def get_pvp_last_events(eddb_session, *, cmdr_id):
     return found
 
 
-def update_pvp_stats(eddb_session, *, cmdr_id):
+def compute_pvp_stats(eddb_session, *, cmdr_ids):
+    """
+    Given a list of cmdr_ids, compute statistics by selecting all events of these cmdrs.
+    When selecting multiple CMDRs, it represents a group statistic.
+
+    Args:
+        eddb_session: A session onto the EDDB db.
+        cmdr_ids: The list of CMDR ids.
+    """
+    kwargs = {
+        label: eddb_session.query(cls).filter(cls.cmdr_id.in_(cmdr_ids)).count()
+        for label, cls in [
+            ['deaths', PVPDeath],
+            ['kills', PVPKill],
+            ['interdictions', PVPInterdiction],
+            ['escaped_interdicteds', PVPEscapedInterdicted],
+            ['interdicteds', PVPInterdicted],
+            ['interdiction_deaths', PVPInterdictionDeath],
+            ['interdiction_kills', PVPInterdictionKill],
+            ['interdicted_deaths', PVPInterdictedDeath],
+            ['interdicted_kills', PVPInterdictedKill],
+        ]
+    }
+
+    try:
+        count_system_id = sqla.func.count(PVPKill.system_id)
+        system_id = eddb_session.query(PVPKill.system_id, count_system_id).\
+            filter(PVPKill.cmdr_id.in_(cmdr_ids)).\
+            group_by(PVPKill.system_id).\
+            order_by(count_system_id.desc(), PVPKill.id.desc()).\
+            limit(1).\
+            one()[0]
+        result = eddb_session.query(cogdb.eddb.System.name).filter(cogdb.eddb.System.id == system_id).scalar()
+    except sqla.exc.NoResultFound:
+        result = EMPTY
+    kwargs['most_kills_system'] = result
+    try:
+        count_system_id = sqla.func.count(PVPDeath.system_id)
+        system_id = eddb_session.query(PVPDeath.system_id, count_system_id).\
+            filter(PVPDeath.cmdr_id.in_(cmdr_ids)).\
+            group_by(PVPDeath.system_id).\
+            order_by(count_system_id.desc(), PVPDeath.id.desc()).\
+            limit(1).\
+            one()[0]
+        result = eddb_session.query(cogdb.eddb.System.name).filter(cogdb.eddb.System.id == system_id).scalar()
+    except sqla.exc.NoResultFound:
+        result = EMPTY
+    kwargs['most_deaths_system'] = result
+
+    # Present embed if found else , N/A
+    kwargs.update({key: val.embed() if val else EMPTY for key, val in get_pvp_last_events(eddb_session, cmdr_ids=cmdr_ids).items()})
+    kwargs.update(get_pvp_event_cmdrs(eddb_session, cmdr_ids=cmdr_ids))
+
+    return kwargs
+
+
+def presentable_stats(info, *, discord_embed=False):
+    """
+    Converts the stats computed from dictionary form to a list suitable for table creation.
+
+    Args:
+        info: A dictionary of computed stats returned from compute_pvp_stats.
+        for_embed: When set to True, will create a list of dictionary objects to create an Embed from.
+                   When set to False, information will be in a 2D list of strings.
+
+    Returns: A list of 2D strings or a dictionary of information to create a discord Embed.
+    """
+    try:
+        ratio = round(float(info['kills']) / info['deaths'], 2)
+    except ZeroDivisionError:
+        ratio = 0.0
+
+    cells = [
+        ['Kills', str(info['kills'])],
+        ['Deaths', str(info['deaths'])],
+        ['K/D', str(ratio)],
+        ['Interdictions', str(info['interdictions'])],
+        ['Interdiction -> Kill', str(info['interdiction_kills'])],
+        ['Interdiction -> Death', str(info['interdiction_deaths'])],
+        ['Interdicteds', str(info['interdicteds'])],
+        ['Interdicted -> Kill', str(info['interdicted_kills'])],
+        ['Interdicted -> Death', str(info['interdicted_deaths'])],
+        ['Escapes From Interdiction', str(info['escaped_interdicteds'])],
+        ['Most Kills', f"CMDR {info['killed_most']}"],
+        ['Most Deaths By', f"CMDR {info['most_deaths_by']}"],
+        ['Most Interdictions', f"CMDR {info['most_interdictions']}"],
+        ['Most Interdicted By', f"CMDR {info['most_interdicted_by']}"],
+        ['Most Escaped Interdictions From', f"CMDR {info['most_escaped_interdictions_from']}"],
+        ['Most Kills In', info['most_kills_system']],
+        ['Most Deaths In', info['most_deaths_system']],
+        ['Last Location', info['last_location']],
+        ['Last Kill', info['last_kill']],
+        ['Last Death By', info['last_death']],
+        ['Last Interdiction', info['last_interdiction']],
+        ['Last Interdicted By', info['last_interdicted']],
+        ['Last Escaped From', info['last_escaped_interdicted']],
+    ]
+    if discord_embed:
+        cells = [
+            {'name': name, 'value': value, 'inline': True} for name, value in cells
+        ]
+
+    return cells
+
+
+def get_pvp_stats(eddb_session, *, cmdr_ids):
     """
     Update the statistics for a commander. To be called after a major change to events tracked.
 
     Args:
         eddb_session: A session onto the EDDB db.
         cmdr_id: The cmdr's id.
+
+    Returns: The list of objects ready to be converted to an Discord Embed.
     """
-    kwargs = {
-        'deaths': eddb_session.query(PVPDeath).filter(PVPDeath.cmdr_id == cmdr_id).count(),
-        'kills': eddb_session.query(PVPKill).filter(PVPKill.cmdr_id == cmdr_id).count(),
-        'interdictions':
-            eddb_session.query(PVPInterdiction).
-            filter(PVPInterdiction.cmdr_id == cmdr_id).
-            count(),
-        'escaped_interdicteds':
-            eddb_session.query(PVPEscapedInterdicted).
-            filter(PVPEscapedInterdicted.cmdr_id == cmdr_id).
-            count(),
-        'interdicteds':
-            eddb_session.query(PVPInterdicted).
-            filter(PVPInterdicted.cmdr_id == cmdr_id).
-            count(),
-        'interdiction_deaths':
-            eddb_session.query(PVPInterdictionDeath).
-            filter(PVPInterdictionDeath.cmdr_id == cmdr_id).
-            count(),
-        'interdiction_kills':
-            eddb_session.query(PVPInterdictionKill).
-            filter(PVPInterdictionKill.cmdr_id == cmdr_id).
-            count(),
-        'interdicted_deaths':
-            eddb_session.query(PVPInterdictedDeath).
-            filter(PVPInterdictedDeath.cmdr_id == cmdr_id).
-            count(),
-        'interdicted_kills':
-            eddb_session.query(PVPInterdictedKill).
-            filter(PVPInterdictedKill.cmdr_id == cmdr_id).
-            count(),
-    }
-
-    try:
-        count_system_id = sqla.func.count(PVPKill.system_id)
-        result = eddb_session.query(PVPKill.system_id, count_system_id).\
-            filter(PVPKill.cmdr_id == cmdr_id).\
-            group_by(PVPKill.system_id).\
-            order_by(count_system_id.desc(), PVPKill.id.desc()).\
-            limit(1).\
-            one()[0]
-    except sqla.exc.NoResultFound:
-        result = None
-    kwargs['most_kills_system_id'] = result
-    try:
-        count_system_id = sqla.func.count(PVPDeath.system_id)
-        result = eddb_session.query(PVPDeath.system_id, count_system_id).\
-            filter(PVPDeath.cmdr_id == cmdr_id).\
-            group_by(PVPDeath.system_id).\
-            order_by(count_system_id.desc(), PVPDeath.id.desc()).\
-            limit(1).\
-            one()[0]
-    except sqla.exc.NoResultFound:
-        result = None
-    kwargs['most_deaths_system_id'] = result
-
-    kwargs.update(get_pvp_last_events(eddb_session, cmdr_id=cmdr_id))
-    kwargs.update(get_pvp_event_cmdrs(eddb_session, cmdr_id=cmdr_id))
-
-    try:
-        stat = eddb_session.query(PVPStat).\
-            filter(PVPStat.cmdr_id == cmdr_id).\
-            one()
-        stat.update(**kwargs)
-    except sqla.exc.NoResultFound:
-        kwargs['cmdr_id'] = cmdr_id
-        stat = PVPStat(**kwargs)
-        eddb_session.add(stat)
-        eddb_session.flush()
-
-    return stat
+    return presentable_stats(compute_pvp_stats(eddb_session, cmdr_ids=cmdr_ids), discord_embed=True)
 
 
 async def add_pvp_log(eddb_session, fname, *, cmdr_id):
@@ -1707,7 +1626,7 @@ def main():  # pragma: no cover
 
 PVP_TABLES = [
     PVPMatchPlayer, PVPMatch,
-    PVPLog, PVPStat, PVPInterdictedKill, PVPInterdictedDeath, PVPInterdictionKill, PVPInterdictionDeath,
+    PVPLog, PVPInterdictedKill, PVPInterdictedDeath, PVPInterdictionKill, PVPInterdictionDeath,
     PVPEscapedInterdicted, PVPInterdicted, PVPInterdiction, PVPDeathKiller, PVPDeath, PVPKill, PVPLocation,
     PVPInara, PVPInaraSquad, PVPCmdr
 ]

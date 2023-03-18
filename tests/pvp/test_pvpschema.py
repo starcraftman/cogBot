@@ -9,7 +9,7 @@ import pytest
 import cog.exc
 import pvp.schema
 from pvp.schema import (
-    PVPMatchState, PVPMatch, PVPMatchPlayer, PVPLog, PVPStat,
+    PVPMatchState, PVPMatch, PVPMatchPlayer, PVPLog,
     PVPEscapedInterdicted, PVPInterdicted, PVPInterdiction,
     PVPDeathKiller, PVPDeath, PVPKill, PVPLocation,
     PVPInara, PVPInaraSquad, PVPCmdr
@@ -156,76 +156,6 @@ def test_pvpinterdicted_embed(f_pvp_testbed, eddb_session):
     assert "CMDR BadGuyWon (2022-12-21 20:42:57)" == interdicted.embed()
 
 
-def test_pvpstat__str__(f_pvp_testbed, eddb_session):
-    expect = """           Statistic            |                                   Value
-------------------------------- | -------------------------------------------------------------------------
-Kills                           | 3
-Deaths                          | 2
-K/D                             | 1.5
-Interdictions                   | 2
-Interdiction -> Kill            | 1
-Interdiction -> Death           | 1
-Interdicteds                    | 1
-Interdicted -> Kill             | 0
-Interdicted -> Death            | 1
-Escapes From Interdiction       | 2
-Most Kills                      | CMDR LeSuck
-Most Deaths By                  | CMDR BadGuyHelper
-Most Interdictions              | CMDR LeSuck
-Most Interdicted By             | CMDR BadGuyWon
-Most Escaped Interdictions From | CMDR BadGuyWon
-Most Kills In                   | Anja
-Most Deaths In                  | Anjana
-Last Location                   | Anja (2022-12-21 20:42:57)
-Last Kill                       | CMDR LeSuck (2022-12-21 20:43:01)
-Last Death By                   | CMDR BadGuyHelper (Python), CMDR BadGuyWon (Python) (2022-12-21 20:42:59)
-Last Interdiction               | CMDR LeSuck (2022-12-21 20:42:59)
-Last Interdicted By             | CMDR BadGuyWon (2022-12-21 20:42:57)
-Last Escaped From               | CMDR BadGuyWon (2022-12-21 20:42:59)"""
-
-    stat = eddb_session.query(PVPStat).filter(PVPStat.cmdr_id == 1).one()
-    assert expect == str(stat)
-
-
-def test_pvpstat_kill_ratio(f_pvp_testbed, eddb_session):
-    stat = eddb_session.query(PVPStat).filter(PVPStat.cmdr_id == 1).one()
-    assert 1.5 == stat.kill_ratio
-
-    stat.deaths = 0
-    assert 0.0 == stat.kill_ratio
-
-
-def test_pvpstat_embed_values(f_pvp_testbed, eddb_session):
-    stat = eddb_session.query(PVPStat).filter(PVPStat.cmdr_id == 1).one()
-    expect = [
-        {'inline': True, 'name': 'Kills', 'value': '3'},
-        {'inline': True, 'name': 'Deaths', 'value': '2'},
-        {'inline': True, 'name': 'K/D', 'value': '1.5'},
-        {'inline': True, 'name': 'Interdictions', 'value': '2'},
-        {'inline': True, 'name': 'Interdiction -> Kill', 'value': '1'},
-        {'inline': True, 'name': 'Interdiction -> Death', 'value': '1'},
-        {'inline': True, 'name': 'Interdicteds', 'value': '1'},
-        {'inline': True, 'name': 'Interdicted -> Kill', 'value': '0'},
-        {'inline': True, 'name': 'Interdicted -> Death', 'value': '1'},
-        {'inline': True, 'name': 'Escapes From Interdiction', 'value': '2'},
-        {'inline': True, 'name': 'Most Kills', 'value': 'CMDR LeSuck'},
-        {'inline': True, 'name': 'Most Deaths By', 'value': 'CMDR BadGuyHelper'},
-        {'inline': True, 'name': 'Most Interdictions', 'value': 'CMDR LeSuck'},
-        {'inline': True, 'name': 'Most Interdicted By', 'value': 'CMDR BadGuyWon'},
-        {'inline': True, 'name': 'Most Escaped Interdictions From', 'value': 'CMDR BadGuyWon'},
-        {'inline': True, 'name': 'Most Kills In', 'value': 'Anja'},
-        {'inline': True, 'name': 'Most Deaths In', 'value': 'Anjana'},
-        {'inline': True, 'name': 'Last Location', 'value': 'Anja (2022-12-21 20:42:57)'},
-        {'inline': True, 'name': 'Last Kill', 'value': 'CMDR LeSuck (2022-12-21 20:43:01)'},
-        {'inline': True, 'name': 'Last Death By', 'value': 'CMDR BadGuyHelper (Python), CMDR BadGuyWon (Python) (2022-12-21 20:42:59)'},
-        {'inline': True, 'name': 'Last Interdiction', 'value': 'CMDR LeSuck (2022-12-21 20:42:59)'},
-        {'inline': True, 'name': 'Last Interdicted By', 'value': 'CMDR BadGuyWon (2022-12-21 20:42:57)'},
-        {'inline': True, 'name': 'Last Escaped From', 'value': 'CMDR BadGuyWon (2022-12-21 20:42:59)'}
-    ]
-
-    assert expect == stat.embed_values
-
-
 def test_pvplog__repr__(f_pvp_testbed, eddb_session):
     log = eddb_session.query(PVPLog).filter(PVPLog.id == 1).one()
     assert "PVPLog(id=1, cmdr_id=1, func_used=0, file_hash='hash', filename='first.log', msg_id=1, filtered_msg_id=10, updated_at=1671655377)" == repr(log)
@@ -361,6 +291,11 @@ def test_pvp_get_pvp_cmdr(f_pvp_testbed, eddb_session):
     assert pvp.schema.get_pvp_cmdr(eddb_session, cmdr_name='coolGuy')
 
 
+def test_pvp_get_squad_cmdrs(f_pvp_testbed, eddb_session):
+    assert pvp.schema.get_squad_cmdrs(eddb_session, squad_name='cool guys')
+    assert pvp.schema.get_squad_cmdrs(eddb_session, cmdr_id=1)
+
+
 def test_pvp_update_pvp_cmdr(f_pvp_testbed, eddb_session):
     assert pvp.schema.update_pvp_cmdr(eddb_session, 10, name='NewGuy', hex_colour='666666')
     assert pvp.schema.get_pvp_cmdr(eddb_session, cmdr_id=10).name == 'NewGuy'
@@ -396,13 +331,14 @@ def test_update_pvp_inara(f_pvp_testbed, eddb_session):
 
 
 def test_pvp_get_pvp_stats(f_pvp_testbed, eddb_session):
-    stats = pvp.schema.get_pvp_stats(eddb_session, cmdr_id=1)
-    assert 3 == stats.kills
-    assert not pvp.schema.get_pvp_stats(eddb_session, 10)
+    stats = pvp.schema.get_pvp_stats(eddb_session, cmdr_ids=[1])
+    assert '3' == stats[0]['value']
+    stats = pvp.schema.get_pvp_stats(eddb_session, cmdr_ids=[10])
+    assert '0' == stats[0]['value']
 
 
 def test_pvp_get_event_cmdrs(f_pvp_testbed, eddb_session):
-    found = pvp.schema.get_pvp_event_cmdrs(eddb_session, cmdr_id=1)
+    found = pvp.schema.get_pvp_event_cmdrs(eddb_session, cmdr_ids=[1])
     expect = {
         'killed_most': 'LeSuck',
         'most_deaths_by': 'BadGuyHelper',
@@ -413,24 +349,167 @@ def test_pvp_get_event_cmdrs(f_pvp_testbed, eddb_session):
     assert expect == found
 
 
-def test_pvp_get_last_events(f_pvp_testbed, eddb_session):
-    found = pvp.schema.get_pvp_last_events(eddb_session, cmdr_id=1)
+def test_get_pvp_last_events(f_pvp_testbed, eddb_session):
+    found = pvp.schema.get_pvp_last_events(eddb_session, cmdr_ids=[1])
+
     expect = {
-        'last_death_id': 2,
-        'last_escaped_interdicted_id': 2,
-        'last_interdicted_id': 1,
-        'last_interdiction_id': 2,
-        'last_kill_id': 3,
-        'last_location_id': 1,
+        'last_death': PVPDeath(id=2, cmdr_id=1, system_id=1001, is_wing_kill=False, created_at=1671655377, event_at=1671655379),
+        'last_escaped_interdicted': PVPEscapedInterdicted(id=2, cmdr_id=1, system_id=1000, is_player=True, interdictor_name='BadGuyWon', created_at=1671655379, event_at=1671655379),
+        'last_interdicted': PVPInterdicted(id=1, cmdr_id=1, system_id=1000, is_player=True, did_submit=False, survived=False, interdictor_name='BadGuyWon', interdictor_rank=7, created_at=1671655377, event_at=1671655377),
+        'last_interdiction': PVPInterdiction(id=2, cmdr_id=1, system_id=1001, is_player=True, is_success=True, survived=True, victim_name='LeSuck', victim_rank=3, created_at=1671655377, event_at=1671655379),
+        'last_kill': PVPKill(id=3, cmdr_id=1, system_id=1001, victim_name='LeSuck', victim_rank=3, created_at=1671655377, event_at=1671655381),
+        'last_location': PVPLocation(id=1, cmdr_id=1, system_id=1000, created_at=1671655377, event_at=1671655377)
     }
     assert expect == found
 
 
-def test_pvp_update_pvp_stats(f_pvp_testbed, eddb_session):
-    eddb_session.query(PVPStat).delete()
-    eddb_session.commit()
-    stats = pvp.schema.update_pvp_stats(eddb_session, cmdr_id=1)
-    assert 3 == stats.kills
+def test_get_pvp_last_events_none(eddb_session):
+    found = pvp.schema.get_pvp_last_events(eddb_session, cmdr_ids=[1])
+
+    expect = {
+        'last_death': None,
+        'last_escaped_interdicted': None,
+        'last_interdicted': None,
+        'last_interdiction': None,
+        'last_kill': None,
+        'last_location': None,
+    }
+    assert expect == found
+
+
+def test_pvp_compute_pvp_stats(f_pvp_testbed, eddb_session):
+    expect = {
+        'deaths': 2,
+        'escaped_interdicteds': 2,
+        'interdicted_deaths': 1,
+        'interdicted_kills': 0,
+        'interdicteds': 1,
+        'interdiction_deaths': 1,
+        'interdiction_kills': 1,
+        'interdictions': 2,
+        'killed_most': 'LeSuck',
+        'kills': 3,
+        'last_death': 'CMDR BadGuyHelper (Python), CMDR BadGuyWon (Python) (2022-12-21 20:42:59)',
+        'last_escaped_interdicted': 'CMDR BadGuyWon (2022-12-21 20:42:59)',
+        'last_interdicted': 'CMDR BadGuyWon (2022-12-21 20:42:57)',
+        'last_interdiction': 'CMDR LeSuck (2022-12-21 20:42:59)',
+        'last_kill': 'CMDR LeSuck (2022-12-21 20:43:01)',
+        'last_location': 'Anja (2022-12-21 20:42:57)',
+        'most_deaths_by': 'BadGuyHelper',
+        'most_deaths_system': 'Anjana',
+        'most_escaped_interdictions_from': 'BadGuyWon',
+        'most_interdicted_by': 'BadGuyWon',
+        'most_interdictions': 'LeSuck',
+        'most_kills_system': 'Anja'
+    }
+    stats = pvp.schema.compute_pvp_stats(eddb_session, cmdr_ids=[1])
+    assert expect == stats
+
+
+def test_pvp_presentable_stats_table():
+    info = {
+        'deaths': 2,
+        'escaped_interdicteds': 2,
+        'interdicted_deaths': 1,
+        'interdicted_kills': 0,
+        'interdicteds': 1,
+        'interdiction_deaths': 1,
+        'interdiction_kills': 1,
+        'interdictions': 2,
+        'killed_most': 'LeSuck',
+        'kills': 3,
+        'last_death': 'CMDR BadGuyHelper (Python), CMDR BadGuyWon (Python) (2022-12-21 20:42:59)',
+        'last_escaped_interdicted': 'CMDR BadGuyWon (2022-12-21 20:42:59)',
+        'last_interdicted': 'CMDR BadGuyWon (2022-12-21 20:42:57)',
+        'last_interdiction': 'CMDR LeSuck (2022-12-21 20:42:59)',
+        'last_kill': 'CMDR LeSuck (2022-12-21 20:43:01)',
+        'last_location': 'Anja (2022-12-21 20:42:57)',
+        'most_deaths_by': 'BadGuyHelper',
+        'most_deaths_system': 'Anjana',
+        'most_escaped_interdictions_from': 'BadGuyWon',
+        'most_interdicted_by': 'BadGuyWon',
+        'most_interdictions': 'LeSuck',
+        'most_kills_system': 'Anja'
+    }
+    expect = [
+        ['Kills', '3'],
+        ['Deaths', '2'],
+        ['K/D', '1.5'],
+        ['Interdictions', '2'],
+        ['Interdiction -> Kill', '1'],
+        ['Interdiction -> Death', '1'],
+        ['Interdicteds', '1'],
+        ['Interdicted -> Kill', '0'],
+        ['Interdicted -> Death', '1'],
+        ['Escapes From Interdiction', '2'],
+        ['Most Kills', 'CMDR LeSuck'],
+        ['Most Deaths By', 'CMDR BadGuyHelper'],
+        ['Most Interdictions', 'CMDR LeSuck'],
+        ['Most Interdicted By', 'CMDR BadGuyWon'],
+        ['Most Escaped Interdictions From', 'CMDR BadGuyWon'],
+        ['Most Kills In', 'Anja'],
+        ['Most Deaths In', 'Anjana'],
+        ['Last Location', 'Anja (2022-12-21 20:42:57)'],
+        ['Last Kill', 'CMDR LeSuck (2022-12-21 20:43:01)'],
+        ['Last Death By', 'CMDR BadGuyHelper (Python), CMDR BadGuyWon (Python) (2022-12-21 20:42:59)'],
+        ['Last Interdiction', 'CMDR LeSuck (2022-12-21 20:42:59)'],
+        ['Last Interdicted By', 'CMDR BadGuyWon (2022-12-21 20:42:57)'],
+        ['Last Escaped From', 'CMDR BadGuyWon (2022-12-21 20:42:59)']
+    ]
+    assert expect == pvp.schema.presentable_stats(info, discord_embed=False)
+
+
+def test_pvp_presentable_stats_embed():
+    info = {
+        'deaths': 2,
+        'escaped_interdicteds': 2,
+        'interdicted_deaths': 1,
+        'interdicted_kills': 0,
+        'interdicteds': 1,
+        'interdiction_deaths': 1,
+        'interdiction_kills': 1,
+        'interdictions': 2,
+        'killed_most': 'LeSuck',
+        'kills': 3,
+        'last_death': 'CMDR BadGuyHelper (Python), CMDR BadGuyWon (Python) (2022-12-21 20:42:59)',
+        'last_escaped_interdicted': 'CMDR BadGuyWon (2022-12-21 20:42:59)',
+        'last_interdicted': 'CMDR BadGuyWon (2022-12-21 20:42:57)',
+        'last_interdiction': 'CMDR LeSuck (2022-12-21 20:42:59)',
+        'last_kill': 'CMDR LeSuck (2022-12-21 20:43:01)',
+        'last_location': 'Anja (2022-12-21 20:42:57)',
+        'most_deaths_by': 'BadGuyHelper',
+        'most_deaths_system': 'Anjana',
+        'most_escaped_interdictions_from': 'BadGuyWon',
+        'most_interdicted_by': 'BadGuyWon',
+        'most_interdictions': 'LeSuck',
+        'most_kills_system': 'Anja'
+    }
+    expect = ""
+    expect = [
+        {'inline': True, 'name': 'Kills', 'value': '3'},
+        {'inline': True, 'name': 'Deaths', 'value': '2'},
+        {'inline': True, 'name': 'K/D', 'value': '1.5'},
+        {'inline': True, 'name': 'Interdictions', 'value': '2'},
+        {'inline': True, 'name': 'Interdiction -> Kill', 'value': '1'},
+        {'inline': True, 'name': 'Interdiction -> Death', 'value': '1'},
+        {'inline': True, 'name': 'Interdicteds', 'value': '1'},
+        {'inline': True, 'name': 'Interdicted -> Kill', 'value': '0'},
+        {'inline': True, 'name': 'Interdicted -> Death', 'value': '1'},
+        {'inline': True, 'name': 'Escapes From Interdiction', 'value': '2'},
+        {'inline': True, 'name': 'Most Kills', 'value': 'CMDR LeSuck'},
+        {'inline': True, 'name': 'Most Deaths By', 'value': 'CMDR BadGuyHelper'},
+        {'inline': True, 'name': 'Most Interdictions', 'value': 'CMDR LeSuck'},
+        {'inline': True, 'name': 'Most Interdicted By', 'value': 'CMDR BadGuyWon'},
+        {'inline': True, 'name': 'Most Escaped Interdictions From', 'value': 'CMDR BadGuyWon'},
+        {'inline': True, 'name': 'Most Kills In', 'value': 'Anja'},
+        {'inline': True, 'name': 'Most Deaths In', 'value': 'Anjana'},
+        {'inline': True, 'name': 'Last Location', 'value': 'Anja (2022-12-21 20:42:57)'},
+        {'inline': True, 'name': 'Last Kill', 'value': 'CMDR LeSuck (2022-12-21 20:43:01)'},
+        {'inline': True, 'name': 'Last Death By', 'value': 'CMDR BadGuyHelper (Python), CMDR BadGuyWon (Python) (2022-12-21 20:42:59)'},
+        {'inline': True, 'name': 'Last Interdiction', 'value': 'CMDR LeSuck (2022-12-21 20:42:59)'},
+        {'inline': True, 'name': 'Last Interdicted By', 'value': 'CMDR BadGuyWon (2022-12-21 20:42:57)'},
+        {'inline': True, 'name': 'Last Escaped From', 'value': 'CMDR BadGuyWon (2022-12-21 20:42:59)'}]
+    assert expect == pvp.schema.presentable_stats(info, discord_embed=True)
 
 
 @pytest.mark.asyncio

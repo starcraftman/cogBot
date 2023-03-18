@@ -544,8 +544,6 @@ class Parser():
             if returned:
                 to_return += [returned]
 
-        pvp.schema.update_pvp_stats(self.eddb_session, cmdr_id=self.cmdr_id)
-
         return to_return
 
 

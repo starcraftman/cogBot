@@ -1000,8 +1000,6 @@ def f_pvp_testbed(f_spy_ships, eddb_session):
             PVPInterdictedKill(cmdr_id=2, pvp_interdicted_id=2, pvp_kill_id=4),
             PVPInterdictedDeath(cmdr_id=1, pvp_interdicted_id=1, pvp_death_id=1),
         ])
-        eddb_session.flush()
-        pvp.schema.update_pvp_stats(eddb_session, cmdr_id=1)
         eddb_session.commit()
 
         yield
