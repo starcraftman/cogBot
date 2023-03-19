@@ -64,6 +64,14 @@ class PVPBot(CogBot):  # pragma: no cover
 
         self.emoji.update(self.guilds)
 
+        async def delayed_start():
+            await asyncio.sleep(60)
+            await pvp.actions.kos_kills_monitor(repeat=True, delay=1800)
+
+        async def scanner_startup_task():
+            scanners = await cogdb.scanners.init_scanners()
+            self.sched.register('hudson_kos', scanners['hudson_kos'], ('KOS'))
+            self.sched.schedule_all(delay=1)
         # This block is effectively a one time setup.
         if not self.once:
             self.once = True
@@ -71,6 +79,8 @@ class PVPBot(CogBot):  # pragma: no cover
                 presence_task(self),
                 simple_heartbeat(),
                 cog.util.CONF.monitor(),
+                scanner_startup_task(),
+                delayed_start(),
             ))
             self.deny_commands = False
 

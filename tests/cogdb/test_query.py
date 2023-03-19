@@ -518,6 +518,10 @@ def test_complete_control_name():
         assert cogdb.query.complete_control_name("lhs")
 
 
+def test_kos_kill_list(session, f_kos):
+    assert ['bad_guy', 'BadGuy'] == cogdb.query.kos_kill_list(session)
+
+
 def test_kos_search_cmdr(session, f_kos):
     results = cogdb.query.kos_search_cmdr(session, 'good_guy')
     assert len(results) == 2

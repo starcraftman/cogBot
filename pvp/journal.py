@@ -22,6 +22,7 @@ import sqlalchemy as sqla
 
 import cogdb
 import cogdb.eddb
+import cogdb.query
 from cogdb.eddb import LEN as EDDB_LEN
 from cogdb.spy_squirrel import ship_type_to_id_map
 import cog.inara

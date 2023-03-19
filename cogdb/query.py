@@ -897,6 +897,18 @@ def complete_control_name(partial, include_winters=False):
     return fuzzy_find(partial, systems, obj_type=obj_type)
 
 
+def kos_kill_list(session):
+    """
+    Determine if a given commander is on the kill list.
+
+    Args:
+        session: A session onto the database.
+
+    Returns: The full list of all CMDRs on the kill list.
+    """
+    return [x[0] for x in session.query(KOS.cmdr).filter(sqla.not_(KOS.is_friendly))]
+
+
 def kos_search_cmdr(session, term):
     """
     Search for a kos entry for cmdr.

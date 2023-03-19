@@ -84,6 +84,8 @@ def test_pvpkill__repr__(f_pvp_testbed, eddb_session):
 def test_pvpkill_embed(f_pvp_testbed, eddb_session):
     kill = eddb_session.query(PVPKill).filter(PVPKill.id == 1).one()
     assert "CMDR LeSuck (2022-12-21 20:42:57)" == kill.embed()
+    kill.kos = True
+    assert "CMDR LeSuck (2022-12-21 20:42:57) (KOS)" == kill.embed()
 
 
 def test_pvpdeath__str__(f_pvp_testbed, eddb_session):
@@ -389,6 +391,7 @@ def test_pvp_compute_pvp_stats(f_pvp_testbed, eddb_session):
         'interdictions': 2,
         'killed_most': 'LeSuck',
         'kills': 3,
+        'kos_kills': 0,
         'last_death': 'CMDR BadGuyHelper (Python), CMDR BadGuyWon (Python) (2022-12-21 20:42:59)',
         'last_escaped_interdicted': 'CMDR BadGuyWon (2022-12-21 20:42:59)',
         'last_interdicted': 'CMDR BadGuyWon (2022-12-21 20:42:57)',
@@ -418,6 +421,7 @@ def test_pvp_presentable_stats_table():
         'interdictions': 2,
         'killed_most': 'LeSuck',
         'kills': 3,
+        'kos_kills': 0,
         'last_death': 'CMDR BadGuyHelper (Python), CMDR BadGuyWon (Python) (2022-12-21 20:42:59)',
         'last_escaped_interdicted': 'CMDR BadGuyWon (2022-12-21 20:42:59)',
         'last_interdicted': 'CMDR BadGuyWon (2022-12-21 20:42:57)',
@@ -435,6 +439,7 @@ def test_pvp_presentable_stats_table():
         ['Kills', '3'],
         ['Deaths', '2'],
         ['K/D', '1.5'],
+        ['KOS Kills', '0'],
         ['Interdictions', '2'],
         ['Interdiction -> Kill', '1'],
         ['Interdiction -> Death', '1'],
@@ -471,6 +476,7 @@ def test_pvp_presentable_stats_embed():
         'interdictions': 2,
         'killed_most': 'LeSuck',
         'kills': 3,
+        'kos_kills': 0,
         'last_death': 'CMDR BadGuyHelper (Python), CMDR BadGuyWon (Python) (2022-12-21 20:42:59)',
         'last_escaped_interdicted': 'CMDR BadGuyWon (2022-12-21 20:42:59)',
         'last_interdicted': 'CMDR BadGuyWon (2022-12-21 20:42:57)',
@@ -489,6 +495,7 @@ def test_pvp_presentable_stats_embed():
         {'inline': True, 'name': 'Kills', 'value': '3'},
         {'inline': True, 'name': 'Deaths', 'value': '2'},
         {'inline': True, 'name': 'K/D', 'value': '1.5'},
+        {'inline': True, 'name': 'KOS Kills', 'value': '0'},
         {'inline': True, 'name': 'Interdictions', 'value': '2'},
         {'inline': True, 'name': 'Interdiction -> Kill', 'value': '1'},
         {'inline': True, 'name': 'Interdiction -> Death', 'value': '1'},
@@ -694,3 +701,14 @@ def test_event_at_tz():
     actual = EventAtObj()
     assert "UTC" == actual.event_date_tz.tzname()
     assert "2021-10-21 07:00:00+00:00" == str(actual.event_date_tz)
+
+
+def test_update_kos_kills(f_pvp_testbed, eddb_session):
+    found = eddb_session.query(PVPKill).filter(PVPKill.victim_name == 'BadGuy').one()
+    assert not found.kos
+    eddb_session.close()
+
+    pvp.schema.update_kos_kills(eddb_session, kos_list=['BadGuy'])
+
+    found = eddb_session.query(PVPKill).filter(PVPKill.victim_name == 'BadGuy').one()
+    assert found.kos

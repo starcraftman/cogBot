@@ -207,12 +207,14 @@ class PVPKill(ReprMixin, TimestampMixin, EventTimeMixin, Base):
 
     victim_name = sqla.Column(sqla.String(EDDB_LEN["pvp_name"]), index=True)
     victim_rank = sqla.Column(sqla.Integer, default=0)
+    kos = sqla.Column(sqla.Boolean)
     created_at = sqla.Column(sqla.Integer, default=time.time)
     event_at = sqla.Column(sqla.Integer, default=time.time)  # Set to time in log
 
     def embed(self):
         """ Short string representation for embed. """
-        return f'CMDR {self.victim_name} ({self.event_date})'
+        kos = ' (KOS)' if self.kos else ''
+        return f'CMDR {self.victim_name} ({self.event_date}){kos}'
 
     def __str__(self):
         """ Show PVPKill information. """
@@ -1161,6 +1163,10 @@ def compute_pvp_stats(eddb_session, *, cmdr_ids):
             ['interdicted_kills', PVPInterdictedKill],
         ]
     }
+    kwargs['kos_kills'] = eddb_session.query(PVPKill).\
+        filter(PVPKill.cmdr_id.in_(cmdr_ids),
+               PVPKill.kos).\
+        count()
 
     try:
         count_system_id = sqla.func.count(PVPKill.system_id)
@@ -1214,6 +1220,7 @@ def presentable_stats(info, *, discord_embed=False):
         ['Kills', str(info['kills'])],
         ['Deaths', str(info['deaths'])],
         ['K/D', str(ratio)],
+        ['KOS Kills', str(info['kos_kills'])],
         ['Interdictions', str(info['interdictions'])],
         ['Interdiction -> Kill', str(info['interdiction_kills'])],
         ['Interdiction -> Death', str(info['interdiction_deaths'])],
@@ -1511,6 +1518,19 @@ def purge_cmdr(eddb_session, *, cmdr_id):
     eddb_session.query(PVPInara).filter(PVPInara.discord_id == cmdr_id).delete()
     eddb_session.query(PVPCmdr).filter(PVPCmdr.id == cmdr_id).delete()
     eddb_session.commit()
+
+
+def update_kos_kills(eddb_session, *, kos_list):
+    """
+    Bulk update to mark all KOS kills in the PVPKills table.
+
+    Args:
+        eddb_session: A session onto EDDB.
+        kos_list: A list of CMDR names on the kill list.
+    """
+    eddb_session.query(PVPKill).\
+        filter(PVPKill.victim_name.in_(kos_list)).\
+        update({'kos': True})
 
 
 def drop_tables(keep_cmdrs=False):  # pragma: no cover | destructive to test

@@ -44,6 +44,8 @@ def subs_admin(subs, prefix):
 **{prefix}admin filter**
         Rerun the filtering stage on all past uploads.
         Filtered versions of uploads will be created and uploaded to archive channel.
+**{prefix}admin kos**
+        Update the KOS list then update PVPKills based on current KOS targets.
 **{prefix}admin regenerate**
         Use only when log corruption expected or change in log parsing.
         Reparses all uploaded logs to regenerate database.
@@ -62,6 +64,7 @@ def subs_admin(subs, prefix):
     subcmd = subcmds.add_parser('remove', help='Remove an admin or permission.')
     subcmd.add_argument('rule_cmds', nargs='*', help='The the command to restrict.')
     subcmd = subcmds.add_parser('filter', help='Filter all existing log uploads for events of interest.')
+    subcmd = subcmds.add_parser('kos', help='Update KOS list and PVPKills for KOS.')
     subcmd = subcmds.add_parser('regenerate', help='Regenerate the PVP database.')
     subcmd = subcmds.add_parser('prune', help='Delete messages in one or more mentioned channels.')
     subcmd = subcmds.add_parser('prune_bulk', help='Delete messages in bulk for one or more mentioned channels.')

@@ -19,6 +19,8 @@ import discord
 import discord.ui as dui
 
 import cogdb
+import cogdb.scanners
+import cogdb.query
 from cogdb.eddb import LEN as EDDB_LEN
 import cog.tbl
 import pvp
@@ -244,6 +246,22 @@ class Admin(PVPAction):
 
         return response
 
+    async def kos(self):  # pragma: no cover, tested elsewhere
+        """
+        Update the PVPKills on record depending on KOS entries.
+        """
+        scanner = cogdb.scanners.get_scanner('hudson_kos')
+        await scanner.update_cells()
+        with cfut.ProcessPoolExecutor(max_workers=1) as pool:
+            await self.bot.loop.run_in_executor(
+                pool, scanner.scheduler_run
+            )
+
+        pvp.schema.update_kos_kills(self.eddb_session,
+                                    kos_list=cogdb.query.kos_kill_list(self.session))
+
+        return 'KOS list refreshed from sheet and KOS PVPKills updated.'
+
     async def execute(self):
         try:
             admin = cogdb.query.get_admin(self.session, self.duser)
@@ -306,13 +324,19 @@ class FileUpload(PVPAction):  # pragma: no cover
 
                 try:
                     # Process the log that was filtered
-                    return await asyncio.get_event_loop().run_in_executor(
+                    logs = await asyncio.get_event_loop().run_in_executor(
                         pool, functools.partial(
                             process_cmdr_tempfiles,
                             cmdr_id=self.msg.author.id,
                             info=[{'fname': tfile.name, 'attach_fname': attach.filename}]
                         )
                     )
+
+                    # update kos
+                    pvp.schema.update_kos_kills(self.eddb_session,
+                                                kos_list=cogdb.query.kos_kill_list(self.session))
+
+                    return logs
 
                 except (pvp.journal.ParserError, zipfile.BadZipfile):
                     await self.bot.send_message(self.msg.channel, f'Error with {attach.filename}. We only support zips and text files.')
@@ -1390,3 +1414,28 @@ async def fetch_filtered_archives(*, filter_chan, cmdr_logs, down_dir, loop, poo
                     coros += [loop.run_in_executor(pool, functools.partial(process_filtered_archive, **kwargs))]
 
     return coros, to_handle, log_fnames
+
+
+async def kos_kills_monitor(*, repeat=True, delay=1800):  # pragma: no cover, tested elsewhere
+    """
+    Simple monitor to fetch latest kill list from KOS every hour.
+    Then update the KOS PVPKills.
+
+    Args:
+        repeat: When True, monitor will operate indefinitely.
+        delay: The time in seconds between each update. Default: 30 minutes
+    """
+    while repeat:
+        logging.getLogger(__name__).warning("Updating KOS Kills")
+        scanner = cogdb.scanners.get_scanner('hudson_kos')
+        await scanner.update_cells()
+        with cfut.ProcessPoolExecutor(max_workers=1) as pool:
+            await asyncio.get_event_loop().run_in_executor(
+                pool, scanner.scheduler_run
+            )
+
+        with cogdb.session_scope(cogdb.Session) as session, cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
+            pvp.schema.update_kos_kills(eddb_session,
+                                        kos_list=cogdb.query.kos_kill_list(session))
+
+        await asyncio.sleep(delay)
