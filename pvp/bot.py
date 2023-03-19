@@ -120,9 +120,9 @@ class PVPBot(CogBot):  # pragma: no cover
             await self.send_message(msg.channel, 'Uploads are disabled at this time. Please try again later.')
             return
 
-        with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
+        with cogdb.session_scope(cogdb.Session) as session, cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
             await pvp.actions.FileUpload(
-                args=None, bot=self, msg=msg, session=None, eddb_session=eddb_session
+                args=None, bot=self, msg=msg, session=session, eddb_session=eddb_session
             ).execute()
 
     async def on_message(self, message):

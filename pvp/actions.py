@@ -323,7 +323,6 @@ class FileUpload(PVPAction):  # pragma: no cover
                     continue
 
                 try:
-                    # Process the log that was filtered
                     logs = await asyncio.get_event_loop().run_in_executor(
                         pool, functools.partial(
                             process_cmdr_tempfiles,
@@ -332,7 +331,6 @@ class FileUpload(PVPAction):  # pragma: no cover
                         )
                     )
 
-                    # update kos
                     pvp.schema.update_kos_kills(self.eddb_session,
                                                 kos_list=cogdb.query.kos_kill_list(self.session))
 
@@ -885,7 +883,7 @@ class Privacy(PVPAction):  # Pragma no cover, very destructive test.
         return f"{self.msg.author.mention} All your information has been deleted. Have a nice day."
 
     async def execute(self):
-        privacy_dir = cog.util.CONF.paths.privacy
+        privacy_dir = cog.util.rel_to_abs(cog.util.CONF.paths.privacy)
         if self.args.subcmd == 'delete':
             await self.bot.send_message(self.msg.channel, DELETION_WARNING)
             resp = await self.bot.wait_for(
@@ -984,7 +982,7 @@ async def cmdr_setup(eddb_session, client, msg, *, cmdr_name=None):  # pragma: n
         add_item(dui.Button(label="Yes", custom_id="Yes", style=discord.ButtonStyle.green)).\
         add_item(dui.Button(label="No", custom_id="No", style=discord.ButtonStyle.red))
 
-    privacy_stmt = await get_privacy_stmt(cog.util.CONF.paths.privacy)
+    privacy_stmt = await get_privacy_stmt(cog.util.rel_to_abs(cog.util.CONF.paths.privacy))
     sent = await msg.channel.send(privacy_stmt + DISCLAIMER_QUERY, view=view)
     inter = await client.wait_for('interaction', check=functools.partial(check_button, msg.author, sent))
 
