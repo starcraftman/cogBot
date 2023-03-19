@@ -32,6 +32,7 @@ import cogdb
 import cogdb.query
 import cogdb.spy_squirrel as spy
 import pvp.schema
+from cogdb.achievements import (Achievement, AchievementType)
 from cogdb.schema import (DiscordUser, FortSystem, FortPrep, FortDrop, FortUser, FortOrder,
                           UMSystem, UMExpand, UMOppose, UMUser, UMHold, EUMSheet, KOS,
                           AdminPerm, ChannelPerm, RolePerm,
@@ -1096,3 +1097,28 @@ def f_plog_filtered(f_plog_zip, f_plog_file):
             os.remove(archive)
         except OSError:
             pass
+
+
+@pytest.fixture
+def f_achievements(eddb_session):
+    """
+    Create an example filtered archive, has a log and a zip of logs inside.
+    """
+    try:
+        eddb_session.add_all([
+            AchievementType(id=1, name='FirstKill', description='First confirmed kill reported.', created_at=PVP_TIMESTAMP),
+            AchievementType(id=2, name='EvenDozen', description='You got a dozen kills.', created_at=PVP_TIMESTAMP),
+        ])
+        eddb_session.flush()
+        eddb_session.add_all([
+            Achievement(id=1, discord_id=1, achievement_type_id=1, created_at=PVP_TIMESTAMP),
+            Achievement(id=2, discord_id=1, achievement_type_id=2, created_at=PVP_TIMESTAMP),
+            Achievement(id=3, discord_id=2, achievement_type_id=2, created_at=PVP_TIMESTAMP),
+        ])
+        eddb_session.commit()
+        eddb_session.close()
+
+        yield
+
+    finally:
+        cogdb.achievements.empty_tables()

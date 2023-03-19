@@ -2675,7 +2675,8 @@ def is_safe_to_drop(tbl_name):
     Basically any table that can be reconstructed or imported from external can be dropped.
     For now, tables prefixed with 'spy_' and 'history_' will return False.
     """
-    return not tbl_name.startswith('spy_') and not tbl_name.startswith('history_') and not tbl_name.startswith('pvp_')
+    return not tbl_name.startswith('spy_') and not tbl_name.startswith('history_')\
+        and not tbl_name.startswith('pvp_') and not tbl_name.startswith('achievement')
 
 
 # TODO: Bit messy but works for now.
