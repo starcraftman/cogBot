@@ -4,11 +4,13 @@ See cog.parse for more info.
 """
 from argparse import RawDescriptionHelpFormatter as RawHelp
 
+import cogdb.achievements
 import cog.parse
 
 PARSERS = []
 CMD_MAP = cog.parse.CMD_MAP
 REUSE_SUBS = ['dist', 'donate', 'feedback', 'near', 'repair', 'route', 'status', 'time', 'trigger', 'whois']
+PVP_EVENTS = ['PVPDeath', 'PVPKill', 'PVPInterdiction', 'PVPInterdicted', 'PVPEscapedInterdicted']
 
 
 def make_parser(prefix):
@@ -30,6 +32,50 @@ def register_parser(func):
     """ Simple registration function, use as decorator. """
     PARSERS.append(func)
     return func
+
+
+@register_parser
+def subs_achieve(subs, prefix):
+    """ Subcommand parsing for cmdr """
+    desc = f"""Manage the pvp related achievements.
+
+**{prefix}achieve remove Role Name
+        Remove the achievement with the associated Role Name.
+    """
+    sub = subs.add_parser(prefix + 'achieve', description=desc, formatter_class=RawHelp)
+    sub.set_defaults(cmd='Achievement')
+    CMD_MAP['Achievement'] = 'achieve'
+    subcmds = sub.add_subparsers(title='subcommands',
+                                 description='Achievement subcommands', dest='subcmd')
+
+    subcmd = subcmds.add_parser('add_age', help='Add a new stat check.')
+    subcmd.add_argument('days_required', type=int, help='The days required for the role.')
+    subcmd.add_argument('--role_name', nargs='+', help='The the name of the role.')
+    subcmd.add_argument('--role_colour', help='The the colour of the role.')
+    subcmd.add_argument('--role_description', nargs='+', help='The the description of the role.')
+
+    subcmd = subcmds.add_parser('add_event', help='Add a new stat check.')
+    subcmd.add_argument('event', choices=PVP_EVENTS, help='The the PVP event to check.')
+    subcmd.add_argument('cmdr', nargs='+', help='The the CMDR to look for.')
+    subcmd.add_argument('--role_name', nargs='+', help='The the name of the role.')
+    subcmd.add_argument('--role_colour', help='The the colour of the role.')
+    subcmd.add_argument('--role_description', nargs='+', help='The the description of the role.')
+
+    subcmd = subcmds.add_parser('add_stat', help='Add a new stat check.')
+    subcmd.add_argument('stat', choices=cogdb.achievements.VALID_STATS, help='The the statistic to check.')
+    subcmd.add_argument('amount', type=int, help='The the amount to assign at.')
+    subcmd.add_argument('--role_name', nargs='+', help='The the name of the role.')
+    subcmd.add_argument('--role_colour', help='The the colour of the role.')
+    subcmd.add_argument('--role_description', nargs='+', help='The the description of the role.')
+
+    subcmd = subcmds.add_parser('remove', help='Update an existing achievement.')
+    subcmd.add_argument('name', nargs='+', help='The the name of the existing role.')
+
+    subcmd = subcmds.add_parser('update', help='Update an existing achievement.')
+    subcmd.add_argument('name', nargs='+', help='The the name of the existing role.')
+    subcmd.add_argument('--role_name', nargs='+', help='The the name of the role.')
+    subcmd.add_argument('--role_colour', help='The the colour of the role.')
+    subcmd.add_argument('--role_description', nargs='+', help='The the description of the role.')
 
 
 @register_parser

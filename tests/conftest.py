@@ -941,10 +941,10 @@ def f_pvp_testbed(f_spy_ships, eddb_session):
     """
     try:
         eddb_session.add_all([
-            PVPCmdr(id=1, name='coolGuy', hex='B20000', updated_at=PVP_TIMESTAMP),
-            PVPCmdr(id=2, name='shyGuy', hex='B20000', updated_at=PVP_TIMESTAMP),
-            PVPCmdr(id=3, name='shootsALot', hex='B20000', updated_at=PVP_TIMESTAMP),
-            PVPCmdr(id=4, name='newbie', hex='B20000', updated_at=PVP_TIMESTAMP),
+            PVPCmdr(id=1, name='coolGuy', hex='B20000', updated_at=PVP_TIMESTAMP, created_at=PVP_TIMESTAMP),
+            PVPCmdr(id=2, name='shyGuy', hex='B20000', updated_at=PVP_TIMESTAMP, created_at=PVP_TIMESTAMP),
+            PVPCmdr(id=3, name='shootsALot', hex='B20000', updated_at=PVP_TIMESTAMP, created_at=PVP_TIMESTAMP),
+            PVPCmdr(id=4, name='newbie', hex='B20000', updated_at=PVP_TIMESTAMP, created_at=PVP_TIMESTAMP),
         ])
         eddb_session.commit()
         eddb_session.add_all([
@@ -1106,8 +1106,17 @@ def f_achievements(eddb_session):
     """
     try:
         eddb_session.add_all([
-            AchievementType(id=1, name='FirstKill', description='First confirmed kill reported.', created_at=PVP_TIMESTAMP),
-            AchievementType(id=2, name='EvenDozen', description='You got a dozen kills.', created_at=PVP_TIMESTAMP),
+            AchievementType(
+                id=1, role_name='FirstKill', role_colour='b20000',
+                role_description='First confirmed kill reported.',
+                check_func='hello', check_kwargs='{}', created_at=PVP_TIMESTAMP
+            ),
+            AchievementType(
+                id=2, role_name='EvenDozen', role_colour='b20000',
+                role_description='You got a dozen kills.',
+                check_func='check_pvpstat_greater', check_kwargs='{"stat_name": "kills", "amount": 12}',
+                created_at=PVP_TIMESTAMP
+            ),
         ])
         eddb_session.flush()
         eddb_session.add_all([

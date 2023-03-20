@@ -61,6 +61,7 @@ class PVPCmdr(ReprMixin, TimestampMixin, Base):
     name = sqla.Column(sqla.String(EDDB_LEN['pvp_name']))
     hex = sqla.Column(sqla.String(6), default='')  # Hex strings, no leading 0x: B20000
     updated_at = sqla.Column(sqla.Integer, default=time.time, onupdate=time.time)
+    created_at = sqla.Column(sqla.Integer, default=time.time)
 
     @property
     def hex_value(self):

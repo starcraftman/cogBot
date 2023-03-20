@@ -4,6 +4,7 @@ Specific actions for pvp bot
 import asyncio
 import concurrent.futures as cfut
 import datetime
+import json
 import tempfile
 import functools
 import logging
@@ -393,6 +394,109 @@ class Help(PVPAction):
             await self.msg.delete()
         except discord.HTTPException:
             pass
+
+
+class Achievement(PVPAction):
+    """
+    Provide a management interface for achievements.
+    """
+    async def add_age(self):
+        """
+        Add an age related achievement.
+        """
+        name = ' '.join(self.args.name)
+        kwargs = json.dumps({
+            'days_required': self.args.days_required,
+        })
+        cogdb.achievements.update_achievement_type(
+            self.eddb_session, role_name=name,
+            new_role_name=' '.join(self.args.role_name),
+            role_colour=self.args.role_colour,
+            role_description=' '.join(self.args.role_description),
+            check_func='check_pvpcmdr_age',
+            check_kwargs=kwargs,
+        )
+        return "Added achievement for age of {self.args.days_required} days assigned {name}."
+
+    async def add_event(self):
+        """
+        Add a pvp event related achievement.
+        """
+        name = ' '.join(self.args.name)
+        kwargs = json.dumps({
+            'pvp_event': self.args.event,
+            'target_cmdr': ' '.join(self.args.cmdr),
+        })
+        cogdb.achievements.update_achievement_type(
+            self.eddb_session, role_name=name,
+            new_role_name=' '.join(self.args.role_name),
+            role_colour=self.args.role_colour,
+            role_description=' '.join(self.args.role_description),
+            check_func='check_pvpcmdr_in_events',
+            check_kwargs=kwargs,
+        )
+        return "Added achievement for other CMDR {kwargs['target_cmdr']} in {self.args.event} assigned {name}."
+
+    async def add_stat(self):
+        """
+        Add a stat related achievement.
+        """
+        name = ' '.join(self.args.name)
+        kwargs = json.dumps({
+            'stat_name': self.args.stat,
+            'amount': self.args.amount,
+        })
+        cogdb.achievements.update_achievement_type(
+            self.eddb_session, role_name=name,
+            new_role_name=' '.join(self.args.role_name),
+            role_colour=self.args.role_colour,
+            role_description=' '.join(self.args.role_description),
+            check_func='check_pvpstat_greater',
+            check_kwargs=kwargs,
+        )
+        return "Achievement for {self.args.stat} >= {self.args.amount} assigned {name}."
+
+    async def remove(self):
+        """
+        Remove an existing achievement.
+        """
+        existing_name = ' '.join(self.args.name)
+        cogdb.achievements.remove_achievement_type(self.eddb_session, role_name=existing_name)
+        return "Achievement tied to {role_name} has been removed!"
+
+    async def update(self):
+        """
+        Update an existing achievement.
+        """
+        existing_name = ' '.join(self.args.name)
+        cogdb.achievements.update_achievement_type(
+            self.eddb_session, role_name=existing_name,
+            new_role_name=' '.join(self.args.role_name),
+            role_colour=self.args.role_colour,
+            role_description=' '.join(self.args.role_description)
+        )
+        return "Achievement tied to {role_name} has been updated!"
+
+    # TODO: Likely move
+    async def assign_role(self, role_name):
+        found = [role for role in self.msg.guild.roles if role.name == role_name]
+        if found:
+            self.msg.author.add_roles(*found, reason='Achievement awarded.')
+
+    async def execute(self):
+        try:
+            # validate role colour
+            if self.args.role_colour:
+                if self.args.role_colour.startswith('0x'):
+                    self.args.role_colur = self.args.role_colour[2:]
+                int(self.args.role_colour, 16)
+        except ValueError as exc:
+            raise cog.exc.InvalidCommandArgs(f"Invalid Role Colour: {self.args.role_colour}") from exc
+
+        func = getattr(self, self.args.subcmd)
+        response = await func()
+        if response:
+            await self.bot.send_message(self.msg.channel, response)
 
 
 class Cmdr(PVPAction):
