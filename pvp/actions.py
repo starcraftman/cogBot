@@ -4,7 +4,6 @@ Specific actions for pvp bot
 import asyncio
 import concurrent.futures as cfut
 import datetime
-import json
 import tempfile
 import functools
 import logging
@@ -352,7 +351,15 @@ class FileUpload(PVPAction):  # pragma: no cover
             for achieve in new_achievements:
                 response += '\n' + achieve.describe()
 
-            # TODO: create/assign roles for achievements here
+            # TODO: Untested for now
+            member = self.msg.author
+            to_remove, to_add = cogdb.achievements.roles_for_user(self.eddb_session, discord_id=self.msg.author.id)
+            roles_to_remove = [x for x in member.roles if x.name in [x.role_name for x in to_remove]]
+            if roles_to_remove:
+                await member.remove_roles(*roles_to_remove, reason="Achievements now surpassed.")
+            roles_to_add = [x for x in self.msg.guild.roles if x.name in [x.role_name for x in to_add]]
+            if roles_to_add:
+                await member.add_roles(*roles_to_add, reason="Achievements newly unlocked.")
 
         return response
 
@@ -421,15 +428,83 @@ class Achievement(PVPAction):
     """
     Provide a management interface for achievements.
     """
+    async def ask_for_role_set(self, achievement):
+        """
+        Run after adding a new achievement to determine interactively the role set and priority.
+        Provide users an explanation of the system and existing roles and priority.
+
+        Args:
+            achievement: The newly added AchievementType added to the database.
+
+        Raises:
+            asyncio.TimeoutError - User did not reply in time.
+
+        Returns: The now completed AchievementType.
+        """
+        msg = f"""__Role Explanation__
+
+The bot will automatically create roles for you (if not made).
+The added achievement will have following role:
+    Role name and description: {achievement.describe()}
+    Role colour: 0x{achievement.colour}
+
+Each achievement is part of a role set. A set of roles each have a priority.
+As you achieve higher priority roles in a set, the user will be assigned only the highest priority role.
+Example:
+    Say there are 3 kill count achievements: First Kill, Dozen Kills, 100 Kills
+    If they are given priorities 1, 2 and 3 in order in the role set "Kills".
+    When a user achieves Dozen Kills, First Kill role is removed and Dozen Kills applied.
+
+What role set do you want to add this to?
+Existing role sets and priorities are attached.
+"""
+        grouped = cogdb.achievements.get_achievement_types_by_set(self.eddb_session)
+        with cogdb.achievements.create_role_summary(grouped) as role_fname:
+            await self.bot.send_message(self.msg.channel, msg, file=discord.File(fp=role_fname, filename='RoleSummary.txt'))
+        resp = await self.bot.wait_for(
+            'message',
+            check=lambda m: m.author == self.msg.author and m.channel == self.msg.channel,
+            timeout=30
+        )
+        achievement.role_set = resp.content.strip()
+
+        while True:
+            msg = """You have selected role set: {achievement.role_set}
+
+Priority should be unique within the set.
+What priority do you want to give this achievement within the set?"""
+            await self.bot.send_message(self.msg.channel, msg)
+            resp = await self.bot.wait_for(
+                'message',
+                check=lambda m: m.author == self.msg.author and m.channel == self.msg.channel,
+                timeout=30
+            )
+            try:
+                priority = int(resp.content)
+                if achievement.role_set in grouped and priority in grouped[achievement.role_set]:
+                    raise ValueError
+                achievement.role_priority = priority
+                break
+            except ValueError:
+                await self.bot.send_message(self.msg.channel,
+                                            f'Try again, please select a valid number not in set: {achievement.role_set}.')
+
+        role = discord.utils.get(self.msg.guild.roles, name=achievement.role_name)
+        if role:
+            await role.edit(colour=discord.Colour(achievement.hex_value))
+        else:
+            role = await self.msg.guild.create_role(
+                name=achievement.role_name, colour=discord.Colour(achievement.hex_value),
+                mentionable=True, reason='Adding achievement linked role.'
+            )
+
     async def add_age(self):
         """
         Add an age related achievement.
         """
         name = ' '.join(self.args.name)
-        kwargs = json.dumps({
-            'days_required': self.args.days_required,
-        })
-        cogdb.achievements.update_achievement_type(
+        kwargs = {'days_required': self.args.days_required}
+        achievement = cogdb.achievements.update_achievement_type(
             self.eddb_session, role_name=name,
             new_role_name=' '.join(self.args.role_name),
             role_colour=self.args.role_colour,
@@ -437,6 +512,8 @@ class Achievement(PVPAction):
             check_func='check_pvpcmdr_age',
             check_kwargs=kwargs,
         )
+        self.ask_for_role_set(achievement)
+
         return "Added achievement for age of {self.args.days_required} days assigned {name}."
 
     async def add_event(self):
@@ -444,11 +521,11 @@ class Achievement(PVPAction):
         Add a pvp event related achievement.
         """
         name = ' '.join(self.args.name)
-        kwargs = json.dumps({
+        kwargs = {
             'pvp_event': self.args.event,
             'target_cmdr': ' '.join(self.args.cmdr),
-        })
-        cogdb.achievements.update_achievement_type(
+        }
+        achievement = cogdb.achievements.update_achievement_type(
             self.eddb_session, role_name=name,
             new_role_name=' '.join(self.args.role_name),
             role_colour=self.args.role_colour,
@@ -456,6 +533,8 @@ class Achievement(PVPAction):
             check_func='check_pvpcmdr_in_events',
             check_kwargs=kwargs,
         )
+        self.ask_for_role_set(achievement)
+
         return "Added achievement for other CMDR {kwargs['target_cmdr']} in {self.args.event} assigned {name}."
 
     async def add_stat(self):
@@ -463,11 +542,11 @@ class Achievement(PVPAction):
         Add a stat related achievement.
         """
         name = ' '.join(self.args.name)
-        kwargs = json.dumps({
+        kwargs = {
             'stat_name': self.args.stat,
             'amount': self.args.amount,
-        })
-        cogdb.achievements.update_achievement_type(
+        }
+        achievement = cogdb.achievements.update_achievement_type(
             self.eddb_session, role_name=name,
             new_role_name=' '.join(self.args.role_name),
             role_colour=self.args.role_colour,
@@ -475,6 +554,8 @@ class Achievement(PVPAction):
             check_func='check_pvpstat_greater',
             check_kwargs=kwargs,
         )
+        self.ask_for_role_set(achievement)
+
         return "Achievement for {self.args.stat} >= {self.args.amount} assigned {name}."
 
     async def remove(self):
@@ -483,6 +564,11 @@ class Achievement(PVPAction):
         """
         existing_name = ' '.join(self.args.name)
         cogdb.achievements.remove_achievement_type(self.eddb_session, role_name=existing_name)
+
+        role = discord.utils.get(self.msg.guild.roles, name=existing_name)
+        if role:
+            await role.delete(reason='AchievementType removed, role deleted.')
+
         return "Achievement tied to {role_name} has been removed!"
 
     async def update(self):
@@ -490,29 +576,39 @@ class Achievement(PVPAction):
         Update an existing achievement.
         """
         existing_name = ' '.join(self.args.name)
-        cogdb.achievements.update_achievement_type(
+        new_role_name = ' '.join(self.args.role_name),
+        role_description = ' '.join(self.args.role_description)
+        achievement = cogdb.achievements.update_achievement_type(
             self.eddb_session, role_name=existing_name,
-            new_role_name=' '.join(self.args.role_name),
+            new_role_name=new_role_name,
             role_colour=self.args.role_colour,
-            role_description=' '.join(self.args.role_description)
+            role_description=role_description,
         )
-        return "Achievement tied to {role_name} has been updated!"
 
-    # TODO: Likely move
-    async def assign_role(self, role_name):
-        found = [role for role in self.msg.guild.roles if role.name == role_name]
-        if found:
-            self.msg.author.add_roles(*found, reason='Achievement awarded.')
+        role = discord.utils.get(self.msg.guild.roles, name=existing_name)
+        if role and (new_role_name or self.args.role_colour):
+            kwargs = {
+                'reason': 'Updated role information.',
+            }
+            if new_role_name and new_role_name != role.name:
+                kwargs['name'] = new_role_name
+            if self.args.role_colour:
+                kwargs['colour'] = discord.Colour(achievement.hex_value)
+            await role.edit(**kwargs)
+
+        return "Achievement tied to {role_name} has been updated!"
 
     async def execute(self):
         try:
-            # validate role colour
+            # validate role colour if present
             if self.args.role_colour:
                 if self.args.role_colour.startswith('0x'):
                     self.args.role_colur = self.args.role_colour[2:]
                 int(self.args.role_colour, 16)
         except ValueError as exc:
             raise cog.exc.InvalidCommandArgs(f"Invalid Role Colour: {self.args.role_colour}") from exc
+        except AttributeError:
+            pass
 
         func = getattr(self, self.args.subcmd)
         response = await func()

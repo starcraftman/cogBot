@@ -10,9 +10,11 @@ Storage of achievements is easy. I guess other thing is to look at defining role
 I'll probably need to allow user to show/remove achievements,
 either by allowing them to choose what roles added but also maybe a display function.
 """
+import contextlib
 import datetime
 import json
 import sys
+import tempfile
 import time
 
 import sqlalchemy as sqla
@@ -30,6 +32,7 @@ LEN = {
     'achievement_description': 500,
     'achievement_kwargs': 1000,
     'achievement_name': 100,  # Hard limit for roles
+    'achievement_func': 50,
 }
 VALID_STATS = [
     'deaths', 'kills', 'kos_kills', 'escaped_interdicteds',
@@ -42,16 +45,16 @@ class Achievement(ReprMixin, TimestampMixin, Base):
     """ Represents an achievement assigned to a user. """
     __tablename__ = "achievements"
     __table_args__ = (
-        UniqueConstraint('discord_id', 'achievement_type_id', name='_achievement_id_type_unique'),
+        UniqueConstraint('discord_id', 'type_id', name='_achievement_id_type_unique'),
     )
-    _repr_keys = ['id', 'discord_id', 'achievement_type_id', 'created_at']
+    _repr_keys = ['id', 'discord_id', 'type_id', 'created_at']
 
     id = sqla.Column(sqla.BigInteger, primary_key=True)
     discord_id = sqla.Column(sqla.BigInteger)
-    achievement_type_id = sqla.Column(sqla.Integer, sqla.ForeignKey('achievement_types.id'))
+    type_id = sqla.Column(sqla.Integer, sqla.ForeignKey('achievement_types.id'))
     created_at = sqla.Column(sqla.Integer, default=time.time)
 
-    type_ = sqla.orm.relationship('AchievementType', viewonly=True, lazy='joined')
+    type = sqla.orm.relationship('AchievementType', viewonly=True, lazy='joined')
 
     def __eq__(self, other):
         return (isinstance(self, Achievement) and isinstance(other, Achievement)
@@ -63,9 +66,12 @@ class Achievement(ReprMixin, TimestampMixin, Base):
 
 class AchievementType(ReprMixin, TimestampMixin, Base):
     __tablename__ = "achievement_types"
+    __table_args__ = (
+        UniqueConstraint('role_set', 'role_priority', name='_role_set_priority_unique'),
+    )
     _repr_keys = [
         'id', 'role_name', 'role_colour', 'role_description',
-        'check_func', 'check_kwargs', 'created_at'
+        'role_set', 'role_priority', 'check_func', 'check_kwargs', 'created_at'
     ]
 
     id = sqla.Column(sqla.Integer, primary_key=True)
@@ -73,7 +79,9 @@ class AchievementType(ReprMixin, TimestampMixin, Base):
     role_name = sqla.Column(sqla.String(LEN["achievement_name"]), index=True, unique=True)
     role_colour = sqla.Column(sqla.String(6), default='')  # Hex strings, no leading 0x: B20000
     role_description = sqla.Column(sqla.String(LEN["achievement_description"]))
-    check_func = sqla.Column(sqla.String(LEN["achievement_name"]), nullable=False)
+    role_set = sqla.Column(sqla.String(LEN["achievement_name"]))
+    role_priority = sqla.Column(sqla.Integer, default=1)
+    check_func = sqla.Column(sqla.String(LEN["achievement_func"]), nullable=False)
     check_kwargs = sqla.Column(sqla.String(LEN["achievement_kwargs"]), nullable=False)
     created_at = sqla.Column(sqla.Integer, default=time.time)
 
@@ -112,6 +120,80 @@ class AchievementType(ReprMixin, TimestampMixin, Base):
         return self.id
 
 
+def get_achievement_types_by_set(eddb_session):
+    """
+    Get a complete set of all existing AchievementTypes.
+    The AchievementTypes will be ordered into a dictionary indexed on role_set.
+    Each entry in the dictionary will have a list of all AchievementTypes in that role_set.
+    The order of entries in the role_set will be in ascending priority.
+
+    Args:
+        eddb_session: A session onto the EDDB database.
+
+    Returns: A dictionary mapping role_sets onto lists of AchievementTypes in those sets.
+    """
+    achievements = eddb_session.query(AchievementType).\
+        order_by(AchievementType.role_set, AchievementType.role_priority).\
+        all()
+    results = {}
+    for achievement in achievements:
+        try:
+            results[achievement.role_set] += [achievement]
+        except KeyError:
+            results[achievement.role_set] = [achievement]
+
+    return results
+
+
+def get_user_achievements_by_set(eddb_session, *, discord_id):
+    """
+    Get a complete set of all Achievements for a single user.
+    The Achievements will be ordered into a dictionary indexed on role_set.
+    Each entry in the dictionary will have a list of all Achievements in that role_set.
+    The order of entries in the role_set will be in ascending priority.
+
+    Args:
+        eddb_session: A session onto the EDDB database.
+        discord_id: The discord id of a user, narrow to only those achievements unlocked by user when present.
+
+    Returns: A dictionary mapping role_sets onto lists of AchievementTypes in those sets.
+    """
+    achievements = eddb_session.query(Achievement).\
+        join(AchievementType, Achievement.type_id == AchievementType.id).\
+        filter(Achievement.discord_id == discord_id).\
+        order_by(AchievementType.role_set, AchievementType.role_priority).\
+        all()
+    results = {}
+    for achievement in achievements:
+        try:
+            results[achievement.type.role_set] += [achievement]
+        except KeyError:
+            results[achievement.type.role_set] = [achievement]
+
+    return results
+
+
+def roles_for_user(eddb_session, *, discord_id):
+    """
+    Determine the active set of roles to apply to a member.
+
+    Args:
+        eddb_session: A session onto the EDDB database.
+        discord_id: The discord ID of a given CMDR.
+
+    Returns: to_remove, to_add
+        to_remove: The set of AchievementTypes whose roles should NOT be applied to the user.
+        to_add: The set of AchievementTypes whose roles should be applied to the user.
+    """
+    existing = get_user_achievements_by_set(eddb_session, discord_id=discord_id)
+    to_remove, to_add = [], []
+    for achievements in existing.values():
+        to_remove += [x.type for x in achievements[:-1]]
+        to_add += [x.type for x in achievements[-1:]]
+
+    return to_remove, to_add
+
+
 def remove_achievement_type(eddb_session, *, role_name):
     """
     Remove an existing AchievementType, implicitly removes achievements assigned.
@@ -124,7 +206,7 @@ def remove_achievement_type(eddb_session, *, role_name):
         filter(AchievementType.role_name == role_name).\
         scalar()
     eddb_session.query(Achievement).\
-        filter(Achievement.achievement_type_id == type_subq).\
+        filter(Achievement.type_id == type_subq).\
         delete()
     eddb_session.query(AchievementType).\
         filter(AchievementType.role_name == role_name).\
@@ -187,8 +269,9 @@ def update_achievement_type(eddb_session, *, role_name, new_role_name=None, role
 
 def verify_achievements(*, session, eddb_session, discord_id, check_func_filter=None):
     """
-    Check all applicable achievements for a given user.
-    Any new achievements will be added to the database and a message sent back to user.
+    Check for new achievements a given user has not acquired.
+    Any new achievements will be added to the database and
+    the new AchievementType for each will be returend in a list.
 
     Args:
         eddb_session: A session onto the database.
@@ -196,19 +279,19 @@ def verify_achievements(*, session, eddb_session, discord_id, check_func_filter=
         discord_id: The discord ID of the CMDR being checked.
         check_func_filter: Limit new achievements to a subset of check_func names.
 
-    Returns: A list of newly unlocked Achievements
+    Returns: A list of newly unlocked AchievementTypes
     """
     new_achievements = []
-    existing = eddb_session.query(Achievement.achievement_type_id).\
-        filter(Achievement.discord_id == discord_id).\
-        subquery()
+    achieved = {
+        x[0] for x in eddb_session.query(Achievement.type_id).
+        filter(Achievement.discord_id == discord_id).
+        all()
+    }
     not_achieved = eddb_session.query(AchievementType).\
-        filter(AchievementType.id.not_in(existing))
-
+        filter(AchievementType.id.not_in(achieved))
     if check_func_filter:
         not_achieved = not_achieved.filter(AchievementType.check_func.like(f'%{check_func_filter}%'))
-
-    not_achieved = not_achieved.all()
+    not_achieved = not_achieved.order_by(AchievementType.id).all()
 
     kwargs = {
         'discord_id': discord_id,
@@ -218,10 +301,8 @@ def verify_achievements(*, session, eddb_session, discord_id, check_func_filter=
     }
     for achievement in not_achieved:
         if achievement.check(**kwargs):
-            achieve = Achievement(discord_id=discord_id, achievement_type_id=achievement.id)
+            eddb_session.add(Achievement(discord_id=discord_id, type_id=achievement.id))
             new_achievements += [achievement]
-            eddb_session.add(achieve)
-    eddb_session.commit()
 
     return new_achievements
 
@@ -335,6 +416,29 @@ def check_duser_snipe(*, discord_id, session, amount, **_):
         return total_um >= amount
     except AttributeError:
         return False
+
+
+@contextlib.contextmanager
+def create_role_summary(grouped_achievements):
+    """
+    Given a grouped set of AchievementTypes, create a temporarytext file listing all role sets
+    and the roles and priorities under them.
+    This is a context manager.
+
+    Args:
+        grouped_achievements: The achievements grouped by role set, see get_achievements_by_set.
+
+    Returns: A filename as a string.
+    """
+    with tempfile.NamedTemporaryFile(mode='w') as tfile:
+        tfile.write("__Existing Role Sets__\n")
+        for role_set, achievement_types in grouped_achievements.items():
+            tfile.write(f"\nRole Set: {role_set}\n")
+            for achievement in achievement_types:
+                tfile.write(f"    {achievement.role_name}: {achievement.role_priority}\n")
+        tfile.flush()
+
+        yield tfile.name
 
 
 def drop_tables():  # pragma: no cover | destructive to test

@@ -12,12 +12,12 @@ import pvp.schema
 
 
 def test_achievement__repr__(f_achievements, eddb_session):
-    expect = 'Achievement(id=1, discord_id=1, achievement_type_id=1, created_at=1671655377)'
+    expect = 'Achievement(id=1, discord_id=1, type_id=1, created_at=1671655377)'
     assert expect == str(eddb_session.query(Achievement).first())
 
 
 def test_achievementtype__repr__(f_achievements, eddb_session):
-    expect = "AchievementType(id=1, role_name='FirstKill', role_colour='b20000', role_description='First confirmed kill reported.', check_func='hello', check_kwargs='{}', created_at=1671655377)"
+    expect = "AchievementType(id=1, role_name='FirstKill', role_colour='b20000', role_description='First confirmed kill reported.', role_set='Kills', role_priority=1, check_func='check_pvpstat_greater', check_kwargs='{\"stat_name\": \"kills\", \"amount\": 1}', created_at=1671655377)"
     assert expect == str(eddb_session.query(AchievementType).first())
 
 
@@ -43,7 +43,7 @@ def test_remove_achievement_type(f_achievements, eddb_session):
     assert eddb_session.query(AchievementType).filter(AchievementType.role_name == 'EvenDozen').all()
     cogdb.achievements.remove_achievement_type(eddb_session, role_name='EvenDozen')
     assert not eddb_session.query(AchievementType).filter(AchievementType.role_name == 'EvenDozen').all()
-    assert not eddb_session.query(Achievement).filter(Achievement.achievement_type_id == 2).all()
+    assert not eddb_session.query(Achievement).filter(Achievement.type_id == 2).all()
 
 
 def test_add_achievement_type(f_achievements, eddb_session):
@@ -69,7 +69,7 @@ def test_update_achievement_type(f_achievements, eddb_session):
         'role_colour': '222222',
         'role_description': 'A lazily made role.',
         'check_func': 'check_old_role',
-        'check_kwargs': "{'test': 5}",
+        'check_kwargs': {'test': 5},
     }
     cogdb.achievements.update_achievement_type(eddb_session, **kwargs)
     eddb_session.commit()
@@ -86,7 +86,7 @@ def test_update_achievement_type_collision(f_achievements, eddb_session):
         'role_colour': '222222',
         'role_description': 'A lazily made role.',
         'check_func': 'check_old_role',
-        'check_kwargs': "{'test': 5}",
+        'check_kwargs': {'test': 5},
     }
     with pytest.raises(ValueError):
         cogdb.achievements.update_achievement_type(eddb_session, **kwargs)
@@ -96,7 +96,7 @@ def test_update_achievement_type_missing(f_achievements, eddb_session):
     kwargs = {
         'role_name': 'NewRole',
         'check_func': 'check_new_role',
-        'check_kwargs': "{}",
+        'check_kwargs': {},
     }
     with pytest.raises(ValueError):
         cogdb.achievements.update_achievement_type(eddb_session, **kwargs)
@@ -234,3 +234,47 @@ def test_check_duser_snipe(f_dusers, f_um_testbed, session):
         'amount': 8000,
     }
     assert not cogdb.achievements.check_duser_snipe(**kwargs)
+
+
+def test_get_achievement_types_by_set(f_achievements, eddb_session):
+    grouped = cogdb.achievements.get_achievement_types_by_set(eddb_session)
+    assert len(grouped['Deaths']) == 1
+    assert len(grouped['Kills']) == 3
+
+
+def test_get_user_achievements_by_set(f_achievements, eddb_session):
+    grouped = cogdb.achievements.get_user_achievements_by_set(eddb_session, discord_id=1)
+    assert 'Deaths' not in grouped
+    assert len(grouped['Kills']) == 2
+
+
+def test_roles_for_user(f_achievements, eddb_session):
+    to_remove, to_add = cogdb.achievements.roles_for_user(eddb_session, discord_id=1)
+    assert [1] == [x.id for x in to_remove]
+    assert [2] == [x.id for x in to_add]
+
+    eddb_session.add_all([
+        Achievement(discord_id=1, type_id=3),
+        Achievement(discord_id=1, type_id=4),
+    ])
+    eddb_session.commit()
+    to_remove, to_add = cogdb.achievements.roles_for_user(eddb_session, discord_id=1)
+    assert [1, 2] == list(sorted([x.id for x in to_remove]))
+    assert [3, 4] == list(sorted([x.id for x in to_add]))
+
+
+def test_create_role_summary(f_achievements, eddb_session):
+    expect = """__Existing Role Sets__
+
+Role Set: Deaths
+    Lots Of Death: 1
+
+Role Set: Kills
+    FirstKill: 1
+    EvenDozen: 2
+    Century: 3
+"""
+    grouped = cogdb.achievements.get_achievement_types_by_set(eddb_session)
+    with cogdb.achievements.create_role_summary(grouped) as role_fname:
+        with open(role_fname, 'r', encoding='utf-8') as fin:
+            assert expect == fin.read()
