@@ -1,6 +1,7 @@
 """
 Tests for cogdb.achievements
 """
+import json
 import time
 
 import pytest
@@ -34,6 +35,10 @@ def test_achievementtype_hex_value(f_achievements, eddb_session):
     assert 11665408 == eddb_session.query(AchievementType).first().hex_value
 
 
+def test_achievementtype_describe(f_achievements, eddb_session):
+    assert 'FirstKill: First confirmed kill reported.' == eddb_session.query(AchievementType).first().describe()
+
+
 def test_remove_achievement_type(f_achievements, eddb_session):
     assert eddb_session.query(AchievementType).filter(AchievementType.role_name == 'EvenDozen').all()
     cogdb.achievements.remove_achievement_type(eddb_session, role_name='EvenDozen')
@@ -47,13 +52,14 @@ def test_add_achievement_type(f_achievements, eddb_session):
         'role_colour': 'FFFFFF',
         'role_description': 'A new role to apply.',
         'check_func': 'check_new_role',
-        'check_kwargs': '{}',
+        'check_kwargs': {'amount': 10},
     }
     cogdb.achievements.update_achievement_type(eddb_session, **kwargs)
     eddb_session.commit()
 
     last = eddb_session.query(AchievementType).order_by(AchievementType.id.desc()).first()
     assert last.role_name == 'NewRole'
+    assert last.check_kwargs == '{"amount": 10}'
 
 
 def test_update_achievement_type(f_achievements, eddb_session):
@@ -94,6 +100,41 @@ def test_update_achievement_type_missing(f_achievements, eddb_session):
     }
     with pytest.raises(ValueError):
         cogdb.achievements.update_achievement_type(eddb_session, **kwargs)
+
+
+def test_verify_achievements(f_achievements, f_pvp_testbed, session, eddb_session):
+    kwargs = {
+        'role_name': '2Kills',
+        'role_colour': '222222',
+        'role_description': 'Just two kills.',
+        'check_func': 'check_pvpstat_greater',
+        'check_kwargs': {"stat_name": "kills", "amount": 2},
+    }
+    cogdb.achievements.update_achievement_type(eddb_session, **kwargs)
+    new_achievements = cogdb.achievements.verify_achievements(
+        session=session, eddb_session=eddb_session, discord_id=1
+    )
+    assert new_achievements[0].describe() == '2Kills: Just two kills.'
+
+
+def test_verify_achievements_filter(f_achievements, f_pvp_testbed, session, eddb_session):
+    kwargs = {
+        'role_name': '2Kills',
+        'role_colour': '222222',
+        'role_description': 'Just two kills.',
+        'check_func': 'check_pvpstat_greater',
+        'check_kwargs': {"stat_name": "kills", "amount": 2},
+    }
+    cogdb.achievements.update_achievement_type(eddb_session, **kwargs)
+    new_achievements = cogdb.achievements.verify_achievements(
+        session=session, eddb_session=eddb_session, discord_id=1, check_func_filter='duser',
+    )
+    assert not new_achievements
+
+    new_achievements = cogdb.achievements.verify_achievements(
+        session=session, eddb_session=eddb_session, discord_id=1, check_func_filter='pvp',
+    )
+    assert new_achievements
 
 
 def test_check_pvpstat_greater(f_pvp_testbed, eddb_session):

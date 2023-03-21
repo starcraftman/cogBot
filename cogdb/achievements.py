@@ -100,6 +100,10 @@ class AchievementType(ReprMixin, TimestampMixin, Base):
         func = getattr(sys.modules[__name__], self.check_func)
         return func(**kwargs)
 
+    def describe(self):
+        """ Simple description of achievement. """
+        return f'{self.role_name}: {self.role_description}'
+
     def __eq__(self, other):
         return (isinstance(self, AchievementType) and isinstance(other, AchievementType)
                 and self.id == other.id)
@@ -128,7 +132,7 @@ def remove_achievement_type(eddb_session, *, role_name):
 
 
 def update_achievement_type(eddb_session, *, role_name, new_role_name=None, role_colour=None,
-                            role_description=None, check_func=None, **kwargs):
+                            role_description=None, check_func=None, check_kwargs=None):
     """
     Update (or add if not present) an AchievementType to the database.
 
@@ -166,14 +170,14 @@ def update_achievement_type(eddb_session, *, role_name, new_role_name=None, role
         achieve.role_colour = role_colour if role_colour else achieve.role_colour
         achieve.role_description = role_description if role_description else achieve.role_description
         achieve.check_func = check_func if check_func else achieve.check_func
-        achieve.kwargs = json.dumps(kwargs) if len(kwargs) else achieve.kwargs
+        achieve.check_kwargs = json.dumps(check_kwargs) if check_kwargs else achieve.check_kwargs
     except sqla.exc.NoResultFound as exc:
-        if not role_colour or not role_description or not check_func or not kwargs:
+        if not role_colour or not role_description or not check_func or not check_kwargs:
             raise ValueError("Achievement: Missing one or more required args for creation.") from exc
 
         achieve = AchievementType(
             role_name=role_name, role_colour=role_colour, role_description=role_description,
-            check_func=check_func, check_kwargs=json.dumps(kwargs)
+            check_func=check_func, check_kwargs=json.dumps(check_kwargs)
         )
         eddb_session.add(achieve)
         eddb_session.commit()
@@ -181,7 +185,48 @@ def update_achievement_type(eddb_session, *, role_name, new_role_name=None, role
     return achieve
 
 
-def check_pvpstat_greater(*, stats, stat_name, amount):
+def verify_achievements(*, session, eddb_session, discord_id, check_func_filter=None):
+    """
+    Check all applicable achievements for a given user.
+    Any new achievements will be added to the database and a message sent back to user.
+
+    Args:
+        eddb_session: A session onto the database.
+        eddb_session: A session onto the EDDB database.
+        discord_id: The discord ID of the CMDR being checked.
+        check_func_filter: Limit new achievements to a subset of check_func names.
+
+    Returns: A list of newly unlocked Achievements
+    """
+    new_achievements = []
+    existing = eddb_session.query(Achievement.achievement_type_id).\
+        filter(Achievement.discord_id == discord_id).\
+        subquery()
+    not_achieved = eddb_session.query(AchievementType).\
+        filter(AchievementType.id.not_in(existing))
+
+    if check_func_filter:
+        not_achieved = not_achieved.filter(AchievementType.check_func.like(f'%{check_func_filter}%'))
+
+    not_achieved = not_achieved.all()
+
+    kwargs = {
+        'discord_id': discord_id,
+        'session': session,
+        'eddb_session': eddb_session,
+        'stats': pvp.schema.compute_pvp_stats(eddb_session, cmdr_ids=[discord_id]),
+    }
+    for achievement in not_achieved:
+        if achievement.check(**kwargs):
+            achieve = Achievement(discord_id=discord_id, achievement_type_id=achievement.id)
+            new_achievements += [achievement]
+            eddb_session.add(achieve)
+    eddb_session.commit()
+
+    return new_achievements
+
+
+def check_pvpstat_greater(*, stats, stat_name, amount, **_):
     """
     Compute the pvp stats for CMDR with discord_id.
     Once done, check if the statistic field hs a value greater than amount.
@@ -196,7 +241,7 @@ def check_pvpstat_greater(*, stats, stat_name, amount):
     return stats[stat_name] >= amount
 
 
-def check_pvpcmdr_in_events(*, discord_id, eddb_session, pvp_event, target_cmdr):
+def check_pvpcmdr_in_events(*, discord_id, eddb_session, pvp_event, target_cmdr, **_):
     """
     Check if a specific other CMDR present in a CMDRs events, like kills or deaths.
 
@@ -214,7 +259,7 @@ def check_pvpcmdr_in_events(*, discord_id, eddb_session, pvp_event, target_cmdr)
     )
 
 
-def check_pvpcmdr_age(*, discord_id, eddb_session, required_days):
+def check_pvpcmdr_age(*, discord_id, eddb_session, required_days, **_):
     """
     Check if a CMDR has been an active PVPCMDR for a given time.
 
@@ -230,7 +275,7 @@ def check_pvpcmdr_age(*, discord_id, eddb_session, required_days):
     return datetime.timedelta(seconds=time_diff).days >= required_days
 
 
-def check_duser_forts(*, discord_id, session, amount):
+def check_duser_forts(*, discord_id, session, amount, **_):
     """
     Check if a CMDR has forted a certain amount in the current cycle.
 
@@ -248,7 +293,7 @@ def check_duser_forts(*, discord_id, session, amount):
         return False
 
 
-def check_duser_um(*, discord_id, session, amount):
+def check_duser_um(*, discord_id, session, amount, **_):
     """
     Check if a CMDR has undermined a certain amount in the current cycle.
 
@@ -270,7 +315,7 @@ def check_duser_um(*, discord_id, session, amount):
         return False
 
 
-def check_duser_snipe(*, discord_id, session, amount):
+def check_duser_snipe(*, discord_id, session, amount, **_):
     """
     Check if a CMDR has sniped a certain amount in the current cycle.
 

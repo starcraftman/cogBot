@@ -340,6 +340,22 @@ class FileUpload(PVPAction):  # pragma: no cover
                 except (pvp.journal.ParserError, zipfile.BadZipfile):
                     await self.bot.send_message(self.msg.channel, f'Error with {attach.filename}. We only support zips and text files.')
 
+    async def check_achievements(self):
+        """
+        Check achievements post file processing.
+        """
+        new_achievements = cogdb.achievements.verify_achievements(
+            discord_id=self.msg.author.id, session=self.session, eddb_session=self.eddb_session
+        )
+        response = '__New Achievements Unlocked__\n' if new_achievements else ''
+        if new_achievements:
+            for achieve in new_achievements:
+                response += '\n' + achieve.describe()
+
+            # TODO: create/assign roles for achievements here
+
+        return response
+
     async def execute(self):
         filter_dir = pathlib.Path(tempfile.mkdtemp(suffix='filter'))
         try:
@@ -352,6 +368,11 @@ class FileUpload(PVPAction):  # pragma: no cover
                         await aout.flush()
                     await self.msg.channel.send('Logs parsed. Summary attached.',
                                                 file=discord.File(fp=tfile.name, filename='parsed.log'))
+
+                notice = await self.check_achievements()
+                if notice:
+                    await self.msg.channel.send(notice)
+
         finally:
             shutil.rmtree(filter_dir)
 
