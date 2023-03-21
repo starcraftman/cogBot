@@ -39,8 +39,28 @@ def subs_achieve(subs, prefix):
     """ Subcommand parsing for cmdr """
     desc = f"""Manage the pvp related achievements.
 
-**{prefix}achieve remove Role Name
+**{prefix}achieve add_age 100 --role_name 100 Days --role_colour b20000 --role_description You made it 100 days.***
+        Add an achievement that will be unlocked after being on server for 100 days.
+        The role_name, role_colour and role_description are required.
+        If required, the bot will create the associated role with the given name and colour.
+        Role will be assigned after 100 days.
+**{prefix}achieve add_event PVPKill Bad Guy --role_name Smoked Bad Guy --role_colour b20000 --role_description You made it 100 days.***
+        Add an achievement that will be unlocked after a specific event involving a specific CMDR.
+        The role_name, role_colour and role_description are required.
+        If required, the bot will create the associated role with the given name and colour.
+        Role will be assigned after reporting a log with kill of CMDR Bad Guy.
+**{prefix}achieve add_stat kills 12 --role_name Dozen Kills --role_colour b20000 --role_description You got a dozen kills.***
+        Add an achievement that will be unlocked after getting 12 confirmed kills by log.
+        The role_name, role_colour and role_description are required.
+        If required, the bot will create the associated role with the given name and colour.
+        Role will be assigned after reporting a log and the CMDR's statistic matches requirement.
+**{prefix}achieve remove Role Name**
         Remove the achievement with the associated Role Name.
+**{prefix}achieve update Role Name --role_name New Role Name --role_colour b40000 --role_description A new role description.**
+        Update the role named by Role Name.
+        If --role_name present, set Role Name to New Role Name.
+        If --role_colour present, set the colour.
+        If --role_description present, set the description.
     """
     sub = subs.add_parser(prefix + 'achieve', description=desc, formatter_class=RawHelp)
     sub.set_defaults(cmd='Achievement')
