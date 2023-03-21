@@ -25,6 +25,7 @@ import cogdb
 import cogdb.eddb
 import cogdb.query
 from cogdb.eddb import Base
+import cog.exc
 from cog.util import ReprMixin, TimestampMixin
 import pvp.schema
 
@@ -228,7 +229,7 @@ def update_achievement_type(eddb_session, *, role_name, new_role_name=None, role
         kwargs: A dictionary of kwargs to pass to the check_func when a check is made.
 
     Raises:
-        ValueError - There was a problem with arguments.
+        cog.exc.InvalidCommandArgs - There was a problem with arguments.
             1) Collision with new_name and existing names.
             2) All args are required for new additions.
 
@@ -245,7 +246,7 @@ def update_achievement_type(eddb_session, *, role_name, new_role_name=None, role
                 eddb_session.query(AchievementType).\
                     filter(AchievementType.role_name == new_role_name).\
                     one()
-                raise ValueError("Achievement: role_name is already in use. Rename existing role or choose new name.")
+                raise cog.exc.InvalidCommandArgs("Achievement: role_name is already in use. Rename existing role or choose new name.")
             except sqla.exc.NoResultFound:
                 achieve.role_name = new_role_name
 
@@ -255,14 +256,14 @@ def update_achievement_type(eddb_session, *, role_name, new_role_name=None, role
         achieve.check_kwargs = json.dumps(check_kwargs) if check_kwargs else achieve.check_kwargs
     except sqla.exc.NoResultFound as exc:
         if not role_colour or not role_description or not check_func or not check_kwargs:
-            raise ValueError("Achievement: Missing one or more required args for creation.") from exc
+            raise cog.exc.InvalidCommandArgs("Achievement: Missing one or more required args for creation.") from exc
 
         achieve = AchievementType(
             role_name=role_name, role_colour=role_colour, role_description=role_description,
             check_func=check_func, check_kwargs=json.dumps(check_kwargs)
         )
         eddb_session.add(achieve)
-        eddb_session.commit()
+        eddb_session.flush()
 
     return achieve
 
@@ -433,6 +434,8 @@ def create_role_summary(grouped_achievements):
     with tempfile.NamedTemporaryFile(mode='w') as tfile:
         tfile.write("__Existing Role Sets__\n")
         for role_set, achievement_types in grouped_achievements.items():
+            if not role_set:
+                continue
             tfile.write(f"\nRole Set: {role_set}\n")
             for achievement in achievement_types:
                 tfile.write(f"    {achievement.role_name}: {achievement.role_priority}\n")

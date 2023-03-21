@@ -441,12 +441,13 @@ class Achievement(PVPAction):
 
         Returns: The now completed AchievementType.
         """
-        msg = f"""__Role Explanation__
+        msg = f"""__Role Set and Priority__
 
 The bot will automatically create roles for you (if not made).
 The added achievement will have following role:
-    Role name and description: {achievement.describe()}
-    Role colour: 0x{achievement.colour}
+    Role name: {achievement.role_name}
+    Role description: {achievement.role_description}
+    Role colour: 0x{achievement.role_colour}
 
 Each achievement is part of a role set. A set of roles each have a priority.
 As you achieve higher priority roles in a set, the user will be assigned only the highest priority role.
@@ -458,36 +459,39 @@ Example:
 What role set do you want to add this to?
 Existing role sets and priorities are attached.
 """
-        grouped = cogdb.achievements.get_achievement_types_by_set(self.eddb_session)
-        with cogdb.achievements.create_role_summary(grouped) as role_fname:
-            await self.bot.send_message(self.msg.channel, msg, file=discord.File(fp=role_fname, filename='RoleSummary.txt'))
-        resp = await self.bot.wait_for(
-            'message',
-            check=lambda m: m.author == self.msg.author and m.channel == self.msg.channel,
-            timeout=30
-        )
-        achievement.role_set = resp.content.strip()
-
-        while True:
-            msg = """You have selected role set: {achievement.role_set}
-
-Priority should be unique within the set.
-What priority do you want to give this achievement within the set?"""
-            await self.bot.send_message(self.msg.channel, msg)
+        try:
+            grouped = cogdb.achievements.get_achievement_types_by_set(self.eddb_session)
+            with cogdb.achievements.create_role_summary(grouped) as role_fname:
+                await self.bot.send_message(self.msg.channel, msg, file=discord.File(fp=role_fname, filename='RoleSummary.txt'))
             resp = await self.bot.wait_for(
                 'message',
                 check=lambda m: m.author == self.msg.author and m.channel == self.msg.channel,
                 timeout=30
             )
-            try:
-                priority = int(resp.content)
-                if achievement.role_set in grouped and priority in grouped[achievement.role_set]:
-                    raise ValueError
-                achievement.role_priority = priority
-                break
-            except ValueError:
-                await self.bot.send_message(self.msg.channel,
-                                            f'Try again, please select a valid number not in set: {achievement.role_set}.')
+            achievement.role_set = resp.content.strip()
+
+            while True:
+                msg = f"""You have selected role set: {achievement.role_set}
+
+    Priority should be unique within the set.
+    What priority do you want to give this achievement within the set?"""
+                await self.bot.send_message(self.msg.channel, msg)
+                resp = await self.bot.wait_for(
+                    'message',
+                    check=lambda m: m.author == self.msg.author and m.channel == self.msg.channel,
+                    timeout=30
+                )
+                try:
+                    priority = int(resp.content)
+                    if achievement.role_set in grouped and priority in grouped[achievement.role_set]:
+                        raise ValueError
+                    achievement.role_priority = priority
+                    break
+                except ValueError:
+                    await self.bot.send_message(self.msg.channel,
+                                                f'Try again, please select a valid number not in set: {achievement.role_set}.')
+        except asyncio.TimeoutError:
+            raise cog.exc.InvalidCommandArgs('Timeout on achievement creation, no change to database.')
 
         role = discord.utils.get(self.msg.guild.roles, name=achievement.role_name)
         if role:
@@ -502,7 +506,7 @@ What priority do you want to give this achievement within the set?"""
         """
         Add an age related achievement.
         """
-        name = ' '.join(self.args.name)
+        name = ' '.join(self.args.role_name)
         kwargs = {'days_required': self.args.days_required}
         achievement = cogdb.achievements.update_achievement_type(
             self.eddb_session, role_name=name,
@@ -512,15 +516,15 @@ What priority do you want to give this achievement within the set?"""
             check_func='check_pvpcmdr_age',
             check_kwargs=kwargs,
         )
-        self.ask_for_role_set(achievement)
+        await self.ask_for_role_set(achievement)
 
-        return "Added achievement for age of {self.args.days_required} days assigned {name}."
+        return f"Added achievement {name}, CMDRs with {self.args.days_required} days seniority will unlock."
 
     async def add_event(self):
         """
         Add a pvp event related achievement.
         """
-        name = ' '.join(self.args.name)
+        name = ' '.join(self.args.role_name)
         kwargs = {
             'pvp_event': self.args.event,
             'target_cmdr': ' '.join(self.args.cmdr),
@@ -533,15 +537,15 @@ What priority do you want to give this achievement within the set?"""
             check_func='check_pvpcmdr_in_events',
             check_kwargs=kwargs,
         )
-        self.ask_for_role_set(achievement)
+        await self.ask_for_role_set(achievement)
 
-        return "Added achievement for other CMDR {kwargs['target_cmdr']} in {self.args.event} assigned {name}."
+        return f"Added achievement {name}, when CMDRs encounter CMDR {kwargs['target_cmdr']} in {self.args.event} unlock."
 
     async def add_stat(self):
         """
         Add a stat related achievement.
         """
-        name = ' '.join(self.args.name)
+        name = ' '.join(self.args.role_name)
         kwargs = {
             'stat_name': self.args.stat,
             'amount': self.args.amount,
@@ -554,15 +558,15 @@ What priority do you want to give this achievement within the set?"""
             check_func='check_pvpstat_greater',
             check_kwargs=kwargs,
         )
-        self.ask_for_role_set(achievement)
+        await self.ask_for_role_set(achievement)
 
-        return "Achievement for {self.args.stat} >= {self.args.amount} assigned {name}."
+        return f"Added achievement {name}, when CMDRs stat {self.args.stat} >= {self.args.amount} unlock."
 
     async def remove(self):
         """
         Remove an existing achievement.
         """
-        existing_name = ' '.join(self.args.name)
+        existing_name = ' '.join(self.args.role_name)
         cogdb.achievements.remove_achievement_type(self.eddb_session, role_name=existing_name)
 
         role = discord.utils.get(self.msg.guild.roles, name=existing_name)
@@ -575,7 +579,7 @@ What priority do you want to give this achievement within the set?"""
         """
         Update an existing achievement.
         """
-        existing_name = ' '.join(self.args.name)
+        existing_name = ' '.join(self.args.role_name)
         new_role_name = ' '.join(self.args.role_name),
         role_description = ' '.join(self.args.role_description)
         achievement = cogdb.achievements.update_achievement_type(
