@@ -42,7 +42,7 @@ def test_achievementtype_describe(f_achievements, eddb_session):
 
 def test_remove_achievement_type(f_achievements, eddb_session):
     assert eddb_session.query(AchievementType).filter(AchievementType.role_name == 'EvenDozen').all()
-    cogdb.achievements.remove_achievement_type(eddb_session, role_name='EvenDozen')
+    cogdb.achievements.remove_achievement_type(eddb_session, role_name='EvenDozen', guild_id=1)
     assert not eddb_session.query(AchievementType).filter(AchievementType.role_name == 'EvenDozen').all()
     assert not eddb_session.query(Achievement).filter(Achievement.type_id == 2).all()
 

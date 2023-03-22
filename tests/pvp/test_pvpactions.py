@@ -13,6 +13,7 @@ import sqlalchemy as sqla
 import cog.exc
 import cogdb
 from cogdb.schema import AdminPerm
+from cogdb.achievements import AchievementType
 import pvp.actions
 import pvp.parse
 import pvp.schema
@@ -151,6 +152,31 @@ async def test_cmd_log_after_invalid(f_bot, f_pvp_testbed):
 
     await action_map(msg, f_bot).execute()
     assert 'Invalid after format. Write dates like:' in str(f_bot.send_message.call_args).replace("\\n", "\n")
+
+
+@pytest.mark.asyncio
+class TestCMDAchieve:
+    """ Tests for the `!match` command of pvp bot. """
+    async def test_invalid_perms(self, f_dusers, f_bot, f_pvp_testbed):
+        msg = fake_msg_gears("!achieve remove First Kill")
+
+        with pytest.raises(cog.exc.InvalidPerms):
+            await action_map(msg, f_bot).execute()
+
+    async def test_remove_achievement(self, f_dusers, f_admins, f_bot, f_achievements):
+        msg = fake_msg_gears("!achieve remove FirstKill")
+
+        await action_map(msg, f_bot).execute()
+        assert 'Achievement tied to FirstKill has been removed!' == f_bot.send_message.call_args[0][-1]
+
+    async def test_update_achievement(self, f_dusers, f_admins, f_bot, f_achievements, eddb_session):
+        msg = fake_msg_gears("!achieve update FirstKill --role_name SecondKill --role_colour bbbbbb --role_description Your second kill.")
+
+        await action_map(msg, f_bot).execute()
+        assert 'Achievement tied to FirstKill has been updated!' == f_bot.send_message.call_args[0][-1]
+        found = eddb_session.query(AchievementType).filter(AchievementType.role_name == 'SecondKill').one()
+        assert found.role_name == 'SecondKill'
+        assert found.role_colour == 'bbbbbb'
 
 
 @pytest.mark.asyncio

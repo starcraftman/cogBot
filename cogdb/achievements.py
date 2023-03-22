@@ -204,7 +204,7 @@ def roles_for_user(eddb_session, *, discord_id):
     return to_remove, to_add
 
 
-def remove_achievement_type(eddb_session, *, role_name):
+def remove_achievement_type(eddb_session, *, role_name, guild_id):
     """
     Remove an existing AchievementType, implicitly removes achievements assigned.
 
@@ -213,13 +213,15 @@ def remove_achievement_type(eddb_session, *, role_name):
         role_name: The unique name of the achievement currently assigned.
     """
     type_subq = eddb_session.query(AchievementType.id).\
-        filter(AchievementType.role_name == role_name).\
+        filter(AchievementType.role_name == role_name,
+               AchievementType.guild_id == guild_id).\
         scalar()
     eddb_session.query(Achievement).\
         filter(Achievement.type_id == type_subq).\
         delete()
     eddb_session.query(AchievementType).\
-        filter(AchievementType.role_name == role_name).\
+        filter(AchievementType.role_name == role_name,
+               AchievementType.guild_id == guild_id).\
         delete()
 
 
@@ -247,7 +249,8 @@ def update_achievement_type(eddb_session, *, guild_id, role_name, new_role_name=
     """
     try:
         achieve = eddb_session.query(AchievementType).\
-            filter(AchievementType.role_name == role_name).\
+            filter(AchievementType.role_name == role_name,
+                   AchievementType.guild_id == guild_id).\
             one()
 
         # Check before changing for collisions on new name
@@ -275,7 +278,7 @@ def update_achievement_type(eddb_session, *, guild_id, role_name, new_role_name=
             guild_id=guild_id, check_func=check_func, check_kwargs=json.dumps(check_kwargs)
         )
         eddb_session.add(achieve)
-        eddb_session.flush()
+    eddb_session.commit()
 
     return achieve
 

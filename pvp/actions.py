@@ -340,7 +340,7 @@ class FileUpload(PVPAction):  # pragma: no cover
                 except (pvp.journal.ParserError, zipfile.BadZipfile):
                     await self.bot.send_message(self.msg.channel, f'Error with {attach.filename}. We only support zips and text files.')
 
-    async def check_achievements(self):
+    async def check_achievements(self):  # pragma: no cover
         """
         Check achievements post file processing.
         """
@@ -442,7 +442,7 @@ class Achievement(PVPAction):
     """
     Provide a management interface for achievements.
     """
-    async def ask_for_role_set(self, achievement):
+    async def ask_for_role_set(self, achievement):  # pragma: no cover
         """
         Run after adding a new achievement to determine interactively the role set and priority.
         Provide users an explanation of the system and existing roles and priority.
@@ -516,7 +516,7 @@ Existing role sets and priorities are attached.
                 mentionable=True, reason='Adding achievement linked role.'
             )
 
-    async def add_age(self):
+    async def add_age(self):  # pragma: no cover
         """
         Add an age related achievement.
         """
@@ -535,7 +535,7 @@ Existing role sets and priorities are attached.
 
         return f"Added achievement {name}, CMDRs with {self.args.days_required} days seniority will unlock."
 
-    async def add_event(self):
+    async def add_event(self):  # pragma: no cover
         """
         Add a pvp event related achievement.
         """
@@ -557,7 +557,7 @@ Existing role sets and priorities are attached.
 
         return f"Added achievement {name}, when CMDRs encounter CMDR {kwargs['target_cmdr']} in {self.args.event} unlock."
 
-    async def add_stat(self):
+    async def add_stat(self):  # pragma: no cover
         """
         Add a stat related achievement.
         """
@@ -584,7 +584,7 @@ Existing role sets and priorities are attached.
         Remove an existing achievement.
         """
         role_name = ' '.join(self.args.role_name)
-        cogdb.achievements.remove_achievement_type(self.eddb_session, role_name=role_name)
+        cogdb.achievements.remove_achievement_type(self.eddb_session, role_name=role_name, guild_id=self.msg.guild_id)
 
         role = discord.utils.get(self.msg.guild.roles, name=role_name)
         if role:
@@ -604,6 +604,7 @@ Existing role sets and priorities are attached.
             new_role_name=new_role_name,
             role_colour=self.args.role_colour,
             role_description=role_description,
+            guild_id=self.msg.guild_id,
         )
 
         role = discord.utils.get(self.msg.guild.roles, name=existing_name)
@@ -620,6 +621,11 @@ Existing role sets and priorities are attached.
         return f"Achievement tied to {existing_name} has been updated!"
 
     async def execute(self):
+        try:
+            cogdb.query.get_admin(self.session, self.duser)
+        except cog.exc.NoMatch as exc:
+            raise cog.exc.InvalidPerms(f"{self.msg.author.mention} You are not an admin!") from exc
+
         try:
             # validate role colour if present
             if self.args.role_colour:

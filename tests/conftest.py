@@ -535,7 +535,7 @@ class Role(FakeObject):
 
 
 class Message(FakeObject):
-    def __init__(self, content, author, srv, channel, *, id=None,
+    def __init__(self, content, author, srv, channel, *, id=None, guild_id=None,
                  mentions=[], channel_mentions=[], role_mentions=[]):
         super().__init__(None, id)
         self.author = author
@@ -547,6 +547,7 @@ class Message(FakeObject):
         self.guild = srv
         self.is_deleted = False
         self.reaction = []
+        self.guild_id = guild_id if guild_id else 1
 
     # def __repr__(self):
         # return super().__repr__() + "\n  Content: {}\n  Author: {}\n  Channel: {}\n  Server: {}".format(
