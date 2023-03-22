@@ -1,14 +1,13 @@
 """
 Module to store and assign achievements.
 
-TODO:
-Regarding achievements, do you have suggestions for examples?
+Every AchievementType broadly defines the role assigned, name and description.
+Each AchievementType is part of a role_set and has a priority.
+Higher priority achievements take precedence over lower priority ones.
 
-I assume one set is kill count and kos kill count. Perhaps fort and UM totals too.
-Storage of achievements is easy. I guess other thing is to look at defining roles for them and allowing bot to add/remove em.
+Achievement simply stores the unlock for individual CMDRs.
 
-I'll probably need to allow user to show/remove achievements,
-either by allowing them to choose what roles added but also maybe a display function.
+Much of the rest relates to determining what roles a user should have given set/priority rules.
 """
 import contextlib
 import datetime
@@ -68,14 +67,16 @@ class Achievement(ReprMixin, TimestampMixin, Base):
 class AchievementType(ReprMixin, TimestampMixin, Base):
     __tablename__ = "achievement_types"
     __table_args__ = (
-        UniqueConstraint('role_set', 'role_priority', name='_role_set_priority_unique'),
+        UniqueConstraint('role_set', 'role_priority', 'guild_id', name='_role_set_priority_unique'),
+        UniqueConstraint('role_name', 'guild_id', name='_role_name_guild_id_unique'),
     )
     _repr_keys = [
         'id', 'role_name', 'role_colour', 'role_description',
-        'role_set', 'role_priority', 'check_func', 'check_kwargs', 'created_at'
+        'role_set', 'role_priority', 'guild_id', 'check_func', 'check_kwargs', 'created_at'
     ]
 
     id = sqla.Column(sqla.Integer, primary_key=True)
+    guild_id = sqla.Column(sqla.BigInteger)
 
     role_name = sqla.Column(sqla.String(LEN["achievement_name"]), index=True, unique=True)
     role_colour = sqla.Column(sqla.String(6), default='')  # Hex strings, no leading 0x: B20000
@@ -187,10 +188,18 @@ def roles_for_user(eddb_session, *, discord_id):
         to_add: The set of AchievementTypes whose roles should be applied to the user.
     """
     existing = get_user_achievements_by_set(eddb_session, discord_id=discord_id)
-    to_remove, to_add = [], []
+    to_remove, to_add = {}, {}
     for achievements in existing.values():
-        to_remove += [x.type for x in achievements[:-1]]
-        to_add += [x.type for x in achievements[-1:]]
+        for a_type in [x.type for x in achievements[:-1]]:
+            try:
+                to_remove[a_type.guild_id] += [a_type.role_name]
+            except KeyError:
+                to_remove[a_type.guild_id] = [a_type.role_name]
+        for a_type in [x.type for x in achievements[-1:]]:
+            try:
+                to_add[a_type.guild_id] += [a_type.role_name]
+            except KeyError:
+                to_add[a_type.guild_id] = [a_type.role_name]
 
     return to_remove, to_add
 
@@ -214,7 +223,7 @@ def remove_achievement_type(eddb_session, *, role_name):
         delete()
 
 
-def update_achievement_type(eddb_session, *, role_name, new_role_name=None, role_colour=None,
+def update_achievement_type(eddb_session, *, guild_id, role_name, new_role_name=None, role_colour=None,
                             role_description=None, check_func=None, check_kwargs=None):
     """
     Update (or add if not present) an AchievementType to the database.
@@ -225,8 +234,9 @@ def update_achievement_type(eddb_session, *, role_name, new_role_name=None, role
         new_role_name: A new unique name for the achievement, ensure it isn't in use.
         role_colour: A hex value to assign to the achievement role.
         role_description: A description to assign to the achievement.
+        guild_id: The ID of the guild setting up the achievement.
         check_func: A name of a check function available in cogdb.achievements.
-        kwargs: A dictionary of kwargs to pass to the check_func when a check is made.
+        check_kwargs: A dictionary of kwargs to pass to the check_func when a check is made.
 
     Raises:
         cog.exc.InvalidCommandArgs - There was a problem with arguments.
@@ -244,7 +254,8 @@ def update_achievement_type(eddb_session, *, role_name, new_role_name=None, role
         if new_role_name:
             try:
                 eddb_session.query(AchievementType).\
-                    filter(AchievementType.role_name == new_role_name).\
+                    filter(AchievementType.guild_id == guild_id,
+                           AchievementType.role_name == new_role_name).\
                     one()
                 raise cog.exc.InvalidCommandArgs("Achievement: role_name is already in use. Rename existing role or choose new name.")
             except sqla.exc.NoResultFound:
@@ -252,6 +263,7 @@ def update_achievement_type(eddb_session, *, role_name, new_role_name=None, role
 
         achieve.role_colour = role_colour if role_colour else achieve.role_colour
         achieve.role_description = role_description if role_description else achieve.role_description
+        achieve.guild_id = guild_id if guild_id else achieve.guild_id
         achieve.check_func = check_func if check_func else achieve.check_func
         achieve.check_kwargs = json.dumps(check_kwargs) if check_kwargs else achieve.check_kwargs
     except sqla.exc.NoResultFound as exc:
@@ -260,7 +272,7 @@ def update_achievement_type(eddb_session, *, role_name, new_role_name=None, role
 
         achieve = AchievementType(
             role_name=role_name, role_colour=role_colour, role_description=role_description,
-            check_func=check_func, check_kwargs=json.dumps(check_kwargs)
+            guild_id=guild_id, check_func=check_func, check_kwargs=json.dumps(check_kwargs)
         )
         eddb_session.add(achieve)
         eddb_session.flush()

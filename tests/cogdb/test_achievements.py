@@ -6,6 +6,7 @@ import time
 
 import pytest
 
+import cog.exc
 import cogdb.achievements
 from cogdb.achievements import Achievement, AchievementType
 import pvp.schema
@@ -17,7 +18,7 @@ def test_achievement__repr__(f_achievements, eddb_session):
 
 
 def test_achievementtype__repr__(f_achievements, eddb_session):
-    expect = "AchievementType(id=1, role_name='FirstKill', role_colour='b20000', role_description='First confirmed kill reported.', role_set='Kills', role_priority=1, check_func='check_pvpstat_greater', check_kwargs='{\"stat_name\": \"kills\", \"amount\": 1}', created_at=1671655377)"
+    expect = "AchievementType(id=1, role_name='FirstKill', role_colour='b20000', role_description='First confirmed kill reported.', role_set='Kills', role_priority=1, guild_id=1, check_func='check_pvpstat_greater', check_kwargs='{\"stat_name\": \"kills\", \"amount\": 1}', created_at=1671655377)"
     assert expect == str(eddb_session.query(AchievementType).first())
 
 
@@ -51,6 +52,7 @@ def test_add_achievement_type(f_achievements, eddb_session):
         'role_name': 'NewRole',
         'role_colour': 'FFFFFF',
         'role_description': 'A new role to apply.',
+        'guild_id': 1,
         'check_func': 'check_new_role',
         'check_kwargs': {'amount': 10},
     }
@@ -68,6 +70,7 @@ def test_update_achievement_type(f_achievements, eddb_session):
         'new_role_name': 'NotEvenDozen',
         'role_colour': '222222',
         'role_description': 'A lazily made role.',
+        'guild_id': 1,
         'check_func': 'check_old_role',
         'check_kwargs': {'test': 5},
     }
@@ -85,20 +88,22 @@ def test_update_achievement_type_collision(f_achievements, eddb_session):
         'new_role_name': 'FirstKill',
         'role_colour': '222222',
         'role_description': 'A lazily made role.',
+        'guild_id': 1,
         'check_func': 'check_old_role',
         'check_kwargs': {'test': 5},
     }
-    with pytest.raises(ValueError):
+    with pytest.raises(cog.exc.InvalidCommandArgs):
         cogdb.achievements.update_achievement_type(eddb_session, **kwargs)
 
 
 def test_update_achievement_type_missing(f_achievements, eddb_session):
     kwargs = {
         'role_name': 'NewRole',
+        'guild_id': 1,
         'check_func': 'check_new_role',
         'check_kwargs': {},
     }
-    with pytest.raises(ValueError):
+    with pytest.raises(cog.exc.InvalidCommandArgs):
         cogdb.achievements.update_achievement_type(eddb_session, **kwargs)
 
 
@@ -107,6 +112,7 @@ def test_verify_achievements(f_achievements, f_pvp_testbed, session, eddb_sessio
         'role_name': '2Kills',
         'role_colour': '222222',
         'role_description': 'Just two kills.',
+        'guild_id': 1,
         'check_func': 'check_pvpstat_greater',
         'check_kwargs': {"stat_name": "kills", "amount": 2},
     }
@@ -122,6 +128,7 @@ def test_verify_achievements_filter(f_achievements, f_pvp_testbed, session, eddb
         'role_name': '2Kills',
         'role_colour': '222222',
         'role_description': 'Just two kills.',
+        'guild_id': 1,
         'check_func': 'check_pvpstat_greater',
         'check_kwargs': {"stat_name": "kills", "amount": 2},
     }
@@ -250,8 +257,8 @@ def test_get_user_achievements_by_set(f_achievements, eddb_session):
 
 def test_roles_for_user(f_achievements, eddb_session):
     to_remove, to_add = cogdb.achievements.roles_for_user(eddb_session, discord_id=1)
-    assert [1] == [x.id for x in to_remove]
-    assert [2] == [x.id for x in to_add]
+    assert {1: ['FirstKill']} == to_remove
+    assert {1: ['EvenDozen']} == to_add
 
     eddb_session.add_all([
         Achievement(discord_id=1, type_id=3),
@@ -259,8 +266,8 @@ def test_roles_for_user(f_achievements, eddb_session):
     ])
     eddb_session.commit()
     to_remove, to_add = cogdb.achievements.roles_for_user(eddb_session, discord_id=1)
-    assert [1, 2] == list(sorted([x.id for x in to_remove]))
-    assert [3, 4] == list(sorted([x.id for x in to_add]))
+    assert {1: ['FirstKill', 'EvenDozen']} == to_remove
+    assert {1: ['Lots Of Death', 'Century']} == to_add
 
 
 def test_create_role_summary(f_achievements, eddb_session):

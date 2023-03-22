@@ -1108,25 +1108,25 @@ def f_achievements(eddb_session):
         eddb_session.add_all([
             AchievementType(
                 id=1, role_name='FirstKill', role_colour='b20000', role_description='First confirmed kill reported.',
-                role_set='Kills', role_priority=1,
+                role_set='Kills', role_priority=1, guild_id=1,
                 check_func='check_pvpstat_greater', check_kwargs='{"stat_name": "kills", "amount": 1}',
                 created_at=PVP_TIMESTAMP
             ),
             AchievementType(
                 id=2, role_name='EvenDozen', role_colour='b20000', role_description='You got a dozen kills.',
-                role_set='Kills', role_priority=2,
+                role_set='Kills', role_priority=2, guild_id=1,
                 check_func='check_pvpstat_greater', check_kwargs='{"stat_name": "kills", "amount": 12}',
                 created_at=PVP_TIMESTAMP
             ),
             AchievementType(
                 id=3, role_name='Century', role_colour='b20000', role_description='You got a hundred kills.',
-                role_set='Kills', role_priority=3,
+                role_set='Kills', role_priority=3, guild_id=1,
                 check_func='check_pvpstat_greater', check_kwargs='{"stat_name": "kills", "amount": 100}',
                 created_at=PVP_TIMESTAMP
             ),
             AchievementType(
                 id=4, role_name='Lots Of Death', role_colour='b20000', role_description='You got killed 10 times.',
-                role_set='Deaths', role_priority=1,
+                role_set='Deaths', role_priority=1, guild_id=1,
                 check_func='check_pvpstat_greater', check_kwargs='{"stat_name": "deaths", "amount": 10}',
                 created_at=PVP_TIMESTAMP
             ),

@@ -333,6 +333,7 @@ class FileUpload(PVPAction):  # pragma: no cover
 
                     pvp.schema.update_kos_kills(self.eddb_session,
                                                 kos_list=cogdb.query.kos_kill_list(self.session))
+                    self.eddb_session.commit()
 
                     return logs
 
@@ -343,6 +344,7 @@ class FileUpload(PVPAction):  # pragma: no cover
         """
         Check achievements post file processing.
         """
+        log = logging.getLogger(__name__)
         new_achievements = cogdb.achievements.verify_achievements(
             discord_id=self.msg.author.id, session=self.session, eddb_session=self.eddb_session
         )
@@ -351,15 +353,27 @@ class FileUpload(PVPAction):  # pragma: no cover
             for achieve in new_achievements:
                 response += '\n' + achieve.describe()
 
-            # TODO: Untested for now
-            member = self.msg.author
             to_remove, to_add = cogdb.achievements.roles_for_user(self.eddb_session, discord_id=self.msg.author.id)
-            roles_to_remove = [x for x in member.roles if x.name in [x.role_name for x in to_remove]]
-            if roles_to_remove:
-                await member.remove_roles(*roles_to_remove, reason="Achievements now surpassed.")
-            roles_to_add = [x for x in self.msg.guild.roles if x.name in [x.role_name for x in to_add]]
-            if roles_to_add:
-                await member.add_roles(*roles_to_add, reason="Achievements newly unlocked.")
+            for guild_id, role_names in to_remove.items():
+                try:
+                    guild = self.bot.get_guild(guild_id)
+                    member = await guild.fetch_member(self.msg.author.id)
+                    existing_member_roles = [x.name for x in member.roles]
+                    roles_to_remove = [x for x in guild.roles if x.name in role_names and x.name in existing_member_roles]
+                    if roles_to_remove:
+                        await member.remove_roles(*roles_to_remove, reason='Achievements replaced by new ones.')
+                except (discord.Forbidden, discord.HTTPException, discord.NotFound):
+                    log.error("Achievements: Failed to remove roles from member %s on guild %s.", member.name, guild.name)
+            for guild_id, role_names in to_add.items():
+                try:
+                    guild = self.bot.get_guild(guild_id)
+                    member = await guild.fetch_member(self.msg.author.id)
+                    existing_member_roles = [x.name for x in member.roles]
+                    roles_to_add = [x for x in guild.roles if x.name in role_names and x.name not in existing_member_roles]
+                    if roles_to_add:
+                        await member.add_roles(*roles_to_add, reason='Achievements unlocked.')
+                except (discord.Forbidden, discord.HTTPException, discord.NotFound):
+                    log.error("Achievements: Failed to remove roles from member %s on guild %s.", member.name, guild.name)
 
         return response
 
@@ -466,7 +480,7 @@ Existing role sets and priorities are attached.
             resp = await self.bot.wait_for(
                 'message',
                 check=lambda m: m.author == self.msg.author and m.channel == self.msg.channel,
-                timeout=30
+                timeout=300
             )
             achievement.role_set = resp.content.strip()
 
@@ -479,7 +493,7 @@ Existing role sets and priorities are attached.
                 resp = await self.bot.wait_for(
                     'message',
                     check=lambda m: m.author == self.msg.author and m.channel == self.msg.channel,
-                    timeout=30
+                    timeout=300
                 )
                 try:
                     priority = int(resp.content)
@@ -513,6 +527,7 @@ Existing role sets and priorities are attached.
             new_role_name=' '.join(self.args.role_name),
             role_colour=self.args.role_colour,
             role_description=' '.join(self.args.role_description),
+            guild_id=self.msg.guild.id,
             check_func='check_pvpcmdr_age',
             check_kwargs=kwargs,
         )
@@ -534,6 +549,7 @@ Existing role sets and priorities are attached.
             new_role_name=' '.join(self.args.role_name),
             role_colour=self.args.role_colour,
             role_description=' '.join(self.args.role_description),
+            guild_id=self.msg.guild.id,
             check_func='check_pvpcmdr_in_events',
             check_kwargs=kwargs,
         )
@@ -555,6 +571,7 @@ Existing role sets and priorities are attached.
             new_role_name=' '.join(self.args.role_name),
             role_colour=self.args.role_colour,
             role_description=' '.join(self.args.role_description),
+            guild_id=self.msg.guild.id,
             check_func='check_pvpstat_greater',
             check_kwargs=kwargs,
         )
@@ -566,21 +583,21 @@ Existing role sets and priorities are attached.
         """
         Remove an existing achievement.
         """
-        existing_name = ' '.join(self.args.role_name)
-        cogdb.achievements.remove_achievement_type(self.eddb_session, role_name=existing_name)
+        role_name = ' '.join(self.args.role_name)
+        cogdb.achievements.remove_achievement_type(self.eddb_session, role_name=role_name)
 
-        role = discord.utils.get(self.msg.guild.roles, name=existing_name)
+        role = discord.utils.get(self.msg.guild.roles, name=role_name)
         if role:
             await role.delete(reason='AchievementType removed, role deleted.')
 
-        return "Achievement tied to {role_name} has been removed!"
+        return f"Achievement tied to {role_name} has been removed!"
 
     async def update(self):
         """
         Update an existing achievement.
         """
         existing_name = ' '.join(self.args.role_name)
-        new_role_name = ' '.join(self.args.role_name),
+        new_role_name = ' '.join(self.args.new_role_name)
         role_description = ' '.join(self.args.role_description)
         achievement = cogdb.achievements.update_achievement_type(
             self.eddb_session, role_name=existing_name,
@@ -600,7 +617,7 @@ Existing role sets and priorities are attached.
                 kwargs['colour'] = discord.Colour(achievement.hex_value)
             await role.edit(**kwargs)
 
-        return "Achievement tied to {role_name} has been updated!"
+        return f"Achievement tied to {existing_name} has been updated!"
 
     async def execute(self):
         try:

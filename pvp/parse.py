@@ -88,12 +88,13 @@ def subs_achieve(subs, prefix):
     subcmd.add_argument('--role_colour', help='The the colour of the role.')
     subcmd.add_argument('--role_description', nargs='+', help='The the description of the role.')
 
+    subcmd = subcmds.add_parser('test', help='Update an existing achievement.')
     subcmd = subcmds.add_parser('remove', help='Update an existing achievement.')
-    subcmd.add_argument('name', nargs='+', help='The the name of the existing role.')
+    subcmd.add_argument('role_name', nargs='+', help='The the name of the existing role.')
 
     subcmd = subcmds.add_parser('update', help='Update an existing achievement.')
-    subcmd.add_argument('name', nargs='+', help='The the name of the existing role.')
-    subcmd.add_argument('--role_name', nargs='+', help='The the name of the role.')
+    subcmd.add_argument('role_name', nargs='+', help='The the name of the existing role.')
+    subcmd.add_argument('--role_name', dest='new_role_name', nargs='+', help='The the name of the role.')
     subcmd.add_argument('--role_colour', help='The the colour of the role.')
     subcmd.add_argument('--role_description', nargs='+', help='The the description of the role.')
 
