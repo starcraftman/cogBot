@@ -184,8 +184,8 @@ def roles_for_user(eddb_session, *, discord_id):
         discord_id: The discord ID of a given CMDR.
 
     Returns: to_remove, to_add
-        to_remove: The set of AchievementTypes whose roles should NOT be applied to the user.
-        to_add: The set of AchievementTypes whose roles should be applied to the user.
+        to_remove: The dictionary mapping guild_ids onto the set of role_names to remove from the given user.
+        to_add: The dictionary mapping guild_ids onto the set of role_names to add to the given user.
     """
     existing = get_user_achievements_by_set(eddb_session, discord_id=discord_id)
     to_remove, to_add = {}, {}
@@ -211,6 +211,7 @@ def remove_achievement_type(eddb_session, *, role_name, guild_id):
     Args:
         eddb_session: A session onto the EDDB database.
         role_name: The unique name of the achievement currently assigned.
+        guild_id: The guild_id the achievement is set on.
     """
     type_subq = eddb_session.query(AchievementType.id).\
         filter(AchievementType.role_name == role_name,
@@ -232,11 +233,11 @@ def update_achievement_type(eddb_session, *, guild_id, role_name, new_role_name=
 
     Args:
         eddb_session: A session onto the EDDB database.
+        guild_id: The ID of the guild setting up the achievement.
         role_name: The unique name of the achievement currently assigned.
         new_role_name: A new unique name for the achievement, ensure it isn't in use.
         role_colour: A hex value to assign to the achievement role.
         role_description: A description to assign to the achievement.
-        guild_id: The ID of the guild setting up the achievement.
         check_func: A name of a check function available in cogdb.achievements.
         check_kwargs: A dictionary of kwargs to pass to the check_func when a check is made.
 
