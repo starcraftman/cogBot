@@ -1274,6 +1274,7 @@ def get_all_snipe_holds(session):
     return session.query(UMHold).\
         filter(UMHold.sheet_src == EUMSheet.snipe,
                UMHold.held > 0).\
+        order_by(UMHold.user_id, UMHold.system_id).\
         all()
 
 
@@ -1290,14 +1291,28 @@ def get_snipe_members_holding(session):
                If not provided, use pref_name otherwise directly mention.
 
     Returns:
-        A string formatted mentioning or naming all users with snipe merits.
+        A list of messages to send to the snipe channels.
     """
-    reply = ""
+    msgs, grouped = [], {}
     for hold in get_all_snipe_holds(session):
         duser = hold.user.discord_user
-        reply += f"{duser.mention} is holding {hold.held} merits in {hold.system.name}\n"
+        try:
+            grouped[duser.mention] += [f'{hold.held} in {hold.system.name}']
+        except KeyError:
+            grouped[duser.mention] = [f'{hold.held} in {hold.system.name}']
 
-    return reply
+    msg = ""
+    for mention, merits in grouped.items():
+        systems = ', '.join(merits)
+        msg += f"{mention} is holding {systems}\n"
+        if len(msg) > cog.util.MSG_LIMIT:
+            msgs += [msg]
+            msg = ''
+
+    if msg:
+        msgs += [msg]
+
+    return msgs
 
 
 def get_consolidation_in_range(session, start, end=None):

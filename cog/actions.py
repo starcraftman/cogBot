@@ -2448,8 +2448,8 @@ async def monitor_snipe_merits(client, *, repeat=True):  # pragma: no cover
     """
     log = logging.getLogger(__name__)
 
+    snipe_chans = [client.get_channel(x) for x in cog.util.CONF.channels.snipe]
     while repeat:
-        snipe_chans = [client.get_channel(x) for x in cog.util.CONF.channels.snipe]
         for snipe_chan in snipe_chans:
             log.error('Snipe Reminder Channel: %s', snipe_chan)
         if not snipe_chans:  # Don't bother if not set
@@ -2487,13 +2487,12 @@ async def monitor_snipe_merits(client, *, repeat=True):  # pragma: no cover
             # Notify members holding
             log.warning("Issuing 30 notice to snipe channel.")
             with cogdb.session_scope(cogdb.Session) as session:
-                to_contact = cogdb.query.get_snipe_members_holding(session)
-                if to_contact:
+                for reminder in cogdb.query.get_snipe_members_holding(session):
                     msg = """__Final Snipe Reminder__
         There are less than **30 minutes left**. The following members are still holding.
         """
                     for chan in snipe_chans:
-                        await client.send_message(chan, msg + to_contact)
+                        await client.send_message(chan, msg + reminder)
 
 
 async def push_spy_to_gal_scanner():  # pragma: no cover | tested elsewhere

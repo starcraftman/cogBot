@@ -781,14 +781,12 @@ def test_get_cons_prep_totals(session, f_dusers, f_vote_testbed):
 
 def test_get_all_snipe_holds(session, f_bot, f_dusers, f_um_testbed):
     expected = [UMHold(id=7, sheet_src=EUMSheet.snipe, system_id=10007, user_id=3, held=5000, redeemed=1200)]
-    results = cogdb.query.get_all_snipe_holds(session)
-    assert results == expected
+    assert cogdb.query.get_all_snipe_holds(session) == expected
 
 
 def test_get_snipe_members_holding(session, f_bot, f_dusers, f_um_testbed):
-    expected = '<@3> is holding 5000 merits in ToSnipe\n'
-    results = cogdb.query.get_snipe_members_holding(session)
-    assert results == expected
+    expected = ['<@3> is holding 5000 in ToSnipe\n']
+    assert cogdb.query.get_snipe_members_holding(session) == expected
 
 
 def test_get_consolidation_in_range_default(session, f_cons_data):
