@@ -584,7 +584,7 @@ Existing role sets and priorities are attached.
         Remove an existing achievement.
         """
         role_name = ' '.join(self.args.role_name)
-        cogdb.achievements.remove_achievement_type(self.eddb_session, role_name=role_name, guild_id=self.msg.guild_id)
+        cogdb.achievements.remove_achievement_type(self.eddb_session, role_name=role_name, guild_id=self.msg.guild.id)
 
         role = discord.utils.get(self.msg.guild.roles, name=role_name)
         if role:
