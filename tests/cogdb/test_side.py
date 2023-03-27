@@ -38,7 +38,7 @@ def test_next_bgs_tick(side_session, f_bot):
 
 
 def test_exploited_systems_by_age(side_session):
-    query = sql_text("SELECT control, system FROM v_age ORDER BY system asc LIMIT 1")
+    query = sql_text("SELECT control, system FROM v_age LIMIT 1")
     control, system = side_session.execute(query).fetchone()
 
     result = cogdb.side.exploited_systems_by_age(side_session, control)
