@@ -1,7 +1,9 @@
 ---
 channels:
   ops: {{.CHANNELS_OPS}}
-  snipe: {{.CHANNELS_SNIPE}}
+  snipe:
+    - {{.CHANNELS_SNIPE}}
+    - {{.CHANNELS_SNIPE2}}
 constants:
   defer_missing: 800
   max_drop: 1000

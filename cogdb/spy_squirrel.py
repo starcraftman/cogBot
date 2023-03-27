@@ -1173,10 +1173,10 @@ async def post_systems(systems, callback=None):  # pragma: no cover, would ping 
         while retry < 180:
             try:
                 response_text = await cog.util.post_json_url(
-                    cog.util.CONF.scrape.api, {sys.name: sys.ed_system_id}
+                    cog.util.CONF.scrape.api, {sys.name: sys.ed_system_id}, timeout=180
                 )
                 break
-            except cog.exc.RemoteError:
+            except asyncio.TimeoutError:
                 retry += 30
                 log.error("POSTAPI Timeout: %s. Retry in %d seconds.", sys.name, retry)
                 await asyncio.sleep(retry)  # Linear retry backoff

@@ -702,7 +702,8 @@ async def post_json_url(url, payload, *, headers=None, timeout=60):
         timeout: The read timeout, raises RemoteError after.
 
     Raises:
-        cog.exc.RemoteError: The remote did not respond or timeout was reached.
+        cog.exc.RemoteError: The remote appears to be offline or unknown exception.
+        asyncio.TimeoutError: The remote did not respond in time.
     """
     if not headers:
         headers = {
