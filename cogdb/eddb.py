@@ -2252,16 +2252,17 @@ def get_nearest_controls(session, *, centre_name='sol', power='%hudson', limit=3
         limit: The number of nearest controls to return, default 3.
     """
     centre = session.query(System).filter(System.name == centre_name).one()
-    results = session.query(SystemControlV.control_id, System).\
-        distinct(SystemControlV.control_id).\
-        filter(SystemControlV.power.ilike(power)).\
-        join(System, System.id == SystemControlV.control_id).\
+    results = session.query(System).\
+        join(Power, System.power_id == Power.id).\
+        join(PowerState, System.power_state_id == PowerState.id).\
+        filter(PowerState.text == 'Control',
+               Power.text.ilike(power)).\
         order_by(System.dist_to(centre))
 
     if limit > 0:
         results = results.limit(limit)
 
-    return [x[1] for x in results.all()]
+    return results.all()
 
 
 def get_controls_of_power(session, *, power='%hudson'):
@@ -2274,14 +2275,14 @@ def get_controls_of_power(session, *, power='%hudson'):
     Kwargs:
         power: The loose like match of the power, i.e. "%hudson".
     """
-    results = session.query(SystemControlV.control_id, System.name).\
-        distinct(SystemControlV.control_id).\
-        filter(SystemControlV.power.ilike(power)).\
-        join(System, System.id == SystemControlV.control_id).\
-        order_by(System.name).\
-        all()
-
-    return [x[1] for x in results]
+    return [
+        x[0] for x in session.query(System.name).
+        join(Power, System.power_id == Power.id).
+        join(PowerState, System.power_state_id == PowerState.id).
+        filter(PowerState.text == 'Control',
+               Power.text.ilike(power)).
+        order_by(System.name)
+    ]
 
 
 def get_systems_of_power(session, *, power='%hudson'):
@@ -2294,14 +2295,12 @@ def get_systems_of_power(session, *, power='%hudson'):
     Kwargs:
         power: The loose like match of the power, i.e. "%hudson".
     """
-    results = session.query(SystemControlV.system_id, System.name).\
-        distinct(SystemControlV.system_id).\
-        filter(SystemControlV.power.ilike(power)).\
-        join(System, System.id == SystemControlV.system_id).\
-        order_by(System.name).\
-        all()
-
-    return [x[1] for x in results] + get_controls_of_power(session, power=power)
+    return [
+        x[0] for x in session.query(System.name).
+        join(Power, System.power_id == Power.id).
+        filter(Power.text.ilike(power)).
+        order_by(System.name)
+    ]
 
 
 def is_system_of_power(session, system_name, *, power='%hudson'):
