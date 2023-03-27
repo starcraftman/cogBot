@@ -1086,31 +1086,25 @@ def track_ids_update(session, ids_dict, date_obj=None):
     Returns: (list_updated, list_removed) - both lists are lists of IDs
     """
     added, updated = [], []
-    track_ids = session.query(TrackByID).\
-        filter(TrackByID.id.in_(ids_dict.keys())).\
-        all()
 
-    copy_ids_dict = copy.deepcopy(ids_dict)
-    for track in track_ids:
-        data = copy_ids_dict[track.id]
-        new_system = data.get('system', track.system)
+    for carrier_id, data in ids_dict.items():
+        try:
+            track = session.query(TrackByID).\
+                filter(TrackByID.id == carrier_id).\
+                one()
 
-        # Reject possible data that is older than current
-        if date_obj and track.updated_at > date_obj or track.system == new_system:
-            del copy_ids_dict[track.id]
-            continue
+            # Reject data that is older than current
+            if date_obj and track.updated_at > date_obj or track.system == data.get("system"):
+                continue
 
-        track.updated_at = data.get('updated_at', date_obj)
-        track.squad = data.get("squad", track.squad)
-        track.override = data.get("override", track.override)
-        track.spotted(new_system)
-        updated += [track.id]
-
-        del copy_ids_dict[track.id]
-
-    for data in copy_ids_dict.values():
-        session.add(TrackByID(**data))
-        added += [data['id']]
+            track.updated_at = data.get('updated_at', date_obj)
+            track.squad = data.get("squad", track.squad)
+            track.override = data.get("override", track.override)
+            track.spotted(data.get("system", track.system))
+            updated += [carrier_id]
+        except sqla.exc.NoResultFound:
+            session.add(TrackByID(**data))
+            added += [carrier_id]
 
     return (updated, added)
 
