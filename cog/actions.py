@@ -1888,8 +1888,8 @@ class Track(Action):
             cogdb.query.track_ids_remove(self.session, process_system_args(self.args.remove))
             response = "Carrier IDs removed successfully from tracking."
         else:
-            for msg in cogdb.query.track_ids_show(self.session):
-                await self.bot.send_message(self.msg.channel, msg)
+            with cogdb.query.track_ids_show(self.session) as fname:
+                await self.bot.send_message(self.msg.channel, file=discord.File(fp=fname, filename='trackedIDs.txt'))
 
         return response
 
@@ -2406,11 +2406,10 @@ async def monitor_carrier_events(client, *, next_summary, last_timestamp=None, d
         last_seen_time: Last known timestamp for a TrackByID.
         delay: The short delay between normal summaries, in seconds.
     """
-    while True:
-        start = datetime.datetime.utcnow()
-        if not last_timestamp:
-            last_timestamp = start
+    if not last_timestamp:
+        last_timestamp = datetime.datetime.utcnow()
 
+    while True:
         await asyncio.sleep(delay)
 
         with cogdb.session_scope(cogdb.Session) as session:
@@ -2419,6 +2418,9 @@ async def monitor_carrier_events(client, *, next_summary, last_timestamp=None, d
                 tracks = await client.loop.run_in_executor(
                     None, cogdb.query.track_ids_newer_than, session, last_timestamp
                 )
+                if tracks:
+                    await report_to_leadership(client, header + '\n'.join([str(x) for x in tracks]))
+
             else:
                 header = f"__Daily Fleet Carrier Summary For {next_summary}__\n"
                 yesterday = next_summary - datetime.timedelta(days=1)
@@ -2426,14 +2428,16 @@ async def monitor_carrier_events(client, *, next_summary, last_timestamp=None, d
                 tracks = await client.loop.run_in_executor(
                     None, cogdb.query.track_ids_newer_than, session, yesterday
                 )
-            if tracks:
-                last_timestamp = tracks[-1].updated_at
 
-            msgs = cog.util.generative_split(tracks, str, header=header)
+                if tracks:
+                    last_timestamp = tracks[-1].updated_at
+                    with tempfile.NamedTemporaryFile() as tfile:
+                        async with aiofiles.open(tfile.name, 'w', encoding='utf-8') as fout:
+                            await fout.write(header)
+                            await fout.writelines([f'\n{track}' for track in tracks])
 
-        # Only send messages if generated and channel set
-        if msgs != [header]:
-            await report_to_leadership(client, msgs)
+                        await report_to_leadership(client, header.replace('__', ''),
+                                                   file=discord.File(fp=tfile.name, filename='recentCarriers.txt'))
 
 
 async def monitor_snipe_merits(client, *, repeat=True):  # pragma: no cover
@@ -2446,15 +2450,15 @@ async def monitor_snipe_merits(client, *, repeat=True):  # pragma: no cover
     Kwargs:
         repeat: If true, will schedule itself infinitely.
     """
-    log = logging.getLogger(__name__)
-
     snipe_chans = [client.get_channel(x) for x in cog.util.CONF.channels.snipe]
-    while repeat:
-        for snipe_chan in snipe_chans:
-            log.error('Snipe Reminder Channel: %s', snipe_chan)
-        if not snipe_chans:  # Don't bother if not set
-            return
+    if not snipe_chans:  # Don't bother if not set
+        return
 
+    log = logging.getLogger(__name__)
+    for snipe_chan in snipe_chans:
+        log.error('Snipe Reminder Channel: %s', snipe_chan)
+
+    while repeat:
         #  # 12 hours to tick, ping here
         now = datetime.datetime.utcnow()
         next_cycle = cog.util.next_weekly_tick(now)
@@ -2468,7 +2472,7 @@ async def monitor_snipe_merits(client, *, repeat=True):  # pragma: no cover
             # Notify here
             log.warning("Issuing 12 hour notice to snipe channel.")
             with cogdb.session_scope(cogdb.Session) as session:
-                if cogdb.query.get_all_snipe_holds(session):
+                if cogdb.scanners.get_scanner("hudson_undermine").asheet.sheet_page == cogdb.scanners.get_scanner("hudson_snipe").asheet.sheet_page and cogdb.query.get_all_snipe_holds(session):
                     for chan in snipe_chans:
                         await client.send_message(
                             chan,
@@ -2487,12 +2491,13 @@ async def monitor_snipe_merits(client, *, repeat=True):  # pragma: no cover
             # Notify members holding
             log.warning("Issuing 30 notice to snipe channel.")
             with cogdb.session_scope(cogdb.Session) as session:
-                for reminder in cogdb.query.get_snipe_members_holding(session):
+                if cogdb.scanners.get_scanner("hudson_undermine").asheet.sheet_page == cogdb.scanners.get_scanner("hudson_snipe").asheet.sheet_page:
                     msg = """__Final Snipe Reminder__
         There are less than **30 minutes left**. The following members are still holding.
         """
-                    for chan in snipe_chans:
-                        await client.send_message(chan, msg + reminder)
+                    for reminder in cogdb.query.get_snipe_members_holding(session):
+                        for chan in snipe_chans:
+                            await client.send_message(chan, msg + reminder)
 
 
 async def push_spy_to_gal_scanner():  # pragma: no cover | tested elsewhere
@@ -2655,7 +2660,7 @@ async def monitor_spy_site(client, *, repeat=True, delay=900):
             working = False
 
 
-async def report_to_leadership(client, msgs):  # pragma: no cover
+async def report_to_leadership(client, msg, **kwargs):  # pragma: no cover
     """
     Send messages to the channel configured to receive reports.
 
@@ -2664,10 +2669,9 @@ async def report_to_leadership(client, msgs):  # pragma: no cover
         msgs: A list of messages, each should be under discord char limit.
     """
     chan_id = cog.util.CONF.channels.ops
-    if msgs and chan_id:
+    if chan_id:
         chan = client.get_channel(chan_id)
-        for msg in msgs:
-            await client.send_message(chan, msg)
+        await client.send_message(chan, msg, **kwargs)
 
 
 SCOUT_RND = {  # TODO: Extract to data config or tables.

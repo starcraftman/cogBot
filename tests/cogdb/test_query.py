@@ -682,14 +682,16 @@ def test_track_ids_remove(session, f_track_testbed):
 
 
 def test_track_ids_show(session, f_track_testbed):
-    cap = cogdb.query.track_ids_show(session)
-    expected = ["""__Tracking IDs__
+    expected = """__Tracking IDs__
 
-J3J-WVT [CLBF] jumped **Nanomam** => **Rana**.
-J3N-53B [CLBF] jumped **No Info** => **No Info**.
-OVE-111 [Manual] jumped **No Info** => **No Info**.
-XNL-3XQ [CLBF] jumped **No Info** => **Tollan**, near Tollan."""]
-    assert cap == expected
+    J3J-WVT [CLBF] jumped Nanomam => Rana
+    J3N-53B [CLBF] jumped No Info => No Info
+    XNL-3XQ [CLBF] jumped No Info => Tollan, near Tollan
+    OVE-111 [Manual] jumped No Info => No Info"""
+
+    with cogdb.query.track_ids_show(session) as fname:
+        with open(fname) as fin:
+            assert fin.read() == expected
 
 
 def test_track_ids_check(session, f_track_testbed):

@@ -1,7 +1,7 @@
 """
 Module should handle logic related to querying/manipulating tables from a high level.
 """
-import copy
+import contextlib
 import logging
 import os
 import tempfile
@@ -1093,11 +1093,14 @@ def track_ids_update(session, ids_dict, date_obj=None):
                 filter(TrackByID.id == carrier_id).\
                 one()
 
-            # Reject data that is older than current
-            if date_obj and track.updated_at > date_obj or track.system == data.get("system"):
+            # Reject data that is older than current or
+            if date_obj and track.updated_at > date_obj:
                 continue
 
-            track.updated_at = data.get('updated_at', date_obj)
+            track.updated_at = data.get('updated_at', date_obj if date_obj else track.updated_at)
+            if track.system == data.get("system"):
+                continue
+
             track.squad = data.get("squad", track.squad)
             track.override = data.get("override", track.override)
             track.spotted(data.get("system", track.system))
@@ -1134,33 +1137,41 @@ def track_ids_check(session, cid):
         return None
 
 
-def track_ids_show(session):
+@contextlib.contextmanager
+def track_ids_show(session, *, override_only=False):
     """
-    Format into the smallest number of messages possible the list of current IDs.
+    Show the current location of all tracked IDs.
+    Tracked carriers are sorted by squadron and then ID.
+    This is a context manager and returns a temporary filename to transmit.
 
-    Args: ids - select only these ids. If not provided, show all.
+    Args:
+        session: A session onto the database.
+        override_only: When true, return only the specifically flagged carriers.
 
-    Returns: Series of messages < 1900 that can be sent.
+    Returns: A single filename with all information requested.
     """
-    track_ids = session.query(TrackByID).all()
+    track_ids = session.query(TrackByID)
+    if override_only:
+        track_ids = track_ids.filter(TrackByID.override)
+    track_ids = track_ids.order_by(TrackByID.squad, TrackByID.id).all()
 
-    msgs = []
-    cur_msg = "__Tracking IDs__\n"
-    for track in track_ids:
-        cur_msg += "\n" + str(track)
-        if len(cur_msg) > cog.util.MSG_LIMIT:
-            msgs += [cur_msg]
-            cur_msg = ""
-
-    if cur_msg:
-        msgs += [cur_msg]
-
-    return msgs
+    msg = "__Tracking IDs__\n\n"
+    msg += '\n'.join([f'    {track}' for track in track_ids])
+    with tempfile.NamedTemporaryFile(mode='w') as tfile:
+        tfile.write(msg)
+        tfile.flush()
+        yield tfile.name
 
 
 def track_ids_newer_than(session, date):
     """
     Query the database for all TrackByIDs that occured after a date.
+
+    Args:
+        session: A session onto the database.
+        date: A timestamp, select all those updated after this date.
+
+    Returns: A list of TrackByID objects.
     """
     return session.query(TrackByID).\
         filter(TrackByID.updated_at > date).\
@@ -1277,7 +1288,7 @@ def get_snipe_members_holding(session):
     Find the members who are holding merits on the snipe sheet.
     For each found member, attempt to resolve them with the guild to mention them.
     If we cannot resolve their name with guild, just write the name.
-    Format one large message reminding the users and return it.
+    Format as many messages as needed and return the list.
 
     Args:
         session: A session onto the db.

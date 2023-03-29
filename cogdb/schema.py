@@ -1070,7 +1070,7 @@ class TrackByID(ReprMixin, Base):
             'last_system': self.last_system if self.last_system else "No Info",
         }
 
-        return f"{self.id} [{info['squad']}] jumped **{info['last_system']}** => **{info['system']}**{overlaps}."
+        return f"{self.id} [{info['squad']}] jumped {info['last_system']} => {info['system']}{overlaps}"
 
     def __eq__(self, other):
         return isinstance(other, TrackByID) and hash(self) == hash(other)

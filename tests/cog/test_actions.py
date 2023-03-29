@@ -1340,11 +1340,13 @@ async def test_cmd_track_ids_show(f_bot, f_dusers, f_admins, f_track_testbed):
 
     expected = """__Tracking IDs__
 
-J3J-WVT [CLBF] jumped **Nanomam** => **Rana**.
-J3N-53B [CLBF] jumped **No Info** => **No Info**.
-OVE-111 [Manual] jumped **No Info** => **No Info**.
-XNL-3XQ [CLBF] jumped **No Info** => **Tollan**, near Tollan."""
-    f_bot.send_message.assert_called_with(msg.channel, expected)
+    J3J-WVT [CLBF] jumped Nanomam => Rana
+    J3N-53B [CLBF] jumped No Info => No Info
+    XNL-3XQ [CLBF] jumped No Info => Tollan, near Tollan
+    OVE-111 [Manual] jumped No Info => No Info"""
+    dfile = f_bot.send_message.call_args[1]['file']
+    assert dfile.filename == 'trackedIDs.txt'
+    assert dfile.fp.read().decode() == expected
 
 
 @pytest.mark.asyncio

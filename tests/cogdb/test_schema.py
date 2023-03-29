@@ -737,7 +737,7 @@ def test_trackbyid__repr__(f_track_testbed):
 def test_trackbyid__str__(f_track_testbed):
     track_id = f_track_testbed[2][0]
 
-    expect = "J3J-WVT [CLBF] jumped **Nanomam** => **Rana**."
+    expect = "J3J-WVT [CLBF] jumped Nanomam => Rana"
     assert str(track_id) == expect
 
 
