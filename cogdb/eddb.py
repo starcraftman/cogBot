@@ -56,7 +56,7 @@ LEN = {  # Lengths for strings stored in the db
     "module_group": 36,  # Name of module group, i.e. "Beam Laser"
     "power": 21,
     "power_abv": 6,
-    "power_state": 10,
+    "power_state": 18,
     "pvp_name": 50,
     "pvp_fname": 80,
     "pvp_hash": 150,
@@ -1331,11 +1331,13 @@ def preload_power_states(session):
         PowerState(id=64, text="Expansion", eddn='Expansion'),
         PowerState(id=80, text="Prepared", eddn='Prepared'),  # EDDN only, system prepared
         PowerState(id=96, text="HomeSystem", eddn='HomeSystem'),  # EDDN only, HQ of a power
+        PowerState(id=112, text="InPrepareRadius", eddn='InPrepareRadius'),  # EDDN only, HQ of a power
         PowerState(id=240, text="Turmoil", eddn='Turmoil'),
     ])
     # Note: HomeSystem and Prepared are EDDN only states.
     #       HomeSystem is redundant as I map Power.home_system
     #       Prepared can be tracked shouldn't overlap
+    #       InPreparedRadius is from Spansh
 
 
 def preload_security(session):
