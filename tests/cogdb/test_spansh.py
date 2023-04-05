@@ -2,6 +2,8 @@
 Tests for cogdb.spansh
 """
 import json
+import os
+import shutil
 import tempfile
 
 import pytest
@@ -19,7 +21,7 @@ def f_json():
         yield json.loads(fin.read())[0]
 
 
-def test_parse_date(f_json):
+def test_date_to_timestamp(f_json):
     assert 1680460158.0 == cogdb.spansh.date_to_timestamp(f_json['date'])
 
 
@@ -47,14 +49,14 @@ def test_load_factions(f_json, eddb_session):
 def test_load_stations(f_json, eddb_session):
     mapped = cogdb.spansh.eddb_maps(eddb_session)
     results = cogdb.spansh.load_stations(data=f_json, mapped=mapped, system_id=15976)
-    expect = cogdb.eddb.Station(id=3706437120, name='J9X-00M', distance_to_star=1892.207358, max_landing_pad_size='L', type_id=24, system_id=15976, controlling_minor_faction_id=77170, updated_at=1659908548.0)
+    expect = cogdb.eddb.Station(id=69637, name='J9X-00M', distance_to_star=1892.207358, max_landing_pad_size='L', type_id=24, system_id=15976, controlling_minor_faction_id=77170, updated_at=1659908548.0)
     assert expect in results[0]
 
 
 def test_load_bodies(f_json, eddb_session):
     mapped = cogdb.spansh.eddb_maps(eddb_session)
     results = cogdb.spansh.load_bodies(data=f_json, mapped=mapped, system_id=15976)
-    expect = cogdb.eddb.Station(id=3709136384, name='T9K-T4H', distance_to_star=671.233016, max_landing_pad_size='L', type_id=24, system_id=15976, controlling_minor_faction_id=77170, updated_at=1676028812.0)
+    expect = cogdb.eddb.Station(id=101153, name='T9K-T4H', distance_to_star=671.233016, max_landing_pad_size='L', type_id=24, system_id=15976, controlling_minor_faction_id=77170, updated_at=1676028812.0)
     assert expect in results[0]
 
 
@@ -71,6 +73,27 @@ def test_system_csv_importer():
     with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
         system = next(cogdb.spansh.systems_csv_importer(eddb_session, cogdb.spansh.SYSTEMS_CSV))
         assert system.name == '10 Ursae Majoris'
+
+
+@pytest.mark.skipif(not os.environ.get('ALL_TESTS'), reason='Very slow test.')
+def test_generate_name_maps_from_eddb(eddb_session):
+    try:
+        tdir = tempfile.mkdtemp()
+        cogdb.spansh.generate_name_maps_from_eddb(eddb_session, path=tdir)
+        with open(os.path.join(tdir, 'factionMap.json'), 'r', encoding='utf-8') as fin:
+            cnt = 0
+            seen = False
+            for line in fin:
+                cnt += 1
+                if cnt == 5:
+                    break
+
+                if "Fearless" in line:
+                    seen = True
+
+            assert seen
+    finally:
+        shutil.rmtree(tdir)
 
 
 def test_update_name_map():
@@ -91,9 +114,21 @@ def test_update_name_map():
         )
 
         with open(known_tfile.name, 'r', encoding='utf-8') as fin:
-            assert fin.read() == '{"station1": 1, "station2": 2, "station3": 5, "station5": 10, "station4": 3, "station6": 4}'
+            expect = """{
+  "station1": 1,
+  "station2": 2,
+  "station3": 5,
+  "station4": 3,
+  "station5": 10,
+  "station6": 4
+}"""
+            assert fin.read() == expect
         with open(new_tfile.name, 'r', encoding='utf-8') as fin:
-            assert fin.read() == '{"station4": 3, "station6": 4}'
+            expect = """{
+  "station4": 3,
+  "station6": 4
+}"""
+            assert fin.read() == expect
 
 
 def test_eddb_maps():
@@ -101,33 +136,3 @@ def test_eddb_maps():
         result = cogdb.spansh.eddb_maps(eddb_session)
         assert 'stations' in result
         assert 'power' in result
-
-
-#  def test_spansh_basic(f_json):
-    #  print(f_json['date'])
-    #  print(sorted(f_json.keys()))
-    #  print(sorted(f_json['factions'][0].keys()))
-    #  __import__('pprint').pprint(f_json['factions'][0])
-    #  print(sorted(f_json['stations'][0].keys()))
-
-
-#  def test_spansh_query():
-    #  with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
-        #  faction_map = {x.name: x.id for x in eddb_session.query(cogdb.eddb.Faction)}
-        #  system_map = {x.name: x.id for x in eddb_session.query(cogdb.eddb.System)}
-        #  station_map = {x.name: x.id for x in eddb_session.query(cogdb.eddb.Station)}
-        #  pairings = [
-            #  ['factionMap.json', faction_map],
-            #  ['systemMap.json', system_map],
-            #  ['stationMap.json', station_map]
-        #  ]
-        #  for fname, themap in pairings:
-            #  fpath = cog.util.rel_to_abs('data', fname)
-            #  with open(fpath, 'w', encoding='utf-8') as fout:
-                #  json.dump(themap, fout, indent=4, sort_keys=True)
-
-
-#  def test_verify_factions():
-    #  results = cogdb.spansh.verify_galaxy_ids(cog.util.rel_to_abs('galaxy_stations.json'))
-    #  with open('/tmp/out.txt', 'w', encoding='utf-8') as fout:
-        #  __import__('pprint').pprint(results, fout)

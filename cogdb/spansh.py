@@ -20,20 +20,24 @@ Stations objects
 """
 import datetime
 import json
+import logging
 import os
+from pathlib import Path
 
+import cogdb
 from cogdb.eddb import (
     Allegiance, Economy, Faction, Influence, FactionState, Government, Power, PowerState,
     Security, System, Station, StationType, StationEconomy, StationFeatures
 )
+from cogdb.spy_squirrel import SpyShip
 import cog.util
 
 
+JSON_INDENT = 2
 TIME_STRP = "%Y-%m-%d %H:%M:%S"
 FACTION_MAPF = cog.util.rel_to_abs('data', 'factionMap.json')
 SYSTEM_MAPF = cog.util.rel_to_abs('data', 'systemMap.json')
 STATION_MAPF = cog.util.rel_to_abs('data', 'stationMap.json')
-STATION_NEW_MAPF = cog.util.rel_to_abs('data', 'stationMapNew.json')
 SYSTEMS_CSV = os.path.join(cog.util.CONF.paths.eddb_store, 'systems.csv')
 GALAXY_JSON = os.path.join(cog.util.CONF.paths.eddb_store, 'galaxy_stations.json')
 SYSTEMS_CSV_INFO = [
@@ -66,6 +70,24 @@ SYSTEMS_CSV_INFO = [
     False,
     {'key': 'ed_system_id', 'type': 'int'},
 ]
+# Mapping of spansh naming of station services, bit unsure of some
+SPANSH_STATION_SERVICES = {
+    'Fleet Carrier Administration': 'carrier_administration',
+    'Fleet Carrier Vendor': 'carrier_vendor',
+    'Black Market': 'blackmarket',
+    'Material Trader': 'material_trader',
+    'Shop': 'commodities',  # Unsure of mapping
+    'Dock': 'dock',
+    'Interstellar Factors Contact': 'interstellar_factors',
+    'Market': 'market',
+    'Outfitting': 'outfitting',
+    'Shipyard': 'shipyard',
+    'Restock': 'rearm',
+    'Refuel': 'refuel',
+    'Repair': 'repair',
+    'Technology Broker': 'technology_broker',
+    'Universal Cartographics': 'universal_cartographics',
+}
 
 
 def date_to_timestamp(text):
@@ -78,45 +100,48 @@ def date_to_timestamp(text):
     except ValueError:
         return None
 
-## Possible Station Features beyond existing
+
+# Station Features in spansh, not all needed
 #  ['Apex Interstellar',
- #  'Autodock',
- #  'Bartender',
- #  'Black Market',
- #  'Contacts',
- #  'Crew Lounge',
- #  'Dock',
- #  'Fleet Carrier Administration',
- #  'Fleet Carrier Fuel',
- #  'Fleet Carrier Management',
- #  'Fleet Carrier Vendor',
- #  'Flight Controller',
- #  'Frontline Solutions',
- #  'Interstellar Factors Contact',
- #  'Livery',
- #  'Market',
- #  'Material Trader',
- #  'Missions',
- #  'Missions Generated',
- #  'On Dock Mission',
- #  'Outfitting',
- #  'Pioneer Supplies',
- #  'Powerplay',
- #  'Redemption Office',
- #  'Refuel',
- #  'Repair',
- #  'Restock',
- #  'Search and Rescue',
- #  'Shipyard',
- #  'Shop',
- #  'Social Space',
- #  'Station Menu',
- #  'Station Operations',
- #  'Technology Broker',
- #  'Tuning',
- #  'Universal Cartographics',
- #  'Vista Genomics',
- #  'Workshop']
+#  'Autodock',
+#  'Bartender',
+#  'Black Market',
+#  'Contacts',
+#  'Crew Lounge',
+#  'Dock',
+#  'Fleet Carrier Administration',
+#  'Fleet Carrier Fuel',
+#  'Fleet Carrier Management',
+#  'Fleet Carrier Vendor',
+#  'Flight Controller',
+#  'Frontline Solutions',
+#  'Interstellar Factors Contact',
+#  'Livery',
+#  'Market',
+#  'Material Trader',
+#  'Missions',
+#  'Missions Generated',
+#  'On Dock Mission',
+#  'Outfitting',
+#  'Pioneer Supplies',
+#  'Powerplay',
+#  'Redemption Office',
+#  'Refuel',
+#  'Repair',
+#  'Restock',
+#  'Search and Rescue',
+#  'Shipyard',
+#  'Shop',
+#  'Social Space',
+#  'Station Menu',
+#  'Station Operations',
+#  'Technology Broker',
+#  'Tuning',
+#  'Universal Cartographics',
+#  'Vista Genomics',
+#  'Workshop']
+
+
 def parse_station_features(features, *, station_id, updated_at):
     """
     Parse and return a StationFeatures object based on features found in
@@ -131,23 +156,27 @@ def parse_station_features(features, *, station_id, updated_at):
     """
     kwargs = {
         'id': station_id,
-        'carrier_administration': 'Fleet Carrier Administration' in features,
-        'carrier_vendor': 'Fleet Carrier Vendor' in features,
-        'blackmarket': 'Black Market' in features,
-        'material_trader': 'Material Trader' in features,
-        'commodities': 'Shop' in features,  # Unsure of mapping
-        'dock': 'Dock' in features,
-        'interstellar_factors': 'Interstellar Factors Contact' in features,
-        'market': 'Market' in features,
-        'outfitting': 'Outfitting' in features,
-        'shipyard': 'Shipyard' in features,
-        'rearm': 'Restock' in features,
-        'refuel': 'Refuel' in features,
-        'repair': 'Repair' in features,
-        'technology_broker': 'Technology Broker' in features,
-        'universal_cartographics': 'Universal Cartographics' in features,
         'updated_at': updated_at,
+        'carrier_administration': False,
+        'carrier_vendor': False,
+        'blackmarket': False,
+        'material_trader': False,
+        'commodities': False,
+        'dock': False,
+        'interstellar_factors': False,
+        'market': False,
+        'outfitting': False,
+        'shipyard': False,
+        'rearm': False,
+        'refuel': False,
+        'repair': False,
+        'technology_broker': False,
+        'universal_cartographics': False,
     }
+    for feature in features:
+        key = SPANSH_STATION_SERVICES.get(feature)
+        if key:
+            kwargs[key] = True
 
     return StationFeatures(**kwargs)
 
@@ -180,10 +209,14 @@ def load_system(*, data, mapped):
     power_id = None
     if len(data['powers']) == 1:
         power_id = mapped['power'][data['powers'][0]]
+    system_id = mapped['systems'].get(data['name'])
+    if not system_id:
+        logging.getLogger(__name__).error("SPANSH: Missing ID for system: %s", data['name'])
+        raise KeyError
 
     controlling_faction = data['controllingFaction']['name']
     kwargs = {
-        'id': mapped['systems'][data['name']],
+        'id': system_id,
         'ed_system_id': data['id64'],
         'controlling_minor_faction_id': mapped['factions'][controlling_faction],
         'name': data['name'],
@@ -229,7 +262,12 @@ def load_factions(*, data, mapped, system_id):
     factions = []
     infs = []
     for kwargs in data['factions']:
-        kwargs['id'] = mapped['factions'][kwargs['name']]
+        faction_id = mapped['factions'].get(kwargs['name'])
+        if not faction_id:
+            logging.getLogger(__name__).error("SPANSH: Missing ID for faction: %s", data['name'])
+            continue
+        kwargs['id'] = faction_id
+
         kwargs['updated_at'] = data['updated_at']
         for key in ['allegiance', 'government']:
             try:
@@ -280,6 +318,10 @@ def load_stations(*, data, mapped, system_id):
 
     for station in data['stations']:
         updated_at = date_to_timestamp(station['updateTime'])
+        station_id = mapped['stations'].get(station['name'])
+        if not station_id:
+            logging.getLogger(__name__).error("SPANSH: Missing ID for station: %s", station['name'])
+            continue
 
         max_pad = 'S'
         if 'landingPads' in station and 'large' in station['landingPads']:
@@ -289,14 +331,16 @@ def load_stations(*, data, mapped, system_id):
 
         station_econs += [
             StationEconomy(
-                id=station['id'],
+                id=station_id,
                 economy_id=mapped['economy'][station['primaryEconomy']],
                 primary=True
             )
         ]
-        station_fts += [parse_station_features(station['services'], station_id=station['id'], updated_at=updated_at)]
+        station_fts += [
+            parse_station_features(station['services'], station_id=station_id, updated_at=updated_at)
+        ]
         kwargs = {
-            'id': station['id'],
+            'id': station_id,
             'type_id': mapped['station_type'][station['type']],
             'system_id': system_id,
             'name': station['name'],
@@ -414,6 +458,34 @@ def systems_csv_importer(eddb_session, csv_path):
             yield System(**kwargs)
 
 
+def generate_name_maps_from_eddb(eddb_session, *, path, clean=False):
+    """
+    Generate initial name to ID mappings for factions, systems and stations
+    based on initial EDDB IDs that are imported into EDDB traditionally.
+    This will mainly provide IDs for populated space.
+
+    Files written to data folder: factionMap.json, systemMap.json, stationMap.json
+
+    Args:
+        eddb_session: A session onto the EDDB.
+        path: The folder to write the files into.
+        clean: Zero out the "new" map tracking non EDDB IDs added when True
+    """
+    pairings = [
+        ['factionMap.json', {x.name: x.id for x in eddb_session.query(cogdb.eddb.Faction)}],
+        ['systemMap.json', {x.name: x.id for x in eddb_session.query(cogdb.eddb.System)}],
+        ['stationMap.json', {x.name: x.id for x in eddb_session.query(cogdb.eddb.Station)}]
+    ]
+    for fname, themap in pairings:
+        fpath = os.path.join(path, fname)
+        with open(fpath, 'w', encoding='utf-8') as fout:
+            json.dump(themap, fout, indent=JSON_INDENT, sort_keys=True)
+
+        if clean:
+            with open(fpath.replace('Map.json', 'NewMap.json'), 'w', encoding='utf-8') as fout:
+                json.dump({}, fout)
+
+
 def update_name_map(missing_names, *, known_fname, new_fname):
     """
     Provide a means of updating the static name -> id assignments for
@@ -432,22 +504,52 @@ def update_name_map(missing_names, *, known_fname, new_fname):
     with open(new_fname, 'r', encoding='utf-8') as fin:
         new_names = json.load(fin)
     known_ids = list(sorted(known_names.values()))
-    available = set(range(1, int(known_ids[-1]) + 2 * len(missing_names))) - set(known_ids)
-    available = list(sorted(available))
+    available = set(range(1, int(known_ids[-1]) + len(missing_names))) - set(known_ids)
+    available = list(sorted(available, reverse=True))
 
     for name in missing_names:
-        new_id = available[0]
-        available = available[1:]
+        new_id = available.pop()
         new_names[name] = new_id
         known_names[name] = new_id
 
     with open(known_fname, 'w', encoding='utf-8') as fout:
-        json.dump(known_names, fout)
+        json.dump(known_names, fout, indent=JSON_INDENT, sort_keys=True)
     with open(new_fname, 'w', encoding='utf-8') as fout:
-        json.dump(new_names, fout)
+        json.dump(new_names, fout, indent=JSON_INDENT, sort_keys=True)
 
 
-def verify_galaxy_ids(dump_path):
+def update_all_name_maps(galaxy_json_path):  # pragma: no cover
+    """
+    Update the name maps based on information found in the galaxy_json.
+
+    Args:
+        galaxy_json_path: Path to the complete galaxy_json file from spansh.
+
+    Raises:
+        FileNotFoundError - Missing a required file.
+    """
+    factions, systems, stations = verify_galaxy_ids(galaxy_json_path)
+
+    mapped = [
+        [factions, 'faction'],
+        [systems, 'system'],
+        [stations, 'station'],
+    ]
+    for missing, name in mapped:
+        if not missing:
+            continue
+
+        known_fname = Path(cog.util.rel_to_abs('data', f'{name}Map.json'))
+        new_fname = Path(cog.util.rel_to_abs('data', f'{name}NewMap.json'))
+        if not known_fname.exists():
+            raise FileNotFoundError(f"Missing: {known_fname}")
+        if not new_fname.exists():
+            raise FileNotFoundError(f"Missing: {new_fname}")
+
+        update_name_map(missing, known_fname=known_fname, new_fname=new_fname)
+
+
+def verify_galaxy_ids(dump_path):  # pragma: no cover
     """
     Verify the IDs of systems, factions and stations in galaxy_stations.json file.
 
@@ -459,7 +561,7 @@ def verify_galaxy_ids(dump_path):
         missing_factions: The names of factions that need static IDs
         missing_stations: The names of stations that need static IDs
     """
-    missing_systems, missing_factions, missing_stations = [], [], []
+    missing_systems, missing_factions, missing_stations = set(), set(), set()
     with open(SYSTEM_MAPF, 'r', encoding='utf-8') as fin:
         known_systems = json.load(fin)
     with open(FACTION_MAPF, 'r', encoding='utf-8') as fin:
@@ -469,31 +571,35 @@ def verify_galaxy_ids(dump_path):
 
     with open(dump_path, 'r', encoding='utf-8') as fin:
         for line in fin:
-            try:
-                data = json.loads(line)
-                if data['name'] not in known_systems:
-                    missing_systems += [data['name']]
-                for faction in data.get('factions', []):
-                    if faction['name'] not in known_factions:
-                        missing_factions += [faction['name']]
-                for station in data.get('stations', []):
-                    if station['name'] not in known_stations:
-                        missing_stations += [station['name']]
-                for body in data.get('bodies', []):
-                    for station in body.get('stations', []):
-                        if station['name'] not in known_stations:
-                            missing_stations += [station['name']]
-            except json.JSONDecodeError:
-                pass
+            if '{' not in line or '}' not in line:
+                continue
 
-    return missing_factions, missing_systems, missing_stations
+            line = line.strip()
+            if line[-1] == ',':
+                line = line[:-1]
+            data = json.loads(line)
+
+            if data['name'] not in known_systems:
+                missing_systems.add(data['name'])
+            for faction in data.get('factions', []):
+                if faction['name'] not in known_factions:
+                    missing_factions.add(faction['name'])
+            for station in data.get('stations', []):
+                if station['name'] not in known_stations:
+                    missing_stations.add(station['name'])
+            for body in data.get('bodies', []):
+                for station in body.get('stations', []):
+                    if station['name'] not in known_stations:
+                        missing_stations.add(station['name'])
+
+    return list(sorted(missing_factions)), list(sorted(missing_systems)), list(sorted(missing_stations))
 
 
 def eddb_maps(eddb_session):
     """
     Create static mappings of the names of constants onto their IDs.
     This will also populate mappings for systems, stations and factions based on EDDB IDs.
-    This will also store some extra specific mappings from names onto eddb names.
+    This will also store some extra specific aliases from spansh names onto eddb names.
 
     Args:
         eddb_session: A session onto EDDB.
@@ -509,7 +615,11 @@ def eddb_maps(eddb_session):
         ['power_state', PowerState],
         ['security', Security],
         ['station_type', StationType],
+        ['ships', SpyShip],
     ]
+
+    if not eddb_session.query(SpyShip).all():
+        cogdb.spy_squirrel.preload_spy_tables(eddb_session)
     mapped = {}
     for key, cls in mapped_cls:
         mapped[key] = {x.text: x.id for x in eddb_session.query(cls)}
@@ -518,10 +628,23 @@ def eddb_maps(eddb_session):
 
     # Specific spansh name aliases
     mapped['power_state']['Controlled'] = mapped['power_state']['Control']
-    mapped['station_type']['Drake-Class Carrier'] = mapped['station_type']['Fleet Carrier']
-    mapped['station_type']['Mega ship'] = mapped['station_type']['Megaship']
-    mapped['station_type']['Outpost'] = mapped['station_type']['Civilian Outpost']
-    mapped['station_type']['Settlement'] = mapped['station_type']['Odyssey Settlement']
+    mapped['power'].update({x.eddn: x.id for x in eddb_session.query(Power)})
+    __import__('pprint').pprint(mapped['power'])
+
+    station_map = mapped['station_type']
+    station_map['Drake-Class Carrier'] = station_map['Fleet Carrier']
+    station_map['Mega ship'] = station_map['Megaship']
+    station_map['Asteroid base'] = station_map['Asteroid Base']
+    station_map['Outpost'] = station_map['Civilian Outpost']
+    station_map['Settlement'] = station_map['Odyssey Settlement']
+
+    ship_map = mapped['ships']
+    ship_map['Sidewinder'] = ship_map['Sidewinder Mk. I']
+    ship_map['Eagle'] = ship_map['Eagle Mk. II']
+    ship_map['Cobra MkIII'] = ship_map["Cobra Mk. III"]
+    ship_map['Cobra MkIV'] = ship_map["Cobra MK IV"]
+    ship_map['Viper MkIII'] = ship_map["Viper Mk III"]
+    ship_map['Viper MkIV'] = ship_map["Viper MK IV"]
 
     with open(SYSTEM_MAPF, 'r', encoding='utf-8') as fin:
         mapped['systems'] = json.load(fin)
@@ -533,13 +656,13 @@ def eddb_maps(eddb_session):
     return mapped
 
 
-def collect_types():
+def collect_types(eddb_session):
     """
     Collect a set of constants that might differ from those used by EDDB.io
     Prints out the found information directly to stdout.
     """
-    pstates, ships, faction_states = set(), set(), set()
-    station_types, station_services = set(), set()
+    power_states, power_names, faction_states = set(), set(), set()
+    station_types, station_services, ships = set(), set(), set()
     with open(GALAXY_JSON, 'r', encoding='utf-8') as fin:
         for line in fin:
             if line.startswith('[') or line.startswith(']'):
@@ -551,166 +674,54 @@ def collect_types():
             data = json.loads(line)
 
             if 'powerState' in data:
-                pstates.add(data['powerState'])
-            if 'stations' in data:
-                for station in data['stations']:
-                    station_types.add(station['type'])
-                    if 'shipyard' in station:
-                        if 'ships' in station['shipyard']:
-                            for ship in station['shipyard']['ships']:
-                                ships.add(ship['name'])
-                    for service in station['services']:
-                        station_services.add(service)
-            else:
-                print('Missing stations')
+                power_states.add(data['powerState'])
+            for power in data.get('powers', []):
+                power_names.add(power)
+            for station in data.get('stations', []):
+                station_types.add(station['type'])
+                if 'shipyard' in station and 'ships' in station['shipyard']:
+                    for ship in station['shipyard']['ships']:
+                        ships.add(ship['name'])
+                for service in station['services']:
+                    station_services.add(service)
 
-            if 'factions' in data:
-                for faction in data['factions']:
-                    faction_states.add(faction['state'])
-            else:
-                pass
+            for faction in data.get('factions', []):
+                faction_states.add(faction['state'])
 
-    print("Found services")
+    mapped = eddb_maps(eddb_session)
+    types = eddb_session.query(FactionState).all()
+    known = [x.text for x in types] + [x.eddn for x in types]
+    print("missing faction states")
+    print(faction_states - set(known))
+
+    print("missing power states")
+    print(power_states - set(mapped['power_state']))
+
+    print("missing powers")
+    print(power_names - set(mapped['power']))
+
+    print("missing ships")
+    print(ships - set(mapped['ships'].keys()))
+
+    print("missing station types")
+    print(station_types - set(mapped['station_type'].keys()))
+
+    print("Found station services, manually compare")
     __import__('pprint').pprint(list(sorted(station_services)))
-    print("Found types")
-    __import__('pprint').pprint(list(sorted(station_types)))
-    print("Found faction states")
-    __import__('pprint').pprint(list(sorted(faction_states)))
-    print("Found ships")
-    __import__('pprint').pprint(list(sorted(ships)))
-    print("Found power states")
-    __import__('pprint').pprint(list(sorted(pstates)))
-
-
-# DO NOT DELETE, cached information from above collect_types
-#  Found services
-#  ['Apex Interstellar',
- #  'Autodock',
- #  'Bartender',
- #  'Black Market',
- #  'Contacts',
- #  'Crew Lounge',
- #  'Dock',
- #  'Fleet Carrier Administration',
- #  'Fleet Carrier Fuel',
- #  'Fleet Carrier Management',
- #  'Fleet Carrier Vendor',
- #  'Flight Controller',
- #  'Frontline Solutions',
- #  'Interstellar Factors Contact',
- #  'Livery',
- #  'Market',
- #  'Material Trader',
- #  'Missions',
- #  'Missions Generated',
- #  'On Dock Mission',
- #  'Outfitting',
- #  'Pioneer Supplies',
- #  'Powerplay',
- #  'Redemption Office',
- #  'Refuel',
- #  'Repair',
- #  'Restock',
- #  'Search and Rescue',
- #  'Shipyard',
- #  'Shop',
- #  'Social Space',
- #  'Station Menu',
- #  'Station Operations',
- #  'Technology Broker',
- #  'Tuning',
- #  'Universal Cartographics',
- #  'Vista Genomics',
- #  'Workshop']
-#  Found types
-#  ['Asteroid base',
- #  'Coriolis Starport',
- #  'Drake-Class Carrier',
- #  'Mega ship',
- #  'Ocellus Starport',
- #  'Orbis Starport',
- #  'Outpost',
- #  'Planetary Outpost',
- #  'Planetary Port',
- #  'Settlement']
-#  Found faction states
-#  ['Blight',
- #  'Boom',
- #  'Bust',
- #  'Civil Liberty',
- #  'Civil Unrest',
- #  'Civil War',
- #  'Drought',
- #  'Election',
- #  'Expansion',
- #  'Famine',
- #  'Infrastructure Failure',
- #  'Investment',
- #  'Lockdown',
- #  'Natural Disaster',
- #  'None',
- #  'Outbreak',
- #  'Pirate Attack',
- #  'Public Holiday',
- #  'Retreat',
- #  'Terrorist Attack',
- #  'War']
-#  Found ships
-#  ['Adder',
- #  'Alliance Challenger',
- #  'Alliance Chieftain',
- #  'Alliance Crusader',
- #  'Anaconda',
- #  'Asp Explorer',
- #  'Asp Scout',
- #  'Beluga Liner',
- #  'Cobra MkIII',
- #  'Cobra MkIV',
- #  'Diamondback Explorer',
- #  'Diamondback Scout',
- #  'Dolphin',
- #  'Eagle',
- #  'Federal Assault Ship',
- #  'Federal Corvette',
- #  'Federal Dropship',
- #  'Federal Gunship',
- #  'Fer-de-Lance',
- #  'Hauler',
- #  'Imperial Clipper',
- #  'Imperial Courier',
- #  'Imperial Cutter',
- #  'Imperial Eagle',
- #  'Keelback',
- #  'Krait MkII',
- #  'Krait Phantom',
- #  'Mamba',
- #  'Orca',
- #  'Python',
- #  'Sidewinder',
- #  'Type-10 Defender',
- #  'Type-6 Transporter',
- #  'Type-7 Transporter',
- #  'Type-9 Heavy',
- #  'Viper MkIII',
- #  'Viper MkIV',
- #  'Vulture']
- ## Found power states
-#  ['Contested',
- #  'Controlled',
- #  'Exploited',
- #  'HomeSystem',
- #  'InPrepareRadius',
- #  'Prepared',
- #  'Turmoil']
 
 
 def main():
     """ Main function. """
-    now = datetime.datetime.utcnow()
-    with open(SYSTEMS_CSV.replace('.csv', '.ids.json'), 'r', encoding='utf-8') as fin:
-        system_ids = json.load(fin)
-        print(f"Number of total systems: {len(system_ids)}")
-    print("Took", datetime.datetime.utcnow() - now)
+    with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
+        data = cog.util.rel_to_abs('data')
+        generate_name_maps_from_eddb(eddb_session, path=data, clean=True)
+        update_all_name_maps(GALAXY_JSON)
+
+    #  now = datetime.datetime.utcnow()
+    #  with open(SYSTEMS_CSV.replace('.csv', '.ids.json'), 'r', encoding='utf-8') as fin:
+        #  system_ids = json.load(fin)
+        #  print(f"Number of total systems: {len(system_ids)}")
+    #  print("Took", datetime.datetime.utcnow() - now)
 
     ## Big map of system ids
     #  sys_ids = {}
