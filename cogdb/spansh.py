@@ -313,9 +313,6 @@ def load_stations(*, data, mapped, system_id):
     station_fts = []
     station_econs = []
 
-    if 'updated_at' not in data:
-        data['updated_at'] = date_to_timestamp(data['date'])
-
     for station in data['stations']:
         updated_at = date_to_timestamp(station['updateTime'])
         station_id = mapped['stations'].get(station['name'])
@@ -629,7 +626,6 @@ def eddb_maps(eddb_session):
     # Specific spansh name aliases
     mapped['power_state']['Controlled'] = mapped['power_state']['Control']
     mapped['power'].update({x.eddn: x.id for x in eddb_session.query(Power)})
-    __import__('pprint').pprint(mapped['power'])
 
     station_map = mapped['station_type']
     station_map['Drake-Class Carrier'] = station_map['Fleet Carrier']

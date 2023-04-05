@@ -49,14 +49,14 @@ def test_load_factions(f_json, eddb_session):
 def test_load_stations(f_json, eddb_session):
     mapped = cogdb.spansh.eddb_maps(eddb_session)
     results = cogdb.spansh.load_stations(data=f_json, mapped=mapped, system_id=15976)
-    expect = cogdb.eddb.Station(id=69637, name='J9X-00M', distance_to_star=1892.207358, max_landing_pad_size='L', type_id=24, system_id=15976, controlling_minor_faction_id=77170, updated_at=1659908548.0)
+    expect = cogdb.eddb.Station(id=67790, name='J9X-00M', distance_to_star=1892.207358, max_landing_pad_size='L', type_id=24, system_id=15976, controlling_minor_faction_id=77170, updated_at=1659908548.0)
     assert expect in results[0]
 
 
 def test_load_bodies(f_json, eddb_session):
     mapped = cogdb.spansh.eddb_maps(eddb_session)
     results = cogdb.spansh.load_bodies(data=f_json, mapped=mapped, system_id=15976)
-    expect = cogdb.eddb.Station(id=101153, name='T9K-T4H', distance_to_star=671.233016, max_landing_pad_size='L', type_id=24, system_id=15976, controlling_minor_faction_id=77170, updated_at=1676028812.0)
+    expect = cogdb.eddb.Station(id=98362, name='T9K-T4H', distance_to_star=671.233016, max_landing_pad_size='L', type_id=24, system_id=15976, controlling_minor_faction_id=77170, updated_at=1676028812.0)
     assert expect in results[0]
 
 
