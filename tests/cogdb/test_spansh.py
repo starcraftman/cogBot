@@ -50,7 +50,7 @@ def test_load_commodities(f_json, eddb_session):
 
 def test_load_modules(f_json, eddb_session):
     mapped = cogdb.spansh.eddb_maps(eddb_session)
-    expect =  cogdb.spansh.SModule(id=128777340, group_id=2, ship_id=None, name='Repair Limpet Controller', symbol='Int_DroneControl_Repair_Size5_Class4', mod_class=5, rating='B')
+    expect = cogdb.spansh.SModule(id=128777340, group_id=2, ship_id=None, name='Repair Limpet Controller', symbol='Int_DroneControl_Repair_Size5_Class4', mod_class=5, rating='B')
     for station in f_json['stations']:
         if 'outfitting' in station and 'modules' in station['outfitting'] and station['outfitting']['modules']:
             found = cogdb.spansh.load_modules(station=station, mapped=mapped)

@@ -33,7 +33,6 @@ import cogdb
 from cogdb.eddb import (
     Base, LEN, Allegiance, Economy, Faction, Influence, FactionState, Government, Power, PowerState,
     Security, System, Station, StationType, StationEconomy, StationFeatures,
-    Module, ModuleGroup, Commodity, CommodityCat
 )
 from cogdb.spy_squirrel import SpyShip
 import cog.util
@@ -1087,7 +1086,6 @@ def main():
         #  generate_module_commodities_caches(eddb_session)
         #  collect_other_types(eddb_session)
 
-
     #  with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
         #  data = cog.util.rel_to_abs('data')
         #  generate_name_maps_from_eddb(eddb_session, path=data, clean=True)
@@ -1099,11 +1097,11 @@ def main():
         #  print(f"Number of total systems: {len(system_ids)}")
     #  print("Took", datetime.datetime.utcnow() - now)
 
-    ## Big map of system ids
+    # Big map of system ids
     #  sys_ids = {}
     #  cnt = 0
     #  with open(SYSTEMS_CSV.replace('.csv', '.parsed.txt'), 'r', encoding='utf-8') as fin,\
-         #  open(SYSTEMS_CSV.replace('.csv', '.ids.json'), 'w', encoding='utf-8') as fout:
+        #  open(SYSTEMS_CSV.replace('.csv', '.ids.json'), 'w', encoding='utf-8') as fout:
         #  for line in fin:
             #  cnt += 1
             #  system = eval(line)
@@ -1116,9 +1114,10 @@ def main():
         #  json.dump(sys_ids, fout, indent=2)
 
     #  with open(SYSTEMS_CSV.replace('.csv', '.parsed.txt'), 'w', encoding='utf-8') as fout,\
-         #  cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
+        #  cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
         #  for sys in systems_csv_importer(eddb_session, SYSTEMS_CSV):
             #  fout.write(repr(sys) + '\n')
+
 
 SPANSH_TABLES = [SCommodityPricing, SCommodity, SModule, SCommodityGroup, SModuleGroup]
 
