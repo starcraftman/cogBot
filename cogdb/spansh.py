@@ -18,6 +18,8 @@ Stations objects
 ['controllingFaction', 'controllingFactionState', 'distanceToArrival', 'government', 'id', 'landingPads',
 'market', 'name', 'outfitting', 'primaryEconomy', 'services', 'shipyard', 'type', 'updateTime']
 """
+import asyncio
+import concurrent.futures as cfut
 import datetime
 import json
 import logging
@@ -99,7 +101,7 @@ SPANSH_STATION_SERVICES = {
 
 
 class SCommodity(ReprMixin, UpdatableMixin, Base):
-    """ A commodity sold at a station. """
+    """ A spansh commodity sold at a station. """
     __tablename__ = 'spansh_commodities'
     _repr_keys = ['id', 'group_id', "name"]
 
@@ -121,7 +123,7 @@ class SCommodity(ReprMixin, UpdatableMixin, Base):
 
 
 class SCommodityGroup(ReprMixin, Base):
-    """ The group for a commodity """
+    """ The spansh group for a commodity """
     __tablename__ = "spansh_commodity_groups"
     _repr_keys = ['id', 'name']
 
@@ -142,13 +144,13 @@ class SCommodityGroup(ReprMixin, Base):
 
 
 class SCommodityPricing(ReprMixin, UpdatableMixin, Base):
-    """ A commodity sold at a station. """
+    """ The spansh pricing of a commodity sold at the station indicated. """
     __tablename__ = 'spansh_commodity_pricing'
     __table_args__ = (
         UniqueConstraint('station_id', 'commodity_id', name='spansh_station_commodity_unique'),
     )
     _repr_keys = [
-        'id', 'commodity_id', 'station_id', "demand", "supply", "buy_price", "sell_price", "updated_at"
+        'id', 'station_id', 'commodity_id', "demand", "supply", "buy_price", "sell_price", "updated_at"
     ]
 
     id = sqla.Column(sqla.BigInteger, primary_key=True)
@@ -175,7 +177,7 @@ class SCommodityPricing(ReprMixin, UpdatableMixin, Base):
 
 
 class SModule(ReprMixin, UpdatableMixin, Base):
-    """ A module sold in a shipyard. """
+    """ A spansh module sold in a shipyard. """
     __tablename__ = 'spansh_modules'
     _repr_keys = [
         'id', 'group_id', "ship_id", "name", "symbol", "mod_class", "rating"
@@ -204,7 +206,7 @@ class SModule(ReprMixin, UpdatableMixin, Base):
 
 
 class SModuleGroup(ReprMixin, Base):
-    """ The group for a module """
+    """ The spansh group for a module """
     __tablename__ = "spansh_module_groups"
     _repr_keys = ['id', 'name']
 
@@ -222,6 +224,29 @@ class SModuleGroup(ReprMixin, Base):
 
     def __hash__(self):
         return self.id
+
+
+class SModuleSold(ReprMixin, UpdatableMixin, Base):
+    """ The spansh module is sold at the station indicted. """
+    __tablename__ = 'spansh_modules_sold'
+    __table_args__ = (
+        UniqueConstraint('station_id', 'module_id', name='spansh_station_module_unique'),
+    )
+    _repr_keys = [
+        'id', 'station_id', 'module_id', "updated_at"
+    ]
+
+    id = sqla.Column(sqla.BigInteger, primary_key=True)
+    station_id = sqla.Column(sqla.Integer, sqla.ForeignKey("stations.id"), nullable=False)
+    module_id = sqla.Column(sqla.Integer, sqla.ForeignKey("spansh_modules.id"), nullable=False)
+    updated_at = sqla.Column(sqla.Integer, default=time.time, onupdate=time.time)
+
+    def __eq__(self, other):
+        return (isinstance(self, SModuleSold) and isinstance(other, SModuleSold)
+                and hash(self) == hash(other))
+
+    def __hash__(self):
+        return hash(f'{self.station_id}_{self.module_id}')
 
 
 def preload_tables(eddb_session):
@@ -399,7 +424,7 @@ def load_commodities(*, station, mapped):
     return commodities, c_pricing
 
 
-def load_modules(*, station, mapped):
+def load_modules(*, station, mapped, station_id):
     """
     Load all modules at a station.
 
@@ -409,27 +434,33 @@ def load_modules(*, station, mapped):
 
     Returns: [modules, module_groups]
     """
-    modules = set()
+    modules, module_sales = set(), []
 
+    updated_at = date_to_timestamp(station['updateTime'])
     if "outfitting" in station and "modules" in station['outfitting']:
         for mod in station['outfitting'].get('modules', []):
-            ship_id = None
-            if 'ship' in mod:
-                ship_id = mapped['ship'].get(mod['ship'])
+            #  ship_id = None
+            #  if 'ship' in mod:
+                #  ship_id = mapped['ship'].get(mod['ship'])
             try:
-                modules.add(SModule(
-                    id=mod['moduleId'],
-                    group_id=mapped['module_group'][mod['category']],
-                    ship_id=ship_id,
-                    name=mod['name'],
-                    symbol=mod['symbol'],
-                    mod_class=int(mod['class']),
-                    rating=mod['rating'],
-                ))
+                #  modules.add(SModule(
+                    #  id=mod['moduleId'],
+                    #  group_id=mapped['module_group'][mod['category']],
+                    #  ship_id=ship_id,
+                    #  name=mod['name'],
+                    #  symbol=mod['symbol'],
+                    #  mod_class=int(mod['class']),
+                    #  rating=mod['rating'],
+                #  ))
+                module_sales += [SModuleSold(
+                    station_id=station_id,
+                    module_id=mod['moduleId'],
+                    updated_at=updated_at,
+                )]
             except KeyError:
                 logging.getLogger(__name__).error("SPANSH: Missing commodity group %s", mod['category'])
 
-    return modules
+    return module_sales
 
 
 def load_system(*, data, mapped):
@@ -452,21 +483,23 @@ def load_system(*, data, mapped):
         logging.getLogger(__name__).error("SPANSH: Missing ID for system: %s", data['name'])
         raise KeyError
 
-    controlling_faction = data['controllingFaction']['name']
+    controlling_faction = None
+    if 'controlling_faction' in data:
+        controlling_faction = data['controllingFaction']['name']
     power_id = None
-    if len(data['powers']) == 1:
+    if 'powers' in data and len(data['powers']) == 1:
         power_id = mapped['power'][data['powers'][0]]
     kwargs = {
         'id': system_id,
         'ed_system_id': data['id64'],
         'controlling_minor_faction_id': mapped['factions'][controlling_faction],
         'name': data['name'],
-        'population': data['population'],
+        'population': data.get('population'),
         'power_id': power_id,
-        'power_state_id': mapped['power_state'][data['powerState']],
-        'security_id': mapped['security'][data['security']],
-        'primary_economy_id': mapped['economy'][data['primaryEconomy']],
-        'secondary_economy_id': mapped['economy'][data['secondaryEconomy']],
+        'power_state_id': mapped['power_state'][data.get('powerState')],
+        'security_id': mapped['security'][data.get('security')],
+        'primary_economy_id': mapped['economy'][data.get('primaryEconomy')],
+        'secondary_economy_id': mapped['economy'][data.get('secondaryEconomy')],
         'x': data['coords']['x'],
         'y': data['coords']['y'],
         'z': data['coords']['z'],
@@ -487,15 +520,12 @@ def load_factions(*, data, mapped, system_id):
         mapped: A dictionary of mappings to map down constants to their integer IDs.
         system_id: The ID of the system of the factions.
 
-    Raises:
-        KeyError - The System in question is not of interest, stop parsing.
-
     Returns: (factions, infs)
         factions - A list of cogdb.eddb.Faction objects
         infs - A list of cogdb.eddb.Influence objects
     """
     if 'factions' not in data or not data['factions']:
-        return
+        return [], []
 
     if 'updated_at' not in data:
         data['updated_at'] = date_to_timestamp(data['date'])
@@ -553,13 +583,14 @@ def load_stations(*, data, mapped, system_id):
     stations = []
     station_fts = []
     station_econs = []
+    mods_sold = []
 
     for station in data['stations']:
         station_id = mapped['stations'].get(station['name'])
         if not station_id or not station.get('type'):
-            logging.getLogger(__name__).error("SPANSH: Missing %s for station: %s, type: %s",
-                                              'station_id' if not station_id else 'type_id',
-                                              station['name'], station.get('type'))
+            #  logging.getLogger(__name__).error("SPANSH: Missing %s for station: %s, type: %s",
+                                              #  'station_id' if not station_id else 'type_id',
+                                              #  station['name'], station.get('type'))
             continue  # Ignore stations that aren't typed or mapped to IDs
 
         updated_at = date_to_timestamp(station['updateTime'])
@@ -569,29 +600,34 @@ def load_stations(*, data, mapped, system_id):
         elif 'landingPads' in station and 'medium' in station['landingPads']:
             max_pad = 'M'
 
-        station_econs += [
-            StationEconomy(
-                id=station_id,
-                economy_id=mapped['economy'][station['primaryEconomy']],
-                primary=True
-            )
-        ]
+        if 'primaryEconomy' in station:
+            station_econs += [
+                StationEconomy(
+                    id=station_id,
+                    economy_id=mapped['economy'][station['primaryEconomy']],
+                    primary=True
+                )
+            ]
         station_fts += [
             parse_station_features(station['services'], station_id=station_id, updated_at=updated_at)
         ]
+        controlling_minor_faction_id = None
+        if 'controllingFaction' in station:
+            controlling_minor_faction_id = mapped['factions'].get(station['controllingFaction'])
         kwargs = {
             'id': station_id,
             'type_id': mapped['station_type'][station['type']],
             'system_id': system_id,
             'name': station['name'],
-            'controlling_minor_faction_id': mapped['factions'].get(station['controllingFaction']),
+            'controlling_minor_faction_id': controlling_minor_faction_id,
             'distance_to_star': station['distanceToArrival'],
             'max_landing_pad_size': max_pad,
             'updated_at': updated_at,
         }
         stations += [Station(**kwargs)]
+        mods_sold += load_modules(station=station, mapped=mapped, station_id=station_id)
 
-    return stations, station_fts, station_econs
+    return stations, station_fts, station_econs, mods_sold
 
 
 def load_bodies(*, data, mapped, system_id):
@@ -609,7 +645,7 @@ def load_bodies(*, data, mapped, system_id):
         station_fts - A list of cogdb.eddb.StationFeatures objects.
         station_econs - A list of cogdb.eddb.StationEconomy objects.
     """
-    stations, station_fts, station_econs = [], [], []
+    stations, station_fts, station_econs, mods_sold = [], [], [], []
 
     if 'updated_at' not in data:
         data['updated_at'] = date_to_timestamp(data['date'])
@@ -621,8 +657,9 @@ def load_bodies(*, data, mapped, system_id):
             stations += parts[0]
             station_fts += parts[1]
             station_econs += parts[2]
+            mods_sold += parts[3]
 
-    return stations, station_fts, station_econs
+    return stations, station_fts, station_econs, mods_sold
 
 
 def split_csv_line(line):
@@ -893,6 +930,7 @@ def eddb_maps(eddb_session):
         mapped['stations'] = json.load(fin)
     with open(FACTION_MAPF, 'r', encoding='utf-8') as fin:
         mapped['factions'] = json.load(fin)
+        mapped['factions'][None] = None
 
     return mapped
 
@@ -1045,6 +1083,81 @@ def generate_module_commodities_caches(eddb_session):
         pprint.pprint(mods, fout)
 
 
+def process_job(number, total, galaxy_json, out_fname):
+    """
+    Process number lines in the galaxy_json, skip all lines you aren't assigned.
+
+    Args:
+        number: Number assigned to worker, in range [0, total).
+        total: The total number of jobs started.
+        galaxy_json: The spansh galaxy_json
+        out_fname: A fname to write out all work as parsing.
+
+    Returns: out_fname, where the result was written to.
+    """
+    cnt = -1
+    with cogdb.session_scope(cogdb.EDDBSession) as eddb_session,\
+         open(galaxy_json, 'r', encoding='utf-8') as fin,\
+         open(out_fname, 'w', encoding='utf-8') as fout:
+        mapped = eddb_maps(eddb_session)
+
+        for line in fin:
+            cnt += 1
+            if cnt == total:
+                cnt = 0
+            if cnt != number:
+                continue
+
+            if '{' not in line or '}' not in line:
+                continue
+
+            line = line.strip()
+            if line[-1] == ',':
+                line = line[:-1]
+            data = json.loads(line)
+
+            system = load_system(data=data, mapped=mapped)
+            facts, infs = load_factions(data=data, mapped=mapped, system_id=system.id)
+            stations = load_stations(data=data, mapped=mapped, system_id=system.id)
+            stations2 = load_bodies(data=data, mapped=mapped, system_id=system.id)
+            fout.write(str({
+                'system': system,
+                'factions': facts,
+                'influences': infs,
+                'stations': stations[0] + stations2[0],
+                'station_features': stations[1] + stations2[1],
+                'station_econs': stations[2] + stations2[2],
+                'mods_sold': stations[3] + stations2[3],
+            }) + '\n')
+
+        return out_fname
+
+
+async def parallel_process(galaxy_json, *, jobs):
+    """
+    Parallel process the galaxy_json.
+    Start jobs number of processes, each with own portion of file.
+    Then parse and process all information in those filess.
+    For each process, output will be written back out to a file in galaxy directory.
+
+    Args:
+        galaxy_json: The path to the galaxy_json from spansh.
+        jobs: The number of jobs to start.
+    """
+    loop = asyncio.get_event_loop()
+    futs = []
+
+    with cfut.ProcessPoolExecutor(jobs) as pool:
+        for num in range(0, jobs):
+            futs += [loop.run_in_executor(
+                pool,
+                process_job, num, jobs, GALAXY_JSON,
+                galaxy_json.replace('.json', f'.json.{num:02}')
+            )]
+
+        await asyncio.wait(futs)
+
+
 def drop_tables():  # pragma: no cover | destructive to test
     """
     Drop all tables related to this module.
@@ -1080,9 +1193,11 @@ def recreate_tables():
 
 def main():
     """ Main function. """
-    recreate_tables()
-    with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
-        preload_tables(eddb_session)
+    asyncio.new_event_loop().run_until_complete(parallel_process(GALAXY_JSON, jobs=20))
+
+    #  recreate_tables()
+    #  with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
+        #  preload_tables(eddb_session)
         #  generate_module_commodities_caches(eddb_session)
         #  collect_other_types(eddb_session)
 

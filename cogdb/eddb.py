@@ -1137,6 +1137,7 @@ def preload_economies(session):
         Economy(id=15, text="Carrier", eddn="Carrier"),
         Economy(id=16, text="Damaged", eddn="Damaged"),
         Economy(id=17, text="Repair", eddn="Repair"),
+        Economy(id=18, text="Engineering", eddn="Engineering"),
     ])
 
 
