@@ -22,15 +22,22 @@ import datetime
 import json
 import logging
 import os
+import pprint
+import time
 from pathlib import Path
+
+import sqlalchemy as sqla
+from sqlalchemy.schema import UniqueConstraint
 
 import cogdb
 from cogdb.eddb import (
-    Allegiance, Economy, Faction, Influence, FactionState, Government, Power, PowerState,
-    Security, System, Station, StationType, StationEconomy, StationFeatures
+    Base, LEN, Allegiance, Economy, Faction, Influence, FactionState, Government, Power, PowerState,
+    Security, System, Station, StationType, StationEconomy, StationFeatures,
+    Module, ModuleGroup, Commodity, CommodityCat
 )
 from cogdb.spy_squirrel import SpyShip
 import cog.util
+from cog.util import ReprMixin, UpdatableMixin
 
 
 JSON_INDENT = 2
@@ -40,6 +47,8 @@ SYSTEM_MAPF = cog.util.rel_to_abs('data', 'systemMap.json')
 STATION_MAPF = cog.util.rel_to_abs('data', 'stationMap.json')
 SYSTEMS_CSV = os.path.join(cog.util.CONF.paths.eddb_store, 'systems.csv')
 GALAXY_JSON = os.path.join(cog.util.CONF.paths.eddb_store, 'galaxy_stations.json')
+SPANSH_COMMODITIES = cog.util.rel_to_abs('data', 'commodities.spansh')
+SPANSH_MODULES = cog.util.rel_to_abs('data', 'modules.spansh')
 SYSTEMS_CSV_INFO = [
     {'key': 'id', 'type': 'int'},
     {'key': 'edsm_id', 'type': 'int'},
@@ -90,8 +99,178 @@ SPANSH_STATION_SERVICES = {
 }
 
 
+class SCommodity(ReprMixin, UpdatableMixin, Base):
+    """ A commodity sold at a station. """
+    __tablename__ = 'spansh_commodities'
+    _repr_keys = ['id', 'group_id', "name"]
+
+    id = sqla.Column(sqla.Integer, primary_key=True)  # commodityId
+    group_id = sqla.Column(sqla.Integer, sqla.ForeignKey("spansh_commodity_groups.id"), nullable=False)
+    name = sqla.Column(sqla.String(LEN["commodity"]))
+
+    @property
+    def text(self):
+        """ Alias for name. """
+        return self.name
+
+    def __eq__(self, other):
+        return (isinstance(self, SCommodity) and isinstance(other, SCommodity)
+                and hash(self) == hash(other))
+
+    def __hash__(self):
+        return self.id
+
+
+class SCommodityGroup(ReprMixin, Base):
+    """ The group for a commodity """
+    __tablename__ = "spansh_commodity_groups"
+    _repr_keys = ['id', 'name']
+
+    id = sqla.Column(sqla.Integer, primary_key=True)
+    name = sqla.Column(sqla.String(LEN["commodity_group"]))
+
+    @property
+    def text(self):
+        """ Alias for name. """
+        return self.name
+
+    def __eq__(self, other):
+        return (isinstance(self, SCommodityGroup) and isinstance(other, SCommodityGroup)
+                and hash(self) == hash(other))
+
+    def __hash__(self):
+        return self.id
+
+
+class SCommodityPricing(ReprMixin, UpdatableMixin, Base):
+    """ A commodity sold at a station. """
+    __tablename__ = 'spansh_commodity_pricing'
+    __table_args__ = (
+        UniqueConstraint('station_id', 'commodity_id', name='spansh_station_commodity_unique'),
+    )
+    _repr_keys = [
+        'id', 'commodity_id', 'station_id', "demand", "supply", "buy_price", "sell_price", "updated_at"
+    ]
+
+    id = sqla.Column(sqla.BigInteger, primary_key=True)
+    station_id = sqla.Column(sqla.Integer, sqla.ForeignKey("stations.id"), nullable=False)
+    commodity_id = sqla.Column(sqla.Integer, sqla.ForeignKey("spansh_commodities.id"), nullable=False)
+
+    demand = sqla.Column(sqla.Integer, default=0)
+    supply = sqla.Column(sqla.Integer, default=0)
+    buy_price = sqla.Column(sqla.Integer, default=0)
+    sell_price = sqla.Column(sqla.Integer, default=0)
+    updated_at = sqla.Column(sqla.Integer, default=time.time, onupdate=time.time)
+
+    @property
+    def text(self):
+        """ Alias for name. """
+        return self.name
+
+    def __eq__(self, other):
+        return (isinstance(self, SCommodityPricing) and isinstance(other, SCommodityPricing)
+                and hash(self) == hash(other))
+
+    def __hash__(self):
+        return hash(f'{self.station_id}_{self.commodity_id}')
+
+
+class SModule(ReprMixin, UpdatableMixin, Base):
+    """ A module sold in a shipyard. """
+    __tablename__ = 'spansh_modules'
+    _repr_keys = [
+        'id', 'group_id', "ship_id", "name", "symbol", "mod_class", "rating"
+    ]
+
+    id = sqla.Column(sqla.Integer, primary_key=True)  # moduleId
+    group_id = sqla.Column(sqla.Integer, sqla.ForeignKey("spansh_module_groups.id"), nullable=False)
+    ship_id = sqla.Column(sqla.Integer)
+
+    name = sqla.Column(sqla.String(LEN["module"]))
+    symbol = sqla.Column(sqla.String(200))
+    mod_class = sqla.Column(sqla.Integer, default=1)
+    rating = sqla.Column(sqla.String(5), default=1)
+
+    @property
+    def text(self):
+        """ Alias for name. """
+        return self.name
+
+    def __eq__(self, other):
+        return (isinstance(self, SModule) and isinstance(other, SModule)
+                and hash(self) == hash(other))
+
+    def __hash__(self):
+        return self.id
+
+
+class SModuleGroup(ReprMixin, Base):
+    """ The group for a module """
+    __tablename__ = "spansh_module_groups"
+    _repr_keys = ['id', 'name']
+
+    id = sqla.Column(sqla.Integer, primary_key=True)
+    name = sqla.Column(sqla.String(LEN["module_group"]))
+
+    @property
+    def text(self):
+        """ Alias for name. """
+        return self.name
+
+    def __eq__(self, other):
+        return (isinstance(self, SModuleGroup) and isinstance(other, SModuleGroup)
+                and hash(self) == hash(other))
+
+    def __hash__(self):
+        return self.id
+
+
+def preload_tables(eddb_session):
+    """
+    Preload tables with fairly constant group information for modules and commodities.
+
+    Args:
+        eddb_session: A session onto EDDB.
+    """
+    eddb_session.add_all([
+        SModuleGroup(id=1, name='hardpoint'),
+        SModuleGroup(id=2, name='internal'),
+        SModuleGroup(id=3, name='standard'),
+        SModuleGroup(id=4, name='utility'),
+        SCommodityGroup(id=1, name='Chemicals'),
+        SCommodityGroup(id=2, name='Consumer Items'),
+        SCommodityGroup(id=3, name='Foods'),
+        SCommodityGroup(id=4, name='Industrial Materials'),
+        SCommodityGroup(id=5, name='Legal Drugs'),
+        SCommodityGroup(id=6, name='Machinery'),
+        SCommodityGroup(id=7, name='Medicines'),
+        SCommodityGroup(id=8, name='Metals'),
+        SCommodityGroup(id=9, name='Minerals'),
+        SCommodityGroup(id=10, name='Salvage'),
+        SCommodityGroup(id=11, name='Slavery'),
+        SCommodityGroup(id=12, name='Technology'),
+        SCommodityGroup(id=13, name='Textiles'),
+        SCommodityGroup(id=14, name='Waste'),
+        SCommodityGroup(id=15, name='Weapons'),
+    ])
+    eddb_session.flush()
+    with open(SPANSH_COMMODITIES, 'r', encoding='utf-8') as fin:
+        comms = eval(fin.read())
+        eddb_session.add_all(comms)
+    with open(SPANSH_MODULES, 'r', encoding='utf-8') as fin:
+        modules = eval(fin.read())
+        eddb_session.add_all(modules)
+
+
 def date_to_timestamp(text):
-    """ Parse a given UTC date from spansh dumps to timestamp. """
+    """
+    Parse a given UTC date from spansh dumps to timestamp.
+
+    Args:
+        text: A date and time string matching the format of TIME_STRP. Trailing +00 will be trimmed.
+
+    Returns: A timestamp of the given date.
+    """
     try:
         if text[-3:] == '+00':
             text = text[:-3]
@@ -181,14 +360,77 @@ def parse_station_features(features, *, station_id, updated_at):
     return StationFeatures(**kwargs)
 
 
-# TODO: Low priority
-def load_commodities(session, data):
-    pass
+def load_commodities(*, station, mapped):
+    """
+    Load all commodities at a station.
+
+    Args:
+        station: The dictionary object rooted at station.
+        mapped: A dictionary of mappings to map down constants to their integer IDs.
+
+    Returns: [commodities, commodity_groups]
+    """
+    commodities, c_pricing = set(), set()
+
+    station_id = mapped['stations'].get(station['name'])
+    if not station_id:
+        return commodities, c_pricing
+
+    updated_at = date_to_timestamp(station['updateTime'])
+    if "market" in station and "commodities" in station['market']:
+        for comm in station['market'].get('commodities', []):
+            try:
+                commodities.add(SCommodity(
+                    id=comm['commodityId'],
+                    group_id=mapped['commodity_group'][comm['category']],
+                    name=comm['name'],
+                ))
+                c_pricing.add(SCommodityPricing(
+                    station_id=station_id,
+                    commodity_id=comm['commodityId'],
+                    demand=comm['demand'],
+                    supply=comm['supply'],
+                    buy_price=comm['buyPrice'],
+                    sell_price=comm['sellPrice'],
+                    updated_at=updated_at,
+                ))
+            except KeyError:
+                logging.getLogger(__name__).error("SPANSH: Missing commodity group %s", comm['category'])
+
+    return commodities, c_pricing
 
 
-# TODO: Low priority
-def load_modules(session, date):
-    pass
+def load_modules(*, station, mapped):
+    """
+    Load all modules at a station.
+
+    Args:
+        station: The dictionary object rooted at station.
+        mapped: A dictionary of mappings to map down constants to their integer IDs.
+
+    Returns: [modules, module_groups]
+    """
+    modules = set()
+
+    if "outfitting" in station and "modules" in station['outfitting']:
+        for mod in station['outfitting'].get('modules', []):
+            ship_id = None
+            if 'ship' in mod:
+                ship_id = mapped['ship'].get(mod['ship'])
+            try:
+                modules.add(SModule(
+                    id=mod['moduleId'],
+                    group_id=mapped['module_group'][mod['category']],
+                    ship_id=ship_id,
+                    name=mod['name'],
+                    symbol=mod['symbol'],
+                    mod_class=int(mod['class']),
+                    rating=mod['rating'],
+                ))
+            except KeyError:
+                logging.getLogger(__name__).error("SPANSH: Missing commodity group %s", mod['category'])
+
+    return modules
 
 
 def load_system(*, data, mapped):
@@ -206,15 +448,15 @@ def load_system(*, data, mapped):
     Returns: A cogdb.eddb.System object representing the system in question.
     """
     data['updated_at'] = date_to_timestamp(data['date'])
-    power_id = None
-    if len(data['powers']) == 1:
-        power_id = mapped['power'][data['powers'][0]]
     system_id = mapped['systems'].get(data['name'])
     if not system_id:
         logging.getLogger(__name__).error("SPANSH: Missing ID for system: %s", data['name'])
         raise KeyError
 
     controlling_faction = data['controllingFaction']['name']
+    power_id = None
+    if len(data['powers']) == 1:
+        power_id = mapped['power'][data['powers'][0]]
     kwargs = {
         'id': system_id,
         'ed_system_id': data['id64'],
@@ -235,7 +477,7 @@ def load_system(*, data, mapped):
     return System(**kwargs)
 
 
-# TODO: Missing Happiness
+# TODO: Missing Happiness, I think only means will be EDDN updates
 def load_factions(*, data, mapped, system_id):
     """
     Load the faction and influence information in a single data object from spansh.
@@ -261,35 +503,35 @@ def load_factions(*, data, mapped, system_id):
 
     factions = []
     infs = []
-    for kwargs in data['factions']:
-        faction_id = mapped['factions'].get(kwargs['name'])
+    for faction_info in data['factions']:
+        faction_id = mapped['factions'].get(faction_info['name'])
         if not faction_id:
             logging.getLogger(__name__).error("SPANSH: Missing ID for faction: %s", data['name'])
             continue
-        kwargs['id'] = faction_id
+        faction_info['id'] = faction_id
 
-        kwargs['updated_at'] = data['updated_at']
+        faction_info['updated_at'] = data['updated_at']
         for key in ['allegiance', 'government']:
             try:
-                value = kwargs[key]
-                kwargs[f'{key}_id'] = mapped[key][value]
+                value = faction_info[key]
+                faction_info[f'{key}_id'] = mapped[key][value]
             except KeyError:
-                kwargs[f'{key}_id'] = None
+                faction_info[f'{key}_id'] = None
 
         try:
-            controlling_faction = kwargs['name'] == data['controllingFaction']['name']
+            controlling_faction = faction_info['name'] == data['controllingFaction']['name']
         except KeyError:
             controlling_faction = None
         infs += [Influence(
-            faction_id=kwargs['id'],
+            faction_id=faction_info['id'],
             system_id=system_id,
             happiness_id=None,
-            influence=kwargs['influence'],
-            updated_at=kwargs['updated_at'],
+            influence=faction_info['influence'],
+            updated_at=faction_info['updated_at'],
             is_controlling_faction=controlling_faction,
         )]
-        del kwargs['influence']
-        factions += [Faction(**kwargs)]
+        del faction_info['influence']
+        factions += [Faction(**faction_info)]
 
     return factions, infs
 
@@ -314,12 +556,14 @@ def load_stations(*, data, mapped, system_id):
     station_econs = []
 
     for station in data['stations']:
-        updated_at = date_to_timestamp(station['updateTime'])
         station_id = mapped['stations'].get(station['name'])
-        if not station_id:
-            logging.getLogger(__name__).error("SPANSH: Missing ID for station: %s", station['name'])
-            continue
+        if not station_id or not station.get('type'):
+            logging.getLogger(__name__).error("SPANSH: Missing %s for station: %s, type: %s",
+                                              'station_id' if not station_id else 'type_id',
+                                              station['name'], station.get('type'))
+            continue  # Ignore stations that aren't typed or mapped to IDs
 
+        updated_at = date_to_timestamp(station['updateTime'])
         max_pad = 'S'
         if 'landingPads' in station and 'large' in station['landingPads']:
             max_pad = 'L'
@@ -551,7 +795,7 @@ def verify_galaxy_ids(dump_path):  # pragma: no cover
     Verify the IDs of systems, factions and stations in galaxy_stations.json file.
 
     Args:
-        dump_path: The file path to the json.
+        dump_path: The file path to the galaxy_stations.json file.
 
     Returns: (missing_systems, missing_factions, missing_stations)
         missing_systems: The names of systems that need static IDs
@@ -605,14 +849,16 @@ def eddb_maps(eddb_session):
     """
     mapped_cls = [
         ['allegiance', Allegiance],
+        ['commodity_group', SCommodityGroup],
+        ['economy', Economy],
         ['faction_state', FactionState],
         ['government', Government],
-        ['economy', Economy],
+        ['module_group', SModuleGroup],
         ['power', Power],
         ['power_state', PowerState],
         ['security', Security],
+        ['ship', SpyShip],
         ['station_type', StationType],
-        ['ships', SpyShip],
     ]
 
     if not eddb_session.query(SpyShip).all():
@@ -634,7 +880,7 @@ def eddb_maps(eddb_session):
     station_map['Outpost'] = station_map['Civilian Outpost']
     station_map['Settlement'] = station_map['Odyssey Settlement']
 
-    ship_map = mapped['ships']
+    ship_map = mapped['ship']
     ship_map['Sidewinder'] = ship_map['Sidewinder Mk. I']
     ship_map['Eagle'] = ship_map['Eagle Mk. II']
     ship_map['Cobra MkIII'] = ship_map["Cobra Mk. III"]
@@ -652,10 +898,13 @@ def eddb_maps(eddb_session):
     return mapped
 
 
-def collect_types(eddb_session):
+def collect_types(eddb_session):  # pragma: no cover
     """
     Collect a set of constants that might differ from those used by EDDB.io
     Prints out the found information directly to stdout.
+
+    Args:
+        eddb_session: A session onto the EDDB.
     """
     power_states, power_names, faction_states = set(), set(), set()
     station_types, station_services, ships = set(), set(), set()
@@ -673,6 +922,9 @@ def collect_types(eddb_session):
                 power_states.add(data['powerState'])
             for power in data.get('powers', []):
                 power_names.add(power)
+            for faction in data.get('factions', []):
+                faction_states.add(faction['state'])
+
             for station in data.get('stations', []):
                 station_types.add(station['type'])
                 if 'shipyard' in station and 'ships' in station['shipyard']:
@@ -681,8 +933,17 @@ def collect_types(eddb_session):
                 for service in station['services']:
                     station_services.add(service)
 
-            for faction in data.get('factions', []):
-                faction_states.add(faction['state'])
+            for body in data.get('bodies', []):
+                for station in body.get('stations', []):
+                    try:
+                        station_types.add(station['type'])
+                        if 'shipyard' in station and 'ships' in station['shipyard']:
+                            for ship in station['shipyard']['ships']:
+                                ships.add(ship['name'])
+                        for service in station['services']:
+                            station_services.add(service)
+                    except KeyError:
+                        pass  # Ignore all stations without typing
 
     mapped = eddb_maps(eddb_session)
     types = eddb_session.query(FactionState).all()
@@ -697,7 +958,7 @@ def collect_types(eddb_session):
     print(power_names - set(mapped['power']))
 
     print("missing ships")
-    print(ships - set(mapped['ships'].keys()))
+    print(ships - set(mapped['ship'].keys()))
 
     print("missing station types")
     print(station_types - set(mapped['station_type'].keys()))
@@ -706,12 +967,131 @@ def collect_types(eddb_session):
     __import__('pprint').pprint(list(sorted(station_services)))
 
 
+def collect_modules_and_commodities(eddb_session):
+    """
+    Collect information on constants in the modules and commodities names and groups among the data.
+
+    Args:
+        eddb_session: A session onto the EDDB.
+    """
+    mods, comms = {}, {}
+    with open(GALAXY_JSON, 'r', encoding='utf-8') as fin:
+        for line in fin:
+            if line.startswith('[') or line.startswith(']'):
+                continue
+
+            line = line.strip()
+            if line[-1] == ',':
+                line = line[:-1]
+            data = json.loads(line)
+
+            for station in data.get('stations', []):
+                if 'market' in station and 'commodities' in station['market']:
+                    for comm in station['market']['commodities']:
+                        del comm['buyPrice']
+                        del comm['sellPrice']
+                        del comm['demand']
+                        del comm['supply']
+                        comms[comm['commodityId']] = comm
+                if 'outfitting' in station and 'modules' in station['outfitting']:
+                    for module in station['outfitting']['modules']:
+                        mods[module['moduleId']] = module
+
+            for body in data.get('bodies', []):
+                for station in body.get('stations', []):
+                    if 'market' in station and 'commodities' in station['market']:
+                        for comm in station['market']['commodities']:
+                            del comm['buyPrice']
+                            del comm['sellPrice']
+                            del comm['demand']
+                            del comm['supply']
+                            comms[comm['commodityId']] = comm
+                    if 'outfitting' in station and 'modules' in station['outfitting']:
+                        for module in station['outfitting']['modules']:
+                            mods[module['moduleId']] = module
+
+    return mods, comms
+
+
+def generate_module_commodities_caches(eddb_session):
+    """
+    Generate the commodities.spansh and modules.spansh cache filse.
+    They will be written out to data folder.
+
+    Args:
+        eddb_session: A session onto the EDDB.
+    """
+    mod_dict, comm_dict = collect_modules_and_commodities(eddb_session)
+    mapped = eddb_maps(eddb_session)
+
+    comms = [SCommodity(name=x['name'], group_id=mapped['commodity_group'][x['category']]) for x in comm_dict.values()]
+    with open(SPANSH_COMMODITIES, 'w', encoding='utf-8') as fout:
+        pprint.pprint(comms, fout)
+
+    mods = []
+    for mod in mod_dict.values():
+        ship_id = None
+        if 'ship' in mod:
+            ship_id = mapped['ship'].get(mod['ship'])
+        mods += [SModule(
+            id=mod['moduleId'],
+            group_id=mapped['module_group'][mod['category']],
+            ship_id=ship_id,
+            name=mod['name'],
+            symbol=mod['symbol'],
+            mod_class=int(mod['class']),
+            rating=mod['rating'],
+        )]
+    with open(SPANSH_MODULES, 'w', encoding='utf-8') as fout:
+        pprint.pprint(mods, fout)
+
+
+def drop_tables():  # pragma: no cover | destructive to test
+    """
+    Drop all tables related to this module.
+    """
+    sqla.orm.session.close_all_sessions()
+
+    for table in SPANSH_TABLES:
+        try:
+            table.__table__.drop(cogdb.eddb_engine)
+        except sqla.exc.OperationalError:
+            pass
+
+
+def empty_tables():
+    """
+    Empty all tables related to this module.
+    """
+    sqla.orm.session.close_all_sessions()
+
+    with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
+        for table in SPANSH_TABLES:
+            eddb_session.query(table).delete()
+
+
+def recreate_tables():
+    """
+    Recreate all tables in the spansh module, mainly for schema changes and testing.
+    """
+    sqla.orm.session.close_all_sessions()
+    drop_tables()
+    Base.metadata.create_all(cogdb.eddb_engine)
+
+
 def main():
     """ Main function. """
+    recreate_tables()
     with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
-        data = cog.util.rel_to_abs('data')
-        generate_name_maps_from_eddb(eddb_session, path=data, clean=True)
-        update_all_name_maps(GALAXY_JSON)
+        preload_tables(eddb_session)
+        #  generate_module_commodities_caches(eddb_session)
+        #  collect_other_types(eddb_session)
+
+
+    #  with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
+        #  data = cog.util.rel_to_abs('data')
+        #  generate_name_maps_from_eddb(eddb_session, path=data, clean=True)
+        #  update_all_name_maps(GALAXY_JSON)
 
     #  now = datetime.datetime.utcnow()
     #  with open(SYSTEMS_CSV.replace('.csv', '.ids.json'), 'r', encoding='utf-8') as fin:
@@ -739,6 +1119,8 @@ def main():
          #  cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
         #  for sys in systems_csv_importer(eddb_session, SYSTEMS_CSV):
             #  fout.write(repr(sys) + '\n')
+
+SPANSH_TABLES = [SCommodityPricing, SCommodity, SModule, SCommodityGroup, SModuleGroup]
 
 
 if __name__ == "__main__":

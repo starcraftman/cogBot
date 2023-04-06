@@ -32,6 +32,32 @@ def test_parse_station_features(f_json):
     assert not feature.interstellar_factors
 
 
+def test_load_commodities(f_json, eddb_session):
+    mapped = cogdb.spansh.eddb_maps(eddb_session)
+    comm = cogdb.spansh.SCommodity(id=128672125, group_id=10, name='Occupied Escape Pod')
+    pricing = cogdb.spansh.SCommodityPricing(id=None, commodity_id=128672125, station_id=67790, demand=0, supply=0, buy_price=30363, sell_price=0, updated_at=1659908548.0)
+
+    for station in f_json['stations']:
+        if station['name'] != 'J9X-00M':
+            continue
+
+        if 'market' in station and 'commodities' in station['market'] and station['market']['commodities']:
+            comms, pricings = cogdb.spansh.load_commodities(station=station, mapped=mapped)
+            assert comm in comms
+            assert pricing in pricings
+            return
+
+
+def test_load_modules(f_json, eddb_session):
+    mapped = cogdb.spansh.eddb_maps(eddb_session)
+    expect =  cogdb.spansh.SModule(id=128777340, group_id=2, ship_id=None, name='Repair Limpet Controller', symbol='Int_DroneControl_Repair_Size5_Class4', mod_class=5, rating='B')
+    for station in f_json['stations']:
+        if 'outfitting' in station and 'modules' in station['outfitting'] and station['outfitting']['modules']:
+            found = cogdb.spansh.load_modules(station=station, mapped=mapped)
+            assert expect in found
+            return
+
+
 def test_load_system(f_json, eddb_session):
     mapped = cogdb.spansh.eddb_maps(eddb_session)
     result = cogdb.spansh.load_system(data=f_json, mapped=mapped)

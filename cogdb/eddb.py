@@ -45,15 +45,17 @@ LEN = {  # Lengths for strings stored in the db
     "ship_name": 30,
     "commodity": 34,
     "commodity_category": 20,
+    "commodity_group": 30,
     "economy": 18,
     "eddn": 25,
     "faction": 90,
     "faction_happiness": 12,
     "faction_state": 23,
     "government": 18,
-    "module": 30,
+    "module": 40,
     "module_category": 20,  # Name of group of similar groups like limpets, weapons
     "module_group": 36,  # Name of module group, i.e. "Beam Laser"
+    "module_symbol": 50,  # Information about module
     "power": 21,
     "power_abv": 6,
     "power_state": 18,
