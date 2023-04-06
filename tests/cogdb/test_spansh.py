@@ -35,6 +35,18 @@ def test_parse_station_features(f_json):
 def test_load_commodities(f_json, eddb_session):
     mapped = cogdb.spansh.eddb_maps(eddb_session)
     comm = cogdb.spansh.SCommodity(id=128672125, group_id=10, name='Occupied Escape Pod')
+
+    for station in f_json['stations']:
+        if station['name'] != 'J9X-00M':
+            continue
+
+        if 'market' in station and 'commodities' in station['market'] and station['market']['commodities']:
+            comms = cogdb.spansh.load_commodities(station=station, mapped=mapped)
+            assert comm in comms
+            return
+
+
+def test_load_commodity_pricing(f_json, eddb_session):
     pricing = cogdb.spansh.SCommodityPricing(id=None, commodity_id=128672125, station_id=67790, demand=0, supply=0, buy_price=30363, sell_price=0, updated_at=1659908548.0)
 
     for station in f_json['stations']:
@@ -42,8 +54,7 @@ def test_load_commodities(f_json, eddb_session):
             continue
 
         if 'market' in station and 'commodities' in station['market'] and station['market']['commodities']:
-            comms, pricings = cogdb.spansh.load_commodities(station=station, mapped=mapped)
-            assert comm in comms
+            pricings = cogdb.spansh.load_commodity_pricing(station=station, station_id=67790)
             assert pricing in pricings
             return
 
@@ -58,6 +69,15 @@ def test_load_modules(f_json, eddb_session):
             return
 
 
+def test_load_modules_sold(f_json, eddb_session):
+    expect = cogdb.spansh.SModuleSold(id=None, station_id=67790, module_id=128049511, updated_at=1659908548.0)
+    for station in f_json['stations']:
+        if 'outfitting' in station and 'modules' in station['outfitting'] and station['outfitting']['modules']:
+            found = cogdb.spansh.load_modules_sold(station=station, station_id=67790)
+            assert expect in found
+            return
+
+
 def test_load_system(f_json, eddb_session):
     mapped = cogdb.spansh.eddb_maps(eddb_session)
     result = cogdb.spansh.load_system(data=f_json, mapped=mapped)
@@ -67,23 +87,26 @@ def test_load_system(f_json, eddb_session):
 
 def test_load_factions(f_json, eddb_session):
     mapped = cogdb.spansh.eddb_maps(eddb_session)
-    factions, infs = cogdb.spansh.load_factions(data=f_json, mapped=mapped, system_id=15976)
+    results = cogdb.spansh.load_factions(data=f_json, mapped=mapped, system_id=15976)
     expect = cogdb.eddb.Faction(id=75397, name='Aegis of Federal Democrats', state_id=None, government_id=96, allegiance_id=3, home_system_id=None, is_player_faction=None, updated_at=None)
-    assert expect in factions
+    assert expect == results[75397]['faction']
+    assert set(results[75397].keys()) == {'faction', 'influence', 'state'}
 
 
 def test_load_stations(f_json, eddb_session):
     mapped = cogdb.spansh.eddb_maps(eddb_session)
-    results = cogdb.spansh.load_stations(data=f_json, mapped=mapped, system_id=15976)
     expect = cogdb.eddb.Station(id=67790, name='J9X-00M', distance_to_star=1892.207358, max_landing_pad_size='L', type_id=24, system_id=15976, controlling_minor_faction_id=77170, updated_at=1659908548.0)
-    assert expect in results[0]
+    results = cogdb.spansh.load_stations(data=f_json, mapped=mapped, system_id=15976)
+    assert results[67790]['station'] == expect
+    assert list(sorted(results.keys())) == [11936, 11940, 30145, 49257, 50910, 51460, 55266, 55569, 56837, 67756, 67790, 70338, 71404, 71709, 71876, 72671, 74550, 82881, 88199, 89516, 89759, 98943, 101219, 102555, 103548, 103830, 104507, 105054, 109593, 111433, 492553]
+    assert list(sorted(results[67790].keys())) == ['commodity_pricing', 'economy', 'features', 'modules_sold', 'station']
 
 
 def test_load_bodies(f_json, eddb_session):
     mapped = cogdb.spansh.eddb_maps(eddb_session)
     results = cogdb.spansh.load_bodies(data=f_json, mapped=mapped, system_id=15976)
     expect = cogdb.eddb.Station(id=98362, name='T9K-T4H', distance_to_star=671.233016, max_landing_pad_size='L', type_id=24, system_id=15976, controlling_minor_faction_id=77170, updated_at=1676028812.0)
-    assert expect in results[0]
+    assert results[98362]['station'] == expect
 
 
 def test_split_csv_line():
@@ -157,8 +180,37 @@ def test_update_name_map():
             assert fin.read() == expect
 
 
-def test_eddb_maps():
-    with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
-        result = cogdb.spansh.eddb_maps(eddb_session)
-        assert 'stations' in result
-        assert 'power' in result
+def test_eddb_maps(eddb_session):
+    result = cogdb.spansh.eddb_maps(eddb_session)
+    assert 'stations' in result
+    assert 'power' in result
+
+
+@pytest.mark.skipif(not os.environ.get('ALL_TESTS'), reason='Very slow test.')
+def test_collect_modules_and_commodity_groups():
+    expect = (
+        {
+            'hardpoint',
+            'internal',
+            'standard',
+            'utility',
+        },
+        {
+            'Chemicals',
+            'Consumer Items',
+            'Foods',
+            'Industrial Materials',
+            'Legal Drugs',
+            'Machinery',
+            'Medicines',
+            'Metals',
+            'Minerals',
+            'Salvage',
+            'Slavery',
+            'Technology',
+            'Textiles',
+            'Waste',
+            'Weapons'
+        }
+    )
+    assert expect == cogdb.spansh.collect_modules_and_commodity_groups()

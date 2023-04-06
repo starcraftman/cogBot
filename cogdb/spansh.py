@@ -1,10 +1,12 @@
 """
-Test importer for spansh data
+Test importer for spansh data, dumped daily
+Site: https://spansh.co.uk/dumps
+Link: https://downloads.spansh.co.uk/galaxy_stations.json.gz
 
 1. Spansh data doesn't have fixed "keys", in order to be compatible will need
 lookup ability to map the names of stations, factions and systems => EDDB IDs that are fixed.
 2. Each load function here will operate on a "complete" loaded json object, no ijson.
-3. Achieve parallelism by doing data decomposition and striping data to up to M files for M processes.
+3. Achieve parallelism by reading from galaxy_json in a striped fashion.
    Each process will open it's own session onto the db.
 
 System Keys
@@ -33,8 +35,8 @@ from sqlalchemy.schema import UniqueConstraint
 
 import cogdb
 from cogdb.eddb import (
-    Base, LEN, Allegiance, Economy, Faction, Influence, FactionState, Government, Power, PowerState,
-    Security, System, Station, StationType, StationEconomy, StationFeatures,
+    Base, LEN, Allegiance, Economy, Faction, Influence, FactionState, FactionActiveState, Government,
+    Power, PowerState, Security, System, Station, StationType, StationEconomy, StationFeatures,
 )
 from cogdb.spy_squirrel import SpyShip
 import cog.util
@@ -249,7 +251,7 @@ class SModuleSold(ReprMixin, UpdatableMixin, Base):
         return hash(f'{self.station_id}_{self.module_id}')
 
 
-def preload_tables(eddb_session):
+def preload_tables(eddb_session):  # pragma: no cover
     """
     Preload tables with fairly constant group information for modules and commodities.
 
@@ -304,47 +306,6 @@ def date_to_timestamp(text):
         return None
 
 
-# Station Features in spansh, not all needed
-#  ['Apex Interstellar',
-#  'Autodock',
-#  'Bartender',
-#  'Black Market',
-#  'Contacts',
-#  'Crew Lounge',
-#  'Dock',
-#  'Fleet Carrier Administration',
-#  'Fleet Carrier Fuel',
-#  'Fleet Carrier Management',
-#  'Fleet Carrier Vendor',
-#  'Flight Controller',
-#  'Frontline Solutions',
-#  'Interstellar Factors Contact',
-#  'Livery',
-#  'Market',
-#  'Material Trader',
-#  'Missions',
-#  'Missions Generated',
-#  'On Dock Mission',
-#  'Outfitting',
-#  'Pioneer Supplies',
-#  'Powerplay',
-#  'Redemption Office',
-#  'Refuel',
-#  'Repair',
-#  'Restock',
-#  'Search and Rescue',
-#  'Shipyard',
-#  'Shop',
-#  'Social Space',
-#  'Station Menu',
-#  'Station Operations',
-#  'Technology Broker',
-#  'Tuning',
-#  'Universal Cartographics',
-#  'Vista Genomics',
-#  'Workshop']
-
-
 def parse_station_features(features, *, station_id, updated_at):
     """
     Parse and return a StationFeatures object based on features found in
@@ -386,47 +347,57 @@ def parse_station_features(features, *, station_id, updated_at):
 
 def load_commodities(*, station, mapped):
     """
-    Load all commodities at a station.
+    Load all commodity types at a station.
 
     Args:
         station: The dictionary object rooted at station.
         mapped: A dictionary of mappings to map down constants to their integer IDs.
 
-    Returns: [commodities, commodity_groups]
+    Returns: The list of all SCommodity found at the station.
     """
-    commodities, c_pricing = set(), set()
-
-    station_id = mapped['stations'].get(station['name'])
-    if not station_id:
-        return commodities, c_pricing
-
-    updated_at = date_to_timestamp(station['updateTime'])
+    commodities = set()
     if "market" in station and "commodities" in station['market']:
         for comm in station['market'].get('commodities', []):
-            try:
-                commodities.add(SCommodity(
-                    id=comm['commodityId'],
-                    group_id=mapped['commodity_group'][comm['category']],
-                    name=comm['name'],
-                ))
-                c_pricing.add(SCommodityPricing(
-                    station_id=station_id,
-                    commodity_id=comm['commodityId'],
-                    demand=comm['demand'],
-                    supply=comm['supply'],
-                    buy_price=comm['buyPrice'],
-                    sell_price=comm['sellPrice'],
-                    updated_at=updated_at,
-                ))
-            except KeyError:
-                logging.getLogger(__name__).error("SPANSH: Missing commodity group %s", comm['category'])
+            commodities.add(SCommodity(
+                id=comm['commodityId'],
+                group_id=mapped['commodity_group'][comm['category']],
+                name=comm['name'],
+            ))
 
-    return commodities, c_pricing
+    return commodities
 
 
-def load_modules(*, station, mapped, station_id):
+def load_commodity_pricing(*, station, station_id):
     """
-    Load all modules at a station.
+    Load all commodity pricing at a station.
+
+    Args:
+        station: The dictionary object rooted at station.
+        mapped: A dictionary of mappings to map down constants to their integer IDs.
+        station_id: The id of the station in question.
+
+    Returns: The list of all SCommodityPricing found at the station.
+    """
+    updated_at = date_to_timestamp(station['updateTime'])
+    comm_pricings = []
+    if "market" in station and "commodities" in station['market']:
+        for comm in station['market'].get('commodities', []):
+            comm_pricings += [SCommodityPricing(
+                station_id=station_id,
+                commodity_id=comm['commodityId'],
+                demand=comm['demand'],
+                supply=comm['supply'],
+                buy_price=comm['buyPrice'],
+                sell_price=comm['sellPrice'],
+                updated_at=updated_at,
+            )]
+
+    return comm_pricings
+
+
+def load_modules(*, station, mapped):
+    """
+    Load all modules types at a station.
 
     Args:
         station: The dictionary object rooted at station.
@@ -434,31 +405,46 @@ def load_modules(*, station, mapped, station_id):
 
     Returns: [modules, module_groups]
     """
-    modules, module_sales = set(), []
-
-    updated_at = date_to_timestamp(station['updateTime'])
+    modules = set()
     if "outfitting" in station and "modules" in station['outfitting']:
         for mod in station['outfitting'].get('modules', []):
-            #  ship_id = None
-            #  if 'ship' in mod:
-                #  ship_id = mapped['ship'].get(mod['ship'])
-            try:
-                #  modules.add(SModule(
-                    #  id=mod['moduleId'],
-                    #  group_id=mapped['module_group'][mod['category']],
-                    #  ship_id=ship_id,
-                    #  name=mod['name'],
-                    #  symbol=mod['symbol'],
-                    #  mod_class=int(mod['class']),
-                    #  rating=mod['rating'],
-                #  ))
-                module_sales += [SModuleSold(
-                    station_id=station_id,
-                    module_id=mod['moduleId'],
-                    updated_at=updated_at,
-                )]
-            except KeyError:
-                logging.getLogger(__name__).error("SPANSH: Missing commodity group %s", mod['category'])
+            ship_id = None
+            if 'ship' in mod:
+                ship_id = mapped['ship'].get(mod['ship'])
+
+            modules.add(SModule(
+                id=mod['moduleId'],
+                group_id=mapped['module_group'][mod['category']],
+                ship_id=ship_id,
+                name=mod['name'],
+                symbol=mod['symbol'],
+                mod_class=int(mod['class']),
+                rating=mod['rating'],
+            ))
+
+    return modules
+
+
+def load_modules_sold(*, station, station_id):
+    """
+    Load all modules sold at a station.
+
+    Args:
+        station: The dictionary object rooted at station.
+        mapped: A dictionary of mappings to map down constants to their integer IDs.
+        station_id: The id of the station in question.
+
+    Returns: The list of SModuleSold found
+    """
+    updated_at = date_to_timestamp(station['updateTime'])
+    module_sales = []
+    if "outfitting" in station and "modules" in station['outfitting']:
+        for mod in station['outfitting'].get('modules', []):
+            module_sales += [SModuleSold(
+                station_id=station_id,
+                module_id=mod['moduleId'],
+                updated_at=updated_at,
+            )]
 
     return module_sales
 
@@ -509,7 +495,7 @@ def load_system(*, data, mapped):
     return System(**kwargs)
 
 
-# TODO: Missing Happiness, I think only means will be EDDN updates
+# Missing Happiness, I think only means will be EDDN updates. Unless it somewhere in data?
 def load_factions(*, data, mapped, system_id):
     """
     Load the faction and influence information in a single data object from spansh.
@@ -530,8 +516,7 @@ def load_factions(*, data, mapped, system_id):
     if 'updated_at' not in data:
         data['updated_at'] = date_to_timestamp(data['date'])
 
-    factions = []
-    infs = []
+    results = {}
     for faction_info in data['factions']:
         faction_id = mapped['factions'].get(faction_info['name'])
         if not faction_id:
@@ -551,18 +536,27 @@ def load_factions(*, data, mapped, system_id):
             controlling_faction = faction_info['name'] == data['controllingFaction']['name']
         except KeyError:
             controlling_faction = None
-        infs += [Influence(
+        influence = Influence(
             faction_id=faction_info['id'],
             system_id=system_id,
             happiness_id=None,
             influence=faction_info['influence'],
             updated_at=faction_info['updated_at'],
             is_controlling_faction=controlling_faction,
-        )]
+        )
         del faction_info['influence']
-        factions += [Faction(**faction_info)]
+        faction = Faction(**faction_info)
+        results[faction_id] = {
+            'faction': faction,
+            'influence': influence,
+            'state': FactionActiveState(
+                system_id=system_id,
+                faction_id=faction.id,
+                state_id=mapped['faction_state'][faction_info['state']],
+            ),
+        }
 
-    return factions, infs
+    return results
 
 
 def load_stations(*, data, mapped, system_id):
@@ -575,22 +569,23 @@ def load_stations(*, data, mapped, system_id):
         mapped: A dictionary of mappings to map down constants to their integer IDs.
         system_id: The ID of the system of the factions.
 
-    Returns: (stations, station_fts, station_econs, station_types)
-        stations - A list of cogdb.eddb.Station objects.
-        station_fts - A list of cogdb.eddb.StationFeatures objects.
-        station_econs - A list of cogdb.eddb.StationEconomy objects.
+    Returns: A dictionary indexed by station_id that contains all parsed information for every station found in data.
+        Example:
+        {
+            1111: {
+                'station': cogdb.eddb.Station,
+                'features': cogdb.eddb.StationFeatures,
+                'economy': cogdb.eddb.StationEconomy,
+                'modules_sold': [SModuleSold, SModuleSold, ...],
+                'commodity_pricing': [SCommodityPricing, SCommodityPricing, ...],
+            }
+        }
     """
-    stations = []
-    station_fts = []
-    station_econs = []
-    mods_sold = []
+    results = {}
 
     for station in data['stations']:
         station_id = mapped['stations'].get(station['name'])
         if not station_id or not station.get('type'):
-            #  logging.getLogger(__name__).error("SPANSH: Missing %s for station: %s, type: %s",
-                                              #  'station_id' if not station_id else 'type_id',
-                                              #  station['name'], station.get('type'))
             continue  # Ignore stations that aren't typed or mapped to IDs
 
         updated_at = date_to_timestamp(station['updateTime'])
@@ -600,17 +595,6 @@ def load_stations(*, data, mapped, system_id):
         elif 'landingPads' in station and 'medium' in station['landingPads']:
             max_pad = 'M'
 
-        if 'primaryEconomy' in station:
-            station_econs += [
-                StationEconomy(
-                    id=station_id,
-                    economy_id=mapped['economy'][station['primaryEconomy']],
-                    primary=True
-                )
-            ]
-        station_fts += [
-            parse_station_features(station['services'], station_id=station_id, updated_at=updated_at)
-        ]
         controlling_minor_faction_id = None
         if 'controllingFaction' in station:
             controlling_minor_faction_id = mapped['factions'].get(station['controllingFaction'])
@@ -624,10 +608,20 @@ def load_stations(*, data, mapped, system_id):
             'max_landing_pad_size': max_pad,
             'updated_at': updated_at,
         }
-        stations += [Station(**kwargs)]
-        mods_sold += load_modules(station=station, mapped=mapped, station_id=station_id)
+        results[station_id] = {}
+        results[station_id]['station'] = Station(**kwargs)
+        if 'primaryEconomy' in station:
+            results[station_id]['economy'] = StationEconomy(
+                id=station_id,
+                economy_id=mapped['economy'][station['primaryEconomy']],
+                primary=True
+            )
+        results[station_id]['features'] = parse_station_features(station['services'],
+                                                                 station_id=station_id, updated_at=updated_at)
+        results[station_id]['modules_sold'] = load_modules_sold(station=station, station_id=station_id)
+        results[station_id]['commodity_pricing'] = load_commodity_pricing(station=station, station_id=station_id)
 
-    return stations, station_fts, station_econs, mods_sold
+    return results
 
 
 def load_bodies(*, data, mapped, system_id):
@@ -640,12 +634,10 @@ def load_bodies(*, data, mapped, system_id):
         mapped: A dictionary of mappings to map down constants to their integer IDs.
         system_id: The ID of the system of the factions.
 
-    Returns: (stations, station_fts, station_econs, station_types)
-        stations - A list of cogdb.eddb.Station objects.
-        station_fts - A list of cogdb.eddb.StationFeatures objects.
-        station_econs - A list of cogdb.eddb.StationEconomy objects.
+    Returns: A dictionary with all the parsed information of the bodies in the data.
+             See load_station for keys.
     """
-    stations, station_fts, station_econs, mods_sold = [], [], [], []
+    results = {}
 
     if 'updated_at' not in data:
         data['updated_at'] = date_to_timestamp(data['date'])
@@ -653,13 +645,9 @@ def load_bodies(*, data, mapped, system_id):
     for body in data['bodies']:
         if body['stations']:
             body['updated_at'] = data['updated_at']
-            parts = load_stations(data=body, mapped=mapped, system_id=system_id)
-            stations += parts[0]
-            station_fts += parts[1]
-            station_econs += parts[2]
-            mods_sold += parts[3]
+            results.update(load_stations(data=body, mapped=mapped, system_id=system_id))
 
-    return stations, station_fts, station_econs, mods_sold
+    return results
 
 
 def split_csv_line(line):
@@ -1050,6 +1038,45 @@ def collect_modules_and_commodities(eddb_session):
     return mods, comms
 
 
+def collect_modules_and_commodity_groups():
+    """
+    Collect information on constants in the modules and commodities names and groups among the data.
+
+    Returns: (mod_groups, comm_groups)
+        mod_groups: A list of names of module groups.
+        comm_groups: A list of names of commodity groups.
+    """
+    mod_groups, comm_groups = set(), set()
+    with open(GALAXY_JSON, 'r', encoding='utf-8') as fin:
+        for line in fin:
+            if line.startswith('[') or line.startswith(']'):
+                continue
+
+            line = line.strip()
+            if line[-1] == ',':
+                line = line[:-1]
+            data = json.loads(line)
+
+            for station in data.get('stations', []):
+                if 'market' in station and 'commodities' in station['market']:
+                    for comm in station['market']['commodities']:
+                        comm_groups.add(comm['category'])
+                if 'outfitting' in station and 'modules' in station['outfitting']:
+                    for module in station['outfitting']['modules']:
+                        mod_groups.add(module['category'])
+
+            for body in data.get('bodies', []):
+                for station in body.get('stations', []):
+                    if 'market' in station and 'commodities' in station['market']:
+                        for comm in station['market']['commodities']:
+                            comm_groups.add(comm['category'])
+                    if 'outfitting' in station and 'modules' in station['outfitting']:
+                        for module in station['outfitting']['modules']:
+                            mod_groups.add(module['category'])
+
+    return mod_groups, comm_groups
+
+
 def generate_module_commodities_caches(eddb_session):
     """
     Generate the commodities.spansh and modules.spansh cache filse.
@@ -1105,9 +1132,8 @@ def process_job(number, total, galaxy_json, out_fname):
             cnt += 1
             if cnt == total:
                 cnt = 0
-            if cnt != number:
+            if cnt != number:  # Only process every numberth line
                 continue
-
             if '{' not in line or '}' not in line:
                 continue
 
@@ -1116,19 +1142,18 @@ def process_job(number, total, galaxy_json, out_fname):
                 line = line[:-1]
             data = json.loads(line)
 
-            system = load_system(data=data, mapped=mapped)
-            facts, infs = load_factions(data=data, mapped=mapped, system_id=system.id)
-            stations = load_stations(data=data, mapped=mapped, system_id=system.id)
-            stations2 = load_bodies(data=data, mapped=mapped, system_id=system.id)
-            fout.write(str({
-                'system': system,
-                'factions': facts,
-                'influences': infs,
-                'stations': stations[0] + stations2[0],
-                'station_features': stations[1] + stations2[1],
-                'station_econs': stations[2] + stations2[2],
-                'mods_sold': stations[3] + stations2[3],
-            }) + '\n')
+            try:
+                system = load_system(data=data, mapped=mapped)
+                factions = load_factions(data=data, mapped=mapped, system_id=system.id)
+                stations = load_stations(data=data, mapped=mapped, system_id=system.id)
+                stations.update(load_bodies(data=data, mapped=mapped, system_id=system.id))
+                fout.write(str({
+                    'system': system,
+                    'factions': factions,
+                    'stations': stations,
+                }) + '\n')
+            except KeyError:
+                logging.getLogger(__name__).error("SPANSH: Missing system ID: %s", data['name'])
 
         return out_fname
 
@@ -1144,6 +1169,7 @@ async def parallel_process(galaxy_json, *, jobs):
         galaxy_json: The path to the galaxy_json from spansh.
         jobs: The number of jobs to start.
     """
+    print(f"parallel_process: Starting {jobs} jobs to process {galaxy_json}")
     loop = asyncio.get_event_loop()
     futs = []
 
@@ -1156,6 +1182,9 @@ async def parallel_process(galaxy_json, *, jobs):
             )]
 
         await asyncio.wait(futs)
+
+        print('parallel_process: Results written out to:')
+        pprint.pprint([x.result() for x in futs])
 
 
 def drop_tables():  # pragma: no cover | destructive to test
@@ -1193,11 +1222,15 @@ def recreate_tables():
 
 def main():
     """ Main function. """
-    asyncio.new_event_loop().run_until_complete(parallel_process(GALAXY_JSON, jobs=20))
+    start = datetime.datetime.utcnow()
+    recreate_tables()
+    with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
+        preload_tables(eddb_session)
+    asyncio.new_event_loop().run_until_complete(parallel_process(GALAXY_JSON, jobs=os.cpu_count()))
+    print("Time taken", datetime.datetime.utcnow() - start)
 
-    #  recreate_tables()
+    # Mainly for experimenting
     #  with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
-        #  preload_tables(eddb_session)
         #  generate_module_commodities_caches(eddb_session)
         #  collect_other_types(eddb_session)
 
@@ -1234,7 +1267,7 @@ def main():
             #  fout.write(repr(sys) + '\n')
 
 
-SPANSH_TABLES = [SCommodityPricing, SCommodity, SModule, SCommodityGroup, SModuleGroup]
+SPANSH_TABLES = [SCommodityPricing, SModuleSold, SCommodity, SModule, SCommodityGroup, SModuleGroup]
 
 
 if __name__ == "__main__":
