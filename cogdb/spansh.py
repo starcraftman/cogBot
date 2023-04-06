@@ -316,7 +316,7 @@ def parse_station_features(features, *, station_id, updated_at):
         station_id: The actual id of the station in question.
         update_at: The timestamp to assign to this feature set.
 
-    Returns: A StationFeatures object.
+    Returns: The kwargs to create a cogdb.eddb.StationFeatures object
     """
     kwargs = {
         'id': station_id,
@@ -342,7 +342,7 @@ def parse_station_features(features, *, station_id, updated_at):
         if key:
             kwargs[key] = True
 
-    return StationFeatures(**kwargs)
+    return kwargs
 
 
 def load_commodities(*, station, mapped):
@@ -382,15 +382,15 @@ def load_commodity_pricing(*, station, station_id):
     comm_pricings = []
     if "market" in station and "commodities" in station['market']:
         for comm in station['market'].get('commodities', []):
-            comm_pricings += [SCommodityPricing(
-                station_id=station_id,
-                commodity_id=comm['commodityId'],
-                demand=comm['demand'],
-                supply=comm['supply'],
-                buy_price=comm['buyPrice'],
-                sell_price=comm['sellPrice'],
-                updated_at=updated_at,
-            )]
+            comm_pricings += [{
+                'station_id': station_id,
+                'commodity_id': comm['commodityId'],
+                'demand': comm['demand'],
+                'supply': comm['supply'],
+                'buy_price': comm['buyPrice'],
+                'sell_price': comm['sellPrice'],
+                'updated_at': updated_at,
+            }]
 
     return comm_pricings
 
@@ -403,7 +403,7 @@ def load_modules(*, station, mapped):
         station: The dictionary object rooted at station.
         mapped: A dictionary of mappings to map down constants to their integer IDs.
 
-    Returns: [modules, module_groups]
+    Returns: A list of SModules found at the station
     """
     modules = set()
     if "outfitting" in station and "modules" in station['outfitting']:
@@ -440,11 +440,11 @@ def load_modules_sold(*, station, station_id):
     module_sales = []
     if "outfitting" in station and "modules" in station['outfitting']:
         for mod in station['outfitting'].get('modules', []):
-            module_sales += [SModuleSold(
-                station_id=station_id,
-                module_id=mod['moduleId'],
-                updated_at=updated_at,
-            )]
+            module_sales += [{
+                'station_id': station_id,
+                'module_id': mod['moduleId'],
+                'updated_at': updated_at,
+            }]
 
     return module_sales
 
@@ -461,7 +461,7 @@ def load_system(*, data, mapped):
     Raises:
         KeyError - The System in question is not of interest, stop parsing.
 
-    Returns: A cogdb.eddb.System object representing the system in question.
+    Returns: The kwargs to create A cogdb.eddb.System object representing the system in question.
     """
     data['updated_at'] = date_to_timestamp(data['date'])
     system_id = mapped['systems'].get(data['name'])
@@ -492,7 +492,7 @@ def load_system(*, data, mapped):
         'updated_at': data['updated_at'],
     }
 
-    return System(**kwargs)
+    return kwargs
 
 
 # Missing Happiness, I think only means will be EDDN updates. Unless it somewhere in data?
@@ -506,9 +506,11 @@ def load_factions(*, data, mapped, system_id):
         mapped: A dictionary of mappings to map down constants to their integer IDs.
         system_id: The ID of the system of the factions.
 
-    Returns: (factions, infs)
-        factions - A list of cogdb.eddb.Faction objects
-        infs - A list of cogdb.eddb.Influence objects
+    Returns: {faction_id: {'faction': ..., 'influence': ..., 'state'}: ...}
+        faction_id: The id of the given faction.
+        faction: This key represents the information to create a cogdb.eddb.Faction object.
+        influence: This key represents the information to create a cogdb.eddb.Influence object.
+        state: This key represents the information to create a cogdb.eddb.FactionActiveState object.
     """
     if 'factions' not in data or not data['factions']:
         return [], []
@@ -536,24 +538,23 @@ def load_factions(*, data, mapped, system_id):
             controlling_faction = faction_info['name'] == data['controllingFaction']['name']
         except KeyError:
             controlling_faction = None
-        influence = Influence(
-            faction_id=faction_info['id'],
-            system_id=system_id,
-            happiness_id=None,
-            influence=faction_info['influence'],
-            updated_at=faction_info['updated_at'],
-            is_controlling_faction=controlling_faction,
-        )
+        influence = {
+            'faction_id': faction_info['id'],
+            'system_id': system_id,
+            'happiness_id': None,
+            'influence': faction_info['influence'],
+            'updated_at': faction_info['updated_at'],
+            'is_controlling_faction': controlling_faction,
+        }
         del faction_info['influence']
-        faction = Faction(**faction_info)
         results[faction_id] = {
-            'faction': faction,
+            'faction': faction_info,
             'influence': influence,
-            'state': FactionActiveState(
-                system_id=system_id,
-                faction_id=faction.id,
-                state_id=mapped['faction_state'][faction_info['state']],
-            ),
+            'state': {
+                'system_id': system_id,
+                'faction_id': faction_info['id'],
+                'state_id': mapped['faction_state'][faction_info['state']],
+            },
         }
 
     return results
@@ -569,17 +570,13 @@ def load_stations(*, data, mapped, system_id):
         mapped: A dictionary of mappings to map down constants to their integer IDs.
         system_id: The ID of the system of the factions.
 
-    Returns: A dictionary indexed by station_id that contains all parsed information for every station found in data.
-        Example:
-        {
-            1111: {
-                'station': cogdb.eddb.Station,
-                'features': cogdb.eddb.StationFeatures,
-                'economy': cogdb.eddb.StationEconomy,
-                'modules_sold': [SModuleSold, SModuleSold, ...],
-                'commodity_pricing': [SCommodityPricing, SCommodityPricing, ...],
-            }
-        }
+    Returns: {station_id: {'station': ..., 'features': ..., 'economy': ..., 'modules_sold': ..., 'commodity_pricing': ...}, ...}
+        station_id: The id of the given station
+        station: The information to create a cogdb.eddb.Station object
+        features: The information to create a cogdb.eddb.StationFeatures object
+        economy: The information to create a cogdb.eddb.StationEconomy object
+        modules_sold: The information to create a list of cogdb.eddb.SModuleSold objects for the station
+        commodity_pricing: The information to create a list of cogdb.eddb.SCommodityPricing objects for the station
     """
     results = {}
 
@@ -608,18 +605,18 @@ def load_stations(*, data, mapped, system_id):
             'max_landing_pad_size': max_pad,
             'updated_at': updated_at,
         }
-        results[station_id] = {}
-        results[station_id]['station'] = Station(**kwargs)
+        results[station_id] = {
+            'station': kwargs,
+            'features': parse_station_features(station['services'], station_id=station_id, updated_at=updated_at),
+            'modules_sold': load_modules_sold(station=station, station_id=station_id),
+            'commodity_pricing': load_commodity_pricing(station=station, station_id=station_id)
+        }
         if 'primaryEconomy' in station:
-            results[station_id]['economy'] = StationEconomy(
-                id=station_id,
-                economy_id=mapped['economy'][station['primaryEconomy']],
-                primary=True
-            )
-        results[station_id]['features'] = parse_station_features(station['services'],
-                                                                 station_id=station_id, updated_at=updated_at)
-        results[station_id]['modules_sold'] = load_modules_sold(station=station, station_id=station_id)
-        results[station_id]['commodity_pricing'] = load_commodity_pricing(station=station, station_id=station_id)
+            results[station_id]['economy'] = {
+                'id': station_id,
+                'economy_id': mapped['economy'][station['primaryEconomy']],
+                'primary': True
+            }
 
     return results
 
@@ -1144,9 +1141,9 @@ def process_job(number, total, galaxy_json, out_fname):
 
             try:
                 system = load_system(data=data, mapped=mapped)
-                factions = load_factions(data=data, mapped=mapped, system_id=system.id)
-                stations = load_stations(data=data, mapped=mapped, system_id=system.id)
-                stations.update(load_bodies(data=data, mapped=mapped, system_id=system.id))
+                factions = load_factions(data=data, mapped=mapped, system_id=system['id'])
+                stations = load_stations(data=data, mapped=mapped, system_id=system['id'])
+                stations.update(load_bodies(data=data, mapped=mapped, system_id=system['id']))
                 fout.write(str({
                     'system': system,
                     'factions': factions,
@@ -1226,6 +1223,14 @@ def main():
     recreate_tables()
     with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
         preload_tables(eddb_session)
+        #  mapped = eddb_maps(eddb_session)
+        #  print('Missing systems')
+        #  print(len(set(mapped['systems'].values()) - {x[0] for x in eddb_session.query(System.id)}))
+        #  print('Missing factions')
+        #  print(len(set(mapped['factions'].values()) - {x[0] for x in eddb_session.query(Faction.id)}))
+        #  print('Missing stations')
+        #  print(len(set(mapped['stations'].values()) - {x[0] for x in eddb_session.query(Station.id)}))
+
     asyncio.new_event_loop().run_until_complete(parallel_process(GALAXY_JSON, jobs=os.cpu_count()))
     print("Time taken", datetime.datetime.utcnow() - start)
 
