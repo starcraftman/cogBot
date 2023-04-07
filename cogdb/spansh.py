@@ -8,6 +8,9 @@ lookup ability to map the names of stations, factions and systems => EDDB IDs th
 2. Each load function here will operate on a "complete" loaded json object, no ijson.
 3. Achieve parallelism by reading from galaxy_json in a striped fashion.
    Each process will open it's own session onto the db.
+4. Speed up update and insert of data by making use of bulk_insert_mappings and bulk_update_mappings
+Compute for each object a list of kwargs to push in.
+https://towardsdatascience.com/how-to-perform-bulk-inserts-with-sqlalchemy-efficiently-in-python-23044656b97d
 
 System Keys
 ['allegiance', 'bodies', 'bodyCount', 'controllingFaction', 'coords', 'date', 'factions', 'government',
@@ -25,6 +28,7 @@ import concurrent.futures as cfut
 import datetime
 import json
 import logging
+import math
 import os
 import pprint
 import time
@@ -345,7 +349,7 @@ def parse_station_features(features, *, station_id, updated_at):
     return kwargs
 
 
-def load_commodities(*, station, mapped):
+def transform_commodities(*, station, mapped):
     """
     Load all commodity types at a station.
 
@@ -367,9 +371,11 @@ def load_commodities(*, station, mapped):
     return commodities
 
 
-def load_commodity_pricing(*, station, station_id):
+def transform_commodity_pricing(*, station, station_id):
     """
     Load all commodity pricing at a station.
+    Pricing will be deduped by enforcing station-commodityId uniqueness.
+    Note: updated_at time can be determined by station object. Omitted for space saving.
 
     Args:
         station: The dictionary object rooted at station.
@@ -378,24 +384,22 @@ def load_commodity_pricing(*, station, station_id):
 
     Returns: The list of all SCommodityPricing found at the station.
     """
-    updated_at = date_to_timestamp(station['updateTime'])
-    comm_pricings = []
+    comm_pricings = {}
     if "market" in station and "commodities" in station['market']:
         for comm in station['market'].get('commodities', []):
-            comm_pricings += [{
+            comm_pricings[f"{station_id}_{comm['commodityId']}"] = {
                 'station_id': station_id,
                 'commodity_id': comm['commodityId'],
                 'demand': comm['demand'],
                 'supply': comm['supply'],
                 'buy_price': comm['buyPrice'],
                 'sell_price': comm['sellPrice'],
-                'updated_at': updated_at,
-            }]
+            }
 
-    return comm_pricings
+    return list(comm_pricings.values())
 
 
-def load_modules(*, station, mapped):
+def transform_modules(*, station, mapped):
     """
     Load all modules types at a station.
 
@@ -425,9 +429,10 @@ def load_modules(*, station, mapped):
     return modules
 
 
-def load_modules_sold(*, station, station_id):
+def transform_modules_sold(*, station, station_id):
     """
     Load all modules sold at a station.
+    Note: updated_at time can be determined by station object. Omitted for space saving.
 
     Args:
         station: The dictionary object rooted at station.
@@ -436,20 +441,18 @@ def load_modules_sold(*, station, station_id):
 
     Returns: The list of SModuleSold found
     """
-    updated_at = date_to_timestamp(station['updateTime'])
     module_sales = []
     if "outfitting" in station and "modules" in station['outfitting']:
         for mod in station['outfitting'].get('modules', []):
             module_sales += [{
                 'station_id': station_id,
                 'module_id': mod['moduleId'],
-                'updated_at': updated_at,
             }]
 
     return module_sales
 
 
-def load_system(*, data, mapped):
+def transform_system(*, data, mapped):
     """
     Load the system information in a single data object from spansh.
     To be specific, data should be a complete line from the galaxy_stations.json
@@ -496,7 +499,7 @@ def load_system(*, data, mapped):
 
 
 # Missing Happiness, I think only means will be EDDN updates. Unless it somewhere in data?
-def load_factions(*, data, mapped, system_id):
+def transform_factions(*, data, mapped, system_id):
     """
     Load the faction and influence information in a single data object from spansh.
     To be specific, data should be a complete line from the galaxy_stations.json
@@ -513,7 +516,7 @@ def load_factions(*, data, mapped, system_id):
         state: This key represents the information to create a cogdb.eddb.FactionActiveState object.
     """
     if 'factions' not in data or not data['factions']:
-        return [], []
+        return {}
 
     if 'updated_at' not in data:
         data['updated_at'] = date_to_timestamp(data['date'])
@@ -524,43 +527,40 @@ def load_factions(*, data, mapped, system_id):
         if not faction_id:
             logging.getLogger(__name__).error("SPANSH: Missing ID for faction: %s", data['name'])
             continue
-        faction_info['id'] = faction_id
-
-        faction_info['updated_at'] = data['updated_at']
-        for key in ['allegiance', 'government']:
-            try:
-                value = faction_info[key]
-                faction_info[f'{key}_id'] = mapped[key][value]
-            except KeyError:
-                faction_info[f'{key}_id'] = None
 
         try:
             controlling_faction = faction_info['name'] == data['controllingFaction']['name']
         except KeyError:
             controlling_faction = None
-        influence = {
-            'faction_id': faction_info['id'],
-            'system_id': system_id,
-            'happiness_id': None,
-            'influence': faction_info['influence'],
-            'updated_at': faction_info['updated_at'],
-            'is_controlling_faction': controlling_faction,
-        }
-        del faction_info['influence']
         results[faction_id] = {
-            'faction': faction_info,
-            'influence': influence,
+            'faction': {
+                'id': faction_id,
+                'allegiance_id': mapped['allegiance'][faction_info['allegiance']],
+                'government_id': mapped['government'][faction_info['government']],
+                'state_id': mapped['faction_state'][faction_info['state']],
+                'name': faction_info['name'],
+                'updated_at': data['updated_at']
+            },
+            'influence': {
+                'faction_id': faction_id,
+                'system_id': system_id,
+                'happiness_id': None,
+                'influence': faction_info['influence'],
+                'is_controlling_faction': controlling_faction,
+                'updated_at': data['updated_at']
+            },
             'state': {
                 'system_id': system_id,
-                'faction_id': faction_info['id'],
+                'faction_id': faction_id,
                 'state_id': mapped['faction_state'][faction_info['state']],
+                'updated_at': data['updated_at']
             },
         }
 
     return results
 
 
-def load_stations(*, data, mapped, system_id):
+def transform_stations(*, data, mapped, system_id):
     """
     Load the station information in a single data object from spansh.
     To be specific, data should be a complete line from the galaxy_stations.json
@@ -585,7 +585,6 @@ def load_stations(*, data, mapped, system_id):
         if not station_id or not station.get('type'):
             continue  # Ignore stations that aren't typed or mapped to IDs
 
-        updated_at = date_to_timestamp(station['updateTime'])
         max_pad = 'S'
         if 'landingPads' in station and 'large' in station['landingPads']:
             max_pad = 'L'
@@ -595,6 +594,8 @@ def load_stations(*, data, mapped, system_id):
         controlling_minor_faction_id = None
         if 'controllingFaction' in station:
             controlling_minor_faction_id = mapped['factions'].get(station['controllingFaction'])
+
+        updated_at = date_to_timestamp(station['updateTime'])
         kwargs = {
             'id': station_id,
             'type_id': mapped['station_type'][station['type']],
@@ -608,8 +609,8 @@ def load_stations(*, data, mapped, system_id):
         results[station_id] = {
             'station': kwargs,
             'features': parse_station_features(station['services'], station_id=station_id, updated_at=updated_at),
-            'modules_sold': load_modules_sold(station=station, station_id=station_id),
-            'commodity_pricing': load_commodity_pricing(station=station, station_id=station_id)
+            'modules_sold': transform_modules_sold(station=station, station_id=station_id),
+            'commodity_pricing': transform_commodity_pricing(station=station, station_id=station_id)
         }
         if 'primaryEconomy' in station:
             results[station_id]['economy'] = {
@@ -621,7 +622,7 @@ def load_stations(*, data, mapped, system_id):
     return results
 
 
-def load_bodies(*, data, mapped, system_id):
+def transform_bodies(*, data, mapped, system_id):
     """
     Load the station information attached to bodies in a single data object from spansh.
     To be specific, data should be a complete line from the galaxy_stations.json
@@ -632,7 +633,7 @@ def load_bodies(*, data, mapped, system_id):
         system_id: The ID of the system of the factions.
 
     Returns: A dictionary with all the parsed information of the bodies in the data.
-             See load_station for keys.
+             See transform_station for keys.
     """
     results = {}
 
@@ -642,7 +643,7 @@ def load_bodies(*, data, mapped, system_id):
     for body in data['bodies']:
         if body['stations']:
             body['updated_at'] = data['updated_at']
-            results.update(load_stations(data=body, mapped=mapped, system_id=system_id))
+            results.update(transform_stations(data=body, mapped=mapped, system_id=system_id))
 
     return results
 
@@ -893,6 +894,9 @@ def eddb_maps(eddb_session):
     # Specific spansh name aliases
     mapped['power_state']['Controlled'] = mapped['power_state']['Control']
     mapped['power'].update({x.eddn: x.id for x in eddb_session.query(Power)})
+    # No valid None for faction state
+    mapped['faction_state']['None'] = 80
+    mapped['faction_state'][None] = 80
 
     station_map = mapped['station_type']
     station_map['Drake-Class Carrier'] = station_map['Fleet Carrier']
@@ -1085,7 +1089,7 @@ def generate_module_commodities_caches(eddb_session):
     mod_dict, comm_dict = collect_modules_and_commodities(eddb_session)
     mapped = eddb_maps(eddb_session)
 
-    comms = [SCommodity(name=x['name'], group_id=mapped['commodity_group'][x['category']]) for x in comm_dict.values()]
+    comms = [SCommodity(id=x['commodityId'], name=x['name'], group_id=mapped['commodity_group'][x['category']]) for x in comm_dict.values()]
     with open(SPANSH_COMMODITIES, 'w', encoding='utf-8') as fout:
         pprint.pprint(comms, fout)
 
@@ -1107,7 +1111,7 @@ def generate_module_commodities_caches(eddb_session):
         pprint.pprint(mods, fout)
 
 
-def process_job(number, total, galaxy_json, out_fname):
+def transform_galaxy_json(number, total, galaxy_json, out_fname):
     """
     Process number lines in the galaxy_json, skip all lines you aren't assigned.
 
@@ -1140,10 +1144,10 @@ def process_job(number, total, galaxy_json, out_fname):
             data = json.loads(line)
 
             try:
-                system = load_system(data=data, mapped=mapped)
-                factions = load_factions(data=data, mapped=mapped, system_id=system['id'])
-                stations = load_stations(data=data, mapped=mapped, system_id=system['id'])
-                stations.update(load_bodies(data=data, mapped=mapped, system_id=system['id']))
+                system = transform_system(data=data, mapped=mapped)
+                factions = transform_factions(data=data, mapped=mapped, system_id=system['id'])
+                stations = transform_stations(data=data, mapped=mapped, system_id=system['id'])
+                stations.update(transform_bodies(data=data, mapped=mapped, system_id=system['id']))
                 fout.write(str({
                     'system': system,
                     'factions': factions,
@@ -1153,6 +1157,206 @@ def process_job(number, total, galaxy_json, out_fname):
                 logging.getLogger(__name__).error("SPANSH: Missing system ID: %s", data['name'])
 
         return out_fname
+
+
+def update_system(eddb_session, *, system_kwargs):
+    """
+    Upsert a system in the EDDB.
+
+    Args:
+        eddb_session: A session onto the EDDB.
+        kwargs: The kwargs for a cogdb.eddb.System object.
+
+    Returns: The updated cogdb.eddb.System object
+    """
+    try:
+        system = eddb_session.query(System).filter(System.id == system_kwargs['id']).one()
+        system.update(**system_kwargs)
+    except sqla.exc.NoResultFound:
+        system = System(**system_kwargs)
+        eddb_session.add(system)
+
+    return system
+
+
+def update_factions(eddb_session, *, factions):
+    """
+    Upsert the factions for a system in the EDDB.
+
+    Args:
+        eddb_session: A session onto the EDDB.
+        factions: A dictionary of kwargs for a series of factions and their respective factions, influence and state objects.
+
+    Returns: A dictionary with the updated database objects.
+    """
+    updated = {}
+
+    for faction_info in factions.values():
+        faction_kwargs = faction_info['faction']
+        try:
+            faction = eddb_session.query(Faction).\
+                filter(Faction.id == faction_kwargs['id']).\
+                one()
+            faction.update(**faction_kwargs)
+        except sqla.exc.NoResultFound:
+            faction = Faction(**faction_kwargs)
+            eddb_session.add(faction)
+
+        inf_kwargs = faction_info['influence']
+        try:
+            influence = eddb_session.query(Influence).\
+                filter(Influence.faction_id == inf_kwargs['faction_id'],
+                       Influence.system_id == inf_kwargs['system_id']).\
+                one()
+            influence.update(**inf_kwargs)
+        except sqla.exc.NoResultFound:
+            influence = Influence(**inf_kwargs)
+            eddb_session.add(influence)
+
+        state_kwargs = faction_info['state']
+        eddb_session.query(FactionActiveState).\
+            filter(FactionActiveState.faction_id == state_kwargs['faction_id'],
+                   FactionActiveState.system_id == state_kwargs['system_id']).\
+            delete()
+        state = FactionActiveState(**state_kwargs)
+        eddb_session.add(state)
+
+        updated[faction_kwargs['id']] = {
+            'faction': faction,
+            'influence': influence,
+            'state': state_kwargs,
+        }
+
+    return updated
+
+
+def update_commodity_pricing(eddb_session, *, pricings, updated_at):
+    """
+    Update the modules sold at a station. All existing entries for station will be deleted.
+
+    Args:
+        eddb_session: A session onto the EDDB.
+        modules: A dictionary of kwargs for a series of SModuleSold objects.
+        updated_at: The timestamp of the station update.
+
+    Returns: A dictionary with the updated database objects.
+    """
+    station_id = pricings[0]['station_id']
+    eddb_session.query(SCommodityPricing).\
+        filter(SCommodityPricing.station_id == station_id).\
+        delete()
+
+    updated = []
+    for kwargs in pricings:
+        kwargs['updated_at'] = updated_at
+        module = SCommodityPricing(**kwargs)
+        updated += [module]
+
+    eddb_session.add_all(updated)
+    return updated
+
+
+def update_sold_modules(eddb_session, *, modules, updated_at):
+    """
+    Update the modules sold at a station. All existing entries for station will be deleted.
+
+    Args:
+        eddb_session: A session onto the EDDB.
+        modules: A dictionary of kwargs for a series of SModuleSold objects.
+        updated_at: The timestamp of the station update.
+
+    Returns: A list of all update SModuleSold objects at the station.
+    """
+    station_id = modules[0]['station_id']
+    eddb_session.query(SModuleSold).\
+        filter(SModuleSold.station_id == station_id).\
+        delete()
+
+    updated = []
+    for kwargs in modules:
+        kwargs['updated_at'] = updated_at
+        module = SModuleSold(**kwargs)
+        updated += [module]
+
+    eddb_session.add_all(updated)
+    return updated
+
+
+def update_stations(eddb_session, *, stations):
+    """
+    Upsert the factions for a system in the EDDB.
+
+    Args:
+        eddb_session: A session onto the EDDB.
+        factions: A dictionary of kwargs for a series of factions and their respective factions, influence and state objects.
+
+    Returns: A dictionary with the updated database objects.
+    """
+    updated = {}
+
+    for station_info in stations.values():
+        station_kwargs = station_info['station']
+        try:
+            station = eddb_session.query(Station).\
+                filter(Station.id == station_kwargs['id']).\
+                one()
+            station.update(**station_kwargs)
+        except sqla.exc.NoResultFound:
+            station = Station(**station_kwargs)
+            eddb_session.add(station)
+
+        features_kwargs = station_info['features']
+        try:
+            features = eddb_session.query(StationFeatures).\
+                filter(StationFeatures.id == features_kwargs['id']).\
+                one()
+            features.update(**features_kwargs)
+        except sqla.exc.NoResultFound:
+            features = StationFeatures(**features_kwargs)
+            eddb_session.add(features)
+
+        updated[station_kwargs['id']] = {
+            'station': station,
+            'features': features,
+        }
+
+        #  if station_info.get('modules_sold'):
+            #  update_sold_modules(eddb_session, modules=station_info['modules_sold'],
+                                #  updated_at=station_kwargs['updated_at'])
+        #  if station_info.get('commodity_pricing'):
+            #  update_commodity_pricing(eddb_session, pricings=station_info['commodity_pricing'],
+                                     #  updated_at=station_kwargs['updated_at'])
+        if station_info.get('economy'):
+            economy_kwargs = station_info['economy']
+            try:
+                economy = eddb_session.query(StationEconomy).\
+                    filter(StationEconomy.id == economy_kwargs['id'],
+                           StationEconomy.primary).\
+                    one()
+                economy.economy_id = economy_kwargs['economy_id']
+            except sqla.exc.NoResultFound:
+                economy = StationEconomy(**economy_kwargs)
+                eddb_session.add(economy)
+            updated[economy_kwargs['id']]['economy'] = economy
+
+    return updated
+
+
+def import_galaxy_objects(fname):
+    """
+    Process number lines in the galaxy_json, skip all lines you aren't assigned.
+
+    Args:
+        fname: The fname of a file written out from transform_galaxy_json.
+    """
+    with cogdb.session_scope(cogdb.EDDBSession) as eddb_session,\
+         open(fname, 'r', encoding='utf-8') as fin:
+
+        for line in fin:
+            info = eval(line)
+            update_system(eddb_session, system_kwargs=info['system'])
+            update_factions(eddb_session, factions=info['factions'])
+            update_stations(eddb_session, stations=info['stations'])
 
 
 async def parallel_process(galaxy_json, *, jobs):
@@ -1168,20 +1372,28 @@ async def parallel_process(galaxy_json, *, jobs):
     """
     print(f"parallel_process: Starting {jobs} jobs to process {galaxy_json}")
     loop = asyncio.get_event_loop()
-    futs = []
 
     with cfut.ProcessPoolExecutor(jobs) as pool:
+        futs = []
         for num in range(0, jobs):
             futs += [loop.run_in_executor(
                 pool,
-                process_job, num, jobs, GALAXY_JSON,
+                transform_galaxy_json, num, jobs, GALAXY_JSON,
                 galaxy_json.replace('.json', f'.json.{num:02}')
             )]
 
         await asyncio.wait(futs)
-
         print('parallel_process: Results written out to:')
-        pprint.pprint([x.result() for x in futs])
+        fnames = [x.result() for x in futs]
+        pprint.pprint(fnames)
+
+        futs = []
+        for num in range(0, jobs):
+            await loop.run_in_executor(
+                pool,
+                import_galaxy_objects, galaxy_json.replace('.json', f'.json.{num:02}')
+            )
+        print("Database update complete.")
 
 
 def drop_tables():  # pragma: no cover | destructive to test
@@ -1220,19 +1432,20 @@ def recreate_tables():
 def main():
     """ Main function. """
     start = datetime.datetime.utcnow()
-    recreate_tables()
+    #  recreate_tables()
     with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
-        preload_tables(eddb_session)
-        #  mapped = eddb_maps(eddb_session)
-        #  print('Missing systems')
-        #  print(len(set(mapped['systems'].values()) - {x[0] for x in eddb_session.query(System.id)}))
-        #  print('Missing factions')
-        #  print(len(set(mapped['factions'].values()) - {x[0] for x in eddb_session.query(Faction.id)}))
-        #  print('Missing stations')
-        #  print(len(set(mapped['stations'].values()) - {x[0] for x in eddb_session.query(Station.id)}))
+        #  preload_tables(eddb_session)
+        mapped = eddb_maps(eddb_session)
+        print('Missing systems')
+        print(len(set(mapped['systems'].values()) - {x[0] for x in eddb_session.query(System.id)}))
+        pprint.pprint(set(mapped['systems'].values()) - {x[0] for x in eddb_session.query(System.id)})
+        print('Missing factions')
+        print(set(mapped['factions'].values()) - {x[0] for x in eddb_session.query(Faction.id)})
+        print('Missing stations')
+        print(len(set(mapped['stations'].values()) - {x[0] for x in eddb_session.query(Station.id)}))
 
-    asyncio.new_event_loop().run_until_complete(parallel_process(GALAXY_JSON, jobs=os.cpu_count()))
-    print("Time taken", datetime.datetime.utcnow() - start)
+    #  asyncio.new_event_loop().run_until_complete(parallel_process(GALAXY_JSON, jobs=math.floor(os.cpu_count() * 1.5)))
+    #  print("Time taken", datetime.datetime.utcnow() - start)
 
     # Mainly for experimenting
     #  with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:

@@ -69,7 +69,7 @@ LEN = {  # Lengths for strings stored in the db
     "station": 45,
     "station_pad": 4,
     "station_type": 24,
-    "system": 30,
+    "system": 50,
     "weapon_mode": 6,
 }
 LEN["spy_location"] = 5 + LEN["system"] + LEN["station"]
