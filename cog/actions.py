@@ -2499,6 +2499,10 @@ async def monitor_snipe_merits(client, *, repeat=True):  # pragma: no cover
                         for chan in snipe_chans:
                             await client.send_message(chan, msg + reminder)
 
+            # Sleep until 5 mins after tick
+            five_after_tick = (next_cycle - datetime.datetime.utcnow()).seconds + 60 * 5
+            await asyncio.sleep(five_after_tick)
+
 
 async def push_spy_to_gal_scanner():  # pragma: no cover | tested elsewhere
     """
