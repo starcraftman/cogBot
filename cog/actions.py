@@ -2592,8 +2592,9 @@ async def monitor_powerplay_api(client, *, repeat=True, delay=1800):
             await cog.util.get_url(cog.util.CONF.scrape.url)  # Sanity check service up
 
             log.warning("Start monitor powerplay.")
-            base_text = await cog.util.get_url(os.path.join(cog.util.CONF.scrape.api, 'getraw', 'base.json'))
-            ref_text = await cog.util.get_url(os.path.join(cog.util.CONF.scrape.api, 'getraw', 'refined.json'))
+            params = {'token': cog.util.CONF.scrape.token}
+            base_text = await cog.util.get_url(os.path.join(cog.util.CONF.scrape.api, 'getraw', 'base.json'), params=params)
+            ref_text = await cog.util.get_url(os.path.join(cog.util.CONF.scrape.api, 'getraw', 'refined.json'), params=params)
 
             with cfut.ProcessPoolExecutor(max_workers=4) as pool:
                 try:

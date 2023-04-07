@@ -1166,6 +1166,7 @@ async def post_systems(systems, callback=None):  # pragma: no cover, would ping 
 
     influence_ids = []
     delay_values = [random.randint(x - 4, x + 8) for x in HELD_DELAY]  # Randomly choose bounds too
+    api_url = f'{cog.util.CONF.scrape.api}?token={cog.util.CONF.scrape.token}'
     for sys in systems:
         log.warning("POSTAPI Request: %s.", sys.name)
 
@@ -1173,7 +1174,7 @@ async def post_systems(systems, callback=None):  # pragma: no cover, would ping 
         while retry < 180:
             try:
                 response_text = await cog.util.post_json_url(
-                    cog.util.CONF.scrape.api, {sys.name: sys.ed_system_id}, timeout=180
+                    api_url, {sys.name: sys.ed_system_id}, timeout=180
                 )
                 break
             except asyncio.TimeoutError:
