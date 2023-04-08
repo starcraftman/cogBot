@@ -1655,6 +1655,21 @@ class Route(Action):
         await self.bot.send_message(self.msg.channel, "\n".join(lines))
 
 
+class Token(Action):  # pragma: no cover, trivial implementation
+    """
+    Allow the api session token to be updated by command.
+    """
+    async def execute(self):
+        msg = "Permission denied, user not authorised."
+
+        if self.msg.author.id in cog.util.CONF.scrape.allowed:
+            cog.util.CONF.update('scrape', 'token', value=self.args.token)
+            await cog.util.CONF.awrite()
+            msg = "API Session token updated to config."
+
+        await self.bot.send_message(self.msg.channel, msg)
+
+
 class Scout(Action):
     """
     Generate scout route.

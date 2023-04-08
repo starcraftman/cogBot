@@ -698,6 +698,20 @@ def subs_status(subs, prefix):
 
 
 @register_parser
+def subs_token(subs, prefix):
+    """ Subcommand parsing for dist """
+    desc = f"""Update the API token.
+
+**{prefix}token <TOKEN>**
+        Update the token for the api endpoint.
+    """
+    sub = subs.add_parser(prefix + 'token', description=desc, formatter_class=RawHelp)
+    CMD_MAP['Token'] = 'token'
+    sub.set_defaults(cmd='Token')
+    sub.add_argument('token', help='The token in question.')
+
+
+@register_parser
 def subs_time(subs, prefix):
     """ Subcommand parsing for time """
     sub = subs.add_parser(prefix + 'time', description='Time in game and to ticks.')
