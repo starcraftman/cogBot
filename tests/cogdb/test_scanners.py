@@ -306,8 +306,8 @@ def test_umscanner_update_systemsum_priority_dict():
 
 
 def test_umscanner_update_systemsum_dict():
-    data = UMScanner.update_systemum_dict("G", 7000, 500, 4300)
-    assert data == [{"range": "G10:G13", "values": [[7000], ["50000.00%"], ["Hold Merits"], [4300]]}]
+    data = UMScanner.update_systemum_dict("G", 7000, 500)
+    assert data == [{"range": "G10:G11", "values": [[7000], ["50000.00%"]]}]
 
 
 def test_umscanner_update_hold_dict():

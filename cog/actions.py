@@ -1224,8 +1224,7 @@ class Hold(Action):
             system.set_status(self.args.set)
             # TODO: Same payload now, but will have to switch if diverge.
             self.payloads += cogdb.scanners.UMScanner.update_systemum_dict(
-                system.sheet_col, system.progress_us,
-                system.progress_them, system.map_offset
+                system.sheet_col, system.progress_us, system.progress_them
             )
 
         self.log.info('Hold %s - After update, hold: %s\nSystem: %s.',
@@ -2002,8 +2001,7 @@ class UM(Action):
             if self.args.set or self.args.offset:
                 # TODO: Same payload now, but will have to switch if diverge.
                 self.payloads += cogdb.scanners.UMScanner.update_systemum_dict(
-                    system.sheet_col, system.progress_us,
-                    system.progress_them, system.map_offset
+                    system.sheet_col, system.progress_us, system.progress_them
                 )
 
             if self.payloads:
@@ -2551,7 +2549,7 @@ async def push_spy_to_sheets():  # pragma: no cover | tested elsewhere
             payloads = []
             for umsys in umsystems:
                 payloads += scanner.update_systemum_dict(
-                    umsys['sheet_col'], umsys['progress_us'], umsys['progress_them'], umsys['map_offset']
+                    umsys['sheet_col'], umsys['progress_us'], umsys['progress_them']
                 )
             print("UM Payloads")
             __import__('pprint').pprint(payloads)
@@ -2567,7 +2565,7 @@ async def push_spy_to_sheets():  # pragma: no cover | tested elsewhere
                 payloads = []
                 for umsys in umsystems:
                     payloads += scanner.update_systemum_dict(
-                        umsys['sheet_col'], umsys['progress_us'], umsys['progress_them'], umsys['map_offset']
+                        umsys['sheet_col'], umsys['progress_us'], umsys['progress_them']
                     )
                 print("Snipe Payloads")
                 __import__('pprint').pprint(payloads)
