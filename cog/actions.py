@@ -2588,6 +2588,9 @@ async def monitor_powerplay_api(client, *, repeat=True, delay=1800):
         delay: The delay in seconds between checks.
     """
     log = logging.getLogger(__name__)
+    last_base = None
+    params = {'token': cog.util.CONF.scrape.token}
+    log.warning("Started powerplay monitor.")
 
     while True:
         await asyncio.sleep(delay)
@@ -2595,21 +2598,20 @@ async def monitor_powerplay_api(client, *, repeat=True, delay=1800):
         try:
             await cog.util.get_url(cog.util.CONF.scrape.url)  # Sanity check service up
 
-            log.warning("Start monitor powerplay.")
-            params = {'token': cog.util.CONF.scrape.token}
-            base_text = await cog.util.get_url(os.path.join(cog.util.CONF.scrape.api, 'getraw', 'base.json'), params=params)
-            ref_text = await cog.util.get_url(os.path.join(cog.util.CONF.scrape.api, 'getraw', 'refined.json'), params=params)
-
             with cfut.ProcessPoolExecutor(max_workers=4) as pool:
                 try:
-                    log.warning("Parse retrieved json.")
-                    await client.loop.run_in_executor(
-                        pool, spy.load_base_json, base_text,
-                    )
+                    if last_base != cog.util.current_cycle():
+                        log.warning("Fetching base.json.")
+                        base_text = await cog.util.get_url(os.path.join(cog.util.CONF.scrape.api, 'getraw', 'base.json'), params=params)
+                        await client.loop.run_in_executor(
+                            pool, spy.load_base_json, base_text,
+                        )
+
+                    log.warning("Fetching refined.json.")
+                    ref_text = await cog.util.get_url(os.path.join(cog.util.CONF.scrape.api, 'getraw', 'refined.json'), params=params)
                     await client.loop.run_in_executor(
                         pool, spy.load_refined_json, ref_text,
                     )
-
                 except (asyncio.CancelledError, asyncio.InvalidStateError) as exc:
                     log.error("Error with future: %s", str(exc))
 
