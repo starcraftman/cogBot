@@ -1349,14 +1349,18 @@ def import_galaxy_objects(fname):
     Args:
         fname: The fname of a file written out from transform_galaxy_json.
     """
-    with cogdb.session_scope(cogdb.EDDBSession) as eddb_session,\
-         open(fname, 'r', encoding='utf-8') as fin:
+    folder = Path(fname).parent
+    #  with open(fname, 'r', encoding='utf-8') as fin,\
+         #  open(folder / 'systems.json', 'a', encoding='utf-8') as sys_out,\
+         #  open(folder / 'factions.json', 'a', encoding='utf-8') as sys_outRuuu
+         #  open(folder / 'factions.json', 'a', encoding='utf-8') as sys_out:
 
-        for line in fin:
-            info = eval(line)
-            update_system(eddb_session, system_kwargs=info['system'])
-            update_factions(eddb_session, factions=info['factions'])
-            update_stations(eddb_session, stations=info['stations'])
+        #  for line in fin:
+            #  info = eval(line)
+
+            #  update_system(eddb_session, system_kwargs=info['system'])
+            #  update_factions(eddb_session, factions=info['factions'])
+            #  update_stations(eddb_session, stations=info['stations'])
 
 
 async def parallel_process(galaxy_json, *, jobs):
