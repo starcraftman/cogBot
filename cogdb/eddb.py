@@ -554,7 +554,7 @@ class StationFeatures(ReprMixin, TimestampMixin, UpdatableMixin, Base):
         'repair', 'shipyard', 'technology_broker', 'universal_cartographics', 'updated_at'
     ]
 
-    id = sqla.Column(sqla.Integer, sqla.ForeignKey('stations.id'), primary_key=True)
+    id = sqla.Column(sqla.BigInteger, sqla.ForeignKey('stations.id'), primary_key=True)
 
     blackmarket = sqla.Column(sqla.Boolean)
     carrier_administration = sqla.Column(sqla.Boolean)
@@ -606,7 +606,7 @@ class StationEconomy(ReprMixin, Base):
     __tablename__ = "station_economies"
     _repr_keys = ['id', 'economy_id', 'primary', 'proportion']
 
-    id = sqla.Column(sqla.Integer, sqla.ForeignKey('stations.id'), primary_key=True)
+    id = sqla.Column(sqla.BigInteger, sqla.ForeignKey('stations.id'), primary_key=True)
     economy_id = sqla.Column(sqla.Integer, sqla.ForeignKey('economies.id'), primary_key=True)
     primary = sqla.Column(sqla.Boolean, primary_key=True, default=False)
     proportion = sqla.Column(sqla.Float)
@@ -627,7 +627,7 @@ class Station(ReprMixin, TimestampMixin, UpdatableMixin, Base):
         'type_id', 'system_id', 'controlling_minor_faction_id', 'updated_at'
     ]
 
-    id = sqla.Column(sqla.Integer, primary_key=True)
+    id = sqla.Column(sqla.BigInteger, primary_key=True)
     controlling_minor_faction_id = sqla.Column(sqla.Integer, sqla.ForeignKey('factions.id'))
     system_id = sqla.Column(sqla.Integer)
     type_id = sqla.Column(sqla.Integer, nullable=False)
@@ -908,9 +908,9 @@ class Conflict(ReprMixin, TimestampMixin, UpdatableMixin, Base):
     status_id = sqla.Column(sqla.Integer, sqla.ForeignKey('conflict_states.id'))
     type_id = sqla.Column(sqla.Integer, sqla.ForeignKey('conflict_states.id'))
     faction1_id = sqla.Column(sqla.Integer, sqla.ForeignKey('factions.id'), primary_key=True)
-    faction1_stake_id = sqla.Column(sqla.Integer, sqla.ForeignKey('stations.id'))
+    faction1_stake_id = sqla.Column(sqla.BigInteger, sqla.ForeignKey('stations.id'))
     faction2_id = sqla.Column(sqla.Integer, sqla.ForeignKey('factions.id'), primary_key=True)
-    faction2_stake_id = sqla.Column(sqla.Integer, sqla.ForeignKey('stations.id'))
+    faction2_stake_id = sqla.Column(sqla.BigInteger, sqla.ForeignKey('stations.id'))
 
     faction1_days = sqla.Column(sqla.Integer)
     faction2_days = sqla.Column(sqla.Integer)
