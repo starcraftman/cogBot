@@ -539,7 +539,7 @@
   SModule(id=128662535, group_id=2, ship_id=None, name='Basic Discovery Scanner', symbol='Int_StellarBodyDiscoveryScanner_Standard', mod_class=1, rating='E'),
   SModule(id=128663560, group_id=2, ship_id=None, name='Intermediate Discovery Scanner', symbol='Int_StellarBodyDiscoveryScanner_Intermediate', mod_class=1, rating='D'),
   SModule(id=128663561, group_id=2, ship_id=None, name='Advanced Discovery Scanner', symbol='Int_StellarBodyDiscoveryScanner_Advanced', mod_class=1, rating='C'),
-  SModule(id=128666634, group_id=2, ship_id=None, name='Detailed Surface Scanner', symbol='Int_DetailedSurfaceScanner_Tiny', mod_class=1, rating='I'),
+  SModule(id=128666634, group_id=2, ship_id=None, name='Detailed Surface Scanner', symbol='Int_DetailedSurfaceScanner_Tiny', mod_class=1, rating='C'),
   SModule(id=128666644, group_id=2, ship_id=None, name='Fuel Scoop', symbol='Int_FuelScoop_Size1_Class1', mod_class=1, rating='E'),
   SModule(id=128666645, group_id=2, ship_id=None, name='Fuel Scoop', symbol='Int_FuelScoop_Size2_Class1', mod_class=2, rating='E'),
   SModule(id=128666646, group_id=2, ship_id=None, name='Fuel Scoop', symbol='Int_FuelScoop_Size3_Class1', mod_class=3, rating='E'),

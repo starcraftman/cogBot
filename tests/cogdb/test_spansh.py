@@ -54,7 +54,7 @@ def test_parse_station_features(f_json):
     assert not feature['interstellar_factors']
 
 
-def test_transform_commodities(f_json, eddb_session):
+def test_transform_commodities(f_json, f_spy_ships, eddb_session):
     mapped = cogdb.spansh.eddb_maps(eddb_session)
     expect = cogdb.spansh.SCommodity(id=128924331, group_id=9, name='Alexandrite')
 
@@ -65,7 +65,7 @@ def test_transform_commodities(f_json, eddb_session):
         break
 
 
-def test_transform_commodity_pricing(f_json, eddb_session):
+def test_transform_commodity_pricing(f_json, f_spy_ships, eddb_session):
     pricing = {
         'buy_price': 615864,
         'commodity_id': 128924331,
@@ -84,7 +84,7 @@ def test_transform_commodity_pricing(f_json, eddb_session):
                 break
 
 
-def test_transform_modules(f_json, eddb_session):
+def test_transform_modules(f_json, f_spy_ships, eddb_session):
     mapped = cogdb.spansh.eddb_maps(eddb_session)
     expect = cogdb.spansh.SModule(id=128777340, group_id=2, ship_id=None, name='Repair Limpet Controller', symbol='Int_DroneControl_Repair_Size5_Class4', mod_class=5, rating='B')
     for station in f_json['stations']:
@@ -94,7 +94,7 @@ def test_transform_modules(f_json, eddb_session):
             return
 
 
-def test_transform_modules_sold(f_json, eddb_session):
+def test_transform_modules_sold(f_json, f_spy_ships, eddb_session):
     expect = {'module_id': 128049511, 'station_id': 67790}
     for station in f_json['stations']:
         if 'outfitting' in station and 'modules' in station['outfitting'] and station['outfitting']['modules']:
@@ -103,7 +103,7 @@ def test_transform_modules_sold(f_json, eddb_session):
             return
 
 
-def test_transform_system(f_json, eddb_session):
+def test_transform_system(f_json, f_spy_ships, eddb_session):
     mapped = cogdb.spansh.eddb_maps(eddb_session)
     results = cogdb.spansh.transform_system(data=f_json, mapped=mapped)
     expect = {
@@ -125,7 +125,7 @@ def test_transform_system(f_json, eddb_session):
     assert expect == results
 
 
-def test_transform_factions(f_json, eddb_session):
+def test_transform_factions(f_json, f_spy_ships, eddb_session):
     mapped = cogdb.spansh.eddb_maps(eddb_session)
     results = cogdb.spansh.transform_factions(data=f_json, mapped=mapped, system_id=15976)
 
@@ -159,7 +159,7 @@ def test_transform_factions(f_json, eddb_session):
     assert set(results[faction_id].keys()) == {'faction', 'influence', 'state'}
 
 
-def test_transform_stations(f_json, eddb_session):
+def test_transform_stations(f_json, f_spy_ships, eddb_session):
     mapped = cogdb.spansh.eddb_maps(eddb_session)
     results = cogdb.spansh.transform_stations(data=f_json, mapped=mapped, system_id=15976)
     station_id = [x for x in results if results[x]['station']['name'] == 'Zholobov Gateway'][0]
@@ -179,7 +179,7 @@ def test_transform_stations(f_json, eddb_session):
     assert list(sorted(results[station_id].keys())) == ['commodity_pricing', 'controlling_factions', 'economy', 'features', 'modules_sold', 'station']
 
 
-def test_transform_bodies(f_json, eddb_session):
+def test_transform_bodies(f_json, f_spy_ships, eddb_session):
     mapped = cogdb.spansh.eddb_maps(eddb_session)
     results = cogdb.spansh.transform_bodies(data=f_json, mapped=mapped, system_id=15976)
     station_id = 98362
@@ -247,7 +247,7 @@ def test_update_name_map():
             assert fin.read() == expect
 
 
-def test_eddb_maps(eddb_session):
+def test_eddb_maps(f_spy_ships, eddb_session):
     result = cogdb.spansh.eddb_maps(eddb_session)
     assert 'stations' in result
     assert 'power' in result
