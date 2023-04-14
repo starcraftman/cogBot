@@ -22,6 +22,7 @@ import json
 import logging
 import os
 import pprint
+import sys
 from pathlib import Path
 
 import sqlalchemy as sqla
@@ -312,12 +313,17 @@ def preload_tables(eddb_session, only_groups=False):  # pragma: no cover
     eddb_session.flush()
 
     if not only_groups:
-        with open(SPANSH_COMMODITIES, 'r', encoding='utf-8') as fin:
-            comms = eval(fin.read())
-            eddb_session.add_all(comms)
-        with open(SPANSH_MODULES, 'r', encoding='utf-8') as fin:
-            modules = eval(fin.read())
-            eddb_session.add_all(modules)
+        try:
+            with open(SPANSH_COMMODITIES, 'r', encoding='utf-8') as fin:
+                comms = eval(fin.read())
+                eddb_session.add_all(comms)
+            with open(SPANSH_MODULES, 'r', encoding='utf-8') as fin:
+                modules = eval(fin.read())
+                eddb_session.add_all(modules)
+        except FileNotFoundError:
+            print("Warning: Missing critical caches for commodities and modules. Please run: python -m cogdb.dbi -c")
+            sys.exit(0)
+
 
 
 def drop_tables():  # pragma: no cover | destructive to test
