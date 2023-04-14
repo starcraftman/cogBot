@@ -4,24 +4,14 @@ Site: https://spansh.co.uk/dumps
 Link: https://downloads.spansh.co.uk/galaxy_stations.json.gz
 
 1. Spansh data doesn't have fixed "keys", in order to be compatible will need
-lookup ability to map the names of stations, factions and systems => EDDB IDs that are fixed.
+   lookup ability to map the names of stations, factions and systems => EDDB IDs that are fixed.
 2. Each load function here will operate on a "complete" loaded json object, no ijson.
 3. Achieve parallelism by reading from galaxy_json in a striped fashion.
    Each process will open it's own session onto the db.
 4. Speed up update and insert of data by making use of bulk_insert_mappings and bulk_update_mappings
-Compute for each object a list of kwargs to push in.
+   Compute for each object a list of kwargs to push in.
+
 https://towardsdatascience.com/how-to-perform-bulk-inserts-with-sqlalchemy-efficiently-in-python-23044656b97d
-
-System Keys
-['allegiance', 'bodies', 'bodyCount', 'controllingFaction', 'coords', 'date', 'factions', 'government',
-'id64', 'name', 'population', 'powerState', 'powers', 'primaryEconomy', 'secondaryEconomy', 'security', 'stations']
-
-Factions objects
-['allegiance', 'government', 'influence', 'name', 'state']
-
-Stations objects
-['controllingFaction', 'controllingFactionState', 'distanceToArrival', 'government', 'id', 'landingPads',
-'market', 'name', 'outfitting', 'primaryEconomy', 'services', 'shipyard', 'type', 'updateTime']
 """
 import asyncio
 import concurrent.futures as cfut
@@ -1455,7 +1445,7 @@ def cleanup_scratch_files(galaxy_folder):
 
 def main():
     """ Main function, just recreate tables. """
-    recreate_tables()
+    Base.metadata.create_all(cogdb.eddb_engine)
     with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
         preload_tables(eddb_session)
         print(eddb_session.query(SModuleGroup).all())
