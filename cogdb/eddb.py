@@ -238,10 +238,10 @@ class Faction(ReprMixin, TimestampMixin, UpdatableMixin, Base):
     ]
 
     id = sqla.Column(sqla.Integer, primary_key=True)
-    allegiance_id = sqla.Column(sqla.Integer, sqla.ForeignKey('allegiance.id'))
-    government_id = sqla.Column(sqla.Integer, sqla.ForeignKey('gov_type.id'))
+    allegiance_id = sqla.Column(sqla.Integer, sqla.ForeignKey('allegiance.id'), default=5)
+    government_id = sqla.Column(sqla.Integer, sqla.ForeignKey('gov_type.id'), default=176)
     home_system_id = sqla.Column(sqla.Integer, index=True)  # Makes circular foreigns.
-    state_id = sqla.Column(sqla.Integer, sqla.ForeignKey('faction_state.id'))
+    state_id = sqla.Column(sqla.Integer, sqla.ForeignKey('faction_state.id'), default=80)
 
     name = sqla.Column(sqla.String(LEN["faction"]), index=True)
     is_player_faction = sqla.Column(sqla.Boolean, default=False)
@@ -685,10 +685,10 @@ class System(ReprMixin, TimestampMixin, UpdatableMixin, Base):
     id = sqla.Column(sqla.Integer, primary_key=True)
     ed_system_id = sqla.Column(sqla.BigInteger, index=True)
     controlling_minor_faction_id = sqla.Column(sqla.Integer, sqla.ForeignKey('factions.id'), nullable=True)
-    power_id = sqla.Column(sqla.Integer, sqla.ForeignKey('powers.id'))
-    power_state_id = sqla.Column(sqla.Integer, sqla.ForeignKey('power_state.id'))
-    primary_economy_id = sqla.Column(sqla.Integer, sqla.ForeignKey('economies.id'))
-    secondary_economy_id = sqla.Column(sqla.Integer, sqla.ForeignKey('economies.id'))
+    power_id = sqla.Column(sqla.Integer, sqla.ForeignKey('powers.id'), default=0)
+    power_state_id = sqla.Column(sqla.Integer, sqla.ForeignKey('power_state.id'), default=0)
+    primary_economy_id = sqla.Column(sqla.Integer, sqla.ForeignKey('economies.id'), default=10)
+    secondary_economy_id = sqla.Column(sqla.Integer, sqla.ForeignKey('economies.id'), default=10)
     security_id = sqla.Column(sqla.Integer, sqla.ForeignKey('security.id'))
 
     name = sqla.Column(sqla.String(LEN["system"]), index=True)

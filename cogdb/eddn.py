@@ -519,7 +519,10 @@ def create_id_maps(session):
         'Security': {x.eddn: x.id for x in session.query(cogdb.eddb.Security)},
         'StationType': {x.eddn: x.id for x in session.query(cogdb.eddb.StationType)},
     }
-    maps['PowerplayState']['HomeSystem'] = maps['PowerplayState']['Controlled']
+    try:
+        maps['PowerplayState']['HomeSystem'] = maps['PowerplayState']['Controlled']
+    except KeyError:
+        pass
 
     return maps
 

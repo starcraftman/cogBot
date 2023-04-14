@@ -26,16 +26,22 @@ Stations objects
 import asyncio
 import concurrent.futures as cfut
 import datetime
+import functools
+import glob
+import gzip
 import json
 import logging
 import math
 import os
 import pprint
-import time
+import sys
 from pathlib import Path
 
+import argparse
+import requests
 import sqlalchemy as sqla
 from sqlalchemy.schema import UniqueConstraint
+import tqdm
 
 import cogdb
 import cogdb.eddb
@@ -55,7 +61,6 @@ FACTION_MAPF = cog.util.rel_to_abs('data', 'factionMap.json')
 SYSTEM_MAPF = cog.util.rel_to_abs('data', 'systemMap.json')
 STATION_MAPF = cog.util.rel_to_abs('data', 'stationMap.json')
 SYSTEMS_CSV = os.path.join(cog.util.CONF.paths.eddb_store, 'systems.csv')
-GALAXY_JSON = os.path.join(cog.util.CONF.paths.eddb_store, 'galaxy_stations.json')
 SPANSH_COMMODITIES = cog.util.rel_to_abs('data', 'commodities.spansh')
 SPANSH_MODULES = cog.util.rel_to_abs('data', 'modules.spansh')
 SYSTEMS_CSV_INFO = [
@@ -106,10 +111,16 @@ SPANSH_STATION_SERVICES = {
     'Technology Broker': 'technology_broker',
     'Universal Cartographics': 'universal_cartographics',
 }
-OUT_NAMES = [
+SPLIT_FILENAMES = [
     'systems', 'factions', 'influences', 'faction_states',
-    'stations', 'features', 'economies', 'commodities', 'modules', 'controlling_factions'
+    'stations', 'controlling_factions'
 ]
+STATION_KEYS = ['stations', 'features', 'economies', 'modules']
+COMMODITY_STATION_LIMIT = 30000
+CLEANUP_GLOBS = [f"{x}.json.*" for x in SPLIT_FILENAMES] + ['*.correct', '*.uniqu*']
+GALAXY_URL = "https://downloads.spansh.co.uk/galaxy_stations.json.gz"
+GALAXY_JSON = os.path.join(cog.util.CONF.paths.eddb_store, 'galaxy_stations.json')
+GALAXY_COMPRESSION_RATE = 6.35
 
 
 class SpanshParsingError(Exception):
@@ -118,6 +129,7 @@ class SpanshParsingError(Exception):
     """
 
 
+@functools.total_ordering
 class SCommodity(ReprMixin, UpdatableMixin, Base):
     """ A spansh commodity sold at a station. """
     __tablename__ = 'spansh_commodities'
@@ -136,10 +148,15 @@ class SCommodity(ReprMixin, UpdatableMixin, Base):
         return (isinstance(self, SCommodity) and isinstance(other, SCommodity)
                 and hash(self) == hash(other))
 
+    def __lt__(self, other):
+        return (isinstance(self, SCommodity) and isinstance(other, SCommodity)
+                and self.name < other.name)
+
     def __hash__(self):
         return self.id
 
 
+@functools.total_ordering
 class SCommodityGroup(ReprMixin, Base):
     """ The spansh group for a commodity """
     __tablename__ = "spansh_commodity_groups"
@@ -157,18 +174,25 @@ class SCommodityGroup(ReprMixin, Base):
         return (isinstance(self, SCommodityGroup) and isinstance(other, SCommodityGroup)
                 and hash(self) == hash(other))
 
+    def __lt__(self, other):
+        return (isinstance(self, SCommodityGroup) and isinstance(other, SCommodityGroup)
+                and self.name < other.name)
+
     def __hash__(self):
         return self.id
 
 
 class SCommodityPricing(ReprMixin, UpdatableMixin, Base):
-    """ The spansh pricing of a commodity sold at the station indicated. """
+    """
+    The spansh pricing of a commodity sold at the station indicated.
+    Updated_at can be found on station.
+    """
     __tablename__ = 'spansh_commodity_pricing'
     __table_args__ = (
         UniqueConstraint('station_id', 'commodity_id', name='spansh_station_commodity_unique'),
     )
     _repr_keys = [
-        'id', 'station_id', 'commodity_id', "demand", "supply", "buy_price", "sell_price", "updated_at"
+        'id', 'station_id', 'commodity_id', "demand", "supply", "buy_price", "sell_price"
     ]
 
     id = sqla.Column(sqla.BigInteger, primary_key=True)
@@ -179,7 +203,6 @@ class SCommodityPricing(ReprMixin, UpdatableMixin, Base):
     supply = sqla.Column(sqla.Integer, default=0)
     buy_price = sqla.Column(sqla.Integer, default=0)
     sell_price = sqla.Column(sqla.Integer, default=0)
-    updated_at = sqla.Column(sqla.Integer, default=time.time, onupdate=time.time)
 
     @property
     def text(self):
@@ -194,6 +217,7 @@ class SCommodityPricing(ReprMixin, UpdatableMixin, Base):
         return hash(f'{self.station_id}_{self.commodity_id}')
 
 
+@functools.total_ordering
 class SModule(ReprMixin, UpdatableMixin, Base):
     """ A spansh module sold in a shipyard. """
     __tablename__ = 'spansh_modules'
@@ -219,10 +243,15 @@ class SModule(ReprMixin, UpdatableMixin, Base):
         return (isinstance(self, SModule) and isinstance(other, SModule)
                 and hash(self) == hash(other))
 
+    def __lt__(self, other):
+        return (isinstance(self, SModule) and isinstance(other, SModule)
+                and self.name < other.name)
+
     def __hash__(self):
         return self.id
 
 
+@functools.total_ordering
 class SModuleGroup(ReprMixin, Base):
     """ The spansh group for a module """
     __tablename__ = "spansh_module_groups"
@@ -240,24 +269,30 @@ class SModuleGroup(ReprMixin, Base):
         return (isinstance(self, SModuleGroup) and isinstance(other, SModuleGroup)
                 and hash(self) == hash(other))
 
+    def __lt__(self, other):
+        return (isinstance(self, SModuleGroup) and isinstance(other, SModuleGroup)
+                and self.name < other.name)
+
     def __hash__(self):
         return self.id
 
 
 class SModuleSold(ReprMixin, UpdatableMixin, Base):
-    """ The spansh module is sold at the station indicted. """
+    """
+    The spansh module is sold at the station indicted.
+    Updated_at can be found on station.
+    """
     __tablename__ = 'spansh_modules_sold'
     __table_args__ = (
         UniqueConstraint('station_id', 'module_id', name='spansh_station_module_unique'),
     )
     _repr_keys = [
-        'id', 'station_id', 'module_id', "updated_at"
+        'id', 'station_id', 'module_id',
     ]
 
     id = sqla.Column(sqla.BigInteger, primary_key=True)
     station_id = sqla.Column(sqla.BigInteger, sqla.ForeignKey("stations.id"), nullable=False)
     module_id = sqla.Column(sqla.Integer, sqla.ForeignKey("spansh_modules.id"), nullable=False)
-    updated_at = sqla.Column(sqla.Integer, default=time.time, onupdate=time.time)
 
     def __eq__(self, other):
         return (isinstance(self, SModuleSold) and isinstance(other, SModuleSold)
@@ -267,12 +302,19 @@ class SModuleSold(ReprMixin, UpdatableMixin, Base):
         return hash(f'{self.station_id}_{self.module_id}')
 
 
-def preload_tables(eddb_session):  # pragma: no cover
+def preload_tables(eddb_session, only_groups=False):  # pragma: no cover
     """
-    Preload tables with fairly constant group information for modules and commodities.
+    Preload tables with fairly constant information for commodities and modules.
+    Meant to be used to seed a clean database.
+    Includes:
+        SModuleGroup
+        SCommodityGroup
+        SModule
+        SCommodity
 
     Args:
         eddb_session: A session onto EDDB.
+        only_groups: When True, only SModuleGroup and SCommodityGroup will be loaded.
     """
     eddb_session.add_all([
         SModuleGroup(id=1, name='hardpoint'),
@@ -296,12 +338,26 @@ def preload_tables(eddb_session):  # pragma: no cover
         SCommodityGroup(id=15, name='Weapons'),
     ])
     eddb_session.flush()
-    with open(SPANSH_COMMODITIES, 'r', encoding='utf-8') as fin:
-        comms = eval(fin.read())
-        eddb_session.add_all(comms)
-    with open(SPANSH_MODULES, 'r', encoding='utf-8') as fin:
-        modules = eval(fin.read())
-        eddb_session.add_all(modules)
+
+    if not only_groups:
+        with open(SPANSH_COMMODITIES, 'r', encoding='utf-8') as fin:
+            comms = eval(fin.read())
+            eddb_session.add_all(comms)
+        with open(SPANSH_MODULES, 'r', encoding='utf-8') as fin:
+            modules = eval(fin.read())
+            eddb_session.add_all(modules)
+
+
+def print_no_newline(text):
+    """
+    Print text with no new line at end.
+    Then guarantee it flushes immediately to stdout.
+
+    Args:
+        text: The text to write to stdout.
+    """
+    print(text, end='')
+    sys.stdout.flush()
 
 
 def date_to_timestamp(text):
@@ -322,6 +378,30 @@ def date_to_timestamp(text):
         return None
 
 
+def station_key(*, system, station):
+    """
+    Provide a unique key for a given station.
+    Player Fleet Carriers are unique across the entire system by name.
+    Otherwise, station names are not unique globally and will
+    be paired with system.
+
+    Args:
+        system: The name of the system.
+        station: The station information object.
+
+    Returns: A string to uniquely identify station.
+    """
+    key = f"{system}_{station['name']}"
+
+    try:
+        if station['type'] == "Drake-Class Carrier":
+            key = station['name']
+    except KeyError:
+        pass
+
+    return key
+
+
 def parse_station_features(features, *, station_id, updated_at):
     """
     Parse and return a StationFeatures object based on features found in
@@ -332,7 +412,7 @@ def parse_station_features(features, *, station_id, updated_at):
         station_id: The actual id of the station in question.
         update_at: The timestamp to assign to this feature set.
 
-    Returns: The kwargs to create a cogdb.eddb.StationFeatures object
+    Returns: The kwargs to create a StationFeatures object
     """
     kwargs = {
         'id': station_id,
@@ -583,22 +663,22 @@ def transform_stations(*, data, mapped, system_id):
 
     Returns: {station_id: {'station': ..., 'features': ..., 'economy': ..., 'modules_sold': ..., 'commodity_pricing': ...}, ...}
         station_id: The id of the given station
-        station: The information to create a cogdb.eddb.Station object
-        features: The information to create a cogdb.eddb.StationFeatures object
-        economy: The information to create a cogdb.eddb.StationEconomy object
-        modules_sold: The information to create a list of cogdb.eddb.SModuleSold objects for the station
-        commodity_pricing: The information to create a list of cogdb.eddb.SCommodityPricing objects for the station
+        station: The information to create a Station object
+        features: The information to create a StationFeatures object
+        economy: The information to create a StationEconomy object
+        modules_sold: The information to create a list of SModuleSold objects for the station
+        commodity_pricing: The information to create a list of SCommodityPricing objects for the station
     """
     results = {}
     controlling_factions = {}
 
     for station in data['stations']:
-        station_key = f"{data['name']}_{station['name']}"
+        key = station_key(system=data['name'], station=station)
         try:
-            station_id = mapped['stations'][station_key]
+            station_id = mapped['stations'][key]
         except KeyError:
             # Still missing mapping some stations in bodies
-            logging.getLogger(__name__).error("GALAXY: failed to ID station: %s", station_key)
+            logging.getLogger(__name__).error("SPANSH: failed to ID station: %s", key)
             station_id = None
 
         if not station_id or not station.get('type'):
@@ -707,7 +787,7 @@ def split_csv_line(line):
 def systems_csv_importer(eddb_session, csv_path):
     """
     A generator that will parse every line in EDDB.io systems.csv.
-    For each line return a fully parsed cogdb.eddb.System object ready for database.
+    For each line return a fully parsed System object ready for database.
 
     Args:
         eddb_session: A session onto the EDDB.
@@ -748,34 +828,6 @@ def systems_csv_importer(eddb_session, csv_path):
             yield System(**kwargs)
 
 
-def generate_name_maps_from_eddb(eddb_session, *, path, clean=False):
-    """
-    Generate initial name to ID mappings for factions, systems and stations
-    based on initial EDDB IDs that are imported into EDDB traditionally.
-    This will mainly provide IDs for populated space.
-
-    Files written to data folder: factionMap.json, systemMap.json, stationMap.json
-
-    Args:
-        eddb_session: A session onto the EDDB.
-        path: The folder to write the files into.
-        clean: Zero out the "new" map tracking non EDDB IDs added when True
-    """
-    pairings = [
-        ['factionMap.json', {x.name: x.id for x in eddb_session.query(cogdb.eddb.Faction)}],
-        ['systemMap.json', {x.name: x.id for x in eddb_session.query(cogdb.eddb.System)}],
-        ['stationMap.json', {x.name: x.id for x in eddb_session.query(cogdb.eddb.Station)}]
-    ]
-    for fname, themap in pairings:
-        fpath = os.path.join(path, fname)
-        with open(fpath, 'w', encoding='utf-8') as fout:
-            json.dump(themap, fout, indent=JSON_INDENT, sort_keys=True)
-
-        if clean:
-            with open(fpath.replace('Map.json', 'NewMap.json'), 'w', encoding='utf-8') as fout:
-                json.dump({}, fout)
-
-
 def update_name_map(missing_names, *, known_fname, new_fname):
     """
     Provide a means of updating the static name -> id assignments for
@@ -795,7 +847,7 @@ def update_name_map(missing_names, *, known_fname, new_fname):
         new_names = json.load(fin)
     known_ids = list(sorted(known_names.values()))
     last_num = known_ids[-1] if known_ids else 2
-    available = set(range(1, last_num + len(missing_names))) - set(known_ids)
+    available = set(range(1, last_num + len(missing_names) + 10)) - set(known_ids)
     available = list(sorted(available, reverse=True))
 
     for name in missing_names:
@@ -809,18 +861,13 @@ def update_name_map(missing_names, *, known_fname, new_fname):
         json.dump(new_names, fout, indent=JSON_INDENT, sort_keys=True)
 
 
-def update_all_name_maps(galaxy_json_path):  # pragma: no cover
+def update_all_name_maps(factions, systems, stations):  # pragma: no cover
     """
     Update the name maps based on information found in the galaxy_json.
 
     Args:
         galaxy_json_path: Path to the complete galaxy_json file from spansh.
-
-    Raises:
-        FileNotFoundError - Missing a required file.
     """
-    factions, systems, stations = verify_galaxy_ids(galaxy_json_path)
-
     mapped = [
         [factions, 'faction'],
         [systems, 'system'],
@@ -832,25 +879,66 @@ def update_all_name_maps(galaxy_json_path):  # pragma: no cover
 
         known_fname = Path(cog.util.rel_to_abs('data', f'{name}Map.json'))
         new_fname = Path(cog.util.rel_to_abs('data', f'{name}NewMap.json'))
-        if not known_fname.exists():
-            raise FileNotFoundError(f"Missing: {known_fname}")
-        if not new_fname.exists():
-            raise FileNotFoundError(f"Missing: {new_fname}")
+        for fname in (known_fname, new_fname):
+            if not fname.exists():
+                with open(fname, 'w', encoding='utf-8') as fout:
+                    fout.write('{}')
 
         update_name_map(missing, known_fname=known_fname, new_fname=new_fname)
 
 
-def verify_galaxy_ids(dump_path):  # pragma: no cover
+def collect_unique_names(galaxy_json):  # pragma: no cover
     """
-    Verify the IDs of systems, factions and stations in galaxy_stations.json file.
+    Find all unique names in the provided galaxy_json and return a list of all
+    unique system, faction and station names
+    same directory as galaxy_json.
+    Note that station names are not unique globally, just within their system.
 
     Args:
-        dump_path: The file path to the galaxy_stations.json file.
+        galaxy_json: The file path to the galaxy_stations.json file.
+
+    Returns: (systems, factions, stations)
+        factions: A sorted list of all faction names found.
+        systems: A sorted list of all system names found.
+        station: A sorted list of all station keys found, see station_key function.
+    """
+    systems, factions, stations = set(), set(), set()
+
+    with open(galaxy_json, 'r', encoding='utf-8') as fin:
+        for line in fin:
+            if '{' not in line or '}' not in line:
+                continue
+
+            line = line.strip()
+            if line[-1] == ',':
+                line = line[:-1]
+            data = json.loads(line)
+
+            systems.add(data['name'])
+            for faction in data.get('factions', []):
+                factions.add(faction['name'])
+            for station in data.get('stations', []):
+                stations.add(station_key(system=data['name'], station=station))
+            for body in data.get('bodies', []):
+                for station in body.get('stations', []):
+                    stations.add(station_key(system=data['name'], station=station))
+
+    return list(sorted(factions)), list(sorted(systems)), list(sorted(stations))
+
+
+def collect_missing_galaxy_names(galaxy_json):  # pragma: no cover
+    """
+    Collect all system, faction and station unique names from the galaxy file missing from MAPF files.
+    Stations are uniquely identified per station_key func as station names are
+    not gauranteed unique unless they are a fleet carrier.
+
+    Args:
+        galaxy_json: The file path to the galaxy_stations.json file.
 
     Returns: (missing_systems, missing_factions, missing_stations)
-        missing_systems: The names of systems that need static IDs
-        missing_factions: The names of factions that need static IDs
-        missing_stations: The names of stations that need static IDs
+        missing_factions: The sorted names of factions that need static IDs
+        missing_systems: The sorted names of systems that need static IDs
+        missing_stations: The sorted names of station_keys that need static IDs
     """
     missing_systems, missing_factions, missing_stations = set(), set(), set()
     with open(SYSTEM_MAPF, 'r', encoding='utf-8') as fin:
@@ -860,7 +948,7 @@ def verify_galaxy_ids(dump_path):  # pragma: no cover
     with open(STATION_MAPF, 'r', encoding='utf-8') as fin:
         known_stations = json.load(fin)
 
-    with open(dump_path, 'r', encoding='utf-8') as fin:
+    with open(galaxy_json, 'r', encoding='utf-8') as fin:
         for line in fin:
             if '{' not in line or '}' not in line:
                 continue
@@ -876,12 +964,12 @@ def verify_galaxy_ids(dump_path):  # pragma: no cover
                 if faction['name'] not in known_factions:
                     missing_factions.add(faction['name'])
             for station in data.get('stations', []):
-                key = f"{data['name']}_{station['name']}"
+                key = station_key(system=data['name'], station=station)
                 if key not in known_stations:
                     missing_stations.add(key)
             for body in data.get('bodies', []):
                 for station in body.get('stations', []):
-                    key = f"{data['name']}_{station['name']}"
+                    key = station_key(system=data['name'], station=station)
                     if key not in known_stations:
                         missing_stations.add(key)
 
@@ -1023,7 +1111,7 @@ def collect_types(eddb_session):  # pragma: no cover
     __import__('pprint').pprint(list(sorted(station_services)))
 
 
-def collect_modules_and_commodities(eddb_session):
+def collect_modules_and_commodities():
     """
     Collect information on constants in the modules and commodities names and groups among the data.
 
@@ -1116,15 +1204,21 @@ def generate_module_commodities_caches(eddb_session):
     Args:
         eddb_session: A session onto the EDDB.
     """
-    mod_dict, comm_dict = collect_modules_and_commodities(eddb_session)
+    mod_dict, comm_dict = collect_modules_and_commodities()
     mapped = eddb_maps(eddb_session)
 
-    comms = [SCommodity(id=x['commodityId'], name=x['name'], group_id=mapped['commodity_group'][x['category']]) for x in comm_dict.values()]
+    comms = [
+        SCommodity(
+            id=x['commodityId'],
+            name=x['name'],
+            group_id=mapped['commodity_group'][x['category']]
+        ) for x in sorted(comm_dict.values(), key=lambda x: x['commodityId'])
+    ]
     with open(SPANSH_COMMODITIES, 'w', encoding='utf-8') as fout:
-        pprint.pprint(comms, fout)
+        pprint.pprint(comms, fout, indent=2)
 
     mods = []
-    for mod in mod_dict.values():
+    for mod in sorted(mod_dict.values(), key=lambda x: x['moduleId']):
         ship_id = None
         if 'ship' in mod:
             ship_id = mapped['ship'].get(mod['ship'])
@@ -1138,23 +1232,24 @@ def generate_module_commodities_caches(eddb_session):
             rating=mod['rating'],
         )]
     with open(SPANSH_MODULES, 'w', encoding='utf-8') as fout:
-        pprint.pprint(mods, fout)
+        pprint.pprint(mods, fout, indent=2)
 
 
-def transform_galaxy_json(number, total, galaxy_json, out_fname):
+def transform_galaxy_json(number, total, galaxy_json):
     """
     Process number lines in the galaxy_json, skip all lines you aren't assigned.
+    The output of this function is written to a series of files in the same folder
+    as galaxy_json. See SPLIT_FILENAMES for the files written out.
+    Every worker will write out to a separate file ending in it's number, example systems.json.09
 
     Args:
         number: Number assigned to worker, in range [0, total).
         total: The total number of jobs started.
         galaxy_json: The spansh galaxy_json
-        out_fname: A fname to write out all work as parsing.
-
-    Returns: out_fname, where the result was written to.
     """
     cnt = -1
-    out_streams = {x: open(Path(galaxy_json).parent / f'{x}.json.{number:02}', 'w', encoding='utf-8') for x in OUT_NAMES}
+    parent_dir = Path(galaxy_json).parent
+    out_streams = {x: open(parent_dir / f'{x}.json.{number:02}', 'w', encoding='utf-8') for x in SPLIT_FILENAMES}
     with cogdb.session_scope(cogdb.EDDBSession) as eddb_session,\
          open(galaxy_json, 'r', encoding='utf-8') as fin:
         mapped = eddb_maps(eddb_session)
@@ -1180,7 +1275,7 @@ def transform_galaxy_json(number, total, galaxy_json, out_fname):
                 system = transform_system(data=data, mapped=mapped)
                 factions = transform_factions(data=data, mapped=mapped, system_id=system['id'])
                 stations = transform_stations(data=data, mapped=mapped, system_id=system['id'])
-                # TODO: Fix these
+                # FIXME: Need to better handle this
                 #  stations.update(transform_bodies(data=data, mapped=mapped, system_id=system['id']))
 
                 out_streams['systems'].write(str(system) + ',\n')
@@ -1195,21 +1290,13 @@ def transform_galaxy_json(number, total, galaxy_json, out_fname):
                             output.write(str(data) + ',\n')
 
                 for info in stations.values():
-                    for data, output in [
-                        (info.get('station'), out_streams['stations']),
-                        (info.get('features'), out_streams['features']),
-                        (info.get('economy'), out_streams['economies']),
-                    ]:
-                        if data:
-                            output.write(str(data) + ',\n')
+                    controlling_factions = info.get('controlling_factions', [])
+                    if controlling_factions:
+                        for control in controlling_factions:
+                            out_streams['controlling_factions'].write(str(control) + ',\n')
+                        del info['controlling_factions']
 
-                    for price in info.get('commodity_pricing', []):
-                        out_streams['commodities'].write(str(price) + ',\n')
-                    for module in info.get('modules_sold', []):
-                        out_streams['modules'].write(str(module) + ',\n')
-                    for control in info.get('controlling_factions', []):
-                        out_streams['controlling_factions'].write(str(control) + ',\n')
-
+                    out_streams['stations'].write(str(info) + ',\n')
         finally:
             for stream in out_streams.values():
                 stream.write('\n]')
@@ -1218,58 +1305,140 @@ def transform_galaxy_json(number, total, galaxy_json, out_fname):
 
 def dedupe_factions(faction_fnames, control_fnames, out_fname):
     """
-    Given a series of fnames with faction info,
-    iterate all files and write out only one entry for each faction.
+    Given a list of files with faction information and a collection of controlling faction names,
+    generate a single merged file with all unique faction information. Any name found in control factions
+    that isn't present in faction information will be stubbed into the data.
+
+    Factions to be put into database will be written out to: out_fname (should be factions.json.unique)
+    Factions that are stubbed will be also written out to: factions.json.correct
+
+    Args:
+        faction_fnames: A list of filenames that contain extracted Faction information based on those present in system.
+        control_fnames: A list of filenames that contain extracted control faction names owning stations.
+        out_fname: The filename to write all information out to.
+
+    Returns: The fname that unique factions were written to.
     """
     correct_fname = str(out_fname).replace('unique', 'correct')
-    seen = set()
-    with open(out_fname, 'w', encoding='utf-8') as fout,\
-         open(correct_fname, 'w', encoding='utf-8') as correct:
-        fout.write('[\n')
-        correct.write('[\n')
-        for fname in faction_fnames:
-            with open(fname, 'r', encoding='utf-8') as fin:
-                factions = eval(fin.read())
-                for faction in factions:
-                    if faction['id'] in seen:
-                        continue
+    seen_factions = {}
+    correct_factions = {}
 
-                    fout.write(str(faction) + ',\n')
-                    seen.add(faction['id'])
+    for fname in faction_fnames:
+        with open(fname, 'r', encoding='utf-8') as fin:
+            for faction in eval(fin.read()):
+                seen_factions[faction['id']] = faction
 
-        for fname in control_fnames:
-            with open(fname, 'r', encoding='utf-8') as fin:
-                controls = eval(fin.read())
-                for faction in controls:
-                    if faction['id'] in seen:
-                        continue
-
+    for fname in control_fnames:
+        with open(fname, 'r', encoding='utf-8') as fin:
+            for faction in eval(fin.read()):
+                if faction['id'] not in seen_factions:
                     faction_stub = {
                         'id': faction['id'],
                         'name': faction['name'],
-                        'allegiance_id': 5,
-                        'government_id': 209,
-                        'home_system_id': None,
-                        'state_id': 80,
                     }
-                    correct.write(str(faction_stub) + ',\n')
-                    fout.write(str(faction_stub) + ',\n')
-                    seen.add(faction['id'])
+                    seen_factions[faction_stub['id']] = faction_stub
+                    correct_factions[faction_stub['id']] = faction_stub
 
+    with open(out_fname, 'w', encoding='utf-8') as fout:
+        fout.write('[\n')
+        for faction in seen_factions.values():
+            fout.write(str(faction) + ',\n')
         fout.write('\n]')
+
+    with open(correct_fname, 'w', encoding='utf-8') as correct:
+        correct.write('[\n')
+        for faction in correct_factions.values():
+            correct.write(str(faction_stub) + ',\n')
         correct.write('\n]')
 
 
+def dedupe_stations(fnames, galaxy_folder):
+    """
+    Possibility of multiple sightings of player fleet carriers in data.
+    For each station present in the fnames file, keep only that station with the latest updateTime.
+    All older data is discarded.
+
+    Args:
+        fnames: The list of filenames with station information.
+        galaxy_folder: The folder that we should write out deduped kwargs information to.
+    """
+    stations = {}
+
+    for fname in fnames:
+        with open(fname, 'r', encoding='utf-8') as fin:
+            for info in eval(fin.read()):
+                try:
+                    key = info['station']['id']
+                except KeyError:
+                    pass
+                try:
+                    if info['station']['updated_at'] > stations[key]['station']['updated_at']:
+                        stations[key] = info
+                except KeyError:
+                    stations[key] = info
+
+    module_id, commodity_id = 1, 1
+    try:
+        comm_suffix = 0
+        comm_remaining = math.floor(len(stations) / COMMODITY_STATION_LIMIT)
+        out_streams = {x: open(galaxy_folder / f'{x}.json.unique', 'w', encoding='utf-8') for x in STATION_KEYS}
+        out_streams['commodities'] = open(galaxy_folder / "commodities.json.unique.00", 'w', encoding='utf-8')
+
+        for stream in out_streams.values():
+            stream.write('[\n')
+
+        for ind, info in enumerate(stations.values(), start=1):
+            out_streams['stations'].write(str(info['station']) + ',\n')
+            out_streams['features'].write(str(info['features']) + ',\n')
+            out_streams['economies'].write(str(info['economy']) + ',\n')
+            for module in info['modules_sold']:
+                module['id'] = module_id
+                module_id += 1
+                out_streams['modules'].write(str(module) + ',\n')
+            for commodity in info['commodity_pricing']:
+                commodity['id'] = commodity_id
+                commodity_id += 1
+                out_streams['commodities'].write(str(commodity) + ',\n')
+
+            # Due to the size rollover the commodities file at 25k entries
+            if (ind % COMMODITY_STATION_LIMIT) == 0 and comm_remaining:
+                comm_remaining -= 1
+                comm_suffix += 1
+                out_streams['commodities'].write('\n]')
+                out_streams['commodities'].close()
+                out_streams['commodities'] = open(galaxy_folder / f"commodities.json.unique.{comm_suffix:02}", 'w', encoding='utf-8')
+                out_streams['commodities'].write('[\n')
+
+    finally:
+        for stream in out_streams.values():
+            stream.write('\n]')
+            stream.close()
+
+
 def bulk_insert_from_file(eddb_session, *, fname, cls):
+    """
+    Bulk insert all objects into database based on information from a file.
+
+    Args:
+        eddb_session: A session onto the EDDB.
+        fname: The filename with kwargs of the objects, one per line.
+        cls: The sqlalchemy database class to intantiate for each object.
+    """
     with open(fname, 'r', encoding='utf-8') as fin:
-        rows = eval(fin.read())
-        eddb_session.bulk_insert_mappings(cls, rows)
+        eddb_session.bulk_insert_mappings(cls, eval(fin.read()))
         eddb_session.commit()
 
 
 def single_insert_from_file(eddb_session, *, fname, cls):
     """
-    Slower than bulk inserter, mainly for debugging when an error presents.
+    Single insert all objects into database based on information from a file.
+    This will print every object first and then commit them individually to identify
+    issues in bulk import.
+
+    Args:
+        eddb_session: A session onto the EDDB.
+        fname: The filename with kwargs of the objects, one per line.
+        cls: The sqlalchemy database class to intantiate for each object.
     """
     print('fname', fname)
     with open(fname, 'r', encoding='utf-8') as fin:
@@ -1288,51 +1457,56 @@ def single_insert_from_file(eddb_session, *, fname, cls):
 
 def import_galaxy_objects(number, folder):
     """
-    Process number lines in the galaxy_json, skip all lines you aren't assigned.
+    Bulk import all transformed database objects from their expected files.
+    This is the compliment of transform_galaxy_json.
+    Note that factions must be imported separately and deduped.
 
     Args:
-        fname: The fname of a file written out from transform_galaxy_json.
+        number: The number of this particular process.
+        folder: The folder where all temporary files were written out.
     """
-    fnames = {x: Path(folder) / f'{x}.json.{number:02}' for x in OUT_NAMES}
+    folder = Path(folder)
     with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
-        bulk_insert_from_file(eddb_session, fname=fnames['systems'], cls=cogdb.eddb.System)
-        bulk_insert_from_file(eddb_session, fname=fnames['influences'], cls=cogdb.eddb.Influence)
-        bulk_insert_from_file(eddb_session, fname=fnames['faction_states'], cls=cogdb.eddb.FactionActiveState)
-        bulk_insert_from_file(eddb_session, fname=fnames['stations'], cls=cogdb.eddb.Station)
-        bulk_insert_from_file(eddb_session, fname=fnames['features'], cls=cogdb.eddb.StationFeatures)
-        bulk_insert_from_file(eddb_session, fname=fnames['economies'], cls=cogdb.eddb.StationEconomy)
-        bulk_insert_from_file(eddb_session, fname=fnames['commodities'], cls=SCommodityPricing)
-        bulk_insert_from_file(eddb_session, fname=fnames['modules'], cls=SModuleSold)
+        bulk_insert_from_file(eddb_session, fname=folder / f'systems.json.{number:02}', cls=System)
+        bulk_insert_from_file(eddb_session, fname=folder / f'influences.json.{number:02}', cls=Influence)
+        bulk_insert_from_file(eddb_session, fname=folder / f'faction_states.json.{number:02}', cls=FactionActiveState)
 
 
 async def parallel_process(galaxy_json, *, jobs):
     """
-    Parallel process the galaxy_json.
-    Start jobs number of processes, each with own portion of file.
-    Then parse and process all information in those filess.
-    For each process, output will be written back out to a file in galaxy directory.
+    Parallel parse and import information from galaxy_json into the EDDB.
+
+    Step 1: Transform the data from the large JSON to many smaller files, each
+            file will store only the kwargs for one type of database object (i.e. System).
+    Step 2: Collect all unique faction names from the transformed data, create a single file with
+            all unique faction information. Load all this in bulk into the database.
+    Step 3: Bulk insert all kwargs from systems, influences and faction states.
+    Step 4: Reprocess the split stations files and combine entries into one unique dictionary.
+            When combining keep only latest updated_at time for each station.
+            Write these out to STATION_KEYS files so each bulk insertable.
+    Step 5: Bulk insert from the files that were split in previous step.
 
     Args:
         galaxy_json: The path to the galaxy_json from spansh.
         jobs: The number of jobs to start.
     """
-    print(f"parallel_process: Starting {jobs} jobs to process {galaxy_json}")
     loop = asyncio.get_event_loop()
     galaxy_folder = Path(galaxy_json).parent
 
+    print_no_newline(f"Starting {jobs} jobs to process {Path(galaxy_json).name} ...")
     with cfut.ProcessPoolExecutor(jobs) as pool:
         futs = []
         for num in range(0, jobs):
             futs += [loop.run_in_executor(
                 pool,
                 transform_galaxy_json, num, jobs, GALAXY_JSON,
-                galaxy_json.replace('.json', f'.json.{num:02}')
             )]
 
         await asyncio.wait(futs)
 
         # Factions have to be sorted into a unique file then bulk inserted early
         # This includes names of factions ONLY appearing in controllingFaction of stations
+        print_no_newline(" Done!\nFiltering unique factions ...")
         unique_factions = galaxy_folder / 'factions.json.unique'
         await loop.run_in_executor(
             pool,
@@ -1341,9 +1515,11 @@ async def parallel_process(galaxy_json, *, jobs):
             [galaxy_folder / f'controlling_factions.json.{x:02}' for x in range(0, jobs)],
             unique_factions
         )
+        print_no_newline(" Done!\nBulk inserting unique factions to db ...")
         with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
-            bulk_insert_from_file(eddb_session, fname=unique_factions, cls=cogdb.eddb.Faction)
+            bulk_insert_from_file(eddb_session, fname=unique_factions, cls=Faction)
 
+        print_no_newline(f" Done!\nStarting {jobs} jobs to import non station data ...")
         futs = []
         for num in range(0, jobs):
             futs += [loop.run_in_executor(
@@ -1353,7 +1529,51 @@ async def parallel_process(galaxy_json, *, jobs):
 
             await asyncio.wait(futs)
 
-        print("Database update complete.")
+        #  Player carriers can be spotted multiple places, only keep oldest data
+        print_no_newline(" Done!\nFiltering unique stations present ...")
+        await loop.run_in_executor(
+            pool,
+            dedupe_stations,
+            [galaxy_folder / f'stations.json.{x:02}' for x in range(0, jobs)],
+            galaxy_folder
+        )
+        print_no_newline(" Done!\nImporting remaining station data ...")
+        await loop.run_in_executor(
+            pool,
+            import_stations_data,
+            galaxy_folder
+        )
+
+        print(" Done!\nAll operations complete.")
+
+
+def import_stations_data(galaxy_folder):  # pragma: no cover
+    """
+    Do a final pass importing the split stations data in bulk.
+
+    Args:
+        galaxy_folder: The folder containing galaxy_json and all scratch files.
+    """
+    fnames = {x: galaxy_folder / f'{x}.json.unique' for x in STATION_KEYS}
+    with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
+        bulk_insert_from_file(eddb_session, fname=fnames['stations'], cls=Station)
+        bulk_insert_from_file(eddb_session, fname=fnames['features'], cls=StationFeatures)
+        bulk_insert_from_file(eddb_session, fname=fnames['economies'], cls=StationEconomy)
+        bulk_insert_from_file(eddb_session, fname=fnames['modules'], cls=SModuleSold)
+        for fname in glob.glob(str(galaxy_folder / 'commodities.json.unique.*')):
+            bulk_insert_from_file(eddb_session, fname=fname, cls=SCommodityPricing)
+
+
+def cleanup_scratch_files(galaxy_folder):
+    """
+    Cleans up all temporary files that were created during parsing.
+
+    Args:
+        galaxy_folder: The folder used for scratch files during importing galaxy_json.
+    """
+    for pat in CLEANUP_GLOBS:
+        for fname in glob.glob(os.path.join(galaxy_folder, pat)):
+            os.remove(fname)
 
 
 def drop_tables():  # pragma: no cover | destructive to test
@@ -1372,11 +1592,18 @@ def drop_tables():  # pragma: no cover | destructive to test
 def empty_tables():
     """
     Empty all tables related to this module.
+    Due to sheer size of SModuleSold and SCommodityPricing, it more efficient to drop.
     """
     sqla.orm.session.close_all_sessions()
+    for table in (SCommodityPricing, SModuleSold):
+        try:
+            table.__table__.drop(cogdb.eddb_engine)
+        except sqla.exc.OperationalError:
+            pass
+    Base.metadata.create_all(cogdb.eddb_engine)
 
     with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
-        for table in SPANSH_TABLES:
+        for table in [SModule, SCommodity, SModuleGroup, SCommodityGroup]:
             eddb_session.query(table).delete()
 
 
@@ -1389,80 +1616,231 @@ def recreate_tables():
     Base.metadata.create_all(cogdb.eddb_engine)
 
 
-def generate_unique_names_lists(galaxy_json):  # pragma: no cover
+def determine_missing_keys(factions, systems, stations, *, mapped):
     """
-    Find all unique names in the current galaxy_json and write out all
-    unique system, faction and station names to their respective files in the
-    same directory as galaxy_json.
-    Note that station names are not unique globally, just within their system.
+    Compared the lists of found factions, system and station keys to those loaded in eddb_maps.
+    Print out to stdout all missing keys.
 
     Args:
-        galaxy_json: The file path to the galaxy_stations.json file.
+        factions: A list of all unique faction names found
+        systems: A list of all unique system names found
+        stations: A list of all unique station_key names found, see station_key function
+        mapped: An instance of the mapping created by eddb_maps
     """
-    systems, factions, stations = set(), set(), set()
-
-    with open(galaxy_json, 'r', encoding='utf-8') as fin:
-        for line in fin:
-            if '{' not in line or '}' not in line:
-                continue
-
-            line = line.strip()
-            if line[-1] == ',':
-                line = line[:-1]
-            data = json.loads(line)
-
-            if data['name'] not in systems:
-                systems.add(data['name'])
-            for faction in data.get('factions', []):
-                factions.add(faction['name'])
-            for station in data.get('stations', []):
-                stations.add(f"{data['name']}_{station['name']}")
-            for body in data.get('bodies', []):
-                for station in body.get('stations', []):
-                    stations.add(f"{data['name']}_{station['name']}")
-
-    parent = Path(galaxy_json).parent
-    with open(parent / 'galaxySystems.json', 'w', encoding='utf-8') as fout:
-        pprint.pprint(list(sorted(systems)), fout, indent=JSON_INDENT)
-    with open(parent / 'galaxyFactions.json', 'w', encoding='utf-8') as fout:
-        pprint.pprint(list(sorted(factions)), fout, indent=JSON_INDENT)
-    with open(parent / 'galaxyStations.json', 'w', encoding='utf-8') as fout:
-        pprint.pprint(list(sorted(stations)), fout, indent=JSON_INDENT)
-
-
-def determine_missing_ids(eddb_session, *, parent, mapped):
-    with open(parent / 'galaxySystems.json', 'r', encoding='utf-8') as fin:
-        systems = eval(fin.read())
     missing = set(systems) - set(mapped['systems'].keys())
     pprint.pprint(list(sorted(missing)))
 
-    with open(parent / 'galaxyFactions.json', 'r', encoding='utf-8') as fin:
-        factions = eval(fin.read())
     missing = set(factions) - set(mapped['factions'].keys())
     pprint.pprint(list(sorted(missing)))
 
-    with open(parent / 'galaxyStations.json', 'r', encoding='utf-8') as fin:
-        stations = eval(fin.read())
     missing = set(stations) - set(mapped['stations'].keys())
     pprint.pprint(list(sorted(missing)))
+
+
+def make_parser():
+    """
+    Make the parser for command line usage.
+
+    Returns: An instance of argparse.ArgumentParser
+    """
+    parser = argparse.ArgumentParser(description="Spansh.co.uk Importer")
+    parser.add_argument('--yes', '-y', action="store_true",
+                        help='Skip confirmation.')
+    parser.add_argument('--jobs', '-j', type=int, default=math.floor(os.cpu_count() * 1.5),
+                        help='The number of jobs to run.')
+    parser.add_argument('--fetch', '-f', action="store_true",
+                        help='Fetch the latest spansh dumps.')
+    parser.add_argument('--recreate-tables', '-r', dest="recreate", action="store_true",
+                        help='Recreate all EDDB tables, spy_tables and spansh specific tables.')
+    parser.add_argument('--caches', '-c', action="store_true",
+                        help='Regenerate all caches for commodities, modules and unique ID maps.')
+    parser.add_argument('--skip', '-k', action="store_true",
+                        help='Skip parsing and importing latest spansh dump.')
+
+    return parser
+
+
+def download_with_progress(url, destination, *, description=None):  # pragma: no cover
+    """
+    Download a file with progress bar displayed in CLI.
+
+    Args:
+        url: The URL to download.
+        destination: Where to put the downloaded file.
+
+    Returns: The total size downloaded.
+    """
+    if not description:
+        description = url
+
+    with requests.get(url, timeout=60, stream=True) as resp:
+        total_size_bytes = int(resp.headers.get('Content-Length', 0))
+        chunk = 1024
+
+        with tqdm.tqdm(desc=description, total=total_size_bytes, unit="iB", unit_scale=True, unit_divisor=chunk) as progress,\
+             open(destination, 'wb') as fout:
+            for data in resp.iter_content(chunk_size=chunk):
+                progress.update(fout.write(data))
+
+    return total_size_bytes
+
+
+def extract_with_progress(source, destination, *, description=None, size=0):  # pragma: no cover
+    """
+    Extract a gzip compressed file with progress
+
+    Args:
+        url: The URL to download.
+        destination: Where to put the downloaded file.
+
+    Returns: destination
+    """
+    if not description:
+        description = 'Extracting: ' + Path(source).name
+
+    chunk = 1024
+    with tqdm.tqdm(desc=description, unit="iB", total=size, unit_scale=True, unit_divisor=chunk) as progress,\
+         gzip.open(source, 'rb') as fin,\
+         open(destination, 'wb') as fout:
+
+        while True:
+            data = fin.read(chunk)
+            if not data:
+                break
+            fout.write(data)
+            progress.update(chunk)
+
+
+def confirm_msg(args, query=True):  # pragma: no cover
+    """
+    Create a message the explains what will happen based on args.
+
+    Args:
+        args: A instance of argparse.Namespace.
+
+    Returns: A string to print to user.
+    """
+    msg = "The following steps will take place.\n\n"
+    if args.fetch:
+        msg += """    Preserve the current galaxy_stations.json to a backup
+    Download and extract the latest spansh dump
+    Update the ID maps for the dump
+"""
+    if args.caches:
+        msg += "    Update the cached modules and commodity information.\n"
+
+    if args.recreate:
+        msg += "    Recreate all EDDB, spy and spansh tables and preload data.\n"
+    else:
+        msg += "    Empty all EDDB, spy and spansh tables and preload data.\n"
+
+    msg += """    Parse all the information present in current galaxy_stations.json
+    Then replace the following possibly existing EDDB data with that information:
+        cogdb.eddb.{System, Faction, Influence, Station, StationFeatures, StationEconomy, FactionActiveState}
+        cogdb.spansh.{SModuleSold, SCommodityPricing}
+
+"""
+
+    if query:
+        msg += "Please confirm with yes or no: "
+
+    return msg
+
+
+def fetch_galaxy_json():
+    """
+    Fetch and extract the latest dump from spansh.
+    """
+    if Path(GALAXY_JSON).exists():
+        os.rename(GALAXY_JSON, GALAXY_JSON.replace('.json', '.json.bak'))
+    compressed_json = f"{GALAXY_JSON}.gz"
+    try:
+        size = download_with_progress(GALAXY_URL, compressed_json)
+    except KeyboardInterrupt:
+        os.remove(compressed_json)
+        raise
+    extract_with_progress(compressed_json, GALAXY_JSON, size=size * GALAXY_COMPRESSION_RATE)
+    os.remove(compressed_json)
+    print_no_newline("\nUpdating ID maps based on new dump ...")
+    update_all_name_maps(*collect_unique_names(GALAXY_JSON))
+    print(" Done!")
+
+
+def refresh_module_commodity_cache():
+    """
+    Update the module and commodity caches.
+    """
+    print_no_newline("Regenerating the commodity and module caches ...")
+    empty_tables()
+    with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
+        if not eddb_session.query(cogdb.eddb.PowerState).all():
+            cogdb.eddb.preload_tables(eddb_session)
+        if not eddb_session.query(cogdb.spy_squirrel.SpyShip).all():
+            cogdb.spy_squirrel.preload_spy_tables(eddb_session)
+        preload_tables(eddb_session, only_groups=True)
+        generate_module_commodities_caches(eddb_session)
+    empty_tables()
+    with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
+        preload_tables(eddb_session, only_groups=False)
+    print(" Done!")
 
 
 def main():
     """ Main function. """
     start = datetime.datetime.utcnow()
-    #  generate_unique_names_lists(GALAXY_JSON)
-    #  update_all_name_maps(GALAXY_JSON)
+    parser = make_parser()
+    args = parser.parse_args()
 
-    cogdb.eddb.recreate_tables()
-    cogdb.spy_squirrel.recreate_tables()
-    recreate_tables()
+    if args.yes:
+        print(confirm_msg(args, query=False))
+    else:
+        confirm = input(confirm_msg(args)).lstrip().lower()
+        print()
+        if not confirm.startswith('y'):
+            print("Aborting.")
+            sys.exit(0)
+
+    if args.fetch:
+        fetch_galaxy_json()
+
+    if args.caches:
+        refresh_module_commodity_cache()
+        return
+
+    if args.recreate:
+        print_no_newline("Recreating all EDDB tables ...")
+        sys.stdout.flush()
+        cogdb.eddb.recreate_tables()
+        cogdb.spy_squirrel.recreate_tables()
+        recreate_tables()
+    else:
+        print_no_newline("Emptying existing EDDB tables ...")
+        sys.stdout.flush()
+        empty_tables()
+        cogdb.spy_squirrel.empty_tables()
+        cogdb.eddb.empty_tables()
+
+    print_no_newline(" Done!\nPreloading constant EDDB data ...")
+    sys.stdout.flush()
     with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
         cogdb.eddb.preload_tables(eddb_session)
         cogdb.spy_squirrel.preload_spy_tables(eddb_session)
         preload_tables(eddb_session)
+    print(" Done!")
 
-    asyncio.new_event_loop().run_until_complete(parallel_process(GALAXY_JSON, jobs=math.floor(os.cpu_count() * 1.5)))
-    print("Time taken", datetime.datetime.utcnow() - start)
+    if args.skip:
+        return
+
+    try:
+        asyncio.new_event_loop().run_until_complete(
+            parallel_process(
+                GALAXY_JSON, jobs=args.jobs
+            )
+        )
+
+        print("Time taken", datetime.datetime.utcnow() - start)
+    finally:
+        cleanup_scratch_files(Path(GALAXY_JSON).parent)
 
         #  mapped = eddb_maps(eddb_session)
         #  determine_missing_ids(eddb_session, mapped=mapped)
@@ -1504,4 +1882,11 @@ SPANSH_TABLES = [SCommodityPricing, SModuleSold, SCommodity, SModule, SCommodity
 
 
 if __name__ == "__main__":
+    # Ensure the database is created if first run.
+    try:
+        with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
+            eddb_session.query(SModuleGroup).all()
+    except sqla.exc.ProgrammingError:
+        Base.metadata.create_all(cogdb.eddb_engine)
+
     main()
