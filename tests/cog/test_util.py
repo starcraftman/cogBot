@@ -3,10 +3,12 @@
 Test util the grab all module.
 """
 import datetime
+import io
 import os
 import pathlib
 import tempfile
 import shutil
+import sys
 
 import mock
 import pytest
@@ -526,3 +528,18 @@ This is a single line of text.
 
     finally:
         shutil.rmtree(tdir)
+
+
+def test_split_csv_line():
+    text = '09117,1231564,"WDS J05353-0522Ja,Jb",605.3125,-439.25,-1092.46875,0,0,176,None,5,None,64,Anarchy,10,None,,,,0,1679067630,1679067630,"PSH 136",,,1,Pristine,367915889796081'
+    assert len(cog.util.split_csv_line(text)) == 28
+
+    text = '17,60,"10 Ursae Majoris",0.03125,34.90625,-39.09375,0,0,176,None,5,None,64,Anarchy,10,None,,,,0,1680292128,1680292128,"10 Ursae Majoris",,,3,Common,2415659059555'
+    items = cog.util.split_csv_line(text)
+    assert text.split(',') == items
+
+
+@mock.patch('builtins.print')
+def test_print_no_newline(mock_stdout):
+    cog.util.print_no_newline('hello')
+    mock_stdout.assert_called_with('hello', end='')

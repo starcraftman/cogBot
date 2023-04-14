@@ -21,6 +21,7 @@ import os
 import pathlib
 import re
 import shutil
+import sys
 import tempfile
 import zipfile
 
@@ -999,6 +1000,47 @@ async def grouped_text_to_files(grouped_lines, *, tdir, fname_gen):
             await fout.writelines(group)
 
     return fnames
+
+
+def split_csv_line(line):
+    """
+    Strings can have commas in them so can't safely split unless outside a double quote string.
+    Otherwise split on every comma and empty values will be set to empty string ('')
+
+    Args:
+        line: A line of text.
+
+    Returns: A list of the fields of the CSV line. List is guaranteed to match num columns.
+    """
+    parts = []
+    part = ''
+    in_string = False
+    for chara in line:
+        if not in_string and chara == ',':
+            parts += [part]
+            part = ''
+            continue
+        if chara == '"':
+            in_string = not in_string
+
+        part += chara
+
+    if part:
+        parts += [part]
+
+    return parts
+
+
+def print_no_newline(text):
+    """
+    Print text with no new line at end.
+    Then guarantee it flushes immediately to stdout.
+
+    Args:
+        text: The text to write to stdout.
+    """
+    print(text, end='')
+    sys.stdout.flush()
 
 
 #  # Scenario multiple readers, always allowed

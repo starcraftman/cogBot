@@ -577,7 +577,7 @@ def test_parse_response_traffic_totals(response_news_json):
 
 
 def test_load_response_json(empty_spy, response_json, eddb_session):
-    spy.preload_spy_tables(eddb_session)
+    spy.preload_tables(eddb_session)
     spy.load_response_json(response_json)
 
     assert eddb_session.query(spy.SpyBounty).all()
@@ -642,9 +642,9 @@ def test_get_spy_systems_for_galpow(empty_spy, db_cleanup, spy_test_bed, eddb_se
     assert vote
 
 
-def test_preload_spy_tables(empty_spy, eddb_session):
+def test_preload_tables(empty_spy, eddb_session):
     assert not eddb_session.query(spy.SpyShip).all()
-    spy.preload_spy_tables(eddb_session)
+    spy.preload_tables(eddb_session)
     assert eddb_session.query(spy.SpyShip).filter(spy.SpyShip.text == "Vulture").one()
 
 

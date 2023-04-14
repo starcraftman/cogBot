@@ -3005,6 +3005,9 @@ FACTION_STATE_PAIRS = [
 
 
 if __name__ == "__main__":  # pragma: no cover
+    print('CLI is deprecated. Please use: python -m cogdb.dbi')
+    sys.exit(0)
+
     # Tell user when not using most efficient backend.
     if ijson.backend != 'yajl2_c':
         print("Failed to set backend to yajl2_c. Please check that yajl is installed. Parsing may slow down.")

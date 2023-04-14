@@ -1227,7 +1227,7 @@ def get_controls_outdated_held(eddb_session, *, power='%hudson', hours_old=7):
         all()
 
 
-def preload_spy_tables(eddb_session):
+def preload_tables(eddb_session):
     """
     Preload the spy tables with constant values.
     At present this is ship names and their traffic names.
@@ -1367,7 +1367,7 @@ def main():  # pragma: no cover | destructive to test
     recreate_tables()
 
     with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
-        preload_spy_tables(eddb_session)
+        preload_tables(eddb_session)
         try:
             load_base_json(load_json_secret('base.json'))
             load_refined_json(load_json_secret('refined.json'))
@@ -1416,7 +1416,7 @@ PARSER_MAP = {
 if cogdb.TEST_DB:
     recreate_tables()
     with cogdb.session_scope(cogdb.EDDBSession) as eddb_session_main:
-        preload_spy_tables(eddb_session_main)
+        preload_tables(eddb_session_main)
 else:
     Base.metadata.create_all(cogdb.eddb_engine)
 

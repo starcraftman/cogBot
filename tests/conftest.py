@@ -86,7 +86,7 @@ def after_all_tests(request):
         """ Put spy_ships back. """
         with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
             eddb_session.query(spy.SpyShip).delete()
-            spy.preload_spy_tables(eddb_session)
+            spy.preload_tables(eddb_session)
 
     request.addfinalizer(finish)
 
@@ -918,7 +918,7 @@ def f_sheet_records(session):
 @pytest.fixture
 def f_spy_ships(eddb_session):
     try:
-        spy.preload_spy_tables(eddb_session)
+        spy.preload_tables(eddb_session)
     except sqla.exc.IntegrityError:
         eddb_session.rollback()
 
