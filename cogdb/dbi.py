@@ -157,7 +157,7 @@ def refresh_module_commodity_cache():
         if not eddb_session.query(cogdb.eddb.PowerState).all():
             cogdb.eddb.preload_tables(eddb_session)
         if not eddb_session.query(cogdb.spy_squirrel.SpyShip).all():
-            cogdb.spy_squirrel.preload_spy_tables(eddb_session)
+            cogdb.spy_squirrel.preload_tables(eddb_session)
         cogdb.spansh.preload_tables(eddb_session, only_groups=True)
         cogdb.spansh.generate_module_commodities_caches(eddb_session)
     cogdb.spansh.empty_tables()
@@ -173,6 +173,19 @@ def sanity_check():
     """
     cogdb.schema.Base.metadata.create_all(cogdb.engine)
     cogdb.eddb.Base.metadata.create_all(cogdb.eddb_engine)
+
+    if not Path(cogdb.spansh.SPANSH_COMMODITIES).exists() or not Path(cogdb.spansh.SPANSH_MODULES).exists():
+        print("Missing commodity and modules caches.")
+        print_no_newline("Regenerating the commodity and module caches ...")
+        refresh_module_commodity_cache()
+        print(" Done!\n")
+
+    for fname in (cogdb.spansh.SYSTEM_MAPF, cogdb.spansh.FACTION_MAPF, cogdb.spansh.STATION_MAPF):
+        if not Path(fname).exists() and not Path(cogdb.spansh.GALAXY_JSON).exists():
+            print("Missing one or more ID maps.")
+            print_no_newline("\nUpdating ID maps based on current dump ...")
+            cogdb.spansh.update_all_name_maps(*cogdb.spansh.collect_unique_names(GALAXY_JSON))
+            break
 
     with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
         if not eddb_session.query(cogdb.eddb.Government).all():
@@ -202,9 +215,6 @@ def main():
     if args.fetch:
         fetch_galaxy_json()
 
-    if args.caches:
-        refresh_module_commodity_cache()
-
     if args.recreate:
         print_no_newline("Recreating all EDDB tables ...")
         sys.stdout.flush()
@@ -222,9 +232,12 @@ def main():
     sys.stdout.flush()
     with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
         cogdb.eddb.preload_tables(eddb_session)
-        cogdb.spy_squirrel.preload_spy_tables(eddb_session)
+        cogdb.spy_squirrel.preload_tables(eddb_session)
         cogdb.spansh.preload_tables(eddb_session)
     print(" Done!")
+
+    if args.caches:
+        refresh_module_commodity_cache()
 
     if args.skip:
         return

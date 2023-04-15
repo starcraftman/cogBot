@@ -1124,9 +1124,9 @@ def print_no_newline(text):
     #  print("Run1 - aquire write")
     #  await lock.w_aquire()
     #  async with lock:
-        #  print("Run1 Taken exclusive.")
-        #  await asyncio.sleep(3)
-        #  print("Run1 Done exclusive.")
+    #  print("Run1 Taken exclusive.")
+    #  await asyncio.sleep(3)
+    #  print("Run1 Done exclusive.")
     #  await lock.w_release()
     #  print("Run1 - release write")
 
@@ -1138,9 +1138,9 @@ def print_no_newline(text):
     #  print("Run2 - aquire write")
     #  await lock.w_aquire()
     #  async with lock:
-        #  print("Run2 Taken exclusive.")
-        #  await asyncio.sleep(3)
-        #  print("Run2 Done exclusive.")
+    #  print("Run2 Taken exclusive.")
+    #  await asyncio.sleep(3)
+    #  print("Run2 Done exclusive.")
     #  print("Run2 - release write")
     #  await lock.w_release()
 

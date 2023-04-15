@@ -3,12 +3,10 @@
 Test util the grab all module.
 """
 import datetime
-import io
 import os
 import pathlib
 import tempfile
 import shutil
-import sys
 
 import mock
 import pytest

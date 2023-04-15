@@ -325,7 +325,6 @@ def preload_tables(eddb_session, only_groups=False):  # pragma: no cover
             sys.exit(0)
 
 
-
 def drop_tables():  # pragma: no cover | destructive to test
     """
     Drop all tables related to this module.
@@ -1346,9 +1345,6 @@ def import_stations_data(galaxy_folder):  # pragma: no cover
         bulk_insert_from_file(eddb_session, fname=fnames['stations'], cls=Station)
         bulk_insert_from_file(eddb_session, fname=fnames['features'], cls=StationFeatures)
         bulk_insert_from_file(eddb_session, fname=fnames['economies'], cls=StationEconomy)
-        bulk_insert_from_file(eddb_session, fname=fnames['modules'], cls=SModuleSold)
-        for fname in glob.glob(str(galaxy_folder / 'commodities.json.unique.*')):
-            bulk_insert_from_file(eddb_session, fname=fname, cls=SCommodityPricing)
 
 
 async def parallel_process(galaxy_json, *, jobs):

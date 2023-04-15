@@ -1,7 +1,6 @@
 """
 The database backend for pvp bot.
 """
-import asyncio
 import contextlib
 import datetime
 import enum
@@ -22,7 +21,7 @@ import cogdb.eddb
 from cogdb.eddb import LEN as EDDB_LEN
 from cogdb.spy_squirrel import Base
 import cog.util
-from cog.util import ReprMixin, TimestampMixin, UpdatableMixin
+from cog.util import ReprMixin, TimestampMixin
 
 PVP_DEFAULT_HEX = 0x0dd42e
 MATCH_STATES = {
