@@ -1,6 +1,7 @@
 """
-The database management tool.
+The database import tool.
 See documentation with -h.
+The purpose of this tool is to seed the EDDB database then connect to EDDN for updates.
 """
 import argparse
 import asyncio
@@ -14,6 +15,7 @@ from pathlib import Path
 import requests
 import tqdm
 
+import cogdb.eddb
 import cogdb.spansh
 from cogdb.spansh import GALAXY_JSON, GALAXY_URL, GALAXY_COMPRESSION_RATE
 from cog.util import print_no_newline
@@ -252,6 +254,10 @@ def main():
         print("Time taken", datetime.datetime.utcnow() - start)
     finally:
         cogdb.spansh.cleanup_scratch_files(Path(GALAXY_JSON).parent)
+
+    print("Updating the SystemControls table based on present information.")
+    with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
+        cogdb.eddb.populate_system_controls(eddb_session)
 
 
 if __name__ == "__main__":

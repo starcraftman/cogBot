@@ -2357,3 +2357,5 @@ FACTION_STATE_PAIRS = [
     ('pending_states', FactionPendingState),
     ('recovering_states', FactionRecoveringState)
 ]
+if __name__ == "__main__":
+    main_test_area()

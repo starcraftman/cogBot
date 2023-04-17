@@ -16,16 +16,15 @@ import sys
 import aiofiles
 import aiohttp
 import ijson
-import sqlalchemy as sqla
 import sqlalchemy.orm as sqla_orm
 
 import cogdb.eddb
 from cogdb.eddb import (
-    Allegiance, Government, Power, PowerState, Economy,
+    Allegiance, Government, Power, Economy,
     Commodity, CommodityCat, Module, ModuleGroup, Influence,
     Faction, FactionActiveState, FactionPendingState, FactionRecoveringState,
     System, Station, StationType, StationEconomy, StationFeatures,
-    FACTION_STATE_PAIRS, SystemContestedV, SystemControlV
+    FACTION_STATE_PAIRS, SystemContestedV
 )
 import cog.util
 
