@@ -1663,8 +1663,7 @@ class Token(Action):  # pragma: no cover, trivial implementation
         msg = "Permission denied, user not authorised."
 
         if self.msg.author.id in cog.util.CONF.scrape.allowed:
-            cog.util.CONF.update('scrape', 'token', value=self.args.token)
-            await cog.util.CONF.awrite()
+            await cog.util.CONF.aupdate('scrape', 'token', value=self.args.token)
             msg = "API Session token updated to config."
 
         await self.bot.send_message(self.msg.channel, msg)

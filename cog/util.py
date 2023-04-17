@@ -1137,4 +1137,3 @@ async def grouped_text_to_files(grouped_lines, *, tdir, fname_gen):
 
 ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CONF = cog.config.Config(rel_to_abs('data', 'config.yml'))
-CONF.read()

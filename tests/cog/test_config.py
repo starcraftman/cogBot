@@ -30,7 +30,7 @@ def f_config(session):
 
 def test_config__repr__():
     conf = cog.config.Config('/tmp/conf.yml')
-    expected = "Config(fname='/tmp/conf.yml')"
+    expected = "Config(fname='/tmp/conf.yml', last_write=None)"
     assert repr(conf) == expected
 
 
@@ -47,6 +47,7 @@ def test_config_unwrap(f_config):
 
 
 def test_config_read(f_config):
+    f_config.conf['constants']['ttl'] = 60
     assert f_config.constants.ttl == cog.config.CONFIG_DEFAULTS['constants']['ttl']
     f_config.read()
     assert f_config.constants.ttl == 120
@@ -80,6 +81,7 @@ def test_config_update_top_val(f_config):
 
 @pytest.mark.asyncio
 async def test_config_aread(f_config):
+    f_config.conf['constants']['ttl'] = 60
     assert f_config.constants.ttl == cog.config.CONFIG_DEFAULTS['constants']['ttl']
     await f_config.aread()
     assert f_config.constants.ttl == 120
