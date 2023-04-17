@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
 """
 Fetch the latest EDDB dump automatically.
 
@@ -11,8 +9,9 @@ import cogdb.dbi_eddb
 
 def main():
     """Just handle input and then process request."""
-    print("This module deprecated.")
+    print("EDDB.io is down, this tool is deprecated.")
     return
+
     sort = True
     try:
         confirm = sys.argv[1]

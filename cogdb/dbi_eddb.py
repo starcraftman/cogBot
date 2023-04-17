@@ -746,7 +746,7 @@ def main():  # pragma: no cover
 
 
 if __name__ == "__main__":  # pragma: no cover
-    print('CLI is deprecated. Please use: python -m cogdb.dbi')
+    print('EDDB.io is down, tool deprecated. Please use: python -m cogdb.dbi')
     sys.exit(0)
 
     # Tell user when not using most efficient backend.
