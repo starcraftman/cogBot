@@ -1213,7 +1213,8 @@ def dedupe_stations(fnames, galaxy_folder):
                 try:
                     key = info['station']['id']
                 except KeyError:
-                    pass
+                    logging.getLogger(__name__).error("SPANSH: Missing station ID: %s", info['station'])
+                    continue
                 try:
                     if info['station']['updated_at'] > stations[key]['station']['updated_at']:
                         stations[key] = info

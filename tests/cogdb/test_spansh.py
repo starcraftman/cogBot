@@ -212,7 +212,7 @@ def test_transform_bodies2(f_json_bodies, f_spy_ships, eddb_session):
     results = cogdb.spansh.transform_bodies(data=f_json_bodies, mapped=mapped, system_id=system_id)
     station_id = list(sorted(results.keys()))[0]
     expect = {
-        'controlling_minor_faction_id': 18530,
+        'controlling_minor_faction_id': mapped['factions']['Elite Rebel Force'],
         'distance_to_star': 24.044962,
         'id': station_id,
         'max_landing_pad_size': 'L',

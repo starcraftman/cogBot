@@ -8,7 +8,7 @@ import pytest
 import cog.exc
 import cogdb.eddb
 from cogdb.eddb import (
-    System, Influence, HistoryInfluence, HistoryTrack, TraderType
+    System, Faction, Influence, HistoryInfluence, HistoryTrack, TraderType
 )
 
 FAKE_ID1 = 942834121
@@ -388,9 +388,11 @@ def test_remove_history_track_exists(eddb_session):
 def test_add_history_influence_not_Tracked(eddb_session):
     try:
         assert not eddb_session.query(HistoryInfluence).all()
+        system = eddb_session.query(System).first()
+        faction = eddb_session.query(Faction).first()
         cogdb.eddb.add_history_influence(eddb_session, Influence(
-            system_id=1,
-            faction_id=1,
+            system_id=system.id,
+            faction_id=faction.id,
             happiness_id=1,
             influence=20,
             is_controlling_faction=False,
@@ -404,12 +406,14 @@ def test_add_history_influence_not_Tracked(eddb_session):
 
 def test_add_history_influence_empty(eddb_session):
     try:
-        eddb_session.add(HistoryTrack(system_id=1))
+        system = eddb_session.query(System).first()
+        faction = eddb_session.query(Faction).first()
+        eddb_session.add(HistoryTrack(system_id=system.id))
         eddb_session.commit()
         assert not eddb_session.query(HistoryInfluence).all()
         cogdb.eddb.add_history_influence(eddb_session, Influence(
-            system_id=1,
-            faction_id=1,
+            system_id=system.id,
+            faction_id=faction.id,
             happiness_id=1,
             influence=20,
             is_controlling_faction=False,
@@ -422,11 +426,13 @@ def test_add_history_influence_empty(eddb_session):
 
 
 def test_add_history_influence_limit_passed(eddb_session):
-    eddb_session.add(HistoryTrack(system_id=1))
+    system = eddb_session.query(System).first()
+    faction = eddb_session.query(Faction).first()
+    eddb_session.add(HistoryTrack(system_id=system.id))
     eddb_session.commit()
     influence = Influence(
-        system_id=1,
-        faction_id=1,
+        system_id=system.id,
+        faction_id=faction.id,
         happiness_id=1,
         influence=20,
         is_controlling_faction=False,
@@ -448,11 +454,13 @@ def test_add_history_influence_limit_passed(eddb_session):
 
 
 def test_add_history_influence_inf_diff(eddb_session):
-    eddb_session.add(HistoryTrack(system_id=1))
+    system = eddb_session.query(System).first()
+    faction = eddb_session.query(Faction).first()
+    eddb_session.add(HistoryTrack(system_id=system.id))
     eddb_session.commit()
     influence = Influence(
-        system_id=1,
-        faction_id=1,
+        system_id=system.id,
+        faction_id=faction.id,
         happiness_id=1,
         influence=20,
         is_controlling_faction=False,

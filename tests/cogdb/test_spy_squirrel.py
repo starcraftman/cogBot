@@ -50,6 +50,7 @@ def empty_spy():
 
 @pytest.fixture()
 def spy_test_bed(eddb_session):
+    spy.empty_tables()
     objects = [
         spy.SpyVote(
             power_id=1,
@@ -165,6 +166,8 @@ def spy_test_bed(eddb_session):
 
     yield objects
     spy.empty_tables()
+    eddb_session.rollback()
+    spy.preload_tables(eddb_session)
 
 
 def test_spy_ship__repr__(spy_test_bed, eddb_session):

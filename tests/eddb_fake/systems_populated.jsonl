@@ -3,7 +3,7 @@
     "allegiance": "Empire",
     "allegiance_id": 2,
     "controlling_minor_faction": "1 G. Caeli Empire League",
-    "controlling_minor_faction_id": 31816,
+    "controlling_minor_faction_id": "FACTIONID",
     "ed_system_address": 560249948515,
     "edsm_id": 12695,
     "government": "Patronage",
@@ -20,7 +20,7 @@
         ],
         "happiness_id": 2,
         "influence": 57.8842,
-        "minor_faction_id": 31816,
+        "minor_faction_id": "INFID1",
         "pending_states": [],
         "recovering_states": []
       },
@@ -33,7 +33,7 @@
         ],
         "happiness_id": 2,
         "influence": 15.2695,
-        "minor_faction_id": 54517,
+        "minor_faction_id": "INFID2",
         "pending_states": [],
         "recovering_states": []
       },
@@ -46,7 +46,7 @@
         ],
         "happiness_id": 2,
         "influence": 0.998,
-        "minor_faction_id": 54518,
+        "minor_faction_id": "INFID3",
         "pending_states": [],
         "recovering_states": []
       },
@@ -59,7 +59,7 @@
         ],
         "happiness_id": 2,
         "influence": 5.2894,
-        "minor_faction_id": 54519,
+        "minor_faction_id": "INFID4",
         "pending_states": [],
         "recovering_states": []
       },
@@ -72,7 +72,7 @@
         ],
         "happiness_id": 2,
         "influence": 8.982,
-        "minor_faction_id": 74917,
+        "minor_faction_id": "INFID5",
         "pending_states": [
           {
             "id": 73,
@@ -90,7 +90,7 @@
         ],
         "happiness_id": 2,
         "influence": 8.982,
-        "minor_faction_id": 40897,
+        "minor_faction_id": "INFID6",
         "pending_states": [
           {
             "id": 73,
@@ -108,7 +108,7 @@
         ],
         "happiness_id": 2,
         "influence": 2.5948,
-        "minor_faction_id": 61626,
+        "minor_faction_id": "INFID7",
         "pending_states": [],
         "recovering_states": []
       }

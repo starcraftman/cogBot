@@ -12,6 +12,7 @@ import tempfile
 import pytest
 
 import cog.util
+import cogdb.eddb
 import pvp.schema
 import pvp.journal
 from pvp.schema import (
@@ -26,7 +27,7 @@ def test_datetime_to_tstamp():
     assert 1465569123.0 == pvp.journal.datetime_to_tstamp("2016-06-10T14:32:03Z")
 
 
-def test_parse_died_simple_npc(f_spy_ships, f_pvp_testbed, eddb_session):
+def test_parse_died_simple_npc(f_pvp_testbed, eddb_session):
     data = json.loads('{ "timestamp":"2016-06-10T14:32:03Z", "event":"Died", "KillerName":"$ShipName_Police_Independent;", "KillerShip":"viper", "KillerRank":"Deadly" }')
     data['cmdr_id'] = 1
     data['system_id'] = 1005
@@ -34,7 +35,7 @@ def test_parse_died_simple_npc(f_spy_ships, f_pvp_testbed, eddb_session):
     assert not pvp.journal.parse_died(eddb_session, data)
 
 
-def test_parse_died_simple(f_spy_ships, f_pvp_testbed, eddb_session):
+def test_parse_died_simple(f_pvp_testbed, eddb_session):
     data = json.loads('{ "timestamp":"2016-06-10T14:32:03Z", "event":"Died", "KillerName":"CMDR Ruin", "KillerShip":"viper", "KillerRank":"Deadly" }')
     data['cmdr_id'] = 1
     data['system_id'] = 1005
@@ -48,7 +49,7 @@ def test_parse_died_simple(f_spy_ships, f_pvp_testbed, eddb_session):
     assert death.killers[0].name.startswith("Ruin")
 
 
-def test_parse_died_many(f_spy_ships, f_pvp_testbed, eddb_session):
+def test_parse_died_many(f_pvp_testbed, eddb_session):
     data = json.loads('{ "timestamp":"2016-06-10T14:32:03Z", "event":"Died", "Killers":[ { "Name":"Cmdr HRC1", "Ship":"Vulture", "Rank":"Competent" }, { "Name":"Cmdr HRC2", "Ship":"Python", "Rank":"Master" } ] }')
     data['cmdr_id'] = 1
     data['system_id'] = 1005
@@ -121,12 +122,13 @@ def test_parse_interdicted(f_pvp_testbed, eddb_session):
 def test_parse_location(f_pvp_testbed, eddb_session):
     data = json.loads('{ "timestamp":"2016-07-21T13:14:25Z", "event":"Location", "Docked":true, "StationName":"Azeban City", "StationType":"Coriolis", "StarSystem":"Eranin", "StarPos":[-22.844,36.531,-1.188], "Allegiance":"Alliance", "Economy":"$economy_Agri;", "Government":"$government_Communism;", "Security":"$SYSTEM_SECURITY_medium;", "Faction":"Eranin Peoples Party" }')
     data['cmdr_id'] = 1
-    data['system_id'] = 1005
+    system_id = eddb_session.query(cogdb.eddb.System.id).filter(cogdb.eddb.System.name == 'Eranin').scalar()
+    data['system_id'] = system_id
     data['event_at'] = pvp.journal.datetime_to_tstamp(data['timestamp'])
     pvp.journal.parse_location(eddb_session, data)
     eddb_session.commit()
 
-    location = eddb_session.query(PVPLocation).filter(PVPLocation.system_id == 4611).one()
+    location = eddb_session.query(PVPLocation).filter(PVPLocation.system_id == system_id).one()
     assert location.cmdr.name == "coolGuy"
     assert location.system.name == "Eranin"
 
@@ -134,12 +136,13 @@ def test_parse_location(f_pvp_testbed, eddb_session):
 def test_parse_fsdjump(f_pvp_testbed, eddb_session):
     data = json.loads('{ "timestamp":"2016-07-21T13:16:49Z", "event":"FSDJump", "StarSystem":"LP 98-132", "StarPos":[-26.781,37.031,-4.594], "Economy":"$economy_Extraction;", "Allegiance":"Federation", "Government":"$government_Anarchy;", "Security":"$SYSTEM_SECURITY_high_anarchy;", "JumpDist":5.230, "FuelUsed":0.355614, "FuelLevel":12.079949, "Faction":"Brotherhood of LP 98-132", "FactionState":"Outbreak" }')
     data['cmdr_id'] = 1
-    data['system_id'] = 1005
+    system_id = eddb_session.query(cogdb.eddb.System.id).filter(cogdb.eddb.System.name == 'LP 98-132').scalar()
+    data['system_id'] = system_id
     data['event_at'] = pvp.journal.datetime_to_tstamp(data['timestamp'])
     pvp.journal.parse_location(eddb_session, data)
     eddb_session.commit()
 
-    location = eddb_session.query(PVPLocation).filter(PVPLocation.system_id == 12533).one()
+    location = eddb_session.query(PVPLocation).filter(PVPLocation.system_id == system_id).one()
     assert location.cmdr.name == "coolGuy"
     assert location.system.name == "LP 98-132"
 
@@ -209,13 +212,13 @@ async def test_find_cmdr_name():
     assert "HRC1" == cmdr_name
 
 
-def test_journal_parser_load(f_spy_ships, f_pvp_testbed, eddb_session):
+def test_journal_parser_load(f_pvp_testbed, eddb_session):
     parser = pvp.journal.Parser(fname=JOURNAL_PATH, cmdr_id=1, eddb_session=eddb_session)
     parser.load()
     assert 'Fileheader' in parser.lines[0]
 
 
-def test_journal_parser_parse(f_spy_ships, f_pvp_testbed, eddb_session):
+def test_journal_parser_parse(f_pvp_testbed, eddb_session):
     parser = pvp.journal.Parser(fname=JOURNAL_PATH, cmdr_id=1, eddb_session=eddb_session)
     parser.load()
     results = parser.parse()

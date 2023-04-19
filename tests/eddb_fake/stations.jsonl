@@ -3,7 +3,7 @@
     "allegiance": "Federation",
     "allegiance_id": 3,
     "body_id": 6938,
-    "controlling_minor_faction_id": 13968,
+    "controlling_minor_faction_id": "FACTIONID",
     "distance_to_star": 995,
     "economies": [
       "Service"

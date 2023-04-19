@@ -14,7 +14,6 @@ import aiofiles
 import aiomock
 import mock
 import pytest
-import sqlalchemy as sqla
 import sqlalchemy.orm as sql_orm
 try:
     import uvloop
@@ -30,6 +29,7 @@ except ImportError:
 import cog.util
 import cogdb
 import cogdb.query
+import cogdb.eddb
 import cogdb.spy_squirrel as spy
 import pvp.schema
 from cogdb.schema import (DiscordUser, FortSystem, FortPrep, FortDrop, FortUser, FortOrder,
@@ -75,20 +75,6 @@ def around_all_tests():
             assert not session.query(cls).all()
     session.query(Global).delete()
     session.commit()
-
-
-# At prsent, spy_ship fixture removes everything for test isolation.
-# To offset, put it back at end.
-@pytest.fixture(scope="session", autouse=True)
-def after_all_tests(request):
-    """ Perform one time finish. """
-    def finish():
-        """ Put spy_ships back. """
-        with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
-            eddb_session.query(spy.SpyShip).delete()
-            spy.preload_tables(eddb_session)
-
-    request.addfinalizer(finish)
 
 
 @pytest.fixture
@@ -915,16 +901,20 @@ def f_sheet_records(session):
     session.commit()
 
 
+# FIXME: Improve this fixture after some consideration
 @pytest.fixture
 def f_spy_ships(eddb_session):
     try:
+        eddb_session.query(spy.SpyShip).delete()
         spy.preload_tables(eddb_session)
-    except sqla.exc.IntegrityError:
-        eddb_session.rollback()
+        eddb_session.commit()
+        eddb_session.close()
 
-    yield
+        yield
 
-    eddb_session.query(spy.SpyShip).delete()
+    finally:
+        eddb_session.query(spy.SpyShip).delete()
+        spy.preload_tables(eddb_session)
 
 
 @pytest.fixture
@@ -950,6 +940,7 @@ def f_pvp_testbed(f_spy_ships, eddb_session):
             PVPInaraSquad(id=1, name='cool guys', updated_at=PVP_TIMESTAMP),
         ])
         eddb_session.flush()
+        #  system_anja = eddb_session.query(cogdb.eddb.System).filter(System.name == 'Anja').one()
         eddb_session.add_all([
             PVPInara(id=1, squad_id=1, discord_id=1, name='CoolGuyYeah', updated_at=PVP_TIMESTAMP),
             PVPLocation(id=1, cmdr_id=1, system_id=1000, created_at=PVP_TIMESTAMP, event_at=PVP_TIMESTAMP),

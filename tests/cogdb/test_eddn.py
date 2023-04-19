@@ -7,6 +7,7 @@ import pathlib
 import shutil
 import tempfile
 
+import pytest
 try:
     import rapidjson as json
 except ImportError:
@@ -14,6 +15,7 @@ except ImportError:
 
 import cogdb.eddn
 import cogdb.schema
+import cogdb.spansh
 from cogdb.schema import TrackByID
 from cogdb.eddb import FactionActiveState
 
@@ -507,6 +509,11 @@ EXAMPLE_CARRIER_EDMC = """{
 }"""
 
 
+@pytest.fixture
+def mapped(f_spy_ships, eddb_session):
+    yield cogdb.spansh.eddb_maps(eddb_session)
+
+
 def test_create_id_maps(eddb_session):
     maps = cogdb.eddn.create_id_maps(eddb_session)
     assert 'Thargoid' in maps['Allegiance']
@@ -576,7 +583,7 @@ def test_edmcjournal_parse_msg_carrier():
     assert not result.get('conflicts')
 
 
-def test_edmcjournal_update_database():
+def test_edmcjournal_update_database(mapped):
     msg = json.loads(EXAMPLE_JOURNAL_STATION)
     parser = cogdb.eddn.create_parser(msg)
     parser.parse_msg()
@@ -584,18 +591,21 @@ def test_edmcjournal_update_database():
     result = parser.parsed
 
     # Since updating EDDB, these already exist in db so just test valid IDs were set.
-    assert result['system']['id'] == 569
-    assert result['station']['id'] == 35712
-    assert result['factions']['Ahemakino Bridge Organisation']['id'] == 55927
-    assert result['influences'][0]['faction_id'] == 26800
-    assert result['influences'][0]['system_id'] == 569
-    assert result['conflicts'][0]['faction1_id'] == 68340
+    expect_system_id = mapped['systems'][result['system']['name']]
+    assert result['system']['id'] == expect_system_id
+    station_key = cogdb.spansh.station_key(system=result['system']['name'], station=result['station'])
+    assert result['station']['id'] == mapped['stations'][station_key]
+    faction_name = 'Ahemakino Bridge Organisation'
+    assert result['factions'][faction_name]['id'] == mapped['factions'][faction_name]
+    assert result['influences'][0]['faction_id'] == mapped['factions']['Ochosag Federal Company']
+    assert result['influences'][0]['system_id'] == expect_system_id
+    assert result['conflicts'][0]['faction1_id'] == mapped['factions']['Udegobo Silver Power Int']
 
 
-def test_edmcjournal_parse_system():
+def test_edmcjournal_parse_system(mapped):
     expected = {
-        'controlling_minor_faction_id': 55925,
-        'id': 569,
+        'controlling_minor_faction_id': mapped['factions']['Social Ahemakino Green Party'],
+        'id': mapped['systems']['Ahemakino'],
         'name': 'Ahemakino',
         'population': 9165120,
         'power_id': 6,
@@ -683,9 +693,9 @@ def test_edmcjournal_parse_and_flush_carrier_disc_system(session, f_track_testbe
     parser.eddb_session.rollback()
 
 
-def test_edmcjournal_parse_station():
+def test_edmcjournal_parse_station(mapped):
     expected = {
-        'controlling_minor_faction_id': 55925,
+        'controlling_minor_faction_id': mapped['factions']['Social Ahemakino Green Party'],
         'economies': [
             {'economy_id': 4, 'primary': True, 'proportion': 0.8},
             {'economy_id': 6, 'primary': False, 'proportion': 0.2}
@@ -709,7 +719,7 @@ def test_edmcjournal_parse_station():
             'updated_at': 1596452651
         },
         'name': 'Mattingly Port',
-        'system_id': 569,
+        'system_id': mapped['systems']["Ahemakino"],
         'type_id': 3,
         'updated_at': 1596452651
     }
@@ -735,97 +745,98 @@ def test_edmcjournal_flush_station_to_db():
     assert parser.flushed[1].name == "Mattingly Port"
 
 
-def test_edmcjournal_parse_factions():
+def test_edmcjournal_parse_factions(mapped):
+    system_id = mapped['systems']['Ahemakino']
     expect = ({
         'Ahemakino Bridge Organisation': {'allegiance_id': 4,
                                           'government_id': 64,
-                                          'id': 55927,
+                                          'id': mapped['factions']['Ahemakino Bridge Organisation'],
                                           'name': 'Ahemakino Bridge Organisation',
                                           'state_id': 80,
                                           'updated_at': 1596452651},
         'Defence Party of Ahemakino': {'allegiance_id': 4,
                                        'government_id': 112,
-                                       'id': 55926,
+                                       'id': mapped['factions']['Defence Party of Ahemakino'],
                                        'name': 'Defence Party of Ahemakino',
                                        'state_id': 80,
                                        'updated_at': 1596452651},
         'Natural Ahemakino Defence Party': {'allegiance_id': 4,
                                             'government_id': 112,
-                                            'id': 55928,
+                                            'id': mapped['factions']['Natural Ahemakino Defence Party'],
                                             'name': 'Natural Ahemakino Defence Party',
                                             'state_id': 80,
                                             'updated_at': 1596452651},
         'Ochosag Federal Company': {'allegiance_id': 3,
                                     'government_id': 64,
-                                    'id': 26800,
+                                    'id': mapped['factions']['Ochosag Federal Company'],
                                     'name': 'Ochosag Federal Company',
                                     'state_id': 80,
                                     'updated_at': 1596452651},
-        'Revolutionary Mpalans Confederation': {'active_states': [FactionActiveState(system_id=569, faction_id=58194, state_id=73)],
+        'Revolutionary Mpalans Confederation': {'active_states': [FactionActiveState(system_id=system_id, faction_id=mapped['factions']['Revolutionary Mpalans Confederation'], state_id=73)],
                                                 'allegiance_id': 3,
                                                 'government_id': 48,
-                                                'id': 58194,
+                                                'id': mapped['factions']['Revolutionary Mpalans Confederation'],
                                                 'name': 'Revolutionary Mpalans '
                                                         'Confederation',
                                                 'state_id': 73,
                                                 'updated_at': 1596452651},
-        'Social Ahemakino Green Party': {'active_states': [FactionActiveState(system_id=569, faction_id=55925, state_id=16)],
+        'Social Ahemakino Green Party': {'active_states': [FactionActiveState(system_id=system_id, faction_id=mapped['factions']['Social Ahemakino Green Party'], state_id=16)],
                                          'allegiance_id': 3,
                                          'government_id': 96,
-                                         'id': 55925,
+                                         'id': mapped['factions']['Social Ahemakino Green Party'],
                                          'name': 'Social Ahemakino Green Party',
                                          'state_id': 16,
                                          'updated_at': 1596452651},
-        'Udegobo Silver Power Int': {'active_states': [FactionActiveState(system_id=569, faction_id=68340, state_id=73)],
+        'Udegobo Silver Power Int': {'active_states': [FactionActiveState(system_id=system_id, faction_id=mapped['factions']['Udegobo Silver Power Int'], state_id=73)],
                                      'allegiance_id': 3,
                                      'government_id': 64,
-                                     'id': 68340,
+                                     'id': mapped['factions']['Udegobo Silver Power Int'],
                                      'name': 'Udegobo Silver Power Int',
                                      'state_id': 73,
                                      'updated_at': 1596452651}
     },
         [
-        {'faction_id': 26800,
+        {'faction_id': mapped['factions']['Ochosag Federal Company'],
          'happiness_id': 2,
          'influence': 0.102386,
          'is_controlling_faction': False,
-         'system_id': 569,
+         'system_id': system_id,
          'updated_at': 1596452651},
-        {'faction_id': 55925,
+        {'faction_id': mapped['factions']['Social Ahemakino Green Party'],
          'happiness_id': 2,
          'influence': 0.643141,
          'is_controlling_faction': True,
-         'system_id': 569,
+         'system_id': system_id,
          'updated_at': 1596452651},
-        {'faction_id': 68340,
+        {'faction_id': mapped['factions']['Udegobo Silver Power Int'],
          'happiness_id': 2,
          'influence': 0.078529,
          'is_controlling_faction': False,
-         'system_id': 569,
+         'system_id': system_id,
          'updated_at': 1596452651},
-        {'faction_id': 55926,
+        {'faction_id': mapped['factions']['Defence Party of Ahemakino'],
          'happiness_id': 2,
          'influence': 0.014911,
          'is_controlling_faction': False,
-         'system_id': 569,
+         'system_id': system_id,
          'updated_at': 1596452651},
-        {'faction_id': 58194,
+        {'faction_id': mapped['factions']['Revolutionary Mpalans Confederation'],
          'happiness_id': 2,
          'influence': 0.078529,
          'is_controlling_faction': False,
-         'system_id': 569,
+         'system_id': system_id,
          'updated_at': 1596452651},
-        {'faction_id': 55927,
+        {'faction_id': mapped['factions']['Ahemakino Bridge Organisation'],
          'happiness_id': 2,
          'influence': 0.037773,
          'is_controlling_faction': False,
-         'system_id': 569,
+         'system_id': system_id,
          'updated_at': 1596452651},
-        {'faction_id': 55928,
+        {'faction_id': mapped['factions']['Natural Ahemakino Defence Party'],
          'happiness_id': 2,
          'influence': 0.044732,
          'is_controlling_faction': False,
-         'system_id': 569,
+         'system_id': system_id,
          'updated_at': 1596452651}
     ])
     msg = json.loads(EXAMPLE_JOURNAL_STATION)
@@ -851,7 +862,7 @@ def test_edmcjournal_flush_factions_to_db():
     assert parser.flushed[1].name == "Ochosag Federal Company"
 
 
-def test_edmcjournal_flush_influences_to_db():
+def test_edmcjournal_flush_influences_to_db(mapped):
     msg = json.loads(EXAMPLE_JOURNAL_STATION)
     parser = cogdb.eddn.create_parser(msg)
 
@@ -861,21 +872,21 @@ def test_edmcjournal_flush_influences_to_db():
     assert result
 
     parser.flush_influences_to_db()
-    assert parser.flushed[2].faction_id == 55925
+    assert parser.flushed[2].faction_id == mapped['factions']['Social Ahemakino Green Party']
     assert parser.flushed[2].is_controlling_faction
     assert parser.flushed[2].happiness_id == 2
 
 
-def test_edmcjournal_parse_conflicts():
+def test_edmcjournal_parse_conflicts(mapped):
     expect = [{
         'faction1_days': 1,
-        'faction1_id': 68340,
-        'faction1_stake_id': 59829,
+        'faction1_id': mapped['factions']['Udegobo Silver Power Int'],
+        'faction1_stake_id': mapped['stations']['Ahemakino_Haarsma Keep'],
         'faction2_days': 0,
-        'faction2_id': 58194,
+        'faction2_id': mapped['factions']['Revolutionary Mpalans Confederation'],
         'faction2_stake_id': None,
         'status_id': 2,
-        'system_id': 569,
+        'system_id': mapped['systems']['Ahemakino'],
         'type_id': 6,
         'updated_at': 1596452651
     }]
@@ -890,7 +901,7 @@ def test_edmcjournal_parse_conflicts():
     assert result == expect
 
 
-def test_edmcjournal_flush_conflicts_to_db():
+def test_edmcjournal_flush_conflicts_to_db(mapped):
     msg = json.loads(EXAMPLE_JOURNAL_STATION)
     parser = cogdb.eddn.create_parser(msg)
 
@@ -901,8 +912,8 @@ def test_edmcjournal_flush_conflicts_to_db():
     assert result
 
     parser.flush_conflicts_to_db()
-    assert parser.flushed[1].faction1_id == 68340
-    assert parser.flushed[1].faction2_id == 58194
+    assert parser.flushed[1].faction1_id == mapped['factions']['Udegobo Silver Power Int']
+    assert parser.flushed[1].faction2_id == mapped['factions']['Revolutionary Mpalans Confederation']
 
 
 def test_log_fname():
