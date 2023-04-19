@@ -439,7 +439,9 @@ def eddb_maps(eddb_session):
         mapped[key][None] = None
 
     # Specific spansh name aliases
+    # Remap both below to controls, home systems are stored on cogdb.eddb.Power
     mapped['power_state']['Controlled'] = mapped['power_state']['Control']
+    mapped['power_state']['HomeSystem'] = mapped['power_state']['Control']
     mapped['power'].update({x.eddn: x.id for x in eddb_session.query(Power)})
     # No valid None for faction state
     mapped['faction_state']['None'] = 80
@@ -450,7 +452,7 @@ def eddb_maps(eddb_session):
     station_map['Mega ship'] = station_map['Megaship']
     station_map['Asteroid base'] = station_map['Asteroid Base']
     station_map['Outpost'] = station_map['Civilian Outpost']
-    station_map['Settlement'] = station_map['Odyssey Settlement']
+    station_map['Settlement'] = station_map['Planetary Settlement']
 
     ship_map = mapped['ship']
     ship_map['Sidewinder'] = ship_map['Sidewinder Mk. I']
@@ -720,7 +722,7 @@ def transform_factions(*, data, mapped, system_id):
     return results
 
 
-def transform_stations(*, data, mapped, system_id):
+def transform_stations(*, data, mapped, system_id, system_name):
     """
     Load the station information in a single data object from spansh.
     To be specific, data should be a complete line from the galaxy_stations.json
@@ -728,7 +730,8 @@ def transform_stations(*, data, mapped, system_id):
     Args:
         data: A complex dictionary nesting all the information of a single system from spansh.
         mapped: A dictionary of mappings to map down constants to their integer IDs.
-        system_id: The ID of the system of the factions.
+        system_id: The ID of the system the stations are in.
+        system_name: The name of the system the stations are in.
 
     Returns: {station_id: {'station': ..., 'features': ..., 'economy': ..., 'modules_sold': ..., 'commodity_pricing': ...}, ...}
         station_id: The id of the given station
@@ -742,7 +745,7 @@ def transform_stations(*, data, mapped, system_id):
     controlling_factions = {}
 
     for station in data['stations']:
-        key = station_key(system=data['name'], station=station)
+        key = station_key(system=system_name, station=station)
         try:
             station_id = mapped['stations'][key]
         except KeyError:
@@ -754,10 +757,11 @@ def transform_stations(*, data, mapped, system_id):
             continue  # Ignore stations that aren't typed or mapped to IDs
 
         max_pad = 'S'
-        if 'landingPads' in station and 'large' in station['landingPads']:
-            max_pad = 'L'
-        elif 'landingPads' in station and 'medium' in station['landingPads']:
-            max_pad = 'M'
+        if 'landingPads' in station:
+            if 'large' in station['landingPads'] and station['landingPads']['large']:
+                max_pad = 'L'
+            elif 'medium' in station['landingPads'] and station['landingPads']['medium']:
+                max_pad = 'M'
 
         controlling_minor_faction_id = None
         if 'controllingFaction' in station:
@@ -819,7 +823,7 @@ def transform_bodies(*, data, mapped, system_id):
     for body in data['bodies']:
         if body['stations']:
             body['updated_at'] = data['updated_at']
-            results.update(transform_stations(data=body, mapped=mapped, system_id=system_id))
+            results.update(transform_stations(data=body, mapped=mapped, system_id=system_id, system_name=data['name']))
 
     return results
 
@@ -1111,11 +1115,13 @@ def transform_galaxy_json(number, total, galaxy_json):
                     line = line[:-1]
                 data = json.loads(line)
 
-                system = transform_system(data=data, mapped=mapped)
+                try:
+                    system = transform_system(data=data, mapped=mapped)
+                except SpanshParsingError:
+                    continue
                 factions = transform_factions(data=data, mapped=mapped, system_id=system['id'])
-                stations = transform_stations(data=data, mapped=mapped, system_id=system['id'])
-                # FIXME: Need to better handle this
-                #  stations.update(transform_bodies(data=data, mapped=mapped, system_id=system['id']))
+                stations = transform_stations(data=data, mapped=mapped, system_id=system['id'], system_name=data['name'])
+                stations.update(transform_bodies(data=data, mapped=mapped, system_id=system['id']))
 
                 out_streams['systems'].write(str(system) + ',\n')
 
@@ -1347,7 +1353,33 @@ def import_stations_data(galaxy_folder):  # pragma: no cover
         bulk_insert_from_file(eddb_session, fname=fnames['economies'], cls=StationEconomy)
 
 
-async def parallel_process(galaxy_json, *, jobs):
+def eddb_overrides(eddb_session):
+    # To find others filter allegiance_id = 5 and government_id == 176
+    faction_overrides = [{
+        'id': 75875,
+        'name': "Federal Internment Corporation",
+        'allegiance_id': 3,
+        'government_id': 208,
+    }, {
+        'id': 75876,
+        'name': "Independent Detention Foundation",
+        'allegiance_id': 4,
+        'government_id': 208,
+    }, {
+        'id': 75877,
+        'name': "Alliance Incarceration Concern",
+        'allegiance_id': 1,
+        'government_id': 208,
+    }, {
+        'id': 75878,
+        'name': "Imperial Detainment Company",
+        'allegiance_id': 2,
+        'government_id': 208
+    }]
+    eddb_session.bulk_update_mappings(Faction, faction_overrides)
+
+
+async def parallel_process(galaxy_json, *, jobs):  # pragma: no cover
     """
     Parallel parse and import information from galaxy_json into the EDDB.
 
@@ -1362,6 +1394,7 @@ async def parallel_process(galaxy_json, *, jobs):
             Write out modules and commodities to a mysqldump like file.
     Step 5: Bulk insert from the files that were split in previous step.
     Step 6: Execute mysql command to bulk push into db from the dump of step 4.
+    Step 7: Manual corrections/overrides
 
     Args:
         galaxy_json: The path to the galaxy_json from spansh.
@@ -1430,6 +1463,9 @@ async def parallel_process(galaxy_json, *, jobs):
             stderr=asyncio.subprocess.PIPE,
         )
         await proc.wait()
+
+        with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
+            eddb_overrides(eddb_session)
         print(" Done!\nAll operations complete.")
 
 

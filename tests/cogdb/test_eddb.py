@@ -84,8 +84,6 @@ def test_get_nearest_traders_mats_raw(eddb_session):
 
     station_names = {x[2] for x in result}
     assert "[L] Broglie Terminal" in station_names
-    # TODO: Investigate
-    #  assert "[L] Haber City" in station_names
 
 
 def test_get_nearest_traders_mats_manufactured(eddb_session):
@@ -93,8 +91,6 @@ def test_get_nearest_traders_mats_manufactured(eddb_session):
 
     station_names = {x[2] for x in result}
     assert "[L] Patterson Enter." in station_names
-    # TODO: Investigate
-    #  assert '[L] Hooper Relay' in station_names
 
 
 def test_get_shipyard_stations(eddb_session):
@@ -147,6 +143,7 @@ def test_get_systems_around(eddb_session):
         '44 chi Draconis',
         'Acihaut',
         'Bodedi',
+        'DP Draconis',
         'DX 799',
         'G 239-25',
         'Lalande 18115',
@@ -154,15 +151,19 @@ def test_get_systems_around(eddb_session):
         'LHS 1885',
         'LHS 215',
         'LHS 221',
+        'LHS 2211',
         'LHS 2459',
         'LHS 246',
+        'LHS 252',
         'LHS 262',
         'LHS 283',
+        'LHS 316',
         'LHS 6128',
         'LP 5-88',
         'LP 64-194',
         'Nang Ta-khian',
         'Nanomam',
+        'SZ Ursae Majoris',
         'Tollan'
     ]
     results = [x.name for x in cogdb.eddb.get_systems_around(eddb_session, "Nanomam")]
@@ -357,7 +358,10 @@ def test_add_history_track_empty(eddb_session):
 
 def test_add_history_track_exists(eddb_session):
     try:
-        eddb_session.add(HistoryTrack(system_id=11905))
+        rana = eddb_session.query(cogdb.eddb.System).\
+            filter(cogdb.eddb.System.name == 'Rana').\
+            one()
+        eddb_session.add(HistoryTrack(system_id=rana.id))
         eddb_session.commit()
         cogdb.eddb.add_history_track(eddb_session, ['Rana', 'LHS 215'])
         assert len(eddb_session.query(HistoryTrack).all()) == 2
@@ -368,7 +372,10 @@ def test_add_history_track_exists(eddb_session):
 
 def test_remove_history_track_exists(eddb_session):
     try:
-        eddb_session.add(HistoryTrack(system_id=11905))
+        rana = eddb_session.query(cogdb.eddb.System).\
+            filter(cogdb.eddb.System.name == 'Rana').\
+            one()
+        eddb_session.add(HistoryTrack(system_id=rana.id))
         eddb_session.commit()
         assert eddb_session.query(HistoryTrack).all()
         cogdb.eddb.remove_history_track(eddb_session, ['Rana', 'LHS 215'])

@@ -12,11 +12,18 @@ import cogdb.eddb
 import cogdb.spansh
 import cog.util
 JSON_PATH = cog.util.rel_to_abs('tests', 'cogdb', 'spansh_rana.json')
+BODIES_PATH = cog.util.rel_to_abs('tests', 'cogdb', 'spansh_61cygni.json')
 
 
 @pytest.fixture
 def f_json():
     with open(JSON_PATH, 'r', encoding='utf-8') as fin:
+        yield json.loads(fin.read())[0]
+
+
+@pytest.fixture
+def f_json_bodies():
+    with open(BODIES_PATH, 'r', encoding='utf-8') as fin:
         yield json.loads(fin.read())[0]
 
 
@@ -126,7 +133,8 @@ def test_transform_system(f_json, f_spy_ships, eddb_session):
 
 def test_transform_factions(f_json, f_spy_ships, eddb_session):
     mapped = cogdb.spansh.eddb_maps(eddb_session)
-    results = cogdb.spansh.transform_factions(data=f_json, mapped=mapped, system_id=15976)
+    system_id = mapped['systems']['Rana']
+    results = cogdb.spansh.transform_factions(data=f_json, mapped=mapped, system_id=system_id)
 
     faction_id = [x['faction'] for x in results.values() if x['faction']['name'] == 'Earth Defense Fleet'][0]['id']
     expect = {
@@ -143,13 +151,13 @@ def test_transform_factions(f_json, f_spy_ships, eddb_session):
             'happiness_id': None,
             'influence': 0.46339,
             'is_controlling_faction': True,
-            'system_id': 15976,
+            'system_id': system_id,
             'updated_at': 1680460158.0,
         },
         'state': {
             'faction_id': faction_id,
             'state_id': 80,
-            'system_id': 15976,
+            'system_id': system_id,
             'updated_at': 1680460158.0},
     }
 
@@ -160,14 +168,15 @@ def test_transform_factions(f_json, f_spy_ships, eddb_session):
 
 def test_transform_stations(f_json, f_spy_ships, eddb_session):
     mapped = cogdb.spansh.eddb_maps(eddb_session)
-    results = cogdb.spansh.transform_stations(data=f_json, mapped=mapped, system_id=15976)
+    system_id = mapped['systems']['Rana']
+    results = cogdb.spansh.transform_stations(data=f_json, mapped=mapped, system_id=system_id, system_name=f_json['name'])
     station_id = [x for x in results if results[x]['station']['name'] == 'Zholobov Gateway'][0]
     expect = {
         'distance_to_star': 1891.965479,
         'id': station_id,
         'max_landing_pad_size': 'L',
         'name': 'Zholobov Gateway',
-        'system_id': 15976,
+        'system_id': system_id,
         'type_id': 8,
         'updated_at': 1680456595.0,
     }
@@ -180,20 +189,40 @@ def test_transform_stations(f_json, f_spy_ships, eddb_session):
 
 def test_transform_bodies(f_json, f_spy_ships, eddb_session):
     mapped = cogdb.spansh.eddb_maps(eddb_session)
-    results = cogdb.spansh.transform_bodies(data=f_json, mapped=mapped, system_id=15976)
-    station_id = 98362
-    station_id = list(results.keys())[0]
+    system_id = mapped['systems']['Rana']
+    results = cogdb.spansh.transform_bodies(data=f_json, mapped=mapped, system_id=system_id)
+    station_id = list(sorted(results.keys()))[-1]
+    station_result = [x['station'] for x in results.values() if x['station']['name'] == 'T9K-T4H'][0]
     expect = {
         'controlling_minor_faction_id': 77170,
         'distance_to_star': 671.233016,
         'id': station_id,
         'max_landing_pad_size': 'L',
         'name': 'T9K-T4H',
-        'system_id': 15976,
+        'system_id': system_id,
         'type_id': 24,
         'updated_at': 1676028812.0
     }
-    assert results[station_id]['station'] == expect
+    assert station_result == expect
+
+
+def test_transform_bodies2(f_json_bodies, f_spy_ships, eddb_session):
+    mapped = cogdb.spansh.eddb_maps(eddb_session)
+    system_id = mapped['systems']['61 Cygni']
+    results = cogdb.spansh.transform_bodies(data=f_json_bodies, mapped=mapped, system_id=system_id)
+    station_id = list(sorted(results.keys()))[0]
+    expect = {
+        'controlling_minor_faction_id': 18530,
+        'distance_to_star': 24.044962,
+        'id': station_id,
+        'max_landing_pad_size': 'L',
+        'name': 'Broglie Terminal',
+        'system_id': system_id,
+        'type_id': 7,
+        'updated_at': 1681744634.0
+    }
+    assert expect == results[station_id]['station']
+
 
 
 def test_update_name_map():

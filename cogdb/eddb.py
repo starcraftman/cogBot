@@ -125,6 +125,8 @@ CONTROL_DISTANCE = 15  # A control exploits all systems in this distance
 HISTORY_INF_LIMIT = 40
 HOUR_SECONDS = 60 * 60
 HISTORY_INF_TIME_GAP = HOUR_SECONDS * 4  # min seconds between data points
+DEFAULT_DIST = 75
+DEFAULT_ARRIVAL = 5000
 # To select planetary stations
 Base = sqlalchemy.ext.declarative.declarative_base()
 
@@ -1531,6 +1533,7 @@ def get_systems_around(session, centre_name, distance=CONTROL_DISTANCE):
     centre = session.query(System).filter(System.name == centre_name).one()
     return session.query(System).\
         filter(System.dist_to(centre) <= distance).\
+        order_by(System.name).\
         all()
 
 
@@ -1551,7 +1554,7 @@ def get_influences_by_id(eddb_session, influence_ids):
         all()
 
 
-def base_get_stations(session, centre_name, *, sys_dist=75, arrival=2000):
+def base_get_stations(session, centre_name, *, sys_dist=DEFAULT_DIST, arrival=DEFAULT_ARRIVAL):
     """A base query to get all stations around a centre_name System.
     Applies base criteria filters for max system distance from centre and arrival distance in system.
 
@@ -1589,7 +1592,7 @@ def base_get_stations(session, centre_name, *, sys_dist=75, arrival=2000):
     return stations
 
 
-def get_nearest_stations_with_features(session, centre_name, *, features=None, sys_dist=75, arrival=2000, include_medium=False):
+def get_nearest_stations_with_features(session, centre_name, *, features=None, sys_dist=DEFAULT_DIST, arrival=DEFAULT_ARRIVAL, include_medium=False):
     """Find the nearest stations with the required features present.
     Features is a list of strings that are possible features on StationFeatures.
     Returned results will have stations with ALL requested features.
@@ -1617,7 +1620,7 @@ def get_nearest_stations_with_features(session, centre_name, *, features=None, s
 
 
 def get_nearest_traders(session, centre_name, *,
-                        trader_type=TraderType.BROKERS_GUARDIAN, sys_dist=75, arrival=2000):
+                        trader_type=TraderType.BROKERS_GUARDIAN, sys_dist=DEFAULT_DIST, arrival=DEFAULT_ARRIVAL):
     """Find the nearest stations that sell broker equipment or trade mats.
     The determination is made based on station economy and features.
 
@@ -1641,48 +1644,67 @@ def get_nearest_traders(session, centre_name, *,
     high_econ_id = session.query(Economy.id).\
         filter(Economy.text == 'High Tech').\
         scalar_subquery()
-    ext_econ_ids = session.query(Economy.id).\
-        filter(
-            sqla.or_(
-                Economy.text == 'Extraction',
-                Economy.text == 'Refinery')).\
+    mil_econ_id = session.query(Economy.id).\
+        filter(Economy.text == 'Military').\
         scalar_subquery()
     ind_econ_id = session.query(Economy.id).\
         filter(Economy.text == 'Industrial').\
         scalar_subquery()
+    ref_econ_id = session.query(Economy.id).\
+        filter(Economy.text == 'Refinery').\
+        scalar_subquery()
+    ext_econ_id = session.query(Economy.id).\
+        filter(Economy.text == 'Extraction').\
+        scalar_subquery()
 
     centre = sqla_orm.aliased(System)
     station_system = sqla_orm.aliased(System)
-    primary_economy = sqla_orm.aliased(StationEconomy)
     stations = session.query(station_system.name, station_system.dist_to(centre).label('dist_c'),
                              Station.name, Station.distance_to_star, Station.max_landing_pad_size).\
-        select_from(station_system).\
-        join(centre, centre.name == centre_name).\
-        join(Station, Station.system_id == station_system.id).\
+        select_from(Station).\
+        join(station_system, Station.system_id == station_system.id).\
         join(StationType, Station.type_id == StationType.id).\
         join(StationFeatures, Station.id == StationFeatures.id).\
-        join(primary_economy, Station.id == primary_economy.id).\
+        join(centre, centre.name == centre_name).\
         filter(
+            station_system.population > 1000000,
+            station_system.population < 22000000,
             station_system.dist_to(centre) < sys_dist,
             Station.distance_to_star < arrival,
-            StationType.text.notin_(exclude),
-            primary_economy.primary)
+            StationType.text.notin_(exclude))
 
     if trader_type == TraderType.BROKERS_GUARDIAN:
         stations = stations.filter(StationFeatures.technology_broker,
-                                   primary_economy.economy_id == high_econ_id)
+                                   station_system.primary_economy_id == high_econ_id)
     elif trader_type == TraderType.BROKERS_HUMAN:
         stations = stations.filter(StationFeatures.technology_broker,
-                                   primary_economy.economy_id != high_econ_id)
+                                   station_system.primary_economy_id != high_econ_id)
     elif trader_type == TraderType.MATS_DATA:
-        stations = stations.filter(StationFeatures.material_trader,
-                                   primary_economy.economy_id == high_econ_id)
+        stations = stations.filter(
+            StationFeatures.material_trader,
+            or_(
+                station_system.primary_economy_id == high_econ_id,
+                station_system.primary_economy_id == mil_econ_id,
+                station_system.secondary_economy_id == high_econ_id,
+                station_system.secondary_economy_id == mil_econ_id,
+            )
+        )
     elif trader_type == TraderType.MATS_RAW:
-        stations = stations.filter(StationFeatures.material_trader,
-                                   primary_economy.economy_id == ind_econ_id)
+        stations = stations.filter(
+            StationFeatures.material_trader,
+            or_(
+                station_system.primary_economy_id == ref_econ_id,
+                station_system.primary_economy_id == ext_econ_id,
+            )
+        )
     elif trader_type == TraderType.MATS_MANUFACTURED:
-        stations = stations.filter(StationFeatures.material_trader,
-                                   primary_economy.economy_id.in_(ext_econ_ids))
+        stations = stations.filter(
+            StationFeatures.material_trader,
+            or_(
+                station_system.primary_economy_id == ind_econ_id,
+                station_system.secondary_economy_id == ind_econ_id,
+            )
+        )
 
     stations = stations.order_by('dist_c', Station.distance_to_star).\
         limit(20).\
@@ -1692,7 +1714,7 @@ def get_nearest_traders(session, centre_name, *,
             for [a, b, c, d, e] in stations]
 
 
-def get_shipyard_stations(session, centre_name, *, sys_dist=75, arrival=2000, include_medium=False):
+def get_shipyard_stations(session, centre_name, *, sys_dist=DEFAULT_DIST, arrival=DEFAULT_ARRIVAL, include_medium=False):
     """Get the nearest shipyard stations.
     Filter stations to find those with shipyards, these stations have all repair features.
     If mediums requested, filter to find all repair required features: repair, rearm, feuel, outfitting
@@ -2357,5 +2379,8 @@ FACTION_STATE_PAIRS = [
     ('pending_states', FactionPendingState),
     ('recovering_states', FactionRecoveringState)
 ]
+
+
 if __name__ == "__main__":
-    main_test_area()
+    with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
+        main_test_area(eddb_session)
