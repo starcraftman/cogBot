@@ -126,11 +126,11 @@ def confirm_msg(args, query=True):  # pragma: no cover
         msg += "    Empty all EDDB, spy and spansh tables and preload data.\n"
 
     msg += """    Parse all the information present in current galaxy_stations.json
-    Then replace the following possibly existing EDDB data with that information:
+    Replace the following possibly existing EDDB tables with that information:
         cogdb.eddb.{System, Faction, Influence, Station, StationFeatures, StationEconomy, FactionActiveState}
 """
     if args.commodities:
-        msg += "    cogdb.spansh.{SModuleSold, SCommodityPricing}\n"
+        msg += "        cogdb.spansh.{SModuleSold, SCommodityPricing}\n"
 
     if query:
         msg += "\nPlease confirm with yes or no: "

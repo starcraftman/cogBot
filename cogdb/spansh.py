@@ -1557,9 +1557,7 @@ async def parallel_process(galaxy_json, *, jobs):  # pragma: no cover
 
         with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
             manual_overrides(eddb_session)
-        print("Manual overrides to database have been applied.")
-
-        print("All operations complete.")
+        print("Manual overrides to database have been applied ... Done!")
 
 
 def cleanup_scratch_files(galaxy_folder):
