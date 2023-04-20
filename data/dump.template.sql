@@ -42,10 +42,9 @@ CREATE TABLE `spansh_commodity_pricing` (
 --
 -- Dumping data for table `spansh_commodity_pricing`
 --
-
 LOCK TABLES `spansh_commodity_pricing` WRITE;
 /*!40000 ALTER TABLE `spansh_commodity_pricing` DISABLE KEYS */;
---INSERT INTO `spansh_commodity_pricing` VALUES COMMODITY_PRICING_HERE
+ALTER TABLE `spansh_commodity_pricing` AUTO_INCREMENT = 1;
 COMMODITY_PRICING_HERE
 /*!40000 ALTER TABLE `spansh_commodity_pricing` ENABLE KEYS */;
 UNLOCK TABLES;
@@ -75,7 +74,7 @@ CREATE TABLE `spansh_modules_sold` (
 
 LOCK TABLES `spansh_modules_sold` WRITE;
 /*!40000 ALTER TABLE `spansh_modules_sold` DISABLE KEYS */;
--- INSERT INTO `spansh_modules_sold` VALUES ((1, 2, 3));
+ALTER TABLE `spansh_modules_sold` AUTO_INCREMENT = 1;
 MODULES_SOLD_HERE
 /*!40000 ALTER TABLE `spansh_modules_sold` ENABLE KEYS */;
 UNLOCK TABLES;

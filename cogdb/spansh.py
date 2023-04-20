@@ -22,6 +22,7 @@ import json
 import logging
 import os
 import pprint
+import re
 import sys
 from pathlib import Path
 
@@ -43,11 +44,14 @@ from cog.util import ReprMixin, UpdatableMixin, print_no_newline
 
 JSON_INDENT = 2
 TIME_STRP = "%Y-%m-%d %H:%M:%S"
-FACTION_MAPF = cog.util.rel_to_abs('data', 'factionMap.json')
-SYSTEM_MAPF = cog.util.rel_to_abs('data', 'systemMap.json')
-STATION_MAPF = cog.util.rel_to_abs('data', 'stationMap.json')
-SPANSH_COMMODITIES = cog.util.rel_to_abs('data', 'commodities.spansh')
-SPANSH_MODULES = cog.util.rel_to_abs('data', 'modules.spansh')
+IDS_ROOT = cog.util.rel_to_abs('data', 'ids')
+FACTION_MAPF = os.path.join(IDS_ROOT, 'factionMap.json')
+SYSTEM_MAPF = os.path.join(IDS_ROOT, 'systemMap.json')
+STATION_MAPF = os.path.join(IDS_ROOT, 'stationMap.json')
+STATION_ONLY_MAPF = os.path.join(IDS_ROOT, 'onlyStationMap.json')
+CARRIER_MAPF = os.path.join(IDS_ROOT, 'carrierMap.json')
+SPANSH_COMMODITIES = os.path.join(IDS_ROOT, 'commodities.spansh')
+SPANSH_MODULES = os.path.join(IDS_ROOT, 'modules.spansh')
 # Mapping of spansh naming of station services, bit unsure of some
 SPANSH_STATION_SERVICES = {
     'Fleet Carrier Administration': 'carrier_administration',
@@ -72,13 +76,15 @@ SPLIT_FILENAMES = [
 ]
 STATION_KEYS = ['stations', 'features', 'economies']
 COMMODITY_STATION_LIMIT = 30000
-CLEANUP_GLOBS = [f"{x}.json.*" for x in SPLIT_FILENAMES] + ['*.correct', '*.uniqu*', 'dump.sql']
 GALAXY_URL = "https://downloads.spansh.co.uk/galaxy_stations.json.gz"
 GALAXY_JSON = os.path.join(cog.util.CONF.paths.eddb_store, 'galaxy_stations.json')
 GALAXY_COMPRESSION_RATE = 6.35
 MYSQLDUMP_TEMPLATE = cog.util.rel_to_abs('data', 'dump.template.sql')
 MYSQLDUMP_LIMIT = 25000
 MYSQLDUMP_FNAME = Path(GALAXY_JSON).parent / 'dump.sql'
+CLEANUP_GLOBS = [f"{x}.json.*" for x in SPLIT_FILENAMES] + ['*.correct', '*.uniqu*', MYSQLDUMP_FNAME]
+SEP = "||"
+PROCESS_COMMODITIES = True
 
 
 class SpanshParsingError(Exception):
@@ -289,37 +295,43 @@ def preload_tables(eddb_session, only_groups=False):  # pragma: no cover
         eddb_session: A session onto EDDB.
         only_groups: When True, only SModuleGroup and SCommodityGroup will be loaded.
     """
-    eddb_session.add_all([
-        SModuleGroup(id=1, name='hardpoint'),
-        SModuleGroup(id=2, name='internal'),
-        SModuleGroup(id=3, name='standard'),
-        SModuleGroup(id=4, name='utility'),
-        SCommodityGroup(id=1, name='Chemicals'),
-        SCommodityGroup(id=2, name='Consumer Items'),
-        SCommodityGroup(id=3, name='Foods'),
-        SCommodityGroup(id=4, name='Industrial Materials'),
-        SCommodityGroup(id=5, name='Legal Drugs'),
-        SCommodityGroup(id=6, name='Machinery'),
-        SCommodityGroup(id=7, name='Medicines'),
-        SCommodityGroup(id=8, name='Metals'),
-        SCommodityGroup(id=9, name='Minerals'),
-        SCommodityGroup(id=10, name='Salvage'),
-        SCommodityGroup(id=11, name='Slavery'),
-        SCommodityGroup(id=12, name='Technology'),
-        SCommodityGroup(id=13, name='Textiles'),
-        SCommodityGroup(id=14, name='Waste'),
-        SCommodityGroup(id=15, name='Weapons'),
-    ])
+    if not eddb_session.query(SModuleGroup).all():
+        eddb_session.add_all([
+            SModuleGroup(id=1, name='hardpoint'),
+            SModuleGroup(id=2, name='internal'),
+            SModuleGroup(id=3, name='standard'),
+            SModuleGroup(id=4, name='utility'),
+        ])
+    if not eddb_session.query(SCommodityGroup).all():
+        eddb_session.add_all([
+            SCommodityGroup(id=1, name='Chemicals'),
+            SCommodityGroup(id=2, name='Consumer Items'),
+            SCommodityGroup(id=3, name='Foods'),
+            SCommodityGroup(id=4, name='Industrial Materials'),
+            SCommodityGroup(id=5, name='Legal Drugs'),
+            SCommodityGroup(id=6, name='Machinery'),
+            SCommodityGroup(id=7, name='Medicines'),
+            SCommodityGroup(id=8, name='Metals'),
+            SCommodityGroup(id=9, name='Minerals'),
+            SCommodityGroup(id=10, name='Salvage'),
+            SCommodityGroup(id=11, name='Slavery'),
+            SCommodityGroup(id=12, name='Technology'),
+            SCommodityGroup(id=13, name='Textiles'),
+            SCommodityGroup(id=14, name='Waste'),
+            SCommodityGroup(id=15, name='Weapons'),
+        ])
     eddb_session.flush()
 
     if not only_groups:
         try:
-            with open(SPANSH_COMMODITIES, 'r', encoding='utf-8') as fin:
-                comms = eval(fin.read())
-                eddb_session.add_all(comms)
-            with open(SPANSH_MODULES, 'r', encoding='utf-8') as fin:
-                modules = eval(fin.read())
-                eddb_session.add_all(modules)
+            if not eddb_session.query(SCommodity).all():
+                with open(SPANSH_COMMODITIES, 'r', encoding='utf-8') as fin:
+                    comms = eval(fin.read())
+                    eddb_session.add_all(comms)
+            if not eddb_session.query(SModule).all():
+                with open(SPANSH_MODULES, 'r', encoding='utf-8') as fin:
+                    modules = eval(fin.read())
+                    eddb_session.add_all(modules)
         except FileNotFoundError:
             print("Warning: Missing critical caches for commodities and modules. Please run: python -m cogdb.dbi -c")
             sys.exit(0)
@@ -383,6 +395,18 @@ def date_to_timestamp(text):
         return None
 
 
+def is_a_carrier(station_name):
+    """
+    All player carriers have 7 letters of form XXX-XXX where X is [A-Z0-9]
+
+    Args:
+        station_name: The name of the station.
+
+    Returns: True if the name is a player carrier.
+    """
+    return len(station_name) == 7 and re.match(r'[A-Z0-9]{3}-[A-Z0-9]{3}', station_name)
+
+
 def station_key(*, system, station):
     """
     Provide a unique key for a given station.
@@ -396,8 +420,7 @@ def station_key(*, system, station):
 
     Returns: A string to uniquely identify station.
     """
-    key = f"{system}_{station['name']}"
-
+    key = f"{system}{SEP}{station['name']}"
     try:
         if station['type'] == "Drake-Class Carrier":
             key = station['name']
@@ -435,17 +458,20 @@ def eddb_maps(eddb_session):
     mapped = {}
     for key, cls in mapped_cls:
         mapped[key] = {x.text: x.id for x in eddb_session.query(cls)}
-        mapped[key]['None'] = None
-        mapped[key][None] = None
+        if 'None' not in mapped[key]:
+            mapped[key]['None'] = None
+        if None not in mapped[key]:
+            mapped[key][None] = None
 
     # Specific spansh name aliases
     # Remap both below to controls, home systems are stored on cogdb.eddb.Power
+    # No valid None for faction state
+    mapped['economy']['$economy_Undefined;'] = mapped['economy']['None']
+    mapped['faction_state']['None'] = 80
+    mapped['faction_state'][None] = 80
     mapped['power_state']['Controlled'] = mapped['power_state']['Control']
     mapped['power_state']['HomeSystem'] = mapped['power_state']['Control']
     mapped['power'].update({x.eddn: x.id for x in eddb_session.query(Power)})
-    # No valid None for faction state
-    mapped['faction_state']['None'] = 80
-    mapped['faction_state'][None] = 80
 
     station_map = mapped['station_type']
     station_map['Drake-Class Carrier'] = station_map['Fleet Carrier']
@@ -766,7 +792,7 @@ def transform_stations(*, data, mapped, system_id, system_name):
         controlling_minor_faction_id = None
         if 'controllingFaction' in station:
             controlling_minor_faction_id = mapped['factions'].get(station['controllingFaction'])
-            if controlling_minor_faction_id not in controlling_factions:
+            if controlling_minor_faction_id:
                 controlling_factions[controlling_minor_faction_id] = {
                     'id': controlling_minor_faction_id,
                     'name': station['controllingFaction']
@@ -794,10 +820,15 @@ def transform_stations(*, data, mapped, system_id, system_name):
                 'economy_id': economy_id,
                 'primary': True
             },
-            'modules_sold': transform_modules_sold(station=station, station_id=station_id),
-            'commodity_pricing': transform_commodity_pricing(station=station, station_id=station_id),
-            'controlling_factions': list(controlling_factions.values())
+            'controlling_factions': list(controlling_factions.values()),
+            'modules_sold': [],
+            'commodity_pricing': [],
         }
+        if PROCESS_COMMODITIES:
+            results[station_id].update({
+                'modules_sold': transform_modules_sold(station=station, station_id=station_id),
+                'commodity_pricing': transform_commodity_pricing(station=station, station_id=station_id),
+            })
 
     return results
 
@@ -861,6 +892,56 @@ def update_name_map(missing_names, *, known_fname, new_fname):
         json.dump(new_names, fout, indent=JSON_INDENT, sort_keys=True)
 
 
+def update_station_map(missing_names):
+    """
+    Provides a means to update the station mappings.
+    """
+    with open(STATION_MAPF, 'r', encoding='utf-8') as fin:
+        known_names = json.load(fin)
+    with open(STATION_MAPF.replace('Map', 'NewMap'), 'r', encoding='utf-8') as fin:
+        new_names = json.load(fin)
+    with open(STATION_ONLY_MAPF, 'r', encoding='utf-8') as fin:
+        station_names = json.load(fin)
+    with open(STATION_ONLY_MAPF.replace('Map', 'NewMap'), 'r', encoding='utf-8') as fin:
+        new_station_names = json.load(fin)
+    with open(CARRIER_MAPF, 'r', encoding='utf-8') as fin:
+        carrier_names = json.load(fin)
+    with open(CARRIER_MAPF.replace('Map', 'NewMap'), 'r', encoding='utf-8') as fin:
+        new_carrier_names = json.load(fin)
+
+    known_ids = list(sorted(known_names.values()))
+    last_num = known_ids[-1] if known_ids else 2
+    available = set(range(1, last_num + len(missing_names) + 10)) - set(known_ids)
+    available = list(sorted(available, reverse=True))
+
+    for name in missing_names:
+        station_name = name
+        if SEP in name:
+            _, station_name = name.split(SEP)
+        new_id = available.pop()
+        new_names[name] = new_id
+        known_names[name] = new_id
+        if is_a_carrier(station_name):
+            carrier_names[station_name] = new_id
+            new_carrier_names[station_name] = new_id
+        else:
+            station_names[station_name] = new_id
+            new_station_names[station_name] = new_id
+
+    with open(STATION_MAPF, 'w', encoding='utf-8') as fout:
+        json.dump(known_names, fout, indent=JSON_INDENT, sort_keys=True)
+    with open(STATION_MAPF.replace('Map', 'NewMap'), 'w', encoding='utf-8') as fout:
+        json.dump(new_names, fout, indent=JSON_INDENT, sort_keys=True)
+    with open(STATION_ONLY_MAPF, 'w', encoding='utf-8') as fout:
+        json.dump(station_names, fout, indent=JSON_INDENT, sort_keys=True)
+    with open(STATION_ONLY_MAPF.replace('Map', 'NewMap'), 'w', encoding='utf-8') as fout:
+        json.dump(new_station_names, fout, indent=JSON_INDENT, sort_keys=True)
+    with open(CARRIER_MAPF, 'w', encoding='utf-8') as fout:
+        json.dump(carrier_names, fout, indent=JSON_INDENT, sort_keys=True)
+    with open(CARRIER_MAPF.replace('Map', 'NewMap'), 'w', encoding='utf-8') as fout:
+        json.dump(new_carrier_names, fout, indent=JSON_INDENT, sort_keys=True)
+
+
 def update_all_name_maps(factions, systems, stations):  # pragma: no cover
     """
     Update the name maps based on information found in the galaxy_json.
@@ -871,20 +952,21 @@ def update_all_name_maps(factions, systems, stations):  # pragma: no cover
     mapped = [
         [factions, 'faction'],
         [systems, 'system'],
-        [stations, 'station'],
     ]
     for missing, name in mapped:
         if not missing:
             continue
 
-        known_fname = Path(cog.util.rel_to_abs('data', f'{name}Map.json'))
-        new_fname = Path(cog.util.rel_to_abs('data', f'{name}NewMap.json'))
+        known_fname = Path(f'{IDS_ROOT}/{name}Map.json')
+        new_fname = Path(f'{IDS_ROOT}/{name}NewMap.json')
         for fname in (known_fname, new_fname):
             if not fname.exists():
                 with open(fname, 'w', encoding='utf-8') as fout:
                     fout.write('{}')
 
         update_name_map(missing, known_fname=known_fname, new_fname=new_fname)
+
+    update_station_map(stations)
 
 
 def collect_unique_names(galaxy_json):  # pragma: no cover
@@ -1221,7 +1303,6 @@ def dedupe_stations(fnames, galaxy_folder):
                 except KeyError:
                     stations[key] = info
 
-    module_id, commodity_id = 1, 1
     try:
         out_streams = {x: open(galaxy_folder / f'{x}.json.unique', 'w', encoding='utf-8') for x in STATION_KEYS}
         out_streams['commodities'] = open(galaxy_folder / "commodities.json.unique.00", 'w', encoding='utf-8')
@@ -1234,16 +1315,12 @@ def dedupe_stations(fnames, galaxy_folder):
             out_streams['features'].write(str(info['features']) + ',\n')
             out_streams['economies'].write(str(info['economy']) + ',\n')
 
-            for module in info['modules_sold']:
-                module['id'] = module_id
-                module_id += 1
-                all_modules += [module]
-            for commodity in info['commodity_pricing']:
-                commodity['id'] = commodity_id
-                commodity_id += 1
-                all_commodities += [commodity]
+            all_modules += info['modules_sold']
+            all_commodities += info['commodity_pricing']
 
-        dump_commodities_modules(all_modules, all_commodities, fname=MYSQLDUMP_FNAME)
+        if PROCESS_COMMODITIES:
+            dump_commodities_modules(all_modules, all_commodities, fname=MYSQLDUMP_FNAME)
+
         return MYSQLDUMP_FNAME
     finally:
         for stream in out_streams.values():
@@ -1267,15 +1344,18 @@ def dump_commodities_modules(all_modules, all_commodities, *, fname):
     while all_modules:
         segment = all_modules[:MYSQLDUMP_LIMIT]
         all_modules = all_modules[MYSQLDUMP_LIMIT:]
-        values_str = ','.join([f"({x['id']},{x['station_id']},{x['module_id']})" for x in segment])
-        modules_section += f"INSERT INTO `spansh_modules_sold` VALUES {values_str};\n"
+        try:
+            values_str = ','.join([f"({x['station_id']},{x['module_id']})" for x in segment])
+            modules_section += f"INSERT INTO `spansh_modules_sold` (station_id,module_id) VALUES {values_str};\n"
+        except KeyError:
+            pprint.pprint(segment)
 
     comm_section = ''
     while all_commodities:
         segment = all_commodities[:MYSQLDUMP_LIMIT]
         all_commodities = all_commodities[MYSQLDUMP_LIMIT:]
-        values_str = ','.join([f"({x['id']},{x['station_id']},{x['commodity_id']},{x['demand']},{x['supply']},{x['buy_price']},{x['sell_price']})" for x in segment])
-        comm_section += f"INSERT INTO `spansh_commodity_pricing` VALUES {values_str};\n"
+        values_str = ','.join([f"({x['station_id']},{x['commodity_id']},{x['demand']},{x['supply']},{x['buy_price']},{x['sell_price']})" for x in segment])
+        comm_section += f"INSERT INTO `spansh_commodity_pricing` (station_id,commodity_id,demand,supply,buy_price,sell_price) VALUES {values_str};\n"
 
     text = text.replace('MODULES_SOLD_HERE\n', modules_section)
     text = text.replace('COMMODITY_PRICING_HERE\n', comm_section)
@@ -1354,7 +1434,14 @@ def import_stations_data(galaxy_folder):  # pragma: no cover
         bulk_insert_from_file(eddb_session, fname=fnames['economies'], cls=StationEconomy)
 
 
-def eddb_overrides(eddb_session):
+def manual_overrides(eddb_session):
+    """
+    Add some manual overrides into the parsed data that should be corrected.
+    Often the information was referenced but not present in the dump.
+
+    Args:
+        eddb_session: A session onto the EDDB.
+    """
     # To find others filter allegiance_id = 5 and government_id == 176
     faction_overrides = [{
         'id': 75875,
@@ -1455,19 +1542,24 @@ async def parallel_process(galaxy_json, *, jobs):  # pragma: no cover
             import_stations_data,
             galaxy_folder
         )
+        print(" Done!")
 
-        print_no_newline(" Done!\nImporting station commodity prices and modules sold ...")
-        main_db = cog.util.CONF.dbs.main
-        proc = await asyncio.create_subprocess_shell(
-            f"mysql -u {main_db.user} -p{main_db['pass']} eddb < {MYSQLDUMP_FNAME}",
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE,
-        )
-        await proc.wait()
+        if PROCESS_COMMODITIES:
+            print_no_newline("Importing station commodity prices and modules sold ...")
+            main_db = cog.util.CONF.dbs.main
+            proc = await asyncio.create_subprocess_shell(
+                f"mysql -u {main_db.user} -p{main_db['pass']} eddb < {MYSQLDUMP_FNAME}",
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE,
+            )
+            await proc.wait()
+            print(" Done!")
 
         with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
-            eddb_overrides(eddb_session)
-        print(" Done!\nAll operations complete.")
+            manual_overrides(eddb_session)
+        print("Manual overrides to database have been applied.")
+
+        print("All operations complete.")
 
 
 def cleanup_scratch_files(galaxy_folder):
@@ -1487,7 +1579,6 @@ def main():
     Base.metadata.create_all(cogdb.eddb_engine)
     with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
         preload_tables(eddb_session)
-        print(eddb_session.query(SModuleGroup).all())
 
 
 SPANSH_TABLES = [SCommodityPricing, SModuleSold, SCommodity, SModule, SCommodityGroup, SModuleGroup]

@@ -34,10 +34,16 @@ def make_parser():
                         help='The number of jobs to run.')
     parser.add_argument('--fetch', '-f', action="store_true",
                         help='Fetch the latest spansh dumps.')
-    parser.add_argument('--recreate-tables', '-r', dest="recreate", action="store_true",
-                        help='Recreate all EDDB tables, spy_tables and spansh specific tables.')
+    parser.add_argument('--ids', dest="ids", action="store_true",
+                        help='Update the ids map. Implied by --fetch as well.')
     parser.add_argument('--caches', '-c', action="store_true",
                         help='Regenerate all caches for commodities, modules and unique ID maps.')
+    parser.add_argument('--commodities', dest='commodities', action="store_true",
+                        help='When set, import station modules and commodities.')
+    parser.add_argument('--recreate-tables', '-r', dest="recreate", action="store_true",
+                        help='Recreate all EDDB tables, spy_tables and spansh specific tables.')
+    parser.add_argument('--no-cleanup', dest='cleanup', action="store_false",
+                        help='Do not cleanup scratch files in galaxy directory.')
     parser.add_argument('--skip', '-k', action="store_true",
                         help='Skip parsing and importing latest spansh dump.')
 
@@ -108,11 +114,12 @@ def confirm_msg(args, query=True):  # pragma: no cover
     if args.fetch:
         msg += """    Preserve the current galaxy_stations.json to a backup
     Download and extract the latest spansh dump
-    Update the ID maps for the dump
 """
+
+    if args.fetch or args.ids:
+        msg += "    Update the ID maps for the dump\n"
     if args.caches:
         msg += "    Update the cached modules and commodity information.\n"
-
     if args.recreate:
         msg += "    Recreate all EDDB, spy and spansh tables and preload data.\n"
     else:
@@ -121,8 +128,9 @@ def confirm_msg(args, query=True):  # pragma: no cover
     msg += """    Parse all the information present in current galaxy_stations.json
     Then replace the following possibly existing EDDB data with that information:
         cogdb.eddb.{System, Faction, Influence, Station, StationFeatures, StationEconomy, FactionActiveState}
-        cogdb.spansh.{SModuleSold, SCommodityPricing}
 """
+    if args.commodities:
+        msg += "    cogdb.spansh.{SModuleSold, SCommodityPricing}\n"
 
     if query:
         msg += "\nPlease confirm with yes or no: "
@@ -144,9 +152,6 @@ def fetch_galaxy_json():
         raise
     extract_with_progress(compressed_json, GALAXY_JSON, size=size * GALAXY_COMPRESSION_RATE)
     os.remove(compressed_json)
-    print_no_newline("\nUpdating ID maps based on new dump ...")
-    cogdb.spansh.update_all_name_maps(*cogdb.spansh.collect_unique_names(GALAXY_JSON))
-    print(" Done!")
 
 
 def refresh_module_commodity_cache():
@@ -205,6 +210,8 @@ def main():
     parser = make_parser()
     args = parser.parse_args()
 
+    cogdb.spansh.PROCESS_COMMODITIES = args.commodities
+
     if args.yes:
         print(confirm_msg(args, query=False))
     else:
@@ -217,21 +224,27 @@ def main():
     if args.fetch:
         fetch_galaxy_json()
 
+    if args.ids or args.fetch:
+        print_no_newline("\nUpdating ID maps based on existing dump ...")
+        unique_names = cogdb.spansh.collect_unique_names(GALAXY_JSON)
+        with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
+            mapped = cogdb.spansh.eddb_maps(eddb_session)
+            missing_names = cogdb.spansh.determine_missing_keys(*unique_names, mapped=mapped)
+            cogdb.spansh.update_all_name_maps(*missing_names)
+        print(" Done!")
+
     if args.recreate:
         print_no_newline("Recreating all EDDB tables ...")
-        sys.stdout.flush()
         cogdb.eddb.recreate_tables()
         cogdb.spy_squirrel.recreate_tables()
         cogdb.spansh.recreate_tables()
     else:
         print_no_newline("Emptying existing EDDB tables ...")
-        sys.stdout.flush()
         cogdb.spansh.empty_tables()
         cogdb.spy_squirrel.empty_tables()
         cogdb.eddb.empty_tables()
 
     print_no_newline(" Done!\nPreloading constant EDDB data ...")
-    sys.stdout.flush()
     with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
         cogdb.eddb.preload_tables(eddb_session)
         cogdb.spy_squirrel.preload_tables(eddb_session)
@@ -251,13 +264,14 @@ def main():
             )
         )
 
+        print("Updating the SystemControls table based on present information.")
+        with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
+            cogdb.eddb.populate_system_controls(eddb_session)
+
         print("Time taken", datetime.datetime.utcnow() - start)
     finally:
-        cogdb.spansh.cleanup_scratch_files(Path(GALAXY_JSON).parent)
-
-    print("Updating the SystemControls table based on present information.")
-    with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
-        cogdb.eddb.populate_system_controls(eddb_session)
+        if args.cleanup:
+            cogdb.spansh.cleanup_scratch_files(Path(GALAXY_JSON).parent)
 
 
 if __name__ == "__main__":

@@ -1039,7 +1039,7 @@ def print_no_newline(text):
     Args:
         text: The text to write to stdout.
     """
-    print(text, end='')
+    sys.stdout.write(text)
     sys.stdout.flush()
 
 
