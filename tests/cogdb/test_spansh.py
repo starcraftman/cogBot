@@ -224,7 +224,6 @@ def test_transform_bodies2(f_json_bodies, f_spy_ships, eddb_session):
     assert expect == results[station_id]['station']
 
 
-
 def test_update_name_map():
     missing_stations = ['station4', 'station6']
     known_stations = {

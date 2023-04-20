@@ -4,7 +4,6 @@ to see the normal faction system and stations maps.
 Bit of a niche case.
 """
 import json
-import re
 
 import cogdb.spansh
 import cog.util
@@ -19,8 +18,8 @@ def clean_eddb_maps():
     system_map = {}
     with open(f'{IDS_ROOT}/systems.eddb', 'r', encoding='utf-8') as fin:
         for line in fin:
-            name, id = line.rstrip().split(SEP)
-            system_map[name] = int(id)
+            name, sid = line.rstrip().split(SEP)
+            system_map[name] = int(sid)
 
     with open(f'{IDS_ROOT}/systemMap.json', 'w', encoding='utf-8') as fout:
         json.dump(system_map, fout, indent=2, sort_keys=True)
@@ -30,8 +29,8 @@ def clean_eddb_maps():
     faction_map = {}
     with open(f'{IDS_ROOT}/factions.eddb', 'r', encoding='utf-8') as fin:
         for line in fin:
-            name, id = line.rstrip().split(SEP)
-            faction_map[name] = int(id)
+            name, fid = line.rstrip().split(SEP)
+            faction_map[name] = int(fid)
 
     with open(f'{IDS_ROOT}/factionMap.json', 'w', encoding='utf-8') as fout:
         json.dump(faction_map, fout, indent=2, sort_keys=True)
