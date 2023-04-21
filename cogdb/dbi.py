@@ -181,12 +181,6 @@ def sanity_check():
     cogdb.schema.Base.metadata.create_all(cogdb.engine)
     cogdb.eddb.Base.metadata.create_all(cogdb.eddb_engine)
 
-    if not Path(cogdb.spansh.SPANSH_COMMODITIES).exists() or not Path(cogdb.spansh.SPANSH_MODULES).exists():
-        print("Missing commodity and modules caches.")
-        print_no_newline("Regenerating the commodity and module caches ...")
-        refresh_module_commodity_cache()
-        print(" Done!\n")
-
     for fname in (cogdb.spansh.SYSTEM_MAPF, cogdb.spansh.FACTION_MAPF, cogdb.spansh.STATION_MAPF):
         if not Path(fname).exists() and not Path(cogdb.spansh.GALAXY_JSON).exists():
             print("Missing one or more ID maps.")

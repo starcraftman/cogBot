@@ -1101,7 +1101,7 @@ def generate_module_commodities_caches(eddb_session):
             group_id=mapped['commodity_group'][x['category']]
         ) for x in sorted(comm_dict.values(), key=lambda x: x['commodityId'])
     ]
-    cogdb.common.dump_table_to_file(eddb_session, cls=SCommodity, db_objs=comms)
+    cogdb.common.dump_dbobjs_to_file(cls=SCommodity, db_objs=comms)
 
     mods = []
     for mod in sorted(mod_dict.values(), key=lambda x: x['moduleId']):
@@ -1117,7 +1117,7 @@ def generate_module_commodities_caches(eddb_session):
             mod_class=int(mod['class']),
             rating=mod['rating'],
         )]
-    cogdb.common.dump_table_to_file(eddb_session, cls=SCommodity, db_objs=comms)
+    cogdb.common.dump_dbobjs_to_file(cls=SModule, db_objs=mods)
 
 
 def transform_galaxy_json(number, total, galaxy_json):
