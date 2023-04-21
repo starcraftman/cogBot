@@ -1,0 +1,86 @@
+[
+  {
+    "abbrev": "NONE",
+    "eddn": "None",
+    "home_system_name": null,
+    "id": 0,
+    "text": "None"
+  },
+  {
+    "abbrev": "AD",
+    "eddn": "Aisling Duval",
+    "home_system_name": "Cubeo",
+    "id": 1,
+    "text": "Aisling Duval"
+  },
+  {
+    "abbrev": "Archon",
+    "eddn": "Archon Delaine",
+    "home_system_name": "Harma",
+    "id": 2,
+    "text": "Archon Delaine"
+  },
+  {
+    "abbrev": "ALD",
+    "eddn": "A. Lavigny-Duval",
+    "home_system_name": "Kamadhenu",
+    "id": 3,
+    "text": "Arissa Lavigny-Duval"
+  },
+  {
+    "abbrev": "DP",
+    "eddn": "Denton Patreus",
+    "home_system_name": "Eotienses",
+    "id": 4,
+    "text": "Denton Patreus"
+  },
+  {
+    "abbrev": "EM",
+    "eddn": "Edmund Mahon",
+    "home_system_name": "Gateway",
+    "id": 5,
+    "text": "Edmund Mahon"
+  },
+  {
+    "abbrev": "FW",
+    "eddn": "Felicia Winters",
+    "home_system_name": "Rhea",
+    "id": 6,
+    "text": "Felicia Winters"
+  },
+  {
+    "abbrev": "LYR",
+    "eddn": "Li Yong-Rui",
+    "home_system_name": "Lembava",
+    "id": 7,
+    "text": "Li Yong-Rui"
+  },
+  {
+    "abbrev": "PA",
+    "eddn": "Pranav Antal",
+    "home_system_name": "Polevnic",
+    "id": 8,
+    "text": "Pranav Antal"
+  },
+  {
+    "abbrev": "ZH",
+    "eddn": "Zachary Hudson",
+    "home_system_name": "Nanomam",
+    "id": 9,
+    "text": "Zachary Hudson"
+  },
+  {
+    "abbrev": "ZT",
+    "eddn": "Zemina Torval",
+    "home_system_name": "Synteini",
+    "id": 10,
+    "text": "Zemina Torval"
+  },
+  {
+    "abbrev": "YG",
+    "eddn": "Yuri Grom",
+    "home_system_name": "Clayakarma",
+    "id": 11,
+    "text": "Yuri Grom"
+  }
+]

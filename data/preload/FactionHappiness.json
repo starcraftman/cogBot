@@ -1,0 +1,27 @@
+[
+  {
+    "eddn": "Elated",
+    "id": 1,
+    "text": "Elated"
+  },
+  {
+    "eddn": "Happy",
+    "id": 2,
+    "text": "Happy"
+  },
+  {
+    "eddn": "Discontented",
+    "id": 3,
+    "text": "Discontented"
+  },
+  {
+    "eddn": "Unhappy",
+    "id": 4,
+    "text": "Unhappy"
+  },
+  {
+    "eddn": "Despondent",
+    "id": 5,
+    "text": "Despondent"
+  }
+]

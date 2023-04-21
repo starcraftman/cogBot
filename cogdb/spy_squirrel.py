@@ -20,6 +20,7 @@ import sqlalchemy.exc as sqla_e
 from sqlalchemy.ext.hybrid import hybrid_property
 
 import cog.util
+import cogdb.common
 import cogdb.eddb
 from cog.util import ReprMixin, TimestampMixin
 from cogdb.eddb import Base, Power, System, Faction, Influence
@@ -1230,50 +1231,9 @@ def get_controls_outdated_held(eddb_session, *, power='%hudson', hours_old=7):
 def preload_tables(eddb_session):
     """
     Preload the spy tables with constant values.
-    At present this is ship names and their traffic names.
+    Currently this is limited to SpyShip
     """
-    eddb_session.add_all([
-        SpyShip(id=1, text="Adder", traffic_text="adder"),
-        SpyShip(id=2, text="Alliance Challenger", traffic_text='typex_3'),
-        SpyShip(id=3, text="Alliance Chieftain", traffic_text='typex'),
-        SpyShip(id=4, text="Alliance Crusader", traffic_text='typex_2'),
-        SpyShip(id=5, text="Anaconda", traffic_text="anaconda"),
-        SpyShip(id=6, text="Asp Explorer", traffic_text="asp"),
-        SpyShip(id=7, text="Asp Scout", traffic_text="asp_scout"),
-        SpyShip(id=8, text="Beluga Liner", traffic_text="belugaliner"),
-        SpyShip(id=9, text="Cobra MK IV", traffic_text="cobramkiv"),
-        SpyShip(id=10, text="Cobra Mk. III", traffic_text="cobramkiii"),
-        SpyShip(id=11, text="Diamondback Explorer", traffic_text="diamondbackxl"),
-        SpyShip(id=12, text="Diamondback Scout", traffic_text="diamondback"),
-        SpyShip(id=13, text="Dolphin", traffic_text="dolphin"),
-        SpyShip(id=14, text="Eagle Mk. II", traffic_text="eagle"),
-        SpyShip(id=15, text="Federal Assault Ship", traffic_text="federation_dropship_mkii"),
-        SpyShip(id=16, text="Federal Corvette", traffic_text="federation_corvette"),
-        SpyShip(id=17, text="Federal Dropship", traffic_text="federation_dropship"),
-        SpyShip(id=18, text="Federal Gunship", traffic_text="federation_gunship"),
-        SpyShip(id=19, text="Fer-de-Lance", traffic_text="ferdelance"),
-        SpyShip(id=20, text="Hauler", traffic_text="hauler"),
-        SpyShip(id=21, text="Imperial Clipper", traffic_text="empire_trader"),
-        SpyShip(id=22, text="Imperial Courier", traffic_text="empire_courier"),
-        SpyShip(id=23, text="Imperial Cutter", traffic_text="cutter"),
-        SpyShip(id=24, text="Imperial Eagle", traffic_text="empire_eagle"),
-        SpyShip(id=25, text="Keelback", traffic_text="independant_trader"),
-        SpyShip(id=26, text="Krait MkII", traffic_text="krait_mkii"),
-        SpyShip(id=27, text="Krait Phantom", traffic_text="krait_light"),
-        SpyShip(id=28, text="Mamba", traffic_text="mamba"),
-        SpyShip(id=29, text="Orca", traffic_text="orca"),
-        SpyShip(id=30, text="Python", traffic_text="python"),
-        SpyShip(id=31, text="Sidewinder Mk. I", traffic_text="sidewinder"),
-        SpyShip(id=32, text="Type-10 Defender", traffic_text="type9_military"),
-        SpyShip(id=33, text="Type-6 Transporter", traffic_text="type6"),
-        SpyShip(id=34, text="Type-7 Transporter", traffic_text="type7"),
-        SpyShip(id=35, text="Type-9 Heavy", traffic_text="type9"),
-        SpyShip(id=36, text="Viper MK IV", traffic_text="viper_mkiv"),
-        SpyShip(id=37, text="Viper Mk III", traffic_text="viper"),
-        SpyShip(id=38, text="Vulture", traffic_text="vulture"),
-        SpyShip(id=39, text="PlayerCarrier", traffic_text="carrierdockb"),
-    ])
-    eddb_session.commit()
+    cogdb.common.preload_table_from_file(eddb_session, cls=SpyShip)
 
 
 async def service_status(eddb_session):
@@ -1365,16 +1325,16 @@ def main():  # pragma: no cover | destructive to test
     Main function to load the test data during development.
     """
     recreate_tables()
-
     with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
         preload_tables(eddb_session)
-        try:
-            load_base_json(load_json_secret('base.json'))
-            load_refined_json(load_json_secret('refined.json'))
-            load_response_json(load_json_secret('response.json'))
-        except FileNotFoundError:
-            print("Could not load required json.")
-            print("Please install and configure doppler.")
+
+    try:
+        load_base_json(load_json_secret('base.json'))
+        load_refined_json(load_json_secret('refined.json'))
+        load_response_json(load_json_secret('response.json'))
+    except FileNotFoundError:
+        print("Could not load required json.")
+        print("Please install and configure doppler.")
 
 
 SPY_TABLES = [SpyPrep, SpyVote, SpySystem, SpyTraffic, SpyBounty, SpyShip]
@@ -1415,10 +1375,10 @@ PARSER_MAP = {
 # Ensure the tables are created before use when this imported
 if cogdb.TEST_DB:
     recreate_tables()
-    with cogdb.session_scope(cogdb.EDDBSession) as eddb_session_main:
-        preload_tables(eddb_session_main)
 else:
     Base.metadata.create_all(cogdb.eddb_engine)
+with cogdb.session_scope(cogdb.EDDBSession) as init_session:
+    preload_tables(init_session)
 
 
 if __name__ == "__main__":

@@ -233,6 +233,9 @@ def main():
             cogdb.spansh.update_all_name_maps(*missing_names)
         print(" Done!")
 
+    if args.caches:
+        refresh_module_commodity_cache()
+
     if args.recreate:
         print_no_newline("Recreating all EDDB tables ...")
         cogdb.eddb.recreate_tables()
@@ -250,9 +253,6 @@ def main():
         cogdb.spy_squirrel.preload_tables(eddb_session)
         cogdb.spansh.preload_tables(eddb_session)
     print(" Done!")
-
-    if args.caches:
-        refresh_module_commodity_cache()
 
     if args.skip:
         return

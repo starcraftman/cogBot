@@ -1,0 +1,572 @@
+[
+  {
+    "category": "Bulkhead",
+    "category_id": 40,
+    "id": 50,
+    "name": "Lightweight Alloy"
+  },
+  {
+    "category": "Bulkhead",
+    "category_id": 40,
+    "id": 51,
+    "name": "Reinforced Alloy"
+  },
+  {
+    "category": "Bulkhead",
+    "category_id": 40,
+    "id": 52,
+    "name": "Military Grade Composite"
+  },
+  {
+    "category": "Bulkhead",
+    "category_id": 40,
+    "id": 53,
+    "name": "Mirrored Surface Composite"
+  },
+  {
+    "category": "Bulkhead",
+    "category_id": 40,
+    "id": 54,
+    "name": "Reactive Surface Composite"
+  },
+  {
+    "category": "Weapon Hardpoint",
+    "category_id": 50,
+    "id": 55,
+    "name": "Pulse Laser"
+  },
+  {
+    "category": "Weapon Hardpoint",
+    "category_id": 50,
+    "id": 56,
+    "name": "Burst Laser"
+  },
+  {
+    "category": "Weapon Hardpoint",
+    "category_id": 50,
+    "id": 57,
+    "name": "Beam Laser"
+  },
+  {
+    "category": "Weapon Hardpoint",
+    "category_id": 50,
+    "id": 58,
+    "name": "Cannon"
+  },
+  {
+    "category": "Weapon Hardpoint",
+    "category_id": 50,
+    "id": 59,
+    "name": "Fragment Cannon"
+  },
+  {
+    "category": "Weapon Hardpoint",
+    "category_id": 50,
+    "id": 60,
+    "name": "Multi-Cannon"
+  },
+  {
+    "category": "Weapon Hardpoint",
+    "category_id": 50,
+    "id": 61,
+    "name": "Plasma Accelerator"
+  },
+  {
+    "category": "Weapon Hardpoint",
+    "category_id": 50,
+    "id": 62,
+    "name": "Rail Gun"
+  },
+  {
+    "category": "Weapon Hardpoint",
+    "category_id": 50,
+    "id": 63,
+    "name": "Missile Rack"
+  },
+  {
+    "category": "Weapon Hardpoint",
+    "category_id": 50,
+    "id": 64,
+    "name": "Mine Launcher"
+  },
+  {
+    "category": "Weapon Hardpoint",
+    "category_id": 50,
+    "id": 65,
+    "name": "Torpedo Pylon"
+  },
+  {
+    "category": "Utility Mount",
+    "category_id": 10,
+    "id": 66,
+    "name": "Chaff Launcher"
+  },
+  {
+    "category": "Utility Mount",
+    "category_id": 10,
+    "id": 67,
+    "name": "Electronic Countermeasure"
+  },
+  {
+    "category": "Utility Mount",
+    "category_id": 10,
+    "id": 68,
+    "name": "Heat Sink Launcher"
+  },
+  {
+    "category": "Utility Mount",
+    "category_id": 10,
+    "id": 69,
+    "name": "Point Defence"
+  },
+  {
+    "category": "Weapon Hardpoint",
+    "category_id": 50,
+    "id": 70,
+    "name": "Mining Laser"
+  },
+  {
+    "category": "Internal Compartment",
+    "category_id": 20,
+    "id": 71,
+    "name": "Standard Docking Computer"
+  },
+  {
+    "category": "Essential Equipment",
+    "category_id": 30,
+    "id": 72,
+    "name": "Power Plant"
+  },
+  {
+    "category": "Essential Equipment",
+    "category_id": 30,
+    "id": 73,
+    "name": "Thrusters"
+  },
+  {
+    "category": "Essential Equipment",
+    "category_id": 30,
+    "id": 74,
+    "name": "Frame Shift Drive"
+  },
+  {
+    "category": "Essential Equipment",
+    "category_id": 30,
+    "id": 75,
+    "name": "Life Support"
+  },
+  {
+    "category": "Essential Equipment",
+    "category_id": 30,
+    "id": 76,
+    "name": "Power Distributor"
+  },
+  {
+    "category": "Essential Equipment",
+    "category_id": 30,
+    "id": 77,
+    "name": "Sensors"
+  },
+  {
+    "category": "Internal Compartment",
+    "category_id": 20,
+    "id": 78,
+    "name": "Shield Generator"
+  },
+  {
+    "category": "Internal Compartment",
+    "category_id": 20,
+    "id": 79,
+    "name": "Shield Cell Bank"
+  },
+  {
+    "category": "Internal Compartment",
+    "category_id": 20,
+    "id": 80,
+    "name": "Cargo Rack"
+  },
+  {
+    "category": "Essential Equipment",
+    "category_id": 30,
+    "id": 81,
+    "name": "Fuel Tank"
+  },
+  {
+    "category": "Internal Compartment",
+    "category_id": 20,
+    "id": 82,
+    "name": "Hatch Breaker Limpet Controller"
+  },
+  {
+    "category": "Utility Mount",
+    "category_id": 10,
+    "id": 83,
+    "name": "Cargo Scanner"
+  },
+  {
+    "category": "Utility Mount",
+    "category_id": 10,
+    "id": 84,
+    "name": "Frame Shift Wake Scanner"
+  },
+  {
+    "category": "Utility Mount",
+    "category_id": 10,
+    "id": 85,
+    "name": "Kill Warrant Scanner"
+  },
+  {
+    "category": "Internal Compartment",
+    "category_id": 20,
+    "id": 89,
+    "name": "Detailed Surface Scanner"
+  },
+  {
+    "category": "Internal Compartment",
+    "category_id": 20,
+    "id": 90,
+    "name": "Fuel Scoop"
+  },
+  {
+    "category": "Internal Compartment",
+    "category_id": 20,
+    "id": 91,
+    "name": "Refinery"
+  },
+  {
+    "category": "Internal Compartment",
+    "category_id": 20,
+    "id": 92,
+    "name": "Frame Shift Drive Interdictor"
+  },
+  {
+    "category": "Internal Compartment",
+    "category_id": 20,
+    "id": 93,
+    "name": "Auto Field-Maintenance Unit"
+  },
+  {
+    "category": "Utility Mount",
+    "category_id": 10,
+    "id": 94,
+    "name": "Shield Booster"
+  },
+  {
+    "category": "Internal Compartment",
+    "category_id": 20,
+    "id": 95,
+    "name": "Hull Reinforcement Package"
+  },
+  {
+    "category": "Internal Compartment",
+    "category_id": 20,
+    "id": 96,
+    "name": "Collector Limpet Controller"
+  },
+  {
+    "category": "Internal Compartment",
+    "category_id": 20,
+    "id": 97,
+    "name": "Fuel Transfer Limpet Controller"
+  },
+  {
+    "category": "Internal Compartment",
+    "category_id": 20,
+    "id": 98,
+    "name": "Prospector Limpet Controller"
+  },
+  {
+    "category": "Internal Compartment",
+    "category_id": 20,
+    "id": 99,
+    "name": "Planetary Vehicle Hangar"
+  },
+  {
+    "category": "Weapon Hardpoint",
+    "category_id": 50,
+    "id": 100,
+    "name": "Shock Mine Launcher"
+  },
+  {
+    "category": "Internal Compartment",
+    "category_id": 20,
+    "id": 101,
+    "name": "Bi-Weave Shield Generator"
+  },
+  {
+    "category": "Essential Equipment",
+    "category_id": 30,
+    "id": 102,
+    "name": "Planetary Approach Suite"
+  },
+  {
+    "category": "Essential Equipment",
+    "category_id": 30,
+    "id": 103,
+    "name": "Enhanced Performance Thrusters"
+  },
+  {
+    "category": "Internal Compartment",
+    "category_id": 20,
+    "id": 104,
+    "name": "Corrosion Resistant Cargo Rack"
+  },
+  {
+    "category": "Internal Compartment",
+    "category_id": 20,
+    "id": 105,
+    "name": "Fighter Hangar"
+  },
+  {
+    "category": "Internal Compartment",
+    "category_id": 20,
+    "id": 106,
+    "name": "Economy Class Passenger Cabin"
+  },
+  {
+    "category": "Internal Compartment",
+    "category_id": 20,
+    "id": 107,
+    "name": "Business Class Passenger Cabin"
+  },
+  {
+    "category": "Internal Compartment",
+    "category_id": 20,
+    "id": 108,
+    "name": "First Class Passenger Cabin"
+  },
+  {
+    "category": "Internal Compartment",
+    "category_id": 20,
+    "id": 109,
+    "name": "Luxury Passenger Cabin"
+  },
+  {
+    "category": "Internal Compartment",
+    "category_id": 20,
+    "id": 110,
+    "name": "Module Reinforcement Package"
+  },
+  {
+    "category": "Internal Compartment",
+    "category_id": 20,
+    "id": 111,
+    "name": "Repair Limpet Controller"
+  },
+  {
+    "category": "Weapon Hardpoint",
+    "category_id": 50,
+    "id": 112,
+    "name": "AX Missile Rack"
+  },
+  {
+    "category": "Utility Mount",
+    "category_id": 10,
+    "id": 113,
+    "name": "Xeno Scanner"
+  },
+  {
+    "category": "Internal Compartment",
+    "category_id": 20,
+    "id": 114,
+    "name": "Research Limpet Controller"
+  },
+  {
+    "category": "Weapon Hardpoint",
+    "category_id": 50,
+    "id": 115,
+    "name": "AX Multi-Cannon"
+  },
+  {
+    "category": "Weapon Hardpoint",
+    "category_id": 50,
+    "id": 116,
+    "name": "Remote Release Flak Launcher"
+  },
+  {
+    "category": "Utility Mount",
+    "category_id": 10,
+    "id": 117,
+    "name": "Shutdown Field Neutraliser"
+  },
+  {
+    "category": "Internal Compartment",
+    "category_id": 20,
+    "id": 118,
+    "name": "Decontamination Limpet Controller"
+  },
+  {
+    "category": "Internal Compartment",
+    "category_id": 20,
+    "id": 119,
+    "name": "Recon Limpet Controller"
+  },
+  {
+    "category": "Weapon Hardpoint",
+    "category_id": 50,
+    "id": 120,
+    "name": "Guardian Gauss Cannon"
+  },
+  {
+    "category": "Internal Compartment",
+    "category_id": 20,
+    "id": 121,
+    "name": "Guardian Hull Reinforcement"
+  },
+  {
+    "category": "Internal Compartment",
+    "category_id": 20,
+    "id": 122,
+    "name": "Guardian Module Reinforcement"
+  },
+  {
+    "category": "Internal Compartment",
+    "category_id": 20,
+    "id": 123,
+    "name": "Guardian Shield Reinforcement"
+  },
+  {
+    "category": "Internal Compartment",
+    "category_id": 20,
+    "id": 124,
+    "name": "Guardian FSD Booster"
+  },
+  {
+    "category": "Internal Compartment",
+    "category_id": 20,
+    "id": 125,
+    "name": "Guardian Hybrid Power Distributor"
+  },
+  {
+    "category": "Internal Compartment",
+    "category_id": 20,
+    "id": 126,
+    "name": "Guardian Hybrid Power Plant"
+  },
+  {
+    "category": "Weapon Hardpoint",
+    "category_id": 50,
+    "id": 127,
+    "name": "Enzyme Missile Rack"
+  },
+  {
+    "category": "Weapon Hardpoint",
+    "category_id": 50,
+    "id": 128,
+    "name": "Remote Release Flechette Launcher"
+  },
+  {
+    "category": "Weapon Hardpoint",
+    "category_id": 50,
+    "id": 129,
+    "name": "Guardian Plasma Charger"
+  },
+  {
+    "category": "Weapon Hardpoint",
+    "category_id": 50,
+    "id": 130,
+    "name": "Guardian Shard Cannon"
+  },
+  {
+    "category": "Weapon Hardpoint",
+    "category_id": 50,
+    "id": 131,
+    "name": "Shock Cannon"
+  },
+  {
+    "category": "Weapon Hardpoint",
+    "category_id": 50,
+    "id": 132,
+    "name": "Sub-Surface Displacement Missile"
+  },
+  {
+    "category": "Weapon Hardpoint",
+    "category_id": 50,
+    "id": 133,
+    "name": "Abrasion Blaster"
+  },
+  {
+    "category": "Weapon Hardpoint",
+    "category_id": 50,
+    "id": 134,
+    "name": "Seismic Charge Launcher"
+  },
+  {
+    "category": "Utility Mount",
+    "category_id": 10,
+    "id": 135,
+    "name": "Pulse Wave Analyser"
+  },
+  {
+    "category": "Internal Compartment",
+    "category_id": 20,
+    "id": 136,
+    "name": "Meta Alloy Hull Reinforcement"
+  },
+  {
+    "category": "Internal Compartment",
+    "category_id": 20,
+    "id": 137,
+    "name": "Limpet Control"
+  },
+  {
+    "category": "Internal Compartment",
+    "category_id": 20,
+    "id": 138,
+    "name": "Supercruise Assist"
+  },
+  {
+    "category": "Internal Compartment",
+    "category_id": 20,
+    "id": 139,
+    "name": "Advanced Docking Computer"
+  },
+  {
+    "category": "Weapon Hardpoint",
+    "category_id": 50,
+    "id": 140,
+    "name": "Advanced Multi Cannon"
+  },
+  {
+    "category": "Weapon Hardpoint",
+    "category_id": 50,
+    "id": 141,
+    "name": "Advanced Missile Rack"
+  },
+  {
+    "category": "Essential Equipment",
+    "category_id": 30,
+    "id": 142,
+    "name": "Advanced Planetary Approach Suite"
+  },
+  {
+    "category": "Internal Compartment",
+    "category_id": 20,
+    "id": 143,
+    "name": "Mining Multi Limpet Controller"
+  },
+  {
+    "category": "Internal Compartment",
+    "category_id": 20,
+    "id": 144,
+    "name": "Operations Multi Limpet Controller"
+  },
+  {
+    "category": "Internal Compartment",
+    "category_id": 20,
+    "id": 145,
+    "name": "Rescue Multi Limpet Controller\t"
+  },
+  {
+    "category": "Internal Compartment",
+    "category_id": 20,
+    "id": 146,
+    "name": "Xeno Multi Limpet Controller"
+  },
+  {
+    "category": "Internal Compartment",
+    "category_id": 20,
+    "id": 147,
+    "name": "Universal Multi Limpet Controller"
+  }
+]

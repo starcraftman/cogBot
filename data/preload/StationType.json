@@ -1,0 +1,117 @@
+[
+  {
+    "eddn": "Outpost",
+    "id": 1,
+    "text": "Civilian Outpost"
+  },
+  {
+    "eddn": null,
+    "id": 2,
+    "text": "Commercial Outpost"
+  },
+  {
+    "eddn": "Coriolis",
+    "id": 3,
+    "text": "Coriolis Starport"
+  },
+  {
+    "eddn": null,
+    "id": 4,
+    "text": "Industrial Outpost"
+  },
+  {
+    "eddn": null,
+    "id": 5,
+    "text": "Military Outpost"
+  },
+  {
+    "eddn": null,
+    "id": 6,
+    "text": "Mining Outpost"
+  },
+  {
+    "eddn": "Ocellus",
+    "id": 7,
+    "text": "Ocellus Starport"
+  },
+  {
+    "eddn": "Orbis",
+    "id": 8,
+    "text": "Orbis Starport"
+  },
+  {
+    "eddn": null,
+    "id": 9,
+    "text": "Scientific Outpost"
+  },
+  {
+    "eddn": null,
+    "id": 10,
+    "text": "Unsanctioned Outpost"
+  },
+  {
+    "eddn": null,
+    "id": 11,
+    "text": "Unknown Outpost"
+  },
+  {
+    "eddn": null,
+    "id": 12,
+    "text": "Unknown Starport"
+  },
+  {
+    "eddn": "CraterOutpost",
+    "id": 13,
+    "text": "Planetary Outpost"
+  },
+  {
+    "eddn": "CraterPort",
+    "id": 14,
+    "text": "Planetary Port"
+  },
+  {
+    "eddn": null,
+    "id": 15,
+    "text": "Unknown Planetary"
+  },
+  {
+    "eddn": null,
+    "id": 16,
+    "text": "Planetary Settlement"
+  },
+  {
+    "eddn": null,
+    "id": 17,
+    "text": "Planetary Engineer Base"
+  },
+  {
+    "eddn": "MegaShip",
+    "id": 19,
+    "text": "Megaship"
+  },
+  {
+    "eddn": "AsteroidBase",
+    "id": 20,
+    "text": "Asteroid Base"
+  },
+  {
+    "eddn": null,
+    "id": 22,
+    "text": "Unknown Dockable"
+  },
+  {
+    "eddn": null,
+    "id": 23,
+    "text": "Non-Dockable Orbital"
+  },
+  {
+    "eddn": "FleetCarrier",
+    "id": 24,
+    "text": "Fleet Carrier"
+  },
+  {
+    "eddn": "OdysseySettlement",
+    "id": 25,
+    "text": "Odyssey Settlement"
+  }
+]

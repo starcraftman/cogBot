@@ -1,0 +1,18 @@
+[
+  {
+    "id": 1,
+    "name": "hardpoint"
+  },
+  {
+    "id": 2,
+    "name": "internal"
+  },
+  {
+    "id": 3,
+    "name": "standard"
+  },
+  {
+    "id": 4,
+    "name": "utility"
+  }
+]

@@ -1,0 +1,47 @@
+[
+  {
+    "eddn": "None",
+    "id": 0,
+    "text": "None"
+  },
+  {
+    "eddn": "Controlled",
+    "id": 16,
+    "text": "Control"
+  },
+  {
+    "eddn": "Exploited",
+    "id": 32,
+    "text": "Exploited"
+  },
+  {
+    "eddn": "Contested",
+    "id": 48,
+    "text": "Contested"
+  },
+  {
+    "eddn": "Expansion",
+    "id": 64,
+    "text": "Expansion"
+  },
+  {
+    "eddn": "Prepared",
+    "id": 80,
+    "text": "Prepared"
+  },
+  {
+    "eddn": "HomeSystem",
+    "id": 96,
+    "text": "HomeSystem"
+  },
+  {
+    "eddn": "InPrepareRadius",
+    "id": 112,
+    "text": "InPrepareRadius"
+  },
+  {
+    "eddn": "Turmoil",
+    "id": 240,
+    "text": "Turmoil"
+  }
+]

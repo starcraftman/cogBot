@@ -537,7 +537,7 @@ def test_split_csv_line():
     assert text.split(',') == items
 
 
-@mock.patch('builtins.print')
+@mock.patch('cog.util.sys.stdout.write')
 def test_print_no_newline(mock_stdout):
     cog.util.print_no_newline('hello')
-    mock_stdout.assert_called_with('hello', end='')
+    mock_stdout.assert_called_with('hello')

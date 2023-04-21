@@ -1,0 +1,92 @@
+[
+  {
+    "eddn": "Agri",
+    "id": 1,
+    "text": "Agriculture"
+  },
+  {
+    "eddn": "Extraction",
+    "id": 2,
+    "text": "Extraction"
+  },
+  {
+    "eddn": "HighTech",
+    "id": 3,
+    "text": "High Tech"
+  },
+  {
+    "eddn": "Industrial",
+    "id": 4,
+    "text": "Industrial"
+  },
+  {
+    "eddn": "Military",
+    "id": 5,
+    "text": "Military"
+  },
+  {
+    "eddn": "Refinery",
+    "id": 6,
+    "text": "Refinery"
+  },
+  {
+    "eddn": "Service",
+    "id": 7,
+    "text": "Service"
+  },
+  {
+    "eddn": "Terraforming",
+    "id": 8,
+    "text": "Terraforming"
+  },
+  {
+    "eddn": "Tourism",
+    "id": 9,
+    "text": "Tourism"
+  },
+  {
+    "eddn": "None",
+    "id": 10,
+    "text": "None"
+  },
+  {
+    "eddn": "Colony",
+    "id": 11,
+    "text": "Colony"
+  },
+  {
+    "eddn": "PrivateEnterprise",
+    "id": 12,
+    "text": "Private Enterprise"
+  },
+  {
+    "eddn": "Rescue",
+    "id": 13,
+    "text": "Rescue"
+  },
+  {
+    "eddn": "Prison",
+    "id": 14,
+    "text": "Prison"
+  },
+  {
+    "eddn": "Carrier",
+    "id": 15,
+    "text": "Carrier"
+  },
+  {
+    "eddn": "Damaged",
+    "id": 16,
+    "text": "Damaged"
+  },
+  {
+    "eddn": "Repair",
+    "id": 17,
+    "text": "Repair"
+  },
+  {
+    "eddn": "Engineering",
+    "id": 18,
+    "text": "Engineering"
+  }
+]

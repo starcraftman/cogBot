@@ -1,0 +1,62 @@
+[
+  {
+    "id": 1,
+    "name": "Chemicals"
+  },
+  {
+    "id": 2,
+    "name": "Consumer Items"
+  },
+  {
+    "id": 3,
+    "name": "Foods"
+  },
+  {
+    "id": 4,
+    "name": "Industrial Materials"
+  },
+  {
+    "id": 5,
+    "name": "Legal Drugs"
+  },
+  {
+    "id": 6,
+    "name": "Machinery"
+  },
+  {
+    "id": 7,
+    "name": "Medicines"
+  },
+  {
+    "id": 8,
+    "name": "Metals"
+  },
+  {
+    "id": 9,
+    "name": "Minerals"
+  },
+  {
+    "id": 10,
+    "name": "Salvage"
+  },
+  {
+    "id": 11,
+    "name": "Slavery"
+  },
+  {
+    "id": 12,
+    "name": "Technology"
+  },
+  {
+    "id": 13,
+    "name": "Textiles"
+  },
+  {
+    "id": 14,
+    "name": "Waste"
+  },
+  {
+    "id": 15,
+    "name": "Weapons"
+  }
+]

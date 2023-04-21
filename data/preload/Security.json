@@ -1,0 +1,27 @@
+[
+  {
+    "eddn": "low",
+    "id": 16,
+    "text": "Low"
+  },
+  {
+    "eddn": "medium",
+    "id": 32,
+    "text": "Medium"
+  },
+  {
+    "eddn": "high",
+    "id": 48,
+    "text": "High"
+  },
+  {
+    "eddn": "state_anarchy",
+    "id": 64,
+    "text": "Anarchy"
+  },
+  {
+    "eddn": "state_lawless",
+    "id": 80,
+    "text": "Lawless"
+  }
+]

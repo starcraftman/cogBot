@@ -1,0 +1,1892 @@
+[
+  {
+    "group_id": 8,
+    "id": 128049152,
+    "name": "Platinum"
+  },
+  {
+    "group_id": 8,
+    "id": 128049153,
+    "name": "Palladium"
+  },
+  {
+    "group_id": 8,
+    "id": 128049154,
+    "name": "Gold"
+  },
+  {
+    "group_id": 8,
+    "id": 128049155,
+    "name": "Silver"
+  },
+  {
+    "group_id": 9,
+    "id": 128049156,
+    "name": "Bertrandite"
+  },
+  {
+    "group_id": 9,
+    "id": 128049157,
+    "name": "Indite"
+  },
+  {
+    "group_id": 9,
+    "id": 128049158,
+    "name": "Gallite"
+  },
+  {
+    "group_id": 9,
+    "id": 128049159,
+    "name": "Coltan"
+  },
+  {
+    "group_id": 9,
+    "id": 128049160,
+    "name": "Uraninite"
+  },
+  {
+    "group_id": 9,
+    "id": 128049161,
+    "name": "Lepidolite"
+  },
+  {
+    "group_id": 8,
+    "id": 128049162,
+    "name": "Cobalt"
+  },
+  {
+    "group_id": 9,
+    "id": 128049163,
+    "name": "Rutile"
+  },
+  {
+    "group_id": 9,
+    "id": 128049165,
+    "name": "Bauxite"
+  },
+  {
+    "group_id": 1,
+    "id": 128049166,
+    "name": "Water"
+  },
+  {
+    "group_id": 8,
+    "id": 128049168,
+    "name": "Beryllium"
+  },
+  {
+    "group_id": 8,
+    "id": 128049169,
+    "name": "Indium"
+  },
+  {
+    "group_id": 8,
+    "id": 128049170,
+    "name": "Gallium"
+  },
+  {
+    "group_id": 8,
+    "id": 128049171,
+    "name": "Tantalum"
+  },
+  {
+    "group_id": 8,
+    "id": 128049172,
+    "name": "Uranium"
+  },
+  {
+    "group_id": 8,
+    "id": 128049173,
+    "name": "Lithium"
+  },
+  {
+    "group_id": 8,
+    "id": 128049174,
+    "name": "Titanium"
+  },
+  {
+    "group_id": 8,
+    "id": 128049175,
+    "name": "Copper"
+  },
+  {
+    "group_id": 8,
+    "id": 128049176,
+    "name": "Aluminium"
+  },
+  {
+    "group_id": 3,
+    "id": 128049177,
+    "name": "Algae"
+  },
+  {
+    "group_id": 3,
+    "id": 128049178,
+    "name": "Fruit and Vegetables"
+  },
+  {
+    "group_id": 3,
+    "id": 128049180,
+    "name": "Grain"
+  },
+  {
+    "group_id": 3,
+    "id": 128049182,
+    "name": "Animal Meat"
+  },
+  {
+    "group_id": 3,
+    "id": 128049183,
+    "name": "Fish"
+  },
+  {
+    "group_id": 3,
+    "id": 128049184,
+    "name": "Food Cartridges"
+  },
+  {
+    "group_id": 3,
+    "id": 128049185,
+    "name": "Synthetic Meat"
+  },
+  {
+    "group_id": 3,
+    "id": 128049188,
+    "name": "Tea"
+  },
+  {
+    "group_id": 3,
+    "id": 128049189,
+    "name": "Coffee"
+  },
+  {
+    "group_id": 13,
+    "id": 128049190,
+    "name": "Leather"
+  },
+  {
+    "group_id": 13,
+    "id": 128049191,
+    "name": "Natural Fabrics"
+  },
+  {
+    "group_id": 13,
+    "id": 128049193,
+    "name": "Synthetic Fabrics"
+  },
+  {
+    "group_id": 4,
+    "id": 128049197,
+    "name": "Polymers"
+  },
+  {
+    "group_id": 4,
+    "id": 128049199,
+    "name": "Semiconductors"
+  },
+  {
+    "group_id": 4,
+    "id": 128049200,
+    "name": "Superconductors"
+  },
+  {
+    "group_id": 1,
+    "id": 128049202,
+    "name": "Hydrogen Fuel"
+  },
+  {
+    "group_id": 1,
+    "id": 128049203,
+    "name": "Mineral Oil"
+  },
+  {
+    "group_id": 1,
+    "id": 128049204,
+    "name": "Explosives"
+  },
+  {
+    "group_id": 1,
+    "id": 128049205,
+    "name": "Pesticides"
+  },
+  {
+    "group_id": 7,
+    "id": 128049208,
+    "name": "Agri-Medicines"
+  },
+  {
+    "group_id": 7,
+    "id": 128049209,
+    "name": "Performance Enhancers"
+  },
+  {
+    "group_id": 7,
+    "id": 128049210,
+    "name": "Basic Medicines"
+  },
+  {
+    "group_id": 5,
+    "id": 128049212,
+    "name": "Narcotics"
+  },
+  {
+    "group_id": 5,
+    "id": 128049213,
+    "name": "Tobacco"
+  },
+  {
+    "group_id": 5,
+    "id": 128049214,
+    "name": "Beer"
+  },
+  {
+    "group_id": 5,
+    "id": 128049215,
+    "name": "Wine"
+  },
+  {
+    "group_id": 5,
+    "id": 128049216,
+    "name": "Liquor"
+  },
+  {
+    "group_id": 6,
+    "id": 128049217,
+    "name": "Power Generators"
+  },
+  {
+    "group_id": 6,
+    "id": 128049218,
+    "name": "Water Purifiers"
+  },
+  {
+    "group_id": 6,
+    "id": 128049220,
+    "name": "Microbial Furnaces"
+  },
+  {
+    "group_id": 6,
+    "id": 128049221,
+    "name": "Mineral Extractors"
+  },
+  {
+    "group_id": 6,
+    "id": 128049222,
+    "name": "Crop Harvesters"
+  },
+  {
+    "group_id": 6,
+    "id": 128049223,
+    "name": "Marine Equipment"
+  },
+  {
+    "group_id": 12,
+    "id": 128049225,
+    "name": "Computer Components"
+  },
+  {
+    "group_id": 12,
+    "id": 128049226,
+    "name": "H.E. Suits"
+  },
+  {
+    "group_id": 12,
+    "id": 128049227,
+    "name": "Robotics"
+  },
+  {
+    "group_id": 12,
+    "id": 128049228,
+    "name": "Auto-Fabricators"
+  },
+  {
+    "group_id": 12,
+    "id": 128049229,
+    "name": "Animal Monitors"
+  },
+  {
+    "group_id": 12,
+    "id": 128049230,
+    "name": "Aquaponic Systems"
+  },
+  {
+    "group_id": 12,
+    "id": 128049231,
+    "name": "Advanced Catalysers"
+  },
+  {
+    "group_id": 12,
+    "id": 128049232,
+    "name": "Land Enrichment Systems"
+  },
+  {
+    "group_id": 15,
+    "id": 128049233,
+    "name": "Personal Weapons"
+  },
+  {
+    "group_id": 15,
+    "id": 128049234,
+    "name": "Battle Weapons"
+  },
+  {
+    "group_id": 15,
+    "id": 128049235,
+    "name": "Reactive Armour"
+  },
+  {
+    "group_id": 15,
+    "id": 128049236,
+    "name": "Non-Lethal Weapons"
+  },
+  {
+    "group_id": 2,
+    "id": 128049238,
+    "name": "Domestic Appliances"
+  },
+  {
+    "group_id": 2,
+    "id": 128049240,
+    "name": "Consumer Technology"
+  },
+  {
+    "group_id": 2,
+    "id": 128049241,
+    "name": "Clothing"
+  },
+  {
+    "group_id": 11,
+    "id": 128049243,
+    "name": "Slaves"
+  },
+  {
+    "group_id": 14,
+    "id": 128049244,
+    "name": "Biowaste"
+  },
+  {
+    "group_id": 14,
+    "id": 128049245,
+    "name": "Toxic Waste"
+  },
+  {
+    "group_id": 14,
+    "id": 128049246,
+    "name": "Chemical Waste"
+  },
+  {
+    "group_id": 14,
+    "id": 128049248,
+    "name": "Scrap"
+  },
+  {
+    "group_id": 7,
+    "id": 128049669,
+    "name": "Progenitor Cells"
+  },
+  {
+    "group_id": 7,
+    "id": 128049670,
+    "name": "Combat Stabilisers"
+  },
+  {
+    "group_id": 12,
+    "id": 128049671,
+    "name": "Resonating Separators"
+  },
+  {
+    "group_id": 12,
+    "id": 128049672,
+    "name": "Bioreducing Lichen"
+  },
+  {
+    "group_id": 6,
+    "id": 128064028,
+    "name": "Atmospheric Processors"
+  },
+  {
+    "group_id": 5,
+    "id": 128666746,
+    "name": "Eranin Pearl Whisky"
+  },
+  {
+    "group_id": 5,
+    "id": 128666747,
+    "name": "Lavian Brandy"
+  },
+  {
+    "group_id": 10,
+    "id": 128666752,
+    "name": "Black Box"
+  },
+  {
+    "group_id": 10,
+    "id": 128666754,
+    "name": "Trade Data"
+  },
+  {
+    "group_id": 10,
+    "id": 128666755,
+    "name": "Military Plans"
+  },
+  {
+    "group_id": 10,
+    "id": 128666756,
+    "name": "Ancient Artefact"
+  },
+  {
+    "group_id": 10,
+    "id": 128666757,
+    "name": "Rare Artwork"
+  },
+  {
+    "group_id": 10,
+    "id": 128666758,
+    "name": "Experimental Chemicals"
+  },
+  {
+    "group_id": 10,
+    "id": 128666759,
+    "name": "Rebel Transmissions"
+  },
+  {
+    "group_id": 10,
+    "id": 128666760,
+    "name": "Prototype Tech"
+  },
+  {
+    "group_id": 10,
+    "id": 128666761,
+    "name": "Technical Blueprints"
+  },
+  {
+    "group_id": 3,
+    "id": 128667019,
+    "name": "HIP 10175 Bush Meat"
+  },
+  {
+    "group_id": 3,
+    "id": 128667020,
+    "name": "Albino Quechua Mammoth Meat"
+  },
+  {
+    "group_id": 3,
+    "id": 128667021,
+    "name": "Utgaroar Millennial Eggs"
+  },
+  {
+    "group_id": 3,
+    "id": 128667022,
+    "name": "Witchhaul Kobe Beef"
+  },
+  {
+    "group_id": 3,
+    "id": 128667023,
+    "name": "Karsuki Locusts"
+  },
+  {
+    "group_id": 3,
+    "id": 128667024,
+    "name": "Giant Irukama Snails"
+  },
+  {
+    "group_id": 3,
+    "id": 128667025,
+    "name": "Baltah'sine Vacuum Krill"
+  },
+  {
+    "group_id": 3,
+    "id": 128667026,
+    "name": "Ceti Rabbits"
+  },
+  {
+    "group_id": 7,
+    "id": 128667027,
+    "name": "Kachirigin Filter Leeches"
+  },
+  {
+    "group_id": 5,
+    "id": 128667028,
+    "name": "Lyrae Weed"
+  },
+  {
+    "group_id": 5,
+    "id": 128667029,
+    "name": "Onionhead"
+  },
+  {
+    "group_id": 5,
+    "id": 128667030,
+    "name": "Tarach Spice"
+  },
+  {
+    "group_id": 5,
+    "id": 128667031,
+    "name": "Wolf Fesh"
+  },
+  {
+    "group_id": 15,
+    "id": 128667032,
+    "name": "Borasetani Pathogenetics"
+  },
+  {
+    "group_id": 15,
+    "id": 128667033,
+    "name": "HIP 118311 Swarm"
+  },
+  {
+    "group_id": 5,
+    "id": 128667034,
+    "name": "Kongga Ale"
+  },
+  {
+    "group_id": 5,
+    "id": 128667035,
+    "name": "Wuthielo Ku Froth"
+  },
+  {
+    "group_id": 2,
+    "id": 128667036,
+    "name": "Alacarakmo Skin Art"
+  },
+  {
+    "group_id": 2,
+    "id": 128667037,
+    "name": "Eleu Thermals"
+  },
+  {
+    "group_id": 2,
+    "id": 128667038,
+    "name": "Eshu Umbrellas"
+  },
+  {
+    "group_id": 2,
+    "id": 128667039,
+    "name": "Karetii Couture"
+  },
+  {
+    "group_id": 2,
+    "id": 128667040,
+    "name": "Njangari Saddles"
+  },
+  {
+    "group_id": 3,
+    "id": 128667041,
+    "name": "Any Na Coffee"
+  },
+  {
+    "group_id": 3,
+    "id": 128667042,
+    "name": "CD-75 Kitten Brand Coffee"
+  },
+  {
+    "group_id": 3,
+    "id": 128667043,
+    "name": "Goman Yaupon Coffee"
+  },
+  {
+    "group_id": 6,
+    "id": 128667044,
+    "name": "Volkhab Bee Drones"
+  },
+  {
+    "group_id": 2,
+    "id": 128667045,
+    "name": "Kinago Violins"
+  },
+  {
+    "group_id": 2,
+    "id": 128667046,
+    "name": "Nguna Modern Antiques"
+  },
+  {
+    "group_id": 2,
+    "id": 128667047,
+    "name": "Rajukru Multi-Stoves"
+  },
+  {
+    "group_id": 2,
+    "id": 128667048,
+    "name": "Tiolce Waste2Paste Units"
+  },
+  {
+    "group_id": 3,
+    "id": 128667049,
+    "name": "Chi Eridani Marine Paste"
+  },
+  {
+    "group_id": 3,
+    "id": 128667050,
+    "name": "Esuseku Caviar"
+  },
+  {
+    "group_id": 3,
+    "id": 128667051,
+    "name": "Live Hecate Sea Worms"
+  },
+  {
+    "group_id": 8,
+    "id": 128667052,
+    "name": "Helvetitj Pearls"
+  },
+  {
+    "group_id": 3,
+    "id": 128667053,
+    "name": "HIP Proto-Squid"
+  },
+  {
+    "group_id": 3,
+    "id": 128667054,
+    "name": "Coquim Spongiform Victuals"
+  },
+  {
+    "group_id": 3,
+    "id": 128667055,
+    "name": "Eden Apples of Aerial"
+  },
+  {
+    "group_id": 3,
+    "id": 128667056,
+    "name": "Neritus Berries"
+  },
+  {
+    "group_id": 3,
+    "id": 128667057,
+    "name": "Ochoeng Chillies"
+  },
+  {
+    "group_id": 3,
+    "id": 128667058,
+    "name": "Deuringas Truffles"
+  },
+  {
+    "group_id": 3,
+    "id": 128667059,
+    "name": "HR 7221 Wheat"
+  },
+  {
+    "group_id": 3,
+    "id": 128667060,
+    "name": "Jaroua Rice"
+  },
+  {
+    "group_id": 13,
+    "id": 128667061,
+    "name": "Belalans Ray Leather"
+  },
+  {
+    "group_id": 13,
+    "id": 128667062,
+    "name": "Damna Carapaces"
+  },
+  {
+    "group_id": 13,
+    "id": 128667063,
+    "name": "Rapa Bao Snake Skins"
+  },
+  {
+    "group_id": 13,
+    "id": 128667064,
+    "name": "Vanayequi Ceratomorpha Fur"
+  },
+  {
+    "group_id": 5,
+    "id": 128667065,
+    "name": "Bast Snake Gin"
+  },
+  {
+    "group_id": 5,
+    "id": 128667066,
+    "name": "Thrutis Cream"
+  },
+  {
+    "group_id": 6,
+    "id": 128667067,
+    "name": "Wulpa Hyperbore Systems"
+  },
+  {
+    "group_id": 7,
+    "id": 128667068,
+    "name": "Aganippe Rush"
+  },
+  {
+    "group_id": 7,
+    "id": 128667069,
+    "name": "Terra Mater Blood Bores"
+  },
+  {
+    "group_id": 15,
+    "id": 128667070,
+    "name": "Holva Duelling Blades"
+  },
+  {
+    "group_id": 15,
+    "id": 128667071,
+    "name": "Kamorin Historic Weapons"
+  },
+  {
+    "group_id": 15,
+    "id": 128667072,
+    "name": "Gilya Signature Weapons"
+  },
+  {
+    "group_id": 1,
+    "id": 128667073,
+    "name": "Delta Phoenicis Palms"
+  },
+  {
+    "group_id": 1,
+    "id": 128667074,
+    "name": "Toxandji Virocide"
+  },
+  {
+    "group_id": 12,
+    "id": 128667075,
+    "name": "Xihe Biomorphic Companions"
+  },
+  {
+    "group_id": 3,
+    "id": 128667076,
+    "name": "Sanuma Decorative Meat"
+  },
+  {
+    "group_id": 3,
+    "id": 128667077,
+    "name": "Ethgreze Tea Buds"
+  },
+  {
+    "group_id": 3,
+    "id": 128667078,
+    "name": "Ceremonial Heike Tea"
+  },
+  {
+    "group_id": 3,
+    "id": 128667079,
+    "name": "Tanmark Tranquil Tea"
+  },
+  {
+    "group_id": 12,
+    "id": 128667080,
+    "name": "Az Cancri Formula 42"
+  },
+  {
+    "group_id": 5,
+    "id": 128667081,
+    "name": "Kamitra Cigars"
+  },
+  {
+    "group_id": 5,
+    "id": 128667082,
+    "name": "Rusani Old Smokey"
+  },
+  {
+    "group_id": 5,
+    "id": 128667083,
+    "name": "Yaso Kondi Leaf"
+  },
+  {
+    "group_id": 5,
+    "id": 128667084,
+    "name": "Chateau De Aegaeon"
+  },
+  {
+    "group_id": 7,
+    "id": 128667085,
+    "name": "The Waters of Shintara"
+  },
+  {
+    "group_id": 2,
+    "id": 128667668,
+    "name": "Ophiuch Exino Artefacts"
+  },
+  {
+    "group_id": 3,
+    "id": 128667669,
+    "name": "Baked Greebles"
+  },
+  {
+    "group_id": 3,
+    "id": 128667670,
+    "name": "Aepyornis Egg"
+  },
+  {
+    "group_id": 5,
+    "id": 128667671,
+    "name": "Saxon Wine"
+  },
+  {
+    "group_id": 5,
+    "id": 128667672,
+    "name": "Centauri Mega Gin"
+  },
+  {
+    "group_id": 2,
+    "id": 128667673,
+    "name": "Anduliga Fire Works"
+  },
+  {
+    "group_id": 13,
+    "id": 128667674,
+    "name": "Banki Amphibious Leather"
+  },
+  {
+    "group_id": 8,
+    "id": 128667675,
+    "name": "Cherbones Blood Crystals"
+  },
+  {
+    "group_id": 5,
+    "id": 128667676,
+    "name": "Motrona Experience Jelly"
+  },
+  {
+    "group_id": 5,
+    "id": 128667677,
+    "name": "Geawen Dance Dust"
+  },
+  {
+    "group_id": 5,
+    "id": 128667678,
+    "name": "Gerasian Gueuze Beer"
+  },
+  {
+    "group_id": 3,
+    "id": 128667679,
+    "name": "Haiden Black Brew"
+  },
+  {
+    "group_id": 2,
+    "id": 128667680,
+    "name": "Havasupai Dream Catcher"
+  },
+  {
+    "group_id": 5,
+    "id": 128667681,
+    "name": "Burnham Bile Distillate"
+  },
+  {
+    "group_id": 1,
+    "id": 128667682,
+    "name": "HIP Organophosphates"
+  },
+  {
+    "group_id": 2,
+    "id": 128667683,
+    "name": "Jaradharre Puzzle Box"
+  },
+  {
+    "group_id": 1,
+    "id": 128667684,
+    "name": "Koro Kung Pellets"
+  },
+  {
+    "group_id": 3,
+    "id": 128667685,
+    "name": "Void Extract Coffee"
+  },
+  {
+    "group_id": 7,
+    "id": 128667686,
+    "name": "Honesty Pills"
+  },
+  {
+    "group_id": 6,
+    "id": 128667687,
+    "name": "Non Euclidian Exotanks"
+  },
+  {
+    "group_id": 3,
+    "id": 128667688,
+    "name": "LTT Hyper Sweet"
+  },
+  {
+    "group_id": 3,
+    "id": 128667689,
+    "name": "Mechucos High Tea"
+  },
+  {
+    "group_id": 1,
+    "id": 128667690,
+    "name": "Medb Starlube"
+  },
+  {
+    "group_id": 3,
+    "id": 128667691,
+    "name": "Mokojing Beast Feast"
+  },
+  {
+    "group_id": 3,
+    "id": 128667692,
+    "name": "Mukusubii Chitin-os"
+  },
+  {
+    "group_id": 3,
+    "id": 128667693,
+    "name": "Mulachi Giant Fungus"
+  },
+  {
+    "group_id": 8,
+    "id": 128667694,
+    "name": "Ngadandari Fire Opals"
+  },
+  {
+    "group_id": 13,
+    "id": 128667695,
+    "name": "Tiegfries Synth Silk"
+  },
+  {
+    "group_id": 2,
+    "id": 128667696,
+    "name": "Uzumoku Low-G Wings"
+  },
+  {
+    "group_id": 7,
+    "id": 128667697,
+    "name": "V Herculis Body Rub"
+  },
+  {
+    "group_id": 3,
+    "id": 128667698,
+    "name": "Wheemete Wheat Cakes"
+  },
+  {
+    "group_id": 7,
+    "id": 128667699,
+    "name": "Vega Slimweed"
+  },
+  {
+    "group_id": 2,
+    "id": 128667700,
+    "name": "Altairian Skin"
+  },
+  {
+    "group_id": 5,
+    "id": 128667701,
+    "name": "Pavonis Ear Grubs"
+  },
+  {
+    "group_id": 13,
+    "id": 128667702,
+    "name": "Jotun Mookah"
+  },
+  {
+    "group_id": 6,
+    "id": 128667703,
+    "name": "Giant Verrix"
+  },
+  {
+    "group_id": 5,
+    "id": 128667704,
+    "name": "Indi Bourbon"
+  },
+  {
+    "group_id": 3,
+    "id": 128667705,
+    "name": "Arouca Conventual Sweets"
+  },
+  {
+    "group_id": 2,
+    "id": 128667706,
+    "name": "Tauri Chimes"
+  },
+  {
+    "group_id": 2,
+    "id": 128667707,
+    "name": "Zeessze Ant Grub Glue"
+  },
+  {
+    "group_id": 7,
+    "id": 128667708,
+    "name": "Pantaa Prayer Sticks"
+  },
+  {
+    "group_id": 3,
+    "id": 128667709,
+    "name": "Fujin Tea"
+  },
+  {
+    "group_id": 13,
+    "id": 128667710,
+    "name": "Chameleon Cloth"
+  },
+  {
+    "group_id": 3,
+    "id": 128667711,
+    "name": "Orrerian Vicious Brew"
+  },
+  {
+    "group_id": 3,
+    "id": 128667712,
+    "name": "Uszaian Tree Grub"
+  },
+  {
+    "group_id": 2,
+    "id": 128667713,
+    "name": "Momus Bog Spaniel"
+  },
+  {
+    "group_id": 3,
+    "id": 128667714,
+    "name": "Diso Ma Corn"
+  },
+  {
+    "group_id": 5,
+    "id": 128667715,
+    "name": "Leestian Evil Juice"
+  },
+  {
+    "group_id": 3,
+    "id": 128667716,
+    "name": "Azure Milk"
+  },
+  {
+    "group_id": 2,
+    "id": 128667717,
+    "name": "Leathery Eggs"
+  },
+  {
+    "group_id": 7,
+    "id": 128667718,
+    "name": "Alya Body Soap"
+  },
+  {
+    "group_id": 2,
+    "id": 128667719,
+    "name": "Vidavantian Lace"
+  },
+  {
+    "group_id": 11,
+    "id": 128667728,
+    "name": "Imperial Slaves"
+  },
+  {
+    "group_id": 5,
+    "id": 128667760,
+    "name": "Lucan Onionhead"
+  },
+  {
+    "group_id": 2,
+    "id": 128668017,
+    "name": "Jaques Quinentian Still"
+  },
+  {
+    "group_id": 2,
+    "id": 128668018,
+    "name": "Soontill Relics"
+  },
+  {
+    "group_id": 10,
+    "id": 128668547,
+    "name": "Thargoid Sensor"
+  },
+  {
+    "group_id": 10,
+    "id": 128668548,
+    "name": "AI Relics"
+  },
+  {
+    "group_id": 8,
+    "id": 128668549,
+    "name": "Hafnium 178"
+  },
+  {
+    "group_id": 9,
+    "id": 128668550,
+    "name": "Painite"
+  },
+  {
+    "group_id": 10,
+    "id": 128668551,
+    "name": "Antiquities"
+  },
+  {
+    "group_id": 10,
+    "id": 128668552,
+    "name": "Military Intelligence"
+  },
+  {
+    "group_id": 8,
+    "id": 128671118,
+    "name": "Osmium"
+  },
+  {
+    "group_id": 2,
+    "id": 128671119,
+    "name": "Ultra-Compact Processor Prototypes"
+  },
+  {
+    "group_id": 10,
+    "id": 128671443,
+    "name": "SAP 8 Core Container"
+  },
+  {
+    "group_id": 2,
+    "id": 128671444,
+    "name": "Trinkets of Hidden Fortune"
+  },
+  {
+    "group_id": 2,
+    "id": 128672121,
+    "name": "The Hutton Mug"
+  },
+  {
+    "group_id": 8,
+    "id": 128672122,
+    "name": "Sothis Crystalline Gold"
+  },
+  {
+    "group_id": 10,
+    "id": 128672123,
+    "name": "Wreckage Components"
+  },
+  {
+    "group_id": 10,
+    "id": 128672124,
+    "name": "Encrypted Data Storage"
+  },
+  {
+    "group_id": 10,
+    "id": 128672125,
+    "name": "Occupied Escape Pod"
+  },
+  {
+    "group_id": 10,
+    "id": 128672126,
+    "name": "Personal Effects"
+  },
+  {
+    "group_id": 10,
+    "id": 128672127,
+    "name": "Commercial Samples"
+  },
+  {
+    "group_id": 10,
+    "id": 128672128,
+    "name": "Tactical Data"
+  },
+  {
+    "group_id": 10,
+    "id": 128672129,
+    "name": "Assault Plans"
+  },
+  {
+    "group_id": 10,
+    "id": 128672130,
+    "name": "Encrypted Correspondence"
+  },
+  {
+    "group_id": 10,
+    "id": 128672131,
+    "name": "Diplomatic Bag"
+  },
+  {
+    "group_id": 10,
+    "id": 128672132,
+    "name": "Scientific Research"
+  },
+  {
+    "group_id": 10,
+    "id": 128672133,
+    "name": "Scientific Samples"
+  },
+  {
+    "group_id": 10,
+    "id": 128672134,
+    "name": "Political Prisoners"
+  },
+  {
+    "group_id": 10,
+    "id": 128672135,
+    "name": "Hostages"
+  },
+  {
+    "group_id": 10,
+    "id": 128672136,
+    "name": "Large Survey Data Cache"
+  },
+  {
+    "group_id": 10,
+    "id": 128672137,
+    "name": "Small Survey Data Cache"
+  },
+  {
+    "group_id": 10,
+    "id": 128672159,
+    "name": "Antique Jewellery"
+  },
+  {
+    "group_id": 10,
+    "id": 128672160,
+    "name": "Precious Gems"
+  },
+  {
+    "group_id": 10,
+    "id": 128672161,
+    "name": "Earth Relics"
+  },
+  {
+    "group_id": 10,
+    "id": 128672162,
+    "name": "Gene Bank"
+  },
+  {
+    "group_id": 10,
+    "id": 128672163,
+    "name": "Time Capsule"
+  },
+  {
+    "group_id": 9,
+    "id": 128672294,
+    "name": "Cryolite"
+  },
+  {
+    "group_id": 9,
+    "id": 128672295,
+    "name": "Goslarite"
+  },
+  {
+    "group_id": 9,
+    "id": 128672296,
+    "name": "Moissanite"
+  },
+  {
+    "group_id": 9,
+    "id": 128672297,
+    "name": "Pyrophyllite"
+  },
+  {
+    "group_id": 8,
+    "id": 128672298,
+    "name": "Lanthanum"
+  },
+  {
+    "group_id": 8,
+    "id": 128672299,
+    "name": "Thallium"
+  },
+  {
+    "group_id": 8,
+    "id": 128672300,
+    "name": "Bismuth"
+  },
+  {
+    "group_id": 8,
+    "id": 128672301,
+    "name": "Thorium"
+  },
+  {
+    "group_id": 4,
+    "id": 128672302,
+    "name": "Ceramic Composites"
+  },
+  {
+    "group_id": 1,
+    "id": 128672303,
+    "name": "Synthetic Reagents"
+  },
+  {
+    "group_id": 1,
+    "id": 128672304,
+    "name": "Nerve Agents"
+  },
+  {
+    "group_id": 1,
+    "id": 128672305,
+    "name": "Surface Stabilisers"
+  },
+  {
+    "group_id": 5,
+    "id": 128672306,
+    "name": "Bootleg Liquor"
+  },
+  {
+    "group_id": 6,
+    "id": 128672307,
+    "name": "Geological Equipment"
+  },
+  {
+    "group_id": 6,
+    "id": 128672308,
+    "name": "Thermal Cooling Units"
+  },
+  {
+    "group_id": 6,
+    "id": 128672309,
+    "name": "Building Fabricators"
+  },
+  {
+    "group_id": 12,
+    "id": 128672310,
+    "name": "Muon Imager"
+  },
+  {
+    "group_id": 12,
+    "id": 128672311,
+    "name": "Structural Regulators"
+  },
+  {
+    "group_id": 15,
+    "id": 128672312,
+    "name": "Landmines"
+  },
+  {
+    "group_id": 6,
+    "id": 128672313,
+    "name": "Skimmer Components"
+  },
+  {
+    "group_id": 2,
+    "id": 128672314,
+    "name": "Evacuation Shelter"
+  },
+  {
+    "group_id": 10,
+    "id": 128672315,
+    "name": "Geological Samples"
+  },
+  {
+    "group_id": 11,
+    "id": 128672316,
+    "name": "Master Chefs"
+  },
+  {
+    "group_id": 10,
+    "id": 128672431,
+    "name": "Personal Gifts"
+  },
+  {
+    "group_id": 10,
+    "id": 128672432,
+    "name": "Crystalline Spheres"
+  },
+  {
+    "group_id": 4,
+    "id": 128672701,
+    "name": "Meta-Alloys"
+  },
+  {
+    "group_id": 9,
+    "id": 128672775,
+    "name": "Taaffeite"
+  },
+  {
+    "group_id": 9,
+    "id": 128672776,
+    "name": "Jadeite"
+  },
+  {
+    "group_id": 10,
+    "id": 128672810,
+    "name": "Unstable Data Core"
+  },
+  {
+    "group_id": 10,
+    "id": 128672811,
+    "name": "Damaged Escape Pod"
+  },
+  {
+    "group_id": 5,
+    "id": 128672812,
+    "name": "Onionhead Alpha Strain"
+  },
+  {
+    "group_id": 5,
+    "id": 128673069,
+    "name": "Onionhead Beta Strain"
+  },
+  {
+    "group_id": 8,
+    "id": 128673845,
+    "name": "Praseodymium"
+  },
+  {
+    "group_id": 9,
+    "id": 128673846,
+    "name": "Bromellite"
+  },
+  {
+    "group_id": 8,
+    "id": 128673847,
+    "name": "Samarium"
+  },
+  {
+    "group_id": 9,
+    "id": 128673848,
+    "name": "Low Temperature Diamonds"
+  },
+  {
+    "group_id": 1,
+    "id": 128673850,
+    "name": "Hydrogen Peroxide"
+  },
+  {
+    "group_id": 1,
+    "id": 128673851,
+    "name": "Liquid oxygen"
+  },
+  {
+    "group_id": 9,
+    "id": 128673852,
+    "name": "Methanol Monohydrate Crystals"
+  },
+  {
+    "group_id": 9,
+    "id": 128673853,
+    "name": "Lithium Hydroxide"
+  },
+  {
+    "group_id": 9,
+    "id": 128673854,
+    "name": "Methane Clathrate"
+  },
+  {
+    "group_id": 4,
+    "id": 128673855,
+    "name": "Insulating Membrane"
+  },
+  {
+    "group_id": 4,
+    "id": 128673856,
+    "name": "CMM Composite"
+  },
+  {
+    "group_id": 4,
+    "id": 128673857,
+    "name": "Micro-weave Cooling Hoses"
+  },
+  {
+    "group_id": 4,
+    "id": 128673858,
+    "name": "Neofabric Insulation"
+  },
+  {
+    "group_id": 6,
+    "id": 128673859,
+    "name": "Articulation Motors"
+  },
+  {
+    "group_id": 6,
+    "id": 128673860,
+    "name": "HN Shock Mount"
+  },
+  {
+    "group_id": 6,
+    "id": 128673861,
+    "name": "Emergency Power Cells"
+  },
+  {
+    "group_id": 6,
+    "id": 128673862,
+    "name": "Power Converter"
+  },
+  {
+    "group_id": 6,
+    "id": 128673863,
+    "name": "Energy Grid Assembly"
+  },
+  {
+    "group_id": 6,
+    "id": 128673864,
+    "name": "Power Transfer Bus"
+  },
+  {
+    "group_id": 6,
+    "id": 128673865,
+    "name": "Radiation Baffle"
+  },
+  {
+    "group_id": 6,
+    "id": 128673866,
+    "name": "Exhaust Manifold"
+  },
+  {
+    "group_id": 6,
+    "id": 128673867,
+    "name": "Reinforced Mounting Plate"
+  },
+  {
+    "group_id": 6,
+    "id": 128673868,
+    "name": "Heatsink Interlink"
+  },
+  {
+    "group_id": 6,
+    "id": 128673869,
+    "name": "Magnetic Emitter Coil"
+  },
+  {
+    "group_id": 6,
+    "id": 128673870,
+    "name": "Modular Terminals"
+  },
+  {
+    "group_id": 12,
+    "id": 128673871,
+    "name": "Nanobreakers"
+  },
+  {
+    "group_id": 12,
+    "id": 128673872,
+    "name": "Telemetry Suite"
+  },
+  {
+    "group_id": 12,
+    "id": 128673873,
+    "name": "Micro Controllers"
+  },
+  {
+    "group_id": 6,
+    "id": 128673874,
+    "name": "Ion Distributor"
+  },
+  {
+    "group_id": 12,
+    "id": 128673875,
+    "name": "Hardware Diagnostic Sensor"
+  },
+  {
+    "group_id": 10,
+    "id": 128673876,
+    "name": "Thargoid Probe"
+  },
+  {
+    "group_id": 13,
+    "id": 128682044,
+    "name": "Conductive Fabrics"
+  },
+  {
+    "group_id": 13,
+    "id": 128682045,
+    "name": "Military Grade Fabrics"
+  },
+  {
+    "group_id": 7,
+    "id": 128682046,
+    "name": "Advanced Medicines"
+  },
+  {
+    "group_id": 12,
+    "id": 128682047,
+    "name": "Medical Diagnostic Equipment"
+  },
+  {
+    "group_id": 2,
+    "id": 128682048,
+    "name": "Survival Equipment"
+  },
+  {
+    "group_id": 10,
+    "id": 128682049,
+    "name": "Data Core"
+  },
+  {
+    "group_id": 10,
+    "id": 128682050,
+    "name": "Galactic Travel Guide"
+  },
+  {
+    "group_id": 10,
+    "id": 128682051,
+    "name": "Mysterious Idol"
+  },
+  {
+    "group_id": 10,
+    "id": 128682052,
+    "name": "Prohibited Research Materials"
+  },
+  {
+    "group_id": 10,
+    "id": 128682053,
+    "name": "Antimatter Containment Unit"
+  },
+  {
+    "group_id": 10,
+    "id": 128682054,
+    "name": "Space Pioneer Relics"
+  },
+  {
+    "group_id": 10,
+    "id": 128682055,
+    "name": "Fossil Remnants"
+  },
+  {
+    "group_id": 5,
+    "id": 128727921,
+    "name": "Crom Silver Fesh"
+  },
+  {
+    "group_id": 10,
+    "id": 128732183,
+    "name": "Guardian Relic"
+  },
+  {
+    "group_id": 10,
+    "id": 128732184,
+    "name": "Guardian Orb"
+  },
+  {
+    "group_id": 10,
+    "id": 128732185,
+    "name": "Guardian Casket"
+  },
+  {
+    "group_id": 10,
+    "id": 128732186,
+    "name": "Guardian Tablet"
+  },
+  {
+    "group_id": 10,
+    "id": 128732187,
+    "name": "Guardian Urn"
+  },
+  {
+    "group_id": 10,
+    "id": 128732188,
+    "name": "Guardian Totem"
+  },
+  {
+    "group_id": 2,
+    "id": 128732551,
+    "name": "Shan's Charis Orchid"
+  },
+  {
+    "group_id": 10,
+    "id": 128737287,
+    "name": "Thargoid Resin"
+  },
+  {
+    "group_id": 10,
+    "id": 128737288,
+    "name": "Thargoid Biological Matter"
+  },
+  {
+    "group_id": 10,
+    "id": 128737289,
+    "name": "Thargoid Technology Samples"
+  },
+  {
+    "group_id": 10,
+    "id": 128740752,
+    "name": "Thargoid Link"
+  },
+  {
+    "group_id": 2,
+    "id": 128748428,
+    "name": "Buckyball Beer Mats"
+  },
+  {
+    "group_id": 5,
+    "id": 128793113,
+    "name": "Harma Silver Sea Rum"
+  },
+  {
+    "group_id": 8,
+    "id": 128793114,
+    "name": "Platinum Alloy"
+  },
+  {
+    "group_id": 10,
+    "id": 128793127,
+    "name": "Thargoid Heart"
+  },
+  {
+    "group_id": 10,
+    "id": 128793128,
+    "name": "Thargoid Cyclops Tissue Sample"
+  },
+  {
+    "group_id": 10,
+    "id": 128793129,
+    "name": "Thargoid Basilisk Tissue Sample"
+  },
+  {
+    "group_id": 10,
+    "id": 128793130,
+    "name": "Thargoid Medusa Tissue Sample"
+  },
+  {
+    "group_id": 10,
+    "id": 128824468,
+    "name": "Thargoid Scout Tissue Sample"
+  },
+  {
+    "group_id": 10,
+    "id": 128888499,
+    "name": "Ancient Key"
+  },
+  {
+    "group_id": 10,
+    "id": 128902652,
+    "name": "Thargoid Hydra Tissue Sample"
+  },
+  {
+    "group_id": 7,
+    "id": 128913661,
+    "name": "Nanomedicines"
+  },
+  {
+    "group_id": 10,
+    "id": 128922517,
+    "name": "Mollusc Fluid"
+  },
+  {
+    "group_id": 10,
+    "id": 128922518,
+    "name": "Mollusc Soft Tissue"
+  },
+  {
+    "group_id": 10,
+    "id": 128922519,
+    "name": "Mollusc Brain Tissue"
+  },
+  {
+    "group_id": 10,
+    "id": 128922520,
+    "name": "Pod Core Tissue"
+  },
+  {
+    "group_id": 10,
+    "id": 128922521,
+    "name": "Pod Dead Tissue"
+  },
+  {
+    "group_id": 10,
+    "id": 128922522,
+    "name": "Pod Surface Tissue"
+  },
+  {
+    "group_id": 10,
+    "id": 128922523,
+    "name": "Anomaly Particles"
+  },
+  {
+    "group_id": 2,
+    "id": 128922524,
+    "name": "Duradrives"
+  },
+  {
+    "group_id": 10,
+    "id": 128922781,
+    "name": "Pod Tissue"
+  },
+  {
+    "group_id": 10,
+    "id": 128922782,
+    "name": "Mollusc Membrane"
+  },
+  {
+    "group_id": 10,
+    "id": 128922783,
+    "name": "Mollusc Mycelium"
+  },
+  {
+    "group_id": 10,
+    "id": 128922784,
+    "name": "Mollusc Spores"
+  },
+  {
+    "group_id": 10,
+    "id": 128922785,
+    "name": "Pod Mesoglea"
+  },
+  {
+    "group_id": 10,
+    "id": 128922786,
+    "name": "Pod Outer Tissue"
+  },
+  {
+    "group_id": 10,
+    "id": 128922787,
+    "name": "Pod Shell Tissue"
+  },
+  {
+    "group_id": 9,
+    "id": 128924325,
+    "name": "Rhodplumsite"
+  },
+  {
+    "group_id": 9,
+    "id": 128924326,
+    "name": "Serendibite"
+  },
+  {
+    "group_id": 9,
+    "id": 128924327,
+    "name": "Monazite"
+  },
+  {
+    "group_id": 9,
+    "id": 128924328,
+    "name": "Musgravite"
+  },
+  {
+    "group_id": 9,
+    "id": 128924329,
+    "name": "Benitoite"
+  },
+  {
+    "group_id": 9,
+    "id": 128924330,
+    "name": "Grandidierite"
+  },
+  {
+    "group_id": 9,
+    "id": 128924331,
+    "name": "Alexandrite"
+  },
+  {
+    "group_id": 9,
+    "id": 128924332,
+    "name": "Void Opal"
+  },
+  {
+    "group_id": 1,
+    "id": 128924333,
+    "name": "Rockforth Fertiliser"
+  },
+  {
+    "group_id": 1,
+    "id": 128924334,
+    "name": "Agronomic Treatment"
+  },
+  {
+    "group_id": 5,
+    "id": 128958679,
+    "name": "Apa Vietii"
+  },
+  {
+    "group_id": 1,
+    "id": 128961249,
+    "name": "Tritium"
+  },
+  {
+    "group_id": 5,
+    "id": 128983059,
+    "name": "Onionhead Gamma Strain"
+  },
+  {
+    "group_id": 12,
+    "id": 129002574,
+    "name": "Classified Experimental Equipment"
+  },
+  {
+    "group_id": 10,
+    "id": 129015433,
+    "name": "Unclassified Relic"
+  },
+  {
+    "group_id": 10,
+    "id": 129019258,
+    "name": "Thargoid Orthrus Tissue Sample"
+  },
+  {
+    "group_id": 10,
+    "id": 129019259,
+    "name": "Caustic Tissue Sample"
+  },
+  {
+    "group_id": 10,
+    "id": 129022087,
+    "name": "Unoccupied Escape Pod"
+  }
+]

@@ -1,0 +1,32 @@
+[
+  {
+    "eddn": "",
+    "id": 1,
+    "text": "Unknown"
+  },
+  {
+    "eddn": "active",
+    "id": 2,
+    "text": "Active"
+  },
+  {
+    "eddn": "pending",
+    "id": 3,
+    "text": "Pending"
+  },
+  {
+    "eddn": "civilwar",
+    "id": 4,
+    "text": "Civil War"
+  },
+  {
+    "eddn": "election",
+    "id": 5,
+    "text": "Election"
+  },
+  {
+    "eddn": "war",
+    "id": 6,
+    "text": "War"
+  }
+]

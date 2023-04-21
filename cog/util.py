@@ -84,6 +84,12 @@ class ReprMixin():
 
         return f'{self.__class__.__name__}({", ".join(kwargs)})'
 
+    def to_kwargs(self):
+        """
+        Dump object back to kwargs.
+        """
+        return {x: getattr(self, x) for x in self._repr_keys}
+
 
 class TimestampMixin():
     """

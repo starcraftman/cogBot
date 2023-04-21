@@ -1,0 +1,197 @@
+[
+  {
+    "id": 1,
+    "text": "Adder",
+    "traffic_text": "adder"
+  },
+  {
+    "id": 2,
+    "text": "Alliance Challenger",
+    "traffic_text": "typex_3"
+  },
+  {
+    "id": 3,
+    "text": "Alliance Chieftain",
+    "traffic_text": "typex"
+  },
+  {
+    "id": 4,
+    "text": "Alliance Crusader",
+    "traffic_text": "typex_2"
+  },
+  {
+    "id": 5,
+    "text": "Anaconda",
+    "traffic_text": "anaconda"
+  },
+  {
+    "id": 6,
+    "text": "Asp Explorer",
+    "traffic_text": "asp"
+  },
+  {
+    "id": 7,
+    "text": "Asp Scout",
+    "traffic_text": "asp_scout"
+  },
+  {
+    "id": 8,
+    "text": "Beluga Liner",
+    "traffic_text": "belugaliner"
+  },
+  {
+    "id": 9,
+    "text": "Cobra MK IV",
+    "traffic_text": "cobramkiv"
+  },
+  {
+    "id": 10,
+    "text": "Cobra Mk. III",
+    "traffic_text": "cobramkiii"
+  },
+  {
+    "id": 11,
+    "text": "Diamondback Explorer",
+    "traffic_text": "diamondbackxl"
+  },
+  {
+    "id": 12,
+    "text": "Diamondback Scout",
+    "traffic_text": "diamondback"
+  },
+  {
+    "id": 13,
+    "text": "Dolphin",
+    "traffic_text": "dolphin"
+  },
+  {
+    "id": 14,
+    "text": "Eagle Mk. II",
+    "traffic_text": "eagle"
+  },
+  {
+    "id": 15,
+    "text": "Federal Assault Ship",
+    "traffic_text": "federation_dropship_mkii"
+  },
+  {
+    "id": 16,
+    "text": "Federal Corvette",
+    "traffic_text": "federation_corvette"
+  },
+  {
+    "id": 17,
+    "text": "Federal Dropship",
+    "traffic_text": "federation_dropship"
+  },
+  {
+    "id": 18,
+    "text": "Federal Gunship",
+    "traffic_text": "federation_gunship"
+  },
+  {
+    "id": 19,
+    "text": "Fer-de-Lance",
+    "traffic_text": "ferdelance"
+  },
+  {
+    "id": 20,
+    "text": "Hauler",
+    "traffic_text": "hauler"
+  },
+  {
+    "id": 21,
+    "text": "Imperial Clipper",
+    "traffic_text": "empire_trader"
+  },
+  {
+    "id": 22,
+    "text": "Imperial Courier",
+    "traffic_text": "empire_courier"
+  },
+  {
+    "id": 23,
+    "text": "Imperial Cutter",
+    "traffic_text": "cutter"
+  },
+  {
+    "id": 24,
+    "text": "Imperial Eagle",
+    "traffic_text": "empire_eagle"
+  },
+  {
+    "id": 25,
+    "text": "Keelback",
+    "traffic_text": "independant_trader"
+  },
+  {
+    "id": 26,
+    "text": "Krait MkII",
+    "traffic_text": "krait_mkii"
+  },
+  {
+    "id": 27,
+    "text": "Krait Phantom",
+    "traffic_text": "krait_light"
+  },
+  {
+    "id": 28,
+    "text": "Mamba",
+    "traffic_text": "mamba"
+  },
+  {
+    "id": 29,
+    "text": "Orca",
+    "traffic_text": "orca"
+  },
+  {
+    "id": 30,
+    "text": "Python",
+    "traffic_text": "python"
+  },
+  {
+    "id": 31,
+    "text": "Sidewinder Mk. I",
+    "traffic_text": "sidewinder"
+  },
+  {
+    "id": 32,
+    "text": "Type-10 Defender",
+    "traffic_text": "type9_military"
+  },
+  {
+    "id": 33,
+    "text": "Type-6 Transporter",
+    "traffic_text": "type6"
+  },
+  {
+    "id": 34,
+    "text": "Type-7 Transporter",
+    "traffic_text": "type7"
+  },
+  {
+    "id": 35,
+    "text": "Type-9 Heavy",
+    "traffic_text": "type9"
+  },
+  {
+    "id": 36,
+    "text": "Viper MK IV",
+    "traffic_text": "viper_mkiv"
+  },
+  {
+    "id": 37,
+    "text": "Viper Mk III",
+    "traffic_text": "viper"
+  },
+  {
+    "id": 38,
+    "text": "Vulture",
+    "traffic_text": "vulture"
+  },
+  {
+    "id": 39,
+    "text": "PlayerCarrier",
+    "traffic_text": "carrierdockb"
+  }
+]

@@ -1,0 +1,42 @@
+[
+  {
+    "eddn": "Alliance",
+    "id": 1,
+    "text": "Alliance"
+  },
+  {
+    "eddn": "Empire",
+    "id": 2,
+    "text": "Empire"
+  },
+  {
+    "eddn": "Federation",
+    "id": 3,
+    "text": "Federation"
+  },
+  {
+    "eddn": "Independent",
+    "id": 4,
+    "text": "Independent"
+  },
+  {
+    "eddn": "None",
+    "id": 5,
+    "text": "None"
+  },
+  {
+    "eddn": "PilotsFederation",
+    "id": 7,
+    "text": "Pilots Federation"
+  },
+  {
+    "eddn": "Thargoid",
+    "id": 8,
+    "text": "Thargoid"
+  },
+  {
+    "eddn": "Guardian",
+    "id": 9,
+    "text": "Guardian"
+  }
+]

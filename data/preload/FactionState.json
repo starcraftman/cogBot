@@ -1,0 +1,117 @@
+[
+  {
+    "eddn": null,
+    "id": 0,
+    "text": "(unknown)"
+  },
+  {
+    "eddn": "Boom",
+    "id": 16,
+    "text": "Boom"
+  },
+  {
+    "eddn": "Bust",
+    "id": 32,
+    "text": "Bust"
+  },
+  {
+    "eddn": "Famine",
+    "id": 37,
+    "text": "Famine"
+  },
+  {
+    "eddn": "CivilUnrest",
+    "id": 48,
+    "text": "Civil Unrest"
+  },
+  {
+    "eddn": "CivilWar",
+    "id": 64,
+    "text": "Civil War"
+  },
+  {
+    "eddn": "Election",
+    "id": 65,
+    "text": "Election"
+  },
+  {
+    "eddn": "CivilLiberty",
+    "id": 66,
+    "text": "Civil Liberty"
+  },
+  {
+    "eddn": "Expansion",
+    "id": 67,
+    "text": "Expansion"
+  },
+  {
+    "eddn": "Lockdown",
+    "id": 69,
+    "text": "Lockdown"
+  },
+  {
+    "eddn": "Outbreak",
+    "id": 72,
+    "text": "Outbreak"
+  },
+  {
+    "eddn": "War",
+    "id": 73,
+    "text": "War"
+  },
+  {
+    "eddn": "None",
+    "id": 80,
+    "text": "None"
+  },
+  {
+    "eddn": "PirateAttack",
+    "id": 81,
+    "text": "Pirate Attack"
+  },
+  {
+    "eddn": "Retreat",
+    "id": 96,
+    "text": "Retreat"
+  },
+  {
+    "eddn": "Investment",
+    "id": 101,
+    "text": "Investment"
+  },
+  {
+    "eddn": "Blight",
+    "id": 102,
+    "text": "Blight"
+  },
+  {
+    "eddn": "Drought",
+    "id": 103,
+    "text": "Drought"
+  },
+  {
+    "eddn": "InfrastructureFailure",
+    "id": 104,
+    "text": "Infrastructure Failure"
+  },
+  {
+    "eddn": "NaturalDisaster",
+    "id": 105,
+    "text": "Natural Disaster"
+  },
+  {
+    "eddn": "PublicHoliday",
+    "id": 106,
+    "text": "Public Holiday"
+  },
+  {
+    "eddn": "Terrorism",
+    "id": 107,
+    "text": "Terrorist Attack"
+  },
+  {
+    "eddn": "CivilLiberty",
+    "id": 127,
+    "text": "Civil Liberty"
+  }
+]

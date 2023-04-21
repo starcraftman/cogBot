@@ -23,10 +23,11 @@ import sqlalchemy.ext.declarative
 from sqlalchemy.sql.expression import or_
 from sqlalchemy.ext.hybrid import hybrid_property, hybrid_method
 
+import cogdb
+import cogdb.common
 import cog.exc
 import cog.tbl
 import cog.util
-import cogdb
 from cog.util import ReprMixin, TimestampMixin, UpdatableMixin
 
 
@@ -1061,342 +1062,6 @@ System.stations = sqla_orm.relationship(
 )
 
 
-# NOTE: Map text '' -> 'None'
-def preload_allegiance(session):
-    """ Preload all Allegiance constants to table. """
-    session.add_all([
-        Allegiance(id=1, text="Alliance", eddn="Alliance"),
-        Allegiance(id=2, text="Empire", eddn="Empire"),
-        Allegiance(id=3, text="Federation", eddn="Federation"),
-        Allegiance(id=4, text="Independent", eddn="Independent"),
-        Allegiance(id=5, text="None", eddn="None"),
-        Allegiance(id=7, text="Pilots Federation", eddn="PilotsFederation"),
-        Allegiance(id=8, text="Thargoid", eddn="Thargoid"),
-        Allegiance(id=9, text="Guardian", eddn="Guardian"),
-    ])
-
-
-def preload_commodity_categories(session):
-    """ Preload all CommodityCat constants to table. """
-    session.add_all([
-        CommodityCat(id=1, name='Chemicals'),
-        CommodityCat(id=2, name='Consumer Items'),
-        CommodityCat(id=3, name='Legal Drugs'),
-        CommodityCat(id=4, name='Foods'),
-        CommodityCat(id=5, name='Industrial Materials'),
-        CommodityCat(id=6, name='Machinery'),
-        CommodityCat(id=7, name='Medicines'),
-        CommodityCat(id=8, name='Metals'),
-        CommodityCat(id=9, name='Minerals'),
-        CommodityCat(id=10, name='Slavery'),
-        CommodityCat(id=11, name='Technology'),
-        CommodityCat(id=12, name='Textiles'),
-        CommodityCat(id=13, name='Waste'),
-        CommodityCat(id=14, name='Weapons'),
-        CommodityCat(id=15, name='Unknown'),
-        CommodityCat(id=16, name='Salvage'),
-    ])
-
-
-def preload_conflict_states(session):
-    """ Preload all ConflictState constants to table. """
-    session.add_all([
-        ConflictState(id=1, text="Unknown", eddn=""),
-        ConflictState(id=2, text="Active", eddn="active"),
-        ConflictState(id=3, text="Pending", eddn="pending"),
-        ConflictState(id=4, text="Civil War", eddn="civilwar"),
-        ConflictState(id=5, text="Election", eddn="election"),
-        ConflictState(id=6, text="War", eddn="war"),
-    ])
-
-
-def preload_economies(session):
-    """ Preload all Economy constants to table. """
-    session.add_all([
-        Economy(id=1, text="Agriculture", eddn="Agri"),
-        Economy(id=2, text="Extraction", eddn="Extraction"),
-        Economy(id=3, text="High Tech", eddn="HighTech"),
-        Economy(id=4, text="Industrial", eddn="Industrial"),
-        Economy(id=5, text="Military", eddn="Military"),
-        Economy(id=6, text="Refinery", eddn="Refinery"),
-        Economy(id=7, text="Service", eddn="Service"),
-        Economy(id=8, text="Terraforming", eddn="Terraforming"),
-        Economy(id=9, text="Tourism", eddn="Tourism"),
-        Economy(id=10, text="None", eddn="None"),
-        Economy(id=11, text="Colony", eddn="Colony"),
-        Economy(id=12, text="Private Enterprise", eddn="PrivateEnterprise"),
-        Economy(id=13, text="Rescue", eddn="Rescue"),
-        Economy(id=14, text="Prison", eddn="Prison"),
-        Economy(id=15, text="Carrier", eddn="Carrier"),
-        Economy(id=16, text="Damaged", eddn="Damaged"),
-        Economy(id=17, text="Repair", eddn="Repair"),
-        Economy(id=18, text="Engineering", eddn="Engineering"),
-    ])
-
-
-def preload_faction_happiness(session):
-    """ Preload all FactionHappiness constants to table. """
-    session.add_all([
-        FactionHappiness(id=1, text='Elated', eddn='Elated'),
-        FactionHappiness(id=2, text='Happy', eddn='Happy'),
-        FactionHappiness(id=3, text='Discontented', eddn='Discontented'),
-        FactionHappiness(id=4, text='Unhappy', eddn='Unhappy'),
-        FactionHappiness(id=5, text='Despondent', eddn='Despondent'),
-    ])
-
-
-def preload_faction_state(session):
-    """ Preload all FactionState constants to table. """
-    session.add_all([
-        FactionState(id=0, text="(unknown)", eddn=None),
-        FactionState(id=16, text="Boom", eddn="Boom"),
-        FactionState(id=32, text="Bust", eddn="Bust"),
-        FactionState(id=37, text="Famine", eddn="Famine"),
-        FactionState(id=48, text="Civil Unrest", eddn="CivilUnrest"),
-        FactionState(id=64, text="Civil War", eddn="CivilWar"),
-        FactionState(id=65, text="Election", eddn="Election"),
-        FactionState(id=66, text="Civil Liberty", eddn="CivilLiberty"),
-        FactionState(id=67, text="Expansion", eddn="Expansion"),
-        FactionState(id=69, text="Lockdown", eddn="Lockdown"),
-        FactionState(id=72, text="Outbreak", eddn="Outbreak"),
-        FactionState(id=73, text="War", eddn="War"),
-        FactionState(id=80, text="None", eddn="None"),
-        FactionState(id=81, text="Pirate Attack", eddn="PirateAttack"),
-        FactionState(id=96, text="Retreat", eddn="Retreat"),
-        FactionState(id=101, text="Investment", eddn="Investment"),
-        FactionState(id=102, text="Blight", eddn="Blight"),
-        FactionState(id=103, text="Drought", eddn="Drought"),
-        FactionState(id=104, text="Infrastructure Failure", eddn="InfrastructureFailure"),
-        FactionState(id=105, text="Natural Disaster", eddn="NaturalDisaster"),
-        FactionState(id=106, text="Public Holiday", eddn="PublicHoliday"),
-        FactionState(id=107, text="Terrorist Attack", eddn="Terrorism"),
-        FactionState(id=127, text="Civil Liberty", eddn="CivilLiberty"),
-    ])
-
-
-def preload_gov_type(session):
-    """ Preload all Government constants to table. """
-    session.add_all([
-        Government(id=0, text='(unknown)', eddn=None),
-        Government(id=16, text='Anarchy', eddn="Anarchy"),
-        Government(id=32, text='Communism', eddn="Comunism"),
-        Government(id=48, text='Confederacy', eddn="Confederacy"),
-        Government(id=64, text='Corporate', eddn='Corporate'),
-        Government(id=80, text='Cooperative', eddn='Cooperative'),
-        Government(id=96, text='Democracy', eddn='Democracy'),
-        Government(id=112, text='Dictatorship', eddn='Dictatorship'),
-        Government(id=128, text='Feudal', eddn='Feudal'),
-        Government(id=133, text='Imperial', eddn='Imperial'),
-        Government(id=144, text='Patronage', eddn='Patronage'),
-        Government(id=150, text='Prison Colony', eddn='PrisonColony'),
-        Government(id=160, text='Theocracy', eddn='Theocracy'),
-        Government(id=176, text='None', eddn='None'),
-        Government(id=192, text='Engineer', eddn='Engineer'),
-        Government(id=208, text='Prison', eddn='Prison'),
-        Government(id=209, text='Private Ownership', eddn='PrivateOwnership'),
-        Government(id=300, text='Carrier', eddn='Carrier'),
-    ])
-
-
-def preload_module_groups(session):
-    """ Preload all ModuleGroup constants to table. """
-    session.add_all([
-        ModuleGroup(id=50, name='Lightweight Alloy', category='Bulkhead', category_id=40),
-        ModuleGroup(id=51, name='Reinforced Alloy', category='Bulkhead', category_id=40),
-        ModuleGroup(id=52, name='Military Grade Composite', category='Bulkhead', category_id=40),
-        ModuleGroup(id=53, name='Mirrored Surface Composite', category='Bulkhead', category_id=40),
-        ModuleGroup(id=54, name='Reactive Surface Composite', category='Bulkhead', category_id=40),
-        ModuleGroup(id=55, name='Pulse Laser', category='Weapon Hardpoint', category_id=50),
-        ModuleGroup(id=56, name='Burst Laser', category='Weapon Hardpoint', category_id=50),
-        ModuleGroup(id=57, name='Beam Laser', category='Weapon Hardpoint', category_id=50),
-        ModuleGroup(id=58, name='Cannon', category='Weapon Hardpoint', category_id=50),
-        ModuleGroup(id=59, name='Fragment Cannon', category='Weapon Hardpoint', category_id=50),
-        ModuleGroup(id=60, name='Multi-Cannon', category='Weapon Hardpoint', category_id=50),
-        ModuleGroup(id=61, name='Plasma Accelerator', category='Weapon Hardpoint', category_id=50),
-        ModuleGroup(id=62, name='Rail Gun', category='Weapon Hardpoint', category_id=50),
-        ModuleGroup(id=63, name='Missile Rack', category='Weapon Hardpoint', category_id=50),
-        ModuleGroup(id=64, name='Mine Launcher', category='Weapon Hardpoint', category_id=50),
-        ModuleGroup(id=65, name='Torpedo Pylon', category='Weapon Hardpoint', category_id=50),
-        ModuleGroup(id=66, name='Chaff Launcher', category='Utility Mount', category_id=10),
-        ModuleGroup(id=67, name='Electronic Countermeasure', category='Utility Mount', category_id=10),
-        ModuleGroup(id=68, name='Heat Sink Launcher', category='Utility Mount', category_id=10),
-        ModuleGroup(id=69, name='Point Defence', category='Utility Mount', category_id=10),
-        ModuleGroup(id=70, name='Mining Laser', category='Weapon Hardpoint', category_id=50),
-        ModuleGroup(id=71, name='Standard Docking Computer', category='Internal Compartment', category_id=20),
-        ModuleGroup(id=72, name='Power Plant', category='Essential Equipment', category_id=30),
-        ModuleGroup(id=73, name='Thrusters', category='Essential Equipment', category_id=30),
-        ModuleGroup(id=74, name='Frame Shift Drive', category='Essential Equipment', category_id=30),
-        ModuleGroup(id=75, name='Life Support', category='Essential Equipment', category_id=30),
-        ModuleGroup(id=76, name='Power Distributor', category='Essential Equipment', category_id=30),
-        ModuleGroup(id=77, name='Sensors', category='Essential Equipment', category_id=30),
-        ModuleGroup(id=78, name='Shield Generator', category='Internal Compartment', category_id=20),
-        ModuleGroup(id=79, name='Shield Cell Bank', category='Internal Compartment', category_id=20),
-        ModuleGroup(id=80, name='Cargo Rack', category='Internal Compartment', category_id=20),
-        ModuleGroup(id=81, name='Fuel Tank', category='Essential Equipment', category_id=30),
-        ModuleGroup(id=82, name='Hatch Breaker Limpet Controller', category='Internal Compartment', category_id=20),
-        ModuleGroup(id=83, name='Cargo Scanner', category='Utility Mount', category_id=10),
-        ModuleGroup(id=84, name='Frame Shift Wake Scanner', category='Utility Mount', category_id=10),
-        ModuleGroup(id=85, name='Kill Warrant Scanner', category='Utility Mount', category_id=10),
-        ModuleGroup(id=89, name='Detailed Surface Scanner', category='Internal Compartment', category_id=20),
-        ModuleGroup(id=90, name='Fuel Scoop', category='Internal Compartment', category_id=20),
-        ModuleGroup(id=91, name='Refinery', category='Internal Compartment', category_id=20),
-        ModuleGroup(id=92, name='Frame Shift Drive Interdictor', category='Internal Compartment', category_id=20),
-        ModuleGroup(id=93, name='Auto Field-Maintenance Unit', category='Internal Compartment', category_id=20),
-        ModuleGroup(id=94, name='Shield Booster', category='Utility Mount', category_id=10),
-        ModuleGroup(id=95, name='Hull Reinforcement Package', category='Internal Compartment', category_id=20),
-        ModuleGroup(id=96, name='Collector Limpet Controller', category='Internal Compartment', category_id=20),
-        ModuleGroup(id=97, name='Fuel Transfer Limpet Controller', category='Internal Compartment', category_id=20),
-        ModuleGroup(id=98, name='Prospector Limpet Controller', category='Internal Compartment', category_id=20),
-        ModuleGroup(id=99, name='Planetary Vehicle Hangar', category='Internal Compartment', category_id=20),
-        ModuleGroup(id=100, name='Shock Mine Launcher', category='Weapon Hardpoint', category_id=50),
-        ModuleGroup(id=101, name='Bi-Weave Shield Generator', category='Internal Compartment', category_id=20),
-        ModuleGroup(id=102, name='Planetary Approach Suite', category='Essential Equipment', category_id=30),
-        ModuleGroup(id=103, name='Enhanced Performance Thrusters', category='Essential Equipment', category_id=30),
-        ModuleGroup(id=104, name='Corrosion Resistant Cargo Rack', category='Internal Compartment', category_id=20),
-        ModuleGroup(id=105, name='Fighter Hangar', category='Internal Compartment', category_id=20),
-        ModuleGroup(id=106, name='Economy Class Passenger Cabin', category='Internal Compartment', category_id=20),
-        ModuleGroup(id=107, name='Business Class Passenger Cabin', category='Internal Compartment', category_id=20),
-        ModuleGroup(id=108, name='First Class Passenger Cabin', category='Internal Compartment', category_id=20),
-        ModuleGroup(id=109, name='Luxury Passenger Cabin', category='Internal Compartment', category_id=20),
-        ModuleGroup(id=110, name='Module Reinforcement Package', category='Internal Compartment', category_id=20),
-        ModuleGroup(id=111, name='Repair Limpet Controller', category='Internal Compartment', category_id=20),
-        ModuleGroup(id=112, name='AX Missile Rack', category='Weapon Hardpoint', category_id=50),
-        ModuleGroup(id=113, name='Xeno Scanner', category='Utility Mount', category_id=10),
-        ModuleGroup(id=114, name='Research Limpet Controller', category='Internal Compartment', category_id=20),
-        ModuleGroup(id=115, name='AX Multi-Cannon', category='Weapon Hardpoint', category_id=50),
-        ModuleGroup(id=116, name='Remote Release Flak Launcher', category='Weapon Hardpoint', category_id=50),
-        ModuleGroup(id=117, name='Shutdown Field Neutraliser', category='Utility Mount', category_id=10),
-        ModuleGroup(id=118, name='Decontamination Limpet Controller', category='Internal Compartment', category_id=20),
-        ModuleGroup(id=119, name='Recon Limpet Controller', category='Internal Compartment', category_id=20),
-        ModuleGroup(id=120, name='Guardian Gauss Cannon', category='Weapon Hardpoint', category_id=50),
-        ModuleGroup(id=121, name='Guardian Hull Reinforcement', category='Internal Compartment', category_id=20),
-        ModuleGroup(id=122, name='Guardian Module Reinforcement', category='Internal Compartment', category_id=20),
-        ModuleGroup(id=123, name='Guardian Shield Reinforcement', category='Internal Compartment', category_id=20),
-        ModuleGroup(id=124, name='Guardian FSD Booster', category='Internal Compartment', category_id=20),
-        ModuleGroup(id=125, name='Guardian Hybrid Power Distributor', category='Internal Compartment', category_id=20),
-        ModuleGroup(id=126, name='Guardian Hybrid Power Plant', category='Internal Compartment', category_id=20),
-        ModuleGroup(id=127, name='Enzyme Missile Rack', category='Weapon Hardpoint', category_id=50),
-        ModuleGroup(id=128, name='Remote Release Flechette Launcher', category='Weapon Hardpoint', category_id=50),
-        ModuleGroup(id=129, name='Guardian Plasma Charger', category='Weapon Hardpoint', category_id=50),
-        ModuleGroup(id=130, name='Guardian Shard Cannon', category='Weapon Hardpoint', category_id=50),
-        ModuleGroup(id=131, name='Shock Cannon', category='Weapon Hardpoint', category_id=50),
-        ModuleGroup(id=132, name='Sub-Surface Displacement Missile', category='Weapon Hardpoint', category_id=50),
-        ModuleGroup(id=133, name='Abrasion Blaster', category='Weapon Hardpoint', category_id=50),
-        ModuleGroup(id=134, name='Seismic Charge Launcher', category='Weapon Hardpoint', category_id=50),
-        ModuleGroup(id=135, name='Pulse Wave Analyser', category='Utility Mount', category_id=10),
-        ModuleGroup(id=136, name='Meta Alloy Hull Reinforcement', category='Internal Compartment', category_id=20),
-        ModuleGroup(id=137, name='Limpet Control', category='Internal Compartment', category_id=20),
-        ModuleGroup(id=138, name='Supercruise Assist', category='Internal Compartment', category_id=20),
-        ModuleGroup(id=139, name='Advanced Docking Computer', category='Internal Compartment', category_id=20),
-        ModuleGroup(id=140, name='Advanced Multi Cannon', category='Weapon Hardpoint', category_id=50),
-        ModuleGroup(id=141, name='Advanced Missile Rack', category='Weapon Hardpoint', category_id=50),
-        ModuleGroup(id=142, name='Advanced Planetary Approach Suite', category='Essential Equipment', category_id=30),
-        ModuleGroup(id=143, name='Mining Multi Limpet Controller', category='Internal Compartment', category_id=20),
-        ModuleGroup(id=144, name='Operations Multi Limpet Controller', category='Internal Compartment', category_id=20),
-        ModuleGroup(id=145, name='Rescue Multi Limpet Controller\t', category='Internal Compartment', category_id=20),
-        ModuleGroup(id=146, name='Xeno Multi Limpet Controller', category='Internal Compartment', category_id=20),
-        ModuleGroup(id=147, name='Universal Multi Limpet Controller', category='Internal Compartment', category_id=20),
-    ])
-
-
-def preload_powers(session):
-    """ All possible powers in Powerplay. """
-    session.add_all([
-        Power(id=0, text="None", eddn='None', abbrev="NONE"),
-        Power(id=1, text="Aisling Duval", eddn='Aisling Duval', abbrev="AD", home_system_name='Cubeo'),
-        Power(id=2, text="Archon Delaine", eddn='Archon Delaine', abbrev="Archon", home_system_name='Harma'),
-        Power(id=3, text="Arissa Lavigny-Duval", eddn='A. Lavigny-Duval', abbrev="ALD", home_system_name='Kamadhenu'),
-        Power(id=4, text="Denton Patreus", eddn='Denton Patreus', abbrev="DP", home_system_name='Eotienses'),
-        Power(id=5, text="Edmund Mahon", eddn='Edmund Mahon', abbrev="EM", home_system_name='Gateway'),
-        Power(id=6, text="Felicia Winters", eddn='Felicia Winters', abbrev="FW", home_system_name='Rhea'),
-        Power(id=7, text="Li Yong-Rui", eddn='Li Yong-Rui', abbrev="LYR", home_system_name='Lembava'),
-        Power(id=8, text="Pranav Antal", eddn='Pranav Antal', abbrev="PA", home_system_name='Polevnic'),
-        Power(id=9, text="Zachary Hudson", eddn='Zachary Hudson', abbrev="ZH", home_system_name='Nanomam'),
-        Power(id=10, text="Zemina Torval", eddn='Zemina Torval', abbrev="ZT", home_system_name='Synteini'),
-        Power(id=11, text="Yuri Grom", eddn='Yuri Grom', abbrev="YG", home_system_name='Clayakarma'),
-    ])
-
-
-def preload_power_states(session):
-    """ All possible powerplay states. """
-    session.add_all([
-        PowerState(id=0, text="None", eddn='None'),
-        PowerState(id=16, text="Control", eddn='Controlled'),
-        PowerState(id=32, text="Exploited", eddn='Exploited'),
-        PowerState(id=48, text="Contested", eddn='Contested'),
-        PowerState(id=64, text="Expansion", eddn='Expansion'),
-        PowerState(id=80, text="Prepared", eddn='Prepared'),  # EDDN only, system prepared
-        PowerState(id=96, text="HomeSystem", eddn='HomeSystem'),  # EDDN only, HQ of a power
-        PowerState(id=112, text="InPrepareRadius", eddn='InPrepareRadius'),  # EDDN only, HQ of a power
-        PowerState(id=240, text="Turmoil", eddn='Turmoil'),
-    ])
-    # Note: HomeSystem and Prepared are EDDN only states.
-    #       HomeSystem is redundant as I map Power.home_system
-    #       Prepared can be tracked shouldn't overlap
-    #       InPreparedRadius is from Spansh
-
-
-def preload_security(session):
-    """ Preload possible System security values. """
-    session.add_all([
-        Security(id=16, text="Low", eddn="low"),
-        Security(id=32, text="Medium", eddn="medium"),
-        Security(id=48, text="High", eddn="high"),
-        Security(id=64, text="Anarchy", eddn="state_anarchy"),
-        Security(id=80, text="Lawless", eddn="state_lawless"),
-    ])
-
-
-def preload_settlement_security(session):
-    """ Preload possible settlement security values. """
-    session.add_all([
-        SettlementSecurity(id=1, text="Low"),
-        SettlementSecurity(id=2, text="Medium"),
-        SettlementSecurity(id=3, text="High"),
-        SettlementSecurity(id=4, text="None"),
-    ])
-
-
-def preload_settlement_size(session):
-    """ Preload possible settlement sizes values. """
-    session.add_all([
-        SettlementSize(id=16, text=""),
-        SettlementSize(id=32, text="+"),
-        SettlementSize(id=48, text="++"),
-        SettlementSize(id=64, text="+++"),
-    ])
-
-
-# Alias: 'Bernal' -> 'Ocellus'
-def preload_station_types(session):
-    """ Preload station types table. """
-    session.add_all([
-        StationType(id=1, text='Civilian Outpost', eddn='Outpost'),
-        StationType(id=2, text='Commercial Outpost'),
-        StationType(id=3, text='Coriolis Starport', eddn='Coriolis'),
-        StationType(id=4, text='Industrial Outpost'),
-        StationType(id=5, text='Military Outpost'),
-        StationType(id=6, text='Mining Outpost'),
-        StationType(id=7, text='Ocellus Starport', eddn='Ocellus'),
-        StationType(id=8, text='Orbis Starport', eddn='Orbis'),
-        StationType(id=9, text='Scientific Outpost'),
-        StationType(id=10, text='Unsanctioned Outpost'),
-        StationType(id=11, text='Unknown Outpost'),
-        StationType(id=12, text='Unknown Starport'),
-        StationType(id=13, text='Planetary Outpost', eddn='CraterOutpost'),
-        StationType(id=14, text='Planetary Port', eddn='CraterPort'),
-        StationType(id=15, text='Unknown Planetary'),
-        StationType(id=16, text='Planetary Settlement'),
-        StationType(id=17, text='Planetary Engineer Base'),
-        StationType(id=19, text='Megaship', eddn='MegaShip'),
-        StationType(id=20, text='Asteroid Base', eddn='AsteroidBase'),
-        StationType(id=22, text='Unknown Dockable'),
-        StationType(id=23, text='Non-Dockable Orbital'),
-        StationType(id=24, text='Fleet Carrier', eddn='FleetCarrier'),
-        StationType(id=25, text='Odyssey Settlement', eddn='OdysseySettlement'),
-    ])
-
-
 def preload_system_aliases(session):
     """
     Preload several shortcut names for systems either unpopulated or long.
@@ -1436,27 +1101,47 @@ def preload_system_aliases(session):
         )
     ])
 
+# PowerState notes
+#   HomeSystem and Prepared are EDDN only states.
+#   HomeSystem is redundant as I map Power.home_system
+#   Prepared can be tracked shouldn't overlap
+#   InPreparedRadius is from Spansh
+# StationType: Alias: 'Bernal' -> 'Ocellus'
+def preload_tables(eddb_session):
+    """
+    Preload all constant data into the core EDDB tables.
+    These tables are based on older EDDB.io data.
+    Upon return, data for each table is guaranteed to be loaded.
 
-def preload_tables(session):
+    Deprecation Note:
+        Commodity, CommodityCat, Module and ModuleGroup
+        are all deprecated in favour of
+        cogdb.spansh.{SCommodity, SCommodityGroup, SModule, SModuleGroup}
+
+    Args:
+        eddb_session: A session onto the EDDB.
     """
-    Preload all minor linked tables.
-    """
-    preload_allegiance(session)
-    preload_commodity_categories(session)
-    preload_conflict_states(session)
-    preload_economies(session)
-    preload_faction_happiness(session)
-    preload_faction_state(session)
-    preload_gov_type(session)
-    preload_module_groups(session)
-    preload_powers(session)
-    preload_power_states(session)
-    preload_security(session)
-    preload_settlement_security(session)
-    preload_settlement_size(session)
-    preload_station_types(session)
-    preload_system_aliases(session)
-    session.commit()
+    classes = [
+        Allegiance,
+        CommodityCat,
+        ConflictState,
+        Economy,
+        FactionHappiness,
+        FactionState,
+        Government,
+        ModuleGroup,
+        Power,
+        PowerState,
+        Security,
+        SettlementSecurity,
+        SettlementSize,
+        StationType,
+    ]
+    for cls in classes:
+        cogdb.common.preload_table_from_file(eddb_session, cls=cls)
+
+    preload_system_aliases(eddb_session)
+    eddb_session.commit()
 
 
 def get_power_by_name(session, partial=''):
@@ -2361,7 +2046,9 @@ def main_test_area(eddb_session):  # pragma: no cover
 
 
 try:
+    Base.metadata.create_all(cogdb.eddb_engine)
     with cogdb.session_scope(cogdb.EDDBSession) as init_session:
+        preload_tables(init_session)
         PLANETARY_TYPE_IDS = [
             x[0] for x in
             init_session.query(StationType.id).filter(StationType.text.ilike('%planetary%')).all()

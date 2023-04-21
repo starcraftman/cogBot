@@ -21,9 +21,7 @@ import glob
 import json
 import logging
 import os
-import pprint
 import re
-import sys
 from pathlib import Path
 
 import sqlalchemy as sqla
@@ -31,6 +29,7 @@ import sqlalchemy.orm as sqla_orm
 from sqlalchemy.schema import UniqueConstraint
 
 import cogdb
+import cogdb.common
 import cogdb.eddb
 import cogdb.spy_squirrel
 from cogdb.eddb import (
@@ -50,8 +49,6 @@ SYSTEM_MAPF = os.path.join(IDS_ROOT, 'systemMap.json')
 STATION_MAPF = os.path.join(IDS_ROOT, 'stationMap.json')
 STATION_ONLY_MAPF = os.path.join(IDS_ROOT, 'onlyStationMap.json')
 CARRIER_MAPF = os.path.join(IDS_ROOT, 'carrierMap.json')
-SPANSH_COMMODITIES = os.path.join(IDS_ROOT, 'commodities.spansh')
-SPANSH_MODULES = os.path.join(IDS_ROOT, 'modules.spansh')
 # Mapping of spansh naming of station services, bit unsure of some
 SPANSH_STATION_SERVICES = {
     'Fleet Carrier Administration': 'carrier_administration',
@@ -295,46 +292,12 @@ def preload_tables(eddb_session, only_groups=False):  # pragma: no cover
         eddb_session: A session onto EDDB.
         only_groups: When True, only SModuleGroup and SCommodityGroup will be loaded.
     """
-    if not eddb_session.query(SModuleGroup).all():
-        eddb_session.add_all([
-            SModuleGroup(id=1, name='hardpoint'),
-            SModuleGroup(id=2, name='internal'),
-            SModuleGroup(id=3, name='standard'),
-            SModuleGroup(id=4, name='utility'),
-        ])
-    if not eddb_session.query(SCommodityGroup).all():
-        eddb_session.add_all([
-            SCommodityGroup(id=1, name='Chemicals'),
-            SCommodityGroup(id=2, name='Consumer Items'),
-            SCommodityGroup(id=3, name='Foods'),
-            SCommodityGroup(id=4, name='Industrial Materials'),
-            SCommodityGroup(id=5, name='Legal Drugs'),
-            SCommodityGroup(id=6, name='Machinery'),
-            SCommodityGroup(id=7, name='Medicines'),
-            SCommodityGroup(id=8, name='Metals'),
-            SCommodityGroup(id=9, name='Minerals'),
-            SCommodityGroup(id=10, name='Salvage'),
-            SCommodityGroup(id=11, name='Slavery'),
-            SCommodityGroup(id=12, name='Technology'),
-            SCommodityGroup(id=13, name='Textiles'),
-            SCommodityGroup(id=14, name='Waste'),
-            SCommodityGroup(id=15, name='Weapons'),
-        ])
-    eddb_session.flush()
-
+    classes = [SCommodityGroup, SModuleGroup]
     if not only_groups:
-        try:
-            if not eddb_session.query(SCommodity).all():
-                with open(SPANSH_COMMODITIES, 'r', encoding='utf-8') as fin:
-                    comms = eval(fin.read())
-                    eddb_session.add_all(comms)
-            if not eddb_session.query(SModule).all():
-                with open(SPANSH_MODULES, 'r', encoding='utf-8') as fin:
-                    modules = eval(fin.read())
-                    eddb_session.add_all(modules)
-        except FileNotFoundError:
-            print("Warning: Missing critical caches for commodities and modules. Please run: python -m cogdb.dbi -c")
-            sys.exit(0)
+        classes += [SCommodity, SModule]
+
+    for cls in classes:
+        cogdb.common.preload_table_from_file(eddb_session, cls=cls)
 
 
 def drop_tables():  # pragma: no cover | destructive to test
@@ -462,6 +425,8 @@ def eddb_maps(eddb_session):
             mapped[key]['None'] = None
         if None not in mapped[key]:
             mapped[key][None] = None
+        if '' not in mapped[key]:
+            mapped[key][''] = mapped[key].get('None', mapped[key].get(None, None))
 
     # Specific spansh name aliases
     # Remap both below to controls, home systems are stored on cogdb.eddb.Power
@@ -1139,8 +1104,7 @@ def generate_module_commodities_caches(eddb_session):
             group_id=mapped['commodity_group'][x['category']]
         ) for x in sorted(comm_dict.values(), key=lambda x: x['commodityId'])
     ]
-    with open(SPANSH_COMMODITIES, 'w', encoding='utf-8') as fout:
-        pprint.pprint(comms, fout, indent=2)
+    cogdb.common.dump_table_to_file(eddb_session, cls=SCommodity, db_objs=comms)
 
     mods = []
     for mod in sorted(mod_dict.values(), key=lambda x: x['moduleId']):
@@ -1156,8 +1120,7 @@ def generate_module_commodities_caches(eddb_session):
             mod_class=int(mod['class']),
             rating=mod['rating'],
         )]
-    with open(SPANSH_MODULES, 'w', encoding='utf-8') as fout:
-        pprint.pprint(mods, fout, indent=2)
+    cogdb.common.dump_table_to_file(eddb_session, cls=SCommodity, db_objs=comms)
 
 
 def transform_galaxy_json(number, total, galaxy_json):
@@ -1344,11 +1307,8 @@ def dump_commodities_modules(all_modules, all_commodities, *, fname):
     while all_modules:
         segment = all_modules[:MYSQLDUMP_LIMIT]
         all_modules = all_modules[MYSQLDUMP_LIMIT:]
-        try:
-            values_str = ','.join([f"({x['station_id']},{x['module_id']})" for x in segment])
-            modules_section += f"INSERT INTO `spansh_modules_sold` (station_id,module_id) VALUES {values_str};\n"
-        except KeyError:
-            pprint.pprint(segment)
+        values_str = ','.join([f"({x['station_id']},{x['module_id']})" for x in segment])
+        modules_section += f"INSERT INTO `spansh_modules_sold` (station_id,module_id) VALUES {values_str};\n"
 
     comm_section = ''
     while all_commodities:
@@ -1572,15 +1532,7 @@ def cleanup_scratch_files(galaxy_folder):
             os.remove(fname)
 
 
-def main():
-    """ Main function, just recreate tables. """
-    Base.metadata.create_all(cogdb.eddb_engine)
-    with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
-        preload_tables(eddb_session)
-
-
 SPANSH_TABLES = [SCommodityPricing, SModuleSold, SCommodity, SModule, SCommodityGroup, SModuleGroup]
-
-
-if __name__ == "__main__":
-    main()
+Base.metadata.create_all(cogdb.eddb_engine)
+with cogdb.session_scope(cogdb.EDDBSession) as init_session:
+    preload_tables(init_session)

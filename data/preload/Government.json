@@ -1,0 +1,92 @@
+[
+  {
+    "eddn": null,
+    "id": 0,
+    "text": "(unknown)"
+  },
+  {
+    "eddn": "Anarchy",
+    "id": 16,
+    "text": "Anarchy"
+  },
+  {
+    "eddn": "Comunism",
+    "id": 32,
+    "text": "Communism"
+  },
+  {
+    "eddn": "Confederacy",
+    "id": 48,
+    "text": "Confederacy"
+  },
+  {
+    "eddn": "Corporate",
+    "id": 64,
+    "text": "Corporate"
+  },
+  {
+    "eddn": "Cooperative",
+    "id": 80,
+    "text": "Cooperative"
+  },
+  {
+    "eddn": "Democracy",
+    "id": 96,
+    "text": "Democracy"
+  },
+  {
+    "eddn": "Dictatorship",
+    "id": 112,
+    "text": "Dictatorship"
+  },
+  {
+    "eddn": "Feudal",
+    "id": 128,
+    "text": "Feudal"
+  },
+  {
+    "eddn": "Imperial",
+    "id": 133,
+    "text": "Imperial"
+  },
+  {
+    "eddn": "Patronage",
+    "id": 144,
+    "text": "Patronage"
+  },
+  {
+    "eddn": "PrisonColony",
+    "id": 150,
+    "text": "Prison Colony"
+  },
+  {
+    "eddn": "Theocracy",
+    "id": 160,
+    "text": "Theocracy"
+  },
+  {
+    "eddn": "None",
+    "id": 176,
+    "text": "None"
+  },
+  {
+    "eddn": "Engineer",
+    "id": 192,
+    "text": "Engineer"
+  },
+  {
+    "eddn": "Prison",
+    "id": 208,
+    "text": "Prison"
+  },
+  {
+    "eddn": "PrivateOwnership",
+    "id": 209,
+    "text": "Private Ownership"
+  },
+  {
+    "eddn": "Carrier",
+    "id": 300,
+    "text": "Carrier"
+  }
+]
