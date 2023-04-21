@@ -1662,7 +1662,7 @@ class Token(Action):  # pragma: no cover, trivial implementation
     async def execute(self):
         msg = "Permission denied, user not authorised."
 
-        if self.msg.author.id in cog.util.CONF.scrape.allowed:
+        if self.msg.author.id in cog.util.CONF.scrape.unwrap.get('allowed', []):
             await cog.util.CONF.aupdate('scrape', 'token', value=self.args.token)
             msg = "API Session token updated to config."
 
