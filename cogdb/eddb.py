@@ -1101,6 +1101,7 @@ def preload_system_aliases(session):
         )
     ])
 
+
 # PowerState notes
 #   HomeSystem and Prepared are EDDN only states.
 #   HomeSystem is redundant as I map Power.home_system

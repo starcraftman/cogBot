@@ -631,7 +631,7 @@ async def test_galscanner_update_dict(eddb_session):
     finally:
         spy.empty_tables()
         spy.preload_tables(eddb_session)
-        eddb_session.add_all(spy_systems)
+        eddb_session.add_all(existing)
 
 
 @pytest.mark.asyncio

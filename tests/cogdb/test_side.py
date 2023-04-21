@@ -251,7 +251,6 @@ def test_monitor_events(side_session):
     assert results
 
 
-@pytest.mark.skip
 def test_monitor_factions(side_session):
     faction_names = ["Sol Workers' Party", "Sol Nationalists"]
     results = cogdb.side.monitor_factions(side_session, faction_names)

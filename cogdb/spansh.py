@@ -79,7 +79,7 @@ GALAXY_COMPRESSION_RATE = 6.35
 MYSQLDUMP_TEMPLATE = cog.util.rel_to_abs('data', 'dump.template.sql')
 MYSQLDUMP_LIMIT = 25000
 MYSQLDUMP_FNAME = Path(GALAXY_JSON).parent / 'dump.sql'
-CLEANUP_GLOBS = [f"{x}.json.*" for x in SPLIT_FILENAMES] + ['*.correct', '*.uniqu*', MYSQLDUMP_FNAME]
+CLEANUP_GLOBS = [f"{x}.json.*" for x in SPLIT_FILENAMES] + ['*.correct', '*.uniqu*', 'dump.sql']
 SEP = "||"
 PROCESS_COMMODITIES = True
 
@@ -931,7 +931,7 @@ def update_all_name_maps(factions, systems, stations):  # pragma: no cover
     update_station_map(stations)
 
 
-def collect_unique_names(galaxy_json):  # pragma: no cover
+def collect_unique_names(galaxy_json):
     """
     Find all unique names in the provided galaxy_json and return a list of all
     unique system, faction and station names
@@ -998,15 +998,19 @@ def determine_missing_keys(factions, systems, stations, *, mapped):
     return missing_factions, missing_systems, missing_stations
 
 
-def collect_modules_and_commodities():
+def collect_modules_and_commodities(galaxy_json):
     """
     Collect information on constants in the modules and commodities names and groups among the data.
 
     Args:
-        eddb_session: A session onto the EDDB.
+        galaxy_json: Path to the galaxy_json.
+
+    Returns: (mods, comms)
+        mods: A list of modules found.
+        comms: A list of commodities found.
     """
     mods, comms = {}, {}
-    with open(GALAXY_JSON, 'r', encoding='utf-8') as fin:
+    with open(galaxy_json, 'r', encoding='utf-8') as fin:
         for line in fin:
             if line.startswith('[') or line.startswith(']'):
                 continue
@@ -1044,16 +1048,19 @@ def collect_modules_and_commodities():
     return mods, comms
 
 
-def collect_modules_and_commodity_groups():
+def collect_modules_and_commodity_groups(galaxy_json):
     """
     Collect information on constants in the modules and commodities names and groups among the data.
+
+    Args:
+        galaxy_json: Path to the galaxy_json.
 
     Returns: (mod_groups, comm_groups)
         mod_groups: A list of names of module groups.
         comm_groups: A list of names of commodity groups.
     """
     mod_groups, comm_groups = set(), set()
-    with open(GALAXY_JSON, 'r', encoding='utf-8') as fin:
+    with open(galaxy_json, 'r', encoding='utf-8') as fin:
         for line in fin:
             if line.startswith('[') or line.startswith(']'):
                 continue
@@ -1083,7 +1090,7 @@ def collect_modules_and_commodity_groups():
     return mod_groups, comm_groups
 
 
-def generate_module_commodities_caches(eddb_session):
+def generate_module_commodities_caches(eddb_session, galaxy_json):  # pragma: no cover
     """
     Generate the commodities.spansh and modules.spansh cache filse.
     They will be written out to data folder.
@@ -1091,7 +1098,8 @@ def generate_module_commodities_caches(eddb_session):
     Args:
         eddb_session: A session onto the EDDB.
     """
-    mod_dict, comm_dict = collect_modules_and_commodities()
+    # FIXME: Missing collect_modules_and_commodity_groups processing
+    mod_dict, comm_dict = collect_modules_and_commodities(galaxy_json)
     mapped = eddb_maps(eddb_session)
 
     comms = [
@@ -1186,7 +1194,7 @@ def transform_galaxy_json(number, total, galaxy_json):
                     out_streams['stations'].write(str(info) + ',\n')
         finally:
             for stream in out_streams.values():
-                stream.write('\n]')
+                stream.write(']')
                 stream.close()
 
 
@@ -1227,13 +1235,13 @@ def dedupe_factions(faction_fnames, control_fnames, out_fname):
         fout.write('[\n')
         for faction in seen_factions.values():
             fout.write(str(faction) + ',\n')
-        fout.write('\n]')
+        fout.write(']')
 
     with open(correct_fname, 'w', encoding='utf-8') as correct:
         correct.write('[\n')
         for faction in correct_factions.values():
             correct.write(str(faction_stub) + ',\n')
-        correct.write('\n]')
+        correct.write(']')
 
 
 def dedupe_stations(fnames, galaxy_folder):
@@ -1284,7 +1292,7 @@ def dedupe_stations(fnames, galaxy_folder):
         return MYSQLDUMP_FNAME
     finally:
         for stream in out_streams.values():
-            stream.write('\n]')
+            stream.write(']')
             stream.close()
 
 
@@ -1320,6 +1328,7 @@ def dump_commodities_modules(all_modules, all_commodities, *, fname):
         fout.write(text)
 
 
+# TODO: Test needed, modify locals to make cls available?
 def bulk_insert_from_file(eddb_session, *, fname, cls):
     """
     Bulk insert all objects into database based on information from a file.
@@ -1360,7 +1369,7 @@ def single_insert_from_file(eddb_session, *, fname, cls):
                 print(str(exc))
 
 
-def import_galaxy_objects(number, galaxy_folder):
+def import_galaxy_objects(number, galaxy_folder):  # pragma: no cover
     """
     Bulk import all transformed database objects from their expected files.
     This is the compliment of transform_galaxy_json.

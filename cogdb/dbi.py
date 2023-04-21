@@ -101,7 +101,7 @@ def extract_with_progress(source, destination, *, description=None, size=0):  # 
             progress.update(chunk)
 
 
-def confirm_msg(args, query=True):  # pragma: no cover
+def confirm_msg(args):
     """
     Create a message the explains what will happen based on args.
 
@@ -132,13 +132,13 @@ def confirm_msg(args, query=True):  # pragma: no cover
     if args.commodities:
         msg += "        cogdb.spansh.{SModuleSold, SCommodityPricing}\n"
 
-    if query:
+    if not args.yes:
         msg += "\nPlease confirm with yes or no: "
 
     return msg
 
 
-def fetch_galaxy_json():
+def fetch_galaxy_json():  # pragma: no cover, long test
     """
     Fetch and extract the latest dump from spansh.
     """
@@ -154,7 +154,7 @@ def fetch_galaxy_json():
     os.remove(compressed_json)
 
 
-def refresh_module_commodity_cache():
+def refresh_module_commodity_cache():  # pragma: no cover, depends on local GALAXY_JSON
     """
     Update the module and commodity caches.
     """
@@ -173,7 +173,7 @@ def refresh_module_commodity_cache():
     print(" Done!")
 
 
-def sanity_check():
+def sanity_check():  # pragma: no cover, underlying functions tested elsewhere or difficult to
     """
     Run a sanity check on the database.
     Upon return all tables should be made and preloaded with constant data.
@@ -189,15 +189,12 @@ def sanity_check():
             break
 
     with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
-        if not eddb_session.query(cogdb.eddb.Government).all():
-            cogdb.eddb.preload_tables(eddb_session)
-        if not eddb_session.query(cogdb.spy_squirrel.SpyShip).all():
-            cogdb.spy_squirrel.preload_tables(eddb_session)
-        if not eddb_session.query(cogdb.spansh.SCommodityGroup).all():
-            cogdb.spansh.preload_tables(eddb_session)
+        cogdb.eddb.preload_tables(eddb_session)
+        cogdb.spy_squirrel.preload_tables(eddb_session)
+        cogdb.spansh.preload_tables(eddb_session)
 
 
-def main():
+def main():  # pragma: no cover
     """ Main entry for dbi command. """
     sanity_check()
     start = datetime.datetime.utcnow()
@@ -207,7 +204,7 @@ def main():
     cogdb.spansh.PROCESS_COMMODITIES = args.commodities
 
     if args.yes:
-        print(confirm_msg(args, query=False))
+        print(confirm_msg(args))
     else:
         confirm = input(confirm_msg(args)).lstrip().lower()
         print()
