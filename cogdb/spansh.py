@@ -424,18 +424,15 @@ def eddb_maps(eddb_session):
         if 'None' not in mapped[key]:
             mapped[key]['None'] = None
         if None not in mapped[key]:
-            mapped[key][None] = None
+            mapped[key][None] = mapped[key].get('None')
         if '' not in mapped[key]:
             mapped[key][''] = mapped[key].get('None', mapped[key].get(None, None))
 
     # Specific spansh name aliases
     # Remap both below to controls, home systems are stored on cogdb.eddb.Power
-    # No valid None for faction state
-    mapped['economy']['$economy_Undefined;'] = mapped['economy']['None']
-    mapped['faction_state']['None'] = 80
-    mapped['faction_state'][None] = 80
     mapped['power_state']['Controlled'] = mapped['power_state']['Control']
     mapped['power_state']['HomeSystem'] = mapped['power_state']['Control']
+    mapped['economy']['$economy_Undefined;'] = mapped['economy']['None']
     mapped['power'].update({x.eddn: x.id for x in eddb_session.query(Power)})
 
     station_map = mapped['station_type']
