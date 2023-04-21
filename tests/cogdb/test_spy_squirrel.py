@@ -17,9 +17,6 @@ from tests.conftest import GITHUB_FAIL
 
 FIXED_TIMESTAMP = 1662390092
 
-# Empty tables before running tests.
-spy.empty_tables()
-
 
 @pytest.fixture()
 def base_json():
@@ -43,9 +40,10 @@ def response_news_json(response_json):
 
 
 @pytest.fixture()
-def empty_spy():
+def empty_spy(eddb_session):
     yield
     spy.empty_tables()
+    spy.preload_tables(eddb_session)
 
 
 @pytest.fixture()
@@ -493,6 +491,7 @@ def test_parse_response_top5_bounties(response_news_json):
             'lastLocation': 'Melici - Polansky Landing',
             'name': 'CMDR SunNamida (Krait Mk II "PRIVATE COURIER")',
             'category': 'power',
+            'updated_at': 1665100800.0,
         },
         2: {
             'pos': 2,
@@ -501,6 +500,7 @@ def test_parse_response_top5_bounties(response_news_json):
             'lastLocation': 'Djiwal - Thompson Dock',
             'name': 'CMDR Bubba Bo Bob (Keelback "KEELBACK")',
             'category': 'power',
+            'updated_at': 1665100800.0,
         },
         3: {
             'pos': 3,
@@ -509,6 +509,7 @@ def test_parse_response_top5_bounties(response_news_json):
             'lastLocation': 'NLTT 19808',
             'name': 'CMDR MrSkillin (Keelback)',
             'category': 'power',
+            'updated_at': 1665100800.0,
         },
         4: {
             'pos': 4,
@@ -517,6 +518,7 @@ def test_parse_response_top5_bounties(response_news_json):
             'lastLocation': '',
             'name': '',
             'category': 'power',
+            'updated_at': 1665100800.0,
         },
         5: {
             'pos': 5,
@@ -525,6 +527,7 @@ def test_parse_response_top5_bounties(response_news_json):
             'lastLocation': '',
             'name': '',
             'category': 'power',
+            'updated_at': 1665100800.0,
         },
     }
     assert expect == spy.parse_response_top5_bounties(response_news_json[10])
@@ -581,6 +584,8 @@ def test_parse_response_traffic_totals(response_news_json):
 
 def test_load_response_json(empty_spy, response_json, eddb_session):
     spy.preload_tables(eddb_session)
+    assert not eddb_session.query(spy.SpyBounty).all()
+    eddb_session.close()
     spy.load_response_json(response_json)
 
     assert eddb_session.query(spy.SpyBounty).all()
@@ -646,8 +651,12 @@ def test_get_spy_systems_for_galpow(empty_spy, db_cleanup, spy_test_bed, eddb_se
 
 
 def test_preload_tables(empty_spy, eddb_session):
-    assert not eddb_session.query(spy.SpyShip).all()
+    assert eddb_session.query(spy.SpyShip).all()
     spy.preload_tables(eddb_session)
+    eddb_session.query(spy.SpyShip).delete()
+    eddb_session.commit()
+    spy.preload_tables(eddb_session)
+    assert eddb_session.query(spy.SpyShip).all()
     assert eddb_session.query(spy.SpyShip).filter(spy.SpyShip.text == "Vulture").one()
 
 
@@ -669,3 +678,7 @@ async def test_service_status(spy_test_bed, eddb_session):
     assert 'Spy Squirrel' in cells[0][0]
     assert cells[0][1] in ['Up', 'Down']
     assert 'Rana' in cells[2][1]
+
+
+def test_convert_json_date():
+    assert spy.convert_json_date("7 OCT 3308") == 1665100800.0

@@ -82,13 +82,19 @@ def f_spy_vote(eddb_session):
     """
     Setup the hudson SpyVote for testing command vote.
     """
+    old_vote = None
+    existing = eddb_session.query(spy.SpyVote).filter(spy.SpyVote.power_id == 9).all()
+    if existing:
+        old_vote = existing[0].vote
+        eddb_session.query(spy.SpyVote).filter(spy.SpyVote.power_id == 9).delete()
     eddb_session.add(spy.SpyVote(power_id=9, vote=77))
     eddb_session.commit()
     eddb_session.close()
 
     yield
 
-    eddb_session.query(spy.SpyVote).delete()
+    if old_vote:
+        eddb_session.query(spy.SpyVote).filter(spy.SpyVote.power_id == 9).one().vote = old_vote
 
 
 def action_map(fake_message, fake_bot):

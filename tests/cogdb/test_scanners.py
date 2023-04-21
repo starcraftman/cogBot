@@ -602,7 +602,8 @@ async def test_carrierscanner_parse_sheet(session, f_track_testbed):
 
 
 @pytest.mark.asyncio
-async def test_galscanner_update_dict(session):
+async def test_galscanner_update_dict(eddb_session):
+    existing = eddb_session.query(spy.SpySystem).all()
     try:
         spy_systems = [
             spy.SpySystem(
@@ -614,21 +615,23 @@ async def test_galscanner_update_dict(session):
                 fort=0, fort_trigger=3333, um=0, um_trigger=5555
             ),
         ]
-        with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
-            eddb_session.add_all(spy_systems)
-            eddb_session.commit()
+        eddb_session.query(spy.SpySystem).delete()
+        eddb_session.add_all(spy_systems)
+        eddb_session.commit()
 
-            fake_sheet = aiomock.AIOMock()
-            r_scanner = GalScanner(fake_sheet)
+        fake_sheet = aiomock.AIOMock()
+        r_scanner = GalScanner(fake_sheet)
 
-            expect = [
-                {'range': 'A3:C5', 'values': [['SOL', 4444, 4555], ['RANA', 0, 0]]},
-                {'range': 'L3:P5', 'values': [['SOL', 0, 0, 3333, 5555], ['RANA', 0, 0, 3333, 5555]]},
-                {'range': 'R3:S5', 'values': [['SOL', 0], ['RANA', 0]]},
-            ]
-            assert expect == r_scanner.update_dict(systems=spy_systems)[:-1]
+        expect = [
+            {'range': 'A3:C5', 'values': [['SOL', 4444, 4555], ['RANA', 0, 0]]},
+            {'range': 'L3:P5', 'values': [['SOL', 0, 0, 3333, 5555], ['RANA', 0, 0, 3333, 5555]]},
+            {'range': 'R3:S5', 'values': [['SOL', 0], ['RANA', 0]]},
+        ]
+        assert expect == r_scanner.update_dict(systems=spy_systems)[:-1]
     finally:
         spy.empty_tables()
+        spy.preload_tables(eddb_session)
+        eddb_session.add_all(spy_systems)
 
 
 @pytest.mark.asyncio

@@ -10,6 +10,7 @@ import pytest
 import cogdb
 import cogdb.eddb
 import cogdb.spansh
+from cogdb.spansh import SEP
 import cog.util
 JSON_PATH = cog.util.rel_to_abs('tests', 'cogdb', 'spansh_rana.json')
 BODIES_PATH = cog.util.rel_to_abs('tests', 'cogdb', 'spansh_61cygni.json')
@@ -45,12 +46,12 @@ def test_station_key_starport():
         'name': 'Wescott Hub',
         "type": "Orbis Starport",
     }
-    assert cogdb.spansh.station_key(system='Rana', station=info) == "Rana_Wescott Hub"
+    assert cogdb.spansh.station_key(system='Rana', station=info) == f"Rana{SEP}Wescott Hub"
 
     info = {
         'name': 'Wescott Hub',
     }
-    assert cogdb.spansh.station_key(system='Rana', station=info) == "Rana_Wescott Hub"
+    assert cogdb.spansh.station_key(system='Rana', station=info) == f"Rana{SEP}Wescott Hub"
 
 
 def test_parse_station_features(f_json):

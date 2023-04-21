@@ -83,6 +83,7 @@ JSON_DOPPLER_MAP = {
     'refined': 1,
     'response': 1,
 }
+ELITE_YEAR_OFFSET = 1286
 
 
 class SpyShip(ReprMixin, Base):
@@ -411,6 +412,17 @@ class SpySystem(ReprMixin, TimestampMixin, Base):
             setattr(self, key, val)
 
 
+def convert_json_date(date_text):
+    """
+    Convert an embedded date in response json to the real time it was updated.
+
+    Returns: The UTC timestamp represented by the date in text.
+    """
+    parsed = datetime.datetime.strptime(date_text, '%d %b %Y')
+    parsed = parsed.replace(year=parsed.year - ELITE_YEAR_OFFSET, tzinfo=datetime.timezone.utc)
+    return parsed.timestamp()
+
+
 def json_powers_to_eddb_map():
     """
     Returns a simple map FROM power_id in JSON messages TO Power.id in EDDB.
@@ -701,6 +713,7 @@ def parse_response_top5_bounties(data):
     Returns: A dictionary of information contained within.
     """
     info = parse_params(data['params'])
+    updated_at = convert_json_date(data['date'])
 
     # Transform params information into better structure
     return {
@@ -710,7 +723,8 @@ def parse_response_top5_bounties(data):
             'commanderId': info[f"commanderId{i}"],
             'lastLocation': info[f"lastLocation{i}"],
             'name': info[f"name{i}"],
-            'category': info['type']
+            'category': info['type'],
+            'updated_at': updated_at,
         } for i in range(1, 6)
     }
 
@@ -805,7 +819,6 @@ def load_response_json(response):
         results[sys_name] = result
 
     with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
-
         influence_ids = response_json_update_influences(eddb_session, results)
         response_json_update_system_info(eddb_session, results)
 
@@ -1373,10 +1386,7 @@ PARSER_MAP = {
     },
 }
 # Ensure the tables are created before use when this imported
-if cogdb.TEST_DB:
-    recreate_tables()
-else:
-    Base.metadata.create_all(cogdb.eddb_engine)
+Base.metadata.create_all(cogdb.eddb_engine)
 with cogdb.session_scope(cogdb.EDDBSession) as init_session:
     preload_tables(init_session)
 

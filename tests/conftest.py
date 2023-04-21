@@ -61,7 +61,9 @@ def around_all_tests():
     Disabled unless needed. Non-trivial overhead.
     """
     start = datetime.datetime.utcnow()
+
     yield
+
     print(" Time", datetime.datetime.utcnow() - start, end="")
 
     # FIXME: Bit of a hack to prevent unclosed sessions from impeding assertions
@@ -75,6 +77,9 @@ def around_all_tests():
             assert not session.query(cls).all()
     session.query(Global).delete()
     session.commit()
+
+    with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
+        assert eddb_session.query(spy.SpyShip).all()
 
 
 @pytest.fixture
@@ -901,20 +906,13 @@ def f_sheet_records(session):
     session.commit()
 
 
-# FIXME: Improve this fixture after some consideration
 @pytest.fixture
 def f_spy_ships(eddb_session):
-    try:
-        eddb_session.query(spy.SpyShip).delete()
-        spy.preload_tables(eddb_session)
-        eddb_session.commit()
-        eddb_session.close()
+    spy.preload_tables(eddb_session)
+    eddb_session.commit()
+    eddb_session.close()
 
-        yield
-
-    finally:
-        eddb_session.query(spy.SpyShip).delete()
-        spy.preload_tables(eddb_session)
+    yield
 
 
 @pytest.fixture

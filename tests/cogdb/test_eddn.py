@@ -881,7 +881,7 @@ def test_edmcjournal_parse_conflicts(mapped):
     expect = [{
         'faction1_days': 1,
         'faction1_id': mapped['factions']['Udegobo Silver Power Int'],
-        'faction1_stake_id': mapped['stations']['Ahemakino_Haarsma Keep'],
+        'faction1_stake_id': mapped['stations']['Ahemakino||Haarsma Keep'],
         'faction2_days': 0,
         'faction2_id': mapped['factions']['Revolutionary Mpalans Confederation'],
         'faction2_stake_id': None,
