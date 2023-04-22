@@ -9,6 +9,7 @@ import shutil
 import tempfile
 
 import pytest
+import sqlalchemy as sqla
 
 import cogdb
 import cogdb.eddb
@@ -36,6 +37,12 @@ def test_date_to_timestamp(f_json):
     assert 1680460158.0 == cogdb.spansh.date_to_timestamp(f_json['date'])
 
 
+def test_is_a_carrier(f_json):
+    assert cogdb.spansh.is_a_carrier("X7W-ED2")
+    assert not cogdb.spansh.is_a_carrier("X7W-EDD5")
+    assert not cogdb.spansh.is_a_carrier("Wescott Hub")
+
+
 def test_station_key_fleet_carrier():
     info = {
         'name': 'X79-B2S',
@@ -56,6 +63,12 @@ def test_station_key_starport():
         'name': 'Wescott Hub',
     }
     assert cogdb.spansh.station_key(system='Rana', station=info) == f"Rana{SEP}Wescott Hub"
+
+
+def test_eddb_maps(f_spy_ships, eddb_session):
+    result = cogdb.spansh.eddb_maps(eddb_session)
+    assert 'stations' in result
+    assert 'power' in result
 
 
 def test_parse_station_features(f_json):
@@ -229,37 +242,57 @@ def test_transform_bodies2(f_json_bodies, f_spy_ships, eddb_session):
     assert expect == results[station_id]['station']
 
 
+def test_transform_galaxy_json():
+    with tempfile.NamedTemporaryFile() as tfile:
+        tdir = pathlib.Path(tfile.name).parent
+        try:
+            shutil.copyfile(FAKE_GALAXY, tfile.name)
+            cogdb.spansh.transform_galaxy_json(0, 1, tfile.name)
+            with open(tdir / 'systems.json.00', 'r', encoding='utf-8') as fin:
+                found = eval(fin.read())
+                assert found[0]['name'] == '61 Cygni'
+            with open(tdir / 'factions.json.00', 'r', encoding='utf-8') as fin:
+                found = eval(fin.read())
+                assert '61 Cygni Commodities' in [x['name'] for x in found]
+            with open(tdir / 'stations.json.00', 'r', encoding='utf-8') as fin:
+                found = eval(fin.read())
+                assert 'J0J-N7X' in [x['station']['name'] for x in found]
+        finally:
+            for fname in glob.glob(str(tdir / '*.json.00')):
+                os.remove(fname)
+
+
 def test_update_name_map():
-    missing_stations = ['station4', 'station6']
-    known_stations = {
-        'station1': 1,
-        'station2': 2,
-        'station3': 5,
-        'station5': 10,
+    missing_systems = ['system4', 'system6']
+    known_systems = {
+        'system1': 1,
+        'system2': 2,
+        'system3': 5,
+        'system5': 10,
     }
     with tempfile.NamedTemporaryFile(mode='w') as known_tfile, tempfile.NamedTemporaryFile(mode='w') as new_tfile:
-        json.dump(known_stations, known_tfile)
+        json.dump(known_systems, known_tfile)
         known_tfile.flush()
         json.dump({}, new_tfile)
         new_tfile.flush()
         cogdb.spansh.update_name_map(
-            missing_stations, known_fname=known_tfile.name, new_fname=new_tfile.name
+            missing_systems, known_fname=known_tfile.name, new_fname=new_tfile.name
         )
 
         with open(known_tfile.name, 'r', encoding='utf-8') as fin:
             expect = """{
-  "station1": 1,
-  "station2": 2,
-  "station3": 5,
-  "station4": 3,
-  "station5": 10,
-  "station6": 4
+  "system1": 1,
+  "system2": 2,
+  "system3": 5,
+  "system4": 3,
+  "system5": 10,
+  "system6": 4
 }"""
             assert fin.read() == expect
         with open(new_tfile.name, 'r', encoding='utf-8') as fin:
             expect = """{
-  "station4": 3,
-  "station6": 4
+  "system4": 3,
+  "system6": 4
 }"""
             assert fin.read() == expect
 
@@ -297,10 +330,41 @@ def test_determine_missing_keys(eddb_session):
     assert ['X', 'Y', 'Z'] == missing[0]
 
 
-def test_eddb_maps(f_spy_ships, eddb_session):
-    result = cogdb.spansh.eddb_maps(eddb_session)
-    assert 'stations' in result
-    assert 'power' in result
+def test_collect_modules_and_commodities():
+    mods, comms = cogdb.spansh.collect_modules_and_commodities(FAKE_GALAXY)
+    mod = mods[128049250]
+    assert mod['symbol'] == 'SideWinder_Armour_Grade1'
+    commodity = comms[128672308]
+    assert commodity['symbol'] == 'ThermalCoolingUnits'
+
+
+def test_collect_modules_and_commodity_groups():
+    expect = (
+        [
+            'hardpoint',
+            'internal',
+            'standard',
+            'utility',
+        ],
+        [
+            'Chemicals',
+            'Consumer Items',
+            'Foods',
+            'Industrial Materials',
+            'Legal Drugs',
+            'Machinery',
+            'Medicines',
+            'Metals',
+            'Minerals',
+            'Salvage',
+            'Slavery',
+            'Technology',
+            'Textiles',
+            'Waste',
+            'Weapons'
+        ]
+    )
+    assert expect == cogdb.spansh.collect_modules_and_commodity_groups(FAKE_GALAXY)
 
 
 def test_generate_module_commodities_caches(eddb_session):
@@ -319,36 +383,18 @@ def test_generate_module_commodities_caches(eddb_session):
         with tempfile.NamedTemporaryFile() as tfile:
             fname = str(tfile.name)
             shutil.copyfile(FAKE_GALAXY, fname)
+            cogdb.spansh.cogdb.common.PRELOAD_DIR = tempdir
             cogdb.spansh.generate_module_commodities_caches(eddb_session, fname)
             result_dir = pathlib.Path(cogdb.common.PRELOAD_DIR)
+            assert (result_dir / 'SCommodityGroup.json').exists()
             assert (result_dir / 'SCommodity.json').exists()
+            assert (result_dir / 'SModuleGroup.json').exists()
             result = result_dir / "SModule.json"
             with open(result, 'r', encoding='utf-8') as fin:
                 assert expect in fin.read()
     finally:
         shutil.rmtree(tempdir)
         cogdb.common.PRELOAD_DIR = saved
-
-
-
-def test_transform_galaxy_json():
-    with tempfile.NamedTemporaryFile() as tfile:
-        tdir = pathlib.Path(tfile.name).parent
-        try:
-            shutil.copyfile(FAKE_GALAXY, tfile.name)
-            cogdb.spansh.transform_galaxy_json(0, 1, tfile.name)
-            with open(tdir / 'systems.json.00', 'r', encoding='utf-8') as fin:
-                found = eval(fin.read())
-                assert found[0]['name'] == '61 Cygni'
-            with open(tdir / 'factions.json.00', 'r', encoding='utf-8') as fin:
-                found = eval(fin.read())
-                assert '61 Cygni Commodities' in [x['name'] for x in found]
-            with open(tdir / 'stations.json.00', 'r', encoding='utf-8') as fin:
-                found = eval(fin.read())
-                assert 'J0J-N7X' in [x['station']['name'] for x in found]
-        finally:
-            for fname in glob.glob(str(tdir / '*.json.00')):
-                os.remove(fname)
 
 
 def test_dedupe_factions():
@@ -370,43 +416,6 @@ def test_dedupe_factions():
             assert len(eval(fin.read())) == 3
         with open(outfname.name.replace('unique', 'correct'), 'r', encoding='utf-8') as fin:
             assert len(eval(fin.read())) == 1
-
-
-def test_collect_modules_and_commodities():
-    mods, comms = cogdb.spansh.collect_modules_and_commodities(FAKE_GALAXY)
-    mod = mods[128049250]
-    assert mod['symbol'] == 'SideWinder_Armour_Grade1'
-    commodity = comms[128672308]
-    assert commodity['symbol'] == 'ThermalCoolingUnits'
-
-
-def test_collect_modules_and_commodity_groups():
-    expect = (
-        {
-            'hardpoint',
-            'internal',
-            'standard',
-            'utility',
-        },
-        {
-            'Chemicals',
-            'Consumer Items',
-            'Foods',
-            'Industrial Materials',
-            'Legal Drugs',
-            'Machinery',
-            'Medicines',
-            'Metals',
-            'Minerals',
-            'Salvage',
-            'Slavery',
-            'Technology',
-            'Textiles',
-            'Waste',
-            'Weapons'
-        }
-    )
-    assert expect == cogdb.spansh.collect_modules_and_commodity_groups(FAKE_GALAXY)
 
 
 def test_dump_commodities_and_modules(eddb_session):
@@ -448,23 +457,56 @@ def test_dump_commodities_and_modules(eddb_session):
             assert expect_mods in text
 
 
-#  def test_bulk_insert_from_file(eddb_session):
-    #  fake_id = 9999
-    #  try:
-        #  with tempfile.NamedTemporaryFile(mode='w') as tfile:
-            #  tfile.write('[\n')
-            #  tfile.write(str(cogdb.spansh.SCommodityGroup(id=fake_id, name='NotPresent')) + '\n')
-            #  tfile.write(']\n')
-            #  tfile.flush()
-            #  cogdb.spansh.bulk_insert_from_file(eddb_session, fname=tfile.name, cls=cogdb.spansh.SCommodityGroup)
-            #  assert eddb_session.query(cogdb.spansh.SCommodityGroup).\
-                #  filter(cogdb.spansh.SCommodityGroup.id == fake_id).\
-                #  one()
-    #  finally:
-        #  eddb_session.rollback()
-        #  eddb_session.query(cogdb.spansh.SCommodityGroup).\
-            #  filter(cogdb.spansh.SCommodityGroup.id == fake_id).\
-            #  delete()
+def test_bulk_insert_from_file(eddb_session):
+    fake_id = 9999
+    try:
+        with tempfile.NamedTemporaryFile(mode='w') as tfile:
+            tfile.write('[\n')
+            tfile.write(str({'id': fake_id, 'name': 'NotPresent'}) + ',\n')
+            tfile.write(']\n')
+            tfile.flush()
+            cogdb.spansh.bulk_insert_from_file(eddb_session, fname=tfile.name, cls=cogdb.spansh.SCommodityGroup)
+            assert eddb_session.query(cogdb.spansh.SCommodityGroup).\
+                filter(cogdb.spansh.SCommodityGroup.id == fake_id).\
+                one()
+    finally:
+        eddb_session.rollback()
+        eddb_session.query(cogdb.spansh.SCommodityGroup).\
+            filter(cogdb.spansh.SCommodityGroup.id == fake_id).\
+            delete()
+
+
+def test_single_insert_from_file(eddb_session):
+    fake_id = 9999
+    try:
+        with tempfile.NamedTemporaryFile(mode='w') as tfile:
+            tfile.write('[\n')
+            tfile.write(str({'id': fake_id, 'name': 'NotPresent'}) + ',\n')
+            tfile.write(']\n')
+            tfile.flush()
+            cogdb.spansh.single_insert_from_file(eddb_session, fname=tfile.name, cls=cogdb.spansh.SCommodityGroup)
+            assert eddb_session.query(cogdb.spansh.SCommodityGroup).\
+                filter(cogdb.spansh.SCommodityGroup.id == fake_id).\
+                one()
+    finally:
+        eddb_session.rollback()
+        eddb_session.query(cogdb.spansh.SCommodityGroup).\
+            filter(cogdb.spansh.SCommodityGroup.id == fake_id).\
+            delete()
+
+
+def test_manual_overrides(eddb_session):
+    try:
+        found = eddb_session.query(cogdb.eddb.Faction).filter(cogdb.eddb.Faction.id == 75878).one()
+        found.allegiance_id = 4
+        eddb_session.commit()
+        eddb_session.close()
+
+        cogdb.spansh.manual_overrides(eddb_session)
+
+        assert eddb_session.query(cogdb.eddb.Faction).filter(cogdb.eddb.Faction.id == 75878).one().allegiance_id == 2
+    except sqla.exc.NoResultFound:
+        pass
 
 
 def test_cleanup_scratch_files():

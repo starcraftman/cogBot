@@ -821,6 +821,76 @@ def transform_bodies(*, data, mapped, system_id):
     return results
 
 
+def transform_galaxy_json(number, total, galaxy_json):
+    """
+    Process number lines in the galaxy_json, skip all lines you aren't assigned.
+    The output of this function is written to a series of files in the same folder
+    as galaxy_json. See SPLIT_FILENAMES for the files written out.
+    Every worker will write out to a separate file ending in it's number, example systems.json.09
+
+    Args:
+        number: Number assigned to worker, in range [0, total).
+        total: The total number of jobs started.
+        galaxy_json: The spansh galaxy_json
+    """
+    cnt = -1
+    parent_dir = Path(galaxy_json).parent
+    out_streams = {x: open(parent_dir / f'{x}.json.{number:02}', 'w', encoding='utf-8') for x in SPLIT_FILENAMES}
+    with cogdb.session_scope(cogdb.EDDBSession) as eddb_session,\
+         open(galaxy_json, 'r', encoding='utf-8') as fin:
+        mapped = eddb_maps(eddb_session)
+
+        try:
+            for stream in out_streams.values():
+                stream.write('[\n')
+
+            for line in fin:
+                cnt += 1
+                if cnt == total:
+                    cnt = 0
+                if cnt != number:  # Only process every numberth line
+                    continue
+                if '{' not in line or '}' not in line:
+                    continue
+
+                line = line.strip()
+                if line[-1] == ',':
+                    line = line[:-1]
+                data = json.loads(line)
+
+                try:
+                    system = transform_system(data=data, mapped=mapped)
+                except SpanshParsingError:
+                    continue
+                factions = transform_factions(data=data, mapped=mapped, system_id=system['id'])
+                stations = transform_stations(data=data, mapped=mapped, system_id=system['id'], system_name=data['name'])
+                stations.update(transform_bodies(data=data, mapped=mapped, system_id=system['id']))
+
+                out_streams['systems'].write(str(system) + ',\n')
+
+                for info in factions.values():
+                    for data, output in [
+                        (info.get('faction'), out_streams['factions']),
+                        (info.get('influence'), out_streams['influences']),
+                        (info.get('state'), out_streams['faction_states']),
+                    ]:
+                        if data:
+                            output.write(str(data) + ',\n')
+
+                for info in stations.values():
+                    controlling_factions = info.get('controlling_factions', [])
+                    if controlling_factions:
+                        for control in controlling_factions:
+                            out_streams['controlling_factions'].write(str(control) + ',\n')
+                        del info['controlling_factions']
+
+                    out_streams['stations'].write(str(info) + ',\n')
+        finally:
+            for stream in out_streams.values():
+                stream.write(']')
+                stream.close()
+
+
 def update_name_map(missing_names, *, known_fname, new_fname):
     """
     Provide a means of updating the static name -> id assignments for
@@ -854,7 +924,7 @@ def update_name_map(missing_names, *, known_fname, new_fname):
         json.dump(new_names, fout, indent=JSON_INDENT, sort_keys=True)
 
 
-def update_station_map(missing_names):
+def update_station_map(missing_names):  # pragma: no cover, bit of a nuissance to test
     """
     Provides a means to update the station mappings.
     """
@@ -1087,7 +1157,7 @@ def collect_modules_and_commodity_groups(galaxy_json):
                         for module in station['outfitting']['modules']:
                             mod_groups.add(module['category'])
 
-    return mod_groups, comm_groups
+    return list(sorted(mod_groups)), list(sorted(comm_groups))
 
 
 def generate_module_commodities_caches(eddb_session, galaxy_json):  # pragma: no cover
@@ -1098,9 +1168,14 @@ def generate_module_commodities_caches(eddb_session, galaxy_json):  # pragma: no
     Args:
         eddb_session: A session onto the EDDB.
     """
-    # FIXME: Missing collect_modules_and_commodity_groups processing
+    mod_groups, comm_groups = collect_modules_and_commodity_groups(galaxy_json)
     mod_dict, comm_dict = collect_modules_and_commodities(galaxy_json)
     mapped = eddb_maps(eddb_session)
+
+    groups = [SCommodityGroup(id=ind, name=x) for ind, x in enumerate(comm_groups, start=1)]
+    cogdb.common.dump_dbobjs_to_file(cls=SCommodityGroup, db_objs=groups)
+    groups = [SModuleGroup(id=ind, name=x) for ind, x in enumerate(mod_groups, start=1)]
+    cogdb.common.dump_dbobjs_to_file(cls=SModuleGroup, db_objs=groups)
 
     comms = [
         SCommodity(
@@ -1126,76 +1201,6 @@ def generate_module_commodities_caches(eddb_session, galaxy_json):  # pragma: no
             rating=mod['rating'],
         )]
     cogdb.common.dump_dbobjs_to_file(cls=SModule, db_objs=mods)
-
-
-def transform_galaxy_json(number, total, galaxy_json):
-    """
-    Process number lines in the galaxy_json, skip all lines you aren't assigned.
-    The output of this function is written to a series of files in the same folder
-    as galaxy_json. See SPLIT_FILENAMES for the files written out.
-    Every worker will write out to a separate file ending in it's number, example systems.json.09
-
-    Args:
-        number: Number assigned to worker, in range [0, total).
-        total: The total number of jobs started.
-        galaxy_json: The spansh galaxy_json
-    """
-    cnt = -1
-    parent_dir = Path(galaxy_json).parent
-    out_streams = {x: open(parent_dir / f'{x}.json.{number:02}', 'w', encoding='utf-8') for x in SPLIT_FILENAMES}
-    with cogdb.session_scope(cogdb.EDDBSession) as eddb_session,\
-         open(galaxy_json, 'r', encoding='utf-8') as fin:
-        mapped = eddb_maps(eddb_session)
-
-        try:
-            for stream in out_streams.values():
-                stream.write('[\n')
-
-            for line in fin:
-                cnt += 1
-                if cnt == total:
-                    cnt = 0
-                if cnt != number:  # Only process every numberth line
-                    continue
-                if '{' not in line or '}' not in line:
-                    continue
-
-                line = line.strip()
-                if line[-1] == ',':
-                    line = line[:-1]
-                data = json.loads(line)
-
-                try:
-                    system = transform_system(data=data, mapped=mapped)
-                except SpanshParsingError:
-                    continue
-                factions = transform_factions(data=data, mapped=mapped, system_id=system['id'])
-                stations = transform_stations(data=data, mapped=mapped, system_id=system['id'], system_name=data['name'])
-                stations.update(transform_bodies(data=data, mapped=mapped, system_id=system['id']))
-
-                out_streams['systems'].write(str(system) + ',\n')
-
-                for info in factions.values():
-                    for data, output in [
-                        (info.get('faction'), out_streams['factions']),
-                        (info.get('influence'), out_streams['influences']),
-                        (info.get('state'), out_streams['faction_states']),
-                    ]:
-                        if data:
-                            output.write(str(data) + ',\n')
-
-                for info in stations.values():
-                    controlling_factions = info.get('controlling_factions', [])
-                    if controlling_factions:
-                        for control in controlling_factions:
-                            out_streams['controlling_factions'].write(str(control) + ',\n')
-                        del info['controlling_factions']
-
-                    out_streams['stations'].write(str(info) + ',\n')
-        finally:
-            for stream in out_streams.values():
-                stream.write(']')
-                stream.close()
 
 
 def dedupe_factions(faction_fnames, control_fnames, out_fname):
@@ -1244,7 +1249,7 @@ def dedupe_factions(faction_fnames, control_fnames, out_fname):
         correct.write(']')
 
 
-def dedupe_stations(fnames, galaxy_folder):
+def dedupe_stations(fnames, galaxy_folder):  # pragma: no cover
     """
     Possibility of multiple sightings of player fleet carriers in data.
     For each station present in the fnames file, keep only that station with the latest updateTime.
@@ -1273,8 +1278,6 @@ def dedupe_stations(fnames, galaxy_folder):
 
     try:
         out_streams = {x: open(galaxy_folder / f'{x}.json.unique', 'w', encoding='utf-8') for x in STATION_KEYS}
-        out_streams['commodities'] = open(galaxy_folder / "commodities.json.unique.00", 'w', encoding='utf-8')
-
         for stream in out_streams.values():
             stream.write('[\n')
 
@@ -1328,7 +1331,6 @@ def dump_commodities_modules(all_modules, all_commodities, *, fname):
         fout.write(text)
 
 
-# TODO: Test needed, modify locals to make cls available?
 def bulk_insert_from_file(eddb_session, *, fname, cls):
     """
     Bulk insert all objects into database based on information from a file.

@@ -166,7 +166,7 @@ def refresh_module_commodity_cache():  # pragma: no cover, depends on local GALA
         if not eddb_session.query(cogdb.spy_squirrel.SpyShip).all():
             cogdb.spy_squirrel.preload_tables(eddb_session)
         cogdb.spansh.preload_tables(eddb_session, only_groups=True)
-        cogdb.spansh.generate_module_commodities_caches(eddb_session)
+        cogdb.spansh.generate_module_commodities_caches(eddb_session, GALAXY_JSON)
     cogdb.spansh.empty_tables()
     with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
         cogdb.spansh.preload_tables(eddb_session, only_groups=False)
