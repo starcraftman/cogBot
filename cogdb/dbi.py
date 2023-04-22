@@ -17,6 +17,7 @@ import tqdm
 
 import cogdb.eddb
 import cogdb.spansh
+import extras.map_gen
 from cogdb.spansh import GALAXY_JSON, GALAXY_URL, GALAXY_COMPRESSION_RATE
 from cog.util import print_no_newline
 
@@ -46,6 +47,8 @@ def make_parser():
                         help='Do not cleanup scratch files in galaxy directory.')
     parser.add_argument('--skip', '-k', action="store_true",
                         help='Skip parsing and importing latest spansh dump.')
+    parser.add_argument('--eddb-maps', action="store_true",
+                        help='Initialize the fixed faction, system and station maps.')
 
     return parser
 
@@ -115,6 +118,8 @@ def confirm_msg(args):
         msg += """    Preserve the current galaxy_stations.json to a backup
     Download and extract the latest spansh dump
 """
+    if args.eddb_maps:
+        msg += "    Reset the ID maps based on prior EDDB ID usage\n"
 
     if args.fetch or args.ids:
         msg += "    Update the ID maps for the dump\n"
@@ -214,6 +219,9 @@ def main():  # pragma: no cover
 
     if args.fetch:
         fetch_galaxy_json()
+
+    if args.eddb_maps:
+        extras.map_gen.map_gen.init_eddb_maps()
 
     if args.ids or args.fetch:
         print_no_newline("\nUpdating ID maps based on existing dump ...")

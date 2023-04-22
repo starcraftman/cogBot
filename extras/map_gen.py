@@ -153,12 +153,16 @@ def merge_prison():
         json.dump(known_only_stations, fout, indent=2, sort_keys=True)
 
 
-def main():
-    """ Main entry. """
+def init_eddb_maps():
+    """
+    Initialize the faction, system and station maps from static information
+    based on eddb.io.
+    Then merge in the specific prison station information.
+    """
     sys_map = clean_eddb_maps()
     clean_station_map(sys_map)
     merge_prison()
 
 
 if __name__ == "__main__":
-    main()
+    init_eddb_maps()
