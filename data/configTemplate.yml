@@ -49,6 +49,7 @@ pastebin:
   user: {{.PASTEBIN_USER}}
   pass: {{.PASTEBIN_PASS}}
 paths:
+  eddb_store: data
   donate: data/donate.txt
   json: data/sheets.json
   log_conf: data/log.yml
