@@ -10,7 +10,7 @@ import cog.util
 from cogdb.spansh import SEP, IDS_ROOT, is_a_carrier
 
 
-def clean_eddb_maps():
+def gen_system_faction_maps():
     """
     Create clean base systemMap and factionMap files based on initial
     static maps based on eddb data.
@@ -40,12 +40,12 @@ def clean_eddb_maps():
     return system_map
 
 
-def clean_station_map(system_map):
+def gen_station_map(system_map):
     """
     Create clean base station, carrier and onlyStation maps.
 
     Args:
-        system_map: The system_map returned by clean_eddb_maps
+        system_map: The system_map returned by gen_system_faction_maps
     """
     reverse_systems = {value: key for key, value in system_map.items()}
 
@@ -97,7 +97,7 @@ def station_key(*, system_id, station_name, reverse_systems):
     return key, is_carrier
 
 
-def merge_prison():
+def merge_prison_stations():
     """
     Merge in the prison data fixed ids for systems and stations.
     """
@@ -159,9 +159,8 @@ def init_eddb_maps():
     based on eddb.io.
     Then merge in the specific prison station information.
     """
-    sys_map = clean_eddb_maps()
-    clean_station_map(sys_map)
-    merge_prison()
+    gen_station_map(gen_system_faction_maps())
+    merge_prison_stations()
 
 
 if __name__ == "__main__":

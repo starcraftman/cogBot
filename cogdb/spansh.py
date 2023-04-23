@@ -7,7 +7,7 @@ Link: https://downloads.spansh.co.uk/galaxy_stations.json.gz
    lookup ability to map the names of stations, factions and systems => EDDB IDs that are fixed.
 2. Each load function here will operate on a "complete" loaded json object, no ijson.
 3. Achieve parallelism by reading from galaxy_json in a striped fashion.
-   Each process will open it's own session onto the db.
+   Each process will output data in parallel to files for intermediary processing.
 4. Speed up update and insert of data by making use of bulk_insert_mappings and bulk_update_mappings
    Compute for each object a list of kwargs to push in.
 
@@ -81,7 +81,7 @@ MYSQLDUMP_LIMIT = 25000
 MYSQLDUMP_FNAME = Path(GALAXY_JSON).parent / 'dump.sql'
 CLEANUP_GLOBS = [f"{x}.json.*" for x in SPLIT_FILENAMES] + ['*.correct', '*.uniqu*', 'dump.sql']
 SEP = "||"
-PROCESS_COMMODITIES = True
+PROCESS_COMMODITIES = False
 
 
 class SpanshParsingError(Exception):

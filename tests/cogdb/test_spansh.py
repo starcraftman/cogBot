@@ -14,7 +14,7 @@ import sqlalchemy as sqla
 import cogdb
 import cogdb.eddb
 import cogdb.spansh
-from cogdb.spansh import SEP, SModuleSold, SCommodityPricing
+from cogdb.spansh import SEP
 import cog.util
 JSON_PATH = cog.util.rel_to_abs('tests', 'cogdb', 'spansh_rana.json')
 BODIES_PATH = cog.util.rel_to_abs('tests', 'cogdb', 'spansh_61cygni.json')

@@ -135,7 +135,9 @@ def confirm_msg(args):
         cogdb.eddb.{System, Faction, Influence, Station, StationFeatures, StationEconomy, FactionActiveState}
 """
     if args.commodities:
-        msg += "        cogdb.spansh.{SModuleSold, SCommodityPricing}\n"
+        msg += """        cogdb.spansh.{SModuleSold, SCommodityPricing}
+            Note: Module sale information takes about 1.5GB, commodity pricing is 3-4GB.
+"""
 
     if not args.yes:
         msg += "\nPlease confirm with yes or no: "
@@ -221,7 +223,7 @@ def main():  # pragma: no cover
         fetch_galaxy_json()
 
     if args.eddb_maps:
-        extras.map_gen.map_gen.init_eddb_maps()
+        extras.map_gen.init_eddb_maps()
 
     if args.ids or args.fetch:
         print_no_newline("\nUpdating ID maps based on existing dump ...")

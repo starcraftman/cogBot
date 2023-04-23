@@ -3,6 +3,7 @@ Tests for cogdb.dbi
 """
 import cogdb.dbi
 
+
 def test_make_parser():
     args = cogdb.dbi.make_parser().parse_args(['-r', '-c', '--ids'])
     assert not args.yes
@@ -21,6 +22,7 @@ def test_confirm_msg():
     Replace the following possibly existing EDDB tables with that information:
         cogdb.eddb.{System, Faction, Influence, Station, StationFeatures, StationEconomy, FactionActiveState}
         cogdb.spansh.{SModuleSold, SCommodityPricing}
+            Note: Module sale information takes about 2GB, commodity pricing is 3GB.
 
 Please confirm with yes or no: """
     args = cogdb.dbi.make_parser().parse_args(['-r', '-c', '-f', '--commodities'])
