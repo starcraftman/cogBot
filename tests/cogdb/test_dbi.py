@@ -22,7 +22,7 @@ def test_confirm_msg():
     Replace the following possibly existing EDDB tables with that information:
         cogdb.eddb.{System, Faction, Influence, Station, StationFeatures, StationEconomy, FactionActiveState}
         cogdb.spansh.{SModuleSold, SCommodityPricing}
-            Note: Module sale information takes about 2GB, commodity pricing is 3GB.
+            Note: Module sale information takes about 1.5GB, commodity pricing is 3-4GB.
 
 Please confirm with yes or no: """
     args = cogdb.dbi.make_parser().parse_args(['-r', '-c', '-f', '--commodities'])
