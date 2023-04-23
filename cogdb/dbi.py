@@ -208,8 +208,12 @@ def main():  # pragma: no cover
     parser = make_parser()
     args = parser.parse_args()
 
-    cogdb.spansh.PROCESS_COMMODITIES = args.commodities
+    # Ensure that when on clean machine IDs regenerated properly
+    if not os.path.exists(cogdb.spansh.SYSTEM_MAPF):
+        args.eddb_maps = True
+        args.ids = True
 
+    cogdb.spansh.PROCESS_COMMODITIES = args.commodities
     if args.yes:
         print(confirm_msg(args))
     else:
