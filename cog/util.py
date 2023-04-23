@@ -1185,4 +1185,3 @@ def print_no_newline(text):
 
 ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CONF = cog.config.Config(rel_to_abs('data', 'config.yml'))
-CONF.read()

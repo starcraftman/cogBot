@@ -4,9 +4,13 @@ Simple module for global configuration of this project.
 - Notification of changes on disk trigger reloads.
 - Allow easy dot notation and dictionary access to get parts of the config.
 """
+import asyncio
 import copy
+import logging
+import pathlib
 
 import aiofiles
+import aiofiles.os
 from asyncinotify import Inotify, Mask
 import yaml
 try:
@@ -65,13 +69,18 @@ class Config():
     """
     def __init__(self, fname, conf=None):
         self.fname = fname
+        path = pathlib.Path(self.fname)
+        self.lock = asyncio.Lock()
         if conf:
             self.conf = conf
+        elif path.exists():
+            self.read()
+            self.last_write = path.stat().st_mtime
         else:
             self.conf = copy.deepcopy(CONFIG_DEFAULTS)
 
     def __repr__(self):
-        keys = ['fname']
+        keys = ['fname', 'last_write']
         kwargs = [f'{key}={getattr(self, key)!r}' for key in keys]
 
         return f'{self.__class__.__name__}({", ".join(kwargs)})'
@@ -159,20 +168,28 @@ class Config():
             temp = temp[key]
 
         temp[keys[-1]] = value
-        await self.awrite()
+        text = yaml.dump(self.conf, Dumper=Dumper,
+                         default_flow_style=False,
+                         explicit_start=True,
+                         explicit_end=True)
+        async with self.lock:
+            async with aiofiles.open(self.fname, 'w') as fout:
+                await fout.write(text)
+            self.last_write = (await aiofiles.os.stat(self.fname)).st_mtime
 
     async def aread(self):
         """
         Async version of read.
         """
         conf = copy.deepcopy(CONFIG_DEFAULTS)
-        async with aiofiles.open(self.fname, 'r', encoding='utf-8') as fin:
-            text = await fin.read()
-            loaded = yaml.load(text, Loader=Loader)
+        async with self.lock:
+            async with aiofiles.open(self.fname, 'r', encoding='utf-8') as fin:
+                text = await fin.read()
+                loaded = yaml.load(text, Loader=Loader)
 
-            if loaded:
-                conf.update(loaded)
-                self.conf = conf
+                if loaded:
+                    conf.update(loaded)
+                    self.conf = conf
 
     async def awrite(self):
         """
@@ -182,8 +199,10 @@ class Config():
                          default_flow_style=False,
                          explicit_start=True,
                          explicit_end=True)
-        async with aiofiles.open(self.fname, 'w') as fout:
-            await fout.write(text)
+        async with self.lock:
+            async with aiofiles.open(self.fname, 'w') as fout:
+                await fout.write(text)
+            self.last_write = (await aiofiles.os.stat(self.fname)).st_mtime
 
     async def monitor(self):  # pragma: no cover
         """
@@ -194,4 +213,9 @@ class Config():
         with Inotify() as inotify:
             inotify.add_watch(self.fname, Mask.MODIFY)
             async for _ in inotify:
-                await self.aread()
+                async with self.lock:
+                    conf_stat = await aiofiles.os.stat(self.fname)
+                if conf_stat.st_mtime > self.last_write:
+                    self.last_write = conf_stat.st_mtime
+                    logging.getLogger(__name__).info("CONF: External change detected, updating config.")
+                    await self.aread()

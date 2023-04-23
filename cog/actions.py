@@ -1224,8 +1224,7 @@ class Hold(Action):
             system.set_status(self.args.set)
             # TODO: Same payload now, but will have to switch if diverge.
             self.payloads += cogdb.scanners.UMScanner.update_systemum_dict(
-                system.sheet_col, system.progress_us,
-                system.progress_them, system.map_offset
+                system.sheet_col, system.progress_us, system.progress_them
             )
 
         self.log.info('Hold %s - After update, hold: %s\nSystem: %s.',
@@ -1656,6 +1655,20 @@ class Route(Action):
         await self.bot.send_message(self.msg.channel, "\n".join(lines))
 
 
+class Token(Action):  # pragma: no cover, trivial implementation
+    """
+    Allow the api session token to be updated by command.
+    """
+    async def execute(self):
+        msg = "Permission denied, user not authorised."
+
+        if self.msg.author.id in cog.util.CONF.scrape.unwrap.get('allowed', []):
+            await cog.util.CONF.aupdate('scrape', 'token', value=self.args.token)
+            msg = "API Session token updated to config."
+
+        await self.bot.send_message(self.msg.channel, msg)
+
+
 class Scout(Action):
     """
     Generate scout route.
@@ -2002,8 +2015,7 @@ class UM(Action):
             if self.args.set or self.args.offset:
                 # TODO: Same payload now, but will have to switch if diverge.
                 self.payloads += cogdb.scanners.UMScanner.update_systemum_dict(
-                    system.sheet_col, system.progress_us,
-                    system.progress_them, system.map_offset
+                    system.sheet_col, system.progress_us, system.progress_them
                 )
 
             if self.payloads:
@@ -2499,6 +2511,10 @@ async def monitor_snipe_merits(client, *, repeat=True):  # pragma: no cover
                         for chan in snipe_chans:
                             await client.send_message(chan, msg + reminder)
 
+            # Sleep until 5 mins after tick
+            five_after_tick = (next_cycle - datetime.datetime.utcnow()).seconds + 60 * 5
+            await asyncio.sleep(five_after_tick)
+
 
 async def push_spy_to_gal_scanner():  # pragma: no cover | tested elsewhere
     """
@@ -2547,7 +2563,7 @@ async def push_spy_to_sheets():  # pragma: no cover | tested elsewhere
             payloads = []
             for umsys in umsystems:
                 payloads += scanner.update_systemum_dict(
-                    umsys['sheet_col'], umsys['progress_us'], umsys['progress_them'], umsys['map_offset']
+                    umsys['sheet_col'], umsys['progress_us'], umsys['progress_them']
                 )
             print("UM Payloads")
             __import__('pprint').pprint(payloads)
@@ -2563,7 +2579,7 @@ async def push_spy_to_sheets():  # pragma: no cover | tested elsewhere
                 payloads = []
                 for umsys in umsystems:
                     payloads += scanner.update_systemum_dict(
-                        umsys['sheet_col'], umsys['progress_us'], umsys['progress_them'], umsys['map_offset']
+                        umsys['sheet_col'], umsys['progress_us'], umsys['progress_them']
                     )
                 print("Snipe Payloads")
                 __import__('pprint').pprint(payloads)
@@ -2584,6 +2600,9 @@ async def monitor_powerplay_api(client, *, repeat=True, delay=1800):
         delay: The delay in seconds between checks.
     """
     log = logging.getLogger(__name__)
+    last_base = None
+    params = {'token': cog.util.CONF.scrape.token}
+    log.warning("Started powerplay monitor.")
 
     while True:
         await asyncio.sleep(delay)
@@ -2591,20 +2610,21 @@ async def monitor_powerplay_api(client, *, repeat=True, delay=1800):
         try:
             await cog.util.get_url(cog.util.CONF.scrape.url)  # Sanity check service up
 
-            log.warning("Start monitor powerplay.")
-            base_text = await cog.util.get_url(os.path.join(cog.util.CONF.scrape.api, 'getraw', 'base.json'))
-            ref_text = await cog.util.get_url(os.path.join(cog.util.CONF.scrape.api, 'getraw', 'refined.json'))
-
             with cfut.ProcessPoolExecutor(max_workers=4) as pool:
                 try:
-                    log.warning("Parse retrieved json.")
-                    await client.loop.run_in_executor(
-                        pool, spy.load_base_json, base_text,
-                    )
+                    if last_base != cog.util.current_cycle():
+                        last_base = cog.util.current_cycle()
+                        log.warning("Fetching base.json.")
+                        base_text = await cog.util.get_url(os.path.join(cog.util.CONF.scrape.api, 'getraw', 'base.json'), params=params)
+                        await client.loop.run_in_executor(
+                            pool, spy.load_base_json, base_text,
+                        )
+
+                    log.warning("Fetching refined.json.")
+                    ref_text = await cog.util.get_url(os.path.join(cog.util.CONF.scrape.api, 'getraw', 'refined.json'), params=params)
                     await client.loop.run_in_executor(
                         pool, spy.load_refined_json, ref_text,
                     )
-
                 except (asyncio.CancelledError, asyncio.InvalidStateError) as exc:
                     log.error("Error with future: %s", str(exc))
 

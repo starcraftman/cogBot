@@ -474,14 +474,14 @@ class UMScanner(FortScanner):
         return found
 
     @staticmethod
-    def update_systemum_dict(col, progress_us, progress_them, map_offset):
+    def update_systemum_dict(col, progress_us, progress_them):
         """
         Create an update system dict. See AsyncGSheet.batch_update
 
         Returns: A list of update dicts to pass to batch_update.
         """
-        cell_range = '{col}10:{col}13'.format(col=col)
-        values = [[progress_us], [f"{progress_them * 100:.2f}%"], ['Hold Merits'], [map_offset]]
+        cell_range = '{col}10:{col}11'.format(col=col)
+        values = [[progress_us], [f"{progress_them * 100:.2f}%"]]
         return [{'range': cell_range, 'values': values}]
 
     @staticmethod
