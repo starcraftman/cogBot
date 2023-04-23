@@ -9,6 +9,7 @@ import datetime
 import gzip
 import math
 import os
+import pathlib
 import sys
 from pathlib import Path
 
@@ -199,6 +200,12 @@ def sanity_check():  # pragma: no cover, underlying functions tested elsewhere o
         cogdb.eddb.preload_tables(eddb_session)
         cogdb.spy_squirrel.preload_tables(eddb_session)
         cogdb.spansh.preload_tables(eddb_session)
+
+    stat = os.statvfs(GALAXY_JSON)
+    if stat.f_bavail * stat.f_frsize < 8 * 1024 ** 3:
+        location = pathlib.Path(GALAXY_JSON).parent
+        print(f"Warning: This program uses scratch space roughly equal to dump size. Please free up 8GB at: {location}.")
+        sys.exit(1)
 
 
 def main():  # pragma: no cover
