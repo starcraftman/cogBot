@@ -189,20 +189,14 @@ def sanity_check():  # pragma: no cover, underlying functions tested elsewhere o
     cogdb.schema.Base.metadata.create_all(cogdb.engine)
     cogdb.eddb.Base.metadata.create_all(cogdb.eddb_engine)
 
-    for fname in (cogdb.spansh.SYSTEM_MAPF, cogdb.spansh.FACTION_MAPF, cogdb.spansh.STATION_MAPF):
-        if not Path(fname).exists() and not Path(cogdb.spansh.GALAXY_JSON).exists():
-            print("Missing one or more ID maps.")
-            print_no_newline("\nUpdating ID maps based on current dump ...")
-            cogdb.spansh.update_all_name_maps(*cogdb.spansh.collect_unique_names(GALAXY_JSON))
-            break
-
     with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
         cogdb.eddb.preload_tables(eddb_session)
         cogdb.spy_squirrel.preload_tables(eddb_session)
         cogdb.spansh.preload_tables(eddb_session)
 
-    stat = os.statvfs(GALAXY_JSON)
-    if stat.f_bavail * stat.f_frsize < 8 * 1024 ** 3:
+    gb_needed = 16 if not os.path.exists(GALAXY_JSON) else 8
+    stat = os.statvfs(Path(GALAXY_JSON).parent)
+    if stat.f_bavail * stat.f_frsize < gb_needed * 1024 ** 3:
         location = pathlib.Path(GALAXY_JSON).parent
         print(f"Warning: This program uses scratch space roughly equal to dump size. Please free up 8GB at: {location}.")
         sys.exit(1)
@@ -216,9 +210,10 @@ def main():  # pragma: no cover
     args = parser.parse_args()
 
     # Ensure that when on clean machine IDs regenerated properly
-    if not os.path.exists(cogdb.spansh.SYSTEM_MAPF):
-        args.eddb_maps = True
-        args.ids = True
+    for fname in (cogdb.spansh.SYSTEM_MAPF, cogdb.spansh.FACTION_MAPF, cogdb.spansh.STATION_MAPF):
+        if not os.path.exists(fname):
+            args.eddb_maps = True
+            args.ids = True
 
     cogdb.spansh.PROCESS_COMMODITIES = args.commodities
     if args.yes:

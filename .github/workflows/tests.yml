@@ -34,7 +34,7 @@ jobs:
         run: |
           sudo /etc/init.d/mysql start
           sudo mysql < "tests/mysql_tables.sql"
-          curl "http://starcraftman.com/elite/eddb_v12.sql" > "eddb.sql"
+          curl "http://starcraftman.com/elite/eddb_v13.sql" > "eddb.sql"
           sudo mysql -D eddb < "eddb.sql"
 
       - name: Generate secret config files
