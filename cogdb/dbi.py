@@ -2,6 +2,12 @@
 The database import tool.
 See documentation with -h.
 The purpose of this tool is to seed the EDDB database then connect to EDDN for updates.
+
+To seed a fresh dev machine with latest galaxy_stations.json
+    python -m cogdb.dbi --fetch --eddb-maps --ids --caches --recreate-tables
+
+To recreate the database and load data from existing dump, ids will not be altered.
+    python -m cogdb.dbi --recreate-tables
 """
 import argparse
 import asyncio
