@@ -14,11 +14,14 @@ import sqlalchemy as sqla
 import cogdb
 import cogdb.eddb
 import cogdb.spansh
-from cogdb.spansh import SEP
+from cogdb.spansh import (
+    SEP, SCommodityGroup, SCommodity, SCommodityPricing,
+    SModuleGroup, SModule, SModuleSold)
 import cog.util
 JSON_PATH = cog.util.rel_to_abs('tests', 'cogdb', 'spansh_rana.json')
 BODIES_PATH = cog.util.rel_to_abs('tests', 'cogdb', 'spansh_61cygni.json')
 FAKE_GALAXY = cog.util.rel_to_abs('tests', 'cogdb', 'fake_galaxy.json')
+SPANSH_ID = 999999
 
 
 @pytest.fixture
@@ -31,6 +34,36 @@ def f_json():
 def f_json_bodies():
     with open(BODIES_PATH, 'r', encoding='utf-8') as fin:
         yield json.loads(fin.read())[0]
+
+
+def test_spansh_commodity_group__repr__():
+    found = SCommodityGroup(id=SPANSH_ID, name='TestCommGroup')
+    assert "SCommodityGroup(id=999999, name='TestCommGroup')" == repr(found)
+
+
+def test_spansh_commodity__repr__(eddb_session):
+    found = SCommodity(id=SPANSH_ID, group_id=SPANSH_ID, name='TestCommodity')
+    assert "SCommodity(id=999999, group_id=999999, name='TestCommodity')" == repr(found)
+
+
+def test_spansh_module_group__repr__(eddb_session):
+    found = SModuleGroup(id=SPANSH_ID, name='TestModGroup')
+    assert "SModuleGroup(id=999999, name='TestModGroup')" == repr(found)
+
+
+def test_spansh_module__repr__(eddb_session):
+    found = SModule(id=SPANSH_ID, group_id=SPANSH_ID, name='TestModule')
+    assert "SModule(id=999999, group_id=999999, ship_id=None, name='TestModule', symbol=None, mod_class=None, rating=None)" == repr(found)
+
+
+def test_spansh_module_sold__repr__(eddb_session):
+    found = SModuleSold(id=SPANSH_ID, station_id=1, module_id=SPANSH_ID)
+    assert "SModuleSold(id=999999, station_id=1, module_id=999999)" == repr(found)
+
+
+def test_spansh_commodity_pricing__repr__(eddb_session):
+    found = SCommodityPricing(id=SPANSH_ID, station_id=1, commodity_id=SPANSH_ID, demand=1000, supply=1000, buy_price=5000, sell_price=2500)
+    assert "SCommodityPricing(id=999999, station_id=1, commodity_id=999999, demand=1000, supply=1000, buy_price=5000, sell_price=2500)" == repr(found)
 
 
 def test_date_to_timestamp(f_json):
@@ -331,40 +364,36 @@ def test_determine_missing_keys(eddb_session):
 
 
 def test_collect_modules_and_commodities():
-    mods, comms = cogdb.spansh.collect_modules_and_commodities(FAKE_GALAXY)
+    expect_mod_groups = [
+        'hardpoint',
+        'internal',
+        'standard',
+        'utility',
+    ]
+    expect_comm_groups = [
+        'Chemicals',
+        'Consumer Items',
+        'Foods',
+        'Industrial Materials',
+        'Legal Drugs',
+        'Machinery',
+        'Medicines',
+        'Metals',
+        'Minerals',
+        'Salvage',
+        'Slavery',
+        'Technology',
+        'Textiles',
+        'Waste',
+        'Weapons'
+    ]
+    mods, comms, mod_groups, comm_groups = cogdb.spansh.collect_modules_and_commodities(FAKE_GALAXY)
     mod = mods[128049250]
     assert mod['symbol'] == 'SideWinder_Armour_Grade1'
     commodity = comms[128672308]
     assert commodity['symbol'] == 'ThermalCoolingUnits'
-
-
-def test_collect_modules_and_commodity_groups():
-    expect = (
-        [
-            'hardpoint',
-            'internal',
-            'standard',
-            'utility',
-        ],
-        [
-            'Chemicals',
-            'Consumer Items',
-            'Foods',
-            'Industrial Materials',
-            'Legal Drugs',
-            'Machinery',
-            'Medicines',
-            'Metals',
-            'Minerals',
-            'Salvage',
-            'Slavery',
-            'Technology',
-            'Textiles',
-            'Waste',
-            'Weapons'
-        ]
-    )
-    assert expect == cogdb.spansh.collect_modules_and_commodity_groups(FAKE_GALAXY)
+    assert expect_comm_groups == comm_groups
+    assert expect_mod_groups == mod_groups
 
 
 def test_generate_module_commodities_caches(eddb_session):

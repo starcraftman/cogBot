@@ -1079,6 +1079,7 @@ def collect_modules_and_commodities(galaxy_json):
         mods: A list of modules found.
         comms: A list of commodities found.
     """
+    mod_groups, comm_groups = set(), set()
     mods, comms = {}, {}
     with open(galaxy_json, 'r', encoding='utf-8') as fin:
         for line in fin:
@@ -1098,9 +1099,11 @@ def collect_modules_and_commodities(galaxy_json):
                         del comm['demand']
                         del comm['supply']
                         comms[comm['commodityId']] = comm
+                        comm_groups.add(comm['category'])
                 if 'outfitting' in station and 'modules' in station['outfitting']:
                     for module in station['outfitting']['modules']:
                         mods[module['moduleId']] = module
+                        mod_groups.add(module['category'])
 
             for body in data.get('bodies', []):
                 for station in body.get('stations', []):
@@ -1111,53 +1114,13 @@ def collect_modules_and_commodities(galaxy_json):
                             del comm['demand']
                             del comm['supply']
                             comms[comm['commodityId']] = comm
-                    if 'outfitting' in station and 'modules' in station['outfitting']:
-                        for module in station['outfitting']['modules']:
-                            mods[module['moduleId']] = module
-
-    return mods, comms
-
-
-def collect_modules_and_commodity_groups(galaxy_json):
-    """
-    Collect information on constants in the modules and commodities names and groups among the data.
-
-    Args:
-        galaxy_json: Path to the galaxy_json.
-
-    Returns: (mod_groups, comm_groups)
-        mod_groups: A list of names of module groups.
-        comm_groups: A list of names of commodity groups.
-    """
-    mod_groups, comm_groups = set(), set()
-    with open(galaxy_json, 'r', encoding='utf-8') as fin:
-        for line in fin:
-            if line.startswith('[') or line.startswith(']'):
-                continue
-
-            line = line.strip()
-            if line[-1] == ',':
-                line = line[:-1]
-            data = json.loads(line)
-
-            for station in data.get('stations', []):
-                if 'market' in station and 'commodities' in station['market']:
-                    for comm in station['market']['commodities']:
-                        comm_groups.add(comm['category'])
-                if 'outfitting' in station and 'modules' in station['outfitting']:
-                    for module in station['outfitting']['modules']:
-                        mod_groups.add(module['category'])
-
-            for body in data.get('bodies', []):
-                for station in body.get('stations', []):
-                    if 'market' in station and 'commodities' in station['market']:
-                        for comm in station['market']['commodities']:
                             comm_groups.add(comm['category'])
                     if 'outfitting' in station and 'modules' in station['outfitting']:
                         for module in station['outfitting']['modules']:
+                            mods[module['moduleId']] = module
                             mod_groups.add(module['category'])
 
-    return list(sorted(mod_groups)), list(sorted(comm_groups))
+    return mods, comms, list(sorted(mod_groups)), list(sorted(comm_groups))
 
 
 def generate_module_commodities_caches(eddb_session, galaxy_json):  # pragma: no cover
@@ -1168,8 +1131,7 @@ def generate_module_commodities_caches(eddb_session, galaxy_json):  # pragma: no
     Args:
         eddb_session: A session onto the EDDB.
     """
-    mod_groups, comm_groups = collect_modules_and_commodity_groups(galaxy_json)
-    mod_dict, comm_dict = collect_modules_and_commodities(galaxy_json)
+    mod_dict, comm_dict, mod_groups, comm_groups = collect_modules_and_commodities(galaxy_json)
     mapped = eddb_maps(eddb_session)
 
     groups = [SCommodityGroup(id=ind, name=x) for ind, x in enumerate(comm_groups, start=1)]

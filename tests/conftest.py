@@ -42,6 +42,7 @@ from pvp.schema import (PVPCmdr, PVPKill, PVPDeath, PVPDeathKiller, PVPInterdict
                         PVPInterdictedKill, PVPInterdictedDeath, PVPInterdictionKill, PVPInterdictionDeath,
                         PVPEscapedInterdicted, PVPLocation, PVPLog, PVPMatch, PVPMatchPlayer, PVPMatchState,
                         PVPInara, PVPInaraSquad)
+from cogdb.spansh import (SModule, SModuleGroup, SModuleSold, SCommodity, SCommodityGroup, SCommodityPricing)
 from tests.data import CELLS_FORT, CELLS_FORT_FMT, CELLS_UM
 
 
