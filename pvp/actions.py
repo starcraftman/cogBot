@@ -25,6 +25,7 @@ from cogdb.eddb import LEN as EDDB_LEN
 import cog.tbl
 import pvp
 import pvp.journal
+import pvp.match
 # Make available reused actions
 from cog.actions import (Action, Dist, Donate, Feedback, Near,
                          Repair, Route, Time, Trigger, WhoIs)  # noqa: F401 pylint: disable=unused-import
@@ -493,6 +494,54 @@ class Recent(PVPAction):
 
         except ValueError:
             await self.bot.send_message(self.msg.channel, 'Invalid after format. Write dates like: 2023-04-30T20:10:44')
+
+
+class MatchShort(PVPAction):
+    """
+    The new pvp match command.
+    """
+    def collect_players(self):
+        """
+        Collect the player names from the message received.
+
+        Returns: A list of player names.
+        """
+        players = [x.display_name for x in self.msg.mentions]
+        if self.args.players:
+            players += [x.strip() for x in ' '.join(self.args.players).split(',')]
+
+        return players
+
+    async def start(self):
+        """
+        Create a match.
+        """
+        mat = pvp.match.create_match(channel_id=self.msg.channel.id, limit=self.args.limit)
+        mat.add_players(self.collect_players())
+        await mat.post_creation_loop(self.bot)
+
+    async def add(self):
+        """
+        Add players to the match.
+        """
+        mat = pvp.match.get_match(self.args.id)
+        mat.add_players(self.collect_players())
+        await mat.update_msg(self.bot)
+
+    async def remove(self):
+        """
+        Remove players from the match.
+        """
+        mat = pvp.match.get_match(self.args.id)
+        mat.remove_players(self.collect_players())
+        await mat.update_msg(self.bot)
+
+    async def execute(self):
+        """
+        All methods will take the match in question. Only create one when requested via setup.
+        """
+        func = getattr(self, self.args.subcmd)
+        await func()
 
 
 class Match(PVPAction):

@@ -189,6 +189,41 @@ def subs_match(subs, prefix):
     """ Subcommand parsing for match """
     desc = f"""To prepare a match.
 
+**{prefix}match start player1, player2 @player3**
+        Create a match with the following players.
+        Mentioned players will be added by their display name.
+**{prefix}match start --limit 4 player1, player2 @player3**
+        Create a match with 4 player limit and add the following players.
+**{prefix}match add player2 @player3**
+        Add player2 and @player3 to match, will update teams if rolled.
+**{prefix}match remove player2 @player3**
+        Remove player2 and @player3 from match, will update teams if rolled.
+    """
+
+    sub = subs.add_parser(prefix + 'match', description=desc, formatter_class=RawHelp)
+    sub.set_defaults(cmd='MatchShort', subcmd='create')
+    subcmds = sub.add_subparsers(title='subcommands',
+                                 description='Match subcommands', dest='subcmd')
+
+    subcmd = subcmds.add_parser('start', help='Create the initial match.')
+    subcmd.add_argument('--limit', default=20, type=int, help='Limit of players in match.')
+    subcmd.add_argument('players', nargs='*', default=[], help='The player to add.')
+
+    subcmd = subcmds.add_parser('add', help='Add the mentioned commanders.')
+    subcmd.add_argument('id', type=int, help='The match id.')
+    subcmd.add_argument('players', nargs='*', default=[], help='The player to add.')
+
+    subcmd = subcmds.add_parser('remove', help='Remove the mentioned commanders.')
+    subcmd.add_argument('id', type=int, help='The match id.')
+    subcmd.add_argument('players', nargs='*', default=[], help='The player to add.')
+
+    CMD_MAP['MatchShort'] = 'match'
+
+
+def subs_match_old(subs, prefix):
+    """ Subcommand parsing for match """
+    desc = f"""To prepare a match.
+
 **{prefix}match**
         Show the state of the match.
 **{prefix}match setup num_players**
