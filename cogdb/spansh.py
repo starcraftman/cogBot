@@ -68,8 +68,7 @@ SPANSH_STATION_SERVICES = {
     'Universal Cartographics': 'universal_cartographics',
 }
 SPLIT_FILENAMES = [
-    'systems', 'factions', 'influences', 'faction_states',
-    'stations', 'controlling_factions'
+    'systems', 'factions', 'influences', 'faction_states', 'controlling_factions'
 ]
 STATION_KEYS = ['stations', 'features', 'economies']
 COMMODITY_STATION_LIMIT = 30000
@@ -833,6 +832,7 @@ def transform_galaxy_json(number, total, galaxy_json):
         total: The total number of jobs started.
         galaxy_json: The spansh galaxy_json
     """
+    all_stations = []
     cnt = -1
     parent_dir = Path(galaxy_json).parent
     out_streams = {x: open(parent_dir / f'{x}.json.{number:02}', 'w', encoding='utf-8') for x in SPLIT_FILENAMES}
@@ -884,11 +884,13 @@ def transform_galaxy_json(number, total, galaxy_json):
                             out_streams['controlling_factions'].write(str(control) + ',\n')
                         del info['controlling_factions']
 
-                    out_streams['stations'].write(str(info) + ',\n')
+                all_stations += list(stations.values())
         finally:
             for stream in out_streams.values():
                 stream.write(']')
                 stream.close()
+
+        return all_stations
 
 
 def update_name_map(missing_names, *, known_fname, new_fname):
@@ -1165,7 +1167,7 @@ def generate_module_commodities_caches(eddb_session, galaxy_json):  # pragma: no
     cogdb.common.dump_dbobjs_to_file(cls=SModule, db_objs=mods)
 
 
-def dedupe_factions(faction_fnames, control_fnames, out_fname):
+def merge_factions(faction_fnames, control_fnames, out_fname):
     """
     Given a list of files with faction information and a collection of controlling faction names,
     generate a single merged file with all unique faction information. Any name found in control factions
@@ -1209,56 +1211,6 @@ def dedupe_factions(faction_fnames, control_fnames, out_fname):
         for faction in correct_factions.values():
             correct.write(str(faction_stub) + ',\n')
         correct.write(']')
-
-
-def dedupe_stations(fnames, galaxy_folder):  # pragma: no cover
-    """
-    Possibility of multiple sightings of player fleet carriers in data.
-    For each station present in the fnames file, keep only that station with the latest updateTime.
-    All older data is discarded.
-
-    Args:
-        fnames: The list of filenames with station information.
-        galaxy_folder: The folder that we should write out deduped kwargs information to.
-    """
-    stations = {}
-    all_modules, all_commodities = [], []
-
-    for fname in fnames:
-        with open(fname, 'r', encoding='utf-8') as fin:
-            for info in eval(fin.read()):
-                try:
-                    key = info['station']['id']
-                except KeyError:
-                    logging.getLogger(__name__).error("SPANSH: Missing station ID: %s", info['station'])
-                    continue
-                try:
-                    if info['station']['updated_at'] > stations[key]['station']['updated_at']:
-                        stations[key] = info
-                except KeyError:
-                    stations[key] = info
-
-    try:
-        out_streams = {x: open(galaxy_folder / f'{x}.json.unique', 'w', encoding='utf-8') for x in STATION_KEYS}
-        for stream in out_streams.values():
-            stream.write('[\n')
-
-        for info in stations.values():
-            out_streams['stations'].write(str(info['station']) + ',\n')
-            out_streams['features'].write(str(info['features']) + ',\n')
-            out_streams['economies'].write(str(info['economy']) + ',\n')
-
-            all_modules += info['modules_sold']
-            all_commodities += info['commodity_pricing']
-
-        if PROCESS_COMMODITIES:
-            dump_commodities_modules(all_modules, all_commodities, fname=MYSQLDUMP_FNAME)
-
-        return MYSQLDUMP_FNAME
-    finally:
-        for stream in out_streams.values():
-            stream.write(']')
-            stream.close()
 
 
 def dump_commodities_modules(all_modules, all_commodities, *, fname):
@@ -1397,6 +1349,48 @@ def manual_overrides(eddb_session):
     eddb_session.bulk_update_mappings(Faction, faction_overrides)
 
 
+def merge_stations(station_results, galaxy_folder):  # pragma: no cover
+    """
+    Merge and keep only latest duplicate of stations found in station_results.
+    Once merged, dump information to the required station files and dump.sql for commodities if needed.
+
+    Args:
+        station_results: A list of a list of dictionary objects representing found stations + station information.
+        galaxy_folder: The folder containing galaxy_json and all scratch files.
+    """
+    all_stations = {}
+    for stations in station_results:
+        for current in stations:
+            try:
+                key = current['station']['id']
+                if current['station']['updated_at'] > all_stations[key]['station']['updated_at']:
+                    all_stations[key] = current
+            except KeyError:
+                all_stations[key] = current
+
+    all_modules, all_commodities = [], []
+    try:
+        out_streams = {x: open(galaxy_folder / f'{x}.json.unique', 'w', encoding='utf-8') for x in STATION_KEYS}
+        for stream in out_streams.values():
+            stream.write('[\n')
+
+        for info in all_stations.values():
+            out_streams['stations'].write(str(info['station']) + ',\n')
+            out_streams['features'].write(str(info['features']) + ',\n')
+            out_streams['economies'].write(str(info['economy']) + ',\n')
+            all_modules += info['modules_sold']
+            all_commodities += info['commodity_pricing']
+
+        if PROCESS_COMMODITIES:
+            dump_commodities_modules(all_modules, all_commodities, fname=MYSQLDUMP_FNAME)
+
+        return MYSQLDUMP_FNAME
+    finally:
+        for stream in out_streams.values():
+            stream.write(']')
+            stream.close()
+
+
 async def parallel_process(galaxy_json, *, jobs):  # pragma: no cover
     """
     Parallel parse and import information from galaxy_json into the EDDB.
@@ -1431,6 +1425,7 @@ async def parallel_process(galaxy_json, *, jobs):  # pragma: no cover
             )]
 
         await asyncio.wait(futs)
+        all_stations = [x.result() for x in futs]
 
         # Factions have to be sorted into a unique file then bulk inserted early
         # This includes names of factions ONLY appearing in controllingFaction of stations
@@ -1438,7 +1433,7 @@ async def parallel_process(galaxy_json, *, jobs):  # pragma: no cover
         unique_factions = galaxy_folder / 'factions.json.unique'
         await loop.run_in_executor(
             pool,
-            dedupe_factions,
+            merge_factions,
             [galaxy_folder / f'factions.json.{x:02}' for x in range(0, jobs)],
             [galaxy_folder / f'controlling_factions.json.{x:02}' for x in range(0, jobs)],
             unique_factions
@@ -1450,20 +1445,17 @@ async def parallel_process(galaxy_json, *, jobs):  # pragma: no cover
         print_no_newline(f" Done!\nStarting {jobs} jobs to import non station data ...")
         futs = []
         for num in range(0, jobs):
-            futs += [loop.run_in_executor(
+            futs = [loop.run_in_executor(
                 pool,
                 import_galaxy_objects, num, galaxy_folder
             )]
-
             await asyncio.wait(futs)
 
         #  Player carriers can be spotted multiple places, only keep oldest data
         print_no_newline(" Done!\nFiltering unique stations present ...")
         await loop.run_in_executor(
             pool,
-            dedupe_stations,
-            [galaxy_folder / f'stations.json.{x:02}' for x in range(0, jobs)],
-            galaxy_folder
+            merge_stations, all_stations, galaxy_folder
         )
 
         print_no_newline(" Done!\nImporting stations, features and station economies ...")

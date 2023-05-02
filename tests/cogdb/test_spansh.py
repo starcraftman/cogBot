@@ -426,7 +426,7 @@ def test_generate_module_commodities_caches(eddb_session):
         cogdb.common.PRELOAD_DIR = saved
 
 
-def test_dedupe_factions():
+def test_merge_factions():
     with tempfile.NamedTemporaryFile(mode='w') as factions,\
          tempfile.NamedTemporaryFile(mode='w') as controllings,\
          tempfile.NamedTemporaryFile(suffix='.json.unique') as outfname:
@@ -440,7 +440,7 @@ def test_dedupe_factions():
 {'id': 3, 'name': 'FactionStub'},
 ]""")
         controllings.flush()
-        cogdb.spansh.dedupe_factions([factions.name], [controllings.name], outfname.name)
+        cogdb.spansh.merge_factions([factions.name], [controllings.name], outfname.name)
         with open(outfname.name, 'r', encoding='utf-8') as fin:
             assert len(eval(fin.read())) == 3
         with open(outfname.name.replace('unique', 'correct'), 'r', encoding='utf-8') as fin:
