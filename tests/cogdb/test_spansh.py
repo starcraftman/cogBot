@@ -281,16 +281,14 @@ def test_transform_galaxy_json():
         tdir = pathlib.Path(tfile.name).parent
         try:
             shutil.copyfile(FAKE_GALAXY, tfile.name)
-            cogdb.spansh.transform_galaxy_json(0, 1, tfile.name)
+            all_stations = cogdb.spansh.transform_galaxy_json(0, 1, tfile.name)
             with open(tdir / 'systems.json.00', 'r', encoding='utf-8') as fin:
                 found = eval(fin.read())
                 assert found[0]['name'] == '61 Cygni'
             with open(tdir / 'factions.json.00', 'r', encoding='utf-8') as fin:
                 found = eval(fin.read())
                 assert '61 Cygni Commodities' in [x['name'] for x in found]
-            with open(tdir / 'stations.json.00', 'r', encoding='utf-8') as fin:
-                found = eval(fin.read())
-                assert 'J0J-N7X' in [x['station']['name'] for x in found]
+                assert 'J0J-N7X' in [x['station']['name'] for x in all_stations]
         finally:
             for fname in glob.glob(str(tdir / '*.json.00')):
                 os.remove(fname)
@@ -449,36 +447,18 @@ def test_merge_factions():
 
 
 def test_dump_commodities_and_modules(eddb_session):
-    expect_comms = "INSERT INTO `spansh_commodity_pricing` (station_id,commodity_id,demand,supply,buy_price,sell_price) VALUES (None,1000,100,1000,50,25),(None,1001,100,1000,50,25);"
-    expect_mods = "INSERT INTO `spansh_modules_sold` (station_id,module_id) VALUES (20,1000),(20,1001),(20,1002);"
+    expect_comms = "INSERT INTO `spansh_commodity_pricing` (station_id,commodity_id,demand,supply,buy_price,sell_price) VALUES (None,1000,100,1000,50,25),(None,1001,100,1000,50,25);\n"
+    expect_mods = "INSERT INTO `spansh_modules_sold` (station_id,module_id) VALUES (20,1000),(20,1001),(20,1002);\n"
 
-    with tempfile.NamedTemporaryFile(mode='w') as tfile:
-        mods = [
-            {'id': 1, 'module_id': 1000, 'station_id': 20},
-            {'id': 2, 'module_id': 1001, 'station_id': 20},
-            {'id': 3, 'module_id': 1002, 'station_id': 20},
-        ]
-        comms = [
-            {
-                'buy_price': 50,
-                'commodity_id': 1000,
-                'demand': 100,
-                'id': 1,
-                'sell_price': 25,
-                'station_id': None,
-                'supply': 1000},
-            {
-                'buy_price': 50,
-                'commodity_id': 1001,
-                'demand': 100,
-                'id': 2,
-                'sell_price': 25,
-                'station_id': None,
-                'supply': 1000
-            },
-        ]
+    with tempfile.NamedTemporaryFile(mode='w', encoding='utf-8') as comms_out,\
+            tempfile.NamedTemporaryFile(mode='w', encoding='utf-8') as mods_out,\
+            tempfile.NamedTemporaryFile(mode='w', encoding='utf-8') as tfile:
+        comms_out.write(expect_comms)
+        comms_out.flush()
+        mods_out.write(expect_mods)
+        mods_out.flush()
 
-        cogdb.spansh.dump_commodities_modules(mods, comms, fname=tfile.name)
+        cogdb.spansh.dump_commodities_modules(comms_out.name, mods_out.name, fname=tfile.name)
         expected_fname = pathlib.Path(tfile.name)
         assert expected_fname.exists()
         with open(expected_fname, 'r', encoding='utf-8') as fin:

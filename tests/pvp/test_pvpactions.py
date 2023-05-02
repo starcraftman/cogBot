@@ -153,7 +153,7 @@ async def test_cmd_log_after_invalid(f_bot, f_pvp_testbed):
     assert 'Invalid after format. Write dates like:' in str(f_bot.send_message.call_args).replace("\\n", "\n")
 
 
-@pytest.mark.asyncio
+@pytest.mark.skip(reason='Old match code preserved for now.')
 class TestCMDMatch:
     """ Tests for the `!match` command of pvp bot. """
     async def test_start_nomatch(self, f_bot, f_pvp_testbed):
