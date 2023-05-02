@@ -41,6 +41,16 @@ def subs_admin(subs, prefix):
         Add GearsandCogs to the admin group.
 **{prefix}admin remove @GearsandCogs**
         Remove GearsandCogs from the admin group.
+**{prefix}admin add BGS #hudson_bgs**
+        Whitelist bgs command for hudson_bgs channel.
+**{prefix}admin remove BGS #hudson_bgs**
+        Remove whitelist for bgs command in hudson_bgs.
+**{prefix}admin add Drop @FRC Member**
+        Whitelist bgs command for members with role mentioned FRC Member.
+**{prefix}admin remove Drop FRC Member**
+        Remove whitelist for bgs command of users with role "FRC Member".
+**{prefix}admin show_rules**
+        Show all active rules limiting commands.
 **{prefix}admin filter**
         Rerun the filtering stage on all past uploads.
         Filtered versions of uploads will be created and uploaded to archive channel.
@@ -59,15 +69,18 @@ def subs_admin(subs, prefix):
     CMD_MAP['Admin'] = 'admin'
     subcmds = sub.add_subparsers(title='subcommands',
                                  description='Admin subcommands', dest='subcmd')
+
     subcmd = subcmds.add_parser('add', help='Add an admin or permission.')
     subcmd.add_argument('rule_cmds', nargs='*', help='The the command to restrict.')
     subcmd = subcmds.add_parser('remove', help='Remove an admin or permission.')
     subcmd.add_argument('rule_cmds', nargs='*', help='The the command to restrict.')
-    subcmd = subcmds.add_parser('filter', help='Filter all existing log uploads for events of interest.')
-    subcmd = subcmds.add_parser('kos', help='Update KOS list and PVPKills for KOS.')
-    subcmd = subcmds.add_parser('regenerate', help='Regenerate the PVP database.')
-    subcmd = subcmds.add_parser('prune', help='Delete messages in one or more mentioned channels.')
-    subcmd = subcmds.add_parser('prune_bulk', help='Delete messages in bulk for one or more mentioned channels.')
+    subcmds.add_parser('show_rules', help='Show existing command rules.')
+
+    subcmds.add_parser('filter', help='Filter all existing log uploads for events of interest.')
+    subcmds.add_parser('kos', help='Update KOS list and PVPKills for KOS.')
+    subcmds.add_parser('regenerate', help='Regenerate the PVP database.')
+    subcmds.add_parser('prune', help='Delete messages in one or more mentioned channels.')
+    subcmds.add_parser('prune_bulk', help='Delete messages in bulk for one or more mentioned channels.')
 
 
 @register_parser

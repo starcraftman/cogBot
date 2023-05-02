@@ -57,6 +57,22 @@ class Admin(PVPAction):
     """
     Admin command console. For knowledgeable users only.
     """
+    def check_cmd(self):
+        """ Sanity check that cmd exists. """
+        self.args.rule_cmds = [x.replace(',', '') for x in self.args.rule_cmds]
+        cmd_set = set(cog.parse.CMD_MAP.values())
+        cmd_set.remove('admin')
+        not_found = set(self.args.rule_cmds) - cmd_set
+        if not self.args.rule_cmds or len(not_found) != 0:
+            msg = f"""Rules require a command in following set:
+
+            {sorted(list(cmd_set))}
+
+            The following were not matched:
+            {', '.join(list(not_found))}
+            """
+            raise cog.exc.InvalidCommandArgs(msg)
+
     async def add(self):
         """
         Takes one of the following actions:
@@ -68,6 +84,21 @@ class Admin(PVPAction):
             for member in self.msg.mentions:
                 cogdb.query.add_admin(self.session, member)
             response = "Admins added:\n\n" + '\n'.join([member.name for member in self.msg.mentions])
+
+        else:
+            self.check_cmd()
+
+            if self.msg.channel_mentions:
+                cogdb.query.add_channel_perms(self.session, self.args.rule_cmds,
+                                              self.msg.channel.guild,
+                                              self.msg.channel_mentions)
+                response = "Channel permission added."
+
+            else:
+                cogdb.query.add_role_perms(self.session, self.args.rule_cmds,
+                                           self.msg.channel.guild,
+                                           self.msg.role_mentions)
+                response = "Role permission added."
 
         return response
 
@@ -83,7 +114,28 @@ class Admin(PVPAction):
                 admin.remove(self.session, cogdb.query.get_admin(self.session, member))
             response = "Admins removed:\n\n" + '\n'.join([member.name for member in self.msg.mentions])
 
+        else:
+            self.check_cmd()
+
+            if self.msg.channel_mentions:
+                cogdb.query.remove_channel_perms(self.session, self.args.rule_cmds,
+                                                 self.msg.channel.guild,
+                                                 self.msg.channel_mentions)
+                response = "Channel permission removed."
+
+            else:
+                cogdb.query.remove_role_perms(self.session, self.args.rule_cmds,
+                                              self.msg.channel.guild,
+                                              self.msg.role_mentions)
+                response = "Role permission removed."
+
         return response
+
+    async def show_rules(self):
+        """
+        Show all rules currently in effect for the guild.
+        """
+        return cogdb.query.show_guild_perms(self.session, self.msg.guild, prefix=self.bot.prefix)
 
     async def prune_bulk(self):  # pragma: no cover, requires deletions
         """
