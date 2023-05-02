@@ -34,7 +34,7 @@ class Match(ReprMixin):
         self.id = mat_id
         self.channel_id = channel_id
         self.limit = limit
-        self.players = set()
+        self.players = []
         self.teams = {}
         self.msg = None
 
@@ -56,9 +56,12 @@ class Match(ReprMixin):
                 break
 
             player = players.pop()
-            if self.teams and player not in self.players:
-                self.balance_teams(player)
-            self.players.add(player)
+            if player not in self.players:
+                self.players += [player]
+                if self.teams:
+                    self.balance_teams(player)
+
+        self.sort_players()
 
     def balance_teams(self, player):
         """
@@ -76,6 +79,12 @@ class Match(ReprMixin):
         team_num = random.choice(teams)
         self.teams[team_num] += [player]
 
+    def sort_players(self):
+        """ Sort players registered and in teams. """
+        self.players = list(sorted(self.players, key=lambda x: x.lower()))
+        for key in self.teams:
+            self.teams[key] = list(sorted(self.teams[key], key=lambda x: x.lower()))
+
     def remove_players(self, players):
         """
         Remove all named players from the match.
@@ -84,9 +93,10 @@ class Match(ReprMixin):
         Args:
             players: A list of player names to put into match.
         """
-        self.players = {x for x in self.players if x not in players}
+        self.players = [x for x in self.players if x not in players]
         for key in self.teams:
             self.teams[key] = [x for x in self.teams[key] if x not in players]
+        self.sort_players()
 
     def roll_teams(self):
         """
@@ -96,8 +106,9 @@ class Match(ReprMixin):
         half_players = self.num_players / 2
         # When half an odd number, randomly choose which team short 1
         team1_size = random.randint(math.floor(half_players), math.ceil(half_players))
-        self.teams[1] = list(sorted(random.sample(self.players, team1_size)))
-        self.teams[2] = list(sorted(self.players - set(self.teams[1])))
+        self.teams[1] = random.sample(self.players, team1_size)
+        self.teams[2] = set(self.players) - set(self.teams[1])
+        self.sort_players()
 
         return self.teams[1], self.teams[2]
 
@@ -109,9 +120,9 @@ class Match(ReprMixin):
         Returns: A dictionary to create an Embed with.
         """
         color = color if color else PVP_DEFAULT_HEX
-        embed_values = [{'name': 'Registered', 'value': '\n'.join(list(sorted(list(self.players), key=lambda x: x.lower()))), 'inline': True}]
+        embed_values = [{'name': 'Registered', 'value': '\n'.join(self.players), 'inline': True}]
         for team_num, players in self.teams.items():
-            embed_values += [{'name': f'Team {team_num}', 'value': '\n'.join(list(sorted(players, key=lambda x: x.lower()))), 'inline': True}]
+            embed_values += [{'name': f'Team {team_num}', 'value': '\n'.join(players), 'inline': True}]
         embed_values = sorted(embed_values, key=lambda x: x['name'])
 
         return {
@@ -151,7 +162,7 @@ class Match(ReprMixin):
 
         return self.msg
 
-    async def delete_msg(self):
+    async def delete_msg(self):  # pragma: no cover
         """
         Cleanup the match message and remove the match from storage.
         """
@@ -164,7 +175,7 @@ class Match(ReprMixin):
         except discord.DiscordException:
             pass
 
-    async def post_creation_loop(self, client):
+    async def post_creation_loop(self, client):  # pragma: no cover
         """
         Loop to handle updating this message from the provided buttons on match.
 
