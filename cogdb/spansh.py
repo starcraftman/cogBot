@@ -78,7 +78,7 @@ GALAXY_COMPRESSION_RATE = 6.35
 MYSQLDUMP_TEMPLATE = cog.util.rel_to_abs('data', 'dump.template.sql')
 MYSQLDUMP_LIMIT = 25000
 MYSQLDUMP_FNAME = Path(GALAXY_JSON).parent / 'dump.sql'
-CLEANUP_GLOBS = [f"{x}.json.*" for x in SPLIT_FILENAMES] + ['*.correct', '*.uniqu*', 'dump.sql']
+CLEANUP_GLOBS = [f"{x}.json.*" for x in SPLIT_FILENAMES] + ['*.correct', '*.uniqu*', 'dump.sql', 'comms.dump', 'mods.dump']
 SEP = "||"
 PROCESS_COMMODITIES = False
 
@@ -275,6 +275,72 @@ SModuleGroup.modules = sqla_orm.relationship(
     'SModule', cascade='save-update, delete, delete-orphan', back_populates='group', lazy='select')
 SModuleSold.module = sqla_orm.relationship(
     'SModule', uselist=False, viewonly=True, lazy='joined')
+
+
+class CommsModsWriter():
+    """
+    This is purely an optimization to cut down on time it takes to generate the large MYSQLDUMP_FNAME.
+    Instead of collecting all mods and comms to write out, incrementally write out the intended final text lines
+    to be replaced in the MYSQLDUMP_TEMPLATE.
+    Call finish at end of processing.
+    """
+    def __init__(self, comm_out, mods_out, *, line_limit):
+        self.comms_out = comm_out
+        self.mods_out = mods_out
+        self.comms_cnt = 0
+        self.mods_cnt = 0
+        self.line_limit = line_limit
+
+    def update_comms(self, comms):
+        """
+        Update the commodities file with commodities found.
+
+        Args:
+            comms: The commodities for a station.
+        """
+        comms_str = ','.join([f"({x['station_id']},{x['commodity_id']},{x['demand']},{x['supply']},{x['buy_price']},{x['sell_price']})" for x in comms])
+        if self.comms_cnt == 0:
+            self.comms_out.write("INSERT INTO `spansh_commodity_pricing` (station_id,commodity_id,demand,supply,buy_price,sell_price) VALUES ")
+        else:
+            comms_str = ',' + comms_str
+
+        self.comms_cnt += len(comms)
+        self.comms_out.write(comms_str)
+
+        if self.comms_cnt > self.line_limit:
+            self.comms_out.write(';\n')
+            self.comms_out.flush()
+            self.comms_cnt = 0
+
+    def update_mods(self, mods):
+        """
+        Update the modules file with modules found.
+
+        Args:
+            mods: The modules for a station.
+        """
+        mods_str = ','.join([f"({x['station_id']},{x['module_id']})" for x in mods])
+        if self.mods_cnt == 0:
+            self.mods_out.write("INSERT INTO `spansh_modules_sold` (station_id,module_id) VALUES ")
+        else:
+            mods_str = ',' + mods_str
+
+        self.mods_cnt += len(mods)
+        self.mods_out.write(mods_str)
+
+        if self.mods_cnt > self.line_limit:
+            self.mods_out.write(';\n')
+            self.mods_out.flush()
+            self.mods_cnt = 0
+
+    def finish(self):
+        """
+        Finish the last line written to files if it was started.
+        """
+        if self.comms_cnt:
+            self.comms_out.write(';\n')
+        if self.mods_cnt:
+            self.mods_out.write(';\n')
 
 
 def preload_tables(eddb_session, only_groups=False):  # pragma: no cover
@@ -1213,7 +1279,7 @@ def merge_factions(faction_fnames, control_fnames, out_fname):
         correct.write(']')
 
 
-def dump_commodities_modules(all_modules, all_commodities, *, fname):
+def dump_commodities_modules(comms_fname, mods_fname, *, fname):
     """
     Create a large mysqldump like file to import only the modules and commodities.
 
@@ -1225,22 +1291,11 @@ def dump_commodities_modules(all_modules, all_commodities, *, fname):
     with open(MYSQLDUMP_TEMPLATE, 'r', encoding='utf-8') as fin:
         text = fin.read()
 
-    modules_section = ''
-    while all_modules:
-        segment = all_modules[:MYSQLDUMP_LIMIT]
-        all_modules = all_modules[MYSQLDUMP_LIMIT:]
-        values_str = ','.join([f"({x['station_id']},{x['module_id']})" for x in segment])
-        modules_section += f"INSERT INTO `spansh_modules_sold` (station_id,module_id) VALUES {values_str};\n"
+    with open(comms_fname, 'r', encoding='utf-8') as fin:
+        text = text.replace('COMMODITY_PRICING_HERE\n', fin.read())
+    with open(mods_fname, 'r', encoding='utf-8') as fin:
+        text = text.replace('MODULES_SOLD_HERE\n', fin.read())
 
-    comm_section = ''
-    while all_commodities:
-        segment = all_commodities[:MYSQLDUMP_LIMIT]
-        all_commodities = all_commodities[MYSQLDUMP_LIMIT:]
-        values_str = ','.join([f"({x['station_id']},{x['commodity_id']},{x['demand']},{x['supply']},{x['buy_price']},{x['sell_price']})" for x in segment])
-        comm_section += f"INSERT INTO `spansh_commodity_pricing` (station_id,commodity_id,demand,supply,buy_price,sell_price) VALUES {values_str};\n"
-
-    text = text.replace('MODULES_SOLD_HERE\n', modules_section)
-    text = text.replace('COMMODITY_PRICING_HERE\n', comm_section)
     with open(fname, 'w', encoding='utf-8') as fout:
         fout.write(text)
 
@@ -1368,21 +1423,28 @@ def merge_stations(station_results, galaxy_folder):  # pragma: no cover
             except KeyError:
                 all_stations[key] = current
 
-    all_modules, all_commodities = [], []
     try:
         out_streams = {x: open(galaxy_folder / f'{x}.json.unique', 'w', encoding='utf-8') for x in STATION_KEYS}
-        for stream in out_streams.values():
-            stream.write('[\n')
+        comms_fname, mods_fname = galaxy_folder / 'comms.dump', galaxy_folder / 'mods.dump'
+        with open(comms_fname, 'w', encoding='utf-8') as comms_out, open(mods_fname, 'w', encoding='utf-8') as mods_out:
+            comms_writer = CommsModsWriter(comms_out, mods_out, line_limit=MYSQLDUMP_LIMIT)
 
-        for info in all_stations.values():
-            out_streams['stations'].write(str(info['station']) + ',\n')
-            out_streams['features'].write(str(info['features']) + ',\n')
-            out_streams['economies'].write(str(info['economy']) + ',\n')
-            all_modules += info['modules_sold']
-            all_commodities += info['commodity_pricing']
+            for stream in out_streams.values():
+                stream.write('[\n')
+
+            for info in all_stations.values():
+                out_streams['stations'].write(str(info['station']) + ',\n')
+                out_streams['features'].write(str(info['features']) + ',\n')
+                out_streams['economies'].write(str(info['economy']) + ',\n')
+                if info['commodity_pricing']:
+                    comms_writer.update_comms(info['commodity_pricing'])
+                if info['modules_sold']:
+                    comms_writer.update_mods(info['modules_sold'])
+
+            comms_writer.finish()
 
         if PROCESS_COMMODITIES:
-            dump_commodities_modules(all_modules, all_commodities, fname=MYSQLDUMP_FNAME)
+            dump_commodities_modules(comms_fname, mods_fname, fname=MYSQLDUMP_FNAME)
 
         return MYSQLDUMP_FNAME
     finally:

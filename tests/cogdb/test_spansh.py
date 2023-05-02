@@ -2,6 +2,7 @@
 Tests for cogdb.spansh
 """
 import glob
+import io
 import json
 import os
 import pathlib
@@ -548,3 +549,64 @@ def test_cleanup_scratch_files():
         assert not glob.glob(os.path.join(tdir, '*'))
     finally:
         shutil.rmtree(tdir)
+
+
+def test_commswriter_update_comms():
+    expect = "INSERT INTO `spansh_commodity_pricing` (station_id,commodity_id,demand,supply,buy_price,sell_price) VALUES (67790,128924331,0,0,615864,0),(67790,128924330,500,0,6000,0);\n"
+    comms_out, mods_out = io.StringIO(), io.StringIO()
+    writer = cogdb.spansh.CommsModsWriter(comms_out, mods_out, line_limit=100)
+    fake_comms = [{
+        'buy_price': 615864,
+        'commodity_id': 128924331,
+        'demand': 0,
+        'sell_price': 0,
+        'station_id': 67790,
+        'supply': 0,
+    }, {
+        'buy_price': 6000,
+        'commodity_id': 128924330,
+        'demand': 500,
+        'sell_price': 0,
+        'station_id': 67790,
+        'supply': 0,
+    }]
+    writer.update_comms(fake_comms)
+    writer.finish()
+    assert expect == comms_out.getvalue()
+
+
+def test_commswriter_update_mods():
+    expect = "INSERT INTO `spansh_modules_sold` (station_id,module_id) VALUES (67790,128049511),(67790,128049512);\n"
+    comms_out, mods_out = io.StringIO(), io.StringIO()
+    writer = cogdb.spansh.CommsModsWriter(comms_out, mods_out, line_limit=100)
+
+    fake_mods = [
+        {'module_id': 128049511, 'station_id': 67790},
+        {'module_id': 128049512, 'station_id': 67790},
+    ]
+    writer.update_mods(fake_mods)
+    writer.finish()
+    assert expect == mods_out.getvalue()
+
+
+def test_commswriter_finish():
+    comms_out, mods_out = io.StringIO(), io.StringIO()
+    writer = cogdb.spansh.CommsModsWriter(comms_out, mods_out, line_limit=100)
+    fake_comms = [{
+        'buy_price': 615864,
+        'commodity_id': 128924331,
+        'demand': 0,
+        'sell_price': 0,
+        'station_id': 67790,
+        'supply': 0,
+    }, {
+        'buy_price': 6000,
+        'commodity_id': 128924330,
+        'demand': 500,
+        'sell_price': 0,
+        'station_id': 67790,
+        'supply': 0,
+    }]
+    writer.update_comms(fake_comms)
+    writer.finish()
+    assert comms_out.getvalue().endswith(';\n')
