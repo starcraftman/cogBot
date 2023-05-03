@@ -68,7 +68,7 @@ SPANSH_STATION_SERVICES = {
     'Universal Cartographics': 'universal_cartographics',
 }
 SPLIT_FILENAMES = [
-    'systems', 'factions', 'influences', 'faction_states', 'controlling_factions'
+    'systems', 'factions', 'influences', 'faction_states', 'controlling_factions', 'stations'
 ]
 STATION_KEYS = ['stations', 'features', 'economies']
 COMMODITY_STATION_LIMIT = 30000
@@ -898,7 +898,6 @@ def transform_galaxy_json(number, total, galaxy_json):
         total: The total number of jobs started.
         galaxy_json: The spansh galaxy_json
     """
-    all_stations = []
     cnt = -1
     parent_dir = Path(galaxy_json).parent
     out_streams = {x: open(parent_dir / f'{x}.json.{number:02}', 'w', encoding='utf-8') for x in SPLIT_FILENAMES}
@@ -950,13 +949,11 @@ def transform_galaxy_json(number, total, galaxy_json):
                             out_streams['controlling_factions'].write(str(control) + ',\n')
                         del info['controlling_factions']
 
-                all_stations += list(stations.values())
+                    out_streams['stations'].write(str(info) + ',\n')
         finally:
             for stream in out_streams.values():
                 stream.write(']')
                 stream.close()
-
-        return all_stations
 
 
 def update_name_map(missing_names, *, known_fname, new_fname):
@@ -1247,9 +1244,7 @@ def merge_factions(faction_fnames, control_fnames, out_fname):
         control_fnames: A list of filenames that contain extracted control faction names owning stations.
         out_fname: The filename to write all information out to.
     """
-    correct_fname = str(out_fname).replace('unique', 'correct')
     seen_factions, correct_factions = {}, {}
-
     for fname in faction_fnames:
         with open(fname, 'r', encoding='utf-8') as fin:
             for faction in eval(fin.read()):
@@ -1272,6 +1267,7 @@ def merge_factions(faction_fnames, control_fnames, out_fname):
             fout.write(str(faction) + ',\n')
         fout.write(']')
 
+    correct_fname = str(out_fname).replace('unique', 'correct')
     with open(correct_fname, 'w', encoding='utf-8') as correct:
         correct.write('[\n')
         for faction in correct_factions.values():
@@ -1404,18 +1400,20 @@ def manual_overrides(eddb_session):
     eddb_session.bulk_update_mappings(Faction, faction_overrides)
 
 
-def merge_stations(station_results, galaxy_folder):  # pragma: no cover
+def merge_stations(station_fnames, galaxy_folder):  # pragma: no cover
     """
     Merge and keep only latest duplicate of stations found in station_results.
     Once merged, dump information to the required station files and dump.sql for commodities if needed.
 
     Args:
-        station_results: A list of a list of dictionary objects representing found stations + station information.
+        station_results: A list of generators for all stations found.
         galaxy_folder: The folder containing galaxy_json and all scratch files.
     """
     all_stations = {}
-    for stations in station_results:
-        for current in stations:
+    for station_fname in station_fnames:
+        with open(station_fname, 'r', encoding='utf-8') as fin:
+            station_list = eval(fin.read())
+        for current in station_list:
             try:
                 key = current['station']['id']
                 if current['station']['updated_at'] > all_stations[key]['station']['updated_at']:
@@ -1485,59 +1483,61 @@ async def parallel_process(galaxy_json, *, jobs):  # pragma: no cover
                 pool,
                 transform_galaxy_json, num, jobs, GALAXY_JSON,
             )]
-
         await asyncio.wait(futs)
-        all_stations = [x.result() for x in futs]
 
         # Factions have to be sorted into a unique file then bulk inserted early
         # This includes names of factions ONLY appearing in controllingFaction of stations
         print_no_newline(" Done!\nFiltering unique factions ...")
         unique_factions = galaxy_folder / 'factions.json.unique'
-        await loop.run_in_executor(
+        futs += [loop.run_in_executor(
             pool,
             merge_factions,
             [galaxy_folder / f'factions.json.{x:02}' for x in range(0, jobs)],
             [galaxy_folder / f'controlling_factions.json.{x:02}' for x in range(0, jobs)],
             unique_factions
-        )
-        print_no_newline(" Done!\nBulk inserting unique factions to db ...")
+        )]
+
+        #  Player carriers can be spotted multiple places, only keep oldest data
+        print_no_newline("Filtering unique stations present ...")
+        station_fnames = [galaxy_folder / f'stations.json.{x:02}' for x in range(0, jobs)]
+        futs += [loop.run_in_executor(
+            pool,
+            merge_stations, station_fnames, galaxy_folder
+        )]
+
+        await asyncio.wait(futs)
+        print("Filtering factions and stations completed.")
+
+        print_no_newline("Bulk inserting unique factions to db ...")
         with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
             bulk_insert_from_file(eddb_session, fname=unique_factions, cls=Faction)
 
-        print_no_newline(f" Done!\nStarting {jobs} jobs to import non station data ...")
-        futs = []
+        print_no_newline("Bulk inserting non-station data ...")
         for num in range(0, jobs):
-            futs = [loop.run_in_executor(
+            futs += [loop.run_in_executor(
                 pool,
                 import_galaxy_objects, num, galaxy_folder
             )]
-            await asyncio.wait(futs)
-
-        #  Player carriers can be spotted multiple places, only keep oldest data
-        print_no_newline(" Done!\nFiltering unique stations present ...")
-        await loop.run_in_executor(
-            pool,
-            merge_stations, all_stations, galaxy_folder
-        )
-
-        print_no_newline(" Done!\nImporting stations, features and station economies ...")
-        await loop.run_in_executor(
-            pool,
-            import_stations_data,
-            galaxy_folder
-        )
-        print(" Done!")
 
         if PROCESS_COMMODITIES:
-            print_no_newline("Importing station commodity prices and modules sold ...")
+            print("Importing station commodity prices and modules in background ...")
             main_db = cog.util.CONF.dbs.main
             proc = await asyncio.create_subprocess_shell(
                 f"mysql -u {main_db.user} -p{main_db['pass']} eddb < {MYSQLDUMP_FNAME}",
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
             )
-            await proc.wait()
-            print(" Done!")
+            futs += [proc.wait()]
+
+        print_no_newline("Importing stations, features and station economies ...")
+        futs += [loop.run_in_executor(
+            pool,
+            import_stations_data,
+            galaxy_folder
+        )]
+
+        await asyncio.wait(futs)
+        print("All data has been imported into database.")
 
         with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
             manual_overrides(eddb_session)
