@@ -82,8 +82,8 @@ MYSQLDUMP_FNAME = Path(GALAXY_JSON).parent / 'dump.sql'
 CLEANUP_GLOBS = [f"{x}.json.*" for x in SPLIT_FILENAMES] + ['*.correct', '*.uniqu*', 'dump.sql', 'comms.dump', 'mods.dump']
 SEP = "||"
 PROCESS_COMMODITIES = False
-# Merging stations in memory takes a lot of memory, ensure it is available before opting for that.
-STATIONS_IN_MEMORY = psutil.virtual_memory().available > 43 * 1024 ** 3
+# Merging stations in memory takes more memory, ensure it is available before opting for that.
+STATIONS_IN_MEMORY = psutil.virtual_memory().available > 26 * 1024 ** 3
 
 
 class SpanshParsingError(Exception):
@@ -956,7 +956,7 @@ def transform_galaxy_json(number, total, galaxy_json):
                     if STATIONS_IN_MEMORY:
                         stations_seen += [info]
                     else:
-                        out_streams['stations'].write(str(info) + ',\n')
+                        out_streams['stations'].write(str(info) + '\n')
         finally:
             for stream in out_streams.values():
                 stream.write(']')
@@ -1430,28 +1430,34 @@ def merge_stations(stations_seen, galaxy_folder, jobs):  # pragma: no cover
         station_results: A list of generators for all stations found.
         galaxy_folder: The folder containing galaxy_json and all scratch files.
     """
-    def stations_generator():
+    def memory_generator():
         """
-        Depending on method used, generate station lists to be processed.
-        Yields one list of stations at a time.
+        Generator that will iterate all seen_stations and yield one station at a time.
         """
-        if STATIONS_IN_MEMORY:
-            for stations in stations_seen:
-                yield stations
-        else:
-            for station_fname in [galaxy_folder / f'stations.json.{num:02}' for num in range(0, jobs)]:
-                with open(station_fname, 'r', encoding='utf-8') as fin:
-                    yield eval(fin.read())
+        for stations in stations_seen:
+            for current in stations:
+                yield current
+
+    def fname_generator():
+        """
+        Generator that will iterate all station files and yield one station at a time.
+        """
+        for station_fname in [galaxy_folder / f'stations.json.{num:02}' for num in range(0, jobs)]:
+            with open(station_fname, 'r', encoding='utf-8') as fin:
+                for line in fin:
+                    if line.startswith('[') or line.startswith(']'):
+                        continue
+                    yield eval(line)
 
     all_stations = {}
-    for stations in stations_generator():
-        for current in stations:
-            try:
-                key = current['station']['id']
-                if current['station']['updated_at'] > all_stations[key]['station']['updated_at']:
-                    all_stations[key] = current
-            except KeyError:
+    station_generator = memory_generator if STATIONS_IN_MEMORY else fname_generator
+    for current in station_generator():
+        try:
+            key = current['station']['id']
+            if current['station']['updated_at'] > all_stations[key]['station']['updated_at']:
                 all_stations[key] = current
+        except KeyError:
+            all_stations[key] = current
 
     try:
         out_streams = {x: open(galaxy_folder / f'{x}.json.unique', 'w', encoding='utf-8') for x in STATION_KEYS}
@@ -1538,7 +1544,7 @@ async def parallel_process(galaxy_json, *, jobs):  # pragma: no cover
         memory = 'in memory' if STATIONS_IN_MEMORY else 'from files'
         print(f"Filtering unique stations {memory}, keeping most recent update ...")
         futs += [loop.run_in_executor(
-            pool,
+            None,
             merge_stations, [x.result() for x in station_futs], galaxy_folder, jobs
         )]
 
