@@ -24,6 +24,7 @@ import os
 import re
 from pathlib import Path
 
+import psutil
 import sqlalchemy as sqla
 import sqlalchemy.orm as sqla_orm
 from sqlalchemy.schema import UniqueConstraint
@@ -81,6 +82,8 @@ MYSQLDUMP_FNAME = Path(GALAXY_JSON).parent / 'dump.sql'
 CLEANUP_GLOBS = [f"{x}.json.*" for x in SPLIT_FILENAMES] + ['*.correct', '*.uniqu*', 'dump.sql', 'comms.dump', 'mods.dump']
 SEP = "||"
 PROCESS_COMMODITIES = False
+# Merging stations in memory takes a lot of memory, ensure it is available before opting for that.
+STATIONS_IN_MEMORY = psutil.virtual_memory().available > 43 * 1024 ** 3
 
 
 class SpanshParsingError(Exception):
@@ -898,6 +901,7 @@ def transform_galaxy_json(number, total, galaxy_json):
         total: The total number of jobs started.
         galaxy_json: The spansh galaxy_json
     """
+    stations_seen = []
     cnt = -1
     parent_dir = Path(galaxy_json).parent
     out_streams = {x: open(parent_dir / f'{x}.json.{number:02}', 'w', encoding='utf-8') for x in SPLIT_FILENAMES}
@@ -949,11 +953,16 @@ def transform_galaxy_json(number, total, galaxy_json):
                             out_streams['controlling_factions'].write(str(control) + ',\n')
                         del info['controlling_factions']
 
-                    out_streams['stations'].write(str(info) + ',\n')
+                    if STATIONS_IN_MEMORY:
+                        stations_seen += [info]
+                    else:
+                        out_streams['stations'].write(str(info) + ',\n')
         finally:
             for stream in out_streams.values():
                 stream.write(']')
                 stream.close()
+
+        return stations_seen
 
 
 def update_name_map(missing_names, *, known_fname, new_fname):
@@ -1336,7 +1345,19 @@ def single_insert_from_file(eddb_session, *, fname, cls):
                 print(str(exc))
 
 
-def import_galaxy_objects(number, galaxy_folder):  # pragma: no cover
+def import_factions_data(fname):  # pragma: no cover
+    """
+    Bulk import all factions data.
+
+    Args:
+        number: The number of this particular process.
+        galaxy_folder: The folder where all temporary files were written out.
+    """
+    with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
+        bulk_insert_from_file(eddb_session, fname=fname, cls=Faction)
+
+
+def import_non_station_data(number, galaxy_folder):  # pragma: no cover
     """
     Bulk import all transformed database objects from their expected files.
     This is the compliment of transform_galaxy_json.
@@ -1400,7 +1421,7 @@ def manual_overrides(eddb_session):
     eddb_session.bulk_update_mappings(Faction, faction_overrides)
 
 
-def merge_stations(station_fnames, galaxy_folder):  # pragma: no cover
+def merge_stations(stations_seen, galaxy_folder, jobs):  # pragma: no cover
     """
     Merge and keep only latest duplicate of stations found in station_results.
     Once merged, dump information to the required station files and dump.sql for commodities if needed.
@@ -1409,11 +1430,22 @@ def merge_stations(station_fnames, galaxy_folder):  # pragma: no cover
         station_results: A list of generators for all stations found.
         galaxy_folder: The folder containing galaxy_json and all scratch files.
     """
+    def stations_generator():
+        """
+        Depending on method used, generate station lists to be processed.
+        Yields one list of stations at a time.
+        """
+        if STATIONS_IN_MEMORY:
+            for stations in stations_seen:
+                yield stations
+        else:
+            for station_fname in [galaxy_folder / f'stations.json.{num:02}' for num in range(0, jobs)]:
+                with open(station_fname, 'r', encoding='utf-8') as fin:
+                    yield eval(fin.read())
+
     all_stations = {}
-    for station_fname in station_fnames:
-        with open(station_fname, 'r', encoding='utf-8') as fin:
-            station_list = eval(fin.read())
-        for current in station_list:
+    for stations in stations_generator():
+        for current in stations:
             try:
                 key = current['station']['id']
                 if current['station']['updated_at'] > all_stations[key]['station']['updated_at']:
@@ -1457,16 +1489,19 @@ async def parallel_process(galaxy_json, *, jobs):  # pragma: no cover
 
     Step 1: Transform the data from the large JSON to many smaller files, each
             file will store only the kwargs for one type of database object (i.e. System).
+            See transform_galaxy_json which is run in parallel jobs.
     Step 2: Collect all unique faction names from the transformed data, create a single file with
             all unique faction information. Load all this in bulk into the database.
-    Step 3: Bulk insert all kwargs from systems, influences and faction states.
-    Step 4: Reprocess the split stations files and combine entries into one unique file per object type.
+    Step 3: Merge all split stations information, combine entries into one unique merged dictionary.
             When combining keep only latest updated_at time for each station.
             Write these out to STATION_KEYS files so each bulk insertable.
             Write out modules and commodities to a mysqldump like file.
-    Step 5: Bulk insert from the files that were split in previous step.
-    Step 6: Execute mysql command to bulk push into db from the dump of step 4.
-    Step 7: Manual corrections/overrides
+    Step 4: Bulk insert all kwargs for merged factions, required for ForeignKeys.
+    Step 5: In parallel carry out:
+        - Bulk insert all kwargs for systems, influences and faction states.
+        - Bulk insert all kwargs for stations, station features and station economies.
+        - Execute mysql command to bulk insert into db the commodities pricing and modules sold written to dump.
+    Step 6: Manual corrections/overrides.
 
     Args:
         galaxy_json: The path to the galaxy_json from spansh.
@@ -1484,43 +1519,53 @@ async def parallel_process(galaxy_json, *, jobs):  # pragma: no cover
                 transform_galaxy_json, num, jobs, GALAXY_JSON,
             )]
         await asyncio.wait(futs)
+        station_futs = futs
+        futs = []
 
         # Factions have to be sorted into a unique file then bulk inserted early
         # This includes names of factions ONLY appearing in controllingFaction of stations
-        print_no_newline(" Done!\nFiltering unique factions ...")
-        unique_factions = galaxy_folder / 'factions.json.unique'
+        print(" Done!\nFiltering unique factions from transformed data ...")
+        unique_factions_fname = galaxy_folder / 'factions.json.unique'
         futs += [loop.run_in_executor(
             pool,
             merge_factions,
             [galaxy_folder / f'factions.json.{x:02}' for x in range(0, jobs)],
             [galaxy_folder / f'controlling_factions.json.{x:02}' for x in range(0, jobs)],
-            unique_factions
+            unique_factions_fname
         )]
 
         #  Player carriers can be spotted multiple places, only keep oldest data
-        print_no_newline("Filtering unique stations present ...")
-        station_fnames = [galaxy_folder / f'stations.json.{x:02}' for x in range(0, jobs)]
+        memory = 'in memory' if STATIONS_IN_MEMORY else 'from files'
+        print(f"Filtering unique stations {memory}, keeping most recent update ...")
         futs += [loop.run_in_executor(
             pool,
-            merge_stations, station_fnames, galaxy_folder
+            merge_stations, [x.result() for x in station_futs], galaxy_folder, jobs
         )]
 
         await asyncio.wait(futs)
         print("Filtering factions and stations completed.")
+        futs = []
 
-        print_no_newline("Bulk inserting unique factions to db ...")
+        print_no_newline("Importing filtered factions to db ...")
         with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
-            bulk_insert_from_file(eddb_session, fname=unique_factions, cls=Faction)
+            bulk_insert_from_file(eddb_session, fname=unique_factions_fname, cls=Faction)
 
-        print_no_newline("Bulk inserting non-station data ...")
+        print(" Done!\nImporting systems, faction stations and faction influences data ...")
         for num in range(0, jobs):
             futs += [loop.run_in_executor(
                 pool,
-                import_galaxy_objects, num, galaxy_folder
+                import_non_station_data, num, galaxy_folder
             )]
 
+        print("Importing stations, station features and station economies data ...")
+        futs += [loop.run_in_executor(
+            pool,
+            import_stations_data,
+            galaxy_folder
+        )]
+
         if PROCESS_COMMODITIES:
-            print("Importing station commodity prices and modules in background ...")
+            print("Importing station commodity prices and modules sold data ...")
             main_db = cog.util.CONF.dbs.main
             proc = await asyncio.create_subprocess_shell(
                 f"mysql -u {main_db.user} -p{main_db['pass']} eddb < {MYSQLDUMP_FNAME}",
@@ -1529,15 +1574,8 @@ async def parallel_process(galaxy_json, *, jobs):  # pragma: no cover
             )
             futs += [proc.wait()]
 
-        print_no_newline("Importing stations, features and station economies ...")
-        futs += [loop.run_in_executor(
-            pool,
-            import_stations_data,
-            galaxy_folder
-        )]
-
         await asyncio.wait(futs)
-        print("All data has been imported into database.")
+        print("All imports have completed.")
 
         with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
             manual_overrides(eddb_session)
