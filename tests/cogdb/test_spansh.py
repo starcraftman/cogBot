@@ -467,44 +467,6 @@ def test_dump_commodities_and_modules(eddb_session):
             assert expect_mods in text
 
 
-def test_bulk_insert_from_file(eddb_session):
-    fake_id = 9999
-    try:
-        with tempfile.NamedTemporaryFile(mode='w') as tfile:
-            tfile.write('[\n')
-            tfile.write(str({'id': fake_id, 'name': 'NotPresent'}) + ',\n')
-            tfile.write(']\n')
-            tfile.flush()
-            cogdb.spansh.bulk_insert_from_file(eddb_session, fname=tfile.name, cls=cogdb.spansh.SCommodityGroup)
-            assert eddb_session.query(cogdb.spansh.SCommodityGroup).\
-                filter(cogdb.spansh.SCommodityGroup.id == fake_id).\
-                one()
-    finally:
-        eddb_session.rollback()
-        eddb_session.query(cogdb.spansh.SCommodityGroup).\
-            filter(cogdb.spansh.SCommodityGroup.id == fake_id).\
-            delete()
-
-
-def test_single_insert_from_file(eddb_session):
-    fake_id = 9999
-    try:
-        with tempfile.NamedTemporaryFile(mode='w') as tfile:
-            tfile.write('[\n')
-            tfile.write(str({'id': fake_id, 'name': 'NotPresent'}) + ',\n')
-            tfile.write(']\n')
-            tfile.flush()
-            cogdb.spansh.single_insert_from_file(eddb_session, fname=tfile.name, cls=cogdb.spansh.SCommodityGroup)
-            assert eddb_session.query(cogdb.spansh.SCommodityGroup).\
-                filter(cogdb.spansh.SCommodityGroup.id == fake_id).\
-                one()
-    finally:
-        eddb_session.rollback()
-        eddb_session.query(cogdb.spansh.SCommodityGroup).\
-            filter(cogdb.spansh.SCommodityGroup.id == fake_id).\
-            delete()
-
-
 def test_manual_overrides(eddb_session):
     try:
         found = eddb_session.query(cogdb.eddb.Faction).filter(cogdb.eddb.Faction.id == 75878).one()

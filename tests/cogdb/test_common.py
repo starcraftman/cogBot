@@ -7,6 +7,7 @@ import shutil
 import tempfile
 
 import cogdb.common
+import cogdb.spansh
 from cogdb.eddb import SettlementSecurity
 
 
@@ -56,3 +57,41 @@ def test_preload_table_from_file(eddb_session):
     finally:
         shutil.rmtree(tempdir)
         cogdb.common.PRELOAD_DIR = saved
+
+
+def test_bulk_insert_from_file(eddb_session):
+    fake_id = 9999
+    try:
+        with tempfile.NamedTemporaryFile(mode='w') as tfile:
+            tfile.write('[\n')
+            tfile.write(str({'id': fake_id, 'name': 'NotPresent'}) + ',\n')
+            tfile.write(']\n')
+            tfile.flush()
+            cogdb.common.bulk_insert_from_file(eddb_session, fname=tfile.name, cls=cogdb.spansh.SCommodityGroup)
+            assert eddb_session.query(cogdb.spansh.SCommodityGroup).\
+                filter(cogdb.spansh.SCommodityGroup.id == fake_id).\
+                one()
+    finally:
+        eddb_session.rollback()
+        eddb_session.query(cogdb.spansh.SCommodityGroup).\
+            filter(cogdb.spansh.SCommodityGroup.id == fake_id).\
+            delete()
+
+
+def test_single_insert_from_file(eddb_session):
+    fake_id = 9999
+    try:
+        with tempfile.NamedTemporaryFile(mode='w') as tfile:
+            tfile.write('[\n')
+            tfile.write(str({'id': fake_id, 'name': 'NotPresent'}) + ',\n')
+            tfile.write(']\n')
+            tfile.flush()
+            cogdb.common.single_insert_from_file(eddb_session, fname=tfile.name, cls=cogdb.spansh.SCommodityGroup)
+            assert eddb_session.query(cogdb.spansh.SCommodityGroup).\
+                filter(cogdb.spansh.SCommodityGroup.id == fake_id).\
+                one()
+    finally:
+        eddb_session.rollback()
+        eddb_session.query(cogdb.spansh.SCommodityGroup).\
+            filter(cogdb.spansh.SCommodityGroup.id == fake_id).\
+            delete()

@@ -4,6 +4,8 @@ Common functionality to share amongs all database code.
 import json
 import os
 
+import sqlalchemy as sqla
+
 import cog.util
 
 PRELOAD_DIR = cog.util.rel_to_abs('data', 'preload')
@@ -61,6 +63,45 @@ def preload_table_from_file(session, *, cls):
     """
     if not session.query(cls).first():
         with open(os.path.join(PRELOAD_DIR, cls.__name__ + '.json'), 'r', encoding='utf-8') as fin:
-            objects = [cls(**x) for x in json.load(fin)]
-            session.add_all(objects)
+            session.bulk_insert_mappings(cls, json.load(fin))
             session.flush()
+
+
+def bulk_insert_from_file(session, *, fname, cls):
+    """
+    Bulk insert all objects into database based on information from a file.
+
+    Args:
+        session: A session onto the database to insert into.
+        fname: The filename with kwargs of the objects, one per line.
+        cls: The sqlalchemy database class to intantiate for each object.
+    """
+    with open(fname, 'r', encoding='utf-8') as fin:
+        session.bulk_insert_mappings(cls, eval(fin.read()))
+        session.commit()
+
+
+def single_insert_from_file(session, *, fname, cls):
+    """
+    Single insert all objects into database based on information from a file.
+    This will print every object first and then commit them individually to identify
+    issues in bulk import.
+
+    Args:
+        session: A session onto the EDDB.
+        fname: The filename with kwargs of the objects, one per line.
+        cls: The sqlalchemy database class to intantiate for each object.
+    """
+    print('fname', fname)
+    with open(fname, 'r', encoding='utf-8') as fin:
+        rows = eval(fin.read())
+
+        for row in rows:
+            db_obj = cls(**row)
+            print(db_obj)
+            try:
+                session.add(db_obj)
+                session.commit()
+            except sqla.exc.IntegrityError as exc:
+                session.rollback()
+                print(str(exc))

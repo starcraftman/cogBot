@@ -33,6 +33,7 @@ import cogdb
 import cogdb.common
 import cogdb.eddb
 import cogdb.spy_squirrel
+from cogdb.common import bulk_insert_from_file
 from cogdb.eddb import (
     Base, LEN, Allegiance, Economy, Faction, Influence, FactionState, FactionActiveState, Government,
     Power, PowerState, Security, System, Station, StationType, StationEconomy, StationFeatures,
@@ -1305,58 +1306,6 @@ def dump_commodities_modules(comms_fname, mods_fname, *, fname):
         fout.write(text)
 
 
-def bulk_insert_from_file(eddb_session, *, fname, cls):
-    """
-    Bulk insert all objects into database based on information from a file.
-
-    Args:
-        eddb_session: A session onto the EDDB.
-        fname: The filename with kwargs of the objects, one per line.
-        cls: The sqlalchemy database class to intantiate for each object.
-    """
-    with open(fname, 'r', encoding='utf-8') as fin:
-        eddb_session.bulk_insert_mappings(cls, eval(fin.read()))
-        eddb_session.commit()
-
-
-def single_insert_from_file(eddb_session, *, fname, cls):
-    """
-    Single insert all objects into database based on information from a file.
-    This will print every object first and then commit them individually to identify
-    issues in bulk import.
-
-    Args:
-        eddb_session: A session onto the EDDB.
-        fname: The filename with kwargs of the objects, one per line.
-        cls: The sqlalchemy database class to intantiate for each object.
-    """
-    print('fname', fname)
-    with open(fname, 'r', encoding='utf-8') as fin:
-        rows = eval(fin.read())
-
-        for row in rows:
-            db_obj = cls(**row)
-            print(db_obj)
-            try:
-                eddb_session.add(db_obj)
-                eddb_session.commit()
-            except sqla.exc.IntegrityError as exc:
-                eddb_session.rollback()
-                print(str(exc))
-
-
-def import_factions_data(fname):  # pragma: no cover
-    """
-    Bulk import all factions data.
-
-    Args:
-        number: The number of this particular process.
-        galaxy_folder: The folder where all temporary files were written out.
-    """
-    with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
-        bulk_insert_from_file(eddb_session, fname=fname, cls=Faction)
-
-
 def import_non_station_data(number, galaxy_folder):  # pragma: no cover
     """
     Bulk import all transformed database objects from their expected files.
@@ -1367,6 +1316,8 @@ def import_non_station_data(number, galaxy_folder):  # pragma: no cover
         number: The number of this particular process.
         galaxy_folder: The folder where all temporary files were written out.
     """
+    cogdb.eddb_engine.execute("ALTER TABLE eddb.influence AUTO_INCREMENT = 1;")
+    cogdb.eddb_engine.execute("ALTER TABLE eddb.faction_active_states AUTO_INCREMENT = 1;")
     galaxy_folder = Path(galaxy_folder)
     with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
         bulk_insert_from_file(eddb_session, fname=galaxy_folder / f'systems.json.{number:02}', cls=System)
