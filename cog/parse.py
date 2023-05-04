@@ -565,13 +565,13 @@ def subs_repair(subs, prefix):
     desc = f"""Find a station with both L pad and shipyard near you.
 
 **{prefix}repair arnemil**
-        Show suitable stations <= 15ly from Arnemil with arrival <= 1000ls
-**{prefix}repair arnemil --arrival 4000**
-**{prefix}repair arnemil -a 4000**
-        Show suitable stations <= 15ly from Arnemil with arrival <= 4000ls
-**{prefix}repair arnemil --distance 30**
-**{prefix}repair arnemil -d 30**
-        Show suitable stations <= 30ly from Arnemil with arrival <= 1000ls
+        Show suitable stations <= 75ly from Arnemil with arrival <= 5000ls
+**{prefix}repair arnemil --arrival 10000**
+**{prefix}repair arnemil -a 10000**
+        Show suitable stations <= 75ly from Arnemil with arrival <= 10000ls
+**{prefix}repair arnemil --distance 100**
+**{prefix}repair arnemil -d 100**
+        Show suitable stations <= 100ly from Arnemil with arrival <= 5000ls
 **{prefix}repair arnemil -m**
         Show suitable stations to repair at. Include medium pads.
         Note: M pad stations won't have shipyards, will have outfitting though.
@@ -580,8 +580,8 @@ def subs_repair(subs, prefix):
     sub.set_defaults(cmd='Repair')
     CMD_MAP['Repair'] = 'repair'
     sub.add_argument('system', nargs="+", help='The reference system.')
-    sub.add_argument('-a', '--arrival', type=int, default=1000, help='Station must be within arrival ls.')
-    sub.add_argument('-d', '--distance', type=int, default=15, help='Max system distance')
+    sub.add_argument('-a', '--arrival', type=int, default=5000, help='Station must be within arrival ls.')
+    sub.add_argument('-d', '--distance', type=int, default=75, help='Max system distance')
     sub.add_argument('-m', '--medium', action='store_true', default=False, help='The include mpad only stations.')
 
 

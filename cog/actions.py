@@ -1596,8 +1596,9 @@ class Repair(Action):
     Find a nearby station with a shipyard.
     """
     async def execute(self):
-        if self.args.distance > 30:
-            raise cog.exc.InvalidCommandArgs("Searching beyond **30**ly would produce too long a list.")
+        max_dist = cogdb.eddb.DEFAULT_DIST * 3
+        if self.args.distance > max_dist:
+            raise cog.exc.InvalidCommandArgs(f"Searching beyond **{max_dist}**ly would be too taxing a query.")
 
         with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
             stations = await self.bot.loop.run_in_executor(
