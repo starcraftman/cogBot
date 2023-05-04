@@ -28,6 +28,7 @@ from cog.util import TIME_STRP, TIME_STRP_MICRO
 import cogdb
 import cogdb.eddb
 import cogdb.query
+import cogdb.spansh
 from cogdb.eddb import (Conflict, Faction, Influence, System, Station,
                         StationEconomy, StationFeatures, FactionActiveState, FactionPendingState,
                         FactionRecoveringState)
@@ -191,20 +192,25 @@ class EDMCJournal():
     def flush_system_to_db(self):
         """
         Flush the system information to the database.
-        Only update systems alrady in the db.
+        Update or insert ANY system that is currently mapped in EDDB_MAPS.
 
         Raises:
             StopParsing - There is no reason to continue parsing, system not of interest.
         """
         system = self.parsed['system']
         try:
+            system['id'] = EDDB_MAPS['systems'][system['name']]
+        except KeyError as exc:
+            raise StopParsing('Ignoring system') from exc
+
+        try:
             system_db = self.eddb_session.query(System).filter(System.name == system['name']).one()
             system_db.update(**system)
-            self.eddb_session.commit()
-            system['id'] = system_db.id
-            self.flushed += [system_db]
-        except sqla_orm.exc.NoResultFound as exc:
-            raise StopParsing() from exc  # No interest in systems not in db
+        except sqla_orm.exc.NoResultFound:
+            system_db = System(**system)
+            self.eddb_session.add(system_db)
+        self.eddb_session.commit()
+        self.flushed += [system_db]
 
     def parse_and_flush_carrier(self):
         """
@@ -285,13 +291,15 @@ class EDMCJournal():
         Flush the station information to db.
         """
         if not self.parsed.get('station'):
-            return
+            raise StopParsing('Ignoring station.')
+
+        station = self.parsed['station']
+        station_features = station.pop('features')
+        station_economies = station.pop('economies')
+        if 'name' not in station or 'system_id' not in station:
+            raise StopParsing('Ignoring station.')
 
         try:
-            station = self.parsed['station']
-            station_features = station.pop('features')
-            station_economies = station.pop('economies')
-
             station_db = self.eddb_session.query(Station).\
                 filter(Station.name == station['name'],
                        Station.system_id == station['system_id']).\
@@ -299,35 +307,37 @@ class EDMCJournal():
             station_db.update(**station)
             station['id'] = station_db.id
 
+        except sqla_orm.exc.NoResultFound:
+            try:
+                station_key = cogdb.spansh.station_key(system=self.parsed['system'], station=station)
+                station['id'] = EDDB_MAPS['stations'][station_key]
+                station_db = Station(**station)
+                self.eddb_session.add(station_db)
+                self.eddb_session.flush()
+            except KeyError as exc:
+                raise StopParsing('Ignoring station.') from exc
+        self.flushed += [station_db]
+
+        try:
             if station_features:
                 station_features_db = self.eddb_session.query(StationFeatures).\
-                    filter(StationFeatures.id == station_db.id).\
+                    filter(StationFeatures.id == station['id']).\
                     one()
                 station_features_db.update(**station_features)
-                station_features['id'] = station_db.id
-            self.eddb_session.flush()
+                station_features['id'] = station['id']
+                self.eddb_session.flush()
 
         except sqla_orm.exc.NoResultFound:
-            station_db = Station(**station)
-            self.eddb_session.add(station_db)
-            self.eddb_session.flush()
-
-            station_features['id'] = station_db.id
+            station_features['id'] = station['id']
             station_features_db = StationFeatures(**station_features)
             self.eddb_session.add(station_features_db)
             self.eddb_session.flush()
-
-        except KeyError:
-            pass
-
-        finally:
-            if self.parsed.get('station'):
-                self.flushed += [station_db, station_features_db]
+        self.flushed += [station_features_db]
 
         if station_economies:
-            self.eddb_session.query(StationEconomy).filter(StationEconomy.id == station_db.id).delete()
+            self.eddb_session.query(StationEconomy).filter(StationEconomy.id == station['id']).delete()
             for econ in station_economies:
-                econ['id'] = station_db.id
+                econ['id'] = station['id']
                 self.eddb_session.add(StationEconomy(**econ))
 
         self.eddb_session.flush()
@@ -347,11 +357,9 @@ class EDMCJournal():
             raise StopParsing("No Factions or system not parsed before.") from exc
 
         influences, factions = [], {}
-        faction_names = [x['Name'] for x in self.body['Factions']]
-        faction_dbs = {x.name: x for x in self.eddb_session.query(Faction).filter(Faction.name.in_(faction_names)).all()}
         for body_faction in self.body['Factions']:
             faction = {
-                'id': faction_dbs[body_faction['Name']].id,
+                'id': EDDB_MAPS['factions'][body_faction['Name']],
                 'name': body_faction['Name'],
                 'updated_at': system['updated_at'],
             }
@@ -365,7 +373,7 @@ class EDMCJournal():
             influence = {
                 'system_id': system['id'],
                 'faction_id': faction['id'],
-                'is_controlling_faction': faction_dbs[body_faction['Name']].id == system['controlling_minor_faction_id'],
+                'is_controlling_faction': EDDB_MAPS['factions'][body_faction['Name']] == system['controlling_minor_faction_id'],
                 'updated_at': system['updated_at'],
             }
             if "Happiness" in body_faction and body_faction["Happiness"]:
@@ -718,6 +726,7 @@ os.mkdir(JOURNAL_CARS)
 try:
     with cogdb.session_scope(cogdb.EDDBSession) as init_session:
         MAPS = create_id_maps(init_session)
+        EDDB_MAPS = cogdb.spansh.eddb_maps(init_session)
 except (sqla_orm.exc.NoResultFound, sqla.exc.ProgrammingError):
     MAPS = None
 
