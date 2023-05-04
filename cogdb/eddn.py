@@ -192,14 +192,14 @@ class EDMCJournal():
     def flush_system_to_db(self):
         """
         Flush the system information to the database.
-        Update or insert ANY system that is currently mapped in EDDB_MAPS.
+        Update or insert ANY system that is currently mapped in MAPS.
 
         Raises:
             StopParsing - There is no reason to continue parsing, system not of interest.
         """
         system = self.parsed['system']
         try:
-            system['id'] = EDDB_MAPS['systems'][system['name']]
+            system['id'] = MAPS['systems'][system['name']]
         except KeyError as exc:
             raise StopParsing('Ignoring system') from exc
 
@@ -310,7 +310,7 @@ class EDMCJournal():
         except sqla_orm.exc.NoResultFound:
             try:
                 station_key = cogdb.spansh.station_key(system=self.parsed['system'], station=station)
-                station['id'] = EDDB_MAPS['stations'][station_key]
+                station['id'] = MAPS['stations'][station_key]
                 station_db = Station(**station)
                 self.eddb_session.add(station_db)
                 self.eddb_session.flush()
@@ -359,7 +359,7 @@ class EDMCJournal():
         influences, factions = [], {}
         for body_faction in self.body['Factions']:
             faction = {
-                'id': EDDB_MAPS['factions'][body_faction['Name']],
+                'id': MAPS['factions'][body_faction['Name']],
                 'name': body_faction['Name'],
                 'updated_at': system['updated_at'],
             }
@@ -373,7 +373,7 @@ class EDMCJournal():
             influence = {
                 'system_id': system['id'],
                 'faction_id': faction['id'],
-                'is_controlling_faction': EDDB_MAPS['factions'][body_faction['Name']] == system['controlling_minor_faction_id'],
+                'is_controlling_faction': MAPS['factions'][body_faction['Name']] == system['controlling_minor_faction_id'],
                 'updated_at': system['updated_at'],
             }
             if "Happiness" in body_faction and body_faction["Happiness"]:
@@ -530,6 +530,13 @@ def create_id_maps(session):
         maps['PowerplayState']['HomeSystem'] = maps['PowerplayState']['Controlled']
     except KeyError:
         pass
+
+    with open(cogdb.spansh.SYSTEM_MAPF, 'r', encoding='utf-8') as fin:
+        maps['systems'] = json.load(fin)
+    with open(cogdb.spansh.STATION_MAPF, 'r', encoding='utf-8') as fin:
+        maps['stations'] = json.load(fin)
+    with open(cogdb.spansh.FACTION_MAPF, 'r', encoding='utf-8') as fin:
+        maps['factions'] = json.load(fin)
 
     return maps
 
@@ -726,7 +733,6 @@ os.mkdir(JOURNAL_CARS)
 try:
     with cogdb.session_scope(cogdb.EDDBSession) as init_session:
         MAPS = create_id_maps(init_session)
-        EDDB_MAPS = cogdb.spansh.eddb_maps(init_session)
 except (sqla_orm.exc.NoResultFound, sqla.exc.ProgrammingError):
     MAPS = None
 
