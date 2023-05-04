@@ -176,8 +176,10 @@ class EDMCJournal():
         if "SystemSecondEconomy" in body:
             system['secondary_economy_id'] = MAPS['Economy'][body["SystemSecondEconomy"].replace("$economy_", "")[:-1]]
         if "SystemFaction" in body:
-            faction_id = self.eddb_session.query(Faction.id).filter(Faction.name == body["SystemFaction"]["Name"]).scalar()
-            system['controlling_minor_faction_id'] = faction_id
+            try:
+                system['controlling_minor_faction_id'] = MAPS['factions'][body["SystemFaction"]["Name"]]
+            except KeyError:
+                system['controlling_minor_faction_id'] = None
         if "SystemSecurity" in body:
             security = body['SystemSecurity'].replace("$SYSTEM_SECURITY_", "").replace("$GAlAXY_MAP_INFO_", "")[:-1]
             system['security_id'] = MAPS["Security"][security]
@@ -276,7 +278,10 @@ class EDMCJournal():
                 if economy['economy_id'] not in [x['economy_id'] for x in station['economies']]:
                     station['economies'] += [economy]
         if "StationFaction" in body:
-            station['controlling_minor_faction_id'] = self.eddb_session.query(Faction.id).filter(Faction.name == body['StationFaction']['Name']).scalar()
+            try:
+                station['controlling_minor_faction_id'] = MAPS['factions'][body["StationFaction"]["Name"]]
+            except KeyError:
+                station['controlling_minor_faction_id'] = None
         if "StationServices" in body:
             station['features'] = {x: x in body["StationServices"] for x in STATION_FEATS}
             station['features']['updated_at'] = station['updated_at']  # pylint: disable=unsupported-assignment-operation
