@@ -112,7 +112,6 @@ class EDMCJournal():
         log = logging.getLogger(__name__)
         try:
             log.info(pprint.pformat(self.parse_system()))
-            self.flush_system_to_db()
 
             parsed = self.parse_and_flush_carrier()
             if parsed:
