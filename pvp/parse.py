@@ -219,7 +219,7 @@ def subs_match(subs, prefix):
                                  description='Match subcommands', dest='subcmd')
 
     subcmd = subcmds.add_parser('start', help='Create the initial match.')
-    subcmd.add_argument('--limit', default=20, type=int, help='Limit of players in match.')
+    subcmd.add_argument('--limit', default=8, type=int, help='Limit of players in match.')
     subcmd.add_argument('players', nargs='*', default=[], help='The player to add.')
 
     subcmd = subcmds.add_parser('add', help='Add the mentioned commanders.')
