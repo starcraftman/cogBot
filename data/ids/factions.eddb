@@ -10151,7 +10151,7 @@ Beta-1 Tucanae Empire Consulate||10150
 Rho Tucanae Empire Consulate||10151
 Fotla Guardians of Tradition||10152
 Rho Tucanae Allied Services||10153
-Rho Tucanae  Co-operative||10154
+Rho Tucanae Co-operative||10154
 63 Omicron-2 Cancri Public Co||10155
 Union of 63 Omicron-2 Cancri Green Party||10156
 Liberty Party of 63 Omicron-2 Cancri||10157
@@ -27152,7 +27152,7 @@ Jin Sho Bao Blue Brotherhood||27153
 Jin Sho Bao Regulatory State||27154
 Jin Sho Bao Liberals||27155
 HIP 80364 party||27156
-Stardreamer Systems||27157
+Drty||27157
 United Yemai Dominion||27158
 United Yemai Green Party||27159
 Yemai Ring||27160
@@ -44429,7 +44429,6 @@ Independent Eta Horologii Labour||44430
 Natural 44 Eta Librae Focus||44432
 Worker's Party of 44 Eta Librae||44433
 Hand Gang of 44 Eta Librae||44434
-44 Eta Librae  Vision Corp.||44435
 3 Corvi Purple Cartel||44436
 League of 3 Corvi Movement||44437
 3 Corvi Inc||44438
@@ -44627,10 +44626,10 @@ Punuri Future||44629
 Punuri Purple State Network||44630
 Bureau of Punuri Flag||44631
 Bureau of Punuri Conservatives||44632
-Tawell Independents||44633
-Tawell Front||44634
+Mbukub Cabe Independents||44633
+Mbukub Cabe Front||44634
 Silver Public Corp.||44635
-Tawell Party||44636
+Mbukub Cabe Party||44636
 Union of Wodiwodi for Equality||44637
 Bureau of Wodiwodi Law Party||44638
 Qama Legal Ltd||44639
@@ -48401,7 +48400,6 @@ Lords of Amairii||48403
 Bhavanates United||48404
 Jet Travel Holdings||48405
 Moror Stakeholders||48406
-Q'eqchilir Republic Party||48407
 Q'eqchilir Travel PLC||48408
 Q'eqchilir Blue Syndicate||48409
 New Q'eqchilir Law Party||48410
@@ -58294,7 +58292,6 @@ Marquis du Puelchel||58296
 Puelchel Network||58297
 Puelchel Blue Mob||58298
 Puelchel Stakeholders||58299
-Movement for Wolf 1230 for Equality||58300
 Wolf 1230 Solutions||58301
 Natural Wolf 1230 Defence Force||58302
 Natural Wolf 1230 Regulatory State||58303
@@ -74923,7 +74920,6 @@ Tell's Wrath of Ugrivirii||74930
 The Archon Horde||74931
 The Brighi Star Squad||74932
 The Bright Star Squad||74933
-The Eternal Fleet||74934
 The Forgotten||74935
 The Great Empire of Star||74936
 The Guardians||74937
@@ -75076,7 +75072,7 @@ The system name Triad||75083
 The Void Society||75084
 The Wolf Society||75085
 Toby's Independent Traders||75086
-Tridicate||75087
+Tridicate Confederacy||75087
 True Federal Corporation||75088
 United Imperial Dairies||75089
 Ursa Minor Beta Publishing Corporation||75090
@@ -75774,7 +75770,6 @@ Nanobreakers Interstellar||75791
 Pirate||75792
 Family of Gliese 506.2||75793
 Biowaste Extraction And Supply Team||75794
-Fathers of Nontime||75795
 Lords of Mirdhr||75796
 Canonn Gnosis Division||75798
 Pilots Federation Local Branch||75799
@@ -77076,7 +77071,7 @@ Legio Mercantilus||77096
 White Shark Inquisitor||77097
 7th Security Services||77098
 Thorne Dominion||77099
-Open Pilot's Initiative||77100
+Open Pilots Initiative||77100
 Church of Maranunggu Federal Corps||77101
 Landsburg Starlines Exp.||77102
 Coldsun Impireacht||77103
@@ -77545,9 +77540,11 @@ White & Red Trade Federation||77565
 Daikul Interstellar Corp.||77566
 Elitist Ops||77567
 Wings of Icarus||77568
+Yarden Bond||77569
 Sovereignty Council for Peace and Order||77570
 Union of Trade States||77571
 The Ken'Tarii Mandate||77572
+The Northern Culture||77573
 Scallywag Industries||77574
 The 404||77575
 Dashing Dogs||77576
@@ -77600,15 +77597,19 @@ Protos Drug Empire||77624
 United Dark Energy Astronomical Division||77626
 Alemannen Corp.||77627
 The Crimson Syndicate Party||77628
+Torval Mining Ltd||77629
 The 18th Division||77630
 Budtech Metal Corp.||77631
 Orion University||77632
 Project Chaos||77633
 Blue Phoenix Company||77635
 The Isolationists||77636
+Aimed At The Stars||77637
 Traders & Explorers Inc.||77638
 Triple X Brazilian Corporation||77639
 The Holy Slavic Empire||77640
+Rosa Dayette||77641
+Baltanos||77642
 Eleanor Bresa||77643
 Yi Shen||77644
 Brewer Logistics||77645
@@ -77620,7 +77621,7 @@ Scrappers Union||77652
 Far Suns Initiative||77653
 Galactic Edge Corp||77654
 Aurora Venatores||77656
-Nova Paresa||77657
+Gao Patron's Principles||77657
 Extreme Order of Light||77659
 Corporate Union of Djabea||77660
 Cosmic Broadband and Telecom||77663
@@ -77649,6 +77650,7 @@ O.R.I.O.N.||77686
 Spes Nova Laboratories||77687
 Order of Omphalos||77688
 The Hosemen||77689
+Intragalactic Scientific Organisation||77690
 The Cerberus Corporation||77691
 Applied Science Investments||77692
 Astra Praeterita||77693
@@ -77665,7 +77667,7 @@ Dirty Brothers Syndicate||77704
 Black Skull Conclave||77705
 Ironheart Corporation||77708
 Lost Soul Syndicate||77709
-Lupus Malum Syndicate||77710
+Valta||77710
 Hungarian Wolves||77711
 Romanian Space Community||77712
 Asgard's Ronin||77713
@@ -77792,3 +77794,54 @@ Jurisdiction of The Chancellery of The Corps||77846
 The Lodge Expansion Initiative||77847
 GOAM Guild of Associated Mercenaries||77848
 Federal Delta Division||77849
+Frontline Solutions||77850
+Space Patrol Operations Battalion||77851
+Royal Hyena Task Force||77852
+Chimaera Cooperative||77853
+Brigade Raccloune du Firmament||77854
+Space Tourism Action Board||77855
+Amor Fati||77856
+Legionary Defense Force||77857
+The Federation of the Red Sun||77858
+Claws of the West||77859
+The Order of the Liberi||77860
+Federal Fleet Marine Force||77864
+Regiment of Imperial Mongrels||77865
+KINDERS Corp.||77866
+The Hull Seals||77867
+Asterion||77869
+Nova Science Team||77870
+Hadriani Detainment Company||77871
+Miner Leagues||77872
+Syndicate of PAHK||77873
+Galactic Explorers Guild||77874
+Outer Planets Anarchists Armada||77875
+Apex Executive||77876
+Thirteenth Echelon||77877
+The Eyes of Leshak||77878
+Mors Universalis Demolition Division||77879
+"Fearless" Bounty Hunters Corp.||77880
+Defensores Hispanos del Cosmos||77882
+Hephaestus Initiative||77883
+Cradle of Exploration||77884
+Infinity Coalition||77885
+The Pensioner's Corp||77886
+Lost Crew||77888
+AATP Cooperative||77889
+TCE Interstellar Peace Operators||77890
+Yellow Steel Corp||77891
+MADDISON Interstellar||77892
+Ashes of Exploration||77894
+FreedomSky||77895
+Barrier of Royal Grade||77896
+Deus Ex Machina||77897
+Interspecies Friendship Society||77898
+M.S.S.A||77899
+Xeno Refugee Coalition||77900
+Materia Auxiliatores||77901
+Cosmic Travel Agency||77902
+Federal Rescue Corps||77904
+Independent Rescue Coalition||77906
+Allied Rescue Team||77907
+Imperial Rescue Service||77908
+None||77909

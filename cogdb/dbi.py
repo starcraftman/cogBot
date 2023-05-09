@@ -132,12 +132,14 @@ def confirm_msg(args):
         msg += "    Update the ID maps for the dump\n"
     if args.caches:
         msg += "    Update the cached modules and commodity information.\n"
-    if args.recreate:
-        msg += "    Recreate all EDDB, spy and spansh tables and preload data.\n"
-    else:
-        msg += "    Empty all EDDB, spy and spansh tables and preload data.\n"
 
-    msg += """    Parse all the information present in current galaxy_stations.json
+    if not args.skip:
+        if args.recreate:
+            msg += "    Recreate all EDDB, spy and spansh tables and preload data.\n"
+        else:
+            msg += "    Empty all EDDB, spy and spansh tables and preload data.\n"
+
+        msg += """    Parse all the information present in current galaxy_stations.json
     Replace the following possibly existing EDDB tables with that information:
         cogdb.eddb.{System, Faction, Influence, Station, StationFeatures, StationEconomy, FactionActiveState}
 """
@@ -249,6 +251,9 @@ def main():  # pragma: no cover
     if args.caches:
         refresh_module_commodity_cache()
 
+    if args.skip:
+        return
+
     if args.recreate:
         print_no_newline("Recreating all EDDB tables ...")
         cogdb.eddb.recreate_tables()
@@ -266,9 +271,6 @@ def main():  # pragma: no cover
         cogdb.spy_squirrel.preload_tables(eddb_session)
         cogdb.spansh.preload_tables(eddb_session)
     print(" Done!")
-
-    if args.skip:
-        return
 
     try:
         asyncio.new_event_loop().run_until_complete(

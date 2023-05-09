@@ -14,6 +14,7 @@ import shutil
 import sys
 import time
 import zlib
+from pathlib import Path
 
 import sqlalchemy as sqla
 import sqlalchemy.orm as sqla_orm
@@ -35,13 +36,11 @@ from cogdb.eddb import (Conflict, Faction, Influence, System, Station,
 
 EDDN_ADDR = "tcp://eddn.edcd.io:9500"
 TIMEOUT = 600000
-# Keys of form "softeareName $schemaRef"
+# Keys of form $schemaRef"
 SCHEMA_MAP = {
     #  "https://eddn.edcd.io/schemas/blackmarket/1": "BlackmarketMsg",
     #  "https://eddn.edcd.io/schemas/commodity/3": "CommodityMsg",
-    "EDDiscovery https://eddn.edcd.io/schemas/journal/1": "EDMCJournal",
-    "E:D Market Connector [Linux] https://eddn.edcd.io/schemas/journal/1": "EDMCJournal",
-    "E:D Market Connector [Windows] https://eddn.edcd.io/schemas/journal/1": "EDMCJournal",
+    "https://eddn.edcd.io/schemas/journal/1": "EDMCJournal",
     #  "https://eddn.edcd.io/schemas/outfitting/2": "OutfitMsg",
     #  "https://eddn.edcd.io/schemas/shipyard/2": "ShipyardMsg",
 }
@@ -49,13 +48,44 @@ LOG_FILE = "/tmp/eddn_log"
 ALL_MSGS = '/tmp/msgs'
 JOURNAL_MSGS = '/tmp/msgs_journal'
 JOURNAL_CARS = '/tmp/msgs_journal_cars'
-STATION_FEATS = [x for x in StationFeatures.__dict__ if
-                 x not in ('id', 'station') and not x.startswith('_')]
+STATION_FEATS = [x for x in StationFeatures.__dict__ if x not in ('id', 'station') and not x.startswith('_')]
+
+
+def station_key(*, system, station):
+    """
+    Provide a unique key for a given station.
+    Player Fleet Carriers are unique across the entire system by name.
+    Otherwise, station names are not unique globally and will
+    be paired with system.
+
+    Args:
+        system: The name of the system.
+        station: The station information object.
+
+    Returns: A string to uniquely identify station.
+    """
+    key = f"{system}{cogdb.spansh.SEP}{station['name']}"
+    if station['type_id'] == 24:
+        key = station['name']
+
+    return key
 
 
 class StopParsing(Exception):
     """
-    Interrupt any further parsing for a variety of reasons.
+    Interrupt any further parsing of the msg.
+    """
+
+
+class SkipDatabaseFlush(Exception):
+    """
+    No need to perform any updates to database.
+    """
+
+
+class SchemaIgnored(Exception):
+    """
+    The schema is not supported or intentionally ignored.
     """
 
 
@@ -95,34 +125,39 @@ class EDMCJournal():
         """ The UTC timestamp of the message. """
         return int(self.date_obj.timestamp())
 
-    @property
-    def system_is_useful(self):
-        """
-        Returns true if the system is in fact useful.
-        ID is only set for systems tracked already in DB.
-        """
-        try:
-            return self.parsed['system']['id']
-        except KeyError:
-            return False
-
     def parse_msg(self):
         """
         Perform whole message parsing.
         """
         log = logging.getLogger(__name__)
         try:
-            log.info(pprint.pformat(self.parse_system()))
+            if 'Factions' in self.body:
+                log.info("System %s: Parsing factions", self.body.get('StarSystem', 'Unknown System'))
+                log.debug(pprint.pformat(self.parse_factions()))
+                self.flush_factions_to_db()
+                self.eddb_session.flush()
 
-            parsed = self.parse_and_flush_carrier()
-            if parsed:
-                log_msg(self.msg, path=JOURNAL_CARS, fname=log_fname(self.msg))
-                log.info(pprint.pformat(parsed))
+            system = self.parse_system()
+            log.info("System %s: Parsing system", self.body.get('StarSystem', 'Unknown System'))
+            log.info(pprint.pformat(system))
 
-            log.debug(pprint.pformat(self.parse_station()))
-            log.debug(pprint.pformat(self.parse_factions()))
-            log_msg(self.msg, path=JOURNAL_MSGS, fname=log_fname(self.msg))
-            log.debug(pprint.pformat(self.parse_conflicts()))
+            if 'StationName' in self.body and "StationType" in self.body:
+                log.info("System %s: Parsing station", self.body.get('StarSystem', 'Unknown System'))
+                log.debug(pprint.pformat(self.parse_station()))
+
+                if self.body["StationType"] == "FleetCarrier":
+                    parsed = self.parse_and_flush_carrier()
+                    log_msg(self.msg, path=JOURNAL_CARS, fname=log_fname(self.msg))
+                    log.info(pprint.pformat(parsed))
+
+            if 'Factions' in self.body:
+                log.info("System %s: Parsing influences", self.body.get('StarSystem', 'Unknown System'))
+                log.debug(pprint.pformat(self.parse_influence()))
+                log_msg(self.msg, path=JOURNAL_MSGS, fname=log_fname(self.msg))
+                if 'Conflicts' in self.body:
+                    log.info("System %s: Parsing conflicts", self.body.get('StarSystem', 'Unknown System'))
+                    log.debug(pprint.pformat(self.parse_conflicts()))
+
         except StopParsing:
             self.eddb_session.rollback()
 
@@ -133,35 +168,38 @@ class EDMCJournal():
         Update the database based on parsed information.
 
         All parts are optional depending on how much was parsed.
+
+        Raises:
+            SkipDatabaseFlush: Cancel any further processing of the flush.
         """
         if self.parsed.get('station'):
             self.flush_station_to_db()
-        if self.parsed.get('factions'):
-            self.flush_factions_to_db()
         if self.parsed.get('influences'):
             self.flush_influences_to_db()
         if self.parsed.get('conflicts'):
             self.flush_conflicts_to_db()
-        self.eddb_session.commit()
+
 
     def parse_system(self):
         """
         Parse the system portion of an EDDN message and return anything present in dictionary.
 
         Raises:
-            StopParsing: Could not parse a system or it was not of interest.
+            SkipDatabaseFlush: Could not parse a system or it was not of interest.
         """
-        try:
-            body = self.body
-            if 'StarSystem' not in body:
-                raise StopParsing("No StarSystem found or message malformed.")
-        except KeyError as exc:
-            raise StopParsing("No StarSystem found or message malformed.") from exc
+        body = self.body
+        if 'StarSystem' not in body:
+            raise SkipDatabaseFlush("No StarSystem or message malformed.")
 
-        system = {
-            'name': body['StarSystem'],
-            'updated_at': self.timestamp
-        }
+        try:
+            system = {
+                'name': body['StarSystem'],
+                'id': MAPS['systems'][body['StarSystem']],
+                'updated_at': self.timestamp
+            }
+        except KeyError as exc:
+            raise SkipDatabaseFlush(f"Ignoring system: {body['StarSystem']}") from exc
+
         if "Population" in body:
             system['population'] = body["Population"]
         if "Powers" in body:
@@ -195,16 +233,8 @@ class EDMCJournal():
         """
         Flush the system information to the database.
         Update or insert ANY system that is currently mapped in MAPS.
-
-        Raises:
-            StopParsing - There is no reason to continue parsing, system not of interest.
         """
         system = self.parsed['system']
-        try:
-            system['id'] = MAPS['systems'][system['name']]
-        except KeyError as exc:
-            raise StopParsing('Ignoring system') from exc
-
         try:
             system_db = self.eddb_session.query(System).filter(System.name == system['name']).one()
             system_db.update(**system)
@@ -220,11 +250,7 @@ class EDMCJournal():
 
         N.B. It will be flushed to db upon return to ensure survival.
         """
-        body = self.body
-        if not ("StationType" in body and body["StationType"] == "FleetCarrier"):
-            return None
-
-        cid = body["StationName"]
+        cid = self.body["StationName"]
         system = self.parsed["system"]["name"]
         date = self.date_obj
         ids_dict = {cid: {'id': cid, 'system': system, 'updated_at': date.replace(tzinfo=None)}}
@@ -247,15 +273,12 @@ class EDMCJournal():
         Side Effect: Will update the System database object as querying it is required.
 
         Raises:
-            StopParsing: One or more prerequisites were not met to continue parsing.
+            SkipDatabaseFlush: Could not parse the station, remaining information irrelevant.
         """
-        try:
-            body = self.body
-            system = self.parsed['system']
-            if 'StationName' not in body or 'id' not in system:
-                raise StopParsing("No Station or system not parsed before.")
-        except KeyError as exc:
-            raise StopParsing("No Station or system not parsed before.") from exc
+        body = self.body
+        system = self.parsed.get('system')
+        if not system or 'id' not in system:
+            raise SkipDatabaseFlush("Station: system improperly parsed.")
 
         station = {
             'economies': [],
@@ -294,33 +317,63 @@ class EDMCJournal():
     def flush_station_to_db(self):
         """
         Flush the station information to db.
+        Several cases:
+            Station exists then update.
+            Station is a fleet carrier and new, add it.
+            Station is not a fleet carrier and new, ignore it.
+
+        Raises:
+            SkipDatabaseFlush: The station isn't valid to put in database, remaining info irrelevant.
         """
         if not self.parsed.get('station'):
-            raise StopParsing('Ignoring station.')
+            raise SkipDatabaseFlush("No parsed station.")
 
         station = self.parsed['station']
         station_features = station.pop('features')
         station_economies = station.pop('economies')
-        if 'name' not in station or 'system_id' not in station:
-            raise StopParsing('Ignoring station.')
+        if 'name' not in station or 'system_id' not in station or 'type_id' not in station:
+            raise SkipDatabaseFlush("Station missing: name, type_id or system_id.")
 
         try:
             station_db = self.eddb_session.query(Station).\
-                filter(Station.name == station['name'],
-                       Station.system_id == station['system_id']).\
-                one()
+                filter(Station.name == station['name'])
+
+            if station['type_id'] != 24:  # Only filter system when not a fleet carrier
+                station_db = station_db.filter(Station.system_id == station['system_id'])
+
+            station_db = station_db.one()
             station_db.update(**station)
             station['id'] = station_db.id
 
         except sqla_orm.exc.NoResultFound:
+            system_name = self.parsed['system']['name'] if self.parsed.get('system') else 'unknown'
+            station.update({
+                'is_planetary': False,
+                'max_landing_pad_size': 'L',
+            })
             try:
-                station_key = cogdb.spansh.station_key(system=self.parsed['system'], station=station)
-                station['id'] = MAPS['stations'][station_key]
+                key = station_key(system=self.parsed['system']['name'], station=station)
+                logging.getLogger(__name__).error("StationKey: %s", key)
+                station['id'] = MAPS['stations'][key]
+
+                station_db = Station(**station)
+                self.eddb_session.add(station_db)
+                self.eddb_session.commit()
+            except KeyError as exc:
+                if station['type_id'] != 24:
+                    raise SkipDatabaseFlush(f"Ignoring station: {station['name']} ({system_name})") from exc
+
+                logging.getLogger(__name__).warning("New Fleet Carrier: %s", station['name'])
+
                 station_db = Station(**station)
                 self.eddb_session.add(station_db)
                 self.eddb_session.flush()
-            except KeyError as exc:
-                raise StopParsing('Ignoring station.') from exc
+
+                station['id'] = station_db.id
+                MAPS['stations'][key] = station_db.id
+                with open(cogdb.spansh.NEW_CARRIERS, 'a', encoding='utf-8') as fout:
+                    fout.write(f"{station['name']}{cogdb.spansh.SEP}{station['id']}\n")
+
         self.flushed += [station_db]
 
         try:
@@ -350,58 +403,36 @@ class EDMCJournal():
     def parse_factions(self):
         """
         Parse the factions listed in the EDMC message.
+        When new factions encountered, add them to the database.
+        Factions are a pre-requisite in the database for systems, stations and influences.
 
         Raises:
             StopParsing: One or more prerequisites were not met to continue parsing.
         """
-        try:
-            system = self.parsed['system']
-            if 'Factions' not in self.body or 'id' not in system:
-                raise StopParsing("No Factions or system not parsed before.")
-        except KeyError as exc:
-            raise StopParsing("No Factions or system not parsed before.") from exc
-
-        influences, factions = [], {}
+        factions = {}
         for body_faction in self.body['Factions']:
             faction = {
-                'id': MAPS['factions'][body_faction['Name']],
                 'name': body_faction['Name'],
-                'updated_at': system['updated_at'],
+                'updated_at': self.timestamp,
             }
             for key in ("Allegiance", "Government"):
                 if key in body_faction:
                     faction[f"{key.lower()}_id"] = MAPS[key][body_faction[key]]
             if "FactionState" in body_faction:
                 faction["state_id"] = MAPS["FactionState"][body_faction["FactionState"]]
+
+            try:
+                faction['id'] = MAPS['factions'][body_faction['Name']],
+            except KeyError:
+                # Faction not mapped, add it immediately, incurs write out cost
+                added = cogdb.spansh.update_faction_map([body_faction['name']], cache=FACTION_CACHE)
+                MAPS['factions'][body_faction['Name']] = added[body_faction['name']]
+                faction['id'] = added[body_faction['name']]
+
             factions[faction['name']] = faction
 
-            influence = {
-                'system_id': system['id'],
-                'faction_id': faction['id'],
-                'is_controlling_faction': MAPS['factions'][body_faction['Name']] == system['controlling_minor_faction_id'],
-                'updated_at': system['updated_at'],
-            }
-            if "Happiness" in body_faction and body_faction["Happiness"]:
-                influence['happiness_id'] = int(body_faction["Happiness"][-2])
-            if "Influence" in body_faction:
-                influence["influence"] = body_faction["Influence"]
-            influences += [influence]
-
-            for key, cls in [("ActiveStates", FactionActiveState),
-                             ("PendingStates", FactionPendingState),
-                             ("RecoveringStates", FactionRecoveringState)]:
-                if key in body_faction:
-                    faction[cog.util.camel_to_c(key)] = [cls(**{
-                        'system_id': system['id'],
-                        'faction_id': faction['id'],
-                        'state_id': MAPS['FactionState'][x['State']]
-                    })
-                        for x in body_faction[key]
-                    ]
-
         self.parsed['factions'] = factions
-        self.parsed['influences'] = influences
-        return factions, influences
+        return factions
 
     def flush_factions_to_db(self):
         """
@@ -433,6 +464,45 @@ class EDMCJournal():
 
         self.eddb_session.flush()
 
+    def parse_influence(self):
+        """
+        Parse the influence and stateslisted in the journal message.
+        """
+        system = self.parsed.get('system')
+        factions = self.parsed.get('factions')
+        if not factions or not system or 'id' not in system:
+            raise SkipDatabaseFlush("Influences: system or factions improperly parsed.")
+
+        influences = []
+        for body_faction in self.body['Factions']:
+            faction = factions[body_faction['Name']]
+            influence = {
+                'system_id': system['id'],
+                'faction_id': faction['id'],
+                'is_controlling_faction': MAPS['factions'][body_faction['Name']] == system['controlling_minor_faction_id'],
+                'updated_at': system['updated_at'],
+            }
+            if "Happiness" in body_faction and body_faction["Happiness"]:
+                influence['happiness_id'] = int(body_faction["Happiness"][-2])
+            if "Influence" in body_faction:
+                influence["influence"] = body_faction["Influence"]
+            influences += [influence]
+
+            for key, cls in [("ActiveStates", FactionActiveState),
+                             ("PendingStates", FactionPendingState),
+                             ("RecoveringStates", FactionRecoveringState)]:
+                if key in body_faction:
+                    faction[cog.util.camel_to_c(key)] = [cls(**{
+                        'system_id': system['id'],
+                        'faction_id': faction['id'],
+                        'state_id': MAPS['FactionState'][x['State']]
+                    })
+                        for x in body_faction[key]
+                    ]
+
+        self.parsed['influences'] = influences
+        return influences
+
     def flush_influences_to_db(self):
         """
         Flush influences information to db.
@@ -457,13 +527,10 @@ class EDMCJournal():
         """
         Parse any conflicts prsent in the message.
         """
-        try:
-            system = self.parsed['system']
-            factions = self.parsed['factions']
-            if 'Conflicts' not in self.body or 'id' not in system:
-                raise StopParsing("No Conflicts or system not parsed before.")
-        except KeyError as exc:
-            raise StopParsing("No Conflicts or system not parsed before.") from exc
+        system = self.parsed.get('system')
+        factions = self.parsed.get('factions')
+        if not system or not factions or 'id' not in system:
+            raise SkipDatabaseFlush("Conflicts: system or factions improperly parsed.")
 
         conflicts = []
         for conflict in self.body['Conflicts']:
@@ -551,14 +618,17 @@ def create_parser(msg):
     Factory to create msg parsers.
 
     Raises:
-        KeyError: When the class or part of msg is not supported.
+        SchemaIgnored: When the schema of the message cannot be handled.
 
     Returns:
         A parser ready to parse the message.
     """
-    key = f"{msg['header']['softwareName']} {msg['$schemaRef']}"
+    key = f"{msg['$schemaRef']}"
     logging.getLogger(__name__).info("Schema Key: %s", key)
-    cls_name = SCHEMA_MAP[key]
+    try:
+        cls_name = SCHEMA_MAP[key]
+    except KeyError as exc:
+        raise SchemaIgnored(f"Cannot handle schema: {key}") from exc
     cls = getattr(sys.modules[__name__], cls_name)
 
     with cogdb.session_scope(cogdb.Session) as session, \
@@ -616,31 +686,31 @@ def get_msgs(sub):  # pragma: no cover
             raise zmq.ZMQError("Sub problem.")
 
         msg = json.loads(zlib.decompress(msg).decode())
-        log_msg(msg, path=ALL_MSGS, fname=log_fname(msg))
         try:
             # Drop messages with old timestamps
             if not timestamp_is_recent(msg):
-                raise StopParsing
+                continue
 
-            parser = create_parser(msg)
-            parser.parse_msg()
+            lfname = log_fname(msg)
+            log_msg(msg, path=ALL_MSGS, fname=lfname)
+            try:
+                print("Message:", lfname)
+                parser = create_parser(msg)
+                parser.parse_msg()
+            except SchemaIgnored:  # Schema not mapped
+                continue
 
-            if parser.system_is_useful:
-                # TODO: Is this still needed?
-                # Retry if lock timeout throws
-                cnt = 3
-                while cnt:
-                    try:
-                        parser.update_database()
-                        cnt = 0
-                    except sqla.exc.OperationalError:
-                        parser.session.rollback()
-                        cnt -= 1
-        except KeyError:
-            pass
-            #  logging.getLogger(__name__).info("Exception: %s", str(e))
-        except StopParsing:
-            pass
+            # Retry if lock timeout throws
+            cnt = 3
+            while cnt:
+                try:
+                    parser.update_database()
+                    cnt = 0
+                except sqla.exc.OperationalError:
+                    parser.session.rollback()
+                    cnt -= 1
+        except SkipDatabaseFlush as exc:
+            logging.getLogger(__name__).info("SKIP: %s", exc)
 
 
 def connect_loop(sub):  # pragma: no cover
@@ -738,6 +808,7 @@ os.mkdir(JOURNAL_CARS)
 try:
     with cogdb.session_scope(cogdb.EDDBSession) as init_session:
         MAPS = create_id_maps(init_session)
+    FACTION_CACHE = cogdb.spansh.create_faction_cache()
 except (sqla_orm.exc.NoResultFound, sqla.exc.ProgrammingError):
     MAPS = None
 

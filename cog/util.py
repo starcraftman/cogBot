@@ -1049,6 +1049,18 @@ def print_no_newline(text):
     sys.stdout.flush()
 
 
+def is_a_carrier(station_name):
+    """
+    All player carriers have 7 letters of form XXX-XXX where X is [A-Z0-9]
+
+    Args:
+        station_name: The name of the station.
+
+    Returns: True if the name is a player carrier.
+    """
+    return len(station_name) == 7 and re.match(r'[A-Z0-9]{3}-[A-Z0-9]{3}', station_name)
+
+
 #  # Scenario multiple readers, always allowed
 #  async def a_run1(lock):
     #  print("Run1 - aquire read")

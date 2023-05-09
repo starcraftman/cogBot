@@ -541,3 +541,9 @@ def test_split_csv_line():
 def test_print_no_newline(mock_stdout):
     cog.util.print_no_newline('hello')
     mock_stdout.assert_called_with('hello')
+
+
+def test_is_a_carrier(f_json):
+    assert cog.util.is_a_carrier("X7W-ED2")
+    assert not cog.util.is_a_carrier("X7W-EDD5")
+    assert not cog.util.is_a_carrier("Wescott Hub")

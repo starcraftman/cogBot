@@ -113,5 +113,10 @@
     "eddn": "OdysseySettlement",
     "id": 25,
     "text": "Odyssey Settlement"
+  },
+  {
+    "eddn": "OnFootSettlement",
+    "id": 26,
+    "text": "On Foot Settlement"
   }
 ]

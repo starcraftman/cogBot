@@ -21,7 +21,6 @@ import glob
 import json
 import logging
 import os
-import re
 from pathlib import Path
 
 import psutil
@@ -51,6 +50,7 @@ SYSTEM_MAPF = os.path.join(IDS_ROOT, 'systemMap.json')
 STATION_MAPF = os.path.join(IDS_ROOT, 'stationMap.json')
 STATION_ONLY_MAPF = os.path.join(IDS_ROOT, 'onlyStationMap.json')
 CARRIER_MAPF = os.path.join(IDS_ROOT, 'carrierMap.json')
+NEW_CARRIERS = os.path.join(IDS_ROOT, 'newCarriers.csv')
 # Mapping of spansh naming of station services, bit unsure of some
 SPANSH_STATION_SERVICES = {
     'Fleet Carrier Administration': 'carrier_administration',
@@ -425,18 +425,6 @@ def date_to_timestamp(text):
         return parsed_time.replace(tzinfo=datetime.timezone.utc).timestamp()
     except ValueError:
         return None
-
-
-def is_a_carrier(station_name):
-    """
-    All player carriers have 7 letters of form XXX-XXX where X is [A-Z0-9]
-
-    Args:
-        station_name: The name of the station.
-
-    Returns: True if the name is a player carrier.
-    """
-    return len(station_name) == 7 and re.match(r'[A-Z0-9]{3}-[A-Z0-9]{3}', station_name)
 
 
 def station_key(*, system, station):
@@ -966,87 +954,200 @@ def transform_galaxy_json(number, total, galaxy_json):
         return stations_seen
 
 
-def update_name_map(missing_names, *, known_fname, new_fname):
+def update_name_map(missing_names, *, name_map):
     """
     Provide a means of updating the static name -> id assignments for
     systems, stations and factions. These maps are needed as spansh does not assign internal static IDs.
 
     Args:
         missing_names: The names that are missing from the known_fname json mapping names -> IDs
-        known_fname: The filename contining the map of all names -> IDs, based on EDDB.io
-                     This file will be updated with new names beyond those from eddb
-        known_fname: The filename contining the map of all new names -> IDs, based on additions
-                     This file will show only those added after eddb.io
+        name_map: A dictionary with the following keys:
+            known - The known names.
+            new - The new names added.
+            last_num - The last taken ID.
+
+    Returns: A dictionary of newly added names from the missing list onto their new ids.
     """
-    known_names = None
-    with open(known_fname, 'r', encoding='utf-8') as fin:
-        known_names = json.load(fin)
-    with open(new_fname, 'r', encoding='utf-8') as fin:
-        new_names = json.load(fin)
-    known_ids = list(sorted(known_names.values()))
-    last_num = known_ids[-1] if known_ids else 2
-    available = set(range(1, last_num + len(missing_names) + 10)) - set(known_ids)
-    available = list(sorted(available, reverse=True))
+    added = {}
+    available = list(
+        sorted(
+            range(name_map['next_id'], name_map['next_id'] + len(missing_names) + 5),
+            reverse=True
+        )
+    )
 
     for name in missing_names:
-        new_id = available.pop()
-        new_names[name] = new_id
-        known_names[name] = new_id
+        if name not in name_map['known']:
+            new_id = available.pop()
+            name_map['new'][name] = new_id
+            name_map['known'][name] = new_id
+            added[name] = new_id
+
+    name_map['next_id'] = available.pop()
+    return added
+
+
+def update_system_map(missing):
+    """
+    Update the system maps by allocating ids to missing systems.
+
+    Args:
+        missing: The missing system names.
+
+    Returns: A dictionary containing new systems onto their ids.
+    """
+    known_fname = Path(SYSTEM_MAPF)
+    new_fname = Path(SYSTEM_MAPF.replace("Map.json", "NewMap.json"))
+    for fname in (known_fname, new_fname):
+        if not fname.exists():
+            with open(fname, 'w', encoding='utf-8') as fout:
+                fout.write('{}')
+
+    with open(known_fname, 'r', encoding='utf-8') as known_fin,\
+         open(new_fname, 'r', encoding='utf-8') as new_fin:
+        name_map = {
+            'known': json.load(known_fin),
+            'new': json.load(new_fin),
+        }
+        known_ids = list(sorted(name_map['known'].values()))
+        name_map['next_id'] = (known_ids[-1] if known_ids else 0) + 1
+
+    added = update_name_map(missing, name_map=name_map)
 
     with open(known_fname, 'w', encoding='utf-8') as fout:
-        json.dump(known_names, fout, indent=JSON_INDENT, sort_keys=True)
+        json.dump(name_map['known'], fout, indent=JSON_INDENT, sort_keys=True)
     with open(new_fname, 'w', encoding='utf-8') as fout:
-        json.dump(new_names, fout, indent=JSON_INDENT, sort_keys=True)
+        json.dump(name_map['new'], fout, indent=JSON_INDENT, sort_keys=True)
+
+    return added
 
 
-def update_station_map(missing_names):  # pragma: no cover, bit of a nuissance to test
+def update_faction_map(missing, *, cache=None):
     """
-    Provides a means to update the station mappings.
+    Update the faction maps by allocating ids to missing factions.
+
+    Args:
+        missing: The missing faction names.
+        cache: Use this cached name_map rather than creating it.
+
+    Returns: A dictionary containing new factions onto their ids.
     """
+    known_fname = Path(FACTION_MAPF)
+    new_fname = Path(FACTION_MAPF.replace("Map.json", "NewMap.json"))
+    for fname in (known_fname, new_fname):
+        if not fname.exists():
+            with open(fname, 'w', encoding='utf-8') as fout:
+                fout.write('{}')
+
+    cache = cache if cache else create_faction_cache()
+    added = update_name_map(missing, name_map=cache)
+
+    with open(known_fname, 'w', encoding='utf-8') as fout:
+        json.dump(cache['known'], fout, indent=JSON_INDENT, sort_keys=True)
+    with open(new_fname, 'w', encoding='utf-8') as fout:
+        json.dump(cache['new'], fout, indent=JSON_INDENT, sort_keys=True)
+
+    return added
+
+
+def create_faction_cache():
+    """
+    Create the cache of maps used for updating the factions.
+    """
+    with open(FACTION_MAPF, 'r', encoding='utf-8') as known_fin,\
+            open(FACTION_MAPF.replace("Map.json", "NewMap.json"), 'r', encoding='utf-8') as new_fin:
+        cache = {
+            'known': json.load(known_fin),
+            'new': json.load(new_fin),
+        }
+        known_ids = list(sorted(cache['known'].values()))
+        cache['next_id'] = (known_ids[-1] if known_ids else 0) + 1
+
+        return cache
+
+
+def create_station_cache():
+    """
+    Read in and create the station map cache that stores all the different
+    maps and next_id fields required to update the maps.
+    """
+    cache = {}
+
     with open(STATION_MAPF, 'r', encoding='utf-8') as fin:
-        known_names = json.load(fin)
+        cache['known'] = json.load(fin)
     with open(STATION_MAPF.replace('Map', 'NewMap'), 'r', encoding='utf-8') as fin:
-        new_names = json.load(fin)
+        cache['new'] = json.load(fin)
     with open(STATION_ONLY_MAPF, 'r', encoding='utf-8') as fin:
-        station_names = json.load(fin)
+        cache['stations'] = json.load(fin)
     with open(STATION_ONLY_MAPF.replace('Map', 'NewMap'), 'r', encoding='utf-8') as fin:
-        new_station_names = json.load(fin)
+        cache['new_stations'] = json.load(fin)
     with open(CARRIER_MAPF, 'r', encoding='utf-8') as fin:
-        carrier_names = json.load(fin)
+        cache['carriers'] = json.load(fin)
     with open(CARRIER_MAPF.replace('Map', 'NewMap'), 'r', encoding='utf-8') as fin:
-        new_carrier_names = json.load(fin)
+        cache['new_carriers'] = json.load(fin)
 
-    known_ids = list(sorted(known_names.values()))
-    last_num = known_ids[-1] if known_ids else 2
-    available = set(range(1, last_num + len(missing_names) + 10)) - set(known_ids)
-    available = list(sorted(available, reverse=True))
+    known_ids = list(sorted(cache['known'].values()))
+    cache['next_id'] = (known_ids[-1] if known_ids else 0) + 1
+
+    return cache
+
+
+def write_station_cache(cache):
+    """
+    Write out the station map cache to the files to be updated.
+
+    Args:
+        cache: The cache dictionary created by station_map_cache
+    """
+    with open(STATION_MAPF, 'w', encoding='utf-8') as fout:
+        json.dump(cache['known'], fout, indent=JSON_INDENT, sort_keys=True)
+    with open(STATION_MAPF.replace('Map', 'NewMap'), 'w', encoding='utf-8') as fout:
+        json.dump(cache['new'], fout, indent=JSON_INDENT, sort_keys=True)
+    with open(STATION_ONLY_MAPF, 'w', encoding='utf-8') as fout:
+        json.dump(cache['stations'], fout, indent=JSON_INDENT, sort_keys=True)
+    with open(STATION_ONLY_MAPF.replace('Map', 'NewMap'), 'w', encoding='utf-8') as fout:
+        json.dump(cache['new_stations'], fout, indent=JSON_INDENT, sort_keys=True)
+    with open(CARRIER_MAPF, 'w', encoding='utf-8') as fout:
+        json.dump(cache['carriers'], fout, indent=JSON_INDENT, sort_keys=True)
+    with open(CARRIER_MAPF.replace('Map', 'NewMap'), 'w', encoding='utf-8') as fout:
+        json.dump(cache['new_carriers'], fout, indent=JSON_INDENT, sort_keys=True)
+
+
+def update_station_map(missing_names, *, cache):  # pragma: no cover, bit of a nuissance to test
+    """
+    Update the station maps by allocating ids to missing factions.
+
+    Args:
+        missing: The missing station names.
+        cache: A cache generated by station_map_cache
+
+    Returns: A dictionary containing new stations onto their ids.
+    """
+    added = {}
+    available = list(
+        sorted(
+            range(cache['next_id'], cache['next_id'] + len(missing_names) + 5),
+            reverse=True
+        )
+    )
 
     for name in missing_names:
-        station_name = name
-        if SEP in name:
-            _, station_name = name.split(SEP)
-        new_id = available.pop()
-        new_names[name] = new_id
-        known_names[name] = new_id
-        if is_a_carrier(station_name):
-            carrier_names[station_name] = new_id
-            new_carrier_names[station_name] = new_id
-        else:
-            station_names[station_name] = new_id
-            new_station_names[station_name] = new_id
+        if name not in cache['known']:
+            new_id = available.pop()
+            cache['known'][name] = new_id
+            cache['new'][name] = new_id
+            added[name] = new_id
 
-    with open(STATION_MAPF, 'w', encoding='utf-8') as fout:
-        json.dump(known_names, fout, indent=JSON_INDENT, sort_keys=True)
-    with open(STATION_MAPF.replace('Map', 'NewMap'), 'w', encoding='utf-8') as fout:
-        json.dump(new_names, fout, indent=JSON_INDENT, sort_keys=True)
-    with open(STATION_ONLY_MAPF, 'w', encoding='utf-8') as fout:
-        json.dump(station_names, fout, indent=JSON_INDENT, sort_keys=True)
-    with open(STATION_ONLY_MAPF.replace('Map', 'NewMap'), 'w', encoding='utf-8') as fout:
-        json.dump(new_station_names, fout, indent=JSON_INDENT, sort_keys=True)
-    with open(CARRIER_MAPF, 'w', encoding='utf-8') as fout:
-        json.dump(carrier_names, fout, indent=JSON_INDENT, sort_keys=True)
-    with open(CARRIER_MAPF.replace('Map', 'NewMap'), 'w', encoding='utf-8') as fout:
-        json.dump(new_carrier_names, fout, indent=JSON_INDENT, sort_keys=True)
+            if cog.util.is_a_carrier(name):
+                cache['carriers'][name] = new_id
+                cache['new_carriers'][name] = new_id
+            else:
+                cache['stations'][name] = new_id
+                cache['new_stations'][name] = new_id
+
+    cache['next_id'] = available.pop()
+
+    return added
 
 
 def update_all_name_maps(factions, systems, stations):  # pragma: no cover
@@ -1056,24 +1157,14 @@ def update_all_name_maps(factions, systems, stations):  # pragma: no cover
     Args:
         galaxy_json_path: Path to the complete galaxy_json file from spansh.
     """
-    mapped = [
-        [factions, 'faction'],
-        [systems, 'system'],
-    ]
-    for missing, name in mapped:
-        if not missing:
-            continue
-
-        known_fname = Path(f'{IDS_ROOT}/{name}Map.json')
-        new_fname = Path(f'{IDS_ROOT}/{name}NewMap.json')
-        for fname in (known_fname, new_fname):
-            if not fname.exists():
-                with open(fname, 'w', encoding='utf-8') as fout:
-                    fout.write('{}')
-
-        update_name_map(missing, known_fname=known_fname, new_fname=new_fname)
-
-    update_station_map(stations)
+    if factions:
+        update_faction_map(factions)
+    if systems:
+        update_system_map(systems)
+    if stations:
+        cache = create_station_cache()
+        update_station_map(stations, cache=cache)
+        write_station_cache(cache)
 
 
 def collect_unique_names(galaxy_json):
@@ -1333,6 +1424,7 @@ def import_stations_data(galaxy_folder):  # pragma: no cover
         galaxy_folder: The folder containing galaxy_json and all scratch files.
     """
     fnames = {x: galaxy_folder / f'{x}.json.unique' for x in STATION_KEYS}
+    cogdb.eddb_engine.execute("ALTER TABLE eddb.stations AUTO_INCREMENT = 1;")
     with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
         bulk_insert_from_file(eddb_session, fname=fnames['stations'], cls=Station)
         bulk_insert_from_file(eddb_session, fname=fnames['features'], cls=StationFeatures)

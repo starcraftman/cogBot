@@ -7,7 +7,23 @@ import json
 
 import cogdb.spansh
 import cog.util
-from cogdb.spansh import SEP, IDS_ROOT, is_a_carrier
+from cogdb.spansh import SEP, IDS_ROOT
+
+
+def reset_incremental_files():
+    """
+    Reset the incremental tracking files.
+    """
+    with open(f'{IDS_ROOT}/systemNewMap.json', 'w', encoding='utf-8') as fout:
+        json.dump({}, fout, indent=2, sort_keys=True)
+    with open(f'{IDS_ROOT}/factionNewMap.json', 'w', encoding='utf-8') as fout:
+        json.dump({}, fout, indent=2, sort_keys=True)
+    with open(f'{IDS_ROOT}/carrierNewMap.json', 'w', encoding='utf-8') as fout:
+        json.dump({}, fout, indent=2, sort_keys=True)
+    with open(f'{IDS_ROOT}/onlyStationNewMap.json', 'w', encoding='utf-8') as fout:
+        json.dump({}, fout, indent=2, sort_keys=True)
+    with open(f'{IDS_ROOT}/stationNewMap.json', 'w', encoding='utf-8') as fout:
+        json.dump({}, fout, indent=2, sort_keys=True)
 
 
 def gen_system_faction_maps():
@@ -23,8 +39,6 @@ def gen_system_faction_maps():
 
     with open(f'{IDS_ROOT}/systemMap.json', 'w', encoding='utf-8') as fout:
         json.dump(system_map, fout, indent=2, sort_keys=True)
-    with open(f'{IDS_ROOT}/systemNewMap.json', 'w', encoding='utf-8') as fout:
-        json.dump({}, fout, indent=2, sort_keys=True)
 
     faction_map = {}
     with open(f'{IDS_ROOT}/factions.eddb', 'r', encoding='utf-8') as fin:
@@ -34,8 +48,6 @@ def gen_system_faction_maps():
 
     with open(f'{IDS_ROOT}/factionMap.json', 'w', encoding='utf-8') as fout:
         json.dump(faction_map, fout, indent=2, sort_keys=True)
-    with open(f'{IDS_ROOT}/factionNewMap.json', 'w', encoding='utf-8') as fout:
-        json.dump({}, fout, indent=2, sort_keys=True)
 
     return system_map
 
@@ -68,18 +80,12 @@ def gen_station_map(system_map):
 
     with open(f'{IDS_ROOT}/carrierMap.json', 'w', encoding='utf-8') as fout:
         json.dump(carrier_map, fout, indent=2, sort_keys=True)
-    with open(f'{IDS_ROOT}/carrierNewMap.json', 'w', encoding='utf-8') as fout:
-        json.dump({}, fout, indent=2, sort_keys=True)
     with open(f'{IDS_ROOT}/onlyStationMap.json', 'w', encoding='utf-8') as fout:
         json.dump(station_map, fout, indent=2, sort_keys=True)
-    with open(f'{IDS_ROOT}/onlyStationNewMap.json', 'w', encoding='utf-8') as fout:
-        json.dump({}, fout, indent=2, sort_keys=True)
 
     station_map.update(carrier_map)
     with open(f'{IDS_ROOT}/stationMap.json', 'w', encoding='utf-8') as fout:
         json.dump(station_map, fout, indent=2, sort_keys=True)
-    with open(f'{IDS_ROOT}/stationNewMap.json', 'w', encoding='utf-8') as fout:
-        json.dump({}, fout, indent=2, sort_keys=True)
 
 
 def station_key(*, system_id, station_name, reverse_systems):
@@ -88,7 +94,7 @@ def station_key(*, system_id, station_name, reverse_systems):
         If the station is a player carrier, key is the name.
         If the station is not a player carrier, key is system_name||station_name.
     """
-    is_carrier = is_a_carrier(station_name)
+    is_carrier = cog.util.is_a_carrier(station_name)
     key = station_name
     if not is_carrier:
         system_name = reverse_systems[system_id]
@@ -159,6 +165,7 @@ def init_eddb_maps():
     based on eddb.io.
     Then merge in the specific prison station information.
     """
+    reset_incremental_files()
     gen_station_map(gen_system_faction_maps())
     merge_prison_stations()
 

@@ -71,12 +71,6 @@ def test_date_to_timestamp(f_json):
     assert 1680460158.0 == cogdb.spansh.date_to_timestamp(f_json['date'])
 
 
-def test_is_a_carrier(f_json):
-    assert cogdb.spansh.is_a_carrier("X7W-ED2")
-    assert not cogdb.spansh.is_a_carrier("X7W-EDD5")
-    assert not cogdb.spansh.is_a_carrier("Wescott Hub")
-
-
 def test_station_key_fleet_carrier():
     info = {
         'name': 'X79-B2S',
