@@ -135,7 +135,7 @@ class EDMCJournal():
                 log.info("System %s: Parsing factions", self.body.get('StarSystem', 'Unknown System'))
                 log.debug(pprint.pformat(self.parse_factions()))
                 self.flush_factions_to_db()
-                self.eddb_session.flush()
+                self.eddb_session.commit()
 
             system = self.parse_system()
             log.info("System %s: Parsing system", self.body.get('StarSystem', 'Unknown System'))
@@ -178,18 +178,19 @@ class EDMCJournal():
             self.flush_influences_to_db()
         if self.parsed.get('conflicts'):
             self.flush_conflicts_to_db()
-
+        self.eddb_session.commit()
 
     def parse_system(self):
         """
         Parse the system portion of an EDDN message and return anything present in dictionary.
 
         Raises:
-            SkipDatabaseFlush: Could not parse a system or it was not of interest.
+            StopParsing: No system information found.
+            SkipDatabaseFlush: System was not of interest, no information required.
         """
         body = self.body
         if 'StarSystem' not in body:
-            raise SkipDatabaseFlush("No StarSystem or message malformed.")
+            raise StopParsing("No StarSystem found.")
 
         try:
             system = {
@@ -325,12 +326,17 @@ class EDMCJournal():
         Raises:
             SkipDatabaseFlush: The station isn't valid to put in database, remaining info irrelevant.
         """
-        if not self.parsed.get('station'):
-            raise SkipDatabaseFlush("No parsed station.")
-
         station = self.parsed['station']
-        station_features = station.pop('features')
-        station_economies = station.pop('economies')
+        station_features, station_economies = None, None
+        try:
+            station_features = station.pop('features')
+        except KeyError:
+            pass
+        try:
+            station_economies = station.pop('economies')
+        except KeyError:
+            pass
+
         if 'name' not in station or 'system_id' not in station or 'type_id' not in station:
             raise SkipDatabaseFlush("Station missing: name, type_id or system_id.")
 
@@ -358,22 +364,21 @@ class EDMCJournal():
 
                 station_db = Station(**station)
                 self.eddb_session.add(station_db)
-                self.eddb_session.commit()
             except KeyError as exc:
                 if station['type_id'] != 24:
                     raise SkipDatabaseFlush(f"Ignoring station: {station['name']} ({system_name})") from exc
 
                 logging.getLogger(__name__).warning("New Fleet Carrier: %s", station['name'])
 
+                added = cogdb.spansh.update_station_map([station['name']], cache=STATION_CACHE)
+                station['id'] = added[station['name']]
+                MAPS['stations'][key] = added[station['name']]
+                cogdb.spansh.write_station_cache(STATION_CACHE)
+
                 station_db = Station(**station)
                 self.eddb_session.add(station_db)
-                self.eddb_session.flush()
 
-                station['id'] = station_db.id
-                MAPS['stations'][key] = station_db.id
-                with open(cogdb.spansh.NEW_CARRIERS, 'a', encoding='utf-8') as fout:
-                    fout.write(f"{station['name']}{cogdb.spansh.SEP}{station['id']}\n")
-
+        self.eddb_session.commit()
         self.flushed += [station_db]
 
         try:
@@ -383,13 +388,11 @@ class EDMCJournal():
                     one()
                 station_features_db.update(**station_features)
                 station_features['id'] = station['id']
-                self.eddb_session.flush()
 
         except sqla_orm.exc.NoResultFound:
             station_features['id'] = station['id']
             station_features_db = StationFeatures(**station_features)
             self.eddb_session.add(station_features_db)
-            self.eddb_session.flush()
         self.flushed += [station_features_db]
 
         if station_economies:
@@ -398,19 +401,14 @@ class EDMCJournal():
                 econ['id'] = station['id']
                 self.eddb_session.add(StationEconomy(**econ))
 
-        self.eddb_session.flush()
-
     def parse_factions(self):
         """
         Parse the factions listed in the EDMC message.
         When new factions encountered, add them to the database.
         Factions are a pre-requisite in the database for systems, stations and influences.
-
-        Raises:
-            StopParsing: One or more prerequisites were not met to continue parsing.
         """
         factions = {}
-        for body_faction in self.body['Factions']:
+        for body_faction in self.body.get('Factions', []):
             faction = {
                 'name': body_faction['Name'],
                 'updated_at': self.timestamp,
@@ -438,19 +436,8 @@ class EDMCJournal():
         """
         Flush factions information to db.
         """
-        system = self.parsed['system']
-        for faction in self.parsed['factions'].values():
-            for cls in (FactionActiveState, FactionPendingState, FactionRecoveringState):
-                self.eddb_session.query(cls).\
-                    filter(cls.system_id == system['id'],
-                           cls.faction_id == faction['id']).\
-                    delete()
-            self.eddb_session.flush()
-            for key in ("active_states", "pending_states", "recovering_states"):
-                if key in faction:
-                    self.eddb_session.add_all(faction[key])
-                    del faction[key]
-
+        factions = self.parsed.get('factions', [])
+        for faction in factions.values():
             try:
                 faction_db = self.eddb_session.query(Faction).\
                     filter(Faction.id == faction['id']).\
@@ -461,8 +448,6 @@ class EDMCJournal():
                 self.eddb_session.add(faction_db)
             finally:
                 self.flushed += [faction_db]
-
-        self.eddb_session.flush()
 
     def parse_influence(self):
         """
@@ -505,9 +490,26 @@ class EDMCJournal():
 
     def flush_influences_to_db(self):
         """
-        Flush influences information to db.
+        Flush influences and states information to db.
         """
-        for influence in self.parsed['influences']:
+        system = self.parsed.get('system')
+        influences = self.parsed.get('influences')
+        if not influences or not system or 'id' not in system:
+            raise SkipDatabaseFlush("Influences: system or factions improperly parsed.")
+
+        for faction in self.parsed['factions'].values():
+            for cls in (FactionActiveState, FactionPendingState, FactionRecoveringState):
+                self.eddb_session.query(cls).\
+                    filter(cls.system_id == system['id'],
+                           cls.faction_id == faction['id']).\
+                    delete()
+            self.eddb_session.commit()
+            for key in ("active_states", "pending_states", "recovering_states"):
+                if key in faction:
+                    self.eddb_session.add_all(faction[key])
+                    del faction[key]
+
+        for influence in influences:
             try:
                 influence_db = self.eddb_session.query(Influence).\
                     filter(Influence.system_id == influence['system_id'],
@@ -520,8 +522,6 @@ class EDMCJournal():
             finally:
                 cogdb.eddb.add_history_influence(self.eddb_session, influence_db)
                 self.flushed += [influence_db]
-
-        self.eddb_session.flush()
 
     def parse_conflicts(self):
         """
@@ -600,6 +600,8 @@ def create_id_maps(session):
     }
     try:
         maps['PowerplayState']['HomeSystem'] = maps['PowerplayState']['Controlled']
+        maps['StationType']['Bernal'] = maps['StationType']['Ocellus']
+        maps['Economy']['Engineer'] = maps['Economy']['Engineering']
     except KeyError:
         pass
 
@@ -609,6 +611,7 @@ def create_id_maps(session):
         maps['stations'] = json.load(fin)
     with open(cogdb.spansh.FACTION_MAPF, 'r', encoding='utf-8') as fin:
         maps['factions'] = json.load(fin)
+        maps['factions']['None'] = None
 
     return maps
 
@@ -699,16 +702,10 @@ def get_msgs(sub):  # pragma: no cover
                 parser.parse_msg()
             except SchemaIgnored:  # Schema not mapped
                 continue
+            except StopParsing:
+                pass
 
-            # Retry if lock timeout throws
-            cnt = 3
-            while cnt:
-                try:
-                    parser.update_database()
-                    cnt = 0
-                except sqla.exc.OperationalError:
-                    parser.session.rollback()
-                    cnt -= 1
+            parser.update_database()
         except SkipDatabaseFlush as exc:
             logging.getLogger(__name__).info("SKIP: %s", exc)
 
@@ -809,6 +806,7 @@ try:
     with cogdb.session_scope(cogdb.EDDBSession) as init_session:
         MAPS = create_id_maps(init_session)
     FACTION_CACHE = cogdb.spansh.create_faction_cache()
+    STATION_CACHE = cogdb.spansh.create_station_cache()
 except (sqla_orm.exc.NoResultFound, sqla.exc.ProgrammingError):
     MAPS = None
 
