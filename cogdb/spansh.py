@@ -1087,7 +1087,7 @@ def create_station_cache():
         cache['new_carriers'] = json.load(fin)
 
     known_ids = list(sorted(cache['known'].values()))
-    cache['next_id'] = (known_ids[-1] if known_ids else 0) + 1
+    cache['next_id'] = known_ids[-1] + 1
 
     return cache
 

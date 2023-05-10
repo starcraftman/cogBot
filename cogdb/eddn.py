@@ -494,7 +494,7 @@ class EDMCJournal():
         system = self.parsed.get('system')
         influences = self.parsed.get('influences')
         if not influences or not system or 'id' not in system:
-            raise SkipDatabaseFlush("Influences: system or factions improperly parsed.")
+            raise SkipDatabaseFlush("Influences flush: system or factions improperly parsed.")
 
         for faction in self.parsed['factions'].values():
             for cls in (FactionActiveState, FactionPendingState, FactionRecoveringState):
@@ -598,6 +598,7 @@ def create_id_maps(session):
         'StationType': {x.eddn: x.id for x in session.query(cogdb.eddb.StationType)},
     }
     try:
+        maps['PowerplayState'][''] = maps['PowerplayState']['None']
         maps['PowerplayState']['HomeSystem'] = maps['PowerplayState']['Controlled']
         maps['StationType']['Bernal'] = maps['StationType']['Ocellus']
         maps['Economy']['Engineer'] = maps['Economy']['Engineering']

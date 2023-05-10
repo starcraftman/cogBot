@@ -14,16 +14,9 @@ def reset_incremental_files():
     """
     Reset the incremental tracking files.
     """
-    with open(f'{IDS_ROOT}/systemNewMap.json', 'w', encoding='utf-8') as fout:
-        json.dump({}, fout, indent=2, sort_keys=True)
-    with open(f'{IDS_ROOT}/factionNewMap.json', 'w', encoding='utf-8') as fout:
-        json.dump({}, fout, indent=2, sort_keys=True)
-    with open(f'{IDS_ROOT}/carrierNewMap.json', 'w', encoding='utf-8') as fout:
-        json.dump({}, fout, indent=2, sort_keys=True)
-    with open(f'{IDS_ROOT}/onlyStationNewMap.json', 'w', encoding='utf-8') as fout:
-        json.dump({}, fout, indent=2, sort_keys=True)
-    with open(f'{IDS_ROOT}/stationNewMap.json', 'w', encoding='utf-8') as fout:
-        json.dump({}, fout, indent=2, sort_keys=True)
+    for name in ['system', 'faction', 'carrier', 'onlyStation', 'station']:
+        with open(f'{IDS_ROOT}/{name}NewMap.json', 'w', encoding='utf-8') as fout:
+            json.dump({}, fout, indent=2, sort_keys=True)
 
 
 def gen_system_faction_maps():
@@ -160,5 +153,30 @@ def init_eddb_maps():
     merge_prison_stations()
 
 
+def check_maps_for_collisions():
+    """
+    Verify there are no collions in the IDs assigned to the keys of the maps.
+    These maps should be bidirectional essentially.
+    Prints errors and collisions to stdout.
+    """
+    seen = set()
+    for name in ['station', 'carrier', 'onlyStation', 'faction', 'system',
+                 'stationNew', 'carrierNew', 'onlyStationNew', 'factionNew', 'systemNew']:
+        print("Examining:", name)
+        with open(f'data/ids/{name}Map.json', 'r', encoding='utf-8') as fin:
+            found = eval(fin.read())
+            size_diff = len(list(found.values())) - len(set(found.values()))
+
+            if size_diff:
+                print("Dupes found", size_diff)
+                for key in found:
+                    if found[key] in seen:
+                        print(f"Duplicate id collision: {key} => {found[key]}")
+                    else:
+                        seen.add(found[key])
+            else:
+                print("No dupes")
+
+
 if __name__ == "__main__":
-    init_eddb_maps()
+    check_maps_for_collisions()
