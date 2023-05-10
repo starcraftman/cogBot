@@ -690,7 +690,7 @@ def test_track_ids_show(session, f_track_testbed):
     OVE-111 [Manual] jumped No Info => No Info"""
 
     with cogdb.query.track_ids_show(session) as fname:
-        with open(fname) as fin:
+        with open(fname, 'r', encoding='utf-8') as fin:
             assert fin.read() == expected
 
 

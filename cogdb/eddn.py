@@ -326,15 +326,9 @@ class EDMCJournal():
             SkipDatabaseFlush: The station isn't valid to put in database, remaining info irrelevant.
         """
         station = self.parsed['station']
-        station_features, station_economies = None, None
-        try:
-            station_features = station.pop('features')
-        except KeyError:
-            pass
-        try:
-            station_economies = station.pop('economies')
-        except KeyError:
-            pass
+        station_features, station_economies = station.get('features'), station.get('economies', [])
+        del station['features']
+        del station['economies']
 
         if 'name' not in station or 'system_id' not in station or 'type_id' not in station:
             raise SkipDatabaseFlush("Station missing: name, type_id or system_id.")
@@ -725,7 +719,7 @@ def connect_loop(sub):  # pragma: no cover
             time.sleep(5)
 
 
-def eddn_log(fname, log_level="INFO"):
+def eddn_log(fname, log_level="INFO"):  # pragma: no cover
     """
     Create a simple file and stream logger for eddn separate from main bot's logging.
     """

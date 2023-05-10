@@ -18,6 +18,7 @@ import cogdb.schema
 import cogdb.spansh
 from cogdb.schema import TrackByID
 from cogdb.eddb import FactionActiveState
+import cog.util
 
 
 EXAMPLE_JOURNAL_CARRIER = """{
@@ -934,3 +935,42 @@ def test_log_msg():
         assert list(pat.glob('test.*'))
     finally:
         shutil.rmtree(t_dir)
+
+
+def test_station_key():
+    station = {
+        'name': 'test',
+        'type_id': 24,
+    }
+    assert 'test' == cogdb.eddn.station_key(system='Rana', station=station)
+
+    station = {
+        'name': 'test',
+        'type_id': 7,
+    }
+    assert 'Rana||test' == cogdb.eddn.station_key(system='Rana', station=station)
+
+
+def test_timestamp_is_recent():
+    now = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(seconds=10)
+    msg = {
+        "header": {
+            "gatewayTimestamp": now.strftime(cog.util.TIME_STRP),
+        }
+    }
+    assert cogdb.eddn.timestamp_is_recent(msg, window=1)
+
+    msg = {
+        "header": {
+            "gatewayTimestamp": now.strftime(cog.util.TIME_STRP_MICRO),
+        }
+    }
+    assert cogdb.eddn.timestamp_is_recent(msg, window=1)
+
+    now = now - datetime.timedelta(minutes=5)
+    msg = {
+        "header": {
+            "gatewayTimestamp": now.strftime(cog.util.TIME_STRP),
+        }
+    }
+    assert not cogdb.eddn.timestamp_is_recent(msg, window=1)

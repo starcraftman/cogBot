@@ -2648,7 +2648,7 @@ async def monitor_powerplay_api(client, *, repeat=True, delay=1800):
         except cog.exc.RemoteError:
             if repeat:
                 log.error("Spy service not operating. Will try again in %d seconds.", delay)
-        except:  # noqa: E722, pylint: disable=bare-except, intentionally left due to importance
+        except:  # noqa: E722, pylint: disable=bare-except
             traceback.print_exc()
             log.error("CRIT ERROR POWMON: %s", traceback.format_exc())
 

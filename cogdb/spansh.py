@@ -50,7 +50,6 @@ SYSTEM_MAPF = os.path.join(IDS_ROOT, 'systemMap.json')
 STATION_MAPF = os.path.join(IDS_ROOT, 'stationMap.json')
 STATION_ONLY_MAPF = os.path.join(IDS_ROOT, 'onlyStationMap.json')
 CARRIER_MAPF = os.path.join(IDS_ROOT, 'carrierMap.json')
-NEW_CARRIERS = os.path.join(IDS_ROOT, 'newCarriers.csv')
 # Mapping of spansh naming of station services, bit unsure of some
 SPANSH_STATION_SERVICES = {
     'Fleet Carrier Administration': 'carrier_administration',
@@ -1641,6 +1640,20 @@ def cleanup_scratch_files(galaxy_folder):
     for pat in CLEANUP_GLOBS:
         for fname in glob.glob(os.path.join(galaxy_folder, pat)):
             os.remove(fname)
+
+
+def verify_map_files():
+    """
+    Verify all map files that don't exist are created with sane default values.
+    """
+    for fname in [FACTION_MAPF, STATION_MAPF, SYSTEM_MAPF, STATION_ONLY_MAPF, CARRIER_MAPF]:
+        for path in [Path(fname), Path(fname.replace('Map.json', 'NewMap.json'))]:
+            if not path.exists():
+                with open(path, 'w', encoding='utf-8') as fout:
+                    fout.write('{}\n')
+
+
+verify_map_files()
 
 
 SPANSH_TABLES = [SCommodityPricing, SModuleSold, SCommodity, SModule, SCommodityGroup, SModuleGroup]

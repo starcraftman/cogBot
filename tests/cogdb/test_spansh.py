@@ -216,7 +216,7 @@ def test_transform_stations(f_json, f_spy_ships, eddb_session):
     mapped = cogdb.spansh.eddb_maps(eddb_session)
     system_id = mapped['systems']['Rana']
     results = cogdb.spansh.transform_stations(data=f_json, mapped=mapped, system_id=system_id, system_name=f_json['name'])
-    station_id = [x for x in results if results[x]['station']['name'] == 'Zholobov Gateway'][0]
+    station_id = [key for key, entry in results.items() if entry['station']['name'] == 'Zholobov Gateway'][0]
     expect = {
         'distance_to_star': 1891.965479,
         'id': station_id,
@@ -282,7 +282,13 @@ def test_transform_galaxy_json():
             with open(tdir / 'factions.json.00', 'r', encoding='utf-8') as fin:
                 found = eval(fin.read())
                 assert '61 Cygni Commodities' in [x['name'] for x in found]
+            if cogdb.spansh.STATIONS_IN_MEMORY:
                 assert 'J0J-N7X' in [x['station']['name'] for x in all_stations]
+            else:
+                with open(tdir / 'stations.json.00', 'r', encoding='utf-8') as fin:
+                    next(fin)
+                    found = eval(next(fin))
+                    assert 'J0J-N7X' == found['station']['name']
         finally:
             for fname in glob.glob(str(tdir / '*.json.00')):
                 os.remove(fname)
@@ -339,12 +345,12 @@ def test_collect_unique_names():
         '61 Cygni||Broglie Terminal',
         '61 Cygni||Weber Hub',
         'H0G-W2Y',
+        'H0X-5QF',
         'J0J-N7X',
         'J7G-30L',
         'JZQ-8HZ',
         'K1G-55N',
         'N4G-BSZ',
-        'Q3G-B4J',
         'T3Z-06W',
         'V2K-THT',
         'V7Y-L6B',
