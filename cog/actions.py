@@ -2463,6 +2463,15 @@ async def monitor_snipe_merits(client, *, repeat=True):  # pragma: no cover
     Kwargs:
         repeat: If true, will schedule itself infinitely.
     """
+    def compute_delay_seconds(next_date, message):
+        """ Just compute delay required. """
+        now = datetime.datetime.utcnow()
+        diff_dates = next_date - now
+        delay_seconds = diff_dates.seconds + diff_dates.days * 24 * 60 * 60
+        log.warning("Sleeping for %d seconds until %s. Next event is %s", delay_seconds, next_date, message)
+
+        return delay_seconds
+
     snipe_chans = [client.get_channel(x) for x in cog.util.CONF.channels.snipe]
     if not snipe_chans:  # Don't bother if not set
         return
@@ -2477,10 +2486,9 @@ async def monitor_snipe_merits(client, *, repeat=True):  # pragma: no cover
         next_cycle = cog.util.next_weekly_tick(now)
         next_date = next_cycle - datetime.timedelta(hours=12)
         if now < next_date:
-            diff_dates = next_date - now
-            delay_seconds = diff_dates.seconds + diff_dates.days * 24 * 60 * 60
-            log.warning("Sleeping for %d seconds until 12 hour reminder at %s", delay_seconds, next_date)
-            await asyncio.sleep(delay_seconds)
+            await asyncio.sleep(
+                compute_delay_seconds(next_date, "12 hour reminder")
+            )
 
             # Notify here
             log.warning("Issuing 12 hour notice to snipe channel.")
@@ -2496,13 +2504,12 @@ async def monitor_snipe_merits(client, *, repeat=True):  # pragma: no cover
         next_date = next_cycle - datetime.timedelta(minutes=30)
         now = datetime.datetime.utcnow()
         if now < next_date:
-            diff_dates = next_date - now
-            delay_seconds = diff_dates.seconds + diff_dates.days * 24 * 60 * 60
-            log.warning("Sleeping for %d seconds until 30 minute reminder at %s", delay_seconds, next_date)
-            await asyncio.sleep(delay_seconds)
+            await asyncio.sleep(
+                compute_delay_seconds(next_date, "30 min reminder")
+            )
 
             # Notify members holding
-            log.warning("Issuing 30 notice to snipe channel.")
+            log.warning("Issuing 30 min notice to snipe channel.")
             with cogdb.session_scope(cogdb.Session) as session:
                 if cogdb.scanners.get_scanner("hudson_undermine").asheet.sheet_page == cogdb.scanners.get_scanner("hudson_snipe").asheet.sheet_page:
                     msg = """__Final Snipe Reminder__
@@ -2512,9 +2519,11 @@ async def monitor_snipe_merits(client, *, repeat=True):  # pragma: no cover
                         for chan in snipe_chans:
                             await client.send_message(chan, msg + reminder)
 
-            # Sleep until 5 mins after tick
-            five_after_tick = (next_cycle - datetime.datetime.utcnow()).seconds + 60 * 5
-            await asyncio.sleep(five_after_tick)
+        # Sleep until 5 mins after tick
+        next_date = next_cycle + datetime.timedelta(minutes=5)
+        await asyncio.sleep(
+            compute_delay_seconds(next_date, "idle until 5 minutes after tick")
+        )
 
 
 async def push_spy_to_gal_scanner():  # pragma: no cover | tested elsewhere
