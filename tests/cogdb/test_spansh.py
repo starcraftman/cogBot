@@ -301,26 +301,29 @@ def test_update_name_map():
         known_tfile.flush()
         json.dump({}, new_tfile)
         new_tfile.flush()
+        cache = {
+            'known': known_systems,
+            'new': {},
+            'next_id': 11,
+        }
         cogdb.spansh.update_name_map(
-            missing_systems, known_fname=known_tfile.name, new_fname=new_tfile.name
+            missing_systems, name_map=cache
         )
 
-        with open(known_tfile.name, 'r', encoding='utf-8') as fin:
-            expect = """{
-  "system1": 1,
-  "system2": 2,
-  "system3": 5,
-  "system4": 3,
-  "system5": 10,
-  "system6": 4
-}"""
-            assert fin.read() == expect
-        with open(new_tfile.name, 'r', encoding='utf-8') as fin:
-            expect = """{
-  "system4": 3,
-  "system6": 4
-}"""
-            assert fin.read() == expect
+        expect = {
+            "system1": 1,
+            "system2": 2,
+            "system3": 5,
+            "system4": 11,
+            "system5": 10,
+            "system6": 12,
+        }
+        assert cache['known'] == expect
+        expect = {
+            "system4": 11,
+            "system6": 12,
+        }
+        assert cache['new'] == expect
 
 
 def test_collect_unique_names():

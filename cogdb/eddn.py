@@ -14,7 +14,6 @@ import shutil
 import sys
 import time
 import zlib
-from pathlib import Path
 
 import sqlalchemy as sqla
 import sqlalchemy.orm as sqla_orm
@@ -420,7 +419,7 @@ class EDMCJournal():
                 faction["state_id"] = MAPS["FactionState"][body_faction["FactionState"]]
 
             try:
-                faction['id'] = MAPS['factions'][body_faction['Name']],
+                faction['id'] = MAPS['factions'][body_faction['Name']]
             except KeyError:
                 # Faction not mapped, add it immediately, incurs write out cost
                 added = cogdb.spansh.update_faction_map([body_faction['name']], cache=FACTION_CACHE)

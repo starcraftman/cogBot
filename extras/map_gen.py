@@ -116,8 +116,7 @@ def merge_prison_stations():
 
     known_system_ids = list(known_systems.values())
     known_station_ids = list(sorted(known_systems.values()))
-    available = set(range(1, known_station_ids[-1] + 1000)) - set(known_station_ids)
-    available = list(sorted(available, reverse=True))
+    next_id = known_station_ids[-1] + 1
     with open(f'{IDS_ROOT}/prisons.eddb', 'r', encoding='utf-8') as fin:
         first = True
         for line in fin:
@@ -125,8 +124,7 @@ def merge_prison_stations():
                 first = False
                 continue
 
-            station_id, station_name, sys_id, sys_name = line.rstrip().split(SEP)
-            station_id = int(station_id)
+            _, station_name, sys_id, sys_name = line.rstrip().split(SEP)
             sys_id = int(sys_id)
             if sys_name not in known_systems:
                 if sys_id not in known_system_ids:
@@ -136,20 +134,12 @@ def merge_prison_stations():
                 else:
                     print(f"Error: {sys_id} for {sys_name} already assigned")
 
-            #
             key = f"{sys_name}{SEP}{station_name}"
-            if key not in known_stations:
-                if station_id not in known_station_ids:
-                    print(f'Station: {key} => {station_id}')
-                    known_stations[key] = station_id
-                    known_station_ids += [station_id]
-                    known_only_stations[key] = station_id
-                else:
-                    nextid = available.pop()
-                    print(f'Station: {key} => {nextid}')
-                    known_stations[key] = nextid
-                    known_station_ids += [nextid]
-                    known_only_stations[key] = nextid
+            station_id = next_id
+            next_id += 1
+            print(f'Station assigned: {key} => {station_id}')
+            known_stations[key] = station_id
+            known_only_stations[key] = station_id
 
     with open(f'{IDS_ROOT}/systemMap.json', 'w', encoding='utf-8') as fout:
         json.dump(known_systems, fout, indent=2, sort_keys=True)

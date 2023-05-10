@@ -13,6 +13,7 @@ import pytest
 
 import cog.util
 from tests.data import SYSTEMS, USERS
+from tests.cogdb.test_spansh import f_json
 
 
 def test_dict_to_columns():
@@ -543,7 +544,7 @@ def test_print_no_newline(mock_stdout):
     mock_stdout.assert_called_with('hello')
 
 
-def test_is_a_carrier(f_json):
+def test_is_a_carrier(f_json):  # noqa: F811
     assert cog.util.is_a_carrier("X7W-ED2")
     assert not cog.util.is_a_carrier("X7W-EDD5")
     assert not cog.util.is_a_carrier("Wescott Hub")

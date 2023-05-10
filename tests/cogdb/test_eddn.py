@@ -547,15 +547,6 @@ def test_edmcjournal_timestamp():
     assert parser.timestamp == 1596452651
 
 
-def test_edmcjournal_system_is_useful():
-    msg = json.loads(EXAMPLE_JOURNAL_STATION)
-    parser = cogdb.eddn.create_parser(msg)
-    assert not parser.system_is_useful
-
-    parser.parse_msg()
-    assert parser.system_is_useful
-
-
 def test_edmcjournal_parse_msg_journal():
     msg = json.loads(EXAMPLE_JOURNAL_STATION)
     parser = cogdb.eddn.create_parser(msg)
@@ -746,8 +737,7 @@ def test_edmcjournal_flush_station_to_db():
 
 
 def test_edmcjournal_parse_factions(mapped):
-    system_id = mapped['systems']['Ahemakino']
-    expect = ({
+    expect = {
         'Ahemakino Bridge Organisation': {'allegiance_id': 4,
                                           'government_id': 64,
                                           'id': mapped['factions']['Ahemakino Bridge Organisation'],
@@ -772,30 +762,39 @@ def test_edmcjournal_parse_factions(mapped):
                                     'name': 'Ochosag Federal Company',
                                     'state_id': 80,
                                     'updated_at': 1596452651},
-        'Revolutionary Mpalans Confederation': {'active_states': [FactionActiveState(system_id=system_id, faction_id=mapped['factions']['Revolutionary Mpalans Confederation'], state_id=73)],
-                                                'allegiance_id': 3,
+        'Revolutionary Mpalans Confederation': {'allegiance_id': 3,
                                                 'government_id': 48,
                                                 'id': mapped['factions']['Revolutionary Mpalans Confederation'],
                                                 'name': 'Revolutionary Mpalans '
                                                         'Confederation',
                                                 'state_id': 73,
                                                 'updated_at': 1596452651},
-        'Social Ahemakino Green Party': {'active_states': [FactionActiveState(system_id=system_id, faction_id=mapped['factions']['Social Ahemakino Green Party'], state_id=16)],
-                                         'allegiance_id': 3,
+        'Social Ahemakino Green Party': {'allegiance_id': 3,
                                          'government_id': 96,
                                          'id': mapped['factions']['Social Ahemakino Green Party'],
                                          'name': 'Social Ahemakino Green Party',
                                          'state_id': 16,
                                          'updated_at': 1596452651},
-        'Udegobo Silver Power Int': {'active_states': [FactionActiveState(system_id=system_id, faction_id=mapped['factions']['Udegobo Silver Power Int'], state_id=73)],
-                                     'allegiance_id': 3,
+        'Udegobo Silver Power Int': {'allegiance_id': 3,
                                      'government_id': 64,
                                      'id': mapped['factions']['Udegobo Silver Power Int'],
                                      'name': 'Udegobo Silver Power Int',
                                      'state_id': 73,
                                      'updated_at': 1596452651}
-    },
-        [
+    }
+    msg = json.loads(EXAMPLE_JOURNAL_STATION)
+    parser = cogdb.eddn.create_parser(msg)
+
+    parser.parse_system()
+    parser.parse_station()
+    result = parser.parse_factions()
+
+    assert result == expect
+
+
+def test_edmcjournal_parse_influence(mapped):
+    system_id = mapped['systems']['Ahemakino']
+    expect = [
         {'faction_id': mapped['factions']['Ochosag Federal Company'],
          'happiness_id': 2,
          'influence': 0.102386,
@@ -838,13 +837,14 @@ def test_edmcjournal_parse_factions(mapped):
          'is_controlling_faction': False,
          'system_id': system_id,
          'updated_at': 1596452651}
-    ])
+    ]
     msg = json.loads(EXAMPLE_JOURNAL_STATION)
     parser = cogdb.eddn.create_parser(msg)
 
+    parser.parse_factions()
     parser.parse_system()
     parser.parse_station()
-    result = parser.parse_factions()
+    result = parser.parse_influence()
 
     assert result == expect
 
@@ -868,7 +868,8 @@ def test_edmcjournal_flush_influences_to_db(mapped):
 
     parser.parse_system()
     parser.parse_station()
-    result = parser.parse_factions()
+    parser.parse_factions()
+    result = parser.parse_influence()
     assert result
 
     parser.flush_influences_to_db()

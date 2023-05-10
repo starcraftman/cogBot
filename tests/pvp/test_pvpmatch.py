@@ -55,7 +55,6 @@ def test_match_sort_players(f_pvpmatch):
     assert f_pvpmatch.players == ['CMDR1', 'CmDr3', 'cmdr5']
 
 
-
 def test_match_remove_players(f_pvpmatch):
     f_pvpmatch.remove_players(['cmdr1', 'cmdr4', 'cmdr5'])
     assert 'cmdr2' in f_pvpmatch.players

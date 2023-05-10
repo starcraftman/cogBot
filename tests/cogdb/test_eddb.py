@@ -69,7 +69,7 @@ def test_get_nearest_traders_brokers_human(eddb_session):
     result = cogdb.eddb.get_nearest_traders(eddb_session, centre_name='Sol', trader_type=TraderType.BROKERS_HUMAN)
 
     station_names = {x[2] for x in result}
-    assert "[L] Solo Orbiter" in station_names
+    assert "[L] McKay Ring" in station_names
 
 
 def test_get_nearest_traders_mats_data(eddb_session):
