@@ -8,7 +8,7 @@ import pvp.match
 
 @pytest.fixture
 def f_pvpmatch():
-    match = pvp.match.Match(mat_id=1, channel_id=5, limit=10)
+    match = pvp.match.Match(mat_id=1, channel_id=5, author_id=1, limit=10)
     match.add_players(['cmdr1', 'cmdr2', 'cmdr3', 'cmdr4', 'cmdr5'])
 
     yield match

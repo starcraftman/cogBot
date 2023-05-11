@@ -8,6 +8,7 @@ import random
 import discord
 import discord.ui as dui
 
+import cogdb.query
 import cog.util
 from cog.util import ReprMixin
 
@@ -30,9 +31,10 @@ class Match(ReprMixin):
     """
     _repr_keys = ['id', 'channel_id', 'limit', 'players', 'teams']
 
-    def __init__(self, mat_id, channel_id, *, limit=20):
+    def __init__(self, mat_id, channel_id, author_id, *, limit=20):
         self.id = mat_id
         self.channel_id = channel_id
+        self.creating_author_id = author_id
         self.limit = limit
         self.players = []
         self.teams = {}
@@ -195,10 +197,22 @@ class Match(ReprMixin):
                 if inter.data['custom_id'] == BUT_JOIN:
                     await inter.response.send_message(f"Adding: {inter.user.display_name}", delete_after=INTER_DELAY)
                     self.add_players([inter.user.display_name])
+                    continue
                 elif inter.data['custom_id'] == BUT_LEAVE:
                     await inter.response.send_message(f"Removing: {inter.user.display_name}", delete_after=INTER_DELAY)
                     self.remove_players([inter.user.display_name])
-                elif inter.data['custom_id'] == BUT_ROLL:
+                    continue
+
+                # Only admins and creating user can push other buttons
+                try:
+                    with cogdb.session_scope(cogdb.Session) as session:
+                        cogdb.query.get_admin(session, inter.user)
+                except cog.exc.NoMatch:
+                    if inter.user.id != self.creating_author_id:
+                        await inter.response.send_message("Permission Denied.", delete_after=INTER_DELAY)
+                        continue
+
+                if inter.data['custom_id'] == BUT_ROLL:
                     await inter.response.send_message("Teams rolled", delete_after=INTER_DELAY)
                     self.roll_teams()
                 elif inter.data['custom_id'] == BUT_CANCEL:
@@ -219,7 +233,7 @@ def get_match(mat_id):
     return MATCHES.get(mat_id)
 
 
-def create_match(*, channel_id=None, limit=20):
+def create_match(*, channel_id=None, author_id=None, limit=20):
     """
     Create a match and store it.
 
@@ -232,7 +246,7 @@ def create_match(*, channel_id=None, limit=20):
     global MATCH_NUM
     MATCH_NUM += 1
     match_id = MATCH_NUM
-    mat = Match(match_id, channel_id, limit=limit)
+    mat = Match(match_id, channel_id, author_id, limit=limit)
     MATCHES[MATCH_NUM] = mat
 
     return mat

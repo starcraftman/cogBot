@@ -568,7 +568,7 @@ class MatchShort(PVPAction):
         """
         Create a match.
         """
-        mat = pvp.match.create_match(channel_id=self.msg.channel.id, limit=self.args.limit)
+        mat = pvp.match.create_match(channel_id=self.msg.channel.id, author_id=self.msg.author.id, limit=self.args.limit)
         mat.add_players(self.collect_players())
         await mat.post_creation_loop(self.bot)
 
