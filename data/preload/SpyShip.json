@@ -2,196 +2,235 @@
   {
     "id": 1,
     "text": "Adder",
-    "traffic_text": "adder"
+    "traffic_text": "adder",
+    "eddn": "Adder"
   },
   {
     "id": 2,
     "text": "Alliance Challenger",
-    "traffic_text": "typex_3"
+    "traffic_text": "typex_3",
+    "eddn": "TypeX_3"
   },
   {
     "id": 3,
     "text": "Alliance Chieftain",
-    "traffic_text": "typex"
+    "traffic_text": "typex",
+    "eddn": "TypeX"
   },
   {
     "id": 4,
     "text": "Alliance Crusader",
-    "traffic_text": "typex_2"
+    "traffic_text": "typex_2",
+    "eddn": "TypeX_2"
   },
   {
     "id": 5,
     "text": "Anaconda",
-    "traffic_text": "anaconda"
+    "traffic_text": "anaconda",
+    "eddn": "Anaconda"
   },
   {
     "id": 6,
     "text": "Asp Explorer",
-    "traffic_text": "asp"
+    "traffic_text": "asp",
+    "eddn": "Asp"
   },
   {
     "id": 7,
     "text": "Asp Scout",
-    "traffic_text": "asp_scout"
+    "traffic_text": "asp_scout",
+    "eddn": "Asp_Scout"
   },
   {
     "id": 8,
     "text": "Beluga Liner",
-    "traffic_text": "belugaliner"
+    "traffic_text": "belugaliner",
+    "eddn": "BelugaLiner"
   },
   {
     "id": 9,
     "text": "Cobra MK IV",
-    "traffic_text": "cobramkiv"
+    "traffic_text": "cobramkiv",
+    "eddn": "CobraMkIV"
   },
   {
     "id": 10,
     "text": "Cobra Mk. III",
-    "traffic_text": "cobramkiii"
+    "traffic_text": "cobramkiii",
+    "eddn": "CobraMkIII"
   },
   {
     "id": 11,
     "text": "Diamondback Explorer",
-    "traffic_text": "diamondbackxl"
+    "traffic_text": "diamondbackxl",
+    "eddn": "DiamondBackXL"
   },
   {
     "id": 12,
     "text": "Diamondback Scout",
-    "traffic_text": "diamondback"
+    "traffic_text": "diamondback",
+    "eddn": "DiamondBack"
   },
   {
     "id": 13,
     "text": "Dolphin",
-    "traffic_text": "dolphin"
+    "traffic_text": "dolphin",
+    "eddn": "Dolphin"
   },
   {
     "id": 14,
     "text": "Eagle Mk. II",
-    "traffic_text": "eagle"
+    "traffic_text": "eagle",
+    "eddn": "Eagle"
   },
   {
     "id": 15,
     "text": "Federal Assault Ship",
-    "traffic_text": "federation_dropship_mkii"
+    "traffic_text": "federation_dropship_mkii",
+    "eddn": "Federation_Dropship_MkII"
   },
   {
     "id": 16,
     "text": "Federal Corvette",
-    "traffic_text": "federation_corvette"
+    "traffic_text": "federation_corvette",
+    "eddn": "Federation_Corvette"
   },
   {
     "id": 17,
     "text": "Federal Dropship",
-    "traffic_text": "federation_dropship"
+    "traffic_text": "federation_dropship",
+    "eddn": "Federation_Dropship"
   },
   {
     "id": 18,
     "text": "Federal Gunship",
-    "traffic_text": "federation_gunship"
+    "traffic_text": "federation_gunship",
+    "eddn": "Federation_Gunship"
   },
   {
     "id": 19,
     "text": "Fer-de-Lance",
-    "traffic_text": "ferdelance"
+    "traffic_text": "ferdelance",
+    "eddn": "FerDeLance"
   },
   {
     "id": 20,
     "text": "Hauler",
-    "traffic_text": "hauler"
+    "traffic_text": "hauler",
+    "eddn": "Hauler"
   },
   {
     "id": 21,
     "text": "Imperial Clipper",
-    "traffic_text": "empire_trader"
+    "traffic_text": "empire_trader",
+    "eddn": "Empire_Trader"
   },
   {
     "id": 22,
     "text": "Imperial Courier",
-    "traffic_text": "empire_courier"
+    "traffic_text": "empire_courier",
+    "eddn": "Empire_Courier"
   },
   {
     "id": 23,
     "text": "Imperial Cutter",
-    "traffic_text": "cutter"
+    "traffic_text": "cutter",
+    "eddn": "Cutter"
   },
   {
     "id": 24,
     "text": "Imperial Eagle",
-    "traffic_text": "empire_eagle"
+    "traffic_text": "empire_eagle",
+    "eddn": "Empire_Eagle"
   },
   {
     "id": 25,
     "text": "Keelback",
-    "traffic_text": "independant_trader"
+    "traffic_text": "independant_trader",
+    "eddn": "Independant_Trader"
   },
   {
     "id": 26,
     "text": "Krait MkII",
-    "traffic_text": "krait_mkii"
+    "traffic_text": "krait_mkii",
+    "eddn": "Krait_MkII"
   },
   {
     "id": 27,
     "text": "Krait Phantom",
-    "traffic_text": "krait_light"
+    "traffic_text": "krait_light",
+    "eddn":  "Krait_Light"
   },
   {
     "id": 28,
     "text": "Mamba",
-    "traffic_text": "mamba"
+    "traffic_text": "mamba",
+    "eddn": "Mamba"
   },
   {
     "id": 29,
     "text": "Orca",
-    "traffic_text": "orca"
+    "traffic_text": "orca",
+    "eddn": "Orca"
   },
   {
     "id": 30,
     "text": "Python",
-    "traffic_text": "python"
+    "traffic_text": "python",
+    "eddn": "Python"
   },
   {
     "id": 31,
     "text": "Sidewinder Mk. I",
-    "traffic_text": "sidewinder"
+    "traffic_text": "sidewinder",
+    "eddn": "SideWinder"
   },
   {
     "id": 32,
     "text": "Type-10 Defender",
-    "traffic_text": "type9_military"
+    "traffic_text": "type9_military",
+    "eddn": "Type9_Military"
   },
   {
     "id": 33,
     "text": "Type-6 Transporter",
-    "traffic_text": "type6"
+    "traffic_text": "type6",
+    "eddn": "Type6"
   },
   {
     "id": 34,
     "text": "Type-7 Transporter",
-    "traffic_text": "type7"
+    "traffic_text": "type7",
+    "eddn": "Type7"
   },
   {
     "id": 35,
     "text": "Type-9 Heavy",
-    "traffic_text": "type9"
+    "traffic_text": "type9",
+    "eddn": "Type9"
   },
   {
     "id": 36,
     "text": "Viper MK IV",
-    "traffic_text": "viper_mkiv"
+    "traffic_text": "viper_mkiv",
+    "eddn": "Viper_MkIV"
   },
   {
     "id": 37,
     "text": "Viper Mk III",
-    "traffic_text": "viper"
+    "traffic_text": "viper",
+    "eddn": "Viper"
   },
   {
     "id": 38,
     "text": "Vulture",
-    "traffic_text": "vulture"
+    "traffic_text": "vulture",
+    "eddn": "Vulture"
   },
   {
     "id": 39,
     "text": "PlayerCarrier",
-    "traffic_text": "carrierdockb"
+    "traffic_text": "carrierdockb",
+    "eddn": "PlayerCarrier"
   }
 ]

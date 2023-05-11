@@ -5,6 +5,7 @@ Will have the following parts:
     - Pick out messages we want and parse them
     - Update relevant bits of EDDB database.
 """
+import abc
 import argparse
 import datetime
 import logging
@@ -32,22 +33,25 @@ import cogdb.spansh
 from cogdb.eddb import (Conflict, Faction, Influence, System, Station,
                         StationEconomy, StationFeatures, FactionActiveState, FactionPendingState,
                         FactionRecoveringState)
+from cogdb.spansh import SCommodity, SCommodityPricing, SModule, SModuleSold
+from cogdb.spy_squirrel import SpyShip
 
 EDDN_ADDR = "tcp://eddn.edcd.io:9500"
 TIMEOUT = 600000
 # Keys of form $schemaRef"
 SCHEMA_MAP = {
-    #  "https://eddn.edcd.io/schemas/blackmarket/1": "BlackmarketMsg",
-    #  "https://eddn.edcd.io/schemas/commodity/3": "CommodityMsg",
-    "https://eddn.edcd.io/schemas/journal/1": "EDMCJournal",
-    #  "https://eddn.edcd.io/schemas/outfitting/2": "OutfitMsg",
-    #  "https://eddn.edcd.io/schemas/shipyard/2": "ShipyardMsg",
+    #  "https://eddn.edcd.io/schemas/commodity/3": "CommodityV3",
+    "https://eddn.edcd.io/schemas/journal/1": "JournalV1",
+    #  "https://eddn.edcd.io/schemas/outfitting/2": "OutfittingV2",
+    #  "https://eddn.edcd.io/schemas/shipyard/2": "ShipyardV2",
 }
 LOG_FILE = "/tmp/eddn_log"
 ALL_MSGS = '/tmp/msgs'
 JOURNAL_MSGS = '/tmp/msgs_journal'
 JOURNAL_CARS = '/tmp/msgs_journal_cars'
 STATION_FEATS = [x for x in StationFeatures.__dict__ if x not in ('id', 'station') and not x.startswith('_')]
+COMMS_SEEN = []
+MODS_SEEN = []
 
 
 def station_key(*, system, station):
@@ -88,10 +92,12 @@ class SchemaIgnored(Exception):
     """
 
 
-class EDMCJournal():
+class MsgParser(abc.ABC):
     """
-    Parse an EDMC Journal message for pertinent information and update
-    the database as possible. Not all elements are guaranteed so parse as possible.
+    Parse a given EDDN message.
+    Two methods must be implemented:
+        parse_msg: Wherein you parse the data and validate it.
+        update_database: Wherein you know the data is good and push it into the database.
     """
     def __init__(self, session, eddb_session, msg):
         self.msg = msg
@@ -124,6 +130,138 @@ class EDMCJournal():
         """ The UTC timestamp of the message. """
         return int(self.date_obj.timestamp())
 
+    def select_station(self):
+        """
+        Convenience function, given a msg with a body that contains
+        both "stationName" and "systemName", select from the EDDB
+        database the corresponding station.
+        Two case:
+            Is a carrier, select by name the station.
+            Is not a carrier, select by name and system of the station.
+
+        Returns: The cogdb.eddb.Station.
+
+        Raises:
+            SkipDatabaseFlush: The station or system is not in the database.
+        """
+        try:
+            station_name = self.body['stationName']
+            station = self.eddb_session.query(Station).\
+                filter(Station.name == station_name)
+
+            if not cog.util.is_a_carrier(station_name):
+                subq = self.eddb_session.query(System.id).\
+                    filter(System.name == self.body['systemName']).\
+                    scalar()
+                station = station.filter(Station.system_id == subq)
+
+            return station.one()
+        except sqla.exc.NoResultFound as exc:
+            raise SkipDatabaseFlush("CommodityV3: System or Station not found.") from exc
+
+    @abc.abstractmethod
+    def parse_msg(self):
+        """
+        Parse the information from the message.
+        Parsed information can be stored in self.parsed for later reference.
+
+        Raises:
+            SkipDatabaseFlush: Raise to interrupt processing and skip database update.
+        """
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def update_database(self):
+        """
+        Update the database with the parsed information.
+        """
+        raise NotImplementedError
+
+
+class CommodityV3(MsgParser):
+    """
+    Parse commodity/3 eddn messages.
+    """
+    def parse_msg(self):
+        station = self.select_station()
+
+        self.parsed['commodity_pricing'] = []
+        for comm in self.body['commodities']:
+            try:
+                self.parsed['commodity_pricing'] += [{
+                    'station_id': station.id,
+                    'commodity_id': MAPS['SCommodity'][comm['name']],
+                    'demand': comm['demand'],
+                    'supply': comm['supply'],
+                    'buy_price': comm['buyPrice'],
+                    'sell_price': comm['sellPrice'],
+                }]
+            except KeyError:
+                global COMMS_SEEN
+                if comm['name'] not in COMMS_SEEN:
+                    COMMS_SEEN += [comm['name']]
+                    with open('/tmp/commsMiss.log', 'a', encoding='utf-8') as fout:
+                        fout.write(f"No map: {comm['name']}\n")
+
+    def update_database(self):
+        pass
+
+
+class OutfittingV2(MsgParser):
+    """
+    Parse outfitting/2 eddn messages.
+    """
+    def parse_msg(self):
+        station = self.select_station()
+
+        self.parsed['modules_sold'] = []
+        global MODS_SEEN
+        for mod in self.body['modules']:
+            try:
+                self.parsed['modules_sold'] += [{
+                    'station_id': station.id,
+                    'module_id': MAPS['SModule'][mod.lower()],
+                }]
+                if mod not in MODS_SEEN:
+                    MODS_SEEN += [mod]
+                    with open('/tmp/modsMap.log', 'a', encoding='utf-8') as fout:
+                        fout.write(f"{mod} -> {mod.lower()}\n")
+            except KeyError:
+                with open('/tmp/modsMiss.log', 'a', encoding='utf-8') as fout:
+                    fout.write(f"No map: {mod}\n")
+
+    def update_database(self):
+        pass
+
+
+class ShipyardV2(MsgParser):
+    """
+    Parse shipyard/2 eddn messages.
+    """
+    def parse_msg(self):
+        station = self.select_station()
+
+        self.parsed['ships_sold'] = []
+        for ship in self.body['ships']:
+            try:
+                self.parsed['ships_sold'] += [{
+                    'station_id': station.id,
+                    'ship_id': MAPS['SpyShip'][ship],
+                }]
+            except KeyError:
+                with open('/tmp/shipMiss.log', 'a', encoding='utf-8') as fout:
+                    fout.write(f"No map: {ship}\n")
+
+    # TODO: Need storage per station for ships list.
+    def update_database(self):
+        pass
+
+
+class JournalV1(MsgParser):
+    """
+    Parse an journal/1 message for pertinent information and update
+    the database as possible. Not all elements are guaranteed so parse as possible.
+    """
     def parse_msg(self):
         """
         Perform whole message parsing.
@@ -590,7 +728,11 @@ def create_id_maps(session):
         'PowerplayState': {x.eddn: x.id for x in session.query(cogdb.eddb.PowerState)},
         'Security': {x.eddn: x.id for x in session.query(cogdb.eddb.Security)},
         'StationType': {x.eddn: x.id for x in session.query(cogdb.eddb.StationType)},
+        'SpyShip': {x.traffic_text: x.id for x in session.query(SpyShip)},
+        'SModule': {x.symbol.lower(): x.id for x in session.query(SModule)},
     }
+    # TODO: I'd rather map modules without needing to lower messages
+    maps['SpyShip'].update({x.eddn: x.id for x in session.query(SpyShip)})
     try:
         maps['PowerplayState'][''] = maps['PowerplayState']['None']
         maps['PowerplayState']['HomeSystem'] = maps['PowerplayState']['Controlled']

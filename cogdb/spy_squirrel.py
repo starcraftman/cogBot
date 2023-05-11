@@ -96,6 +96,7 @@ class SpyShip(ReprMixin, Base):
     id = sqla.Column(sqla.Integer, primary_key=True)
     text = sqla.Column(sqla.String(cogdb.eddb.LEN["ship"]))
     traffic_text = sqla.Column(sqla.String(cogdb.eddb.LEN["ship"]))
+    eddn = sqla.Column(sqla.String(cogdb.eddb.LEN["ship"]))
 
     def __str__(self):
         """ A pretty one line to give all information. """
