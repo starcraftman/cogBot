@@ -33,7 +33,7 @@ import cogdb.spansh
 from cogdb.eddb import (Conflict, Faction, Influence, System, Station,
                         StationEconomy, StationFeatures, FactionActiveState, FactionPendingState,
                         FactionRecoveringState)
-from cogdb.spansh import SCommodity, SCommodityPricing, SModule, SModuleSold
+from cogdb.spansh import SCommodity, SCommodityPricing, SModule, SModuleSold, ShipSold
 from cogdb.spy_squirrel import SpyShip
 
 EDDN_ADDR = "tcp://eddn.edcd.io:9500"
@@ -42,8 +42,8 @@ TIMEOUT = 600000
 SCHEMA_MAP = {
     #  "https://eddn.edcd.io/schemas/commodity/3": "CommodityV3",
     "https://eddn.edcd.io/schemas/journal/1": "JournalV1",
-    #  "https://eddn.edcd.io/schemas/outfitting/2": "OutfittingV2",
-    #  "https://eddn.edcd.io/schemas/shipyard/2": "ShipyardV2",
+    "https://eddn.edcd.io/schemas/outfitting/2": "OutfittingV2",
+    "https://eddn.edcd.io/schemas/shipyard/2": "ShipyardV2",
 }
 LOG_FILE = "/tmp/eddn_log"
 ALL_MSGS = '/tmp/msgs'
@@ -51,7 +51,6 @@ JOURNAL_MSGS = '/tmp/msgs_journal'
 JOURNAL_CARS = '/tmp/msgs_journal_cars'
 STATION_FEATS = [x for x in StationFeatures.__dict__ if x not in ('id', 'station') and not x.startswith('_')]
 COMMS_SEEN = []
-MODS_SEEN = []
 
 
 def station_key(*, system, station):
@@ -157,7 +156,7 @@ class MsgParser(abc.ABC):
 
             return station.one()
         except sqla.exc.NoResultFound as exc:
-            raise SkipDatabaseFlush("CommodityV3: System or Station not found.") from exc
+            raise SkipDatabaseFlush("MsgParser: System or Station not found.") from exc
 
     @abc.abstractmethod
     def parse_msg(self):
@@ -204,7 +203,19 @@ class CommodityV3(MsgParser):
                         fout.write(f"No map: {comm['name']}\n")
 
     def update_database(self):
-        pass
+        commodities = self.parsed.get('commodity_pricing', [])
+        if not commodities:
+            return
+
+        station_id = commodities[0]['station_id']
+        self.eddb_session.query(SCommodityPricing).\
+            filter(SCommodityPricing.station_id == station_id).\
+            delete()
+
+        self.eddb_session.add_all(
+            [SCommodityPricing(**x) for x in commodities]
+        )
+        self.eddb_session.commit()
 
 
 class OutfittingV2(MsgParser):
@@ -215,23 +226,30 @@ class OutfittingV2(MsgParser):
         station = self.select_station()
 
         self.parsed['modules_sold'] = []
-        global MODS_SEEN
         for mod in self.body['modules']:
             try:
                 self.parsed['modules_sold'] += [{
                     'station_id': station.id,
                     'module_id': MAPS['SModule'][mod.lower()],
                 }]
-                if mod not in MODS_SEEN:
-                    MODS_SEEN += [mod]
-                    with open('/tmp/modsMap.log', 'a', encoding='utf-8') as fout:
-                        fout.write(f"{mod} -> {mod.lower()}\n")
             except KeyError:
                 with open('/tmp/modsMiss.log', 'a', encoding='utf-8') as fout:
                     fout.write(f"No map: {mod}\n")
 
     def update_database(self):
-        pass
+        modules_sold = self.parsed.get('modules_sold', [])
+        if not modules_sold:
+            return
+
+        station_id = modules_sold[0]['station_id']
+        self.eddb_session.query(SModuleSold).\
+            filter(SModuleSold.station_id == station_id).\
+            delete()
+
+        self.eddb_session.add_all(
+            [SModuleSold(**x) for x in modules_sold]
+        )
+        self.eddb_session.commit()
 
 
 class ShipyardV2(MsgParser):
@@ -252,9 +270,20 @@ class ShipyardV2(MsgParser):
                 with open('/tmp/shipMiss.log', 'a', encoding='utf-8') as fout:
                     fout.write(f"No map: {ship}\n")
 
-    # TODO: Need storage per station for ships list.
     def update_database(self):
-        pass
+        ships_sold = self.parsed.get('ships_sold', [])
+        if not ships_sold:
+            return
+
+        station_id = ships_sold[0]['station_id']
+        self.eddb_session.query(ShipSold).\
+            filter(ShipSold.station_id == station_id).\
+            delete()
+
+        self.eddb_session.add_all(
+            [ShipSold(**x) for x in ships_sold]
+        )
+        self.eddb_session.commit()
 
 
 class JournalV1(MsgParser):
@@ -731,7 +760,7 @@ def create_id_maps(session):
         'SpyShip': {x.traffic_text: x.id for x in session.query(SpyShip)},
         'SModule': {x.symbol.lower(): x.id for x in session.query(SModule)},
     }
-    # TODO: I'd rather map modules without needing to lower messages
+    # TODO: Need to map SCommodity here with eddn names.
     maps['SpyShip'].update({x.eddn: x.id for x in session.query(SpyShip)})
     try:
         maps['PowerplayState'][''] = maps['PowerplayState']['None']
