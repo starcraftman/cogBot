@@ -214,7 +214,7 @@ def subs_match(subs, prefix):
     """
 
     sub = subs.add_parser(prefix + 'match', description=desc, formatter_class=RawHelp)
-    sub.set_defaults(cmd='MatchShort', subcmd='create')
+    sub.set_defaults(cmd='MatchShort', subcmd='start')
     subcmds = sub.add_subparsers(title='subcommands',
                                  description='Match subcommands', dest='subcmd')
 
