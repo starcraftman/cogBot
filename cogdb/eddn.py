@@ -194,7 +194,7 @@ class CommodityV3(MsgParser):
                     'station_id': station.id,
                     'commodity_id': MAPS['SCommodity'][comm['name']],
                     'demand': comm['demand'],
-                    'supply': comm['supply'],
+                    'supply': comm['stock'],
                     'buy_price': comm['buyPrice'],
                     'sell_price': comm['sellPrice'],
                 }]
@@ -762,7 +762,7 @@ def create_id_maps(session):
         'StationType': {x.eddn: x.id for x in session.query(cogdb.eddb.StationType)},
         'Ship': {x.traffic_text: x.id for x in session.query(Ship)},
         'SModule': {x.symbol.lower(): x.id for x in session.query(SModule)},
-        'SCommodity': {x.eddn: x.id for x in session.query(SCommodity)},
+        'SCommodity': {x.eddn: x.id for x in session.query(SCommodity).filter(SCommodity.eddn is not None)},
     }
     maps['Ship'].update({x.eddn: x.id for x in session.query(Ship)})
     try:

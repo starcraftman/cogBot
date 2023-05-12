@@ -100,6 +100,7 @@ class SCommodity(ReprMixin, UpdatableMixin, Base):
     id = sqla.Column(sqla.Integer, primary_key=True)  # commodityId
     group_id = sqla.Column(sqla.Integer, sqla.ForeignKey("spansh_commodity_groups.id"), nullable=False)
     name = sqla.Column(sqla.String(LEN["commodity"]))
+    eddn = sqla.Column(sqla.String(LEN["commodity"]))
 
     @property
     def text(self):
