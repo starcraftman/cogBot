@@ -5,6 +5,7 @@ No map: aerialedenapple
 No map: aganipperush
 No map: agriculturalmedicines
 No map: agronomictreatment
+No map: airelics
 No map: alacarakmoskinart
 No map: albinoquechuamammoth
 No map: alexandrite
@@ -25,7 +26,9 @@ No map: anduligafireworks
 No map: animaleffigies
 No map: animalmeat
 No map: animalmonitors
+No map: antimattercontainmentunit
 No map: antiquejewellery
+No map: antiquities
 No map: anynacoffee
 No map: apavietii
 No map: aquaponicsystems
@@ -129,6 +132,7 @@ No map: gomanyauponcoffee
 No map: goslarite
 No map: grain
 No map: grandidierite
+No map: hafnium178
 No map: haidneblackbrew
 No map: harmasilversearum
 No map: havasupaidreamcatcher
@@ -246,6 +250,7 @@ No map: personalweapons
 No map: pesticides
 No map: platinum
 No map: platinumaloy
+No map: politicalprisoner
 No map: polymers
 No map: powerconverter
 No map: powergenerators
@@ -347,6 +352,9 @@ No map: unstabledatacore
 No map: uraninite
 No map: uranium
 No map: usscargoblackbox
+No map: usscargoexperimentalchemicals
+No map: usscargomilitaryplans
+No map: usscargoprototypetech
 No map: usscargorareartwork
 No map: uszaiantreegrub
 No map: utgaroarmillenialeggs

@@ -52,6 +52,7 @@ JOURNAL_CARS = '/tmp/msgs_journal_cars'
 COMM_MSGS = '/tmp/msgs_comm'
 STATION_FEATS = [x for x in StationFeatures.__dict__ if x not in ('id', 'station') and not x.startswith('_')]
 COMMS_SEEN = []
+BLACKLIST_SOFTWARE = ["EVA [iPad]"]
 
 
 def station_key(*, system, station):
@@ -761,8 +762,8 @@ def create_id_maps(session):
         'StationType': {x.eddn: x.id for x in session.query(cogdb.eddb.StationType)},
         'Ship': {x.traffic_text: x.id for x in session.query(Ship)},
         'SModule': {x.symbol.lower(): x.id for x in session.query(SModule)},
+        'SCommodity': {x.eddn: x.id for x in session.query(SCommodity)},
     }
-    # TODO: Need to map SCommodity here with eddn names.
     maps['Ship'].update({x.eddn: x.id for x in session.query(Ship)})
     try:
         maps['PowerplayState'][''] = maps['PowerplayState']['None']
@@ -857,8 +858,8 @@ def get_msgs(sub):  # pragma: no cover
 
         msg = json.loads(zlib.decompress(msg).decode())
         try:
-            # Drop messages with old timestamps
-            if not timestamp_is_recent(msg):
+            # Drop messages with old timestamps or blacklisted software
+            if not timestamp_is_recent(msg) or msg['header']['softwareName'] in BLACKLIST_SOFTWARE:
                 continue
 
             lfname = log_fname(msg)

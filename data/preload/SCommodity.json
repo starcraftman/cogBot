@@ -510,7 +510,7 @@
     "name": "Trade Data"
   },
   {
-    "eddn": null,
+    "eddn": "usscargomilitaryplans",
     "group_id": 10,
     "id": 128666755,
     "name": "Military Plans"
@@ -528,7 +528,7 @@
     "name": "Rare Artwork"
   },
   {
-    "eddn": null,
+    "eddn": "usscargoexperimentalchemicals",
     "group_id": 10,
     "id": 128666758,
     "name": "Experimental Chemicals"
@@ -540,7 +540,7 @@
     "name": "Rebel Transmissions"
   },
   {
-    "eddn": null,
+    "eddn": "usscargoprototypetech",
     "group_id": 10,
     "id": 128666760,
     "name": "Prototype Tech"
@@ -708,7 +708,7 @@
     "name": "Volkhab Bee Drones"
   },
   {
-    "eddn": null,
+    "eddn": "kinagoinstruments",
     "group_id": 2,
     "id": 128667045,
     "name": "Kinago Violins"
@@ -1296,13 +1296,13 @@
     "name": "Thargoid Sensor"
   },
   {
-    "eddn": null,
+    "eddn": "airelics",
     "group_id": 10,
     "id": 128668548,
     "name": "AI Relics"
   },
   {
-    "eddn": null,
+    "eddn": "hafnium178",
     "group_id": 8,
     "id": 128668549,
     "name": "Hafnium 178"
@@ -1314,7 +1314,7 @@
     "name": "Painite"
   },
   {
-    "eddn": null,
+    "eddn": "antiquities",
     "group_id": 10,
     "id": 128668551,
     "name": "Antiquities"
@@ -1428,7 +1428,7 @@
     "name": "Scientific Samples"
   },
   {
-    "eddn": null,
+    "eddn": "politicalprisoner",
     "group_id": 10,
     "id": 128672134,
     "name": "Political Prisoners"
@@ -1440,13 +1440,13 @@
     "name": "Hostages"
   },
   {
-    "eddn": null,
+    "eddn": "largeexplorationdatacash",
     "group_id": 10,
     "id": 128672136,
     "name": "Large Survey Data Cache"
   },
   {
-    "eddn": null,
+    "eddn": "smallexplorationdatacash",
     "group_id": 10,
     "id": 128672137,
     "name": "Small Survey Data Cache"
@@ -1914,7 +1914,7 @@
     "name": "Prohibited Research Materials"
   },
   {
-    "eddn": null,
+    "eddn": "antimattercontainmentunit",
     "group_id": 10,
     "id": 128682053,
     "name": "Antimatter Containment Unit"
@@ -1986,7 +1986,7 @@
     "name": "Thargoid Resin"
   },
   {
-    "eddn": null,
+    "eddn": "unknownbiologicalmatter",
     "group_id": 10,
     "id": 128737288,
     "name": "Thargoid Biological Matter"
@@ -2106,7 +2106,7 @@
     "name": "Pod Surface Tissue"
   },
   {
-    "eddn": null,
+    "eddn": "p_particulatesample",
     "group_id": 10,
     "id": 128922523,
     "name": "Anomaly Particles"
@@ -2244,7 +2244,7 @@
     "name": "Classified Experimental Equipment"
   },
   {
-    "eddn": null,
+    "eddn": "ancientrelictg",
     "group_id": 10,
     "id": 129015433,
     "name": "Unclassified Relic"
