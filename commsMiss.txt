@@ -2,6 +2,7 @@ No map: advancedcatalysers
 No map: advancedmedicines
 No map: advert1
 No map: aerialedenapple
+No map: aganipperush
 No map: agriculturalmedicines
 No map: agronomictreatment
 No map: alacarakmoskinart
@@ -136,6 +137,7 @@ No map: heatsinkinterlink
 No map: heliostaticfurnaces
 No map: helvetitjpearls
 No map: hip10175bushmeat
+No map: hip118311swarm
 No map: hip41181squid
 No map: hiporganophosphates
 No map: hnshockmount
@@ -197,6 +199,7 @@ No map: methaneclathrate
 No map: methanolmonohydratecrystals
 No map: microcontrollers
 No map: militarygradefabrics
+No map: militaryintelligence
 No map: mineralextractors
 No map: mineraloil
 No map: modularterminals
@@ -235,6 +238,7 @@ No map: p_particulatesample
 No map: painite
 No map: palladium
 No map: pantaaprayersticks
+No map: pavoniseargrubs
 No map: performanceenhancers
 No map: personaleffects
 No map: personalgifts
@@ -281,6 +285,7 @@ No map: serendibite
 No map: shanscharisorchid
 No map: silver
 No map: skimercomponents
+No map: slaves
 No map: smallexplorationdatacash
 No map: soontillrelics
 No map: sothiscrystallinegold
@@ -301,6 +306,7 @@ No map: taurichimes
 No map: tea
 No map: telemetrysuite
 No map: terrainenrichmentsystems
+No map: terramaterbloodbores
 No map: thallium
 No map: thargoidgeneratortissuesample
 No map: thargoidheart

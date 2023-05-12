@@ -1,1890 +1,2268 @@
 [
   {
+    "eddn": "platinum",
     "group_id": 8,
     "id": 128049152,
     "name": "Platinum"
   },
   {
+    "eddn": "palladium",
     "group_id": 8,
     "id": 128049153,
     "name": "Palladium"
   },
   {
+    "eddn": "gold",
     "group_id": 8,
     "id": 128049154,
     "name": "Gold"
   },
   {
+    "eddn": "silver",
     "group_id": 8,
     "id": 128049155,
     "name": "Silver"
   },
   {
+    "eddn": "bertrandite",
     "group_id": 9,
     "id": 128049156,
     "name": "Bertrandite"
   },
   {
+    "eddn": "indite",
     "group_id": 9,
     "id": 128049157,
     "name": "Indite"
   },
   {
+    "eddn": "gallite",
     "group_id": 9,
     "id": 128049158,
     "name": "Gallite"
   },
   {
+    "eddn": "coltan",
     "group_id": 9,
     "id": 128049159,
     "name": "Coltan"
   },
   {
+    "eddn": "uraninite",
     "group_id": 9,
     "id": 128049160,
     "name": "Uraninite"
   },
   {
+    "eddn": "lepidolite",
     "group_id": 9,
     "id": 128049161,
     "name": "Lepidolite"
   },
   {
+    "eddn": "cobalt",
     "group_id": 8,
     "id": 128049162,
     "name": "Cobalt"
   },
   {
+    "eddn": "rutile",
     "group_id": 9,
     "id": 128049163,
     "name": "Rutile"
   },
   {
+    "eddn": "bauxite",
     "group_id": 9,
     "id": 128049165,
     "name": "Bauxite"
   },
   {
+    "eddn": "water",
     "group_id": 1,
     "id": 128049166,
     "name": "Water"
   },
   {
+    "eddn": "beryllium",
     "group_id": 8,
     "id": 128049168,
     "name": "Beryllium"
   },
   {
+    "eddn": "indium",
     "group_id": 8,
     "id": 128049169,
     "name": "Indium"
   },
   {
+    "eddn": "gallium",
     "group_id": 8,
     "id": 128049170,
     "name": "Gallium"
   },
   {
+    "eddn": "tantalum",
     "group_id": 8,
     "id": 128049171,
     "name": "Tantalum"
   },
   {
+    "eddn": "uranium",
     "group_id": 8,
     "id": 128049172,
     "name": "Uranium"
   },
   {
+    "eddn": "lithium",
     "group_id": 8,
     "id": 128049173,
     "name": "Lithium"
   },
   {
+    "eddn": "titanium",
     "group_id": 8,
     "id": 128049174,
     "name": "Titanium"
   },
   {
+    "eddn": "copper",
     "group_id": 8,
     "id": 128049175,
     "name": "Copper"
   },
   {
+    "eddn": "aluminium",
     "group_id": 8,
     "id": 128049176,
     "name": "Aluminium"
   },
   {
+    "eddn": "algae",
     "group_id": 3,
     "id": 128049177,
     "name": "Algae"
   },
   {
+    "eddn": "fruitandvegetables",
     "group_id": 3,
     "id": 128049178,
     "name": "Fruit and Vegetables"
   },
   {
+    "eddn": "grain",
     "group_id": 3,
     "id": 128049180,
     "name": "Grain"
   },
   {
+    "eddn": "animalmeat",
     "group_id": 3,
     "id": 128049182,
     "name": "Animal Meat"
   },
   {
+    "eddn": "fish",
     "group_id": 3,
     "id": 128049183,
     "name": "Fish"
   },
   {
+    "eddn": "foodcartridges",
     "group_id": 3,
     "id": 128049184,
     "name": "Food Cartridges"
   },
   {
+    "eddn": "syntheticmeat",
     "group_id": 3,
     "id": 128049185,
     "name": "Synthetic Meat"
   },
   {
+    "eddn": "tea",
     "group_id": 3,
     "id": 128049188,
     "name": "Tea"
   },
   {
+    "eddn": "coffee",
     "group_id": 3,
     "id": 128049189,
     "name": "Coffee"
   },
   {
+    "eddn": "leather",
     "group_id": 13,
     "id": 128049190,
     "name": "Leather"
   },
   {
+    "eddn": "naturalfabrics",
     "group_id": 13,
     "id": 128049191,
     "name": "Natural Fabrics"
   },
   {
+    "eddn": "syntheticfabrics",
     "group_id": 13,
     "id": 128049193,
     "name": "Synthetic Fabrics"
   },
   {
+    "eddn": "polymers",
     "group_id": 4,
     "id": 128049197,
     "name": "Polymers"
   },
   {
+    "eddn": "semiconductors",
     "group_id": 4,
     "id": 128049199,
     "name": "Semiconductors"
   },
   {
+    "eddn": "superconductors",
     "group_id": 4,
     "id": 128049200,
     "name": "Superconductors"
   },
   {
+    "eddn": "hydrogenfuel",
     "group_id": 1,
     "id": 128049202,
     "name": "Hydrogen Fuel"
   },
   {
+    "eddn": "mineraloil",
     "group_id": 1,
     "id": 128049203,
     "name": "Mineral Oil"
   },
   {
+    "eddn": "explosives",
     "group_id": 1,
     "id": 128049204,
     "name": "Explosives"
   },
   {
+    "eddn": "pesticides",
     "group_id": 1,
     "id": 128049205,
     "name": "Pesticides"
   },
   {
+    "eddn": "agriculturalmedicines",
     "group_id": 7,
     "id": 128049208,
     "name": "Agri-Medicines"
   },
   {
+    "eddn": "performanceenhancers",
     "group_id": 7,
     "id": 128049209,
     "name": "Performance Enhancers"
   },
   {
+    "eddn": "basicmedicines",
     "group_id": 7,
     "id": 128049210,
     "name": "Basic Medicines"
   },
   {
+    "eddn": "basicnarcotics",
     "group_id": 5,
     "id": 128049212,
     "name": "Narcotics"
   },
   {
+    "eddn": "tobacco",
     "group_id": 5,
     "id": 128049213,
     "name": "Tobacco"
   },
   {
+    "eddn": "beer",
     "group_id": 5,
     "id": 128049214,
     "name": "Beer"
   },
   {
+    "eddn": "wine",
     "group_id": 5,
     "id": 128049215,
     "name": "Wine"
   },
   {
+    "eddn": "liquor",
     "group_id": 5,
     "id": 128049216,
     "name": "Liquor"
   },
   {
+    "eddn": "powergenerators",
     "group_id": 6,
     "id": 128049217,
     "name": "Power Generators"
   },
   {
+    "eddn": "waterpurifiers",
     "group_id": 6,
     "id": 128049218,
     "name": "Water Purifiers"
   },
   {
+    "eddn": "heliostaticfurnaces",
     "group_id": 6,
     "id": 128049220,
     "name": "Microbial Furnaces"
   },
   {
+    "eddn": "mineralextractors",
     "group_id": 6,
     "id": 128049221,
     "name": "Mineral Extractors"
   },
   {
+    "eddn": "cropharvesters",
     "group_id": 6,
     "id": 128049222,
     "name": "Crop Harvesters"
   },
   {
+    "eddn": "marinesupplies",
     "group_id": 6,
     "id": 128049223,
     "name": "Marine Equipment"
   },
   {
+    "eddn": "computercomponents",
     "group_id": 12,
     "id": 128049225,
     "name": "Computer Components"
   },
   {
+    "eddn": "hazardousenvironmentsuits",
     "group_id": 12,
     "id": 128049226,
     "name": "H.E. Suits"
   },
   {
+    "eddn": "robotics",
     "group_id": 12,
     "id": 128049227,
     "name": "Robotics"
   },
   {
+    "eddn": "autofabricators",
     "group_id": 12,
     "id": 128049228,
     "name": "Auto-Fabricators"
   },
   {
+    "eddn": "animalmonitors",
     "group_id": 12,
     "id": 128049229,
     "name": "Animal Monitors"
   },
   {
+    "eddn": "aquaponicsystems",
     "group_id": 12,
     "id": 128049230,
     "name": "Aquaponic Systems"
   },
   {
+    "eddn": "advancedcatalysers",
     "group_id": 12,
     "id": 128049231,
     "name": "Advanced Catalysers"
   },
   {
+    "eddn": "terrainenrichmentsystems",
     "group_id": 12,
     "id": 128049232,
     "name": "Land Enrichment Systems"
   },
   {
+    "eddn": "personalweapons",
     "group_id": 15,
     "id": 128049233,
     "name": "Personal Weapons"
   },
   {
+    "eddn": "battleweapons",
     "group_id": 15,
     "id": 128049234,
     "name": "Battle Weapons"
   },
   {
+    "eddn": "reactivearmour",
     "group_id": 15,
     "id": 128049235,
     "name": "Reactive Armour"
   },
   {
+    "eddn": "nonlethalweapons",
     "group_id": 15,
     "id": 128049236,
     "name": "Non-Lethal Weapons"
   },
   {
+    "eddn": "domesticappliances",
     "group_id": 2,
     "id": 128049238,
     "name": "Domestic Appliances"
   },
   {
+    "eddn": "consumertechnology",
     "group_id": 2,
     "id": 128049240,
     "name": "Consumer Technology"
   },
   {
+    "eddn": "clothing",
     "group_id": 2,
     "id": 128049241,
     "name": "Clothing"
   },
   {
+    "eddn": "slaves",
     "group_id": 11,
     "id": 128049243,
     "name": "Slaves"
   },
   {
+    "eddn": "biowaste",
     "group_id": 14,
     "id": 128049244,
     "name": "Biowaste"
   },
   {
+    "eddn": null,
     "group_id": 14,
     "id": 128049245,
     "name": "Toxic Waste"
   },
   {
+    "eddn": "chemicalwaste",
     "group_id": 14,
     "id": 128049246,
     "name": "Chemical Waste"
   },
   {
+    "eddn": "scrap",
     "group_id": 14,
     "id": 128049248,
     "name": "Scrap"
   },
   {
+    "eddn": "progenitorcells",
     "group_id": 7,
     "id": 128049669,
     "name": "Progenitor Cells"
   },
   {
+    "eddn": "combatstabilisers",
     "group_id": 7,
     "id": 128049670,
     "name": "Combat Stabilisers"
   },
   {
+    "eddn": "resonatingseparators",
     "group_id": 12,
     "id": 128049671,
     "name": "Resonating Separators"
   },
   {
+    "eddn": "bioreducinglichen",
     "group_id": 12,
     "id": 128049672,
     "name": "Bioreducing Lichen"
   },
   {
+    "eddn": "atmosphericextractors",
     "group_id": 6,
     "id": 128064028,
     "name": "Atmospheric Processors"
   },
   {
+    "eddn": "eraninpearlwhisky",
     "group_id": 5,
     "id": 128666746,
     "name": "Eranin Pearl Whisky"
   },
   {
+    "eddn": "lavianbrandy",
     "group_id": 5,
     "id": 128666747,
     "name": "Lavian Brandy"
   },
   {
+    "eddn": "usscargoblackbox",
     "group_id": 10,
     "id": 128666752,
     "name": "Black Box"
   },
   {
+    "eddn": null,
     "group_id": 10,
     "id": 128666754,
     "name": "Trade Data"
   },
   {
+    "eddn": null,
     "group_id": 10,
     "id": 128666755,
     "name": "Military Plans"
   },
   {
+    "eddn": null,
     "group_id": 10,
     "id": 128666756,
     "name": "Ancient Artefact"
   },
   {
+    "eddn": "usscargorareartwork",
     "group_id": 10,
     "id": 128666757,
     "name": "Rare Artwork"
   },
   {
+    "eddn": null,
     "group_id": 10,
     "id": 128666758,
     "name": "Experimental Chemicals"
   },
   {
+    "eddn": null,
     "group_id": 10,
     "id": 128666759,
     "name": "Rebel Transmissions"
   },
   {
+    "eddn": null,
     "group_id": 10,
     "id": 128666760,
     "name": "Prototype Tech"
   },
   {
+    "eddn": null,
     "group_id": 10,
     "id": 128666761,
     "name": "Technical Blueprints"
   },
   {
+    "eddn": "hip10175bushmeat",
     "group_id": 3,
     "id": 128667019,
     "name": "HIP 10175 Bush Meat"
   },
   {
+    "eddn": "albinoquechuamammoth",
     "group_id": 3,
     "id": 128667020,
     "name": "Albino Quechua Mammoth Meat"
   },
   {
+    "eddn": "utgaroarmillenialeggs",
     "group_id": 3,
     "id": 128667021,
     "name": "Utgaroar Millennial Eggs"
   },
   {
+    "eddn": "witchhaulkobebeef",
     "group_id": 3,
     "id": 128667022,
     "name": "Witchhaul Kobe Beef"
   },
   {
+    "eddn": "karsukilocusts",
     "group_id": 3,
     "id": 128667023,
     "name": "Karsuki Locusts"
   },
   {
+    "eddn": "giantirukamasnails",
     "group_id": 3,
     "id": 128667024,
     "name": "Giant Irukama Snails"
   },
   {
+    "eddn": "baltahsinevacuumkrill",
     "group_id": 3,
     "id": 128667025,
     "name": "Baltah'sine Vacuum Krill"
   },
   {
+    "eddn": "cetirabbits",
     "group_id": 3,
     "id": 128667026,
     "name": "Ceti Rabbits"
   },
   {
+    "eddn": "kachiriginleaches",
     "group_id": 7,
     "id": 128667027,
     "name": "Kachirigin Filter Leeches"
   },
   {
+    "eddn": "lyraeweed",
     "group_id": 5,
     "id": 128667028,
     "name": "Lyrae Weed"
   },
   {
+    "eddn": "onionhead",
     "group_id": 5,
     "id": 128667029,
     "name": "Onionhead"
   },
   {
+    "eddn": "tarachtorspice",
     "group_id": 5,
     "id": 128667030,
     "name": "Tarach Spice"
   },
   {
+    "eddn": "wolf1301fesh",
     "group_id": 5,
     "id": 128667031,
     "name": "Wolf Fesh"
   },
   {
+    "eddn": "borasetanipathogenetics",
     "group_id": 15,
     "id": 128667032,
     "name": "Borasetani Pathogenetics"
   },
   {
+    "eddn": "hip118311swarm",
     "group_id": 15,
     "id": 128667033,
     "name": "HIP 118311 Swarm"
   },
   {
+    "eddn": "konggaale",
     "group_id": 5,
     "id": 128667034,
     "name": "Kongga Ale"
   },
   {
+    "eddn": "wuthielokufroth",
     "group_id": 5,
     "id": 128667035,
     "name": "Wuthielo Ku Froth"
   },
   {
+    "eddn": "alacarakmoskinart",
     "group_id": 2,
     "id": 128667036,
     "name": "Alacarakmo Skin Art"
   },
   {
+    "eddn": "eleuthermals",
     "group_id": 2,
     "id": 128667037,
     "name": "Eleu Thermals"
   },
   {
+    "eddn": "eshuumbrellas",
     "group_id": 2,
     "id": 128667038,
     "name": "Eshu Umbrellas"
   },
   {
+    "eddn": "karetiicouture",
     "group_id": 2,
     "id": 128667039,
     "name": "Karetii Couture"
   },
   {
+    "eddn": "njangarisaddles",
     "group_id": 2,
     "id": 128667040,
     "name": "Njangari Saddles"
   },
   {
+    "eddn": "anynacoffee",
     "group_id": 3,
     "id": 128667041,
     "name": "Any Na Coffee"
   },
   {
+    "eddn": "cd75catcoffee",
     "group_id": 3,
     "id": 128667042,
     "name": "CD-75 Kitten Brand Coffee"
   },
   {
+    "eddn": "gomanyauponcoffee",
     "group_id": 3,
     "id": 128667043,
     "name": "Goman Yaupon Coffee"
   },
   {
+    "eddn": "volkhabbeedrones",
     "group_id": 6,
     "id": 128667044,
     "name": "Volkhab Bee Drones"
   },
   {
+    "eddn": null,
     "group_id": 2,
     "id": 128667045,
     "name": "Kinago Violins"
   },
   {
+    "eddn": "ngunamodernantiques",
     "group_id": 2,
     "id": 128667046,
     "name": "Nguna Modern Antiques"
   },
   {
+    "eddn": "rajukrustoves",
     "group_id": 2,
     "id": 128667047,
     "name": "Rajukru Multi-Stoves"
   },
   {
+    "eddn": "tiolcewaste2pasteunits",
     "group_id": 2,
     "id": 128667048,
     "name": "Tiolce Waste2Paste Units"
   },
   {
+    "eddn": "chieridanimarinepaste",
     "group_id": 3,
     "id": 128667049,
     "name": "Chi Eridani Marine Paste"
   },
   {
+    "eddn": "esusekucaviar",
     "group_id": 3,
     "id": 128667050,
     "name": "Esuseku Caviar"
   },
   {
+    "eddn": "livehecateseaworms",
     "group_id": 3,
     "id": 128667051,
     "name": "Live Hecate Sea Worms"
   },
   {
+    "eddn": "helvetitjpearls",
     "group_id": 8,
     "id": 128667052,
     "name": "Helvetitj Pearls"
   },
   {
+    "eddn": "hip41181squid",
     "group_id": 3,
     "id": 128667053,
     "name": "HIP Proto-Squid"
   },
   {
+    "eddn": "coquimspongiformvictuals",
     "group_id": 3,
     "id": 128667054,
     "name": "Coquim Spongiform Victuals"
   },
   {
+    "eddn": "aerialedenapple",
     "group_id": 3,
     "id": 128667055,
     "name": "Eden Apples of Aerial"
   },
   {
+    "eddn": "neritusberries",
     "group_id": 3,
     "id": 128667056,
     "name": "Neritus Berries"
   },
   {
+    "eddn": "ochoengchillies",
     "group_id": 3,
     "id": 128667057,
     "name": "Ochoeng Chillies"
   },
   {
+    "eddn": "deuringastruffles",
     "group_id": 3,
     "id": 128667058,
     "name": "Deuringas Truffles"
   },
   {
+    "eddn": "hr7221wheat",
     "group_id": 3,
     "id": 128667059,
     "name": "HR 7221 Wheat"
   },
   {
+    "eddn": "jarouarice",
     "group_id": 3,
     "id": 128667060,
     "name": "Jaroua Rice"
   },
   {
+    "eddn": "belalansrayleather",
     "group_id": 13,
     "id": 128667061,
     "name": "Belalans Ray Leather"
   },
   {
+    "eddn": "damnacarapaces",
     "group_id": 13,
     "id": 128667062,
     "name": "Damna Carapaces"
   },
   {
+    "eddn": "rapabaosnakeskins",
     "group_id": 13,
     "id": 128667063,
     "name": "Rapa Bao Snake Skins"
   },
   {
+    "eddn": "vanayequirhinofur",
     "group_id": 13,
     "id": 128667064,
     "name": "Vanayequi Ceratomorpha Fur"
   },
   {
+    "eddn": "bastsnakegin",
     "group_id": 5,
     "id": 128667065,
     "name": "Bast Snake Gin"
   },
   {
+    "eddn": "thrutiscream",
     "group_id": 5,
     "id": 128667066,
     "name": "Thrutis Cream"
   },
   {
+    "eddn": "wulpahyperboresystems",
     "group_id": 6,
     "id": 128667067,
     "name": "Wulpa Hyperbore Systems"
   },
   {
+    "eddn": "aganipperush",
     "group_id": 7,
     "id": 128667068,
     "name": "Aganippe Rush"
   },
   {
+    "eddn": "terramaterbloodbores",
     "group_id": 7,
     "id": 128667069,
     "name": "Terra Mater Blood Bores"
   },
   {
+    "eddn": "holvaduellingblades",
     "group_id": 15,
     "id": 128667070,
     "name": "Holva Duelling Blades"
   },
   {
+    "eddn": "kamorinhistoricweapons",
     "group_id": 15,
     "id": 128667071,
     "name": "Kamorin Historic Weapons"
   },
   {
+    "eddn": "gilyasignatureweapons",
     "group_id": 15,
     "id": 128667072,
     "name": "Gilya Signature Weapons"
   },
   {
+    "eddn": "deltaphoenicispalms",
     "group_id": 1,
     "id": 128667073,
     "name": "Delta Phoenicis Palms"
   },
   {
+    "eddn": "toxandjivirocide",
     "group_id": 1,
     "id": 128667074,
     "name": "Toxandji Virocide"
   },
   {
+    "eddn": "xihecompanions",
     "group_id": 12,
     "id": 128667075,
     "name": "Xihe Biomorphic Companions"
   },
   {
+    "eddn": "sanumameat",
     "group_id": 3,
     "id": 128667076,
     "name": "Sanuma Decorative Meat"
   },
   {
+    "eddn": "ethgrezeteabuds",
     "group_id": 3,
     "id": 128667077,
     "name": "Ethgreze Tea Buds"
   },
   {
+    "eddn": "ceremonialheiketea",
     "group_id": 3,
     "id": 128667078,
     "name": "Ceremonial Heike Tea"
   },
   {
+    "eddn": "tanmarktranquiltea",
     "group_id": 3,
     "id": 128667079,
     "name": "Tanmark Tranquil Tea"
   },
   {
+    "eddn": "azcancriformula42",
     "group_id": 12,
     "id": 128667080,
     "name": "Az Cancri Formula 42"
   },
   {
+    "eddn": "kamitracigars",
     "group_id": 5,
     "id": 128667081,
     "name": "Kamitra Cigars"
   },
   {
+    "eddn": "rusanioldsmokey",
     "group_id": 5,
     "id": 128667082,
     "name": "Rusani Old Smokey"
   },
   {
+    "eddn": "yasokondileaf",
     "group_id": 5,
     "id": 128667083,
     "name": "Yaso Kondi Leaf"
   },
   {
+    "eddn": "chateaudeaegaeon",
     "group_id": 5,
     "id": 128667084,
     "name": "Chateau De Aegaeon"
   },
   {
+    "eddn": "watersofshintara",
     "group_id": 7,
     "id": 128667085,
     "name": "The Waters of Shintara"
   },
   {
+    "eddn": "ophiuchiexinoartefacts",
     "group_id": 2,
     "id": 128667668,
     "name": "Ophiuch Exino Artefacts"
   },
   {
+    "eddn": "bakedgreebles",
     "group_id": 3,
     "id": 128667669,
     "name": "Baked Greebles"
   },
   {
+    "eddn": "cetiaepyornisegg",
     "group_id": 3,
     "id": 128667670,
     "name": "Aepyornis Egg"
   },
   {
+    "eddn": "saxonwine",
     "group_id": 5,
     "id": 128667671,
     "name": "Saxon Wine"
   },
   {
+    "eddn": "centaurimegagin",
     "group_id": 5,
     "id": 128667672,
     "name": "Centauri Mega Gin"
   },
   {
+    "eddn": "anduligafireworks",
     "group_id": 2,
     "id": 128667673,
     "name": "Anduliga Fire Works"
   },
   {
+    "eddn": "bankiamphibiousleather",
     "group_id": 13,
     "id": 128667674,
     "name": "Banki Amphibious Leather"
   },
   {
+    "eddn": "cherbonesbloodcrystals",
     "group_id": 8,
     "id": 128667675,
     "name": "Cherbones Blood Crystals"
   },
   {
+    "eddn": "motronaexperiencejelly",
     "group_id": 5,
     "id": 128667676,
     "name": "Motrona Experience Jelly"
   },
   {
+    "eddn": "geawendancedust",
     "group_id": 5,
     "id": 128667677,
     "name": "Geawen Dance Dust"
   },
   {
+    "eddn": "gerasiangueuzebeer",
     "group_id": 5,
     "id": 128667678,
     "name": "Gerasian Gueuze Beer"
   },
   {
+    "eddn": "haidneblackbrew",
     "group_id": 3,
     "id": 128667679,
     "name": "Haiden Black Brew"
   },
   {
+    "eddn": "havasupaidreamcatcher",
     "group_id": 2,
     "id": 128667680,
     "name": "Havasupai Dream Catcher"
   },
   {
+    "eddn": "burnhambiledistillate",
     "group_id": 5,
     "id": 128667681,
     "name": "Burnham Bile Distillate"
   },
   {
+    "eddn": "hiporganophosphates",
     "group_id": 1,
     "id": 128667682,
     "name": "HIP Organophosphates"
   },
   {
+    "eddn": "jaradharrepuzzlebox",
     "group_id": 2,
     "id": 128667683,
     "name": "Jaradharre Puzzle Box"
   },
   {
+    "eddn": "korrokungpellets",
     "group_id": 1,
     "id": 128667684,
     "name": "Koro Kung Pellets"
   },
   {
+    "eddn": "lftvoidextractcoffee",
     "group_id": 3,
     "id": 128667685,
     "name": "Void Extract Coffee"
   },
   {
+    "eddn": "honestypills",
     "group_id": 7,
     "id": 128667686,
     "name": "Honesty Pills"
   },
   {
+    "eddn": "noneuclidianexotanks",
     "group_id": 6,
     "id": 128667687,
     "name": "Non Euclidian Exotanks"
   },
   {
+    "eddn": "ltthypersweet",
     "group_id": 3,
     "id": 128667688,
     "name": "LTT Hyper Sweet"
   },
   {
+    "eddn": "mechucoshightea",
     "group_id": 3,
     "id": 128667689,
     "name": "Mechucos High Tea"
   },
   {
+    "eddn": "medbstarlube",
     "group_id": 1,
     "id": 128667690,
     "name": "Medb Starlube"
   },
   {
+    "eddn": "mokojingbeastfeast",
     "group_id": 3,
     "id": 128667691,
     "name": "Mokojing Beast Feast"
   },
   {
+    "eddn": "mukusubiichitinos",
     "group_id": 3,
     "id": 128667692,
     "name": "Mukusubii Chitin-os"
   },
   {
+    "eddn": "mulachigiantfungus",
     "group_id": 3,
     "id": 128667693,
     "name": "Mulachi Giant Fungus"
   },
   {
+    "eddn": "ngadandarifireopals",
     "group_id": 8,
     "id": 128667694,
     "name": "Ngadandari Fire Opals"
   },
   {
+    "eddn": "tiegfriessynthsilk",
     "group_id": 13,
     "id": 128667695,
     "name": "Tiegfries Synth Silk"
   },
   {
+    "eddn": "uzumokulowgwings",
     "group_id": 2,
     "id": 128667696,
     "name": "Uzumoku Low-G Wings"
   },
   {
+    "eddn": "vherculisbodyrub",
     "group_id": 7,
     "id": 128667697,
     "name": "V Herculis Body Rub"
   },
   {
+    "eddn": "wheemetewheatcakes",
     "group_id": 3,
     "id": 128667698,
     "name": "Wheemete Wheat Cakes"
   },
   {
+    "eddn": "vegaslimweed",
     "group_id": 7,
     "id": 128667699,
     "name": "Vega Slimweed"
   },
   {
+    "eddn": "altairianskin",
     "group_id": 2,
     "id": 128667700,
     "name": "Altairian Skin"
   },
   {
+    "eddn": "pavoniseargrubs",
     "group_id": 5,
     "id": 128667701,
     "name": "Pavonis Ear Grubs"
   },
   {
+    "eddn": "jotunmookah",
     "group_id": 13,
     "id": 128667702,
     "name": "Jotun Mookah"
   },
   {
+    "eddn": "giantverrix",
     "group_id": 6,
     "id": 128667703,
     "name": "Giant Verrix"
   },
   {
+    "eddn": "indibourbon",
     "group_id": 5,
     "id": 128667704,
     "name": "Indi Bourbon"
   },
   {
+    "eddn": "aroucaconventualsweets",
     "group_id": 3,
     "id": 128667705,
     "name": "Arouca Conventual Sweets"
   },
   {
+    "eddn": "taurichimes",
     "group_id": 2,
     "id": 128667706,
     "name": "Tauri Chimes"
   },
   {
+    "eddn": "zeesszeantglue",
     "group_id": 2,
     "id": 128667707,
     "name": "Zeessze Ant Grub Glue"
   },
   {
+    "eddn": "pantaaprayersticks",
     "group_id": 7,
     "id": 128667708,
     "name": "Pantaa Prayer Sticks"
   },
   {
+    "eddn": "fujintea",
     "group_id": 3,
     "id": 128667709,
     "name": "Fujin Tea"
   },
   {
+    "eddn": "chameleoncloth",
     "group_id": 13,
     "id": 128667710,
     "name": "Chameleon Cloth"
   },
   {
+    "eddn": "orrerianviciousbrew",
     "group_id": 3,
     "id": 128667711,
     "name": "Orrerian Vicious Brew"
   },
   {
+    "eddn": "uszaiantreegrub",
     "group_id": 3,
     "id": 128667712,
     "name": "Uszaian Tree Grub"
   },
   {
+    "eddn": "momusbogspaniel",
     "group_id": 2,
     "id": 128667713,
     "name": "Momus Bog Spaniel"
   },
   {
+    "eddn": "disomacorn",
     "group_id": 3,
     "id": 128667714,
     "name": "Diso Ma Corn"
   },
   {
+    "eddn": "leestianeviljuice",
     "group_id": 5,
     "id": 128667715,
     "name": "Leestian Evil Juice"
   },
   {
+    "eddn": "bluemilk",
     "group_id": 3,
     "id": 128667716,
     "name": "Azure Milk"
   },
   {
+    "eddn": "alieneggs",
     "group_id": 2,
     "id": 128667717,
     "name": "Leathery Eggs"
   },
   {
+    "eddn": "alyabodilysoap",
     "group_id": 7,
     "id": 128667718,
     "name": "Alya Body Soap"
   },
   {
+    "eddn": "vidavantianlace",
     "group_id": 2,
     "id": 128667719,
     "name": "Vidavantian Lace"
   },
   {
+    "eddn": "imperialslaves",
     "group_id": 11,
     "id": 128667728,
     "name": "Imperial Slaves"
   },
   {
+    "eddn": "transgeniconionhead",
     "group_id": 5,
     "id": 128667760,
     "name": "Lucan Onionhead"
   },
   {
+    "eddn": "jaquesquinentianstill",
     "group_id": 2,
     "id": 128668017,
     "name": "Jaques Quinentian Still"
   },
   {
+    "eddn": "soontillrelics",
     "group_id": 2,
     "id": 128668018,
     "name": "Soontill Relics"
   },
   {
+    "eddn": null,
     "group_id": 10,
     "id": 128668547,
     "name": "Thargoid Sensor"
   },
   {
+    "eddn": null,
     "group_id": 10,
     "id": 128668548,
     "name": "AI Relics"
   },
   {
+    "eddn": null,
     "group_id": 8,
     "id": 128668549,
     "name": "Hafnium 178"
   },
   {
+    "eddn": "painite",
     "group_id": 9,
     "id": 128668550,
     "name": "Painite"
   },
   {
+    "eddn": null,
     "group_id": 10,
     "id": 128668551,
     "name": "Antiquities"
   },
   {
+    "eddn": "militaryintelligence",
     "group_id": 10,
     "id": 128668552,
     "name": "Military Intelligence"
   },
   {
+    "eddn": "osmium",
     "group_id": 8,
     "id": 128671118,
     "name": "Osmium"
   },
   {
+    "eddn": null,
     "group_id": 2,
     "id": 128671119,
     "name": "Ultra-Compact Processor Prototypes"
   },
   {
+    "eddn": "sap8corecontainer",
     "group_id": 10,
     "id": 128671443,
     "name": "SAP 8 Core Container"
   },
   {
+    "eddn": "trinketsoffortune",
     "group_id": 2,
     "id": 128671444,
     "name": "Trinkets of Hidden Fortune"
   },
   {
+    "eddn": "thehuttonmug",
     "group_id": 2,
     "id": 128672121,
     "name": "The Hutton Mug"
   },
   {
+    "eddn": "sothiscrystallinegold",
     "group_id": 8,
     "id": 128672122,
     "name": "Sothis Crystalline Gold"
   },
   {
+    "eddn": "wreckagecomponents",
     "group_id": 10,
     "id": 128672123,
     "name": "Wreckage Components"
   },
   {
+    "eddn": "encripteddatastorage",
     "group_id": 10,
     "id": 128672124,
     "name": "Encrypted Data Storage"
   },
   {
+    "eddn": "occupiedcryopod",
     "group_id": 10,
     "id": 128672125,
     "name": "Occupied Escape Pod"
   },
   {
+    "eddn": "personaleffects",
     "group_id": 10,
     "id": 128672126,
     "name": "Personal Effects"
   },
   {
+    "eddn": "comercialsamples",
     "group_id": 10,
     "id": 128672127,
     "name": "Commercial Samples"
   },
   {
+    "eddn": "tacticaldata",
     "group_id": 10,
     "id": 128672128,
     "name": "Tactical Data"
   },
   {
+    "eddn": "assaultplans",
     "group_id": 10,
     "id": 128672129,
     "name": "Assault Plans"
   },
   {
+    "eddn": "encryptedcorrespondence",
     "group_id": 10,
     "id": 128672130,
     "name": "Encrypted Correspondence"
   },
   {
+    "eddn": "diplomaticbag",
     "group_id": 10,
     "id": 128672131,
     "name": "Diplomatic Bag"
   },
   {
+    "eddn": "scientificresearch",
     "group_id": 10,
     "id": 128672132,
     "name": "Scientific Research"
   },
   {
+    "eddn": "scientificsamples",
     "group_id": 10,
     "id": 128672133,
     "name": "Scientific Samples"
   },
   {
+    "eddn": null,
     "group_id": 10,
     "id": 128672134,
     "name": "Political Prisoners"
   },
   {
+    "eddn": "hostage",
     "group_id": 10,
     "id": 128672135,
     "name": "Hostages"
   },
   {
+    "eddn": null,
     "group_id": 10,
     "id": 128672136,
     "name": "Large Survey Data Cache"
   },
   {
+    "eddn": null,
     "group_id": 10,
     "id": 128672137,
     "name": "Small Survey Data Cache"
   },
   {
+    "eddn": "antiquejewellery",
     "group_id": 10,
     "id": 128672159,
     "name": "Antique Jewellery"
   },
   {
+    "eddn": "preciousgems",
     "group_id": 10,
     "id": 128672160,
     "name": "Precious Gems"
   },
   {
+    "eddn": "earthrelics",
     "group_id": 10,
     "id": 128672161,
     "name": "Earth Relics"
   },
   {
+    "eddn": "genebank",
     "group_id": 10,
     "id": 128672162,
     "name": "Gene Bank"
   },
   {
+    "eddn": "timecapsule",
     "group_id": 10,
     "id": 128672163,
     "name": "Time Capsule"
   },
   {
+    "eddn": "cryolite",
     "group_id": 9,
     "id": 128672294,
     "name": "Cryolite"
   },
   {
+    "eddn": "goslarite",
     "group_id": 9,
     "id": 128672295,
     "name": "Goslarite"
   },
   {
+    "eddn": "moissanite",
     "group_id": 9,
     "id": 128672296,
     "name": "Moissanite"
   },
   {
+    "eddn": "pyrophyllite",
     "group_id": 9,
     "id": 128672297,
     "name": "Pyrophyllite"
   },
   {
+    "eddn": "lanthanum",
     "group_id": 8,
     "id": 128672298,
     "name": "Lanthanum"
   },
   {
+    "eddn": "thallium",
     "group_id": 8,
     "id": 128672299,
     "name": "Thallium"
   },
   {
+    "eddn": "bismuth",
     "group_id": 8,
     "id": 128672300,
     "name": "Bismuth"
   },
   {
+    "eddn": "thorium",
     "group_id": 8,
     "id": 128672301,
     "name": "Thorium"
   },
   {
+    "eddn": "ceramiccomposites",
     "group_id": 4,
     "id": 128672302,
     "name": "Ceramic Composites"
   },
   {
+    "eddn": "syntheticreagents",
     "group_id": 1,
     "id": 128672303,
     "name": "Synthetic Reagents"
   },
   {
+    "eddn": "nerveagents",
     "group_id": 1,
     "id": 128672304,
     "name": "Nerve Agents"
   },
   {
+    "eddn": "surfacestabilisers",
     "group_id": 1,
     "id": 128672305,
     "name": "Surface Stabilisers"
   },
   {
+    "eddn": "bootlegliquor",
     "group_id": 5,
     "id": 128672306,
     "name": "Bootleg Liquor"
   },
   {
+    "eddn": "geologicalequipment",
     "group_id": 6,
     "id": 128672307,
     "name": "Geological Equipment"
   },
   {
+    "eddn": "thermalcoolingunits",
     "group_id": 6,
     "id": 128672308,
     "name": "Thermal Cooling Units"
   },
   {
+    "eddn": "buildingfabricators",
     "group_id": 6,
     "id": 128672309,
     "name": "Building Fabricators"
   },
   {
+    "eddn": "mutomimager",
     "group_id": 12,
     "id": 128672310,
     "name": "Muon Imager"
   },
   {
+    "eddn": "structuralregulators",
     "group_id": 12,
     "id": 128672311,
     "name": "Structural Regulators"
   },
   {
+    "eddn": "landmines",
     "group_id": 15,
     "id": 128672312,
     "name": "Landmines"
   },
   {
+    "eddn": "skimercomponents",
     "group_id": 6,
     "id": 128672313,
     "name": "Skimmer Components"
   },
   {
+    "eddn": "evacuationshelter",
     "group_id": 2,
     "id": 128672314,
     "name": "Evacuation Shelter"
   },
   {
+    "eddn": "geologicalsamples",
     "group_id": 10,
     "id": 128672315,
     "name": "Geological Samples"
   },
   {
+    "eddn": "masterchefs",
     "group_id": 11,
     "id": 128672316,
     "name": "Master Chefs"
   },
   {
+    "eddn": "personalgifts",
     "group_id": 10,
     "id": 128672431,
     "name": "Personal Gifts"
   },
   {
+    "eddn": "crystallinespheres",
     "group_id": 10,
     "id": 128672432,
     "name": "Crystalline Spheres"
   },
   {
+    "eddn": "metaalloys",
     "group_id": 4,
     "id": 128672701,
     "name": "Meta-Alloys"
   },
   {
+    "eddn": "taaffeite",
     "group_id": 9,
     "id": 128672775,
     "name": "Taaffeite"
   },
   {
+    "eddn": "jadeite",
     "group_id": 9,
     "id": 128672776,
     "name": "Jadeite"
   },
   {
+    "eddn": "unstabledatacore",
     "group_id": 10,
     "id": 128672810,
     "name": "Unstable Data Core"
   },
   {
+    "eddn": "damagedescapepod",
     "group_id": 10,
     "id": 128672811,
     "name": "Damaged Escape Pod"
   },
   {
+    "eddn": "onionheada",
     "group_id": 5,
     "id": 128672812,
     "name": "Onionhead Alpha Strain"
   },
   {
+    "eddn": "onionheadb",
     "group_id": 5,
     "id": 128673069,
     "name": "Onionhead Beta Strain"
   },
   {
+    "eddn": "praseodymium",
     "group_id": 8,
     "id": 128673845,
     "name": "Praseodymium"
   },
   {
+    "eddn": "bromellite",
     "group_id": 9,
     "id": 128673846,
     "name": "Bromellite"
   },
   {
+    "eddn": "samarium",
     "group_id": 8,
     "id": 128673847,
     "name": "Samarium"
   },
   {
+    "eddn": "lowtemperaturediamond",
     "group_id": 9,
     "id": 128673848,
     "name": "Low Temperature Diamonds"
   },
   {
+    "eddn": "hydrogenperoxide",
     "group_id": 1,
     "id": 128673850,
     "name": "Hydrogen Peroxide"
   },
   {
+    "eddn": "liquidoxygen",
     "group_id": 1,
     "id": 128673851,
     "name": "Liquid oxygen"
   },
   {
+    "eddn": "methanolmonohydratecrystals",
     "group_id": 9,
     "id": 128673852,
     "name": "Methanol Monohydrate Crystals"
   },
   {
+    "eddn": "lithiumhydroxide",
     "group_id": 9,
     "id": 128673853,
     "name": "Lithium Hydroxide"
   },
   {
+    "eddn": "methaneclathrate",
     "group_id": 9,
     "id": 128673854,
     "name": "Methane Clathrate"
   },
   {
+    "eddn": "insulatingmembrane",
     "group_id": 4,
     "id": 128673855,
     "name": "Insulating Membrane"
   },
   {
+    "eddn": "cmmcomposite",
     "group_id": 4,
     "id": 128673856,
     "name": "CMM Composite"
   },
   {
+    "eddn": "coolinghoses",
     "group_id": 4,
     "id": 128673857,
     "name": "Micro-weave Cooling Hoses"
   },
   {
+    "eddn": "neofabricinsulation",
     "group_id": 4,
     "id": 128673858,
     "name": "Neofabric Insulation"
   },
   {
+    "eddn": "articulationmotors",
     "group_id": 6,
     "id": 128673859,
     "name": "Articulation Motors"
   },
   {
+    "eddn": "hnshockmount",
     "group_id": 6,
     "id": 128673860,
     "name": "HN Shock Mount"
   },
   {
+    "eddn": "emergencypowercells",
     "group_id": 6,
     "id": 128673861,
     "name": "Emergency Power Cells"
   },
   {
+    "eddn": "powerconverter",
     "group_id": 6,
     "id": 128673862,
     "name": "Power Converter"
   },
   {
+    "eddn": "powergridassembly",
     "group_id": 6,
     "id": 128673863,
     "name": "Energy Grid Assembly"
   },
   {
+    "eddn": "powertransferconduits",
     "group_id": 6,
     "id": 128673864,
     "name": "Power Transfer Bus"
   },
   {
+    "eddn": "radiationbaffle",
     "group_id": 6,
     "id": 128673865,
     "name": "Radiation Baffle"
   },
   {
+    "eddn": "exhaustmanifold",
     "group_id": 6,
     "id": 128673866,
     "name": "Exhaust Manifold"
   },
   {
+    "eddn": "reinforcedmountingplate",
     "group_id": 6,
     "id": 128673867,
     "name": "Reinforced Mounting Plate"
   },
   {
+    "eddn": "heatsinkinterlink",
     "group_id": 6,
     "id": 128673868,
     "name": "Heatsink Interlink"
   },
   {
+    "eddn": "magneticemittercoil",
     "group_id": 6,
     "id": 128673869,
     "name": "Magnetic Emitter Coil"
   },
   {
+    "eddn": "modularterminals",
     "group_id": 6,
     "id": 128673870,
     "name": "Modular Terminals"
   },
   {
+    "eddn": "nanobreakers",
     "group_id": 12,
     "id": 128673871,
     "name": "Nanobreakers"
   },
   {
+    "eddn": "telemetrysuite",
     "group_id": 12,
     "id": 128673872,
     "name": "Telemetry Suite"
   },
   {
+    "eddn": "microcontrollers",
     "group_id": 12,
     "id": 128673873,
     "name": "Micro Controllers"
   },
   {
+    "eddn": "iondistributor",
     "group_id": 6,
     "id": 128673874,
     "name": "Ion Distributor"
   },
   {
+    "eddn": "diagnosticsensor",
     "group_id": 12,
     "id": 128673875,
     "name": "Hardware Diagnostic Sensor"
   },
   {
+    "eddn": null,
     "group_id": 10,
     "id": 128673876,
     "name": "Thargoid Probe"
   },
   {
+    "eddn": "conductivefabrics",
     "group_id": 13,
     "id": 128682044,
     "name": "Conductive Fabrics"
   },
   {
+    "eddn": "militarygradefabrics",
     "group_id": 13,
     "id": 128682045,
     "name": "Military Grade Fabrics"
   },
   {
+    "eddn": "advancedmedicines",
     "group_id": 7,
     "id": 128682046,
     "name": "Advanced Medicines"
   },
   {
+    "eddn": "medicaldiagnosticequipment",
     "group_id": 12,
     "id": 128682047,
     "name": "Medical Diagnostic Equipment"
   },
   {
+    "eddn": "survivalequipment",
     "group_id": 2,
     "id": 128682048,
     "name": "Survival Equipment"
   },
   {
+    "eddn": "datacore",
     "group_id": 10,
     "id": 128682049,
     "name": "Data Core"
   },
   {
+    "eddn": "galactictravelguide",
     "group_id": 10,
     "id": 128682050,
     "name": "Galactic Travel Guide"
   },
   {
+    "eddn": "mysteriousidol",
     "group_id": 10,
     "id": 128682051,
     "name": "Mysterious Idol"
   },
   {
+    "eddn": null,
     "group_id": 10,
     "id": 128682052,
     "name": "Prohibited Research Materials"
   },
   {
+    "eddn": null,
     "group_id": 10,
     "id": 128682053,
     "name": "Antimatter Containment Unit"
   },
   {
+    "eddn": "spacepioneerrelics",
     "group_id": 10,
     "id": 128682054,
     "name": "Space Pioneer Relics"
   },
   {
+    "eddn": "fossilremnants",
     "group_id": 10,
     "id": 128682055,
     "name": "Fossil Remnants"
   },
   {
+    "eddn": null,
     "group_id": 5,
     "id": 128727921,
     "name": "Crom Silver Fesh"
   },
   {
+    "eddn": "ancientrelic",
     "group_id": 10,
     "id": 128732183,
     "name": "Guardian Relic"
   },
   {
+    "eddn": "ancientorb",
     "group_id": 10,
     "id": 128732184,
     "name": "Guardian Orb"
   },
   {
+    "eddn": "ancientcasket",
     "group_id": 10,
     "id": 128732185,
     "name": "Guardian Casket"
   },
   {
+    "eddn": "ancienttablet",
     "group_id": 10,
     "id": 128732186,
     "name": "Guardian Tablet"
   },
   {
+    "eddn": "ancienturn",
     "group_id": 10,
     "id": 128732187,
     "name": "Guardian Urn"
   },
   {
+    "eddn": "ancienttotem",
     "group_id": 10,
     "id": 128732188,
     "name": "Guardian Totem"
   },
   {
+    "eddn": "shanscharisorchid",
     "group_id": 2,
     "id": 128732551,
     "name": "Shan's Charis Orchid"
   },
   {
+    "eddn": "unknownresin",
     "group_id": 10,
     "id": 128737287,
     "name": "Thargoid Resin"
   },
   {
+    "eddn": null,
     "group_id": 10,
     "id": 128737288,
     "name": "Thargoid Biological Matter"
   },
   {
+    "eddn": "unknowntechnologysamples",
     "group_id": 10,
     "id": 128737289,
     "name": "Thargoid Technology Samples"
   },
   {
+    "eddn": null,
     "group_id": 10,
     "id": 128740752,
     "name": "Thargoid Link"
   },
   {
+    "eddn": "buckyballbeermats",
     "group_id": 2,
     "id": 128748428,
     "name": "Buckyball Beer Mats"
   },
   {
+    "eddn": "harmasilversearum",
     "group_id": 5,
     "id": 128793113,
     "name": "Harma Silver Sea Rum"
   },
   {
+    "eddn": "platinumaloy",
     "group_id": 8,
     "id": 128793114,
     "name": "Platinum Alloy"
   },
   {
+    "eddn": "thargoidheart",
     "group_id": 10,
     "id": 128793127,
     "name": "Thargoid Heart"
   },
   {
+    "eddn": null,
     "group_id": 10,
     "id": 128793128,
     "name": "Thargoid Cyclops Tissue Sample"
   },
   {
+    "eddn": null,
     "group_id": 10,
     "id": 128793129,
     "name": "Thargoid Basilisk Tissue Sample"
   },
   {
+    "eddn": null,
     "group_id": 10,
     "id": 128793130,
     "name": "Thargoid Medusa Tissue Sample"
   },
   {
+    "eddn": null,
     "group_id": 10,
     "id": 128824468,
     "name": "Thargoid Scout Tissue Sample"
   },
   {
+    "eddn": "ancientkey",
     "group_id": 10,
     "id": 128888499,
     "name": "Ancient Key"
   },
   {
+    "eddn": null,
     "group_id": 10,
     "id": 128902652,
     "name": "Thargoid Hydra Tissue Sample"
   },
   {
+    "eddn": "nanomedicines",
     "group_id": 7,
     "id": 128913661,
     "name": "Nanomedicines"
   },
   {
+    "eddn": null,
     "group_id": 10,
     "id": 128922517,
     "name": "Mollusc Fluid"
   },
   {
+    "eddn": null,
     "group_id": 10,
     "id": 128922518,
     "name": "Mollusc Soft Tissue"
   },
   {
+    "eddn": null,
     "group_id": 10,
     "id": 128922519,
     "name": "Mollusc Brain Tissue"
   },
   {
+    "eddn": null,
     "group_id": 10,
     "id": 128922520,
     "name": "Pod Core Tissue"
   },
   {
+    "eddn": null,
     "group_id": 10,
     "id": 128922521,
     "name": "Pod Dead Tissue"
   },
   {
+    "eddn": null,
     "group_id": 10,
     "id": 128922522,
     "name": "Pod Surface Tissue"
   },
   {
+    "eddn": null,
     "group_id": 10,
     "id": 128922523,
     "name": "Anomaly Particles"
   },
   {
+    "eddn": "duradrives",
     "group_id": 2,
     "id": 128922524,
     "name": "Duradrives"
   },
   {
+    "eddn": null,
     "group_id": 10,
     "id": 128922781,
     "name": "Pod Tissue"
   },
   {
+    "eddn": null,
     "group_id": 10,
     "id": 128922782,
     "name": "Mollusc Membrane"
   },
   {
+    "eddn": null,
     "group_id": 10,
     "id": 128922783,
     "name": "Mollusc Mycelium"
   },
   {
+    "eddn": null,
     "group_id": 10,
     "id": 128922784,
     "name": "Mollusc Spores"
   },
   {
+    "eddn": null,
     "group_id": 10,
     "id": 128922785,
     "name": "Pod Mesoglea"
   },
   {
+    "eddn": null,
     "group_id": 10,
     "id": 128922786,
     "name": "Pod Outer Tissue"
   },
   {
+    "eddn": null,
     "group_id": 10,
     "id": 128922787,
     "name": "Pod Shell Tissue"
   },
   {
+    "eddn": "rhodplumsite",
     "group_id": 9,
     "id": 128924325,
     "name": "Rhodplumsite"
   },
   {
+    "eddn": "serendibite",
     "group_id": 9,
     "id": 128924326,
     "name": "Serendibite"
   },
   {
+    "eddn": "monazite",
     "group_id": 9,
     "id": 128924327,
     "name": "Monazite"
   },
   {
+    "eddn": "musgravite",
     "group_id": 9,
     "id": 128924328,
     "name": "Musgravite"
   },
   {
+    "eddn": "benitoite",
     "group_id": 9,
     "id": 128924329,
     "name": "Benitoite"
   },
   {
+    "eddn": "grandidierite",
     "group_id": 9,
     "id": 128924330,
     "name": "Grandidierite"
   },
   {
+    "eddn": "alexandrite",
     "group_id": 9,
     "id": 128924331,
     "name": "Alexandrite"
   },
   {
+    "eddn": "opal",
     "group_id": 9,
     "id": 128924332,
     "name": "Void Opal"
   },
   {
+    "eddn": "rockforthfertiliser",
     "group_id": 1,
     "id": 128924333,
     "name": "Rockforth Fertiliser"
   },
   {
+    "eddn": "agronomictreatment",
     "group_id": 1,
     "id": 128924334,
     "name": "Agronomic Treatment"
   },
   {
+    "eddn": "apavietii",
     "group_id": 5,
     "id": 128958679,
     "name": "Apa Vietii"
   },
   {
+    "eddn": "tritium",
     "group_id": 1,
     "id": 128961249,
     "name": "Tritium"
   },
   {
+    "eddn": "onionheadc",
     "group_id": 5,
     "id": 128983059,
     "name": "Onionhead Gamma Strain"
   },
   {
+    "eddn": "classifiedexperimentalequipment",
     "group_id": 12,
     "id": 129002574,
     "name": "Classified Experimental Equipment"
   },
   {
+    "eddn": null,
     "group_id": 10,
     "id": 129015433,
     "name": "Unclassified Relic"
   },
   {
+    "eddn": null,
     "group_id": 10,
     "id": 129019258,
     "name": "Thargoid Orthrus Tissue Sample"
   },
   {
+    "eddn": null,
     "group_id": 10,
     "id": 129019259,
     "name": "Caustic Tissue Sample"
   },
   {
+    "eddn": "unocuppiedescapepod",
     "group_id": 10,
     "id": 129022087,
     "name": "Unoccupied Escape Pod"

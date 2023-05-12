@@ -38,17 +38,18 @@ from cogdb.spy_squirrel import SpyShip
 
 EDDN_ADDR = "tcp://eddn.edcd.io:9500"
 TIMEOUT = 600000
-# Keys of form $schemaRef"
+# Keys of form "$schemaRef"
 SCHEMA_MAP = {
-    #  "https://eddn.edcd.io/schemas/commodity/3": "CommodityV3",
-    "https://eddn.edcd.io/schemas/journal/1": "JournalV1",
-    "https://eddn.edcd.io/schemas/outfitting/2": "OutfittingV2",
-    "https://eddn.edcd.io/schemas/shipyard/2": "ShipyardV2",
+    "https://eddn.edcd.io/schemas/commodity/3": "CommodityV3",
+    #  "https://eddn.edcd.io/schemas/journal/1": "JournalV1",
+    #  "https://eddn.edcd.io/schemas/outfitting/2": "OutfittingV2",
+    #  "https://eddn.edcd.io/schemas/shipyard/2": "ShipyardV2",
 }
 LOG_FILE = "/tmp/eddn_log"
 ALL_MSGS = '/tmp/msgs'
 JOURNAL_MSGS = '/tmp/msgs_journal'
 JOURNAL_CARS = '/tmp/msgs_journal_cars'
+COMM_MSGS = '/tmp/msgs_comm'
 STATION_FEATS = [x for x in StationFeatures.__dict__ if x not in ('id', 'station') and not x.startswith('_')]
 COMMS_SEEN = []
 
@@ -184,6 +185,7 @@ class CommodityV3(MsgParser):
     def parse_msg(self):
         station = self.select_station()
 
+        log_msg(self.msg, path=ALL_MSGS, fname=log_fname(self.msg))
         self.parsed['commodity_pricing'] = []
         for comm in self.body['commodities']:
             try:
@@ -952,21 +954,12 @@ def main():  # pragma: no cover
 
 
 # Any time code run, need these dirs to write to
-try:
-    shutil.rmtree(ALL_MSGS)
-except OSError:
-    pass
-try:
-    shutil.rmtree(JOURNAL_MSGS)
-except OSError:
-    pass
-try:
-    shutil.rmtree(JOURNAL_CARS)
-except OSError:
-    pass
-os.mkdir(ALL_MSGS)
-os.mkdir(JOURNAL_MSGS)
-os.mkdir(JOURNAL_CARS)
+for dirname in [ALL_MSGS, JOURNAL_MSGS, JOURNAL_CARS, COMM_MSGS]:
+    try:
+        shutil.rmtree(dirname)
+    except OSError:
+        pass
+    os.mkdir(dirname)
 try:
     with cogdb.session_scope(cogdb.EDDBSession) as init_session:
         MAPS = create_id_maps(init_session)

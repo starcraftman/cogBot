@@ -4,6 +4,8 @@ Tool to merge captured comms list and the existing SCommodity entries.
 There are missing names from capture, need to run the tool again when name list more complete.
 """
 import json
+import sys
+
 import textdistance
 
 
@@ -42,40 +44,58 @@ def main():
     Goal is at end of process, all entries in original file should have an eddn field.
     Try to guess matches via hamming distance, otherwise fall back to user search.
     """
+    comm_json = 'data/preload/SCommodity.json'
+    seeker = None
+    if len(sys.argv) == 2:
+        comm_json = sys.argv[1]
+
     eddn_names = []
     with open('./commsMiss.txt', 'r', encoding='utf-8') as fin:
         for ind, line in enumerate(fin):
             eddn_names += [line.split(' ')[-1].strip()]
 
-    with open("data/preload/SCommodity.json", 'r', encoding='utf-8') as fin:
+    with open(comm_json, 'r', encoding='utf-8') as fin:
         comms = json.load(fin)
-        for comm in comms:
-            name = comm['name']
 
-            dist_map = {x: textdistance.hamming(name.replace(' ', ''), x) for x in eddn_names}
-            candidates = list(sorted(eddn_names, key=lambda x: dist_map[x]))
-            print(f"Looking at distance for: {name}")
-            for ind, cand in enumerate(candidates[:10]):
-                print(f"{ind}) {cand}: {dist_map[cand]}")
+    for comm in comms:
+        eddn_text = comm.get('eddn')
+        if eddn_text:
+            eddn_names.remove(eddn_text)
+            continue
 
-            msg = """If any of these suitable, type the number.
-If not, type part of the word to search for substring match: """
-            text = input(msg)
-            try:
-                index = int(text)
-                comm['eddn'] = candidates[index]
-            except ValueError:
-                print("\nResorting to substring search.")
-                comm['eddn'] = search_names(text, eddn_names)
+        if seeker and comm['name'] != seeker:
+            continue
+        if seeker and seeker == comm['name']:
+            seeker = None
 
-            if comm['eddn']:
-                eddn_names.remove(comm['eddn'])
-            print(f"Final entry: {name}")
-            print(comm)
-            print()
+        #  name = comm['name']
+        #  dist_map = {x: textdistance.hamming(name.replace(' ', ''), x) for x in eddn_names}
+        #  candidates = list(sorted(eddn_names, key=lambda x: dist_map[x]))
+        #  print(f"Looking at distance for: {name}")
+        #  for ind, cand in enumerate(candidates[:10]):
+            #  print(f"{ind}) {cand}: {dist_map[cand]}")
 
-    with open("/tmp/SModule.json", 'w', encoding='utf-8') as fout:
-        json.dump(comms, fout, indent=2, sort_keys=True)
+        #  msg = """If any of these suitable, type the number.
+#  If not, type part of the word to search for substring match: """
+        #  text = input(msg)
+        #  try:
+            #  index = int(text)
+            #  comm['eddn'] = candidates[index]
+        #  except ValueError:
+            #  print("\nResorting to substring search.")
+            #  comm['eddn'] = search_names(text, eddn_names)
+
+        if comm['eddn']:
+            eddn_names.remove(comm['eddn'])
+        #  print(f"Final entry: {name}")
+        #  print(comm)
+        #  print()
+
+        #  with open(comm_json, 'w', encoding='utf-8') as fout:
+            #  json.dump(comms, fout, indent=2, sort_keys=True)
+
+    __import__('pprint').pprint(eddn_names)
+
 
 
 if __name__ == "__main__":
