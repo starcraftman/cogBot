@@ -197,6 +197,7 @@ class CommodityV3(MsgParser):
                     'supply': comm['stock'],
                     'buy_price': comm['buyPrice'],
                     'sell_price': comm['sellPrice'],
+                    'mean_price': comm['meanPrice'],
                 }]
             except KeyError:
                 global COMMS_SEEN

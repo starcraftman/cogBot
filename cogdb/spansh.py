@@ -155,7 +155,7 @@ class SCommodityPricing(ReprMixin, UpdatableMixin, Base):
         UniqueConstraint('station_id', 'commodity_id', name='spansh_station_commodity_unique'),
     )
     _repr_keys = [
-        'id', 'station_id', 'commodity_id', "demand", "supply", "buy_price", "sell_price"
+        'id', 'station_id', 'commodity_id', "demand", "supply", "buy_price", "sell_price", "mean_price"
     ]
 
     id = sqla.Column(sqla.BigInteger, primary_key=True)
@@ -166,6 +166,7 @@ class SCommodityPricing(ReprMixin, UpdatableMixin, Base):
     supply = sqla.Column(sqla.Integer, default=0)
     buy_price = sqla.Column(sqla.Integer, default=0)
     sell_price = sqla.Column(sqla.Integer, default=0)
+    mean_price = sqla.Column(sqla.Integer, default=0)
 
     @property
     def text(self):
