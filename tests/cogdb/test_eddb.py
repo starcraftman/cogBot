@@ -8,13 +8,27 @@ import pytest
 import cog.exc
 import cogdb.eddb
 from cogdb.eddb import (
-    System, Faction, Influence, HistoryInfluence, HistoryTrack, TraderType
+    System, Faction, Influence, HistoryInfluence, HistoryTrack, TraderType, Ship
 )
 
 FAKE_ID1 = 942834121
 FAKE_ID2 = FAKE_ID1 + 1
 FAKE_ID3 = FAKE_ID1 + 2
 HISTORY_TIMESTAMP = 1664897410
+
+
+def test_ship__repr__(eddb_session):
+    expect = "Ship(id=1, text='Adder', traffic_text='adder')"
+    ship = eddb_session.query(Ship).filter(Ship.id == 1).one()
+
+    assert expect == repr(ship)
+
+
+def test_ship__str__(eddb_session):
+    expect = "Ship: Adder"
+    ship = eddb_session.query(Ship).filter(Ship.id == 1).one()
+
+    assert expect == str(ship)
 
 
 def test_system_controls(eddb_session):

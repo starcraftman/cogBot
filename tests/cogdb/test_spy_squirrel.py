@@ -13,6 +13,7 @@ import cogdb.spy_squirrel as spy
 from cogdb.schema import FortSystem, UMSystem
 from cogdb.spy_squirrel import load_json_secret
 from tests.conftest import GITHUB_FAIL
+from cogdb.eddb import Ship
 
 
 FIXED_TIMESTAMP = 1662390092
@@ -43,7 +44,6 @@ def response_news_json(response_json):
 def empty_spy(eddb_session):
     yield
     spy.empty_tables()
-    spy.preload_tables(eddb_session)
 
 
 @pytest.fixture()
@@ -154,10 +154,6 @@ def spy_test_bed(eddb_session):
             updated_at=FIXED_TIMESTAMP,
         ),
     ]
-    eddb_session.add_all([
-        spy.SpyShip(id=1, text="Viper Mk. II", traffic_text='viper_mkii'),
-        spy.SpyShip(id=2, text="Vulture", traffic_text='vulture'),
-    ])
     eddb_session.commit()
     eddb_session.add_all(objects)
     eddb_session.commit()
@@ -165,21 +161,6 @@ def spy_test_bed(eddb_session):
     yield objects
     spy.empty_tables()
     eddb_session.rollback()
-    spy.preload_tables(eddb_session)
-
-
-def test_spy_ship__repr__(spy_test_bed, eddb_session):
-    expect = "SpyShip(id=1, text='Viper Mk. II', traffic_text='viper_mkii')"
-    ship = eddb_session.query(spy.SpyShip).filter(spy.SpyShip.id == 1).one()
-
-    assert expect == repr(ship)
-
-
-def test_spy_ship__str__(spy_test_bed, eddb_session):
-    expect = "Ship: Viper Mk. II"
-    ship = eddb_session.query(spy.SpyShip).filter(spy.SpyShip.id == 1).one()
-
-    assert expect == str(ship)
 
 
 def test_spy_traffic__repr__(spy_test_bed, eddb_session):
@@ -190,7 +171,7 @@ def test_spy_traffic__repr__(spy_test_bed, eddb_session):
 
 
 def test_spy_traffic__str__(spy_test_bed, eddb_session):
-    expect = "Rana Viper Mk. II: 1"
+    expect = "Rana Adder: 1"
     traffic = eddb_session.query(spy.SpyTraffic).filter(spy.SpyTraffic.id == 1).one()
 
     assert expect == str(traffic)
@@ -204,7 +185,7 @@ def test_spy_bounty__repr__(spy_test_bed, eddb_session):
 
 
 def test_spy_bounty__str__(spy_test_bed, eddb_session):
-    expect = """#1 Good guy last seen in Rana/Wescott Hub (Viper Mk. II)
+    expect = """#1 Good guy last seen in Rana/Wescott Hub (Adder)
 Has 100,000 in bounty, updated at 2022-09-05 15:01:32"""
     bounty = eddb_session.query(spy.SpyBounty).filter(spy.SpyBounty.id == 1, spy.SpyBounty.pos == 1).one()
 
@@ -223,7 +204,7 @@ def test_spy_bounty_from_bounty_post_valid(spy_test_bed, eddb_session):
         'updated_at': FIXED_TIMESTAMP,
     }
 
-    expect = "SpyBounty(id=None, category=2, system='Rana', pos=1, cmdr_name='Marduk298', ship_name='CLOACA MUNCH', last_seen_system='Tjial', last_seen_station='Cassidy Landing', bounty=859000, ship_id=None, updated_at=1662390092)"
+    expect = "SpyBounty(id=None, category=2, system='Rana', pos=1, cmdr_name='Marduk298', ship_name='CLOACA MUNCH', last_seen_system='Tjial', last_seen_station='Cassidy Landing', bounty=859000, ship_id=16, updated_at=1662390092)"
     bounty = spy.SpyBounty.from_bounty_post(post, power_id=11)
     assert expect == repr(bounty)
 
@@ -583,7 +564,6 @@ def test_parse_response_traffic_totals(response_news_json):
 
 
 def test_load_response_json(empty_spy, response_json, eddb_session):
-    spy.preload_tables(eddb_session)
     assert not eddb_session.query(spy.SpyBounty).all()
     eddb_session.close()
     spy.load_response_json(response_json)
@@ -648,16 +628,6 @@ def test_get_spy_systems_for_galpow(empty_spy, db_cleanup, spy_test_bed, eddb_se
     assert preps
     assert expansions
     assert vote
-
-
-def test_preload_tables(empty_spy, eddb_session):
-    assert eddb_session.query(spy.SpyShip).all()
-    spy.preload_tables(eddb_session)
-    eddb_session.query(spy.SpyShip).delete()
-    eddb_session.commit()
-    spy.preload_tables(eddb_session)
-    assert eddb_session.query(spy.SpyShip).all()
-    assert eddb_session.query(spy.SpyShip).filter(spy.SpyShip.text == "Vulture").one()
 
 
 def test_get_vote_of_power(empty_spy, eddb_session, spy_test_bed):

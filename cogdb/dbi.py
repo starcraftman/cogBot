@@ -24,9 +24,10 @@ import tqdm
 
 import cogdb.eddb
 import cogdb.spansh
-import extras.map_gen
 from cogdb.spansh import GALAXY_JSON, GALAXY_URL, GALAXY_COMPRESSION_RATE
 from cog.util import print_no_newline
+import pvp.schema
+import extras.map_gen
 
 
 def make_parser():
@@ -179,8 +180,6 @@ def refresh_module_commodity_cache():  # pragma: no cover, depends on local GALA
     with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
         if not eddb_session.query(cogdb.eddb.PowerState).all():
             cogdb.eddb.preload_tables(eddb_session)
-        if not eddb_session.query(cogdb.spy_squirrel.SpyShip).all():
-            cogdb.spy_squirrel.preload_tables(eddb_session)
         cogdb.spansh.preload_tables(eddb_session, only_groups=True)
         cogdb.spansh.generate_module_commodities_caches(eddb_session, GALAXY_JSON)
     cogdb.spansh.empty_tables()
@@ -199,7 +198,6 @@ def sanity_check():  # pragma: no cover, underlying functions tested elsewhere o
 
     with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
         cogdb.eddb.preload_tables(eddb_session)
-        cogdb.spy_squirrel.preload_tables(eddb_session)
         cogdb.spansh.preload_tables(eddb_session)
 
     gb_needed = 16 if not os.path.exists(GALAXY_JSON) else 8
@@ -259,16 +257,17 @@ def main():  # pragma: no cover
         cogdb.eddb.recreate_tables()
         cogdb.spy_squirrel.recreate_tables()
         cogdb.spansh.recreate_tables()
+        pvp.schema.recreate_tables()
     else:
         print_no_newline("Emptying existing EDDB tables ...")
         cogdb.spansh.empty_tables()
         cogdb.spy_squirrel.empty_tables()
         cogdb.eddb.empty_tables()
+        pvp.schema.empty_tables()
 
     print_no_newline(" Done!\nPreloading constant EDDB data ...")
     with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
         cogdb.eddb.preload_tables(eddb_session)
-        cogdb.spy_squirrel.preload_tables(eddb_session)
         cogdb.spansh.preload_tables(eddb_session)
     print(" Done!")
 

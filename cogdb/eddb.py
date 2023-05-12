@@ -20,6 +20,7 @@ import sqlalchemy as sqla
 import sqlalchemy.orm as sqla_orm
 import sqlalchemy.orm.session
 import sqlalchemy.ext.declarative
+from sqlalchemy.schema import UniqueConstraint
 from sqlalchemy.sql.expression import or_
 from sqlalchemy.ext.hybrid import hybrid_property, hybrid_method
 
@@ -537,6 +538,55 @@ class SettlementSize(ReprMixin, Base):
 
     def __hash__(self):
         return hash(self.id)
+
+
+class Ship(ReprMixin, Base):
+    """
+    Constants for ship types in the game.
+    """
+    __tablename__ = 'ships'
+    _repr_keys = ['id', 'text', 'traffic_text']
+
+    id = sqla.Column(sqla.Integer, primary_key=True)
+    text = sqla.Column(sqla.String(LEN["ship"]))
+    traffic_text = sqla.Column(sqla.String(LEN["ship"]))
+    eddn = sqla.Column(sqla.String(LEN["ship"]))
+
+    def __str__(self):
+        """ A pretty one line to give all information. """
+        return f"Ship: {self.text}"
+
+    def __eq__(self, other):
+        return isinstance(other, Ship) and hash(self) == hash(other)
+
+    def __hash__(self):
+        return hash(f"{self.id}")
+
+
+class ShipSold(ReprMixin, UpdatableMixin, Base):
+    """
+    Table to store the ships sold at particular stations.
+    """
+    __tablename__ = 'station_ships_sold'
+    __table_args__ = (
+        UniqueConstraint('station_id', 'ship_id', name='station_ship_sold_unique'),
+    )
+    _repr_keys = [
+        'id', 'station_id', 'ship_id',
+    ]
+
+    id = sqla.Column(sqla.BigInteger, primary_key=True)
+    station_id = sqla.Column(sqla.BigInteger, sqla.ForeignKey("stations.id"), nullable=False)
+    ship_id = sqla.Column(sqla.Integer, sqla.ForeignKey("ships.id"), nullable=False)
+
+    ship = sqla_orm.relationship('Ship', uselist=False, viewonly=True, lazy='joined')
+
+    def __eq__(self, other):
+        return (isinstance(self, ShipSold) and isinstance(other, ShipSold)
+                and hash(self) == hash(other))
+
+    def __hash__(self):
+        return hash(f'{self.station_id}_{self.ship_id}')
 
 
 class StationFeatures(ReprMixin, TimestampMixin, UpdatableMixin, Base):
@@ -1136,6 +1186,7 @@ def preload_tables(eddb_session):
         Security,
         SettlementSecurity,
         SettlementSize,
+        Ship,
         StationType,
     ]
     for cls in classes:

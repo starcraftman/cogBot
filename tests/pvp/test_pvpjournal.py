@@ -238,7 +238,7 @@ def test_journal_rank_maps():
     assert pvp.journal.VALUE_TO_COMBAT_RANK[8] == 'Elite'
 
 
-def test_ship_name_map(f_spy_ships):
+def test_ship_name_map():
     ship_map = pvp.journal.ship_name_map()
     assert 'ferdelance' in ship_map
     assert 'fer-de-lance' in ship_map

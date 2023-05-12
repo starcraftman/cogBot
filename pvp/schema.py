@@ -303,15 +303,15 @@ class PVPDeathKiller(ReprMixin, TimestampMixin, EventTimeMixin, Base):
 
     cmdr_id = sqla.Column(sqla.BigInteger, sqla.ForeignKey('pvp_cmdrs.id'))
     pvp_death_id = sqla.Column(sqla.BigInteger, sqla.ForeignKey('pvp_deaths.id'), primary_key=True)
-    ship_id = sqla.Column(sqla.Integer)  # Links against 'spy_ships', key not needed
+    ship_id = sqla.Column(sqla.Integer)  # Links against 'ships', key not needed
 
     name = sqla.Column(sqla.String(EDDB_LEN["pvp_name"]), index=True, primary_key=True)
     rank = sqla.Column(sqla.Integer, default=0)
     created_at = sqla.Column(sqla.Integer, default=time.time)
     event_at = sqla.Column(sqla.Integer, default=time.time)  # Set to time in log
 
-    ship = sqla.orm.relationship('SpyShip', uselist=False, lazy='joined', viewonly=True,
-                                 primaryjoin='foreign(PVPDeathKiller.ship_id) == SpyShip.id')
+    ship = sqla.orm.relationship('Ship', uselist=False, lazy='joined', viewonly=True,
+                                 primaryjoin='foreign(PVPDeathKiller.ship_id) == Ship.id')
 
     def __str__(self):
         """ Show a single PVP killer of a cmdr. """

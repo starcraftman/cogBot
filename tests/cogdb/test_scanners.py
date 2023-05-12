@@ -630,7 +630,6 @@ async def test_galscanner_update_dict(eddb_session):
         assert expect == r_scanner.update_dict(systems=spy_systems)[:-1]
     finally:
         spy.empty_tables()
-        spy.preload_tables(eddb_session)
         eddb_session.add_all(existing)
 
 

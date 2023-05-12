@@ -681,7 +681,7 @@ def test_purge_cmdr(f_pvp_testbed, eddb_session):
 
 def test_pvp_is_safe_to_drop():
     assert pvp.schema.is_safe_to_drop('pvp_cmdrs')
-    assert not pvp.schema.is_safe_to_drop('spy_ships')
+    assert not pvp.schema.is_safe_to_drop('spy_bounties')
     assert not pvp.schema.is_safe_to_drop('stations')
 
 

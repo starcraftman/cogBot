@@ -511,7 +511,7 @@ EXAMPLE_CARRIER_EDMC = """{
 
 
 @pytest.fixture
-def mapped(f_spy_ships, eddb_session):
+def mapped(eddb_session):
     yield cogdb.spansh.eddb_maps(eddb_session)
 
 

@@ -35,9 +35,8 @@ import cogdb.spy_squirrel
 from cogdb.common import bulk_insert_from_file
 from cogdb.eddb import (
     Base, LEN, Allegiance, Economy, Faction, Influence, FactionState, FactionActiveState, Government,
-    Power, PowerState, Security, System, Station, StationType, StationEconomy, StationFeatures,
+    Power, PowerState, Security, Ship, System, Station, StationType, StationEconomy, StationFeatures,
 )
-from cogdb.spy_squirrel import SpyShip
 import cog.util
 from cog.util import ReprMixin, UpdatableMixin, print_no_newline
 
@@ -265,30 +264,6 @@ class SModuleSold(ReprMixin, UpdatableMixin, Base):
         return hash(f'{self.station_id}_{self.module_id}')
 
 
-class ShipSold(ReprMixin, UpdatableMixin, Base):
-    """
-    Table to store the ships sold at particular stations.
-    """
-    __tablename__ = 'station_ships_sold'
-    __table_args__ = (
-        UniqueConstraint('station_id', 'ship_id', name='station_ship_sold_unique'),
-    )
-    _repr_keys = [
-        'id', 'station_id', 'ship_id',
-    ]
-
-    id = sqla.Column(sqla.BigInteger, primary_key=True)
-    station_id = sqla.Column(sqla.BigInteger, sqla.ForeignKey("stations.id"), nullable=False)
-    ship_id = sqla.Column(sqla.Integer, sqla.ForeignKey("spy_ships.id"), nullable=False)
-
-    def __eq__(self, other):
-        return (isinstance(self, ShipSold) and isinstance(other, ShipSold)
-                and hash(self) == hash(other))
-
-    def __hash__(self):
-        return hash(f'{self.station_id}_{self.ship_id}')
-
-
 # Bidirectional relationships
 SCommodity.group = sqla_orm.relationship(
     'SCommodityGroup', uselist=False, back_populates='commodities', lazy='joined')
@@ -302,8 +277,6 @@ SModuleGroup.modules = sqla_orm.relationship(
     'SModule', cascade='save-update, delete, delete-orphan', back_populates='group', lazy='select')
 SModuleSold.module = sqla_orm.relationship(
     'SModule', uselist=False, viewonly=True, lazy='joined')
-ShipSold.ship = sqla_orm.relationship(
-    'SpyShip', uselist=False, viewonly=True, lazy='joined')
 
 
 class CommsModsWriter():
@@ -496,7 +469,7 @@ def eddb_maps(eddb_session):
         ['power', Power],
         ['power_state', PowerState],
         ['security', Security],
-        ['ship', SpyShip],
+        ['ship', Ship],
         ['station_type', StationType],
     ]
 

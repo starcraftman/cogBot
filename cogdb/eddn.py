@@ -30,18 +30,18 @@ import cogdb
 import cogdb.eddb
 import cogdb.query
 import cogdb.spansh
-from cogdb.eddb import (Conflict, Faction, Influence, System, Station,
-                        StationEconomy, StationFeatures, FactionActiveState, FactionPendingState,
-                        FactionRecoveringState)
-from cogdb.spansh import SCommodity, SCommodityPricing, SModule, SModuleSold, ShipSold
-from cogdb.spy_squirrel import SpyShip
+from cogdb.eddb import (
+    Conflict, Faction, Influence, Ship, ShipSold, System, Station,
+    StationEconomy, StationFeatures, FactionActiveState, FactionPendingState, FactionRecoveringState
+)
+from cogdb.spansh import SCommodity, SCommodityPricing, SModule, SModuleSold
 
 EDDN_ADDR = "tcp://eddn.edcd.io:9500"
 TIMEOUT = 600000
 # Keys of form "$schemaRef"
 SCHEMA_MAP = {
-    "https://eddn.edcd.io/schemas/commodity/3": "CommodityV3",
-    #  "https://eddn.edcd.io/schemas/journal/1": "JournalV1",
+    #  "https://eddn.edcd.io/schemas/commodity/3": "CommodityV3",
+    "https://eddn.edcd.io/schemas/journal/1": "JournalV1",
     #  "https://eddn.edcd.io/schemas/outfitting/2": "OutfittingV2",
     #  "https://eddn.edcd.io/schemas/shipyard/2": "ShipyardV2",
 }
@@ -266,7 +266,7 @@ class ShipyardV2(MsgParser):
             try:
                 self.parsed['ships_sold'] += [{
                     'station_id': station.id,
-                    'ship_id': MAPS['SpyShip'][ship],
+                    'ship_id': MAPS['Ship'][ship],
                 }]
             except KeyError:
                 with open('/tmp/shipMiss.log', 'a', encoding='utf-8') as fout:
@@ -759,11 +759,11 @@ def create_id_maps(session):
         'PowerplayState': {x.eddn: x.id for x in session.query(cogdb.eddb.PowerState)},
         'Security': {x.eddn: x.id for x in session.query(cogdb.eddb.Security)},
         'StationType': {x.eddn: x.id for x in session.query(cogdb.eddb.StationType)},
-        'SpyShip': {x.traffic_text: x.id for x in session.query(SpyShip)},
+        'Ship': {x.traffic_text: x.id for x in session.query(Ship)},
         'SModule': {x.symbol.lower(): x.id for x in session.query(SModule)},
     }
     # TODO: Need to map SCommodity here with eddn names.
-    maps['SpyShip'].update({x.eddn: x.id for x in session.query(SpyShip)})
+    maps['Ship'].update({x.eddn: x.id for x in session.query(Ship)})
     try:
         maps['PowerplayState'][''] = maps['PowerplayState']['None']
         maps['PowerplayState']['HomeSystem'] = maps['PowerplayState']['Controlled']

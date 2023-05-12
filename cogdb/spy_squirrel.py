@@ -23,7 +23,7 @@ import cog.util
 import cogdb.common
 import cogdb.eddb
 from cog.util import ReprMixin, TimestampMixin
-from cogdb.eddb import Base, Power, System, Faction, Influence
+from cogdb.eddb import Base, Power, System, Faction, Influence, Ship
 from cogdb.schema import FortSystem, UMSystem, EUMType, EUMSheet
 
 
@@ -86,29 +86,6 @@ JSON_DOPPLER_MAP = {
 ELITE_YEAR_OFFSET = 1286
 
 
-class SpyShip(ReprMixin, Base):
-    """
-    Constants for ship type for SpyTraffic.
-    """
-    __tablename__ = 'spy_ships'
-    _repr_keys = ['id', 'text', 'traffic_text']
-
-    id = sqla.Column(sqla.Integer, primary_key=True)
-    text = sqla.Column(sqla.String(cogdb.eddb.LEN["ship"]))
-    traffic_text = sqla.Column(sqla.String(cogdb.eddb.LEN["ship"]))
-    eddn = sqla.Column(sqla.String(cogdb.eddb.LEN["ship"]))
-
-    def __str__(self):
-        """ A pretty one line to give all information. """
-        return f"Ship: {self.text}"
-
-    def __eq__(self, other):
-        return isinstance(other, SpyShip) and hash(self) == hash(other)
-
-    def __hash__(self):
-        return hash(f"{self.id}")
-
-
 # These entries will be stored for SPY_LIMIT days.
 class SpyBounty(ReprMixin, TimestampMixin, Base):
     """
@@ -121,7 +98,7 @@ class SpyBounty(ReprMixin, TimestampMixin, Base):
     ]
 
     id = sqla.Column(sqla.BigInteger, primary_key=True)
-    ship_id = sqla.Column(sqla.Integer, sqla.ForeignKey('spy_ships.id'))
+    ship_id = sqla.Column(sqla.Integer, sqla.ForeignKey('ships.id'))
     power_id = sqla.Column(sqla.Integer, nullable=True)
 
     system = sqla.Column(sqla.String(cogdb.eddb.LEN["system"]), nullable=False, default="")
@@ -136,7 +113,7 @@ class SpyBounty(ReprMixin, TimestampMixin, Base):
 
     # Relationships
     ship = sqla.orm.relationship(
-        'SpyShip', uselist=False, lazy='joined', viewonly=True,
+        'Ship', uselist=False, lazy='joined', viewonly=True,
     )
     power = sqla.orm.relationship(
         'Power', uselist=False, lazy='joined', viewonly=True,
@@ -164,7 +141,7 @@ Has {self.bounty:,} in bounty, updated at {self.updated_date}"""
         Args:
             post: A dictionary with information from bounty post
             power_id: The power id of the system. If none, this is local
-            ship_map: The map of ship names to SpyShip.ids
+            ship_map: The map of ship names to Ship.ids
 
         Returns: A SpyBounty object.
         """
@@ -237,14 +214,14 @@ class SpyTraffic(ReprMixin, Base):
     _repr_keys = ['id', 'system', 'ship_id', 'cnt', 'updated_at']
 
     id = sqla.Column(sqla.BigInteger, primary_key=True)
-    ship_id = sqla.Column(sqla.Integer, sqla.ForeignKey('spy_ships.id'))
+    ship_id = sqla.Column(sqla.Integer, sqla.ForeignKey('ships.id'))
     cnt = sqla.Column(sqla.Integer)
     system = sqla.Column(sqla.String(cogdb.eddb.LEN["system"]), nullable=False, default="")
     updated_at = sqla.Column(sqla.Integer, default=time.time, onupdate=time.time)
 
     # Relationships
     ship = sqla.orm.relationship(
-        'SpyShip', uselist=False, lazy='joined', viewonly=True,
+        'Ship', uselist=False, lazy='joined', viewonly=True,
     )
 
     def __str__(self):
@@ -440,10 +417,10 @@ def json_powers_to_eddb_map():
 
 def ship_type_to_id_map(traffic_text=False):
     """
-    Returns a simple map from ship type to the id in SpyShip table.
+    Returns a simple map from ship type to the id in Ship table.
     """
     with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
-        ships = eddb_session.query(SpyShip).\
+        ships = eddb_session.query(Ship).\
             all()
         attrname = 'traffic_text' if traffic_text else 'text'
         mapped = {getattr(ship, attrname): ship.id for ship in ships}
@@ -1243,14 +1220,6 @@ def get_controls_outdated_held(eddb_session, *, power='%hudson', hours_old=7):
         all()
 
 
-def preload_tables(eddb_session):
-    """
-    Preload the spy tables with constant values.
-    Currently this is limited to SpyShip
-    """
-    cogdb.common.preload_table_from_file(eddb_session, cls=SpyShip)
-
-
 async def service_status(eddb_session):
     """
     Poll for the status of the spy service.
@@ -1340,8 +1309,6 @@ def main():  # pragma: no cover | destructive to test
     Main function to load the test data during development.
     """
     recreate_tables()
-    with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
-        preload_tables(eddb_session)
 
     try:
         load_base_json(load_json_secret('base.json'))
@@ -1352,7 +1319,7 @@ def main():  # pragma: no cover | destructive to test
         print("Please install and configure doppler.")
 
 
-SPY_TABLES = [SpyPrep, SpyVote, SpySystem, SpyTraffic, SpyBounty, SpyShip]
+SPY_TABLES = [SpyPrep, SpyVote, SpySystem, SpyTraffic, SpyBounty]
 PARSER_MAP = {
     "NewsSummaryFactionStateTitle": {
         'func': parse_response_news_summary,
@@ -1389,8 +1356,6 @@ PARSER_MAP = {
 }
 # Ensure the tables are created before use when this imported
 Base.metadata.create_all(cogdb.eddb_engine)
-with cogdb.session_scope(cogdb.EDDBSession) as init_session:
-    preload_tables(init_session)
 
 
 if __name__ == "__main__":

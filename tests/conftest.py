@@ -80,7 +80,7 @@ def around_all_tests():
     session.commit()
 
     with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
-        assert eddb_session.query(spy.SpyShip).all()
+        assert eddb_session.query(cogdb.eddb.Ship).all()
 
 
 @pytest.fixture
@@ -908,22 +908,13 @@ def f_sheet_records(session):
 
 
 @pytest.fixture
-def f_spy_ships(eddb_session):
-    spy.preload_tables(eddb_session)
-    eddb_session.commit()
-    eddb_session.close()
-
-    yield
-
-
-@pytest.fixture
 def f_pvp_clean():
     yield
     pvp.schema.empty_tables()
 
 
 @pytest.fixture
-def f_pvp_testbed(f_spy_ships, eddb_session):
+def f_pvp_testbed(eddb_session):
     """
     Massive fixture intializes an entire dummy testbed of pvp objects.
     """
