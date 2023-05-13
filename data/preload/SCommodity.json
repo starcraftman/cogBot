@@ -438,7 +438,7 @@
     "name": "Biowaste"
   },
   {
-    "eddn": null,
+    "eddn": "toxicwaste",
     "group_id": 14,
     "id": 128049245,
     "name": "Toxic Waste"
@@ -504,7 +504,7 @@
     "name": "Black Box"
   },
   {
-    "eddn": null,
+    "eddn": "usscargotradedata",
     "group_id": 10,
     "id": 128666754,
     "name": "Trade Data"

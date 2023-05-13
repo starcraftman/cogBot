@@ -216,6 +216,15 @@ class CommodityV3(MsgParser):
             filter(SCommodityPricing.station_id == station_id).\
             delete()
 
+        for comm in commodities:
+            try:
+                comm_db = self.eddb_session.query(SCommodity).\
+                    filter(SCommodity.id == comm['commodity_id']).\
+                    one()
+                comm_db.mean_price = comm.pop('mean_price')
+            except sqla.exc.NoResultFound:
+                pass
+
         self.eddb_session.add_all(
             [SCommodityPricing(**x) for x in commodities]
         )

@@ -101,6 +101,7 @@ class SCommodity(ReprMixin, UpdatableMixin, Base):
     group_id = sqla.Column(sqla.Integer, sqla.ForeignKey("spansh_commodity_groups.id"), nullable=False)
     name = sqla.Column(sqla.String(LEN["commodity"]))
     eddn = sqla.Column(sqla.String(LEN["commodity"]))
+    mean_price = sqla.Column(sqla.Integer, default=0)
 
     @property
     def text(self):
@@ -166,7 +167,6 @@ class SCommodityPricing(ReprMixin, UpdatableMixin, Base):
     supply = sqla.Column(sqla.Integer, default=0)
     buy_price = sqla.Column(sqla.Integer, default=0)
     sell_price = sqla.Column(sqla.Integer, default=0)
-    mean_price = sqla.Column(sqla.Integer, default=0)
 
     @property
     def text(self):
