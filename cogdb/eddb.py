@@ -666,6 +666,9 @@ class StationEconomy(ReprMixin, Base):
 class Station(ReprMixin, TimestampMixin, UpdatableMixin, Base):
     """ Repesents a system in the universe. """
     __tablename__ = "stations"
+    __table_args__ = (
+        UniqueConstraint('id', 'system_id', name='station_system_id_unique'),
+    )
     _repr_keys = [
         'id', 'name', 'distance_to_star', 'max_landing_pad_size',
         'type_id', 'system_id', 'controlling_minor_faction_id', 'updated_at'

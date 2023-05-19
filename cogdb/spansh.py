@@ -885,7 +885,7 @@ def transform_bodies(*, data, mapped, system_id):
     for body in data['bodies']:
         if body['stations']:
             # Exclude stations without declared services
-            body['stations'] = [station for station in body['stations'] if setation_useful(station)]
+            body['stations'] = [station for station in body['stations'] if station_useful(station)]
             body['updated_at'] = data['updated_at']
             results.update(transform_stations(data=body, mapped=mapped, system_id=system_id, system_name=data['name']))
 

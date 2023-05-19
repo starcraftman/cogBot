@@ -16,6 +16,7 @@ import sys
 import time
 import zlib
 
+import pymysql
 import sqlalchemy as sqla
 import sqlalchemy.orm as sqla_orm
 import zmq
@@ -158,7 +159,11 @@ class MsgParser(abc.ABC):
 
             return station.one()
         except sqla.exc.NoResultFound as exc:
-            raise SkipDatabaseFlush("MsgParser: System or Station not found.") from exc
+            raise SkipDatabaseFlush(f"MsgParser: System({self.body['systemName']}) or Station({self.body['stationName']}) not found.") from exc
+        except sqla.exc.MultipleResultsFound as exc:  # Serious error if triggers
+            msg = f"MsgParser: System({self.body['systemName']}) or Station({self.body['stationName']}) too many results."
+            logging.getLogger(__name__).error(msg)
+            raise SkipDatabaseFlush(msg) from exc
 
     @abc.abstractmethod
     def parse_msg(self):
@@ -551,8 +556,11 @@ class JournalV1(MsgParser):
                 station_db = Station(**station)
                 self.eddb_session.add(station_db)
 
-        self.eddb_session.commit()
-        self.flushed += [station_db]
+        try:
+            self.eddb_session.commit()
+            self.flushed += [station_db]
+        except pymysql.err.IntegrityError as exc:
+            raise SkipDatabaseFlush("Ignoring station, missing controlling minor {self.body['stationFaction']}") from exc
 
         try:
             if station_features:
