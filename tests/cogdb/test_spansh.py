@@ -43,8 +43,8 @@ def test_spansh_commodity_group__repr__():
 
 
 def test_spansh_commodity__repr__(eddb_session):
-    found = SCommodity(id=SPANSH_ID, group_id=SPANSH_ID, name='TestCommodity')
-    assert "SCommodity(id=999999, group_id=999999, name='TestCommodity')" == repr(found)
+    found = SCommodity(id=SPANSH_ID, group_id=SPANSH_ID, name='TestCommodity', eddn='testcommgroup', mean_price=500)
+    assert "SCommodity(id=999999, group_id=999999, name='TestCommodity', eddn='testcommgroup', mean_price=500)" == repr(found)
 
 
 def test_spansh_module_group__repr__(eddb_session):
@@ -555,3 +555,8 @@ def test_commswriter_finish():
     writer.update_comms(fake_comms)
     writer.finish()
     assert comms_out.getvalue().endswith(';\n')
+
+
+def test_station_useful():
+    assert cogdb.spansh.station_useful({"type": 1, "services": []})
+    assert not cogdb.spansh.station_useful({"type": 1})

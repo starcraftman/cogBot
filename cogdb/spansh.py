@@ -95,7 +95,7 @@ class SpanshParsingError(Exception):
 class SCommodity(ReprMixin, UpdatableMixin, Base):
     """ A spansh commodity sold at a station. """
     __tablename__ = 'spansh_commodities'
-    _repr_keys = ['id', 'group_id', "name"]
+    _repr_keys = ['id', 'group_id', "name", "eddn", "mean_price"]
 
     id = sqla.Column(sqla.Integer, primary_key=True)  # commodityId
     group_id = sqla.Column(sqla.Integer, sqla.ForeignKey("spansh_commodity_groups.id"), nullable=False)
@@ -156,7 +156,7 @@ class SCommodityPricing(ReprMixin, UpdatableMixin, Base):
         UniqueConstraint('station_id', 'commodity_id', name='spansh_station_commodity_unique'),
     )
     _repr_keys = [
-        'id', 'station_id', 'commodity_id', "demand", "supply", "buy_price", "sell_price", "mean_price"
+        'id', 'station_id', 'commodity_id', "demand", "supply", "buy_price", "sell_price"
     ]
 
     id = sqla.Column(sqla.BigInteger, primary_key=True)
@@ -448,6 +448,18 @@ def station_key(*, system, station):
         pass
 
     return key
+
+
+def station_useful(station):
+    """
+    Return True IFF the station has a type and offers services.
+
+    Args:
+        station: The station object.
+
+    Returns: True IFF the station has a type and is worth indexing.
+    """
+    return "type" in station and "services" in station
 
 
 def eddb_maps(eddb_session):
@@ -872,6 +884,8 @@ def transform_bodies(*, data, mapped, system_id):
 
     for body in data['bodies']:
         if body['stations']:
+            # Exclude stations without declared services
+            body['stations'] = [station for station in body['stations'] if setation_useful(station)]
             body['updated_at'] = data['updated_at']
             results.update(transform_stations(data=body, mapped=mapped, system_id=system_id, system_name=data['name']))
 
