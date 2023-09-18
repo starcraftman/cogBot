@@ -9,9 +9,7 @@ import abc
 import argparse
 import datetime
 import logging
-import os
 import pprint
-import shutil
 import sys
 import time
 import zlib
@@ -31,6 +29,7 @@ import cogdb
 import cogdb.eddb
 import cogdb.query
 import cogdb.spansh
+import cogdb.eddn_log
 from cogdb.eddb import (
     Conflict, Faction, Influence, Ship, ShipSold, System, Station,
     StationEconomy, StationFeatures, FactionActiveState, FactionPendingState, FactionRecoveringState
@@ -47,13 +46,14 @@ SCHEMA_MAP = {
     #  "https://eddn.edcd.io/schemas/shipyard/2": "ShipyardV2",
 }
 LOG_FILE = "/tmp/eddn_log"
-ALL_MSGS = '/tmp/msgs'
-JOURNAL_MSGS = '/tmp/msgs_journal'
-JOURNAL_CARS = '/tmp/msgs_journal_cars'
-COMM_MSGS = '/tmp/msgs_comm'
+ALL_MSGS = '/tmp/eddn_all'
+JOURNAL_MSGS = '/tmp/eddn_journals'
+JOURNAL_CARS = '/tmp/eddn_carriers'
+COMMS_MSGS = '/tmp/eddn_commodities'
 STATION_FEATS = [x for x in StationFeatures.__dict__ if x not in ('id', 'station') and not x.startswith('_')]
 COMMS_SEEN = []
 BLACKLIST_SOFTWARE = ["EVA [iPad]"]
+LOGS = {}
 
 
 def station_key(*, system, station):
@@ -191,7 +191,7 @@ class CommodityV3(MsgParser):
     def parse_msg(self):
         station = self.select_station()
 
-        log_msg(self.msg, path=ALL_MSGS, fname=log_fname(self.msg))
+        LOGS['comms'].write_msg(self.msg)
         self.parsed['commodity_pricing'] = []
         for comm in self.body['commodities']:
             try:
@@ -205,9 +205,8 @@ class CommodityV3(MsgParser):
                     'mean_price': comm['meanPrice'],
                 }]
             except KeyError:
-                global COMMS_SEEN
                 if comm['name'] not in COMMS_SEEN:
-                    COMMS_SEEN += [comm['name']]
+                    COMMS_SEEN.append(comm['name'])
                     with open('/tmp/commsMiss.log', 'a', encoding='utf-8') as fout:
                         fout.write(f"No map: {comm['name']}\n")
 
@@ -331,13 +330,13 @@ class JournalV1(MsgParser):
 
                 if self.body["StationType"] == "FleetCarrier":
                     parsed = self.parse_and_flush_carrier()
-                    log_msg(self.msg, path=JOURNAL_CARS, fname=log_fname(self.msg))
+                    LOGS['carriers'].write_msg(self.msg)
                     log.info(pprint.pformat(parsed))
 
             if 'Factions' in self.body:
                 log.info("System %s: Parsing influences", self.body.get('StarSystem', 'Unknown System'))
                 log.debug(pprint.pformat(self.parse_influence()))
-                log_msg(self.msg, path=JOURNAL_MSGS, fname=log_fname(self.msg))
+                LOGS['journals'].write_msg(self.msg)
                 if 'Conflicts' in self.body:
                     log.info("System %s: Parsing conflicts", self.body.get('StarSystem', 'Unknown System'))
                     log.debug(pprint.pformat(self.parse_conflicts()))
@@ -825,33 +824,6 @@ def create_parser(msg):
         return cls(session, eddb_session, msg)
 
 
-def log_fname(msg):
-    """
-    A unique filename for this message.
-    """
-    try:
-        timestamp = msg['message']['timestamp']
-    except KeyError:
-        timestamp = msg['header']['gatewayTimestamp']
-
-    schema = '_'.join(msg["$schemaRef"].split('/')[-2:])
-    fname = f"{schema}_{timestamp}_{msg['header']['softwareName']}".strip()
-
-    return cog.util.clean_fname(fname, replacement='_', replace_spaces=True)
-
-
-def log_msg(obj, *, path, fname):
-    """
-    Log a msg to the right directory to track later if required.
-    Silently ignore if directory unavailable.
-    """
-    try:
-        with open(os.path.join(path, fname), 'a', encoding='utf-8') as fout:
-            pprint.pprint(obj, stream=fout)
-    except FileNotFoundError:
-        pass
-
-
 def timestamp_is_recent(msg, window=30):
     """ Returns true iff the timestamp is less than window minutes old."""
     try:
@@ -880,8 +852,7 @@ def get_msgs(sub):  # pragma: no cover
             if not timestamp_is_recent(msg) or msg['header']['softwareName'] in BLACKLIST_SOFTWARE:
                 continue
 
-            lfname = log_fname(msg)
-            log_msg(msg, path=ALL_MSGS, fname=lfname)
+            lfname = LOGS['all'].write_msg(msg)
             try:
                 print("Message:", lfname)
                 parser = create_parser(msg)
@@ -911,7 +882,7 @@ def connect_loop(sub):  # pragma: no cover
             time.sleep(5)
 
 
-def eddn_log(fname, log_level="INFO"):  # pragma: no cover
+def init_eddn_log(fname, log_level="INFO"):  # pragma: no cover
     """
     Create a simple file and stream logger for eddn separate from main bot's logging.
     """
@@ -953,12 +924,12 @@ def main():  # pragma: no cover
         updating database entries based on new information
     """
     args = create_args_parser().parse_args()
-    eddn_log(LOG_FILE, args.level)
-    if not args.all_msgs:
-        try:
-            shutil.rmtree(ALL_MSGS)
-        except OSError:
-            pass
+    init_eddn_log(LOG_FILE, args.level)
+
+    LOGS['all'] = cogdb.eddn_log.EDDNLogger(folder=ALL_MSGS, reset=True, disabled=args.all_msgs)
+    LOGS['journals'] = cogdb.eddn_log.EDDNLogger(folder=JOURNAL_MSGS, keep_n=200, reset=True)
+    LOGS['carriers'] = cogdb.eddn_log.EDDNLogger(folder=JOURNAL_CARS, keep_n=200, reset=True)
+    LOGS['commodities'] = cogdb.eddn_log.EDDNLogger(folder=COMMS_MSGS, reset=True)
 
     sub = zmq.Context().socket(zmq.SUB)
     sub.setsockopt(zmq.SUBSCRIBE, b'')
@@ -972,13 +943,6 @@ def main():  # pragma: no cover
         print(msg)
 
 
-# Any time code run, need these dirs to write to
-for dirname in [ALL_MSGS, JOURNAL_MSGS, JOURNAL_CARS, COMM_MSGS]:
-    try:
-        shutil.rmtree(dirname)
-    except OSError:
-        pass
-    os.mkdir(dirname)
 try:
     with cogdb.session_scope(cogdb.EDDBSession) as init_session:
         MAPS = create_id_maps(init_session)
