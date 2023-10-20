@@ -474,6 +474,9 @@ class JournalV1(MsgParser):
 
         if "DistanceFromArrivalLS" in body:
             station['distance_to_star'] = round(body['DistanceFromArrivalLS'])
+        elif "DistFromStarLS" in body:
+            station['distance_to_star'] = round(body['DistFromStarLS'])
+
         if "StationEconomy" in body and "StationEconomies" in body:
             for ent in body["StationEconomies"]:
                 economy = {
@@ -526,37 +529,25 @@ class JournalV1(MsgParser):
 
             station_db = station_db.one()
             station_db.update(**station)
-            station['id'] = station_db.id
 
-        except sqla_orm.exc.NoResultFound:
-            system_name = self.parsed['system']['name'] if self.parsed.get('system') else 'unknown'
+        except sqla_orm.exc.NoResultFound as exc:
+            if station['type_id'] != 24:
+                system_name = self.parsed['system']['name'] if self.parsed.get('system') else 'unknown'
+                raise SkipDatabaseFlush(f"Ignoring station: {station['name']} ({system_name})") from exc
+
             station.update({
                 'is_planetary': False,
                 'max_landing_pad_size': 'L',
             })
-            try:
-                key = station_key(system=self.parsed['system']['name'], station=station)
-                logging.getLogger(__name__).error("StationKey: %s", key)
-                station['id'] = MAPS['stations'][key]
 
-                station_db = Station(**station)
-                self.eddb_session.add(station_db)
-            except KeyError as exc:
-                if station['type_id'] != 24:
-                    raise SkipDatabaseFlush(f"Ignoring station: {station['name']} ({system_name})") from exc
+            logging.getLogger(__name__).warning("New Fleet Carrier: %s", station['name'])
 
-                logging.getLogger(__name__).warning("New Fleet Carrier: %s", station['name'])
-
-                added = cogdb.spansh.update_station_map([station['name']], cache=STATION_CACHE)
-                station['id'] = added[station['name']]
-                MAPS['stations'][key] = added[station['name']]
-                cogdb.spansh.write_station_cache(STATION_CACHE)
-
-                station_db = Station(**station)
-                self.eddb_session.add(station_db)
+            station_db = Station(**station)
+            self.eddb_session.add(station_db)
 
         try:
             self.eddb_session.commit()
+            station['id'] = station_db.id
             self.flushed += [station_db]
         except pymysql.err.IntegrityError as exc:
             raise SkipDatabaseFlush("Ignoring station, missing controlling minor {self.body['stationFaction']}") from exc
