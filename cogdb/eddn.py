@@ -873,7 +873,7 @@ def connect_loop(sub):  # pragma: no cover
             time.sleep(5)
 
 
-def init_eddn_log(fname, log_level="INFO"):  # pragma: no cover
+def init_eddn_log(fname, log_level="INFO", disable_log_all=True):  # pragma: no cover
     """
     Create a simple file and stream logger for eddn separate from main bot's logging.
     """
@@ -894,6 +894,12 @@ def init_eddn_log(fname, log_level="INFO"):  # pragma: no cover
     handler.setLevel(log_level)
     log.addHandler(handler)
 
+    # Specific loggers for separate streams of messages
+    LOGS['all'] = cogdb.eddn_log.EDDNLogger(folder=ALL_MSGS, reset=True, disabled=disable_log_all)
+    LOGS['journals'] = cogdb.eddn_log.EDDNLogger(folder=JOURNAL_MSGS, keep_n=200, reset=True)
+    LOGS['carriers'] = cogdb.eddn_log.EDDNLogger(folder=JOURNAL_CARS, keep_n=200, reset=True)
+    LOGS['commodities'] = cogdb.eddn_log.EDDNLogger(folder=COMMS_MSGS, reset=True)
+
 
 def create_args_parser():  # pragma: no cover
     """
@@ -902,7 +908,7 @@ def create_args_parser():  # pragma: no cover
     parser = argparse.ArgumentParser(description="EDDN Listener")
     parser.add_argument('--level', '-l', default='DEBUG',
                         help='Set the overall logging level..')
-    parser.add_argument('--all', '-a', action='store_true', dest='all_msgs',
+    parser.add_argument('--no-all', '-a', action='store_false', dest='disable_all',
                         help='Capture all messages intercepted.')
 
     return parser
@@ -915,12 +921,7 @@ def main():  # pragma: no cover
         updating database entries based on new information
     """
     args = create_args_parser().parse_args()
-    init_eddn_log(LOG_FILE, args.level)
-
-    LOGS['all'] = cogdb.eddn_log.EDDNLogger(folder=ALL_MSGS, reset=True, disabled=args.all_msgs)
-    LOGS['journals'] = cogdb.eddn_log.EDDNLogger(folder=JOURNAL_MSGS, keep_n=200, reset=True)
-    LOGS['carriers'] = cogdb.eddn_log.EDDNLogger(folder=JOURNAL_CARS, keep_n=200, reset=True)
-    LOGS['commodities'] = cogdb.eddn_log.EDDNLogger(folder=COMMS_MSGS, reset=True)
+    init_eddn_log(LOG_FILE, args.level, disable_log_all=args.disable_all)
 
     sub = zmq.Context().socket(zmq.SUB)
     sub.setsockopt(zmq.SUBSCRIBE, b'')
@@ -945,3 +946,5 @@ except (sqla_orm.exc.NoResultFound, sqla.exc.ProgrammingError):
 
 if __name__ == "__main__":
     main()
+else:
+    init_eddn_log(LOG_FILE, 'DEBUG', True)
