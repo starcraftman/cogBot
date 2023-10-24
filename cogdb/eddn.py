@@ -191,7 +191,7 @@ class CommodityV3(MsgParser):
     def parse_msg(self):
         station = self.select_station()
 
-        LOGS['comms'].write_msg(self.msg)
+        LOGS['commodities'].write_msg(self.msg)
         self.parsed['commodity_pricing'] = []
         for comm in self.body['commodities']:
             try:
@@ -896,9 +896,9 @@ def init_eddn_log(fname, log_level="INFO", disable_log_all=True):  # pragma: no 
 
     # Specific loggers for separate streams of messages
     LOGS['all'] = cogdb.eddn_log.EDDNLogger(folder=ALL_MSGS, reset=True, disabled=disable_log_all)
-    LOGS['journals'] = cogdb.eddn_log.EDDNLogger(folder=JOURNAL_MSGS, keep_n=200, reset=True)
-    LOGS['carriers'] = cogdb.eddn_log.EDDNLogger(folder=JOURNAL_CARS, keep_n=200, reset=True)
-    LOGS['commodities'] = cogdb.eddn_log.EDDNLogger(folder=COMMS_MSGS, reset=True)
+    LOGS['journals'] = cogdb.eddn_log.EDDNLogger(folder=JOURNAL_MSGS, keep_n=200, reset=True, disabled=False)
+    LOGS['carriers'] = cogdb.eddn_log.EDDNLogger(folder=JOURNAL_CARS, keep_n=200, reset=True, disabled=False)
+    LOGS['commodities'] = cogdb.eddn_log.EDDNLogger(folder=COMMS_MSGS, reset=True, disabled=False)
 
 
 def create_args_parser():  # pragma: no cover

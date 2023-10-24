@@ -993,7 +993,6 @@ def update_name_map(missing_names, *, name_map):
     for name in missing_names:
         if name not in name_map['known']:
             new_id = available.pop()
-            name_map['new'][name] = new_id
             name_map['known'][name] = new_id
             added[name] = new_id
 
@@ -1011,27 +1010,20 @@ def update_system_map(missing):
     Returns: A dictionary containing new systems onto their ids.
     """
     known_fname = Path(SYSTEM_MAPF)
-    new_fname = Path(SYSTEM_MAPF.replace("Map.json", "NewMap.json"))
-    for fname in (known_fname, new_fname):
-        if not fname.exists():
-            with open(fname, 'w', encoding='utf-8') as fout:
-                fout.write('{}')
+    if not known_fname.exists():
+        with open(known_fname, 'w', encoding='utf-8') as fout:
+            fout.write('{}')
 
-    with open(known_fname, 'r', encoding='utf-8') as known_fin,\
-         open(new_fname, 'r', encoding='utf-8') as new_fin:
+    with open(known_fname, 'r', encoding='utf-8') as known_fin:
         name_map = {
             'known': json.load(known_fin),
-            'new': json.load(new_fin),
         }
         known_ids = list(sorted(name_map['known'].values()))
         name_map['next_id'] = (known_ids[-1] if known_ids else 0) + 1
 
     added = update_name_map(missing, name_map=name_map)
-
     with open(known_fname, 'w', encoding='utf-8') as fout:
         json.dump(name_map['known'], fout, indent=JSON_INDENT, sort_keys=True)
-    with open(new_fname, 'w', encoding='utf-8') as fout:
-        json.dump(name_map['new'], fout, indent=JSON_INDENT, sort_keys=True)
 
     return added
 
@@ -1047,19 +1039,15 @@ def update_faction_map(missing, *, cache=None):
     Returns: A dictionary containing new factions onto their ids.
     """
     known_fname = Path(FACTION_MAPF)
-    new_fname = Path(FACTION_MAPF.replace("Map.json", "NewMap.json"))
-    for fname in (known_fname, new_fname):
-        if not fname.exists():
-            with open(fname, 'w', encoding='utf-8') as fout:
-                fout.write('{}')
+    if not known_fname.exists():
+        with open(known_fname, 'w', encoding='utf-8') as fout:
+            fout.write('{}')
 
     cache = cache if cache else create_faction_cache()
     added = update_name_map(missing, name_map=cache)
 
     with open(known_fname, 'w', encoding='utf-8') as fout:
         json.dump(cache['known'], fout, indent=JSON_INDENT, sort_keys=True)
-    with open(new_fname, 'w', encoding='utf-8') as fout:
-        json.dump(cache['new'], fout, indent=JSON_INDENT, sort_keys=True)
 
     return added
 
@@ -1068,11 +1056,9 @@ def create_faction_cache():
     """
     Create the cache of maps used for updating the factions.
     """
-    with open(FACTION_MAPF, 'r', encoding='utf-8') as known_fin,\
-            open(FACTION_MAPF.replace("Map.json", "NewMap.json"), 'r', encoding='utf-8') as new_fin:
+    with open(FACTION_MAPF, 'r', encoding='utf-8') as known_fin:
         cache = {
             'known': json.load(known_fin),
-            'new': json.load(new_fin),
         }
         known_ids = list(sorted(cache['known'].values()))
         cache['next_id'] = (known_ids[-1] if known_ids else 0) + 1
@@ -1085,20 +1071,14 @@ def create_station_cache():
     Read in and create the station map cache that stores all the different
     maps and next_id fields required to update the maps.
     """
-    cache = {}
+    cache = {
+        'stations': {},
+    }
 
     with open(STATION_MAPF, 'r', encoding='utf-8') as fin:
         cache['known'] = json.load(fin)
-    with open(STATION_MAPF.replace('Map', 'NewMap'), 'r', encoding='utf-8') as fin:
-        cache['new'] = json.load(fin)
-    with open(STATION_ONLY_MAPF, 'r', encoding='utf-8') as fin:
-        cache['stations'] = json.load(fin)
-    with open(STATION_ONLY_MAPF.replace('Map', 'NewMap'), 'r', encoding='utf-8') as fin:
-        cache['new_stations'] = json.load(fin)
     with open(CARRIER_MAPF, 'r', encoding='utf-8') as fin:
         cache['carriers'] = json.load(fin)
-    with open(CARRIER_MAPF.replace('Map', 'NewMap'), 'r', encoding='utf-8') as fin:
-        cache['new_carriers'] = json.load(fin)
 
     known_ids = list(sorted(cache['known'].values()))
     cache['next_id'] = known_ids[-1] + 1
@@ -1115,16 +1095,8 @@ def write_station_cache(cache):
     """
     with open(STATION_MAPF, 'w', encoding='utf-8') as fout:
         json.dump(cache['known'], fout, indent=JSON_INDENT, sort_keys=True)
-    with open(STATION_MAPF.replace('Map', 'NewMap'), 'w', encoding='utf-8') as fout:
-        json.dump(cache['new'], fout, indent=JSON_INDENT, sort_keys=True)
-    with open(STATION_ONLY_MAPF, 'w', encoding='utf-8') as fout:
-        json.dump(cache['stations'], fout, indent=JSON_INDENT, sort_keys=True)
-    with open(STATION_ONLY_MAPF.replace('Map', 'NewMap'), 'w', encoding='utf-8') as fout:
-        json.dump(cache['new_stations'], fout, indent=JSON_INDENT, sort_keys=True)
     with open(CARRIER_MAPF, 'w', encoding='utf-8') as fout:
         json.dump(cache['carriers'], fout, indent=JSON_INDENT, sort_keys=True)
-    with open(CARRIER_MAPF.replace('Map', 'NewMap'), 'w', encoding='utf-8') as fout:
-        json.dump(cache['new_carriers'], fout, indent=JSON_INDENT, sort_keys=True)
 
 
 def update_station_map(missing_names, *, cache):  # pragma: no cover, bit of a nuissance to test
@@ -1149,15 +1121,12 @@ def update_station_map(missing_names, *, cache):  # pragma: no cover, bit of a n
         if name not in cache['known']:
             new_id = available.pop()
             cache['known'][name] = new_id
-            cache['new'][name] = new_id
             added[name] = new_id
 
             if cog.util.is_a_carrier(name):
                 cache['carriers'][name] = new_id
-                cache['new_carriers'][name] = new_id
             else:
                 cache['stations'][name] = new_id
-                cache['new_stations'][name] = new_id
 
     cache['next_id'] = available.pop()
 
@@ -1256,8 +1225,10 @@ def collect_modules_and_commodities(galaxy_json):
         galaxy_json: Path to the galaxy_json.
 
     Returns: (mods, comms)
-        mods: A list of modules found.
-        comms: A list of commodities found.
+        mods: A dictionary of modules found.
+        comms: A dictionary of commodities found.
+        mod_groups: A list of sorted module groups.
+        comms_groups: A list of sorted comms groups.
     """
     mod_groups, comm_groups = set(), set()
     mods, comms = {}, {}
@@ -1274,11 +1245,12 @@ def collect_modules_and_commodities(galaxy_json):
             for station in data.get('stations', []):
                 if 'market' in station and 'commodities' in station['market']:
                     for comm in station['market']['commodities']:
-                        del comm['buyPrice']
-                        del comm['sellPrice']
-                        del comm['demand']
-                        del comm['supply']
-                        comms[comm['commodityId']] = comm
+                        comms[comm['commodityId']] = {
+                            'name': comm['name'],
+                            'symbol': comm['symbol'],
+                            'category': comm['category'],
+                            'commodityId': comm['commodityId'],
+                        }
                         comm_groups.add(comm['category'])
                 if 'outfitting' in station and 'modules' in station['outfitting']:
                     for module in station['outfitting']['modules']:
@@ -1289,11 +1261,12 @@ def collect_modules_and_commodities(galaxy_json):
                 for station in body.get('stations', []):
                     if 'market' in station and 'commodities' in station['market']:
                         for comm in station['market']['commodities']:
-                            del comm['buyPrice']
-                            del comm['sellPrice']
-                            del comm['demand']
-                            del comm['supply']
-                            comms[comm['commodityId']] = comm
+                            comms[comm['commodityId']] = {
+                                'name': comm['name'],
+                                'symbol': comm['symbol'],
+                                'category': comm['category'],
+                                'commodityId': comm['commodityId'],
+                            }
                             comm_groups.add(comm['category'])
                     if 'outfitting' in station and 'modules' in station['outfitting']:
                         for module in station['outfitting']['modules']:
@@ -1301,6 +1274,38 @@ def collect_modules_and_commodities(galaxy_json):
                             mod_groups.add(module['category'])
 
     return mods, comms, list(sorted(mod_groups)), list(sorted(comm_groups))
+
+
+def merge_existing_and_new_commodities(comm_dict, mapped):
+    """
+    Given new_comms parsed from the existing spansh dump that was processed,
+    update the existing SCommodity.json with new entries where needed.
+
+    Args:
+        comm_dict: A dictionary of commodity objects parsed from spansh dump.
+        mapped: The commonly used mapped dictionary, see eddb_maps
+    """
+    scomm_json = cog.util.rel_to_abs(cogdb.common.PRELOAD_DIR, 'SCommodity.json')
+    with open(scomm_json, 'r', encoding='utf-8') as fin:
+        existing = json.loads(fin.read())
+        updated_comms = existing[:]
+        for comm in updated_comms:
+            if "mean_price" not in comm:
+                comm["mean_price"] = 0
+
+        existing_ids = {x['id'] for x in existing}
+        for item in sorted(comm_dict.values(), key=lambda x: x['commodityId']):
+            if item['commodityId'] not in existing_ids:
+                updated_comms += [{
+                    "eddn": None,
+                    "group_id": mapped['commodity_group'][item['category']],
+                    "mean_price": 0,
+                    "id": item['commodityId'],
+                    "name": item['name'],
+                }]
+
+        with open(scomm_json, 'w', encoding='utf-8') as fout:
+            json.dump(updated_comms, fout, indent=2, sort_keys=True)
 
 
 def generate_module_commodities_caches(eddb_session, galaxy_json):  # pragma: no cover
@@ -1319,14 +1324,7 @@ def generate_module_commodities_caches(eddb_session, galaxy_json):  # pragma: no
     groups = [SModuleGroup(id=ind, name=x) for ind, x in enumerate(mod_groups, start=1)]
     cogdb.common.dump_dbobjs_to_file(cls=SModuleGroup, db_objs=groups)
 
-    comms = [
-        SCommodity(
-            id=x['commodityId'],
-            name=x['name'],
-            group_id=mapped['commodity_group'][x['category']]
-        ) for x in sorted(comm_dict.values(), key=lambda x: x['commodityId'])
-    ]
-    cogdb.common.dump_dbobjs_to_file(cls=SCommodity, db_objs=comms)
+    merge_existing_and_new_commodities(comm_dict, mapped)
 
     mods = []
     for mod in sorted(mod_dict.values(), key=lambda x: x['moduleId']):
@@ -1661,11 +1659,11 @@ def verify_map_files():
     """
     Verify all map files that don't exist are created with sane default values.
     """
-    for fname in [FACTION_MAPF, STATION_MAPF, SYSTEM_MAPF, STATION_ONLY_MAPF, CARRIER_MAPF]:
-        for path in [Path(fname), Path(fname.replace('Map.json', 'NewMap.json'))]:
-            if not path.exists():
-                with open(path, 'w', encoding='utf-8') as fout:
-                    fout.write('{}\n')
+    for fname in [FACTION_MAPF, STATION_MAPF, SYSTEM_MAPF, CARRIER_MAPF]:
+        path = Path(fname)
+        if not path.exists():
+            with open(path, 'w', encoding='utf-8') as fout:
+                fout.write('{}\n')
 
 
 verify_map_files()
