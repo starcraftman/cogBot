@@ -68,6 +68,7 @@ def download_with_progress(url, destination, *, description=None):  # pragma: no
     Args:
         url: The URL to download.
         destination: Where to put the downloaded file.
+        description: Text to display during progress.
 
     Returns: The total size downloaded.
     """
@@ -75,7 +76,7 @@ def download_with_progress(url, destination, *, description=None):  # pragma: no
         description = url
 
     with requests.get(url, timeout=60, stream=True) as resp:
-        total_size_bytes = int(resp.headers.get('Content-Length', 0))
+        total_size_bytes = int(resp.headers.get('Content-Length', 1024 * 1024))
         chunk = 1024
 
         with tqdm.tqdm(desc=description, total=total_size_bytes, unit="iB", unit_scale=True, unit_divisor=chunk) as progress,\
@@ -93,6 +94,8 @@ def extract_with_progress(source, destination, *, description=None, size=0):  # 
     Args:
         url: The URL to download.
         destination: Where to put the downloaded file.
+        description: Text to display during progress.
+        size: The size of the file being extracted.
 
     Returns: destination
     """
@@ -132,7 +135,7 @@ def confirm_msg(args):
     if args.fetch or args.ids:
         msg += "    Update the ID maps for the dump\n"
     if args.caches:
-        msg += "    Update the cached modules and commodity information.\n"
+        msg += "    Update the cached modules and commodity preload information.\n"
 
     if not args.skip:
         if args.recreate:
@@ -147,6 +150,7 @@ def confirm_msg(args):
     if args.commodities:
         msg += """        cogdb.spansh.{SModuleSold, SCommodityPricing}
             Note: Module sale information takes about 1.5GB, commodity pricing is 3-4GB.
+            Note: Will slow down parsing greatly, makes heavy use of the disk holding the dump file.
 """
 
     if not args.yes:
@@ -159,16 +163,21 @@ def fetch_galaxy_json():  # pragma: no cover, long test
     """
     Fetch and extract the latest dump from spansh.
     """
-    if Path(GALAXY_JSON).exists():
-        os.rename(GALAXY_JSON, GALAXY_JSON.replace('.json', '.json.bak'))
+    galaxy_backup = GALAXY_JSON.replace('.json', '.json.bak')
     compressed_json = f"{GALAXY_JSON}.gz"
+    if Path(GALAXY_JSON).exists():
+        os.rename(GALAXY_JSON, galaxy_backup)
+
     try:
-        size = download_with_progress(GALAXY_URL, compressed_json)
-    except KeyboardInterrupt:
+        size = download_with_progress(GALAXY_URL, compressed_json) * GALAXY_COMPRESSION_RATE
+        extract_with_progress(compressed_json, GALAXY_JSON, size=size)
         os.remove(compressed_json)
+    except KeyboardInterrupt:
+        if Path(compressed_json).exists():
+            os.remove(compressed_json)
+        if Path(galaxy_backup).exists() and not Path(GALAXY_JSON).exists():
+            os.rename(galaxy_backup, GALAXY_JSON)
         raise
-    extract_with_progress(compressed_json, GALAXY_JSON, size=size * GALAXY_COMPRESSION_RATE)
-    os.remove(compressed_json)
 
 
 def refresh_module_commodity_cache():  # pragma: no cover, depends on local GALAXY_JSON
@@ -180,7 +189,7 @@ def refresh_module_commodity_cache():  # pragma: no cover, depends on local GALA
     with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
         if not eddb_session.query(cogdb.eddb.PowerState).all():
             cogdb.eddb.preload_tables(eddb_session)
-        cogdb.spansh.preload_tables(eddb_session, only_groups=True)
+        cogdb.spansh.preload_tables(eddb_session, only_groups=True)  # intentional for generation
         cogdb.spansh.generate_module_commodities_caches(eddb_session, GALAXY_JSON)
     cogdb.spansh.empty_tables()
     with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
@@ -204,8 +213,47 @@ def sanity_check():  # pragma: no cover, underlying functions tested elsewhere o
     stat = os.statvfs(Path(GALAXY_JSON).parent)
     if stat.f_bavail * stat.f_frsize < gb_needed * 1024 ** 3:
         location = pathlib.Path(GALAXY_JSON).parent
-        print(f"Warning: This program uses scratch space roughly equal to dump size. Please free up 8GB at: {location}.")
+        print(f"Warning: This program uses scratch space roughly equal to dump size. Please free up 8GB or choose new location: {location}.")
         sys.exit(1)
+
+
+def handle_confirmation(args):
+    """
+    Print a message outlining the changes to be made step by step.
+    Then prompt for confirmation from the user, any response not beginning with y terminates program.
+
+    Args:
+        args: The argparse.Namespace object that was parsed.
+    """
+    if args.yes:
+        print(confirm_msg(args))
+    else:
+        confirm = input(confirm_msg(args)).lstrip().lower()
+        print()
+        if not confirm.startswith('y'):
+            print("Aborting.")
+            sys.exit(0)
+
+
+def clean_existing_tables(recreate=False):
+    """
+    If requested recreate all existing tables, otherwise simply purge all data.
+
+    Args:
+        recreate: When True, drop and recreate tables. Otherwise just purge the data in the tables.
+    """
+    if recreate:
+        print_no_newline("Recreating all EDDB tables ...")
+        cogdb.eddb.recreate_tables()
+        cogdb.spy_squirrel.recreate_tables()
+        cogdb.spansh.recreate_tables()
+        pvp.schema.recreate_tables()
+    else:
+        print_no_newline("Emptying existing EDDB tables ...")
+        cogdb.spansh.empty_tables()
+        cogdb.spy_squirrel.empty_tables()
+        cogdb.eddb.empty_tables()
+        pvp.schema.empty_tables()
 
 
 def main():  # pragma: no cover
@@ -222,14 +270,7 @@ def main():  # pragma: no cover
             args.ids = True
 
     cogdb.spansh.PROCESS_COMMODITIES = args.commodities
-    if args.yes:
-        print(confirm_msg(args))
-    else:
-        confirm = input(confirm_msg(args)).lstrip().lower()
-        print()
-        if not confirm.startswith('y'):
-            print("Aborting.")
-            sys.exit(0)
+    handle_confirmation(args)
 
     if args.fetch:
         fetch_galaxy_json()
@@ -252,18 +293,7 @@ def main():  # pragma: no cover
     if args.skip:
         return
 
-    if args.recreate:
-        print_no_newline("Recreating all EDDB tables ...")
-        cogdb.eddb.recreate_tables()
-        cogdb.spy_squirrel.recreate_tables()
-        cogdb.spansh.recreate_tables()
-        pvp.schema.recreate_tables()
-    else:
-        print_no_newline("Emptying existing EDDB tables ...")
-        cogdb.spansh.empty_tables()
-        cogdb.spy_squirrel.empty_tables()
-        cogdb.eddb.empty_tables()
-        pvp.schema.empty_tables()
+    clean_existing_tables(args.recreate)
 
     print_no_newline(" Done!\nPreloading constant EDDB data ...")
     with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
