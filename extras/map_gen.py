@@ -1,7 +1,9 @@
 """
-This is an extra tool to use a series of initial eddb maps
-to see the normal faction system and stations maps.
-Bit of a niche case.
+This is a tool to seed the initial system, faction and station maps.
+The initial ids are assigned based on data assembled from eddb dumps prior to closure.
+These are the internal ids that will be assigned to created objects to help parallelize the processing of spansh.
+
+Files in the IDS_ROOT folder ending in '.eddb' are seed information for the equivalent 'Map.json' files.
 """
 import json
 
@@ -10,19 +12,13 @@ import cog.util
 from cogdb.spansh import SEP, IDS_ROOT
 
 
-def reset_incremental_files():
-    """
-    Reset the incremental tracking files.
-    """
-    for name in ['system', 'faction', 'carrier', 'onlyStation', 'station']:
-        with open(f'{IDS_ROOT}/{name}NewMap.json', 'w', encoding='utf-8') as fout:
-            json.dump({}, fout, indent=2, sort_keys=True)
-
-
 def gen_system_faction_maps():
     """
-    Create clean base systemMap and factionMap files based on initial
-    static maps based on eddb data.
+    Based on the systems.eddb and factions.eddb files create initial maps
+    assigning the system names and faction names onto their object IDs.
+    Note that these assignments are ONTO, no name can have same ID.
+
+    Returns: The system_map created as it was written out.
     """
     system_map = {}
     with open(f'{IDS_ROOT}/systems.eddb', 'r', encoding='utf-8') as fin:
@@ -30,8 +26,8 @@ def gen_system_faction_maps():
             name, sid = line.rstrip().split(SEP)
             system_map[name] = int(sid)
 
-    with open(f'{IDS_ROOT}/systemMap.json', 'w', encoding='utf-8') as fout:
-        json.dump(system_map, fout, indent=2, sort_keys=True)
+        with open(f'{IDS_ROOT}/systemMap.json', 'w', encoding='utf-8') as fout:
+            json.dump(system_map, fout, indent=2, sort_keys=True)
 
     faction_map = {}
     with open(f'{IDS_ROOT}/factions.eddb', 'r', encoding='utf-8') as fin:
@@ -39,15 +35,20 @@ def gen_system_faction_maps():
             name, fid = line.rstrip().split(SEP)
             faction_map[name] = int(fid)
 
-    with open(f'{IDS_ROOT}/factionMap.json', 'w', encoding='utf-8') as fout:
-        json.dump(faction_map, fout, indent=2, sort_keys=True)
+        with open(f'{IDS_ROOT}/factionMap.json', 'w', encoding='utf-8') as fout:
+            json.dump(faction_map, fout, indent=2, sort_keys=True)
 
     return system_map
 
 
 def gen_station_map(system_map):
     """
-    Create clean base station, carrier and onlyStation maps.
+    Following the same logic as gen_system_faction_maps, using the stations.eddb
+    base as input create a mapping dictionary that is ONTO that maps the station keys
+    to their ID. Here a station key follows the logic of station_key function.
+
+    Note: Two maps are created, one with just carriers called "carrierMap.json"
+          the other with "stationMap.json" includes all stations AND carriers
 
     Args:
         system_map: The system_map returned by gen_system_faction_maps
@@ -73,8 +74,6 @@ def gen_station_map(system_map):
 
     with open(f'{IDS_ROOT}/carrierMap.json', 'w', encoding='utf-8') as fout:
         json.dump(carrier_map, fout, indent=2, sort_keys=True)
-    with open(f'{IDS_ROOT}/onlyStationMap.json', 'w', encoding='utf-8') as fout:
-        json.dump(station_map, fout, indent=2, sort_keys=True)
 
     station_map.update(carrier_map)
     with open(f'{IDS_ROOT}/stationMap.json', 'w', encoding='utf-8') as fout:
@@ -86,6 +85,13 @@ def station_key(*, system_id, station_name, reverse_systems):
     A station key works as follows:
         If the station is a player carrier, key is the name.
         If the station is not a player carrier, key is system_name||station_name.
+
+    Args:
+        system_id: The id of the system the station is in, used for non-carrier stations.
+        station_name: The name of the station.
+        reverse_systems: A reverse map of ids onto system names.
+
+    Returns: A unique string identifying the station generated based on system id and station name.
     """
     is_carrier = cog.util.is_a_carrier(station_name)
     key = station_name
@@ -96,16 +102,15 @@ def station_key(*, system_id, station_name, reverse_systems):
     return key, is_carrier
 
 
-def merge_prison_stations():
+def merge_prison_stations(known_systems):
     """
-    Merge in the prison data fixed ids for systems and stations.
+    Merge in the extra prison data that is not contained within eddb data.
+
+    Args:
+        known_systems: The map of known systems onto their ids.
     """
-    with open(f'{IDS_ROOT}/systemMap.json', 'r', encoding='utf-8') as fin:
-        known_systems = eval(fin.read())
     with open(f'{IDS_ROOT}/stationMap.json', 'r', encoding='utf-8') as fin:
         known_stations = eval(fin.read())
-    with open(f'{IDS_ROOT}/onlyStationMap.json', 'r', encoding='utf-8') as fin:
-        known_only_stations = eval(fin.read())
 
     known_system_ids = list(known_systems.values())
     known_station_ids = list(sorted(known_systems.values()))
@@ -132,14 +137,11 @@ def merge_prison_stations():
             next_id += 1
             print(f'Station assigned: {key} => {station_id}')
             known_stations[key] = station_id
-            known_only_stations[key] = station_id
 
     with open(f'{IDS_ROOT}/systemMap.json', 'w', encoding='utf-8') as fout:
         json.dump(known_systems, fout, indent=2, sort_keys=True)
     with open(f'{IDS_ROOT}/stationMap.json', 'w', encoding='utf-8') as fout:
         json.dump(known_stations, fout, indent=2, sort_keys=True)
-    with open(f'{IDS_ROOT}/onlyStationMap.json', 'w', encoding='utf-8') as fout:
-        json.dump(known_only_stations, fout, indent=2, sort_keys=True)
 
 
 def init_eddb_maps():
@@ -148,9 +150,9 @@ def init_eddb_maps():
     based on eddb.io.
     Then merge in the specific prison station information.
     """
-    reset_incremental_files()
-    gen_station_map(gen_system_faction_maps())
-    merge_prison_stations()
+    system_map = gen_system_faction_maps()
+    gen_station_map(system_map)
+    merge_prison_stations(system_map)
 
 
 def check_maps_for_collisions():
@@ -160,8 +162,7 @@ def check_maps_for_collisions():
     Prints errors and collisions to stdout.
     """
     seen = set()
-    for name in ['station', 'carrier', 'onlyStation', 'faction', 'system',
-                 'stationNew', 'carrierNew', 'onlyStationNew', 'factionNew', 'systemNew']:
+    for name in ['station', 'carrier', 'faction', 'system']:
         print("Examining:", name)
         with open(f'data/ids/{name}Map.json', 'r', encoding='utf-8') as fin:
             found = eval(fin.read())
