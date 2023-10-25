@@ -31,7 +31,7 @@ import cogdb.query
 import cogdb.spansh
 import cogdb.eddn_log
 from cogdb.eddb import (
-    Conflict, Faction, Influence, Ship, ShipSold, System, Station,
+    Conflict, Faction, Influence, Ship, ShipSold, System, Station, CarrierSighting,
     StationEconomy, StationFeatures, FactionActiveState, FactionPendingState, FactionRecoveringState
 )
 from cogdb.spansh import SCommodity, SCommodityPricing, SModule, SModuleSold
@@ -355,8 +355,17 @@ class JournalV1(MsgParser):
         Raises:
             SkipDatabaseFlush: Cancel any further processing of the flush.
         """
-        if self.parsed.get('station'):
-            self.flush_station_to_db()
+        station_info = self.parsed.get('station')
+        if station_info:
+            for required_info in ['name', 'system_id', 'type_id']:
+                if required_info not in station_info:
+                    raise SkipDatabaseFlush("Station missing: name, system_id or type_id.")
+
+            if station_info['type_id'] == 24:
+                self.flush_carrier_to_db()
+            else:
+                self.flush_station_to_db()
+
         if self.parsed.get('influences'):
             self.flush_influences_to_db()
         if self.parsed.get('conflicts'):
@@ -470,6 +479,8 @@ class JournalV1(MsgParser):
             'name': body["StationName"],
             'system_id': system['id'],
             'updated_at': system['updated_at'],
+            'distance_to_star': 0,
+            'max_landing_pad_size': 'S',
         }
 
         if "DistanceFromArrivalLS" in body:
@@ -497,17 +508,18 @@ class JournalV1(MsgParser):
             station['features']['updated_at'] = station['updated_at']  # pylint: disable=unsupported-assignment-operation
         if "StationType" in body:
             station['type_id'] = MAPS["StationType"][body['StationType']]
+            station['max_landing_pad_size'] = MAPS['type_landing'][station['type_id']]
+            station['is_planetary'] = MAPS['type_planetary'][station['type_id']]
 
         self.parsed['station'] = station
         return station
 
-    def flush_station_to_db(self):
+    def flush_carrier_to_db(self):
         """
-        Flush the station information to db.
-        Several cases:
-            Station exists then update.
-            Station is a fleet carrier and new, add it.
-            Station is not a fleet carrier and new, ignore it.
+        Flush the carrier station information to db.
+            If the carrier exists in carriers, update it.
+            If the carrier doesn't exist in carriers, add it.
+            In all cases add an entry in carrier_sightings.
 
         Raises:
             SkipDatabaseFlush: The station isn't valid to put in database, remaining info irrelevant.
@@ -517,33 +529,85 @@ class JournalV1(MsgParser):
         del station['features']
         del station['economies']
 
-        if 'name' not in station or 'system_id' not in station or 'type_id' not in station:
-            raise SkipDatabaseFlush("Station missing: name, type_id or system_id.")
+        try:
+            station_db = self.eddb_session.query(Station).\
+                filter(Station.name == station['name']).\
+                one()
+            station_db.update(**station)
+
+        except sqla_orm.exc.NoResultFound:
+            logging.getLogger(__name__).warning("New Fleet Carrier: %s", station['name'])
+
+            station_db = Station.carrier(
+                name=station['name'],
+                system_id=station['system_id'],
+                distance_to_star=station['distance_to_star'],
+            )
+            self.eddb_session.add(station_db)
+
+        try:
+            self.eddb_session.commit()
+            station['id'] = station_db.id
+            self.flushed += [station_db]
+        except pymysql.err.IntegrityError as exc:
+            raise SkipDatabaseFlush("Ignoring station, missing controlling minor {self.body['stationFaction']}") from exc
+
+        carrier_sighting = CarrierSighting(
+            carrier_id=station['id'],
+            system_id=station['system_id'],
+            distance_to_star=station['distance_to_star'],
+        )
+        self.eddb_session.add(carrier_sighting)
+
+        try:
+            if station_features:
+                station_features_db = self.eddb_session.query(StationFeatures).\
+                    filter(StationFeatures.id == station['id']).\
+                    one()
+                station_features_db.update(**station_features)
+                station_features['id'] = station['id']
+
+        except sqla_orm.exc.NoResultFound:
+            station_features['id'] = station['id']
+            station_features_db = StationFeatures(**station_features)
+            self.eddb_session.add(station_features_db)
+        self.flushed += [station_features_db]
+
+        if station_economies:
+            self.eddb_session.query(StationEconomy).filter(StationEconomy.id == station['id']).delete()
+            for econ in station_economies:
+                econ['id'] = station['id']
+                self.eddb_session.add(StationEconomy(**econ))
+
+    def flush_station_to_db(self):
+        """
+        Flush the station information to db.
+        Several cases:
+            Station exists then update.
+            The station does not, then add it if it is in a system we monitor.
+
+        Raises:
+            SkipDatabaseFlush: The station isn't valid to put in database, remaining info irrelevant.
+        """
+        station = self.parsed['station']
+        station_features, station_economies = station.get('features'), station.get('economies', [])
+        del station['features']
+        del station['economies']
 
         try:
             station_db = self.eddb_session.query(Station).\
-                filter(Station.name == station['name'])
-
-            if station['type_id'] != 24:  # Only filter system when not a fleet carrier
-                station_db = station_db.filter(Station.system_id == station['system_id'])
-
-            station_db = station_db.one()
+                filter(Station.name == station['name'],
+                       Station.system_id == station['system_id']).\
+                one()
             station_db.update(**station)
 
-        except sqla_orm.exc.NoResultFound as exc:
-            if station['type_id'] != 24:
-                system_name = self.parsed['system']['name'] if self.parsed.get('system') else 'unknown'
-                raise SkipDatabaseFlush(f"Ignoring station: {station['name']} ({system_name})") from exc
+        except sqla_orm.exc.NoResultFound:
+            if self.parsed.get('system'):
+                system_name = self.parsed['system']['name']
 
-            station.update({
-                'is_planetary': False,
-                'max_landing_pad_size': 'L',
-            })
-
-            logging.getLogger(__name__).warning("New Fleet Carrier: %s", station['name'])
-
-            station_db = Station(**station)
-            self.eddb_session.add(station_db)
+                logging.getLogger(__name__).warning("New Station: %s (%s)", station['name'], system_name)
+                station_db = Station(**station)
+                self.eddb_session.add(station_db)
 
         try:
             self.eddb_session.commit()
@@ -771,6 +835,8 @@ def create_id_maps(session):
         'Ship': {x.traffic_text: x.id for x in session.query(Ship)},
         'SModule': {x.symbol.lower(): x.id for x in session.query(SModule)},
         'SCommodity': {x.eddn: x.id for x in session.query(SCommodity).filter(SCommodity.eddn is not None)},
+        'type_landing': {x.id: x.max_landing_pad_size for x in session.query(cogdb.eddb.StationType)},
+        'type_planetary': {x.id: x.is_planetary for x in session.query(cogdb.eddb.StationType)},
     }
     maps['Ship'].update({x.eddn: x.id for x in session.query(Ship)})
     try:

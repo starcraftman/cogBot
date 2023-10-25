@@ -977,7 +977,6 @@ def update_name_map(missing_names, *, name_map):
         missing_names: The names that are missing from the known_fname json mapping names -> IDs
         name_map: A dictionary with the following keys:
             known - The known names.
-            new - The new names added.
             last_num - The last taken ID.
 
     Returns: A dictionary of newly added names from the missing list onto their new ids.

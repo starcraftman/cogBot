@@ -631,11 +631,13 @@ class StationFeatures(ReprMixin, TimestampMixin, UpdatableMixin, Base):
 class StationType(ReprMixin, Base):
     """ The type of a station, like Outpost and so on. """
     __tablename__ = "station_types"
-    _repr_keys = ['id', 'text', 'eddn']
+    _repr_keys = ['id', 'text', 'eddn', 'is_planetary', 'max_landing_pad_size']
 
     id = sqla.Column(sqla.Integer, primary_key=True)
     text = sqla.Column(sqla.String(LEN["station_type"]))
     eddn = sqla.Column(sqla.String(LEN["station_type"]))
+    is_planetary = sqla.Column(sqla.Boolean, default=False)
+    max_landing_pad_size = sqla.Column(sqla.String(LEN["station_pad"]))
 
     def __eq__(self, other):
         return (isinstance(self, StationType) and isinstance(other, StationType)
@@ -664,10 +666,10 @@ class StationEconomy(ReprMixin, Base):
 
 
 class Station(ReprMixin, TimestampMixin, UpdatableMixin, Base):
-    """ Repesents a system in the universe. """
+    """ Repesents a station in a system in the universe. """
     __tablename__ = "stations"
     __table_args__ = (
-        UniqueConstraint('id', 'system_id', name='station_system_id_unique'),
+        UniqueConstraint('name', 'system_id', name='station_name_system_id_unique'),
     )
     _repr_keys = [
         'id', 'name', 'distance_to_star', 'max_landing_pad_size',
@@ -680,8 +682,8 @@ class Station(ReprMixin, TimestampMixin, UpdatableMixin, Base):
     type_id = sqla.Column(sqla.Integer, nullable=False)
 
     name = sqla.Column(sqla.String(LEN["station"]), index=True)
-    distance_to_star = sqla.Column(sqla.Integer)
-    is_planetary = sqla.Column(sqla.Boolean)
+    distance_to_star = sqla.Column(sqla.Integer, default=0)
+    is_planetary = sqla.Column(sqla.Boolean, default=False)
     max_landing_pad_size = sqla.Column(sqla.String(LEN["station_pad"]))
     updated_at = sqla.Column(sqla.Integer, default=time.time, onupdate=time.time)
 
@@ -711,6 +713,62 @@ class Station(ReprMixin, TimestampMixin, UpdatableMixin, Base):
 
     def __eq__(self, other):
         return isinstance(self, Station) and isinstance(other, Station) and self.id == other.id
+
+    def __hash__(self):
+        return hash(self.id)
+
+    @classmethod
+    def carrier(cls, *, name, system_id, distance_to_star=0):
+        """
+        Factory method to create player carrier stations.
+        All carriers are stations but have the following specific or constant fields:
+            name is unique globally and of form WWW-WWW where W is alphanumeric
+            controlling_minor_faction_id = 77170
+            type_id = 24
+            is_planetary = False
+            max_landing_pad_size = "L" (carriers have 8 L, 4 M and 4 S)
+
+        Args:
+            cls: This class.
+            name: The name of the station.
+            system_id: The id of the system the carrier is currently seen in.
+            distance_to_star: The distance from the star the carrier was observed at.
+
+        Returns: A Station object preconfigured with constants.
+        """
+        return cls(**{
+            'name': name,
+            'system_id': system_id,
+            'distance_to_star': distance_to_star,
+            'controlling_minor_faction_id': 77170,
+            'type_id': 24,
+            'is_planetary': False,
+            'max_landing_pad_size': "L",
+        })
+
+
+class CarrierSighting(ReprMixin, TimestampMixin, Base):
+    """ Repesents a carrier sighting in the universe. """
+    __tablename__ = "carrier_sightings"
+    __table_args__ = (
+        UniqueConstraint('id', 'system_id', 'created_at', name='carrier_id_system_id_created_at_unique'),
+    )
+    _repr_keys = [
+        'id', 'system_id', 'distance_to_star', 'created_at'
+    ]
+
+    id = sqla.Column(sqla.BigInteger, primary_key=True)
+    carrier_id = sqla.Column(sqla.BigInteger, sqla.ForeignKey('stations.id'))
+    system_id = sqla.Column(sqla.Integer, sqla.ForeignKey('systems.id'))
+    distance_to_star = sqla.Column(sqla.Integer)
+    created_at = sqla.Column(sqla.Integer, default=time.time)
+
+    # Relationships
+    carrier = sqla.orm.relationship('Station', uselist=False, viewonly=True)
+    system = sqla.orm.relationship('System', uselist=False, viewonly=True)
+
+    def __eq__(self, other):
+        return isinstance(self, CarrierSighting) and isinstance(other, CarrierSighting) and self.id == other.id
 
     def __hash__(self):
         return hash(self.id)

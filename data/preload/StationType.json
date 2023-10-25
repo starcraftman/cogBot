@@ -2,121 +2,169 @@
   {
     "eddn": "Outpost",
     "id": 1,
+    "is_planetary": false,
+    "max_landing_pad_size": "M",
     "text": "Civilian Outpost"
   },
   {
     "eddn": null,
     "id": 2,
+    "is_planetary": false,
+    "max_landing_pad_size": "M",
     "text": "Commercial Outpost"
   },
   {
     "eddn": "Coriolis",
     "id": 3,
+    "is_planetary": false,
+    "max_landing_pad_size": "L",
     "text": "Coriolis Starport"
   },
   {
     "eddn": null,
     "id": 4,
+    "is_planetary": false,
+    "max_landing_pad_size": "M",
     "text": "Industrial Outpost"
   },
   {
     "eddn": null,
     "id": 5,
+    "is_planetary": false,
+    "max_landing_pad_size": "M",
     "text": "Military Outpost"
   },
   {
     "eddn": null,
     "id": 6,
+    "is_planetary": false,
+    "max_landing_pad_size": "M",
     "text": "Mining Outpost"
   },
   {
     "eddn": "Ocellus",
     "id": 7,
+    "is_planetary": false,
+    "max_landing_pad_size": "L",
     "text": "Ocellus Starport"
   },
   {
     "eddn": "Orbis",
     "id": 8,
+    "is_planetary": false,
+    "max_landing_pad_size": "L",
     "text": "Orbis Starport"
   },
   {
     "eddn": null,
     "id": 9,
+    "is_planetary": false,
+    "max_landing_pad_size": "M",
     "text": "Scientific Outpost"
   },
   {
     "eddn": null,
     "id": 10,
+    "is_planetary": false,
+    "max_landing_pad_size": "M",
     "text": "Unsanctioned Outpost"
   },
   {
     "eddn": null,
     "id": 11,
+    "is_planetary": false,
+    "max_landing_pad_size": "M",
     "text": "Unknown Outpost"
   },
   {
     "eddn": null,
     "id": 12,
+    "is_planetary": false,
+    "max_landing_pad_size": "L",
     "text": "Unknown Starport"
   },
   {
     "eddn": "CraterOutpost",
     "id": 13,
+    "is_planetary": true,
+    "max_landing_pad_size": "M",
     "text": "Planetary Outpost"
   },
   {
     "eddn": "CraterPort",
     "id": 14,
+    "is_planetary": true,
+    "max_landing_pad_size": "L",
     "text": "Planetary Port"
   },
   {
     "eddn": null,
     "id": 15,
+    "is_planetary": true,
+    "max_landing_pad_size": "M",
     "text": "Unknown Planetary"
   },
   {
     "eddn": null,
     "id": 16,
+    "is_planetary": true,
+    "max_landing_pad_size": "M",
     "text": "Planetary Settlement"
   },
   {
     "eddn": null,
     "id": 17,
+    "is_planetary": true,
+    "max_landing_pad_size": "L",
     "text": "Planetary Engineer Base"
   },
   {
     "eddn": "MegaShip",
     "id": 19,
+    "is_planetary": false,
+    "max_landing_pad_size": "L",
     "text": "Megaship"
   },
   {
     "eddn": "AsteroidBase",
     "id": 20,
+    "is_planetary": false,
+    "max_landing_pad_size": "L",
     "text": "Asteroid Base"
   },
   {
     "eddn": null,
     "id": 22,
+    "is_planetary": false,
+    "max_landing_pad_size": "M",
     "text": "Unknown Dockable"
   },
   {
     "eddn": null,
     "id": 23,
+    "is_planetary": false,
+    "max_landing_pad_size": "N",
     "text": "Non-Dockable Orbital"
   },
   {
     "eddn": "FleetCarrier",
     "id": 24,
+    "is_planetary": false,
+    "max_landing_pad_size": "L",
     "text": "Fleet Carrier"
   },
   {
     "eddn": "OdysseySettlement",
     "id": 25,
+    "is_planetary": true,
+    "max_landing_pad_size": "M",
     "text": "Odyssey Settlement"
   },
   {
     "eddn": "OnFootSettlement",
     "id": 26,
+    "is_planetary": true,
+    "max_landing_pad_size": "M",
     "text": "On Foot Settlement"
   }
 ]
