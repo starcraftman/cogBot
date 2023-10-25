@@ -911,7 +911,8 @@ def get_msgs(sub):  # pragma: no cover
 
             lfname = LOGS['all'].write_msg(msg)
             try:
-                print("Message:", lfname)
+                if lfname:
+                    print("Message:", lfname)
                 parser = create_parser(msg)
                 parser.parse_msg()
             except SchemaIgnored:  # Schema not mapped
