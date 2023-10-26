@@ -689,6 +689,7 @@ def test_edmcjournal_parse_and_flush_carrier_disc_system(session, f_track_testbe
 def test_edmcjournal_parse_station(mapped):
     expected = {
         'controlling_minor_faction_id': mapped['factions']['Social Ahemakino Green Party'],
+        'distance_to_star': 0,
         'economies': [
             {'economy_id': 4, 'primary': True, 'proportion': 0.8},
             {'economy_id': 6, 'primary': False, 'proportion': 0.2}
@@ -711,6 +712,8 @@ def test_edmcjournal_parse_station(mapped):
             'universal_cartographics': False,
             'updated_at': 1596452651
         },
+        'is_planetary': False,
+        'max_landing_pad_size': 'L',
         'name': 'Mattingly Port',
         'system_id': mapped['systems']["Ahemakino"],
         'type_id': 3,

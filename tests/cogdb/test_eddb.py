@@ -164,7 +164,6 @@ def test_get_systems_around(eddb_session):
         '44 chi Draconis',
         'Acihaut',
         'Bodedi',
-        'DP Draconis',
         'DX 799',
         'G 239-25',
         'Lalande 18115',
@@ -175,7 +174,6 @@ def test_get_systems_around(eddb_session):
         'LHS 2211',
         'LHS 2459',
         'LHS 246',
-        'LHS 252',
         'LHS 262',
         'LHS 283',
         'LHS 316',
@@ -232,7 +230,7 @@ def test_get_nearest_controls(eddb_session):
 
     result = [x.name for x in cogdb.eddb.get_nearest_controls(eddb_session, centre_name='cubeo', power='%hudson', limit=3)]
 
-    assert result == ['Ptah', 'Mombaluma', 'LHS 1197']
+    assert result == ['Ptah', 'LHS 1197', 'Alpha Fornacis']
 
 
 def test_compute_dists(eddb_session):

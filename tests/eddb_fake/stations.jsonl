@@ -39,7 +39,7 @@
     "is_planetary": false,
     "market_updated_at": 1621238377,
     "max_landing_pad_size": "L",
-    "name": "Porta",
+    "name": "Porta_FakeStation",
     "outfitting_updated_at": 1621238405,
     "prohibited_commodities": [
       "Narcotics",

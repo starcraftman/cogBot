@@ -1289,6 +1289,10 @@ def merge_existing_and_new_commodities(comm_dict, mapped):
         mapped: The commonly used mapped dictionary, see eddb_maps
     """
     scomm_json = cog.util.rel_to_abs(cogdb.common.PRELOAD_DIR, 'SCommodity.json')
+    if not Path(scomm_json).exists():
+        with open(scomm_json, 'w', encoding='utf-8') as fout:
+            fout.write('[]\n')
+
     with open(scomm_json, 'r', encoding='utf-8') as fin:
         existing = json.loads(fin.read())
         updated_comms = existing[:]

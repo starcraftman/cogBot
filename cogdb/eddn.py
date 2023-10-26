@@ -539,7 +539,7 @@ class JournalV1(MsgParser):
         except sqla_orm.exc.NoResultFound:
             logging.getLogger(__name__).warning("New Fleet Carrier: %s", station['name'])
             try:
-                station['id'] = STATION_CACHE[station['name']]
+                station['id'] = STATION_CACHE['known'][station['name']]
             except KeyError:
                 added = cogdb.spansh.update_station_map([station['name']], cache=STATION_CACHE)
                 cogdb.spansh.write_station_cache(STATION_CACHE)
@@ -623,7 +623,7 @@ class JournalV1(MsgParser):
             logging.getLogger(__name__).warning("New Station in db: %s (%s)", station['name'], system_name)
             skey = station_key(system=system_name, station=station)
             try:
-                station['id'] = STATION_CACHE[skey]
+                station['id'] = STATION_CACHE['known'][skey]
             except KeyError:
                 added = cogdb.spansh.update_station_map([skey], cache=STATION_CACHE)
                 cogdb.spansh.write_station_cache(STATION_CACHE)

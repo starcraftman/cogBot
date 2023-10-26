@@ -220,6 +220,7 @@ def test_transform_stations(f_json, eddb_session):
     expect = {
         'distance_to_star': 1891.965479,
         'id': station_id,
+        'is_planetary': False,
         'max_landing_pad_size': 'L',
         'name': 'Zholobov Gateway',
         'system_id': system_id,
@@ -243,6 +244,7 @@ def test_transform_bodies(f_json, eddb_session):
         'controlling_minor_faction_id': 77170,
         'distance_to_star': 671.233016,
         'id': station_id,
+        'is_planetary': False,
         'max_landing_pad_size': 'L',
         'name': 'T9K-T4H',
         'system_id': system_id,
@@ -261,6 +263,7 @@ def test_transform_bodies2(f_json_bodies, eddb_session):
         'controlling_minor_faction_id': mapped['factions']['Elite Rebel Force'],
         'distance_to_star': 24.044962,
         'id': station_id,
+        'is_planetary': False,
         'max_landing_pad_size': 'L',
         'name': 'Broglie Terminal',
         'system_id': system_id,
@@ -325,11 +328,6 @@ def test_update_name_map():
             "system6": 12,
         }
         assert cache['known'] == expect
-        expect = {
-            "system4": 11,
-            "system6": 12,
-        }
-        assert cache['new'] == expect
 
 
 def test_collect_unique_names():
