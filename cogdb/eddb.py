@@ -718,7 +718,7 @@ class Station(ReprMixin, TimestampMixin, UpdatableMixin, Base):
         return hash(self.id)
 
     @classmethod
-    def carrier(cls, *, name, system_id, distance_to_star=0):
+    def carrier(cls, *, name, station_id, system_id, distance_to_star=0):
         """
         Factory method to create player carrier stations.
         All carriers are stations but have the following specific or constant fields:
@@ -731,6 +731,7 @@ class Station(ReprMixin, TimestampMixin, UpdatableMixin, Base):
         Args:
             cls: This class.
             name: The name of the station.
+            station_id: The id of the the carrier.
             system_id: The id of the system the carrier is currently seen in.
             distance_to_star: The distance from the star the carrier was observed at.
 
@@ -738,6 +739,7 @@ class Station(ReprMixin, TimestampMixin, UpdatableMixin, Base):
         """
         return cls(**{
             'name': name,
+            'id': station_id,
             'system_id': system_id,
             'distance_to_star': distance_to_star,
             'controlling_minor_faction_id': 77170,
