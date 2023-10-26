@@ -497,6 +497,8 @@ def eddb_maps(eddb_session):
         if '' not in mapped[key]:
             mapped[key][''] = mapped[key].get('None', mapped[key].get(None, None))
 
+    mapped['type_planetary'] = {x.id: x.is_planetary for x in eddb_session.query(StationType)}
+
     # Specific spansh name aliases
     # Remap both below to controls, home systems are stored on cogdb.eddb.Power
     mapped['power_state']['Controlled'] = mapped['power_state']['Control']
@@ -795,6 +797,7 @@ def transform_stations(*, data, mapped, system_id, system_name):
         station: The information to create a Station object
         features: The information to create a StationFeatures object
         economy: The information to create a StationEconomy object
+        controlling_factions: The information relating to all unique factions controlling stations.
         modules_sold: The information to create a list of SModuleSold objects for the station
         commodity_pricing: The information to create a list of SCommodityPricing objects for the station
     """
@@ -834,15 +837,17 @@ def transform_stations(*, data, mapped, system_id, system_name):
             economy_id = mapped['economy'][station['primaryEconomy']]
 
         updated_at = date_to_timestamp(station['updateTime'])
+        type_id = mapped['station_type'][station['type']]
         results[station_id] = {
             'station': {
                 'id': station_id,
-                'type_id': mapped['station_type'][station['type']],
+                'type_id': type_id,
                 'system_id': system_id,
                 'name': station['name'],
                 'controlling_minor_faction_id': controlling_minor_faction_id,
                 'distance_to_star': station['distanceToArrival'],
                 'max_landing_pad_size': max_pad,
+                'is_planetary': mapped['type_planetary'][type_id],
                 'updated_at': updated_at,
             },
             'features': parse_station_features(station['services'], station_id=station_id, updated_at=updated_at),
@@ -1122,10 +1127,9 @@ def update_station_map(missing_names, *, cache):  # pragma: no cover, bit of a n
             cache['known'][name] = new_id
             added[name] = new_id
 
+            cache['stations'][name] = new_id
             if cog.util.is_a_carrier(name):
                 cache['carriers'][name] = new_id
-            else:
-                cache['stations'][name] = new_id
 
     cache['next_id'] = available.pop()
 
