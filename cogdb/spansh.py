@@ -51,10 +51,10 @@ STATION_ONLY_MAPF = os.path.join(IDS_ROOT, 'onlyStationMap.json')
 CARRIER_MAPF = os.path.join(IDS_ROOT, 'carrierMap.json')
 # Mapping of spansh naming of station services, bit unsure of some
 SPANSH_STATION_SERVICES = {
-    'Fleet Carrier Administration': 'carrier_administration',
-    'Fleet Carrier Vendor': 'carrier_vendor',
+    'Fleet Carrier Administration': 'carriermanagement',
+    'Fleet Carrier Vendor': 'carriervendor',
     'Black Market': 'blackmarket',
-    'Material Trader': 'material_trader',
+    'Material Trader': 'materialtrader',
     'Shop': 'commodities',  # Unsure of mapping
     'Dock': 'dock',
     'Interstellar Factors Contact': 'interstellar_factors',
@@ -64,7 +64,7 @@ SPANSH_STATION_SERVICES = {
     'Restock': 'rearm',
     'Refuel': 'refuel',
     'Repair': 'repair',
-    'Technology Broker': 'technology_broker',
+    'Technology Broker': 'techBroker',
     'Universal Cartographics': 'universal_cartographics',
 }
 SPLIT_FILENAMES = [
@@ -547,10 +547,10 @@ def parse_station_features(features, *, station_id, updated_at):
     kwargs = {
         'id': station_id,
         'updated_at': updated_at,
-        'carrier_administration': False,
-        'carrier_vendor': False,
+        'carriermanagement': False,
+        'carriervendor': False,
         'blackmarket': False,
-        'material_trader': False,
+        'materialtrader': False,
         'commodities': False,
         'dock': False,
         'interstellar_factors': False,
@@ -560,7 +560,7 @@ def parse_station_features(features, *, station_id, updated_at):
         'rearm': False,
         'refuel': False,
         'repair': False,
-        'technology_broker': False,
+        'techBroker': False,
         'universal_cartographics': False,
     }
     for feature in features:

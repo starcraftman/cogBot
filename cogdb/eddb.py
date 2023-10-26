@@ -593,27 +593,28 @@ class StationFeatures(ReprMixin, TimestampMixin, UpdatableMixin, Base):
     """ The features at a station. """
     __tablename__ = "station_features"
     _repr_keys = [
-        'id', 'blackmarket', 'carrier_administration', 'carrier_vendor', 'commodities',
-        'dock', 'interstellar_factors', 'market', 'outfitting', 'rearm', 'refuel',
-        'repair', 'shipyard', 'technology_broker', 'universal_cartographics', 'updated_at'
+        'id', 'blackmarket', 'carriermanagement', 'carriervendor', 'commodities',
+        'dock', 'engineer', 'interstellar_factors', 'market', 'materialtrader', 'outfitting',
+        'rearm', 'refuel', 'repair', 'shipyard', 'techBroker', 'universal_cartographics', 'updated_at'
     ]
 
     id = sqla.Column(sqla.BigInteger, sqla.ForeignKey('stations.id'), primary_key=True)
 
     blackmarket = sqla.Column(sqla.Boolean)
-    carrier_administration = sqla.Column(sqla.Boolean)
-    carrier_vendor = sqla.Column(sqla.Boolean)
+    carriermanagement = sqla.Column(sqla.Boolean)
+    carriervendor = sqla.Column(sqla.Boolean)
     commodities = sqla.Column(sqla.Boolean)
     dock = sqla.Column(sqla.Boolean)
+    engineer = sqla.Column(sqla.Boolean)
     interstellar_factors = sqla.Column(sqla.Boolean)
     market = sqla.Column(sqla.Boolean)
-    material_trader = sqla.Column(sqla.Boolean)
+    materialtrader = sqla.Column(sqla.Boolean)
     outfitting = sqla.Column(sqla.Boolean)
     rearm = sqla.Column(sqla.Boolean)
     refuel = sqla.Column(sqla.Boolean)
     repair = sqla.Column(sqla.Boolean)
     shipyard = sqla.Column(sqla.Boolean)
-    technology_broker = sqla.Column(sqla.Boolean)
+    techBroker = sqla.Column(sqla.Boolean)
     universal_cartographics = sqla.Column(sqla.Boolean)
     updated_at = sqla.Column(sqla.Integer, default=time.time, onupdate=time.time)
 
@@ -1474,14 +1475,14 @@ def get_nearest_traders(session, centre_name, *,
             StationType.text.notin_(exclude))
 
     if trader_type == TraderType.BROKERS_GUARDIAN:
-        stations = stations.filter(StationFeatures.technology_broker,
+        stations = stations.filter(StationFeatures.techBroker,
                                    station_system.primary_economy_id == high_econ_id)
     elif trader_type == TraderType.BROKERS_HUMAN:
-        stations = stations.filter(StationFeatures.technology_broker,
+        stations = stations.filter(StationFeatures.techBroker,
                                    station_system.primary_economy_id != high_econ_id)
     elif trader_type == TraderType.MATS_DATA:
         stations = stations.filter(
-            StationFeatures.material_trader,
+            StationFeatures.materialtrader,
             or_(
                 station_system.primary_economy_id == high_econ_id,
                 station_system.primary_economy_id == mil_econ_id,
@@ -1491,7 +1492,7 @@ def get_nearest_traders(session, centre_name, *,
         )
     elif trader_type == TraderType.MATS_RAW:
         stations = stations.filter(
-            StationFeatures.material_trader,
+            StationFeatures.materialtrader,
             or_(
                 station_system.primary_economy_id == ref_econ_id,
                 station_system.primary_economy_id == ext_econ_id,
@@ -1499,7 +1500,7 @@ def get_nearest_traders(session, centre_name, *,
         )
     elif trader_type == TraderType.MATS_MANUFACTURED:
         stations = stations.filter(
-            StationFeatures.material_trader,
+            StationFeatures.materialtrader,
             or_(
                 station_system.primary_economy_id == ind_econ_id,
                 station_system.secondary_economy_id == ind_econ_id,
