@@ -751,7 +751,7 @@ class CarrierSighting(ReprMixin, TimestampMixin, Base):
     """ Repesents a carrier sighting in the universe. """
     __tablename__ = "carrier_sightings"
     __table_args__ = (
-        UniqueConstraint('id', 'system_id', 'created_at', name='carrier_id_system_id_created_at_unique'),
+        UniqueConstraint('carrier_id', 'system_id', 'created_at', name='carrier_id_system_id_created_at_unique'),
     )
     _repr_keys = [
         'id', 'system_id', 'distance_to_star', 'created_at'
