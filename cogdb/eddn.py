@@ -549,15 +549,21 @@ class JournalV1(MsgParser):
             self.eddb_session.commit()
             station['id'] = station_db.id
             self.flushed += [station_db]
-        except pymysql.err.IntegrityError as exc:
+        except (sqla.exc.IntegrityError, pymysql.err.IntegrityError) as exc::
             raise SkipDatabaseFlush("Ignoring station, missing controlling minor {self.body['stationFaction']}") from exc
 
-        carrier_sighting = CarrierSighting(
-            carrier_id=station['id'],
-            system_id=station['system_id'],
-            distance_to_star=station['distance_to_star'],
-        )
-        self.eddb_session.add(carrier_sighting)
+        try:
+            carrier_sighting = CarrierSighting(
+                carrier_id=station['id'],
+                system_id=station['system_id'],
+                distance_to_star=station['distance_to_star'],
+                created_at=self.timestamp,
+            )
+            self.eddb_session.add(carrier_sighting)
+            self.eddb_session.commit()
+        except (sqla.exc.IntegrityError, pymysql.err.IntegrityError):
+            # Data already inserted into db, rollback and ignore
+            self.eddb_session.rollback()
 
         try:
             if station_features:
@@ -613,7 +619,7 @@ class JournalV1(MsgParser):
             self.eddb_session.commit()
             station['id'] = station_db.id
             self.flushed += [station_db]
-        except pymysql.err.IntegrityError as exc:
+        except (sqla.exc.IntegrityError, pymysql.err.IntegrityError) as exc:
             raise SkipDatabaseFlush("Ignoring station, missing controlling minor {self.body['stationFaction']}") from exc
 
         try:
