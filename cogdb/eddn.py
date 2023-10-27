@@ -395,6 +395,7 @@ class JournalV1(MsgParser):
 
         if "Population" in body:
             system['population'] = body["Population"]
+        # Powers has more than 1 power only when contested, otherwise only 1 if any
         if "Powers" in body:
             if len(body["Powers"]) != 1:
                 system["power_id"] = MAPS['Powers']["None"]
@@ -854,6 +855,10 @@ def create_id_maps(session):
         'type_landing': {x.id: x.max_landing_pad_size for x in session.query(cogdb.eddb.StationType)},
         'type_planetary': {x.id: x.is_planetary for x in session.query(cogdb.eddb.StationType)},
     }
+    # Second set of commodity names possible
+    maps['SCommodity'].update({x.eddn2: x.id for x in session.query(SCommodity).filter(SCommodity.eddn2 is not None)})
+    maps['SCommodity'].update({x.name: x.id for x in session.query(SCommodity).filter(sqla.not_(SCommodity.name.ilike("% %")))})
+    maps['SCommodity']['OccupiedCryoPod'] = maps['SCommodity']['occupiedcryopod']
     maps['Ship'].update({x.eddn: x.id for x in session.query(Ship)})
     try:
         maps['PowerplayState'][''] = maps['PowerplayState']['None']

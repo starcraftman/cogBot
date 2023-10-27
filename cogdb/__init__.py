@@ -52,6 +52,7 @@ CREDS['db'] = "eddb"
 eddb_engine = sqlalchemy.create_engine(MYSQL_SPEC.format(**CREDS), echo=False, poolclass=NullPool,
                                        connect_args={'connect_timeout': 3})
 EDDBSession = sqlalchemy.orm.sessionmaker(bind=eddb_engine)
+logging.getLogger(__name__).error('EDDB Engine Selected: %s', eddb_engine)
 
 # Remote server tracking bgs
 CREDS = cog.util.CONF.dbs.side.unwrap

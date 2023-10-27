@@ -25,6 +25,7 @@ from pathlib import Path
 
 import psutil
 import sqlalchemy as sqla
+import sqlalchemy.sql as sqla_sql
 import sqlalchemy.orm as sqla_orm
 from sqlalchemy.schema import UniqueConstraint
 
@@ -95,12 +96,13 @@ class SpanshParsingError(Exception):
 class SCommodity(ReprMixin, UpdatableMixin, Base):
     """ A spansh commodity sold at a station. """
     __tablename__ = 'spansh_commodities'
-    _repr_keys = ['id', 'group_id', "name", "eddn", "mean_price"]
+    _repr_keys = ['id', 'group_id', "name", "eddn", "eddn2", "mean_price"]
 
     id = sqla.Column(sqla.Integer, primary_key=True)  # commodityId
     group_id = sqla.Column(sqla.Integer, sqla.ForeignKey("spansh_commodity_groups.id"), nullable=False)
     name = sqla.Column(sqla.String(LEN["commodity"]))
     eddn = sqla.Column(sqla.String(LEN["commodity"]))
+    eddn2 = sqla.Column(sqla.String(LEN["commodity"]))
     mean_price = sqla.Column(sqla.Integer, default=0)
 
     @property
@@ -407,6 +409,16 @@ def recreate_tables():
     sqla.orm.session.close_all_sessions()
     drop_tables()
     Base.metadata.create_all(cogdb.eddb_engine)
+
+
+def reset_autoincrements():
+    """
+    Reset the autoincrement counts for particular tables whose counts keep rising via insertion.
+    """
+    statement = sqla_sql.text("""ALTER TABLE :tbl AUTO_INCREMENT = 1""")
+    with cogdb.eddb_engine.connect() as con:
+        for cls in [SCommodity, SCommodityPricing, SModule, SModuleSold]:
+            con.execute(statement, tbl=cls.__tablename__)
 
 
 def date_to_timestamp(text):

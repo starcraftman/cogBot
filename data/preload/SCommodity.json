@@ -1,517 +1,591 @@
 [
   {
     "eddn": "platinum",
+    "eddn2": null,
     "group_id": 8,
     "id": 128049152,
-    "mean_price": 0,
+    "mean_price": 58272,
     "name": "Platinum"
   },
   {
     "eddn": "palladium",
+    "eddn2": null,
     "group_id": 8,
     "id": 128049153,
-    "mean_price": 0,
+    "mean_price": 50639,
     "name": "Palladium"
   },
   {
     "eddn": "gold",
+    "eddn2": null,
     "group_id": 8,
     "id": 128049154,
-    "mean_price": 0,
+    "mean_price": 47609,
     "name": "Gold"
   },
   {
     "eddn": "silver",
+    "eddn2": null,
     "group_id": 8,
     "id": 128049155,
-    "mean_price": 0,
+    "mean_price": 37223,
     "name": "Silver"
   },
   {
     "eddn": "bertrandite",
+    "eddn2": null,
     "group_id": 9,
     "id": 128049156,
-    "mean_price": 0,
+    "mean_price": 18817,
     "name": "Bertrandite"
   },
   {
     "eddn": "indite",
+    "eddn2": null,
     "group_id": 9,
     "id": 128049157,
-    "mean_price": 0,
+    "mean_price": 11389,
     "name": "Indite"
   },
   {
     "eddn": "gallite",
+    "eddn2": null,
     "group_id": 9,
     "id": 128049158,
-    "mean_price": 0,
+    "mean_price": 11915,
     "name": "Gallite"
   },
   {
     "eddn": "coltan",
+    "eddn2": null,
     "group_id": 9,
     "id": 128049159,
-    "mean_price": 0,
+    "mean_price": 6163,
     "name": "Coltan"
   },
   {
     "eddn": "uraninite",
+    "eddn2": null,
     "group_id": 9,
     "id": 128049160,
-    "mean_price": 0,
+    "mean_price": 2958,
     "name": "Uraninite"
   },
   {
     "eddn": "lepidolite",
+    "eddn2": null,
     "group_id": 9,
     "id": 128049161,
-    "mean_price": 0,
+    "mean_price": 772,
     "name": "Lepidolite"
   },
   {
     "eddn": "cobalt",
+    "eddn2": null,
     "group_id": 8,
     "id": 128049162,
-    "mean_price": 0,
+    "mean_price": 3761,
     "name": "Cobalt"
   },
   {
     "eddn": "rutile",
+    "eddn2": null,
     "group_id": 9,
     "id": 128049163,
-    "mean_price": 0,
+    "mean_price": 2083,
     "name": "Rutile"
   },
   {
     "eddn": "bauxite",
+    "eddn2": null,
     "group_id": 9,
     "id": 128049165,
-    "mean_price": 0,
+    "mean_price": 1140,
     "name": "Bauxite"
   },
   {
     "eddn": "water",
+    "eddn2": null,
     "group_id": 1,
     "id": 128049166,
-    "mean_price": 0,
+    "mean_price": 279,
     "name": "Water"
   },
   {
     "eddn": "beryllium",
+    "eddn2": null,
     "group_id": 8,
     "id": 128049168,
-    "mean_price": 0,
+    "mean_price": 8242,
     "name": "Beryllium"
   },
   {
     "eddn": "indium",
+    "eddn2": null,
     "group_id": 8,
     "id": 128049169,
-    "mean_price": 0,
+    "mean_price": 5844,
     "name": "Indium"
   },
   {
     "eddn": "gallium",
+    "eddn2": null,
     "group_id": 8,
     "id": 128049170,
-    "mean_price": 0,
+    "mean_price": 5202,
     "name": "Gallium"
   },
   {
     "eddn": "tantalum",
+    "eddn2": null,
     "group_id": 8,
     "id": 128049171,
-    "mean_price": 0,
+    "mean_price": 4043,
     "name": "Tantalum"
   },
   {
     "eddn": "uranium",
+    "eddn2": null,
     "group_id": 8,
     "id": 128049172,
-    "mean_price": 0,
+    "mean_price": 2826,
     "name": "Uranium"
   },
   {
     "eddn": "lithium",
+    "eddn2": null,
     "group_id": 8,
     "id": 128049173,
-    "mean_price": 0,
+    "mean_price": 1771,
     "name": "Lithium"
   },
   {
     "eddn": "titanium",
+    "eddn2": null,
     "group_id": 8,
     "id": 128049174,
-    "mean_price": 0,
+    "mean_price": 1208,
     "name": "Titanium"
   },
   {
     "eddn": "copper",
+    "eddn2": null,
     "group_id": 8,
     "id": 128049175,
-    "mean_price": 0,
+    "mean_price": 689,
     "name": "Copper"
   },
   {
     "eddn": "aluminium",
+    "eddn2": null,
     "group_id": 8,
     "id": 128049176,
-    "mean_price": 0,
+    "mean_price": 551,
     "name": "Aluminium"
   },
   {
     "eddn": "algae",
+    "eddn2": null,
     "group_id": 3,
     "id": 128049177,
-    "mean_price": 0,
+    "mean_price": 356,
     "name": "Algae"
   },
   {
     "eddn": "fruitandvegetables",
+    "eddn2": "FruitAndVegetables",
     "group_id": 3,
     "id": 128049178,
-    "mean_price": 0,
+    "mean_price": 509,
     "name": "Fruit and Vegetables"
   },
   {
     "eddn": "grain",
+    "eddn2": null,
     "group_id": 3,
     "id": 128049180,
-    "mean_price": 0,
+    "mean_price": 411,
     "name": "Grain"
   },
   {
     "eddn": "animalmeat",
+    "eddn2": "Animalmeat",
     "group_id": 3,
     "id": 128049182,
-    "mean_price": 0,
+    "mean_price": 1539,
     "name": "Animal Meat"
   },
   {
     "eddn": "fish",
+    "eddn2": null,
     "group_id": 3,
     "id": 128049183,
-    "mean_price": 0,
+    "mean_price": 649,
     "name": "Fish"
   },
   {
     "eddn": "foodcartridges",
+    "eddn2": "FoodCartridges",
     "group_id": 3,
     "id": 128049184,
-    "mean_price": 0,
+    "mean_price": 266,
     "name": "Food Cartridges"
   },
   {
     "eddn": "syntheticmeat",
+    "eddn2": "SyntheticMeat",
     "group_id": 3,
     "id": 128049185,
-    "mean_price": 0,
+    "mean_price": 440,
     "name": "Synthetic Meat"
   },
   {
     "eddn": "tea",
+    "eddn2": null,
     "group_id": 3,
     "id": 128049188,
-    "mean_price": 0,
+    "mean_price": 1695,
     "name": "Tea"
   },
   {
     "eddn": "coffee",
+    "eddn2": null,
     "group_id": 3,
     "id": 128049189,
-    "mean_price": 0,
+    "mean_price": 1498,
     "name": "Coffee"
   },
   {
     "eddn": "leather",
+    "eddn2": null,
     "group_id": 13,
     "id": 128049190,
-    "mean_price": 0,
+    "mean_price": 435,
     "name": "Leather"
   },
   {
     "eddn": "naturalfabrics",
+    "eddn2": "NaturalFabrics",
     "group_id": 13,
     "id": 128049191,
-    "mean_price": 0,
+    "mean_price": 687,
     "name": "Natural Fabrics"
   },
   {
     "eddn": "syntheticfabrics",
+    "eddn2": "SyntheticFabrics",
     "group_id": 13,
     "id": 128049193,
-    "mean_price": 0,
+    "mean_price": 416,
     "name": "Synthetic Fabrics"
   },
   {
     "eddn": "polymers",
+    "eddn2": null,
     "group_id": 4,
     "id": 128049197,
-    "mean_price": 0,
+    "mean_price": 376,
     "name": "Polymers"
   },
   {
     "eddn": "semiconductors",
+    "eddn2": null,
     "group_id": 4,
     "id": 128049199,
-    "mean_price": 0,
+    "mean_price": 1136,
     "name": "Semiconductors"
   },
   {
     "eddn": "superconductors",
+    "eddn2": null,
     "group_id": 4,
     "id": 128049200,
-    "mean_price": 0,
+    "mean_price": 6678,
     "name": "Superconductors"
   },
   {
     "eddn": "hydrogenfuel",
+    "eddn2": "HydrogenFuel",
     "group_id": 1,
     "id": 128049202,
-    "mean_price": 0,
+    "mean_price": 113,
     "name": "Hydrogen Fuel"
   },
   {
     "eddn": "mineraloil",
+    "eddn2": "MineralOil",
     "group_id": 1,
     "id": 128049203,
-    "mean_price": 0,
+    "mean_price": 423,
     "name": "Mineral Oil"
   },
   {
     "eddn": "explosives",
+    "eddn2": null,
     "group_id": 1,
     "id": 128049204,
-    "mean_price": 0,
+    "mean_price": 513,
     "name": "Explosives"
   },
   {
     "eddn": "pesticides",
+    "eddn2": null,
     "group_id": 1,
     "id": 128049205,
-    "mean_price": 0,
+    "mean_price": 437,
     "name": "Pesticides"
   },
   {
     "eddn": "agriculturalmedicines",
+    "eddn2": "AgriculturalMedicines",
     "group_id": 7,
     "id": 128049208,
-    "mean_price": 0,
+    "mean_price": 1231,
     "name": "Agri-Medicines"
   },
   {
     "eddn": "performanceenhancers",
+    "eddn2": "PerformanceEnhancers",
     "group_id": 7,
     "id": 128049209,
-    "mean_price": 0,
+    "mean_price": 6790,
     "name": "Performance Enhancers"
   },
   {
     "eddn": "basicmedicines",
+    "eddn2": "BasicMedicines",
     "group_id": 7,
     "id": 128049210,
-    "mean_price": 0,
+    "mean_price": 493,
     "name": "Basic Medicines"
   },
   {
     "eddn": "basicnarcotics",
+    "eddn2": "BasicNarcotics",
     "group_id": 5,
     "id": 128049212,
-    "mean_price": 0,
+    "mean_price": 10124,
     "name": "Narcotics"
   },
   {
     "eddn": "tobacco",
+    "eddn2": null,
     "group_id": 5,
     "id": 128049213,
-    "mean_price": 0,
+    "mean_price": 5324,
     "name": "Tobacco"
   },
   {
     "eddn": "beer",
+    "eddn2": null,
     "group_id": 5,
     "id": 128049214,
-    "mean_price": 0,
+    "mean_price": 430,
     "name": "Beer"
   },
   {
     "eddn": "wine",
+    "eddn2": null,
     "group_id": 5,
     "id": 128049215,
-    "mean_price": 0,
+    "mean_price": 507,
     "name": "Wine"
   },
   {
     "eddn": "liquor",
+    "eddn2": null,
     "group_id": 5,
     "id": 128049216,
-    "mean_price": 0,
+    "mean_price": 879,
     "name": "Liquor"
   },
   {
     "eddn": "powergenerators",
+    "eddn2": "PowerGenerators",
     "group_id": 6,
     "id": 128049217,
-    "mean_price": 0,
+    "mean_price": 2466,
     "name": "Power Generators"
   },
   {
     "eddn": "waterpurifiers",
+    "eddn2": "WaterPurifiers",
     "group_id": 6,
     "id": 128049218,
-    "mean_price": 0,
+    "mean_price": 484,
     "name": "Water Purifiers"
   },
   {
     "eddn": "heliostaticfurnaces",
+    "eddn2": "HeliostaticFurnaces",
     "group_id": 6,
     "id": 128049220,
-    "mean_price": 0,
+    "mean_price": 434,
     "name": "Microbial Furnaces"
   },
   {
     "eddn": "mineralextractors",
+    "eddn2": "MineralExtractors",
     "group_id": 6,
     "id": 128049221,
-    "mean_price": 0,
+    "mean_price": 801,
     "name": "Mineral Extractors"
   },
   {
     "eddn": "cropharvesters",
+    "eddn2": "CropHarvesters",
     "group_id": 6,
     "id": 128049222,
-    "mean_price": 0,
+    "mean_price": 2230,
     "name": "Crop Harvesters"
   },
   {
     "eddn": "marinesupplies",
+    "eddn2": "MarineSupplies",
     "group_id": 6,
     "id": 128049223,
-    "mean_price": 0,
+    "mean_price": 4136,
     "name": "Marine Equipment"
   },
   {
     "eddn": "computercomponents",
+    "eddn2": "ComputerComponents",
     "group_id": 12,
     "id": 128049225,
-    "mean_price": 0,
+    "mean_price": 775,
     "name": "Computer Components"
   },
   {
     "eddn": "hazardousenvironmentsuits",
+    "eddn2": "HazardousEnvironmentSuits",
     "group_id": 12,
     "id": 128049226,
-    "mean_price": 0,
+    "mean_price": 570,
     "name": "H.E. Suits"
   },
   {
     "eddn": "robotics",
+    "eddn2": null,
     "group_id": 12,
     "id": 128049227,
-    "mean_price": 0,
+    "mean_price": 2019,
     "name": "Robotics"
   },
   {
     "eddn": "autofabricators",
+    "eddn2": "AutoFabricators",
     "group_id": 12,
     "id": 128049228,
-    "mean_price": 0,
+    "mean_price": 3826,
     "name": "Auto-Fabricators"
   },
   {
     "eddn": "animalmonitors",
+    "eddn2": "AnimalMonitors",
     "group_id": 12,
     "id": 128049229,
-    "mean_price": 0,
+    "mean_price": 537,
     "name": "Animal Monitors"
   },
   {
     "eddn": "aquaponicsystems",
+    "eddn2": "AquaponicSystems",
     "group_id": 12,
     "id": 128049230,
-    "mean_price": 0,
+    "mean_price": 524,
     "name": "Aquaponic Systems"
   },
   {
     "eddn": "advancedcatalysers",
+    "eddn2": "AdvancedCatalysers",
     "group_id": 12,
     "id": 128049231,
-    "mean_price": 0,
+    "mean_price": 3039,
     "name": "Advanced Catalysers"
   },
   {
     "eddn": "terrainenrichmentsystems",
+    "eddn2": "TerrainEnrichmentSystems",
     "group_id": 12,
     "id": 128049232,
-    "mean_price": 0,
+    "mean_price": 4928,
     "name": "Land Enrichment Systems"
   },
   {
     "eddn": "personalweapons",
+    "eddn2": "PersonalWeapons",
     "group_id": 15,
     "id": 128049233,
-    "mean_price": 0,
+    "mean_price": 4735,
     "name": "Personal Weapons"
   },
   {
     "eddn": "battleweapons",
+    "eddn2": "BattleWeapons",
     "group_id": 15,
     "id": 128049234,
-    "mean_price": 0,
+    "mean_price": 7441,
     "name": "Battle Weapons"
   },
   {
     "eddn": "reactivearmour",
+    "eddn2": "ReactiveArmour",
     "group_id": 15,
     "id": 128049235,
-    "mean_price": 0,
+    "mean_price": 2224,
     "name": "Reactive Armour"
   },
   {
     "eddn": "nonlethalweapons",
+    "eddn2": "NonLethalWeapons",
     "group_id": 15,
     "id": 128049236,
-    "mean_price": 0,
+    "mean_price": 1943,
     "name": "Non-Lethal Weapons"
   },
   {
     "eddn": "domesticappliances",
+    "eddn2": "DomesticAppliances",
     "group_id": 2,
     "id": 128049238,
-    "mean_price": 0,
+    "mean_price": 740,
     "name": "Domestic Appliances"
   },
   {
     "eddn": "consumertechnology",
+    "eddn2": "ConsumerTechnology",
     "group_id": 2,
     "id": 128049240,
-    "mean_price": 0,
+    "mean_price": 6691,
     "name": "Consumer Technology"
   },
   {
     "eddn": "clothing",
+    "eddn2": null,
     "group_id": 2,
     "id": 128049241,
-    "mean_price": 0,
+    "mean_price": 546,
     "name": "Clothing"
   },
   {
     "eddn": "slaves",
+    "eddn2": null,
     "group_id": 11,
     "id": 128049243,
-    "mean_price": 0,
+    "mean_price": 13137,
     "name": "Slaves"
   },
   {
     "eddn": "biowaste",
+    "eddn2": null,
     "group_id": 14,
     "id": 128049244,
-    "mean_price": 0,
+    "mean_price": 358,
     "name": "Biowaste"
   },
   {
     "eddn": "toxicwaste",
+    "eddn2": "ToxicWaste",
     "group_id": 14,
     "id": 128049245,
     "mean_price": 0,
@@ -519,76 +593,87 @@
   },
   {
     "eddn": "chemicalwaste",
+    "eddn2": "ChemicalWaste",
     "group_id": 14,
     "id": 128049246,
-    "mean_price": 0,
+    "mean_price": 672,
     "name": "Chemical Waste"
   },
   {
     "eddn": "scrap",
+    "eddn2": null,
     "group_id": 14,
     "id": 128049248,
-    "mean_price": 0,
+    "mean_price": 300,
     "name": "Scrap"
   },
   {
     "eddn": "progenitorcells",
+    "eddn2": "ProgenitorCells",
     "group_id": 7,
     "id": 128049669,
-    "mean_price": 0,
+    "mean_price": 6751,
     "name": "Progenitor Cells"
   },
   {
     "eddn": "combatstabilisers",
+    "eddn2": "CombatStabilisers",
     "group_id": 7,
     "id": 128049670,
-    "mean_price": 0,
+    "mean_price": 3652,
     "name": "Combat Stabilisers"
   },
   {
     "eddn": "resonatingseparators",
+    "eddn2": "ResonatingSeparators",
     "group_id": 12,
     "id": 128049671,
-    "mean_price": 0,
+    "mean_price": 5937,
     "name": "Resonating Separators"
   },
   {
     "eddn": "bioreducinglichen",
+    "eddn2": "BioReducingLichen",
     "group_id": 12,
     "id": 128049672,
-    "mean_price": 0,
+    "mean_price": 1204,
     "name": "Bioreducing Lichen"
   },
   {
     "eddn": "atmosphericextractors",
+    "eddn2": "AtmosphericExtractors",
     "group_id": 6,
     "id": 128064028,
-    "mean_price": 0,
+    "mean_price": 571,
     "name": "Atmospheric Processors"
   },
   {
     "eddn": "eraninpearlwhisky",
+    "eddn2": "EraninPearlWhisky",
     "group_id": 5,
     "id": 128666746,
-    "mean_price": 0,
+    "mean_price": 9040,
     "name": "Eranin Pearl Whisky"
   },
   {
     "eddn": "lavianbrandy",
+    "eddn2": "LavianBrandy",
     "group_id": 5,
     "id": 128666747,
-    "mean_price": 0,
+    "mean_price": 10365,
     "name": "Lavian Brandy"
   },
   {
     "eddn": "usscargoblackbox",
+    "eddn2": "USSCargoBlackBox",
     "group_id": 10,
     "id": 128666752,
-    "mean_price": 0,
+    "mean_price": 31063,
     "name": "Black Box"
   },
   {
     "eddn": "usscargotradedata",
+    "eddn2": "TradeData",
     "group_id": 10,
     "id": 128666754,
     "mean_price": 0,
@@ -596,13 +681,15 @@
   },
   {
     "eddn": "usscargomilitaryplans",
+    "eddn2": "MilitaryPlans",
     "group_id": 10,
     "id": 128666755,
-    "mean_price": 0,
+    "mean_price": 17189,
     "name": "Military Plans"
   },
   {
     "eddn": null,
+    "eddn2": "AncientArtefact",
     "group_id": 10,
     "id": 128666756,
     "mean_price": 0,
@@ -610,13 +697,15 @@
   },
   {
     "eddn": "usscargorareartwork",
+    "eddn2": "USSCargoRareArtwork",
     "group_id": 10,
     "id": 128666757,
-    "mean_price": 0,
+    "mean_price": 16808,
     "name": "Rare Artwork"
   },
   {
     "eddn": "usscargoexperimentalchemicals",
+    "eddn2": "ExperimentalChemicals",
     "group_id": 10,
     "id": 128666758,
     "mean_price": 0,
@@ -624,6 +713,7 @@
   },
   {
     "eddn": null,
+    "eddn2": "RebelTransmissions",
     "group_id": 10,
     "id": 128666759,
     "mean_price": 0,
@@ -631,6 +721,7 @@
   },
   {
     "eddn": "usscargoprototypetech",
+    "eddn2": "PrototypeTech",
     "group_id": 10,
     "id": 128666760,
     "mean_price": 0,
@@ -638,6 +729,7 @@
   },
   {
     "eddn": null,
+    "eddn2": "TechnicalBlueprints",
     "group_id": 10,
     "id": 128666761,
     "mean_price": 0,
@@ -645,867 +737,991 @@
   },
   {
     "eddn": "hip10175bushmeat",
+    "eddn2": "HIP10175BushMeat",
     "group_id": 3,
     "id": 128667019,
-    "mean_price": 0,
+    "mean_price": 9382,
     "name": "HIP 10175 Bush Meat"
   },
   {
     "eddn": "albinoquechuamammoth",
+    "eddn2": "AlbinoQuechuaMammothMeat",
     "group_id": 3,
     "id": 128667020,
-    "mean_price": 0,
+    "mean_price": 9687,
     "name": "Albino Quechua Mammoth Meat"
   },
   {
     "eddn": "utgaroarmillenialeggs",
+    "eddn2": "UtgaroarMillennialEggs",
     "group_id": 3,
     "id": 128667021,
-    "mean_price": 0,
+    "mean_price": 9163,
     "name": "Utgaroar Millennial Eggs"
   },
   {
     "eddn": "witchhaulkobebeef",
+    "eddn2": "WitchhaulKobeBeef",
     "group_id": 3,
     "id": 128667022,
-    "mean_price": 0,
+    "mean_price": 11085,
     "name": "Witchhaul Kobe Beef"
   },
   {
     "eddn": "karsukilocusts",
+    "eddn2": "KarsukiLocusts",
     "group_id": 3,
     "id": 128667023,
-    "mean_price": 0,
+    "mean_price": 8543,
     "name": "Karsuki Locusts"
   },
   {
     "eddn": "giantirukamasnails",
+    "eddn2": "GiantIrukamaSnails",
     "group_id": 3,
     "id": 128667024,
-    "mean_price": 0,
+    "mean_price": 9174,
     "name": "Giant Irukama Snails"
   },
   {
     "eddn": "baltahsinevacuumkrill",
+    "eddn2": "Baltah'sineVacuumKrill",
     "group_id": 3,
     "id": 128667025,
-    "mean_price": 0,
+    "mean_price": 8479,
     "name": "Baltah'sine Vacuum Krill"
   },
   {
     "eddn": "cetirabbits",
+    "eddn2": "CetiRabbits",
     "group_id": 3,
     "id": 128667026,
-    "mean_price": 0,
+    "mean_price": 9079,
     "name": "Ceti Rabbits"
   },
   {
     "eddn": "kachiriginleaches",
+    "eddn2": "KachiriginFilterLeeches",
     "group_id": 7,
     "id": 128667027,
-    "mean_price": 0,
+    "mean_price": 8227,
     "name": "Kachirigin Filter Leeches"
   },
   {
     "eddn": "lyraeweed",
+    "eddn2": "LyraeWeed",
     "group_id": 5,
     "id": 128667028,
-    "mean_price": 0,
+    "mean_price": 8937,
     "name": "Lyrae Weed"
   },
   {
     "eddn": "onionhead",
+    "eddn2": "OnionHead",
     "group_id": 5,
     "id": 128667029,
-    "mean_price": 0,
+    "mean_price": 8437,
     "name": "Onionhead"
   },
   {
     "eddn": "tarachtorspice",
+    "eddn2": "TarachSpice",
     "group_id": 5,
     "id": 128667030,
-    "mean_price": 0,
+    "mean_price": 8642,
     "name": "Tarach Spice"
   },
   {
     "eddn": "wolf1301fesh",
+    "eddn2": "WolfFesh",
     "group_id": 5,
     "id": 128667031,
-    "mean_price": 0,
+    "mean_price": 8399,
     "name": "Wolf Fesh"
   },
   {
     "eddn": "borasetanipathogenetics",
+    "eddn2": "BorasetaniPathogenetics",
     "group_id": 15,
     "id": 128667032,
-    "mean_price": 0,
+    "mean_price": 13679,
     "name": "Borasetani Pathogenetics"
   },
   {
     "eddn": "hip118311swarm",
+    "eddn2": "HIP118311Swarm",
     "group_id": 15,
     "id": 128667033,
-    "mean_price": 0,
+    "mean_price": 13448,
     "name": "HIP 118311 Swarm"
   },
   {
     "eddn": "konggaale",
+    "eddn2": "KonggaAle",
     "group_id": 5,
     "id": 128667034,
-    "mean_price": 0,
+    "mean_price": 8310,
     "name": "Kongga Ale"
   },
   {
     "eddn": "wuthielokufroth",
+    "eddn2": "WuthieloKuFroth",
     "group_id": 5,
     "id": 128667035,
-    "mean_price": 0,
+    "mean_price": 8194,
     "name": "Wuthielo Ku Froth"
   },
   {
     "eddn": "alacarakmoskinart",
+    "eddn2": "AlacarakmoSkinArt",
     "group_id": 2,
     "id": 128667036,
-    "mean_price": 0,
+    "mean_price": 8899,
     "name": "Alacarakmo Skin Art"
   },
   {
     "eddn": "eleuthermals",
+    "eddn2": "EleuThermals",
     "group_id": 2,
     "id": 128667037,
-    "mean_price": 0,
+    "mean_price": 8507,
     "name": "Eleu Thermals"
   },
   {
     "eddn": "eshuumbrellas",
+    "eddn2": "EshuUmbrellas",
     "group_id": 2,
     "id": 128667038,
-    "mean_price": 0,
+    "mean_price": 9343,
     "name": "Eshu Umbrellas"
   },
   {
     "eddn": "karetiicouture",
+    "eddn2": "KaretiiCouture",
     "group_id": 2,
     "id": 128667039,
-    "mean_price": 0,
+    "mean_price": 11582,
     "name": "Karetii Couture"
   },
   {
     "eddn": "njangarisaddles",
+    "eddn2": "NjangariSaddles",
     "group_id": 2,
     "id": 128667040,
-    "mean_price": 0,
+    "mean_price": 8356,
     "name": "Njangari Saddles"
   },
   {
     "eddn": "anynacoffee",
+    "eddn2": "AnyNaCoffee",
     "group_id": 3,
     "id": 128667041,
-    "mean_price": 0,
+    "mean_price": 9160,
     "name": "Any Na Coffee"
   },
   {
     "eddn": "cd75catcoffee",
+    "eddn2": "CD-75KittenBrandCoffee",
     "group_id": 3,
     "id": 128667042,
-    "mean_price": 0,
+    "mean_price": 9571,
     "name": "CD-75 Kitten Brand Coffee"
   },
   {
     "eddn": "gomanyauponcoffee",
+    "eddn2": "GomanYauponCoffee",
     "group_id": 3,
     "id": 128667043,
-    "mean_price": 0,
+    "mean_price": 8921,
     "name": "Goman Yaupon Coffee"
   },
   {
     "eddn": "volkhabbeedrones",
+    "eddn2": "VolkhabBeeDrones",
     "group_id": 6,
     "id": 128667044,
-    "mean_price": 0,
+    "mean_price": 10198,
     "name": "Volkhab Bee Drones"
   },
   {
     "eddn": "kinagoinstruments",
+    "eddn2": "KinagoViolins",
     "group_id": 2,
     "id": 128667045,
-    "mean_price": 0,
+    "mean_price": 13030,
     "name": "Kinago Violins"
   },
   {
     "eddn": "ngunamodernantiques",
+    "eddn2": "NgunaModernAntiques",
     "group_id": 2,
     "id": 128667046,
-    "mean_price": 0,
+    "mean_price": 8545,
     "name": "Nguna Modern Antiques"
   },
   {
     "eddn": "rajukrustoves",
+    "eddn2": "RajukruMulti-Stoves",
     "group_id": 2,
     "id": 128667047,
-    "mean_price": 0,
+    "mean_price": 8378,
     "name": "Rajukru Multi-Stoves"
   },
   {
     "eddn": "tiolcewaste2pasteunits",
+    "eddn2": "TiolceWaste2PasteUnits",
     "group_id": 2,
     "id": 128667048,
-    "mean_price": 0,
+    "mean_price": 8710,
     "name": "Tiolce Waste2Paste Units"
   },
   {
     "eddn": "chieridanimarinepaste",
+    "eddn2": "ChiEridaniMarinePaste",
     "group_id": 3,
     "id": 128667049,
-    "mean_price": 0,
+    "mean_price": 8450,
     "name": "Chi Eridani Marine Paste"
   },
   {
     "eddn": "esusekucaviar",
+    "eddn2": "EsusekuCaviar",
     "group_id": 3,
     "id": 128667050,
-    "mean_price": 0,
+    "mean_price": 9625,
     "name": "Esuseku Caviar"
   },
   {
     "eddn": "livehecateseaworms",
+    "eddn2": "LiveHecateSeaWorms",
     "group_id": 3,
     "id": 128667051,
-    "mean_price": 0,
+    "mean_price": 8737,
     "name": "Live Hecate Sea Worms"
   },
   {
     "eddn": "helvetitjpearls",
+    "eddn2": "HelvetitjPearls",
     "group_id": 8,
     "id": 128667052,
-    "mean_price": 0,
+    "mean_price": 10450,
     "name": "Helvetitj Pearls"
   },
   {
     "eddn": "hip41181squid",
+    "eddn2": "HIPProto-Squid",
     "group_id": 3,
     "id": 128667053,
-    "mean_price": 0,
+    "mean_price": 8947,
     "name": "HIP Proto-Squid"
   },
   {
     "eddn": "coquimspongiformvictuals",
+    "eddn2": "CoquimSpongiformVictuals",
     "group_id": 3,
     "id": 128667054,
-    "mean_price": 0,
+    "mean_price": 8077,
     "name": "Coquim Spongiform Victuals"
   },
   {
     "eddn": "aerialedenapple",
+    "eddn2": "EdenApplesofAerial",
     "group_id": 3,
     "id": 128667055,
-    "mean_price": 0,
+    "mean_price": 8331,
     "name": "Eden Apples of Aerial"
   },
   {
     "eddn": "neritusberries",
+    "eddn2": "NeritusBerries",
     "group_id": 3,
     "id": 128667056,
-    "mean_price": 0,
+    "mean_price": 8497,
     "name": "Neritus Berries"
   },
   {
     "eddn": "ochoengchillies",
+    "eddn2": "OchoengChillies",
     "group_id": 3,
     "id": 128667057,
-    "mean_price": 0,
+    "mean_price": 8601,
     "name": "Ochoeng Chillies"
   },
   {
     "eddn": "deuringastruffles",
+    "eddn2": "DeuringasTruffles",
     "group_id": 3,
     "id": 128667058,
-    "mean_price": 0,
+    "mean_price": 9232,
     "name": "Deuringas Truffles"
   },
   {
     "eddn": "hr7221wheat",
+    "eddn2": "HR7221Wheat",
     "group_id": 3,
     "id": 128667059,
-    "mean_price": 0,
+    "mean_price": 8190,
     "name": "HR 7221 Wheat"
   },
   {
     "eddn": "jarouarice",
+    "eddn2": "JarouaRice",
     "group_id": 3,
     "id": 128667060,
-    "mean_price": 0,
+    "mean_price": 8169,
     "name": "Jaroua Rice"
   },
   {
     "eddn": "belalansrayleather",
+    "eddn2": "BelalansRayLeather",
     "group_id": 13,
     "id": 128667061,
-    "mean_price": 0,
+    "mean_price": 8519,
     "name": "Belalans Ray Leather"
   },
   {
     "eddn": "damnacarapaces",
+    "eddn2": "DamnaCarapaces",
     "group_id": 13,
     "id": 128667062,
-    "mean_price": 0,
+    "mean_price": 8120,
     "name": "Damna Carapaces"
   },
   {
     "eddn": "rapabaosnakeskins",
+    "eddn2": "RapaBaoSnakeSkins",
     "group_id": 13,
     "id": 128667063,
-    "mean_price": 0,
+    "mean_price": 8285,
     "name": "Rapa Bao Snake Skins"
   },
   {
     "eddn": "vanayequirhinofur",
+    "eddn2": "VanayequiCeratomorphaFur",
     "group_id": 13,
     "id": 128667064,
-    "mean_price": 0,
+    "mean_price": 8331,
     "name": "Vanayequi Ceratomorpha Fur"
   },
   {
     "eddn": "bastsnakegin",
+    "eddn2": "BastSnakeGin",
     "group_id": 5,
     "id": 128667065,
-    "mean_price": 0,
+    "mean_price": 8659,
     "name": "Bast Snake Gin"
   },
   {
     "eddn": "thrutiscream",
+    "eddn2": "ThrutisCream",
     "group_id": 5,
     "id": 128667066,
-    "mean_price": 0,
+    "mean_price": 8550,
     "name": "Thrutis Cream"
   },
   {
     "eddn": "wulpahyperboresystems",
+    "eddn2": "WulpaHyperboreSystems",
     "group_id": 6,
     "id": 128667067,
-    "mean_price": 0,
+    "mean_price": 8726,
     "name": "Wulpa Hyperbore Systems"
   },
   {
     "eddn": "aganipperush",
+    "eddn2": "AganippeRush",
     "group_id": 7,
     "id": 128667068,
-    "mean_price": 0,
+    "mean_price": 14220,
     "name": "Aganippe Rush"
   },
   {
     "eddn": "terramaterbloodbores",
+    "eddn2": "TerraMaterBloodBores",
     "group_id": 7,
     "id": 128667069,
-    "mean_price": 0,
+    "mean_price": 13414,
     "name": "Terra Mater Blood Bores"
   },
   {
     "eddn": "holvaduellingblades",
+    "eddn2": "HolvaDuellingBlades",
     "group_id": 15,
     "id": 128667070,
-    "mean_price": 0,
+    "mean_price": 12493,
     "name": "Holva Duelling Blades"
   },
   {
     "eddn": "kamorinhistoricweapons",
+    "eddn2": "KamorinHistoricWeapons",
     "group_id": 15,
     "id": 128667071,
-    "mean_price": 0,
+    "mean_price": 9766,
     "name": "Kamorin Historic Weapons"
   },
   {
     "eddn": "gilyasignatureweapons",
+    "eddn2": "GilyaSignatureWeapons",
     "group_id": 15,
     "id": 128667072,
-    "mean_price": 0,
+    "mean_price": 13038,
     "name": "Gilya Signature Weapons"
   },
   {
     "eddn": "deltaphoenicispalms",
+    "eddn2": "DeltaPhoenicisPalms",
     "group_id": 1,
     "id": 128667073,
-    "mean_price": 0,
+    "mean_price": 8188,
     "name": "Delta Phoenicis Palms"
   },
   {
     "eddn": "toxandjivirocide",
+    "eddn2": "ToxandjiVirocide",
     "group_id": 1,
     "id": 128667074,
-    "mean_price": 0,
+    "mean_price": 8275,
     "name": "Toxandji Virocide"
   },
   {
     "eddn": "xihecompanions",
+    "eddn2": "XiheBiomorphicCompanions",
     "group_id": 12,
     "id": 128667075,
-    "mean_price": 0,
+    "mean_price": 11058,
     "name": "Xihe Biomorphic Companions"
   },
   {
     "eddn": "sanumameat",
+    "eddn2": "SanumaDecorativeMeat",
     "group_id": 3,
     "id": 128667076,
-    "mean_price": 0,
+    "mean_price": 8504,
     "name": "Sanuma Decorative Meat"
   },
   {
     "eddn": "ethgrezeteabuds",
+    "eddn2": "EthgrezeTeaBuds",
     "group_id": 3,
     "id": 128667077,
-    "mean_price": 0,
+    "mean_price": 10197,
     "name": "Ethgreze Tea Buds"
   },
   {
     "eddn": "ceremonialheiketea",
+    "eddn2": "CeremonialHeikeTea",
     "group_id": 3,
     "id": 128667078,
-    "mean_price": 0,
+    "mean_price": 9251,
     "name": "Ceremonial Heike Tea"
   },
   {
     "eddn": "tanmarktranquiltea",
+    "eddn2": "TanmarkTranquilTea",
     "group_id": 3,
     "id": 128667079,
-    "mean_price": 0,
+    "mean_price": 9177,
     "name": "Tanmark Tranquil Tea"
   },
   {
     "eddn": "azcancriformula42",
+    "eddn2": "AzCancriFormula42",
     "group_id": 12,
     "id": 128667080,
-    "mean_price": 0,
+    "mean_price": 12440,
     "name": "Az Cancri Formula 42"
   },
   {
     "eddn": "kamitracigars",
+    "eddn2": "KamitraCigars",
     "group_id": 5,
     "id": 128667081,
-    "mean_price": 0,
+    "mean_price": 12282,
     "name": "Kamitra Cigars"
   },
   {
     "eddn": "rusanioldsmokey",
+    "eddn2": "RusaniOldSmokey",
     "group_id": 5,
     "id": 128667082,
-    "mean_price": 0,
+    "mean_price": 11994,
     "name": "Rusani Old Smokey"
   },
   {
     "eddn": "yasokondileaf",
+    "eddn2": "YasoKondiLeaf",
     "group_id": 5,
     "id": 128667083,
-    "mean_price": 0,
+    "mean_price": 12171,
     "name": "Yaso Kondi Leaf"
   },
   {
     "eddn": "chateaudeaegaeon",
+    "eddn2": "ChateauDeAegaeon",
     "group_id": 5,
     "id": 128667084,
-    "mean_price": 0,
+    "mean_price": 8791,
     "name": "Chateau De Aegaeon"
   },
   {
     "eddn": "watersofshintara",
+    "eddn2": "TheWatersofShintara",
     "group_id": 7,
     "id": 128667085,
-    "mean_price": 0,
+    "mean_price": 13711,
     "name": "The Waters of Shintara"
   },
   {
     "eddn": "ophiuchiexinoartefacts",
+    "eddn2": "OphiuchExinoArtefacts",
     "group_id": 2,
     "id": 128667668,
-    "mean_price": 0,
+    "mean_price": 10969,
     "name": "Ophiuch Exino Artefacts"
   },
   {
     "eddn": "bakedgreebles",
+    "eddn2": "BakedGreebles",
     "group_id": 3,
     "id": 128667669,
-    "mean_price": 0,
+    "mean_price": 8211,
     "name": "Baked Greebles"
   },
   {
     "eddn": "cetiaepyornisegg",
+    "eddn2": "AepyornisEgg",
     "group_id": 3,
     "id": 128667670,
-    "mean_price": 0,
+    "mean_price": 9769,
     "name": "Aepyornis Egg"
   },
   {
     "eddn": "saxonwine",
+    "eddn2": "SaxonWine",
     "group_id": 5,
     "id": 128667671,
-    "mean_price": 0,
+    "mean_price": 8983,
     "name": "Saxon Wine"
   },
   {
     "eddn": "centaurimegagin",
+    "eddn2": "CentauriMegaGin",
     "group_id": 5,
     "id": 128667672,
-    "mean_price": 0,
+    "mean_price": 10217,
     "name": "Centauri Mega Gin"
   },
   {
     "eddn": "anduligafireworks",
+    "eddn2": "AnduligaFireWorks",
     "group_id": 2,
     "id": 128667673,
-    "mean_price": 0,
+    "mean_price": 8519,
     "name": "Anduliga Fire Works"
   },
   {
     "eddn": "bankiamphibiousleather",
+    "eddn2": "BankiAmphibiousLeather",
     "group_id": 13,
     "id": 128667674,
-    "mean_price": 0,
+    "mean_price": 8338,
     "name": "Banki Amphibious Leather"
   },
   {
     "eddn": "cherbonesbloodcrystals",
+    "eddn2": "CherbonesBloodCrystals",
     "group_id": 8,
     "id": 128667675,
-    "mean_price": 0,
+    "mean_price": 16714,
     "name": "Cherbones Blood Crystals"
   },
   {
     "eddn": "motronaexperiencejelly",
+    "eddn2": "MotronaExperienceJelly",
     "group_id": 5,
     "id": 128667676,
-    "mean_price": 0,
+    "mean_price": 13129,
     "name": "Motrona Experience Jelly"
   },
   {
     "eddn": "geawendancedust",
+    "eddn2": "GeawenDanceDust",
     "group_id": 5,
     "id": 128667677,
-    "mean_price": 0,
+    "mean_price": 8618,
     "name": "Geawen Dance Dust"
   },
   {
     "eddn": "gerasiangueuzebeer",
+    "eddn2": "GerasianGueuzeBeer",
     "group_id": 5,
     "id": 128667678,
-    "mean_price": 0,
+    "mean_price": 8215,
     "name": "Gerasian Gueuze Beer"
   },
   {
     "eddn": "haidneblackbrew",
+    "eddn2": "HaidenBlackBrew",
     "group_id": 3,
     "id": 128667679,
-    "mean_price": 0,
+    "mean_price": 8837,
     "name": "Haiden Black Brew"
   },
   {
     "eddn": "havasupaidreamcatcher",
+    "eddn2": "HavasupaiDreamCatcher",
     "group_id": 2,
     "id": 128667680,
-    "mean_price": 0,
+    "mean_price": 14639,
     "name": "Havasupai Dream Catcher"
   },
   {
     "eddn": "burnhambiledistillate",
+    "eddn2": "BurnhamBileDistillate",
     "group_id": 5,
     "id": 128667681,
-    "mean_price": 0,
+    "mean_price": 8466,
     "name": "Burnham Bile Distillate"
   },
   {
     "eddn": "hiporganophosphates",
+    "eddn2": "HIPOrganophosphates",
     "group_id": 1,
     "id": 128667682,
-    "mean_price": 0,
+    "mean_price": 8169,
     "name": "HIP Organophosphates"
   },
   {
     "eddn": "jaradharrepuzzlebox",
+    "eddn2": "JaradharrePuzzleBox",
     "group_id": 2,
     "id": 128667683,
-    "mean_price": 0,
+    "mean_price": 16816,
     "name": "Jaradharre Puzzle Box"
   },
   {
     "eddn": "korrokungpellets",
+    "eddn2": "KoroKungPellets",
     "group_id": 1,
     "id": 128667684,
-    "mean_price": 0,
+    "mean_price": 8067,
     "name": "Koro Kung Pellets"
   },
   {
     "eddn": "lftvoidextractcoffee",
+    "eddn2": "VoidExtractCoffee",
     "group_id": 3,
     "id": 128667685,
-    "mean_price": 0,
+    "mean_price": 9554,
     "name": "Void Extract Coffee"
   },
   {
     "eddn": "honestypills",
+    "eddn2": "HonestyPills",
     "group_id": 7,
     "id": 128667686,
-    "mean_price": 0,
+    "mean_price": 8860,
     "name": "Honesty Pills"
   },
   {
     "eddn": "noneuclidianexotanks",
+    "eddn2": "NonEuclidianExotanks",
     "group_id": 6,
     "id": 128667687,
-    "mean_price": 0,
+    "mean_price": 8526,
     "name": "Non Euclidian Exotanks"
   },
   {
     "eddn": "ltthypersweet",
+    "eddn2": "LTTHyperSweet",
     "group_id": 3,
     "id": 128667688,
-    "mean_price": 0,
+    "mean_price": 8054,
     "name": "LTT Hyper Sweet"
   },
   {
     "eddn": "mechucoshightea",
+    "eddn2": "MechucosHighTea",
     "group_id": 3,
     "id": 128667689,
-    "mean_price": 0,
+    "mean_price": 8846,
     "name": "Mechucos High Tea"
   },
   {
     "eddn": "medbstarlube",
+    "eddn2": "MedbStarlube",
     "group_id": 1,
     "id": 128667690,
-    "mean_price": 0,
+    "mean_price": 8191,
     "name": "Medb Starlube"
   },
   {
     "eddn": "mokojingbeastfeast",
+    "eddn2": "MokojingBeastFeast",
     "group_id": 3,
     "id": 128667691,
-    "mean_price": 0,
+    "mean_price": 9788,
     "name": "Mokojing Beast Feast"
   },
   {
     "eddn": "mukusubiichitinos",
+    "eddn2": "MukusubiiChitin-os",
     "group_id": 3,
     "id": 128667692,
-    "mean_price": 0,
+    "mean_price": 8359,
     "name": "Mukusubii Chitin-os"
   },
   {
     "eddn": "mulachigiantfungus",
+    "eddn2": "MulachiGiantFungus",
     "group_id": 3,
     "id": 128667693,
-    "mean_price": 0,
+    "mean_price": 7957,
     "name": "Mulachi Giant Fungus"
   },
   {
     "eddn": "ngadandarifireopals",
+    "eddn2": "NgadandariFireOpals",
     "group_id": 8,
     "id": 128667694,
-    "mean_price": 0,
+    "mean_price": 19112,
     "name": "Ngadandari Fire Opals"
   },
   {
     "eddn": "tiegfriessynthsilk",
+    "eddn2": "TiegfriesSynthSilk",
     "group_id": 13,
     "id": 128667695,
-    "mean_price": 0,
+    "mean_price": 8478,
     "name": "Tiegfries Synth Silk"
   },
   {
     "eddn": "uzumokulowgwings",
+    "eddn2": "UzumokuLow-GWings",
     "group_id": 2,
     "id": 128667696,
-    "mean_price": 0,
+    "mean_price": 13845,
     "name": "Uzumoku Low-G Wings"
   },
   {
     "eddn": "vherculisbodyrub",
+    "eddn2": "VHerculisBodyRub",
     "group_id": 7,
     "id": 128667697,
-    "mean_price": 0,
+    "mean_price": 8010,
     "name": "V Herculis Body Rub"
   },
   {
     "eddn": "wheemetewheatcakes",
+    "eddn2": "WheemeteWheatCakes",
     "group_id": 3,
     "id": 128667698,
-    "mean_price": 0,
+    "mean_price": 8081,
     "name": "Wheemete Wheat Cakes"
   },
   {
     "eddn": "vegaslimweed",
+    "eddn2": "VegaSlimweed",
     "group_id": 7,
     "id": 128667699,
-    "mean_price": 0,
+    "mean_price": 9588,
     "name": "Vega Slimweed"
   },
   {
     "eddn": "altairianskin",
+    "eddn2": "AltairianSkin",
     "group_id": 2,
     "id": 128667700,
-    "mean_price": 0,
+    "mean_price": 8432,
     "name": "Altairian Skin"
   },
   {
     "eddn": "pavoniseargrubs",
+    "eddn2": "PavonisEarGrubs",
     "group_id": 5,
     "id": 128667701,
-    "mean_price": 0,
+    "mean_price": 8364,
     "name": "Pavonis Ear Grubs"
   },
   {
     "eddn": "jotunmookah",
+    "eddn2": "JotunMookah",
     "group_id": 13,
     "id": 128667702,
-    "mean_price": 0,
+    "mean_price": 8780,
     "name": "Jotun Mookah"
   },
   {
     "eddn": "giantverrix",
+    "eddn2": "GiantVerrix",
     "group_id": 6,
     "id": 128667703,
-    "mean_price": 0,
+    "mean_price": 12496,
     "name": "Giant Verrix"
   },
   {
     "eddn": "indibourbon",
+    "eddn2": "IndiBourbon",
     "group_id": 5,
     "id": 128667704,
-    "mean_price": 0,
+    "mean_price": 8806,
     "name": "Indi Bourbon"
   },
   {
     "eddn": "aroucaconventualsweets",
+    "eddn2": "AroucaConventualSweets",
     "group_id": 3,
     "id": 128667705,
-    "mean_price": 0,
+    "mean_price": 8737,
     "name": "Arouca Conventual Sweets"
   },
   {
     "eddn": "taurichimes",
+    "eddn2": "TauriChimes",
     "group_id": 2,
     "id": 128667706,
-    "mean_price": 0,
+    "mean_price": 8549,
     "name": "Tauri Chimes"
   },
   {
     "eddn": "zeesszeantglue",
+    "eddn2": "ZeesszeAntGrubGlue",
     "group_id": 2,
     "id": 128667707,
-    "mean_price": 0,
+    "mean_price": 8161,
     "name": "Zeessze Ant Grub Glue"
   },
   {
     "eddn": "pantaaprayersticks",
+    "eddn2": "PantaaPrayerSticks",
     "group_id": 7,
     "id": 128667708,
-    "mean_price": 0,
+    "mean_price": 9177,
     "name": "Pantaa Prayer Sticks"
   },
   {
     "eddn": "fujintea",
+    "eddn2": "FujinTea",
     "group_id": 3,
     "id": 128667709,
-    "mean_price": 0,
+    "mean_price": 8597,
     "name": "Fujin Tea"
   },
   {
     "eddn": "chameleoncloth",
+    "eddn2": "ChameleonCloth",
     "group_id": 13,
     "id": 128667710,
-    "mean_price": 0,
+    "mean_price": 9071,
     "name": "Chameleon Cloth"
   },
   {
     "eddn": "orrerianviciousbrew",
+    "eddn2": "OrrerianViciousBrew",
     "group_id": 3,
     "id": 128667711,
-    "mean_price": 0,
+    "mean_price": 8342,
     "name": "Orrerian Vicious Brew"
   },
   {
     "eddn": "uszaiantreegrub",
+    "eddn2": "UszaianTreeGrub",
     "group_id": 3,
     "id": 128667712,
-    "mean_price": 0,
+    "mean_price": 8578,
     "name": "Uszaian Tree Grub"
   },
   {
     "eddn": "momusbogspaniel",
+    "eddn2": "MomusBogSpaniel",
     "group_id": 2,
     "id": 128667713,
-    "mean_price": 0,
+    "mean_price": 9184,
     "name": "Momus Bog Spaniel"
   },
   {
     "eddn": "disomacorn",
+    "eddn2": "DisoMaCorn",
     "group_id": 3,
     "id": 128667714,
-    "mean_price": 0,
+    "mean_price": 8134,
     "name": "Diso Ma Corn"
   },
   {
     "eddn": "leestianeviljuice",
+    "eddn2": "LeestianEvilJuice",
     "group_id": 5,
     "id": 128667715,
-    "mean_price": 0,
+    "mean_price": 8220,
     "name": "Leestian Evil Juice"
   },
   {
     "eddn": "bluemilk",
+    "eddn2": "AzureMilk",
     "group_id": 3,
     "id": 128667716,
-    "mean_price": 0,
+    "mean_price": 10805,
     "name": "Azure Milk"
   },
   {
     "eddn": "alieneggs",
+    "eddn2": "LeatheryEggs",
     "group_id": 2,
     "id": 128667717,
-    "mean_price": 0,
+    "mean_price": 25067,
     "name": "Leathery Eggs"
   },
   {
     "eddn": "alyabodilysoap",
+    "eddn2": "AlyaBodySoap",
     "group_id": 7,
     "id": 128667718,
-    "mean_price": 0,
+    "mean_price": 8218,
     "name": "Alya Body Soap"
   },
   {
     "eddn": "vidavantianlace",
+    "eddn2": "VidavantianLace",
     "group_id": 2,
     "id": 128667719,
-    "mean_price": 0,
+    "mean_price": 12615,
     "name": "Vidavantian Lace"
   },
   {
     "eddn": "imperialslaves",
+    "eddn2": "ImperialSlaves",
     "group_id": 11,
     "id": 128667728,
-    "mean_price": 0,
+    "mean_price": 17493,
     "name": "Imperial Slaves"
   },
   {
     "eddn": "transgeniconionhead",
+    "eddn2": "LucanOnionhead",
     "group_id": 5,
     "id": 128667760,
-    "mean_price": 0,
+    "mean_price": 8472,
     "name": "Lucan Onionhead"
   },
   {
     "eddn": "jaquesquinentianstill",
+    "eddn2": "JaquesQuinentianStill",
     "group_id": 2,
     "id": 128668017,
-    "mean_price": 0,
+    "mean_price": 13845,
     "name": "Jaques Quinentian Still"
   },
   {
     "eddn": "soontillrelics",
+    "eddn2": "SoontillRelics",
     "group_id": 2,
     "id": 128668018,
-    "mean_price": 0,
+    "mean_price": 19885,
     "name": "Soontill Relics"
   },
   {
     "eddn": null,
+    "eddn2": "ThargoidSensor",
     "group_id": 10,
     "id": 128668547,
     "mean_price": 0,
@@ -1513,6 +1729,7 @@
   },
   {
     "eddn": "airelics",
+    "eddn2": "AIRelics",
     "group_id": 10,
     "id": 128668548,
     "mean_price": 0,
@@ -1520,6 +1737,7 @@
   },
   {
     "eddn": "hafnium178",
+    "eddn2": "Hafnium178",
     "group_id": 8,
     "id": 128668549,
     "mean_price": 0,
@@ -1527,13 +1745,15 @@
   },
   {
     "eddn": "painite",
+    "eddn2": null,
     "group_id": 9,
     "id": 128668550,
-    "mean_price": 0,
+    "mean_price": 53032,
     "name": "Painite"
   },
   {
     "eddn": "antiquities",
+    "eddn2": null,
     "group_id": 10,
     "id": 128668551,
     "mean_price": 0,
@@ -1541,6 +1761,7 @@
   },
   {
     "eddn": "militaryintelligence",
+    "eddn2": "MilitaryIntelligence",
     "group_id": 10,
     "id": 128668552,
     "mean_price": 0,
@@ -1548,13 +1769,15 @@
   },
   {
     "eddn": "osmium",
+    "eddn2": null,
     "group_id": 8,
     "id": 128671118,
-    "mean_price": 0,
+    "mean_price": 45210,
     "name": "Osmium"
   },
   {
     "eddn": null,
+    "eddn2": "Ultra-CompactProcessorPrototypes",
     "group_id": 2,
     "id": 128671119,
     "mean_price": 0,
@@ -1562,13 +1785,15 @@
   },
   {
     "eddn": "sap8corecontainer",
+    "eddn2": "SAP8CoreContainer",
     "group_id": 10,
     "id": 128671443,
-    "mean_price": 0,
+    "mean_price": 67593,
     "name": "SAP 8 Core Container"
   },
   {
     "eddn": "trinketsoffortune",
+    "eddn2": "TrinketsofHiddenFortune",
     "group_id": 2,
     "id": 128671444,
     "mean_price": 0,
@@ -1576,594 +1801,679 @@
   },
   {
     "eddn": "thehuttonmug",
+    "eddn2": "TheHuttonMug",
     "group_id": 2,
     "id": 128672121,
-    "mean_price": 0,
+    "mean_price": 7986,
     "name": "The Hutton Mug"
   },
   {
     "eddn": "sothiscrystallinegold",
+    "eddn2": "SothisCrystallineGold",
     "group_id": 8,
     "id": 128672122,
-    "mean_price": 0,
+    "mean_price": 19112,
     "name": "Sothis Crystalline Gold"
   },
   {
     "eddn": "wreckagecomponents",
+    "eddn2": "WreckageComponents",
     "group_id": 10,
     "id": 128672123,
-    "mean_price": 0,
+    "mean_price": 9034,
     "name": "Wreckage Components"
   },
   {
     "eddn": "encripteddatastorage",
+    "eddn2": "EncryptedDataStorage",
     "group_id": 10,
     "id": 128672124,
-    "mean_price": 0,
+    "mean_price": 8313,
     "name": "Encrypted Data Storage"
   },
   {
     "eddn": "occupiedcryopod",
+    "eddn2": "OccupiedEscapePod",
     "group_id": 10,
     "id": 128672125,
-    "mean_price": 0,
+    "mean_price": 30364,
     "name": "Occupied Escape Pod"
   },
   {
     "eddn": "personaleffects",
+    "eddn2": "PersonalEffects",
     "group_id": 10,
     "id": 128672126,
-    "mean_price": 0,
+    "mean_price": 9544,
     "name": "Personal Effects"
   },
   {
     "eddn": "comercialsamples",
+    "eddn2": "CommercialSamples",
     "group_id": 10,
     "id": 128672127,
-    "mean_price": 0,
+    "mean_price": 1815,
     "name": "Commercial Samples"
   },
   {
     "eddn": "tacticaldata",
+    "eddn2": "TacticalData",
     "group_id": 10,
     "id": 128672128,
-    "mean_price": 0,
+    "mean_price": 15622,
     "name": "Tactical Data"
   },
   {
     "eddn": "assaultplans",
+    "eddn2": "AssaultPlans",
     "group_id": 10,
     "id": 128672129,
-    "mean_price": 0,
+    "mean_price": 26074,
     "name": "Assault Plans"
   },
   {
     "eddn": "encryptedcorrespondence",
+    "eddn2": "EncryptedCorrespondence",
     "group_id": 10,
     "id": 128672130,
-    "mean_price": 0,
+    "mean_price": 8226,
     "name": "Encrypted Correspondence"
   },
   {
     "eddn": "diplomaticbag",
+    "eddn2": "DiplomaticBag",
     "group_id": 10,
     "id": 128672131,
-    "mean_price": 0,
+    "mean_price": 28625,
     "name": "Diplomatic Bag"
   },
   {
     "eddn": "scientificresearch",
+    "eddn2": "ScientificResearch",
     "group_id": 10,
     "id": 128672132,
-    "mean_price": 0,
+    "mean_price": 20151,
     "name": "Scientific Research"
   },
   {
     "eddn": "scientificsamples",
+    "eddn2": "ScientificSamples",
     "group_id": 10,
     "id": 128672133,
-    "mean_price": 0,
+    "mean_price": 7955,
     "name": "Scientific Samples"
   },
   {
     "eddn": "politicalprisoner",
+    "eddn2": "PoliticalPrisoners",
     "group_id": 10,
     "id": 128672134,
-    "mean_price": 0,
+    "mean_price": 39738,
     "name": "Political Prisoners"
   },
   {
     "eddn": "hostage",
+    "eddn2": "Hostage",
     "group_id": 10,
     "id": 128672135,
-    "mean_price": 0,
+    "mean_price": 34605,
     "name": "Hostages"
   },
   {
     "eddn": "largeexplorationdatacash",
+    "eddn2": "LargeSurveyDataCache",
     "group_id": 10,
     "id": 128672136,
-    "mean_price": 0,
+    "mean_price": 255841,
     "name": "Large Survey Data Cache"
   },
   {
     "eddn": "smallexplorationdatacash",
+    "eddn2": "SmallSurveyDataCache",
     "group_id": 10,
     "id": 128672137,
-    "mean_price": 0,
+    "mean_price": 25005,
     "name": "Small Survey Data Cache"
   },
   {
     "eddn": "antiquejewellery",
+    "eddn2": "AntiqueJewellery",
     "group_id": 10,
     "id": 128672159,
-    "mean_price": 0,
+    "mean_price": 183163,
     "name": "Antique Jewellery"
   },
   {
     "eddn": "preciousgems",
+    "eddn2": "PreciousGems",
     "group_id": 10,
     "id": 128672160,
-    "mean_price": 0,
+    "mean_price": 160280,
     "name": "Precious Gems"
   },
   {
     "eddn": "earthrelics",
+    "eddn2": "EarthRelics",
     "group_id": 10,
     "id": 128672161,
-    "mean_price": 0,
+    "mean_price": 15161,
     "name": "Earth Relics"
   },
   {
     "eddn": "genebank",
+    "eddn2": "GeneBank",
     "group_id": 10,
     "id": 128672162,
-    "mean_price": 0,
+    "mean_price": 59082,
     "name": "Gene Bank"
   },
   {
     "eddn": "timecapsule",
+    "eddn2": "TimeCapsule",
     "group_id": 10,
     "id": 128672163,
-    "mean_price": 0,
+    "mean_price": 5364,
     "name": "Time Capsule"
   },
   {
     "eddn": "cryolite",
+    "eddn2": null,
     "group_id": 9,
     "id": 128672294,
-    "mean_price": 0,
+    "mean_price": 12172,
     "name": "Cryolite"
   },
   {
     "eddn": "goslarite",
+    "eddn2": null,
     "group_id": 9,
     "id": 128672295,
-    "mean_price": 0,
+    "mean_price": 5978,
     "name": "Goslarite"
   },
   {
     "eddn": "moissanite",
+    "eddn2": null,
     "group_id": 9,
     "id": 128672296,
-    "mean_price": 0,
+    "mean_price": 24834,
     "name": "Moissanite"
   },
   {
     "eddn": "pyrophyllite",
+    "eddn2": null,
     "group_id": 9,
     "id": 128672297,
-    "mean_price": 0,
+    "mean_price": 11536,
     "name": "Pyrophyllite"
   },
   {
     "eddn": "lanthanum",
+    "eddn2": null,
     "group_id": 8,
     "id": 128672298,
-    "mean_price": 0,
+    "mean_price": 8706,
     "name": "Lanthanum"
   },
   {
     "eddn": "thallium",
+    "eddn2": null,
     "group_id": 8,
     "id": 128672299,
-    "mean_price": 0,
+    "mean_price": 3744,
     "name": "Thallium"
   },
   {
     "eddn": "bismuth",
+    "eddn2": null,
     "group_id": 8,
     "id": 128672300,
-    "mean_price": 0,
+    "mean_price": 2440,
     "name": "Bismuth"
   },
   {
     "eddn": "thorium",
+    "eddn2": null,
     "group_id": 8,
     "id": 128672301,
-    "mean_price": 0,
+    "mean_price": 11316,
     "name": "Thorium"
   },
   {
     "eddn": "ceramiccomposites",
+    "eddn2": "CeramicComposites",
     "group_id": 4,
     "id": 128672302,
-    "mean_price": 0,
+    "mean_price": 415,
     "name": "Ceramic Composites"
   },
   {
     "eddn": "syntheticreagents",
+    "eddn2": "SyntheticReagents",
     "group_id": 1,
     "id": 128672303,
-    "mean_price": 0,
+    "mean_price": 6651,
     "name": "Synthetic Reagents"
   },
   {
     "eddn": "nerveagents",
+    "eddn2": "NerveAgents",
     "group_id": 1,
     "id": 128672304,
-    "mean_price": 0,
+    "mean_price": 13514,
     "name": "Nerve Agents"
   },
   {
     "eddn": "surfacestabilisers",
+    "eddn2": "SurfaceStabilisers",
     "group_id": 1,
     "id": 128672305,
-    "mean_price": 0,
+    "mean_price": 727,
     "name": "Surface Stabilisers"
   },
   {
     "eddn": "bootlegliquor",
+    "eddn2": "BootlegLiquor",
     "group_id": 5,
     "id": 128672306,
-    "mean_price": 0,
+    "mean_price": 779,
     "name": "Bootleg Liquor"
   },
   {
     "eddn": "geologicalequipment",
+    "eddn2": "GeologicalEquipment",
     "group_id": 6,
     "id": 128672307,
-    "mean_price": 0,
+    "mean_price": 1886,
     "name": "Geological Equipment"
   },
   {
     "eddn": "thermalcoolingunits",
+    "eddn2": "ThermalCoolingUnits",
     "group_id": 6,
     "id": 128672308,
-    "mean_price": 0,
+    "mean_price": 3761,
     "name": "Thermal Cooling Units"
   },
   {
     "eddn": "buildingfabricators",
+    "eddn2": "BuildingFabricators",
     "group_id": 6,
     "id": 128672309,
-    "mean_price": 0,
+    "mean_price": 2311,
     "name": "Building Fabricators"
   },
   {
     "eddn": "mutomimager",
+    "eddn2": "MuonImager",
     "group_id": 12,
     "id": 128672310,
-    "mean_price": 0,
+    "mean_price": 6313,
     "name": "Muon Imager"
   },
   {
     "eddn": "structuralregulators",
+    "eddn2": "StructuralRegulators",
     "group_id": 12,
     "id": 128672311,
-    "mean_price": 0,
+    "mean_price": 1933,
     "name": "Structural Regulators"
   },
   {
     "eddn": "landmines",
+    "eddn2": null,
     "group_id": 15,
     "id": 128672312,
-    "mean_price": 0,
+    "mean_price": 4796,
     "name": "Landmines"
   },
   {
     "eddn": "skimercomponents",
+    "eddn2": "SkimerComponents",
     "group_id": 6,
     "id": 128672313,
-    "mean_price": 0,
+    "mean_price": 1119,
     "name": "Skimmer Components"
   },
   {
     "eddn": "evacuationshelter",
+    "eddn2": "EvacuationShelter",
     "group_id": 2,
     "id": 128672314,
-    "mean_price": 0,
+    "mean_price": 523,
     "name": "Evacuation Shelter"
   },
   {
     "eddn": "geologicalsamples",
+    "eddn2": "GeologicalSamples",
     "group_id": 10,
     "id": 128672315,
-    "mean_price": 0,
+    "mean_price": 8313,
     "name": "Geological Samples"
   },
   {
     "eddn": "masterchefs",
+    "eddn2": "MasterChefs",
     "group_id": 11,
     "id": 128672316,
-    "mean_price": 0,
+    "mean_price": 20590,
     "name": "Master Chefs"
   },
   {
     "eddn": "personalgifts",
+    "eddn2": "PersonalGifts",
     "group_id": 10,
     "id": 128672431,
-    "mean_price": 0,
+    "mean_price": 16535,
     "name": "Personal Gifts"
   },
   {
     "eddn": "crystallinespheres",
+    "eddn2": "CrystallineSpheres",
     "group_id": 10,
     "id": 128672432,
-    "mean_price": 0,
+    "mean_price": 12216,
     "name": "Crystalline Spheres"
   },
   {
     "eddn": "metaalloys",
+    "eddn2": "MetaAlloys",
     "group_id": 4,
     "id": 128672701,
-    "mean_price": 0,
+    "mean_price": 195459,
     "name": "Meta-Alloys"
   },
   {
     "eddn": "taaffeite",
+    "eddn2": null,
     "group_id": 9,
     "id": 128672775,
-    "mean_price": 0,
+    "mean_price": 52091,
     "name": "Taaffeite"
   },
   {
     "eddn": "jadeite",
+    "eddn2": null,
     "group_id": 9,
     "id": 128672776,
-    "mean_price": 0,
+    "mean_price": 42385,
     "name": "Jadeite"
   },
   {
     "eddn": "unstabledatacore",
+    "eddn2": "UnstableDataCore",
     "group_id": 10,
     "id": 128672810,
-    "mean_price": 0,
+    "mean_price": 4516,
     "name": "Unstable Data Core"
   },
   {
     "eddn": "damagedescapepod",
+    "eddn2": "DamagedEscapePod",
     "group_id": 10,
     "id": 128672811,
-    "mean_price": 0,
+    "mean_price": 16966,
     "name": "Damaged Escape Pod"
   },
   {
     "eddn": "onionheada",
+    "eddn2": "OnionHeadA",
     "group_id": 5,
     "id": 128672812,
-    "mean_price": 0,
+    "mean_price": 8437,
     "name": "Onionhead Alpha Strain"
   },
   {
     "eddn": "onionheadb",
+    "eddn2": "OnionHeadB",
     "group_id": 5,
     "id": 128673069,
-    "mean_price": 0,
+    "mean_price": 8437,
     "name": "Onionhead Beta Strain"
   },
   {
     "eddn": "praseodymium",
+    "eddn2": null,
     "group_id": 8,
     "id": 128673845,
-    "mean_price": 0,
+    "mean_price": 8620,
     "name": "Praseodymium"
   },
   {
     "eddn": "bromellite",
+    "eddn2": null,
     "group_id": 9,
     "id": 128673846,
-    "mean_price": 0,
+    "mean_price": 30427,
     "name": "Bromellite"
   },
   {
     "eddn": "samarium",
+    "eddn2": null,
     "group_id": 8,
     "id": 128673847,
-    "mean_price": 0,
+    "mean_price": 25853,
     "name": "Samarium"
   },
   {
     "eddn": "lowtemperaturediamond",
+    "eddn2": "LowTemperatureDiamond",
     "group_id": 9,
     "id": 128673848,
-    "mean_price": 0,
+    "mean_price": 106382,
     "name": "Low Temperature Diamonds"
   },
   {
     "eddn": "hydrogenperoxide",
+    "eddn2": "HydrogenPeroxide",
     "group_id": 1,
     "id": 128673850,
-    "mean_price": 0,
+    "mean_price": 3161,
     "name": "Hydrogen Peroxide"
   },
   {
     "eddn": "liquidoxygen",
+    "eddn2": "LiquidOxygen",
     "group_id": 1,
     "id": 128673851,
-    "mean_price": 0,
+    "mean_price": 1473,
     "name": "Liquid oxygen"
   },
   {
     "eddn": "methanolmonohydratecrystals",
+    "eddn2": "MethanolMonohydrateCrystals",
     "group_id": 9,
     "id": 128673852,
-    "mean_price": 0,
+    "mean_price": 2479,
     "name": "Methanol Monohydrate Crystals"
   },
   {
     "eddn": "lithiumhydroxide",
+    "eddn2": "LithiumHydroxide",
     "group_id": 9,
     "id": 128673853,
-    "mean_price": 0,
+    "mean_price": 5673,
     "name": "Lithium Hydroxide"
   },
   {
     "eddn": "methaneclathrate",
+    "eddn2": "MethaneClathrate",
     "group_id": 9,
     "id": 128673854,
-    "mean_price": 0,
+    "mean_price": 1650,
     "name": "Methane Clathrate"
   },
   {
     "eddn": "insulatingmembrane",
+    "eddn2": "InsulatingMembrane",
     "group_id": 4,
     "id": 128673855,
-    "mean_price": 0,
+    "mean_price": 10724,
     "name": "Insulating Membrane"
   },
   {
     "eddn": "cmmcomposite",
+    "eddn2": "CMMComposite",
     "group_id": 4,
     "id": 128673856,
-    "mean_price": 0,
+    "mean_price": 5987,
     "name": "CMM Composite"
   },
   {
     "eddn": "coolinghoses",
+    "eddn2": "CoolingHoses",
     "group_id": 4,
     "id": 128673857,
-    "mean_price": 0,
+    "mean_price": 1886,
     "name": "Micro-weave Cooling Hoses"
   },
   {
     "eddn": "neofabricinsulation",
+    "eddn2": "NeofabricInsulation",
     "group_id": 4,
     "id": 128673858,
-    "mean_price": 0,
+    "mean_price": 5979,
     "name": "Neofabric Insulation"
   },
   {
     "eddn": "articulationmotors",
+    "eddn2": "ArticulationMotors",
     "group_id": 6,
     "id": 128673859,
-    "mean_price": 0,
+    "mean_price": 7589,
     "name": "Articulation Motors"
   },
   {
     "eddn": "hnshockmount",
+    "eddn2": "HNShockMount",
     "group_id": 6,
     "id": 128673860,
-    "mean_price": 0,
+    "mean_price": 1923,
     "name": "HN Shock Mount"
   },
   {
     "eddn": "emergencypowercells",
+    "eddn2": "EmergencyPowerCells",
     "group_id": 6,
     "id": 128673861,
-    "mean_price": 0,
+    "mean_price": 2368,
     "name": "Emergency Power Cells"
   },
   {
     "eddn": "powerconverter",
+    "eddn2": "PowerConverter",
     "group_id": 6,
     "id": 128673862,
-    "mean_price": 0,
+    "mean_price": 1435,
     "name": "Power Converter"
   },
   {
     "eddn": "powergridassembly",
+    "eddn2": "PowerGridAssembly",
     "group_id": 6,
     "id": 128673863,
-    "mean_price": 0,
+    "mean_price": 2659,
     "name": "Energy Grid Assembly"
   },
   {
     "eddn": "powertransferconduits",
+    "eddn2": "PowerTransferConduits",
     "group_id": 6,
     "id": 128673864,
-    "mean_price": 0,
+    "mean_price": 2212,
     "name": "Power Transfer Bus"
   },
   {
     "eddn": "radiationbaffle",
+    "eddn2": "RadiationBaffle",
     "group_id": 6,
     "id": 128673865,
-    "mean_price": 0,
+    "mean_price": 1787,
     "name": "Radiation Baffle"
   },
   {
     "eddn": "exhaustmanifold",
+    "eddn2": "ExhaustManifold",
     "group_id": 6,
     "id": 128673866,
-    "mean_price": 0,
+    "mean_price": 1873,
     "name": "Exhaust Manifold"
   },
   {
     "eddn": "reinforcedmountingplate",
+    "eddn2": "ReinforcedMountingPlate",
     "group_id": 6,
     "id": 128673867,
-    "mean_price": 0,
+    "mean_price": 2454,
     "name": "Reinforced Mounting Plate"
   },
   {
     "eddn": "heatsinkinterlink",
+    "eddn2": "HeatsinkInterlink",
     "group_id": 6,
     "id": 128673868,
-    "mean_price": 0,
+    "mean_price": 2100,
     "name": "Heatsink Interlink"
   },
   {
     "eddn": "magneticemittercoil",
+    "eddn2": "MagneticEmitterCoil",
     "group_id": 6,
     "id": 128673869,
-    "mean_price": 0,
+    "mean_price": 1357,
     "name": "Magnetic Emitter Coil"
   },
   {
     "eddn": "modularterminals",
+    "eddn2": "ModularTerminals",
     "group_id": 6,
     "id": 128673870,
-    "mean_price": 0,
+    "mean_price": 2476,
     "name": "Modular Terminals"
   },
   {
     "eddn": "nanobreakers",
+    "eddn2": null,
     "group_id": 12,
     "id": 128673871,
-    "mean_price": 0,
+    "mean_price": 2367,
     "name": "Nanobreakers"
   },
   {
     "eddn": "telemetrysuite",
+    "eddn2": "TelemetrySuite",
     "group_id": 12,
     "id": 128673872,
-    "mean_price": 0,
+    "mean_price": 3215,
     "name": "Telemetry Suite"
   },
   {
     "eddn": "microcontrollers",
+    "eddn2": "MicroControllers",
     "group_id": 12,
     "id": 128673873,
-    "mean_price": 0,
+    "mean_price": 5590,
     "name": "Micro Controllers"
   },
   {
     "eddn": "iondistributor",
+    "eddn2": "IonDistributor",
     "group_id": 6,
     "id": 128673874,
-    "mean_price": 0,
+    "mean_price": 2367,
     "name": "Ion Distributor"
   },
   {
     "eddn": "diagnosticsensor",
+    "eddn2": "DiagnosticSensor",
     "group_id": 12,
     "id": 128673875,
-    "mean_price": 0,
+    "mean_price": 6727,
     "name": "Hardware Diagnostic Sensor"
   },
   {
     "eddn": null,
+    "eddn2": "ThargoidProbe",
     "group_id": 10,
     "id": 128673876,
     "mean_price": 0,
@@ -2171,62 +2481,71 @@
   },
   {
     "eddn": "conductivefabrics",
+    "eddn2": "ConductiveFabrics",
     "group_id": 13,
     "id": 128682044,
-    "mean_price": 0,
+    "mean_price": 709,
     "name": "Conductive Fabrics"
   },
   {
     "eddn": "militarygradefabrics",
+    "eddn2": "MilitaryGradeFabrics",
     "group_id": 13,
     "id": 128682045,
-    "mean_price": 0,
+    "mean_price": 985,
     "name": "Military Grade Fabrics"
   },
   {
     "eddn": "advancedmedicines",
+    "eddn2": "AdvancedMedicines",
     "group_id": 7,
     "id": 128682046,
-    "mean_price": 0,
+    "mean_price": 1485,
     "name": "Advanced Medicines"
   },
   {
     "eddn": "medicaldiagnosticequipment",
+    "eddn2": "MedicalDiagnosticEquipment",
     "group_id": 12,
     "id": 128682047,
-    "mean_price": 0,
+    "mean_price": 3075,
     "name": "Medical Diagnostic Equipment"
   },
   {
     "eddn": "survivalequipment",
+    "eddn2": "SurvivalEquipment",
     "group_id": 2,
     "id": 128682048,
-    "mean_price": 0,
+    "mean_price": 684,
     "name": "Survival Equipment"
   },
   {
     "eddn": "datacore",
+    "eddn2": "DataCore",
     "group_id": 10,
     "id": 128682049,
-    "mean_price": 0,
+    "mean_price": 6791,
     "name": "Data Core"
   },
   {
     "eddn": "galactictravelguide",
+    "eddn2": "GalacticTravelGuide",
     "group_id": 10,
     "id": 128682050,
-    "mean_price": 0,
+    "mean_price": 8627,
     "name": "Galactic Travel Guide"
   },
   {
     "eddn": "mysteriousidol",
+    "eddn2": "MysteriousIdol",
     "group_id": 10,
     "id": 128682051,
-    "mean_price": 0,
+    "mean_price": 20863,
     "name": "Mysterious Idol"
   },
   {
     "eddn": null,
+    "eddn2": "ProhibitedResearchMaterials",
     "group_id": 10,
     "id": 128682052,
     "mean_price": 0,
@@ -2234,6 +2553,7 @@
   },
   {
     "eddn": "antimattercontainmentunit",
+    "eddn2": "AntimatterContainmentUnit",
     "group_id": 10,
     "id": 128682053,
     "mean_price": 0,
@@ -2241,20 +2561,23 @@
   },
   {
     "eddn": "spacepioneerrelics",
+    "eddn2": "SpacePioneerRelics",
     "group_id": 10,
     "id": 128682054,
-    "mean_price": 0,
+    "mean_price": 9780,
     "name": "Space Pioneer Relics"
   },
   {
     "eddn": "fossilremnants",
+    "eddn2": "FossilRemnants",
     "group_id": 10,
     "id": 128682055,
-    "mean_price": 0,
+    "mean_price": 11785,
     "name": "Fossil Remnants"
   },
   {
     "eddn": null,
+    "eddn2": "CromSilverFesh",
     "group_id": 5,
     "id": 128727921,
     "mean_price": 0,
@@ -2262,6 +2585,7 @@
   },
   {
     "eddn": "ancientrelic",
+    "eddn2": "GuardianRelic",
     "group_id": 10,
     "id": 128732183,
     "mean_price": 0,
@@ -2269,6 +2593,7 @@
   },
   {
     "eddn": "ancientorb",
+    "eddn2": "GuardianOrb",
     "group_id": 10,
     "id": 128732184,
     "mean_price": 0,
@@ -2276,6 +2601,7 @@
   },
   {
     "eddn": "ancientcasket",
+    "eddn2": "GuardianCasket",
     "group_id": 10,
     "id": 128732185,
     "mean_price": 0,
@@ -2283,6 +2609,7 @@
   },
   {
     "eddn": "ancienttablet",
+    "eddn2": "GuardianTablet",
     "group_id": 10,
     "id": 128732186,
     "mean_price": 0,
@@ -2290,6 +2617,7 @@
   },
   {
     "eddn": "ancienturn",
+    "eddn2": "GuardianUrn",
     "group_id": 10,
     "id": 128732187,
     "mean_price": 0,
@@ -2297,6 +2625,7 @@
   },
   {
     "eddn": "ancienttotem",
+    "eddn2": "GuardianTotem",
     "group_id": 10,
     "id": 128732188,
     "mean_price": 0,
@@ -2304,34 +2633,39 @@
   },
   {
     "eddn": "shanscharisorchid",
+    "eddn2": "Shan'sCharisOrchid",
     "group_id": 2,
     "id": 128732551,
-    "mean_price": 0,
+    "mean_price": 9043,
     "name": "Shan's Charis Orchid"
   },
   {
     "eddn": "unknownresin",
+    "eddn2": "ThargoidResin",
     "group_id": 10,
     "id": 128737287,
-    "mean_price": 0,
+    "mean_price": 32825,
     "name": "Thargoid Resin"
   },
   {
     "eddn": "unknownbiologicalmatter",
+    "eddn2": "ThargoidBiologicalMatter",
     "group_id": 10,
     "id": 128737288,
-    "mean_price": 0,
+    "mean_price": 51920,
     "name": "Thargoid Biological Matter"
   },
   {
     "eddn": "unknowntechnologysamples",
+    "eddn2": "ThargoidTechnologySamples",
     "group_id": 10,
     "id": 128737289,
-    "mean_price": 0,
+    "mean_price": 39930,
     "name": "Thargoid Technology Samples"
   },
   {
     "eddn": null,
+    "eddn2": "ThargoidLink",
     "group_id": 10,
     "id": 128740752,
     "mean_price": 0,
@@ -2339,34 +2673,39 @@
   },
   {
     "eddn": "buckyballbeermats",
+    "eddn2": "BuckyballBeerMats",
     "group_id": 2,
     "id": 128748428,
-    "mean_price": 0,
+    "mean_price": 7957,
     "name": "Buckyball Beer Mats"
   },
   {
     "eddn": "harmasilversearum",
+    "eddn2": "HarmaSilverSeaRum",
     "group_id": 5,
     "id": 128793113,
-    "mean_price": 0,
+    "mean_price": 9762,
     "name": "Harma Silver Sea Rum"
   },
   {
     "eddn": "platinumaloy",
+    "eddn2": "PlatinumAlloy",
     "group_id": 8,
     "id": 128793114,
-    "mean_price": 0,
+    "mean_price": 18333,
     "name": "Platinum Alloy"
   },
   {
     "eddn": "thargoidheart",
+    "eddn2": "ThargoidHeart",
     "group_id": 10,
     "id": 128793127,
-    "mean_price": 0,
+    "mean_price": 140275,
     "name": "Thargoid Heart"
   },
   {
     "eddn": null,
+    "eddn2": "ThargoidCyclopsTissueSample",
     "group_id": 10,
     "id": 128793128,
     "mean_price": 0,
@@ -2374,6 +2713,7 @@
   },
   {
     "eddn": null,
+    "eddn2": "ThargoidBasiliskTissueSample",
     "group_id": 10,
     "id": 128793129,
     "mean_price": 0,
@@ -2381,6 +2721,7 @@
   },
   {
     "eddn": null,
+    "eddn2": "ThargoidMedusaTissueSample",
     "group_id": 10,
     "id": 128793130,
     "mean_price": 0,
@@ -2388,6 +2729,7 @@
   },
   {
     "eddn": null,
+    "eddn2": "ThargoidScoutTissueSample",
     "group_id": 10,
     "id": 128824468,
     "mean_price": 0,
@@ -2395,13 +2737,15 @@
   },
   {
     "eddn": "ancientkey",
+    "eddn2": "AncientKey",
     "group_id": 10,
     "id": 128888499,
-    "mean_price": 0,
+    "mean_price": 29931,
     "name": "Ancient Key"
   },
   {
     "eddn": null,
+    "eddn2": "ThargoidHydraTissueSample",
     "group_id": 10,
     "id": 128902652,
     "mean_price": 0,
@@ -2409,13 +2753,15 @@
   },
   {
     "eddn": "nanomedicines",
+    "eddn2": null,
     "group_id": 7,
     "id": 128913661,
-    "mean_price": 0,
+    "mean_price": 9859,
     "name": "Nanomedicines"
   },
   {
     "eddn": null,
+    "eddn2": "MolluscFluid",
     "group_id": 10,
     "id": 128922517,
     "mean_price": 0,
@@ -2423,6 +2769,7 @@
   },
   {
     "eddn": null,
+    "eddn2": "MolluscSoftTissue",
     "group_id": 10,
     "id": 128922518,
     "mean_price": 0,
@@ -2430,6 +2777,7 @@
   },
   {
     "eddn": null,
+    "eddn2": "MolluscBrainTissue",
     "group_id": 10,
     "id": 128922519,
     "mean_price": 0,
@@ -2437,6 +2785,7 @@
   },
   {
     "eddn": null,
+    "eddn2": "PodCoreTissue",
     "group_id": 10,
     "id": 128922520,
     "mean_price": 0,
@@ -2444,6 +2793,7 @@
   },
   {
     "eddn": null,
+    "eddn2": "PodDeadTissue",
     "group_id": 10,
     "id": 128922521,
     "mean_price": 0,
@@ -2451,6 +2801,7 @@
   },
   {
     "eddn": null,
+    "eddn2": "PodSurfaceTissue",
     "group_id": 10,
     "id": 128922522,
     "mean_price": 0,
@@ -2458,20 +2809,23 @@
   },
   {
     "eddn": "p_particulatesample",
+    "eddn2": "AnomalyParticles",
     "group_id": 10,
     "id": 128922523,
-    "mean_price": 0,
+    "mean_price": 45525,
     "name": "Anomaly Particles"
   },
   {
     "eddn": "duradrives",
+    "eddn2": null,
     "group_id": 2,
     "id": 128922524,
-    "mean_price": 0,
+    "mean_price": 19356,
     "name": "Duradrives"
   },
   {
     "eddn": null,
+    "eddn2": "PodTissue",
     "group_id": 10,
     "id": 128922781,
     "mean_price": 0,
@@ -2479,6 +2833,7 @@
   },
   {
     "eddn": null,
+    "eddn2": "MolluscMembrane",
     "group_id": 10,
     "id": 128922782,
     "mean_price": 0,
@@ -2486,6 +2841,7 @@
   },
   {
     "eddn": null,
+    "eddn2": "MolluscMycelium",
     "group_id": 10,
     "id": 128922783,
     "mean_price": 0,
@@ -2493,6 +2849,7 @@
   },
   {
     "eddn": null,
+    "eddn2": "MolluscSpores",
     "group_id": 10,
     "id": 128922784,
     "mean_price": 0,
@@ -2500,6 +2857,7 @@
   },
   {
     "eddn": null,
+    "eddn2": "PodMesoglea",
     "group_id": 10,
     "id": 128922785,
     "mean_price": 0,
@@ -2507,6 +2865,7 @@
   },
   {
     "eddn": null,
+    "eddn2": "PodOuterTissue",
     "group_id": 10,
     "id": 128922786,
     "mean_price": 0,
@@ -2514,6 +2873,7 @@
   },
   {
     "eddn": null,
+    "eddn2": "PodShellTissue",
     "group_id": 10,
     "id": 128922787,
     "mean_price": 0,
@@ -2521,111 +2881,127 @@
   },
   {
     "eddn": "rhodplumsite",
+    "eddn2": null,
     "group_id": 9,
     "id": 128924325,
-    "mean_price": 0,
+    "mean_price": 176882,
     "name": "Rhodplumsite"
   },
   {
     "eddn": "serendibite",
+    "eddn2": null,
     "group_id": 9,
     "id": 128924326,
-    "mean_price": 0,
+    "mean_price": 172781,
     "name": "Serendibite"
   },
   {
     "eddn": "monazite",
+    "eddn2": null,
     "group_id": 9,
     "id": 128924327,
-    "mean_price": 0,
+    "mean_price": 201026,
     "name": "Monazite"
   },
   {
     "eddn": "musgravite",
+    "eddn2": null,
     "group_id": 9,
     "id": 128924328,
-    "mean_price": 0,
+    "mean_price": 198692,
     "name": "Musgravite"
   },
   {
     "eddn": "benitoite",
+    "eddn2": null,
     "group_id": 9,
     "id": 128924329,
-    "mean_price": 0,
+    "mean_price": 149459,
     "name": "Benitoite"
   },
   {
     "eddn": "grandidierite",
+    "eddn2": null,
     "group_id": 9,
     "id": 128924330,
-    "mean_price": 0,
+    "mean_price": 197373,
     "name": "Grandidierite"
   },
   {
     "eddn": "alexandrite",
+    "eddn2": null,
     "group_id": 9,
     "id": 128924331,
-    "mean_price": 0,
+    "mean_price": 217356,
     "name": "Alexandrite"
   },
   {
     "eddn": "opal",
+    "eddn2": "Opal",
     "group_id": 9,
     "id": 128924332,
-    "mean_price": 0,
+    "mean_price": 135339,
     "name": "Void Opal"
   },
   {
     "eddn": "rockforthfertiliser",
+    "eddn2": "RockforthFertiliser",
     "group_id": 1,
     "id": 128924333,
-    "mean_price": 0,
+    "mean_price": 9,
     "name": "Rockforth Fertiliser"
   },
   {
     "eddn": "agronomictreatment",
+    "eddn2": "AgronomicTreatment",
     "group_id": 1,
     "id": 128924334,
-    "mean_price": 0,
+    "mean_price": 3105,
     "name": "Agronomic Treatment"
   },
   {
     "eddn": "apavietii",
+    "eddn2": "ApaVietii",
     "group_id": 5,
     "id": 128958679,
-    "mean_price": 0,
+    "mean_price": 10362,
     "name": "Apa Vietii"
   },
   {
     "eddn": "tritium",
+    "eddn2": null,
     "group_id": 1,
     "id": 128961249,
-    "mean_price": 0,
+    "mean_price": 51707,
     "name": "Tritium"
   },
   {
     "eddn": "onionheadc",
+    "eddn2": "OnionHeadC",
     "group_id": 5,
     "id": 128983059,
-    "mean_price": 0,
+    "mean_price": 4828,
     "name": "Onionhead Gamma Strain"
   },
   {
     "eddn": "classifiedexperimentalequipment",
+    "eddn2": "ClassifiedExperimentalEquipment",
     "group_id": 12,
     "id": 129002574,
-    "mean_price": 0,
+    "mean_price": 11423,
     "name": "Classified Experimental Equipment"
   },
   {
     "eddn": "ancientrelictg",
+    "eddn2": "UnclassifiedRelic",
     "group_id": 10,
     "id": 129015433,
-    "mean_price": 0,
+    "mean_price": 4750,
     "name": "Unclassified Relic"
   },
   {
     "eddn": null,
+    "eddn2": "ThargoidOrthrusTissueSample",
     "group_id": 10,
     "id": 129019258,
     "mean_price": 0,
@@ -2633,6 +3009,7 @@
   },
   {
     "eddn": null,
+    "eddn2": "CausticTissueSample",
     "group_id": 10,
     "id": 129019259,
     "mean_price": 0,
@@ -2640,13 +3017,15 @@
   },
   {
     "eddn": "unocuppiedescapepod",
+    "eddn2": "UnocuppiedEscapePod",
     "group_id": 10,
     "id": 129022087,
-    "mean_price": 0,
+    "mean_price": 3900,
     "name": "Unoccupied Escape Pod"
   },
   {
     "eddn": null,
+    "eddn2": "ThargoidGlaiveTissueSample",
     "group_id": 10,
     "id": 129022395,
     "mean_price": 0,
@@ -2654,6 +3033,7 @@
   },
   {
     "eddn": null,
+    "eddn2": "ThargoidScytheTissueSample",
     "group_id": 10,
     "id": 129022396,
     "mean_price": 0,
@@ -2661,6 +3041,7 @@
   },
   {
     "eddn": null,
+    "eddn2": "TitanDeepTissueSample",
     "group_id": 10,
     "id": 129022398,
     "mean_price": 0,
@@ -2668,6 +3049,7 @@
   },
   {
     "eddn": null,
+    "eddn2": "TitanTissueSample",
     "group_id": 10,
     "id": 129022399,
     "mean_price": 0,
@@ -2675,6 +3057,7 @@
   },
   {
     "eddn": null,
+    "eddn2": "TitanPartialTissueSample",
     "group_id": 10,
     "id": 129022400,
     "mean_price": 0,
@@ -2682,6 +3065,7 @@
   },
   {
     "eddn": null,
+    "eddn2": "TitanMawDeepTissueSample",
     "group_id": 10,
     "id": 129022402,
     "mean_price": 0,
@@ -2689,6 +3073,7 @@
   },
   {
     "eddn": null,
+    "eddn2": "TitanMawTissueSample",
     "group_id": 10,
     "id": 129022403,
     "mean_price": 0,
@@ -2696,6 +3081,7 @@
   },
   {
     "eddn": null,
+    "eddn2": "TitanMawPartialTissueSample",
     "group_id": 10,
     "id": 129022404,
     "mean_price": 0,
@@ -2703,6 +3089,7 @@
   },
   {
     "eddn": null,
+    "eddn2": "ProtectiveMembraneScrap",
     "group_id": 10,
     "id": 129022405,
     "mean_price": 0,
@@ -2710,6 +3097,7 @@
   },
   {
     "eddn": null,
+    "eddn2": "XenobiologicalPrisonPod",
     "group_id": 10,
     "id": 129022406,
     "mean_price": 0,
@@ -2717,13 +3105,15 @@
   },
   {
     "eddn": "coralsap",
+    "eddn2": "CoralSap",
     "group_id": 10,
     "id": 129022407,
-    "mean_price": 0,
+    "mean_price": 129563,
     "name": "Coral Sap"
   },
   {
     "eddn": null,
+    "eddn2": "ImpureSpireMineral",
     "group_id": 10,
     "id": 129022408,
     "mean_price": 0,
@@ -2731,6 +3121,7 @@
   },
   {
     "eddn": null,
+    "eddn2": "Semi-RefinedSpireMineral",
     "group_id": 10,
     "id": 129022409,
     "mean_price": 0,

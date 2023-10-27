@@ -255,6 +255,9 @@ def clean_existing_tables(recreate=False):
         cogdb.eddb.empty_tables()
         pvp.schema.empty_tables()
 
+    # Reset the auto increments for spansh modules, ids get out of hand
+    cogdb.spansh.reset_autoincrements()
+
 
 def main():  # pragma: no cover
     """ Main entry for dbi command. """
