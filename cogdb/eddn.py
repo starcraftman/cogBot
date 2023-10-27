@@ -50,7 +50,7 @@ ALL_MSGS = '/tmp/eddn_all'
 JOURNAL_MSGS = '/tmp/eddn_journals'
 JOURNAL_CARS = '/tmp/eddn_carriers'
 COMMS_MSGS = '/tmp/eddn_commodities'
-STATION_FEATS = [x for x in StationFeatures.__dict__ if x not in ('id', 'kwargs', 'station') and not x.startswith('_')]
+STATION_FEATS = [x for x in StationFeatures.__dict__ if x not in ('id', 'kwargs', 'station', 'engineer') and not x.startswith('_')]
 COMMS_SEEN = []
 BLACKLIST_SOFTWARE = ["EVA [iPad]"]
 LOGS = {}
@@ -407,10 +407,7 @@ class JournalV1(MsgParser):
         if "SystemSecondEconomy" in body:
             system['secondary_economy_id'] = MAPS['Economy'][body["SystemSecondEconomy"].replace("$economy_", "")[:-1]]
         if "SystemFaction" in body:
-            try:
-                system['controlling_minor_faction_id'] = MAPS['factions'][body["SystemFaction"]["Name"]]
-            except KeyError:
-                system['controlling_minor_faction_id'] = None
+            system['controlling_minor_faction_id'] = FACTION_CACHE['known'].get(body["SystemFaction"]["Name"])
         if "SystemSecurity" in body:
             security = body['SystemSecurity'].replace("$SYSTEM_SECURITY_", "").replace("$GAlAXY_MAP_INFO_", "")[:-1]
             system['security_id'] = MAPS["Security"][security]
@@ -499,10 +496,7 @@ class JournalV1(MsgParser):
                 if economy['economy_id'] not in [x['economy_id'] for x in station['economies']]:
                     station['economies'] += [economy]
         if "StationFaction" in body:
-            try:
-                station['controlling_minor_faction_id'] = MAPS['factions'][body["StationFaction"]["Name"]]
-            except KeyError:
-                station['controlling_minor_faction_id'] = None
+            station['controlling_minor_faction_id'] = FACTION_CACHE['known'].get(body["StationFaction"]["Name"])
         if "StationServices" in body:
             station['features'] = {x: x in body["StationServices"] for x in STATION_FEATS}
             station['features']['updated_at'] = station['updated_at']  # pylint: disable=unsupported-assignment-operation
@@ -677,12 +671,12 @@ class JournalV1(MsgParser):
                 faction["state_id"] = MAPS["FactionState"][body_faction["FactionState"]]
 
             try:
-                faction['id'] = MAPS['factions'][body_faction['Name']]
+                faction['id'] = FACTION_CACHE['known'][body_faction['Name']]
             except KeyError:
                 # Faction not mapped, add it immediately, incurs write out cost
-                added = cogdb.spansh.update_faction_map([body_faction['name']], cache=FACTION_CACHE)
-                MAPS['factions'][body_faction['Name']] = added[body_faction['name']]
-                faction['id'] = added[body_faction['name']]
+                added = cogdb.spansh.update_faction_map([body_faction['Name']], cache=FACTION_CACHE)
+                cogdb.spansh.write_faction_cache(FACTION_CACHE)
+                faction['id'] = added[body_faction['Name']]
 
             factions[faction['name']] = faction
 
@@ -721,7 +715,7 @@ class JournalV1(MsgParser):
             influence = {
                 'system_id': system['id'],
                 'faction_id': faction['id'],
-                'is_controlling_faction': MAPS['factions'][body_faction['Name']] == system['controlling_minor_faction_id'],
+                'is_controlling_faction': FACTION_CACHE['known'][body_faction['Name']] == system['controlling_minor_faction_id'],
                 'updated_at': system['updated_at'],
             }
             if "Happiness" in body_faction and body_faction["Happiness"]:
@@ -785,8 +779,8 @@ class JournalV1(MsgParser):
         Parse any conflicts prsent in the message.
         """
         system = self.parsed.get('system')
-        factions = self.parsed.get('factions')
-        if not system or not factions or 'id' not in system:
+        factions_map = FACTION_CACHE['known']
+        if not system or not self.parsed.get('factions') or 'id' not in system:
             raise SkipDatabaseFlush("Conflicts: system or factions improperly parsed.")
 
         conflicts = []
@@ -795,10 +789,10 @@ class JournalV1(MsgParser):
                 'system_id': system['id'],
                 'status_id': MAPS['ConflictState'][conflict['Status']],
                 'type_id': MAPS['ConflictState'][conflict['WarType']],
-                'faction1_id': factions[conflict['Faction1']['Name']]['id'],
+                'faction1_id': factions_map[conflict['Faction1']['Name']],
                 'faction1_stake_id': conflict['Faction1']['Stake'],
                 'faction1_days': int(conflict['Faction1']['WonDays']),
-                'faction2_id': factions[conflict['Faction2']['Name']]['id'],
+                'faction2_id': factions_map[conflict['Faction2']['Name']],
                 'faction2_stake_id': conflict['Faction2']['Stake'],
                 'faction2_days': int(conflict['Faction2']['WonDays']),
                 'updated_at': system['updated_at'],
@@ -871,11 +865,6 @@ def create_id_maps(session):
 
     with open(cogdb.spansh.SYSTEM_MAPF, 'r', encoding='utf-8') as fin:
         maps['systems'] = json.load(fin)
-    with open(cogdb.spansh.STATION_MAPF, 'r', encoding='utf-8') as fin:
-        maps['stations'] = json.load(fin)
-    with open(cogdb.spansh.FACTION_MAPF, 'r', encoding='utf-8') as fin:
-        maps['factions'] = json.load(fin)
-        maps['factions']['None'] = None
 
     return maps
 

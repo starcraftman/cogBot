@@ -1041,9 +1041,7 @@ def update_faction_map(missing, *, cache=None):
 
     cache = cache if cache else create_faction_cache()
     added = update_name_map(missing, name_map=cache)
-
-    with open(known_fname, 'w', encoding='utf-8') as fout:
-        json.dump(cache['known'], fout, indent=JSON_INDENT, sort_keys=True)
+    write_faction_cache(cache)
 
     return added
 
@@ -1058,6 +1056,8 @@ def create_faction_cache():
         }
         known_ids = list(sorted(cache['known'].values()))
         cache['next_id'] = (known_ids[-1] if known_ids else 0) + 1
+        cache['known'][None] = None
+        cache['known']['None'] = None
 
         return cache
 
@@ -1080,6 +1080,17 @@ def create_station_cache():
     cache['next_id'] = known_ids[-1] + 1
 
     return cache
+
+
+def write_faction_cache(cache):
+    """
+    Write out the faction map cache to the files to be updated.
+
+    Args:
+        cache: The cache dictionary created by station_map_cache
+    """
+    with open(FACTION_MAPF, 'w', encoding='utf-8') as fout:
+        json.dump(cache['known'], fout, indent=JSON_INDENT, sort_keys=True)
 
 
 def write_station_cache(cache):
