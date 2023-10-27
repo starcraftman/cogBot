@@ -621,6 +621,35 @@ class StationFeatures(ReprMixin, TimestampMixin, UpdatableMixin, Base):
     # Realtionships
     station = sqla.orm.relationship('Station', uselist=False, viewonly=True)
 
+    @staticmethod
+    def kwargs(station_id, updated_at):
+        """
+        Simple function to create a kwargs object
+        where all features are false. To be updated by looking at current station services.
+
+        Returns: A dictionary of kwargs for a StationFeatures object.
+        """
+        return {
+            'id': station_id,
+            'blackmarket': False,
+            'carriermanagement': False,
+            'carriervendor': False,
+            'commodities': False,
+            'dock': False,
+            'engineer': False,
+            'interstellar_factors': False,
+            'market': False,
+            'materialtrader': False,
+            'outfitting': False,
+            'rearm': False,
+            'refuel': False,
+            'repair': False,
+            'shipyard': False,
+            'techBroker': False,
+            'universal_cartographics': False,
+            'updated_at': updated_at,
+        }
+
     def __eq__(self, other):
         return (isinstance(self, StationFeatures) and isinstance(other, StationFeatures)
                 and self.id == other.id)

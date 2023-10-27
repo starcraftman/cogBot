@@ -540,29 +540,11 @@ def parse_station_features(features, *, station_id, updated_at):
     Args:
         features: The list of station services from spansh.
         station_id: The actual id of the station in question.
-        update_at: The timestamp to assign to this feature set.
+        updated_at: The timestamp to assign to this feature set.
 
     Returns: The kwargs to create a StationFeatures object
     """
-    kwargs = {
-        'id': station_id,
-        'updated_at': updated_at,
-        'carriermanagement': False,
-        'carriervendor': False,
-        'blackmarket': False,
-        'materialtrader': False,
-        'commodities': False,
-        'dock': False,
-        'interstellar_factors': False,
-        'market': False,
-        'outfitting': False,
-        'shipyard': False,
-        'rearm': False,
-        'refuel': False,
-        'repair': False,
-        'techBroker': False,
-        'universal_cartographics': False,
-    }
+    kwargs = StationFeatures.kwargs(station_id, updated_at)
     for feature in features:
         key = SPANSH_STATION_SERVICES.get(feature)
         if key:
@@ -838,6 +820,11 @@ def transform_stations(*, data, mapped, system_id, system_name):
 
         updated_at = date_to_timestamp(station['updateTime'])
         type_id = mapped['station_type'][station['type']]
+
+        stfeatures = parse_station_features(station['services'], station_id=station_id, updated_at=updated_at),
+        # All engineers have government set to engineer
+        stfeatures['engineer'] = station.get("government") == "Engineer":
+
         results[station_id] = {
             'station': {
                 'id': station_id,
@@ -850,7 +837,7 @@ def transform_stations(*, data, mapped, system_id, system_name):
                 'is_planetary': mapped['type_planetary'][type_id],
                 'updated_at': updated_at,
             },
-            'features': parse_station_features(station['services'], station_id=station_id, updated_at=updated_at),
+            'features': stfeatures,
             'economy': {
                 'id': station_id,
                 'economy_id': economy_id,
