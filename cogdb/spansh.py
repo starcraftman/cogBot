@@ -528,23 +528,28 @@ def eddb_maps(eddb_session):
     with open(FACTION_MAPF, 'r', encoding='utf-8') as fin:
         mapped['factions'] = json.load(fin)
         mapped['factions'][None] = None
+        mapped['factions']["None"] = None
 
     return mapped
 
 
-def parse_station_features(features, *, station_id, updated_at):
+def parse_station_features(features, *, station_id, updated_at, gov_type):
     """
     Parse and return a StationFeatures object based on features found in
     spansh specific station services section.
+    Note: Engineer stations have gov_type set to "Engineer"
 
     Args:
         features: The list of station services from spansh.
         station_id: The actual id of the station in question.
         updated_at: The timestamp to assign to this feature set.
+        gov_type: The name of the government of the station.
 
     Returns: The kwargs to create a StationFeatures object
     """
     kwargs = StationFeatures.kwargs(station_id, updated_at)
+    if gov_type == "Engineer":
+        kwargs['engineer'] = True
     for feature in features:
         key = SPANSH_STATION_SERVICES.get(feature)
         if key:
@@ -677,7 +682,7 @@ def transform_system(*, data, mapped):
         raise SpanshParsingError("SPANSH: Missing ID for system: " + data['name'])
 
     controlling_faction = None
-    if 'controlling_faction' in data:
+    if 'controllingFaction' in data:
         controlling_faction = data['controllingFaction']['name']
     power_id = None
     if 'powers' in data and len(data['powers']) == 1:
@@ -820,10 +825,10 @@ def transform_stations(*, data, mapped, system_id, system_name):
 
         updated_at = date_to_timestamp(station['updateTime'])
         type_id = mapped['station_type'][station['type']]
-
-        stfeatures = parse_station_features(station['services'], station_id=station_id, updated_at=updated_at),
-        # All engineers have government set to engineer
-        stfeatures['engineer'] = station.get("government") == "Engineer":
+        stfeatures = parse_station_features(
+            station['services'],
+            station_id=station_id, updated_at=updated_at, gov_type=station.get("government")
+        )
 
         results[station_id] = {
             'station': {

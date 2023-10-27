@@ -101,9 +101,10 @@ def test_eddb_maps(eddb_session):
 
 def test_parse_station_features(f_json):
     features = ['Dock', 'Market', 'Repair', 'Black Market']
-    feature = cogdb.spansh.parse_station_features(features, station_id=20, updated_at=None)
+    feature = cogdb.spansh.parse_station_features(features, station_id=20, updated_at=None, gov_type="Engineer")
     assert feature['blackmarket']
     assert not feature['interstellar_factors']
+    assert feature['engineer']
 
 
 def test_transform_commodities(f_json, eddb_session):

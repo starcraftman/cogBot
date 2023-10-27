@@ -701,7 +701,7 @@ def test_edmcjournal_parse_station(mapped):
             'carriervendor': False,
             'commodities': True,
             'dock': True,
-            'engineer': False,
+            'engineer': True,
             'interstellar_factors': False,
             'market': False,
             'materialtrader': True,
