@@ -696,13 +696,13 @@ def test_edmcjournal_parse_station(mapped):
             {'economy_id': 6, 'primary': False, 'proportion': 0.2}
         ],
         'features': {
+            'apexinterstellar': False,
             'blackmarket': True,
             'carriermanagement': False,
             'carriervendor': False,
             'commodities': True,
             'dock': True,
             'engineer': True,
-            'interstellar_factors': False,
             'market': False,
             'materialtrader': True,
             'outfitting': True,

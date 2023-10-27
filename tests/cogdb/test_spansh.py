@@ -103,7 +103,7 @@ def test_parse_station_features(f_json):
     features = ['Dock', 'Market', 'Repair', 'Black Market']
     feature = cogdb.spansh.parse_station_features(features, station_id=20, updated_at=None, gov_type="Engineer")
     assert feature['blackmarket']
-    assert not feature['interstellar_factors']
+    assert not feature['apexinterstellar']
     assert feature['engineer']
 
 

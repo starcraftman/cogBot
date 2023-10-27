@@ -67,7 +67,7 @@ def test_base_get_stations(eddb_session):
 def test_get_nearest_stations_with_features(eddb_session):
     result = cogdb.eddb.get_nearest_stations_with_features(
         eddb_session, centre_name='Sol',
-        features=['interstellar_factors', 'material_trader', 'shipyard']
+        features=['apexinterstellar', 'materialtrader', 'shipyard']
     )
 
     system_names = {x[0] for x in result}

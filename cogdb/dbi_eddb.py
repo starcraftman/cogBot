@@ -473,7 +473,7 @@ def load_stations(fname, economy_ids, preload=True, refresh_all=False):
         'item.has_carrier_vendor': [('st_features', 'carriervendor')],
         'item.has_commodities': [('st_features', 'commodities')],
         'item.has_docking': [('st_features', 'dock')],
-        'item.has_interstellar_factors': [('st_features', 'interstellar_factors')],
+        'item.has_interstellar_factors': [('st_features', 'apexinterstellar')],
         'item.has_market': [('st_features', 'market')],
         'item.has_material_trader': [('st_features', 'materialtrader')],
         'item.has_outfitting': [('st_features', 'outfitting')],

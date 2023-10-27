@@ -1477,7 +1477,7 @@ class Near(Action):
         with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
             if self.args.subcmd == 'if':
                 msg = await self._get_station_features(
-                    eddb_session, features=['interstellar_factors'],
+                    eddb_session, features=['apexinterstellar'],
                     include_medium=self.args.medium
                 )
             elif self.args.subcmd in self.TRADER_MAP:

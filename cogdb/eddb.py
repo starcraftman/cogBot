@@ -593,20 +593,21 @@ class StationFeatures(ReprMixin, TimestampMixin, UpdatableMixin, Base):
     """ The features at a station. """
     __tablename__ = "station_features"
     _repr_keys = [
-        'id', 'blackmarket', 'carriermanagement', 'carriervendor', 'commodities',
-        'dock', 'engineer', 'interstellar_factors', 'market', 'materialtrader', 'outfitting',
-        'rearm', 'refuel', 'repair', 'shipyard', 'techBroker', 'universal_cartographics', 'updated_at'
+        'id', 'apexinterstellar', 'blackmarket', 'carriermanagement', 'carriervendor',
+        'commodities', 'dock', 'engineer', 'market', 'materialtrader', 'outfitting',
+        'rearm', 'refuel', 'repair', 'shipyard', 'techBroker',
+        'universal_cartographics', 'updated_at'
     ]
 
     id = sqla.Column(sqla.BigInteger, sqla.ForeignKey('stations.id'), primary_key=True)
 
+    apexinterstellar = sqla.Column(sqla.Boolean)
     blackmarket = sqla.Column(sqla.Boolean)
     carriermanagement = sqla.Column(sqla.Boolean)
     carriervendor = sqla.Column(sqla.Boolean)
     commodities = sqla.Column(sqla.Boolean)
     dock = sqla.Column(sqla.Boolean)
     engineer = sqla.Column(sqla.Boolean)
-    interstellar_factors = sqla.Column(sqla.Boolean)
     market = sqla.Column(sqla.Boolean)
     materialtrader = sqla.Column(sqla.Boolean)
     outfitting = sqla.Column(sqla.Boolean)
@@ -631,13 +632,13 @@ class StationFeatures(ReprMixin, TimestampMixin, UpdatableMixin, Base):
         """
         return {
             'id': station_id,
+            'apexinterstellar': False,
             'blackmarket': False,
             'carriermanagement': False,
             'carriervendor': False,
             'commodities': False,
             'dock': False,
             'engineer': False,
-            'interstellar_factors': False,
             'market': False,
             'materialtrader': False,
             'outfitting': False,
@@ -2162,7 +2163,7 @@ def main_test_area(eddb_session):  # pragma: no cover
     print(station.system, station.type, station.features, station.faction)
 
     __import__('pprint').pprint(get_nearest_stations_with_features(
-        eddb_session, centre_name='rana'), features=['interstellar_factors']
+        eddb_session, centre_name='rana'), features=['apexinterstellar']
     )
     stations = get_shipyard_stations(eddb_session, input("Please enter a system name ... "))
     if stations:

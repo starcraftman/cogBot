@@ -58,7 +58,7 @@ SPANSH_STATION_SERVICES = {
     'Material Trader': 'materialtrader',
     'Shop': 'commodities',  # Unsure of mapping
     'Dock': 'dock',
-    'Interstellar Factors Contact': 'interstellar_factors',
+    'Interstellar Factors Contact': 'apexinterstellar',
     'Market': 'market',
     'Outfitting': 'outfitting',
     'Shipyard': 'shipyard',
