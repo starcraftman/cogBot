@@ -415,10 +415,9 @@ def reset_autoincrements():
     """
     Reset the autoincrement counts for particular tables whose counts keep rising via insertion.
     """
-    statement = sqla_sql.text("""ALTER TABLE :tbl AUTO_INCREMENT = 1""")
     with cogdb.eddb_engine.connect() as con:
         for cls in [SCommodity, SCommodityPricing, SModule, SModuleSold]:
-            con.execute(statement, tbl=cls.__tablename__)
+            con.execute(sqla_sql.text(f"ALTER TABLE {cls.__tablename__} AUTO_INCREMENT = 1"))
 
 
 def date_to_timestamp(text):
