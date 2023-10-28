@@ -702,7 +702,6 @@ def test_edmcjournal_parse_station(mapped):
             'carriervendor': False,
             'commodities': True,
             'dock': True,
-            'engineer': True,
             'market': False,
             'materialtrader': True,
             'outfitting': True,

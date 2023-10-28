@@ -40,7 +40,7 @@ EDDN_ADDR = "tcp://eddn.edcd.io:9500"
 TIMEOUT = 600000
 # Keys of form "$schemaRef"
 SCHEMA_MAP = {
-    #  "https://eddn.edcd.io/schemas/commodity/3": "CommodityV3",
+    "https://eddn.edcd.io/schemas/commodity/3": "CommodityV3",
     "https://eddn.edcd.io/schemas/journal/1": "JournalV1",
     #  "https://eddn.edcd.io/schemas/outfitting/2": "OutfittingV2",
     #  "https://eddn.edcd.io/schemas/shipyard/2": "ShipyardV2",

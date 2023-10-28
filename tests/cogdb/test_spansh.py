@@ -43,8 +43,8 @@ def test_spansh_commodity_group__repr__():
 
 
 def test_spansh_commodity__repr__(eddb_session):
-    found = SCommodity(id=SPANSH_ID, group_id=SPANSH_ID, name='TestCommodity', eddn='testcommgroup', mean_price=500)
-    assert "SCommodity(id=999999, group_id=999999, name='TestCommodity', eddn='testcommgroup', mean_price=500)" == repr(found)
+    found = SCommodity(id=SPANSH_ID, group_id=SPANSH_ID, name='TestCommodity', eddn='testcommgroup', eddn2='TestCommGroup', mean_price=500)
+    assert "SCommodity(id=999999, group_id=999999, name='TestCommodity', eddn='testcommgroup', eddn2='TestCommGroup', mean_price=500)" == repr(found)
 
 
 def test_spansh_module_group__repr__(eddb_session):
@@ -160,7 +160,7 @@ def test_transform_system(f_json, eddb_session):
     mapped = cogdb.spansh.eddb_maps(eddb_session)
     results = cogdb.spansh.transform_system(data=f_json, mapped=mapped)
     expect = {
-        'controlling_minor_faction_id': None,
+        'controlling_minor_faction_id': 67059,
         'ed_system_id': 83852530386,
         'id': results['id'],
         'name': 'Rana',
