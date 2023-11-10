@@ -217,7 +217,7 @@ def sanity_check():  # pragma: no cover, underlying functions tested elsewhere o
         sys.exit(1)
 
 
-def handle_confirmation(args):
+def handle_confirmation(args):  # pragma: no cover, simple confirmation
     """
     Print a message outlining the changes to be made step by step.
     Then prompt for confirmation from the user, any response not beginning with y terminates program.
@@ -235,7 +235,7 @@ def handle_confirmation(args):
             sys.exit(0)
 
 
-def clean_existing_tables(recreate=False):
+def clean_existing_tables(recreate=False):  # pragma: no cover
     """
     If requested recreate all existing tables, otherwise simply purge all data.
 

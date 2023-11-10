@@ -8,14 +8,13 @@ import pytest
 import cog.exc
 import cogdb.eddb
 from cogdb.eddb import (
-    System, Faction, Influence, HistoryInfluence, HistoryTrack, TraderType, Ship
+    Station, System, Faction, Influence, HistoryInfluence, HistoryTrack, TraderType, Ship
 )
 
 FAKE_ID1 = 942834121
 FAKE_ID2 = FAKE_ID1 + 1
 FAKE_ID3 = FAKE_ID1 + 2
 HISTORY_TIMESTAMP = 1664897410
-SKIP_BROKEN = pytest.mark.skip("Questionable use, need to be fixed by reimporting data.")
 
 
 def test_ship__repr__(eddb_session):
@@ -32,7 +31,17 @@ def test_ship__str__(eddb_session):
     assert expect == str(ship)
 
 
-@SKIP_BROKEN
+def test_station_carrier_factory(eddb_session):
+    carrier = Station.carrier(
+        name="TestCarrier",
+        station_id=1,
+        system_id=1,
+        distance_to_star=1000,
+    )
+    assert carrier.type_id == 24
+    assert carrier.name == "TestCarrier"
+
+
 def test_system_controls(eddb_session):
     system = eddb_session.query(System).\
         filter(System.name == 'Togher').\
@@ -64,7 +73,6 @@ def test_base_get_stations(eddb_session):
     assert "Lacaille 9352" in system_names
 
 
-@SKIP_BROKEN
 def test_get_nearest_stations_with_features(eddb_session):
     result = cogdb.eddb.get_nearest_stations_with_features(
         eddb_session, centre_name='Sol',
@@ -75,7 +83,6 @@ def test_get_nearest_stations_with_features(eddb_session):
     assert "GD 1192" in system_names
 
 
-@SKIP_BROKEN
 def test_get_nearest_traders_brokers_guardian(eddb_session):
     result = cogdb.eddb.get_nearest_traders(eddb_session, centre_name='Sol', trader_type=TraderType.BROKERS_GUARDIAN)
 
@@ -83,7 +90,6 @@ def test_get_nearest_traders_brokers_guardian(eddb_session):
     assert "[L] Magnus Gateway" in station_names
 
 
-@SKIP_BROKEN
 def test_get_nearest_traders_brokers_human(eddb_session):
     result = cogdb.eddb.get_nearest_traders(eddb_session, centre_name='Sol', trader_type=TraderType.BROKERS_HUMAN)
 
@@ -91,7 +97,6 @@ def test_get_nearest_traders_brokers_human(eddb_session):
     assert "[L] McKay Ring" in station_names
 
 
-@SKIP_BROKEN
 def test_get_nearest_traders_mats_data(eddb_session):
     result = cogdb.eddb.get_nearest_traders(eddb_session, centre_name='Sol', trader_type=TraderType.MATS_DATA)
 
@@ -99,7 +104,6 @@ def test_get_nearest_traders_mats_data(eddb_session):
     assert "[L] Magnus Gateway" in station_names
 
 
-@SKIP_BROKEN
 def test_get_nearest_traders_mats_raw(eddb_session):
     result = cogdb.eddb.get_nearest_traders(eddb_session, centre_name='Sol', trader_type=TraderType.MATS_RAW)
 
@@ -107,7 +111,6 @@ def test_get_nearest_traders_mats_raw(eddb_session):
     assert "[L] Broglie Terminal" in station_names
 
 
-@SKIP_BROKEN
 def test_get_nearest_traders_mats_manufactured(eddb_session):
     result = cogdb.eddb.get_nearest_traders(eddb_session, centre_name='Sol', trader_type=TraderType.MATS_MANUFACTURED)
 
@@ -190,7 +193,6 @@ def test_get_systems_around(eddb_session):
     assert results == expected
 
 
-@SKIP_BROKEN
 def test_get_influences_by_id(eddb_session):
     assert len(cogdb.eddb.get_influences_by_id(eddb_session, [1, 2, 3])) == 3
 

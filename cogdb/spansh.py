@@ -1293,7 +1293,7 @@ def collect_modules_and_commodities(galaxy_json):
     return mods, comms, list(sorted(mod_groups)), list(sorted(comm_groups))
 
 
-def merge_existing_and_new_commodities(comm_dict, mapped):
+def merge_in_new_commodities(comm_dict, mapped):
     """
     Given new_comms parsed from the existing spansh dump that was processed,
     update the existing SCommodity.json with new entries where needed.
@@ -1345,7 +1345,7 @@ def generate_module_commodities_caches(eddb_session, galaxy_json):  # pragma: no
     groups = [SModuleGroup(id=ind, name=x) for ind, x in enumerate(mod_groups, start=1)]
     cogdb.common.dump_dbobjs_to_file(cls=SModuleGroup, db_objs=groups)
 
-    merge_existing_and_new_commodities(comm_dict, mapped)
+    merge_in_new_commodities(comm_dict, mapped)
 
     mods = []
     for mod in sorted(mod_dict.values(), key=lambda x: x['moduleId']):

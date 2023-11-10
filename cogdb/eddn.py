@@ -40,7 +40,7 @@ EDDN_ADDR = "tcp://eddn.edcd.io:9500"
 TIMEOUT = 600000
 # Keys of form "$schemaRef"
 SCHEMA_MAP = {
-    "https://eddn.edcd.io/schemas/commodity/3": "CommodityV3",
+    #  "https://eddn.edcd.io/schemas/commodity/3": "CommodityV3",
     "https://eddn.edcd.io/schemas/journal/1": "JournalV1",
     #  "https://eddn.edcd.io/schemas/outfitting/2": "OutfittingV2",
     #  "https://eddn.edcd.io/schemas/shipyard/2": "ShipyardV2",
@@ -134,6 +134,7 @@ class MsgParser(abc.ABC):
 
     def select_station(self):
         """
+        Used for processing commodity, module and shipyard messages.
         Convenience function, given a msg with a body that contains
         both "stationName" and "systemName", select from the EDDB
         database the corresponding station.
@@ -158,7 +159,7 @@ class MsgParser(abc.ABC):
                 station = station.filter(Station.system_id == subq)
 
             return station.one()
-        except sqla.exc.NoResultFound as exc:
+        except (KeyError, sqla.exc.NoResultFound) as exc:
             raise SkipDatabaseFlush(f"MsgParser: System({self.body['systemName']}) or Station({self.body['stationName']}) not found.") from exc
         except sqla.exc.MultipleResultsFound as exc:  # Serious error if triggers
             msg = f"MsgParser: System({self.body['systemName']}) or Station({self.body['stationName']}) too many results."

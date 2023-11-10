@@ -14,13 +14,20 @@ except ImportError:
     import json
 
 import cogdb.eddn
+import cogdb.eddb
 import cogdb.schema
-import cogdb.spansh
+from cogdb.eddb import FactionActiveState, ShipSold
 from cogdb.schema import TrackByID
-from cogdb.eddb import FactionActiveState
+from cogdb.spansh import SCommodityPricing, SModuleSold
 import cog.util
 
 
+with open(cog.util.rel_to_abs('tests', 'eddn_data', 'commodity.json'), 'r', encoding='utf-8') as fin:
+    EXAMPLE_COMMODITY = json.load(fin)[0]
+with open(cog.util.rel_to_abs('tests', 'eddn_data', 'outfit.json'), 'r', encoding='utf-8') as fin:
+    EXAMPLE_OUTFIT = json.load(fin)[0]
+with open(cog.util.rel_to_abs('tests', 'eddn_data', 'shipyard.json'), 'r', encoding='utf-8') as fin:
+    EXAMPLE_SHIPYARD = json.load(fin)[0]
 EXAMPLE_JOURNAL_CARRIER = """{
     "$schemaRef": "https://eddn.edcd.io/schemas/journal/1",
     "header": {
@@ -521,408 +528,6 @@ def test_create_id_maps(eddb_session):
     assert 'Thargoid' in maps['Allegiance']
 
 
-def test_edmcjournal_header():
-    msg = json.loads(EXAMPLE_JOURNAL_STATION)
-    parser = cogdb.eddn.create_parser(msg)
-
-    assert parser.header["softwareName"] == "E:D Market Connector [Windows]"
-
-
-def test_edmcjournal_body():
-    msg = json.loads(EXAMPLE_JOURNAL_STATION)
-    parser = cogdb.eddn.create_parser(msg)
-
-    assert parser.body["BodyID"] == 65
-
-
-def test_edmcjournal_date_obj():
-    msg = json.loads(EXAMPLE_JOURNAL_STATION)
-    parser = cogdb.eddn.create_parser(msg)
-
-    assert parser.date_obj == datetime.datetime(2020, 8, 3, 11, 4, 11, tzinfo=datetime.timezone.utc)
-
-
-def test_edmcjournal_timestamp():
-    msg = json.loads(EXAMPLE_JOURNAL_STATION)
-    parser = cogdb.eddn.create_parser(msg)
-
-    assert parser.timestamp == 1596452651
-
-
-def test_edmcjournal_parse_msg_journal():
-    msg = json.loads(EXAMPLE_JOURNAL_STATION)
-    parser = cogdb.eddn.create_parser(msg)
-    result = parser.parse_msg()
-
-    assert result['system']
-    assert result['station']
-    assert result['factions']
-    assert result['influences']
-    assert result['conflicts']
-
-
-def test_edmcjournal_parse_msg_carrier():
-    msg = json.loads(EXAMPLE_CARRIER_EDMC)
-    parser = cogdb.eddn.create_parser(msg)
-    result = parser.parse_msg()
-    parser.parse_system()
-    parser.parse_and_flush_carrier()
-
-    assert result['system']
-    assert result['carriers']
-    assert result['station']
-    assert not result.get('factions')
-    assert not result.get('influences')
-    assert not result.get('conflicts')
-
-
-def test_edmcjournal_update_database(mapped):
-    msg = json.loads(EXAMPLE_JOURNAL_STATION)
-    parser = cogdb.eddn.create_parser(msg)
-    parser.parse_msg()
-    parser.update_database()
-    result = parser.parsed
-
-    # Since updating EDDB, these already exist in db so just test valid IDs were set.
-    expect_system_id = mapped['systems'][result['system']['name']]
-    assert result['system']['id'] == expect_system_id
-    station_key = cogdb.spansh.station_key(system=result['system']['name'], station=result['station'])
-    # TODO: Update how station ids verified
-    #  assert result['station']['id'] == mapped['stations'][station_key]
-    faction_name = 'Ahemakino Bridge Organisation'
-    assert result['factions'][faction_name]['id'] == mapped['factions'][faction_name]
-    assert result['influences'][0]['faction_id'] == mapped['factions']['Ochosag Federal Company']
-    assert result['influences'][0]['system_id'] == expect_system_id
-    assert result['conflicts'][0]['faction1_id'] == mapped['factions']['Udegobo Silver Power Int']
-
-
-def test_edmcjournal_parse_system(mapped):
-    expected = {
-        'controlling_minor_faction_id': mapped['factions']['Social Ahemakino Green Party'],
-        'id': mapped['systems']['Ahemakino'],
-        'name': 'Ahemakino',
-        'population': 9165120,
-        'power_id': 6,
-        'power_state_id': 16,
-        'primary_economy_id': 4,
-        'secondary_economy_id': 6,
-        'security_id': 48,
-        'updated_at': 1596452651,
-        'x': 123.25,
-        'y': -3.21875,
-        'z': -97.4375
-    }
-    msg = json.loads(EXAMPLE_JOURNAL_STATION)
-    parser = cogdb.eddn.create_parser(msg)
-
-    result = parser.parse_system()
-
-    assert result == expected
-
-
-def test_edmcjournal_flush_system_to_db():
-    msg = json.loads(EXAMPLE_JOURNAL_STATION)
-    parser = cogdb.eddn.create_parser(msg)
-    parser.parse_system()
-
-    # TODO: Atm this implicit in parse_system, potentially separate.
-    parser.flush_system_to_db()
-    assert parser.flushed
-
-
-def test_edmcjournal_parse_and_flush_carrier_edmc_id(session, f_track_testbed):
-    msg = json.loads(EXAMPLE_CARRIER_EDMC)
-    parser = cogdb.eddn.create_parser(msg)
-    parser.parsed['system'] = {
-        "name": "Rana",
-        "updated_at": "2021-05-20T19:03:20.11111Z",
-    }
-
-    result = parser.parse_and_flush_carrier()
-
-    cid = 'OVE-111'
-    expected = {
-        cid: {
-            'id': cid,
-            'system': 'Rana',
-            'updated_at': parser.date_obj.replace(tzinfo=None),
-        }
-    }
-    assert result == expected
-
-    session.commit()
-    tracked = session.query(TrackByID).filter(TrackByID.id == cid).one()
-    assert tracked.system == "Rana"
-
-    parser.session.rollback()
-    parser.eddb_session.rollback()
-
-
-def test_edmcjournal_parse_and_flush_carrier_disc_system(session, f_track_testbed):
-    msg = json.loads(EXAMPLE_CARRIER_DISC)
-    parser = cogdb.eddn.create_parser(msg)
-    parser.parsed['system'] = {
-        "name": "Nanomam",
-        "updated_at": "2021-05-20 19:03:20",
-    }
-
-    result = parser.parse_and_flush_carrier()
-
-    cid = 'KLG-9TL'
-    expected = {
-        cid: {
-            'id': cid,
-            'override': False,
-            'system': 'Nanomam',
-            'updated_at': parser.date_obj.replace(tzinfo=None),
-        }
-    }
-    assert result == expected
-
-    session.commit()
-    tracked = session.query(TrackByID).filter(TrackByID.id == cid).one()
-    assert tracked.system == "Nanomam"
-
-    parser.session.rollback()
-    parser.eddb_session.rollback()
-
-
-def test_edmcjournal_parse_station(mapped):
-    expected = {
-        'controlling_minor_faction_id': mapped['factions']['Social Ahemakino Green Party'],
-        'distance_to_star': 0,
-        'economies': [
-            {'economy_id': 4, 'primary': True, 'proportion': 0.8},
-            {'economy_id': 6, 'primary': False, 'proportion': 0.2}
-        ],
-        'features': {
-            'apexinterstellar': False,
-            'blackmarket': True,
-            'carriermanagement': False,
-            'carriervendor': False,
-            'commodities': True,
-            'dock': True,
-            'market': False,
-            'materialtrader': True,
-            'outfitting': True,
-            'rearm': True,
-            'refuel': True,
-            'repair': True,
-            'shipyard': True,
-            'techBroker': True,
-            'universal_cartographics': False,
-            'updated_at': 1596452651
-        },
-        'is_planetary': False,
-        'max_landing_pad_size': 'L',
-        'name': 'Mattingly Port',
-        'system_id': mapped['systems']["Ahemakino"],
-        'type_id': 3,
-        'updated_at': 1596452651
-    }
-    msg = json.loads(EXAMPLE_JOURNAL_STATION)
-    parser = cogdb.eddn.create_parser(msg)
-
-    parser.parse_system()
-    result = parser.parse_station()
-
-    assert result == expected
-
-
-def test_edmcjournal_flush_station_to_db():
-    msg = json.loads(EXAMPLE_JOURNAL_STATION)
-    parser = cogdb.eddn.create_parser(msg)
-
-    parser.parse_system()
-    result = parser.parse_station()
-    assert result
-    assert len(parser.flushed) == 1
-
-    parser.flush_station_to_db()
-    assert parser.flushed[1].name == "Mattingly Port"
-
-
-def test_edmcjournal_parse_factions(mapped):
-    expect = {
-        'Ahemakino Bridge Organisation': {'allegiance_id': 4,
-                                          'government_id': 64,
-                                          'id': mapped['factions']['Ahemakino Bridge Organisation'],
-                                          'name': 'Ahemakino Bridge Organisation',
-                                          'state_id': 80,
-                                          'updated_at': 1596452651},
-        'Defence Party of Ahemakino': {'allegiance_id': 4,
-                                       'government_id': 112,
-                                       'id': mapped['factions']['Defence Party of Ahemakino'],
-                                       'name': 'Defence Party of Ahemakino',
-                                       'state_id': 80,
-                                       'updated_at': 1596452651},
-        'Natural Ahemakino Defence Party': {'allegiance_id': 4,
-                                            'government_id': 112,
-                                            'id': mapped['factions']['Natural Ahemakino Defence Party'],
-                                            'name': 'Natural Ahemakino Defence Party',
-                                            'state_id': 80,
-                                            'updated_at': 1596452651},
-        'Ochosag Federal Company': {'allegiance_id': 3,
-                                    'government_id': 64,
-                                    'id': mapped['factions']['Ochosag Federal Company'],
-                                    'name': 'Ochosag Federal Company',
-                                    'state_id': 80,
-                                    'updated_at': 1596452651},
-        'Revolutionary Mpalans Confederation': {'allegiance_id': 3,
-                                                'government_id': 48,
-                                                'id': mapped['factions']['Revolutionary Mpalans Confederation'],
-                                                'name': 'Revolutionary Mpalans '
-                                                        'Confederation',
-                                                'state_id': 73,
-                                                'updated_at': 1596452651},
-        'Social Ahemakino Green Party': {'allegiance_id': 3,
-                                         'government_id': 96,
-                                         'id': mapped['factions']['Social Ahemakino Green Party'],
-                                         'name': 'Social Ahemakino Green Party',
-                                         'state_id': 16,
-                                         'updated_at': 1596452651},
-        'Udegobo Silver Power Int': {'allegiance_id': 3,
-                                     'government_id': 64,
-                                     'id': mapped['factions']['Udegobo Silver Power Int'],
-                                     'name': 'Udegobo Silver Power Int',
-                                     'state_id': 73,
-                                     'updated_at': 1596452651}
-    }
-    msg = json.loads(EXAMPLE_JOURNAL_STATION)
-    parser = cogdb.eddn.create_parser(msg)
-
-    parser.parse_system()
-    parser.parse_station()
-    result = parser.parse_factions()
-
-    assert result == expect
-
-
-def test_edmcjournal_parse_influence(mapped):
-    system_id = mapped['systems']['Ahemakino']
-    expect = [
-        {'faction_id': mapped['factions']['Ochosag Federal Company'],
-         'happiness_id': 2,
-         'influence': 0.102386,
-         'is_controlling_faction': False,
-         'system_id': system_id,
-         'updated_at': 1596452651},
-        {'faction_id': mapped['factions']['Social Ahemakino Green Party'],
-         'happiness_id': 2,
-         'influence': 0.643141,
-         'is_controlling_faction': True,
-         'system_id': system_id,
-         'updated_at': 1596452651},
-        {'faction_id': mapped['factions']['Udegobo Silver Power Int'],
-         'happiness_id': 2,
-         'influence': 0.078529,
-         'is_controlling_faction': False,
-         'system_id': system_id,
-         'updated_at': 1596452651},
-        {'faction_id': mapped['factions']['Defence Party of Ahemakino'],
-         'happiness_id': 2,
-         'influence': 0.014911,
-         'is_controlling_faction': False,
-         'system_id': system_id,
-         'updated_at': 1596452651},
-        {'faction_id': mapped['factions']['Revolutionary Mpalans Confederation'],
-         'happiness_id': 2,
-         'influence': 0.078529,
-         'is_controlling_faction': False,
-         'system_id': system_id,
-         'updated_at': 1596452651},
-        {'faction_id': mapped['factions']['Ahemakino Bridge Organisation'],
-         'happiness_id': 2,
-         'influence': 0.037773,
-         'is_controlling_faction': False,
-         'system_id': system_id,
-         'updated_at': 1596452651},
-        {'faction_id': mapped['factions']['Natural Ahemakino Defence Party'],
-         'happiness_id': 2,
-         'influence': 0.044732,
-         'is_controlling_faction': False,
-         'system_id': system_id,
-         'updated_at': 1596452651}
-    ]
-    msg = json.loads(EXAMPLE_JOURNAL_STATION)
-    parser = cogdb.eddn.create_parser(msg)
-
-    parser.parse_factions()
-    parser.parse_system()
-    parser.parse_station()
-    result = parser.parse_influence()
-
-    assert result == expect
-
-
-def test_edmcjournal_flush_factions_to_db():
-    msg = json.loads(EXAMPLE_JOURNAL_STATION)
-    parser = cogdb.eddn.create_parser(msg)
-
-    parser.parse_system()
-    parser.parse_station()
-    result = parser.parse_factions()
-    assert result
-
-    parser.flush_factions_to_db()
-    assert parser.flushed[1].name == "Ochosag Federal Company"
-
-
-def test_edmcjournal_flush_influences_to_db(mapped):
-    msg = json.loads(EXAMPLE_JOURNAL_STATION)
-    parser = cogdb.eddn.create_parser(msg)
-
-    parser.parse_system()
-    parser.parse_station()
-    parser.parse_factions()
-    result = parser.parse_influence()
-    assert result
-
-    parser.flush_influences_to_db()
-    assert parser.flushed[2].faction_id == mapped['factions']['Social Ahemakino Green Party']
-    assert parser.flushed[2].is_controlling_faction
-    assert parser.flushed[2].happiness_id == 2
-
-
-def test_edmcjournal_parse_conflicts(mapped):
-    expect = [{
-        'faction1_days': 1,
-        'faction1_id': mapped['factions']['Udegobo Silver Power Int'],
-        'faction1_stake_id': mapped['stations']['Ahemakino||Haarsma Keep'],
-        'faction2_days': 0,
-        'faction2_id': mapped['factions']['Revolutionary Mpalans Confederation'],
-        'faction2_stake_id': None,
-        'status_id': 2,
-        'system_id': mapped['systems']['Ahemakino'],
-        'type_id': 6,
-        'updated_at': 1596452651
-    }]
-    msg = json.loads(EXAMPLE_JOURNAL_STATION)
-    parser = cogdb.eddn.create_parser(msg)
-
-    parser.parse_system()
-    parser.parse_station()
-    parser.parse_factions()
-    result = parser.parse_conflicts()
-
-    assert result == expect
-
-
-def test_edmcjournal_flush_conflicts_to_db(mapped):
-    msg = json.loads(EXAMPLE_JOURNAL_STATION)
-    parser = cogdb.eddn.create_parser(msg)
-
-    parser.parse_system()
-    parser.parse_station()
-    parser.parse_factions()
-    result = parser.parse_conflicts()
-    assert result
-
-    parser.flush_conflicts_to_db()
-    assert parser.flushed[1].faction1_id == mapped['factions']['Udegobo Silver Power Int']
-    assert parser.flushed[1].faction2_id == mapped['factions']['Revolutionary Mpalans Confederation']
-
-
 def test_station_key():
     station = {
         'name': 'test',
@@ -960,3 +565,559 @@ def test_timestamp_is_recent():
         }
     }
     assert not cogdb.eddn.timestamp_is_recent(msg, window=1)
+
+
+class MsgParserImpl(cogdb.eddn.MsgParser):
+    """
+    Used to test shared code in MsgParser base.
+    """
+    def parse_msg(self):
+        pass
+
+    def update_database(self):
+        pass
+
+
+def test_msgparser_select_station(session, eddb_session):
+    parser = MsgParserImpl(session, eddb_session, EXAMPLE_COMMODITY)
+    assert parser.select_station().name == "Mozhaysky Gateway"
+
+
+class TestEDMCJournal:
+    """
+    Test all related methods of the EDMCJournal parser
+    """
+    def test_header(self):
+        msg = json.loads(EXAMPLE_JOURNAL_STATION)
+        parser = cogdb.eddn.create_parser(msg)
+
+        assert parser.header["softwareName"] == "E:D Market Connector [Windows]"
+
+    def test_body(self):
+        msg = json.loads(EXAMPLE_JOURNAL_STATION)
+        parser = cogdb.eddn.create_parser(msg)
+
+        assert parser.body["BodyID"] == 65
+
+    def test_date_obj(self):
+        msg = json.loads(EXAMPLE_JOURNAL_STATION)
+        parser = cogdb.eddn.create_parser(msg)
+
+        assert parser.date_obj == datetime.datetime(2020, 8, 3, 11, 4, 11, tzinfo=datetime.timezone.utc)
+
+    def test_timestamp(self):
+        msg = json.loads(EXAMPLE_JOURNAL_STATION)
+        parser = cogdb.eddn.create_parser(msg)
+
+        assert parser.timestamp == 1596452651
+
+    def test_parse_msg_journal(self):
+        msg = json.loads(EXAMPLE_JOURNAL_STATION)
+        parser = cogdb.eddn.create_parser(msg)
+        result = parser.parse_msg()
+
+        assert result['system']
+        assert result['station']
+        assert result['factions']
+        assert result['influences']
+        assert result['conflicts']
+
+    def test_parse_msg_carrier(self):
+        msg = json.loads(EXAMPLE_CARRIER_EDMC)
+        parser = cogdb.eddn.create_parser(msg)
+        result = parser.parse_msg()
+        parser.parse_system()
+        parser.parse_and_flush_carrier()
+
+        assert result['system']
+        assert result['carriers']
+        assert result['station']
+        assert not result.get('factions')
+        assert not result.get('influences')
+        assert not result.get('conflicts')
+
+    def test_update_database(self, mapped):
+        msg = json.loads(EXAMPLE_JOURNAL_STATION)
+        parser = cogdb.eddn.create_parser(msg)
+        parser.parse_msg()
+        parser.update_database()
+        result = parser.parsed
+
+        # Since updating EDDB, these already exist in db so just test valid IDs were set.
+        expect_system_id = mapped['systems'][result['system']['name']]
+        assert result['system']['id'] == expect_system_id
+        station_key = cogdb.spansh.station_key(system=result['system']['name'], station=result['station'])
+        # TODO: Update how station ids verified
+        #  assert result['station']['id'] == mapped['stations'][station_key]
+        faction_name = 'Ahemakino Bridge Organisation'
+        assert result['factions'][faction_name]['id'] == mapped['factions'][faction_name]
+        assert result['influences'][0]['faction_id'] == mapped['factions']['Ochosag Federal Company']
+        assert result['influences'][0]['system_id'] == expect_system_id
+        assert result['conflicts'][0]['faction1_id'] == mapped['factions']['Udegobo Silver Power Int']
+
+    def test_parse_system(self, mapped):
+        expected = {
+            'controlling_minor_faction_id': mapped['factions']['Social Ahemakino Green Party'],
+            'id': mapped['systems']['Ahemakino'],
+            'name': 'Ahemakino',
+            'population': 9165120,
+            'power_id': 6,
+            'power_state_id': 16,
+            'primary_economy_id': 4,
+            'secondary_economy_id': 6,
+            'security_id': 48,
+            'updated_at': 1596452651,
+            'x': 123.25,
+            'y': -3.21875,
+            'z': -97.4375
+        }
+        msg = json.loads(EXAMPLE_JOURNAL_STATION)
+        parser = cogdb.eddn.create_parser(msg)
+
+        result = parser.parse_system()
+
+        assert result == expected
+
+    def test_flush_system_to_db(self):
+        msg = json.loads(EXAMPLE_JOURNAL_STATION)
+        parser = cogdb.eddn.create_parser(msg)
+        parser.parse_system()
+
+        # TODO: Atm this implicit in parse_system, potentially separate.
+        parser.flush_system_to_db()
+        assert parser.flushed
+
+    def test_parse_and_flush_carrier_edmc_id(self, session, f_track_testbed):
+        msg = json.loads(EXAMPLE_CARRIER_EDMC)
+        parser = cogdb.eddn.create_parser(msg)
+        parser.parsed['system'] = {
+            "name": "Rana",
+            "updated_at": "2021-05-20T19:03:20.11111Z",
+        }
+
+        result = parser.parse_and_flush_carrier()
+
+        cid = 'OVE-111'
+        expected = {
+            cid: {
+                'id': cid,
+                'system': 'Rana',
+                'updated_at': parser.date_obj.replace(tzinfo=None),
+            }
+        }
+        assert result == expected
+
+        session.commit()
+        tracked = session.query(TrackByID).filter(TrackByID.id == cid).one()
+        assert tracked.system == "Rana"
+
+        parser.session.rollback()
+        parser.eddb_session.rollback()
+
+    def test_parse_and_flush_carrier_disc_system(self, session, f_track_testbed):
+        msg = json.loads(EXAMPLE_CARRIER_DISC)
+        parser = cogdb.eddn.create_parser(msg)
+        parser.parsed['system'] = {
+            "name": "Nanomam",
+            "updated_at": "2021-05-20 19:03:20",
+        }
+
+        result = parser.parse_and_flush_carrier()
+
+        cid = 'KLG-9TL'
+        expected = {
+            cid: {
+                'id': cid,
+                'override': False,
+                'system': 'Nanomam',
+                'updated_at': parser.date_obj.replace(tzinfo=None),
+            }
+        }
+        assert result == expected
+
+        session.commit()
+        tracked = session.query(TrackByID).filter(TrackByID.id == cid).one()
+        assert tracked.system == "Nanomam"
+
+        parser.session.rollback()
+        parser.eddb_session.rollback()
+
+    def test_parse_station(self, mapped):
+        expected = {
+            'controlling_minor_faction_id': mapped['factions']['Social Ahemakino Green Party'],
+            'distance_to_star': 0,
+            'economies': [
+                {'economy_id': 4, 'primary': True, 'proportion': 0.8},
+                {'economy_id': 6, 'primary': False, 'proportion': 0.2}
+            ],
+            'features': {
+                'apexinterstellar': False,
+                'blackmarket': True,
+                'carriermanagement': False,
+                'carriervendor': False,
+                'commodities': True,
+                'dock': True,
+                'market': False,
+                'materialtrader': True,
+                'outfitting': True,
+                'rearm': True,
+                'refuel': True,
+                'repair': True,
+                'shipyard': True,
+                'techBroker': True,
+                'universal_cartographics': False,
+                'updated_at': 1596452651
+            },
+            'is_planetary': False,
+            'max_landing_pad_size': 'L',
+            'name': 'Mattingly Port',
+            'system_id': mapped['systems']["Ahemakino"],
+            'type_id': 3,
+            'updated_at': 1596452651
+        }
+        msg = json.loads(EXAMPLE_JOURNAL_STATION)
+        parser = cogdb.eddn.create_parser(msg)
+
+        parser.parse_system()
+        result = parser.parse_station()
+
+        assert result == expected
+
+    def test_flush_station_to_db(self):
+        msg = json.loads(EXAMPLE_JOURNAL_STATION)
+        parser = cogdb.eddn.create_parser(msg)
+
+        parser.parse_system()
+        result = parser.parse_station()
+        assert result
+        assert len(parser.flushed) == 1
+
+        parser.flush_station_to_db()
+        assert parser.flushed[1].name == "Mattingly Port"
+
+    def test_parse_factions(self, mapped):
+        expect = {
+            'Ahemakino Bridge Organisation': {
+                'allegiance_id': 4,
+                'government_id': 64,
+                'id': mapped['factions']['Ahemakino Bridge Organisation'],
+                'name': 'Ahemakino Bridge Organisation',
+                'state_id': 80,
+                'updated_at': 1596452651
+            },
+            'Defence Party of Ahemakino': {
+                'allegiance_id': 4,
+                'government_id': 112,
+                'id': mapped['factions']['Defence Party of Ahemakino'],
+                'name': 'Defence Party of Ahemakino',
+                'state_id': 80,
+                'updated_at': 1596452651
+            },
+            'Natural Ahemakino Defence Party': {
+                'allegiance_id': 4,
+                'government_id': 112,
+                'id': mapped['factions']['Natural Ahemakino Defence Party'],
+                'name': 'Natural Ahemakino Defence Party',
+                'state_id': 80,
+                'updated_at': 1596452651
+            },
+            'Ochosag Federal Company': {
+                'allegiance_id': 3,
+                'government_id': 64,
+                'id': mapped['factions']['Ochosag Federal Company'],
+                'name': 'Ochosag Federal Company',
+                'state_id': 80,
+                'updated_at': 1596452651
+            },
+            'Revolutionary Mpalans Confederation': {
+                'allegiance_id': 3,
+                'government_id': 48,
+                'id': mapped['factions']['Revolutionary Mpalans Confederation'],
+                'name': 'Revolutionary Mpalans '
+                        'Confederation',
+                'state_id': 73,
+                'updated_at': 1596452651
+            },
+            'Social Ahemakino Green Party': {
+                'allegiance_id': 3,
+                'government_id': 96,
+                'id': mapped['factions']['Social Ahemakino Green Party'],
+                'name': 'Social Ahemakino Green Party',
+                'state_id': 16,
+                'updated_at': 1596452651
+            },
+            'Udegobo Silver Power Int': {
+                'allegiance_id': 3,
+                'government_id': 64,
+                'id': mapped['factions']['Udegobo Silver Power Int'],
+                'name': 'Udegobo Silver Power Int',
+                'state_id': 73,
+                'updated_at': 1596452651
+            }
+        }
+        msg = json.loads(EXAMPLE_JOURNAL_STATION)
+        parser = cogdb.eddn.create_parser(msg)
+
+        parser.parse_system()
+        parser.parse_station()
+        result = parser.parse_factions()
+
+        assert result == expect
+
+    def test_parse_influence(self, mapped):
+        system_id = mapped['systems']['Ahemakino']
+        expect = [
+            {
+                'faction_id': mapped['factions']['Ochosag Federal Company'],
+                'happiness_id': 2,
+                'influence': 0.102386,
+                'is_controlling_faction': False,
+                'system_id': system_id,
+                'updated_at': 1596452651
+            },
+            {
+                'faction_id': mapped['factions']['Social Ahemakino Green Party'],
+                'happiness_id': 2,
+                'influence': 0.643141,
+                'is_controlling_faction': True,
+                'system_id': system_id,
+                'updated_at': 1596452651
+            },
+            {
+                'faction_id': mapped['factions']['Udegobo Silver Power Int'],
+                'happiness_id': 2,
+                'influence': 0.078529,
+                'is_controlling_faction': False,
+                'system_id': system_id,
+                'updated_at': 1596452651
+            },
+            {
+                'faction_id': mapped['factions']['Defence Party of Ahemakino'],
+                'happiness_id': 2,
+                'influence': 0.014911,
+                'is_controlling_faction': False,
+                'system_id': system_id,
+                'updated_at': 1596452651
+            },
+            {
+                'faction_id': mapped['factions']['Revolutionary Mpalans Confederation'],
+                'happiness_id': 2,
+                'influence': 0.078529,
+                'is_controlling_faction': False,
+                'system_id': system_id,
+                'updated_at': 1596452651
+            },
+            {
+                'faction_id': mapped['factions']['Ahemakino Bridge Organisation'],
+                'happiness_id': 2,
+                'influence': 0.037773,
+                'is_controlling_faction': False,
+                'system_id': system_id,
+                'updated_at': 1596452651
+            },
+            {
+                'faction_id': mapped['factions']['Natural Ahemakino Defence Party'],
+                'happiness_id': 2,
+                'influence': 0.044732,
+                'is_controlling_faction': False,
+                'system_id': system_id,
+                'updated_at': 1596452651
+            }
+        ]
+        msg = json.loads(EXAMPLE_JOURNAL_STATION)
+        parser = cogdb.eddn.create_parser(msg)
+
+        parser.parse_factions()
+        parser.parse_system()
+        parser.parse_station()
+        result = parser.parse_influence()
+
+        assert result == expect
+
+    def test_flush_factions_to_db(self):
+        msg = json.loads(EXAMPLE_JOURNAL_STATION)
+        parser = cogdb.eddn.create_parser(msg)
+
+        parser.parse_system()
+        parser.parse_station()
+        result = parser.parse_factions()
+        assert result
+
+        parser.flush_factions_to_db()
+        assert parser.flushed[1].name == "Ochosag Federal Company"
+
+    def test_flush_influences_to_db(self, mapped):
+        msg = json.loads(EXAMPLE_JOURNAL_STATION)
+        parser = cogdb.eddn.create_parser(msg)
+
+        parser.parse_system()
+        parser.parse_station()
+        parser.parse_factions()
+        result = parser.parse_influence()
+        assert result
+
+        parser.flush_influences_to_db()
+        assert parser.flushed[2].faction_id == mapped['factions']['Social Ahemakino Green Party']
+        assert parser.flushed[2].is_controlling_faction
+        assert parser.flushed[2].happiness_id == 2
+
+    def test_parse_conflicts(self, mapped):
+        expect = [{
+            'faction1_days': 1,
+            'faction1_id': mapped['factions']['Udegobo Silver Power Int'],
+            'faction1_stake_id': mapped['stations']['Ahemakino||Haarsma Keep'],
+            'faction2_days': 0,
+            'faction2_id': mapped['factions']['Revolutionary Mpalans Confederation'],
+            'faction2_stake_id': None,
+            'status_id': 2,
+            'system_id': mapped['systems']['Ahemakino'],
+            'type_id': 6,
+            'updated_at': 1596452651
+        }]
+        msg = json.loads(EXAMPLE_JOURNAL_STATION)
+        parser = cogdb.eddn.create_parser(msg)
+
+        parser.parse_system()
+        parser.parse_station()
+        parser.parse_factions()
+        result = parser.parse_conflicts()
+
+        assert result == expect
+
+    def test_flush_conflicts_to_db(self, mapped):
+        msg = json.loads(EXAMPLE_JOURNAL_STATION)
+        parser = cogdb.eddn.create_parser(msg)
+
+        parser.parse_system()
+        parser.parse_station()
+        parser.parse_factions()
+        result = parser.parse_conflicts()
+        assert result
+
+        parser.flush_conflicts_to_db()
+        assert parser.flushed[1].faction1_id == mapped['factions']['Udegobo Silver Power Int']
+        assert parser.flushed[1].faction2_id == mapped['factions']['Revolutionary Mpalans Confederation']
+
+
+class TestCommodityV3:
+    """
+    Test all related methods of the comodity parser
+    """
+    def test_parse_msg(self, session, eddb_session):
+        parser = cogdb.eddn.CommodityV3(session, eddb_session, EXAMPLE_COMMODITY)
+        parser.parse_msg()
+        assert parser.parsed['commodity_pricing'][0]['station_id'] == 16986
+
+    def test_update_database(self, session, eddb_session):
+        parser = cogdb.eddn.CommodityV3(session, eddb_session, EXAMPLE_COMMODITY)
+        parser.parse_msg()
+        station_id = parser.parsed['commodity_pricing'][0]['station_id']
+        comm_id = parser.parsed['commodity_pricing'][0]['commodity_id']
+
+        existing = []
+        try:
+            existing = eddb_session.query(SCommodityPricing).filter(SCommodityPricing.station_id == station_id).all()
+            eddb_session.query(SCommodityPricing).filter(SCommodityPricing.station_id == station_id).delete()
+            eddb_session.commit()
+
+            parser.update_database()
+            found = eddb_session.query(SCommodityPricing).\
+                filter(SCommodityPricing.station_id == station_id,
+                        SCommodityPricing.commodity_id == comm_id).\
+                one()
+            assert found
+        finally:
+            eddb_session.rollback()
+            if existing:
+                eddb_session.query(SCommodityPricing).filter(SCommodityPricing.station_id == station_id).delete()
+                for item in existing:
+                    eddb_session.add(SCommodityPricing(
+                        id=item.id,
+                        station_id=item.station_id,
+                        commodity_id=item.commodity_id,
+                        demand=item.demand,
+                        supply=item.supply,
+                        buy_price=item.buy_price,
+                        sell_price=item.sell_price,
+                    ))
+                eddb_session.commit()
+
+
+class TestOutfittingV2:
+    """
+    Test all related methods of the comodity parser
+    """
+    def test_parse_msg(self, session, eddb_session):
+        parser = cogdb.eddn.OutfittingV2(session, eddb_session, EXAMPLE_OUTFIT)
+        parser.parse_msg()
+        assert parser.parsed['modules_sold'][0]['station_id'] == 16986
+
+    def test_update_database(self, session, eddb_session):
+        parser = cogdb.eddn.OutfittingV2(session, eddb_session, EXAMPLE_OUTFIT)
+        parser.parse_msg()
+        station_id = parser.parsed['modules_sold'][0]['station_id']
+        mod_id = parser.parsed['modules_sold'][0]['module_id']
+
+        existing = []
+        try:
+            existing = eddb_session.query(SModuleSold).filter(SModuleSold.station_id == station_id).all()
+            eddb_session.query(SModuleSold).filter(SModuleSold.station_id == station_id).delete()
+            eddb_session.commit()
+
+            parser.update_database()
+            found = eddb_session.query(SModuleSold).\
+                filter(SModuleSold.station_id == station_id,
+                        SModuleSold.module_id == mod_id).\
+                one()
+            assert found
+        finally:
+            eddb_session.rollback()
+            if existing:
+                eddb_session.query(SModuleSold).filter(SModuleSold.station_id == station_id).delete()
+                for item in existing:
+                    eddb_session.add(SModuleSold(
+                        id=item.id,
+                        station_id=item.station_id,
+                        module_id=item.module_id,
+                    ))
+                eddb_session.commit()
+
+
+class TestShipyardV2:
+    """
+    Test all related methods of the comodity parser
+    """
+    def test_parse_msg(self, session, eddb_session):
+        parser = cogdb.eddn.ShipyardV2(session, eddb_session, EXAMPLE_SHIPYARD)
+        parser.parse_msg()
+        assert parser.parsed['ships_sold'][0]['station_id'] == 788
+
+    def test_update_database(self, session, eddb_session):
+        parser = cogdb.eddn.ShipyardV2(session, eddb_session, EXAMPLE_SHIPYARD)
+        parser.parse_msg()
+        station_id = parser.parsed['ships_sold'][0]['station_id']
+        ship_id = parser.parsed['ships_sold'][0]['ship_id']
+
+        existing = []
+        try:
+            existing = eddb_session.query(ShipSold).filter(ShipSold.station_id == station_id).all()
+            eddb_session.query(ShipSold).filter(ShipSold.station_id == station_id).delete()
+            eddb_session.commit()
+
+            parser.update_database()
+            found = eddb_session.query(ShipSold).\
+                filter(ShipSold.station_id == station_id,
+                        ShipSold.ship_id == ship_id).\
+                one()
+            assert found
+        finally:
+            eddb_session.rollback()
+            if existing:
+                eddb_session.query(ShipSold).filter(ShipSold.station_id == station_id).delete()
+                for item in existing:
+                    eddb_session.add(ShipSold(
+                        id=item.id,
+                        station_id=item.station_id,
+                        ship_id=item.ship_id,
+                    ))
+                eddb_session.commit()

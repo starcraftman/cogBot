@@ -10,6 +10,7 @@ import shutil
 import tempfile
 
 import pytest
+from mock import patch
 import sqlalchemy as sqla
 
 import cogdb
@@ -559,3 +560,90 @@ def test_commswriter_finish():
 def test_station_useful():
     assert cogdb.spansh.station_useful({"type": 1, "services": []})
     assert not cogdb.spansh.station_useful({"type": 1})
+
+
+@patch('cogdb.common.PRELOAD_DIR', tempfile.gettempdir())
+def test_merge_in_new_commodities(eddb_session):
+    expect = """[
+  {
+    "eddn": null,
+    "group_id": 1,
+    "id": 99,
+    "mean_price": 0,
+    "name": "test_comm"
+  }
+]"""
+    mapped = cogdb.spansh.eddb_maps(eddb_session)
+    comms_dict = {
+        99: {
+            'name': 'test_comm',
+            'symbol': 'test_symbol',
+            'category': 'Chemicals',
+            'commodityId': 99,
+        }
+    }
+    mapped = cogdb.spansh.eddb_maps(eddb_session)
+    cogdb.spansh.merge_in_new_commodities(comms_dict, mapped)
+    path = pathlib.Path(os.path.join(tempfile.gettempdir(), 'SCommodity.json'))
+    assert path.exists()
+    with path.open(mode='r', encoding='utf-8') as fin:
+        assert fin.read() == expect
+
+
+C_CACHE = os.path.join(tempfile.gettempdir(), 'ccache')
+F_CACHE = os.path.join(tempfile.gettempdir(), 'fcache')
+S_CACHE = os.path.join(tempfile.gettempdir(), 'scache')
+
+
+@patch('cogdb.spansh.FACTION_MAPF', F_CACHE)
+def test_write_faction_cache():
+    expect = """[
+  {
+    "faction": "testfaction"
+  }
+]"""
+    cache = {
+        "known": [{
+            "faction": "testfaction",
+        }]
+    }
+
+    cogdb.spansh.write_faction_cache(cache)
+    path = pathlib.Path(F_CACHE)
+    assert path.exists()
+    with path.open(mode='r', encoding='utf-8') as fin:
+        assert fin.read() == expect
+
+
+@patch('cogdb.spansh.STATION_MAPF', S_CACHE)
+@patch('cogdb.spansh.CARRIER_MAPF', C_CACHE)
+def test_write_station_cache():
+    expect_station = """[
+  {
+    "name": "teststation"
+  }
+]"""
+    expect_carrier = """[
+  {
+    "name": "testcarrier"
+  }
+]"""
+    cache = {
+        "known": [{
+            "name": "teststation",
+        }],
+        "carriers": [{
+            "name": "testcarrier",
+        }]
+    }
+
+    cogdb.spansh.write_station_cache(cache)
+
+    path = pathlib.Path(C_CACHE)
+    assert path.exists()
+    with path.open(mode='r', encoding='utf-8') as fin:
+        assert fin.read() == expect_carrier
+    path = pathlib.Path(S_CACHE)
+    assert path.exists()
+    with path.open(mode='r', encoding='utf-8') as fin:
+        assert fin.read() == expect_station
