@@ -197,7 +197,7 @@ class CommodityV3(MsgParser):
     def parse_msg(self):
         station = self.select_station()
 
-        logging.getLogger(__name__).info("CommodityV3 for station: %s", station.name)
+        logging.getLogger(__name__).info("CommodityV3: %s (%s)", station.name, station.system.name)
         LOGS['commodities'].write_msg(self.msg)
         self.parsed['commodity_pricing'] = []
         for comm in self.body['commodities']:
@@ -249,7 +249,7 @@ class OutfittingV2(MsgParser):
     def parse_msg(self):
         station = self.select_station()
 
-        logging.getLogger(__name__).info("OutfittingV2 for station: %s", station.name)
+        logging.getLogger(__name__).info("OutfittingV2: %s (%s)", station.name, station.system.name)
         LOGS['modules'].write_msg(self.msg)
         self.parsed['modules_sold'] = []
         for mod in self.body['modules']:
@@ -285,7 +285,7 @@ class ShipyardV2(MsgParser):
     def parse_msg(self):
         station = self.select_station()
 
-        logging.getLogger(__name__).info("ShipyardV2 for station: %s", station.name)
+        logging.getLogger(__name__).info("ShipyardV2: %s (%s)", station.name, station.system.name)
         LOGS['shipyards'].write_msg(self.msg)
         self.parsed['ships_sold'] = []
         for ship in self.body['ships']:
