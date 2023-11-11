@@ -9,8 +9,10 @@ import abc
 import argparse
 import datetime
 import logging
+import os.path
 import pprint
 import sys
+import tempfile
 import time
 import zlib
 
@@ -45,13 +47,16 @@ SCHEMA_MAP = {
     #  "https://eddn.edcd.io/schemas/outfitting/2": "OutfittingV2",
     #  "https://eddn.edcd.io/schemas/shipyard/2": "ShipyardV2",
 }
-LOG_FILE = "/tmp/eddn_log"
-ALL_MSGS = '/tmp/eddn_all'
-JOURNAL_MSGS = '/tmp/eddn_journals'
-JOURNAL_CARS = '/tmp/eddn_carriers'
-COMMS_MSGS = '/tmp/eddn_commodities'
-MODS_MSGS = '/tmp/eddn_modules'
-SHIPS_MSGS = '/tmp/eddn_shipyards'
+LOG_FILE = os.path.join(tempfile.gettempdir(), 'eddn_log')
+ALL_MSGS = os.path.join(tempfile.gettempdir(), 'eddn_all')
+JOURNAL_MSGS = os.path.join(tempfile.gettempdir(), 'eddn_journals')
+CARRIER_MSGS = os.path.join(tempfile.gettempdir(), 'eddn_carriers')
+COMMS_MSGS = os.path.join(tempfile.gettempdir(), 'eddn_commodities')
+MODS_MSGS = os.path.join(tempfile.gettempdir(), 'eddn_modules')
+SHIPS_MSGS = os.path.join(tempfile.gettempdir(), 'eddn_shipyards')
+COMMS_MISS = os.path.join(tempfile.gettempdir(), 'eddnMissComms.log')
+MODS_MISS = os.path.join(tempfile.gettempdir(), 'eddnMissMods.log')
+SHIPS_MISS = os.path.join(tempfile.gettempdir(), 'eddnMissShips.log')
 STATION_FEATS = [
     x for x in StationFeatures.__dict__
     if x not in ('id', 'updated_at', 'kwargs', 'station', 'engineer') and not x.startswith('_')
@@ -214,7 +219,7 @@ class CommodityV3(MsgParser):
             except KeyError:
                 if comm['name'] not in COMMS_SEEN:
                     COMMS_SEEN.append(comm['name'])
-                    with open('/tmp/commsMiss.log', 'a', encoding='utf-8') as fout:
+                    with open(COMMS_MISS, 'a', encoding='utf-8') as fout:
                         fout.write(f"No map: {comm['name']}\n")
 
     def update_database(self):
@@ -259,7 +264,7 @@ class OutfittingV2(MsgParser):
                     'module_id': MAPS['SModule'][mod.lower()],
                 }]
             except KeyError:
-                with open('/tmp/modsMiss.log', 'a', encoding='utf-8') as fout:
+                with open(MODS_MISS, 'a', encoding='utf-8') as fout:
                     fout.write(f"No map: {mod}\n")
 
     def update_database(self):
@@ -295,7 +300,7 @@ class ShipyardV2(MsgParser):
                     'ship_id': MAPS['Ship'][ship],
                 }]
             except KeyError:
-                with open('/tmp/shipMiss.log', 'a', encoding='utf-8') as fout:
+                with open(SHIPS_MISS, 'a', encoding='utf-8') as fout:
                     fout.write(f"No map: {ship}\n")
 
     def update_database(self):
@@ -332,15 +337,15 @@ class JournalV1(MsgParser):
                 self.eddb_session.commit()
 
             system = self.parse_system()
-            log.info("JournalV1 [%s] Parsing system", star_system)
+            log.info("JournalV1 (%s) Parsing system", star_system)
             log.info(pprint.pformat(system))
 
             if 'Factions' in self.body:
-                log.info("JournalV1 [%s] Parsing factions", star_system)
+                log.info("JournalV1 (%s) Parsing factions", star_system)
                 log.debug(pprint.pformat(self.parsed['factions']))
 
             if 'StationName' in self.body and "StationType" in self.body:
-                log.info("JournalV1 [%s] Parsing station", star_system)
+                log.info("JournalV1 (%s) Parsing station", star_system)
                 log.debug(pprint.pformat(self.parse_station()))
 
                 if self.body["StationType"] == "FleetCarrier":
@@ -349,11 +354,11 @@ class JournalV1(MsgParser):
                     log.info(pprint.pformat(parsed))
 
             if 'Factions' in self.body:
-                log.info("JournalV1 [%s] Parsing influences", star_system)
+                log.info("JournalV1 (%s) Parsing influences", star_system)
                 log.debug(pprint.pformat(self.parse_influence()))
                 LOGS['journals'].write_msg(self.msg)
                 if 'Conflicts' in self.body:
-                    log.info("JournalV1 [%s] Parsing conflicts", star_system)
+                    log.info("JournalV1 (%s) Parsing conflicts", star_system)
                     log.debug(pprint.pformat(self.parse_conflicts()))
 
         except StopParsing:
@@ -993,12 +998,14 @@ def init_eddn_log(fname, log_level="INFO", disable_log_all=True):  # pragma: no 
     log.addHandler(handler)
 
     # Specific loggers for separate streams of messages
-    LOGS['all'] = EDDNLogger(folder=ALL_MSGS, reset=True, disabled=disable_log_all)
-    LOGS['journals'] = EDDNLogger(folder=JOURNAL_MSGS, keep_n=200, reset=True, disabled=False)
-    LOGS['carriers'] = EDDNLogger(folder=JOURNAL_CARS, keep_n=200, reset=True, disabled=False)
-    LOGS['commodities'] = EDDNLogger(folder=COMMS_MSGS, reset=True, disabled=False)
-    LOGS['modules'] = EDDNLogger(folder=MODS_MSGS, reset=True, disabled=False)
-    LOGS['shipyards'] = EDDNLogger(folder=SHIPS_MSGS, reset=True, disabled=False)
+    LOGS.update({
+        'all': EDDNLogger(folder=ALL_MSGS, reset=True, disabled=disable_log_all),
+        'carriers': EDDNLogger(folder=CARRIER_MSGS, keep_n=200, reset=True, disabled=False),
+        'journals': EDDNLogger(folder=JOURNAL_MSGS, keep_n=200, reset=True, disabled=False),
+        'commodities': EDDNLogger(folder=COMMS_MSGS, reset=True, disabled=False),
+        'modules': EDDNLogger(folder=MODS_MSGS, reset=True, disabled=False),
+        'shipyards': EDDNLogger(folder=SHIPS_MSGS, reset=True, disabled=False),
+    })
 
 
 def create_args_parser():  # pragma: no cover
