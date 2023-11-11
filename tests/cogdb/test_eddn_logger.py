@@ -1,5 +1,5 @@
 """
-Tests for cogdb.eddn_log
+Tests for cogdb.eddn_logger
 """
 import pathlib
 import shutil
@@ -7,7 +7,7 @@ import tempfile
 
 import pytest
 
-import cogdb.eddn_log as elog
+import cogdb.eddn_logger as elog
 
 
 def test_log_fname():

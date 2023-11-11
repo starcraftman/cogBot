@@ -29,7 +29,7 @@ import cogdb
 import cogdb.eddb
 import cogdb.query
 import cogdb.spansh
-import cogdb.eddn_log
+from cogdb.eddn_logger import EDDNLogger
 from cogdb.eddb import (
     Conflict, Faction, Influence, Ship, ShipSold, System, Station, CarrierSighting,
     StationEconomy, StationFeatures, FactionActiveState, FactionPendingState, FactionRecoveringState
@@ -50,7 +50,12 @@ ALL_MSGS = '/tmp/eddn_all'
 JOURNAL_MSGS = '/tmp/eddn_journals'
 JOURNAL_CARS = '/tmp/eddn_carriers'
 COMMS_MSGS = '/tmp/eddn_commodities'
-STATION_FEATS = [x for x in StationFeatures.__dict__ if x not in ('id', 'kwargs', 'station', 'engineer') and not x.startswith('_')]
+MODS_MSGS = '/tmp/eddn_modules'
+SHIPS_MSGS = '/tmp/eddn_shipyards'
+STATION_FEATS = [
+    x for x in StationFeatures.__dict__
+    if x not in ('id', 'updated_at', 'kwargs', 'station', 'engineer') and not x.startswith('_')
+]
 COMMS_SEEN = []
 BLACKLIST_SOFTWARE = ["EVA [iPad]"]
 LOGS = {}
@@ -192,6 +197,7 @@ class CommodityV3(MsgParser):
     def parse_msg(self):
         station = self.select_station()
 
+        logging.getLogger(__name__).info("CommodityV3 for station: %s", station.name)
         LOGS['commodities'].write_msg(self.msg)
         self.parsed['commodity_pricing'] = []
         for comm in self.body['commodities']:
@@ -243,6 +249,8 @@ class OutfittingV2(MsgParser):
     def parse_msg(self):
         station = self.select_station()
 
+        logging.getLogger(__name__).info("OutfittingV2 for station: %s", station.name)
+        LOGS['modules'].write_msg(self.msg)
         self.parsed['modules_sold'] = []
         for mod in self.body['modules']:
             try:
@@ -277,6 +285,8 @@ class ShipyardV2(MsgParser):
     def parse_msg(self):
         station = self.select_station()
 
+        logging.getLogger(__name__).info("ShipyardV2 for station: %s", station.name)
+        LOGS['shipyards'].write_msg(self.msg)
         self.parsed['ships_sold'] = []
         for ship in self.body['ships']:
             try:
@@ -964,12 +974,12 @@ def init_eddn_log(fname, log_level="INFO", disable_log_all=True):  # pragma: no 
     log = logging.getLogger(__name__)
     for hand in log.handlers:
         log.removeHandler(hand)
-    log.setLevel(log_level)
+    log.setLevel("DEBUG")
 
     log_fmt = logging.Formatter(fmt="[%(levelname)-5.5s] %(asctime)s %(name)s.%(funcName)s()::%(lineno)s | %(message)s")
     handler = logging.handlers.RotatingFileHandler(fname, maxBytes=2 ** 20, backupCount=3, encoding='utf8')
     handler.setFormatter(log_fmt)
-    handler.setLevel(log_level)
+    handler.setLevel('DEBUG')
     handler.doRollover()
     log.addHandler(handler)
 
@@ -979,10 +989,12 @@ def init_eddn_log(fname, log_level="INFO", disable_log_all=True):  # pragma: no 
     log.addHandler(handler)
 
     # Specific loggers for separate streams of messages
-    LOGS['all'] = cogdb.eddn_log.EDDNLogger(folder=ALL_MSGS, reset=True, disabled=disable_log_all)
-    LOGS['journals'] = cogdb.eddn_log.EDDNLogger(folder=JOURNAL_MSGS, keep_n=200, reset=True, disabled=False)
-    LOGS['carriers'] = cogdb.eddn_log.EDDNLogger(folder=JOURNAL_CARS, keep_n=200, reset=True, disabled=False)
-    LOGS['commodities'] = cogdb.eddn_log.EDDNLogger(folder=COMMS_MSGS, reset=True, disabled=False)
+    LOGS['all'] = EDDNLogger(folder=ALL_MSGS, reset=True, disabled=disable_log_all)
+    LOGS['journals'] = EDDNLogger(folder=JOURNAL_MSGS, keep_n=200, reset=True, disabled=False)
+    LOGS['carriers'] = EDDNLogger(folder=JOURNAL_CARS, keep_n=200, reset=True, disabled=False)
+    LOGS['commodities'] = EDDNLogger(folder=COMMS_MSGS, reset=True, disabled=False)
+    LOGS['modules'] = EDDNLogger(folder=MODS_MSGS, reset=True, disabled=False)
+    LOGS['shipyards'] = EDDNLogger(folder=SHIPS_MSGS, reset=True, disabled=False)
 
 
 def create_args_parser():  # pragma: no cover
@@ -990,7 +1002,7 @@ def create_args_parser():  # pragma: no cover
     Return parser for using this component on command line.
     """
     parser = argparse.ArgumentParser(description="EDDN Listener")
-    parser.add_argument('--level', '-l', default='DEBUG',
+    parser.add_argument('--level', '-l', default='INFO',
                         help='Set the overall logging level..')
     parser.add_argument('--no-all', '-a', action='store_false', dest='disable_all',
                         help='Capture all messages intercepted.')
@@ -1013,6 +1025,10 @@ def main():  # pragma: no cover
 
     try:
         print(f"connection established, reading messages.\nOutput at: {LOG_FILE}")
+        print("The following schemas enabled:")
+        for key in SCHEMA_MAP:
+            print('\t' + key)
+        print('\n')
         connect_loop(sub)
     except KeyboardInterrupt:
         msg = """Terminating ZMQ connection."""
