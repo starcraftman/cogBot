@@ -163,7 +163,7 @@ class Allegiance(ReprMixin, Base):
 
 class Commodity(ReprMixin, UpdatableMixin, Base):
     """ A commodity sold at a station. """
-    __tablename__ = 'commodities'
+    __tablename__ = 'eddb_commodities'
     _repr_keys = [
         'id', 'category_id', "name", "average_price", "is_rare", "is_non_marketable",
         "max_buy_price", "max_sell_price", "min_buy_price", "min_sell_price", "updated_at"
@@ -171,7 +171,7 @@ class Commodity(ReprMixin, UpdatableMixin, Base):
 
     id = sqla.Column(sqla.Integer, primary_key=True)
     category_id = sqla.Column(sqla.Integer,
-                              sqla.ForeignKey("commodity_categories.id"), nullable=False)
+                              sqla.ForeignKey("eddb_commodity_categories.id"), nullable=False)
 
     name = sqla.Column(sqla.String(LEN["commodity"]))
     average_price = sqla.Column(sqla.Integer, default=0)
@@ -193,7 +193,7 @@ class Commodity(ReprMixin, UpdatableMixin, Base):
 
 class CommodityCat(ReprMixin, Base):
     """ The category for a commodity """
-    __tablename__ = "commodity_categories"
+    __tablename__ = "eddb_commodity_categories"
     _repr_keys = ['id', 'name']
 
     id = sqla.Column(sqla.Integer, primary_key=True)
@@ -408,11 +408,11 @@ class Influence(ReprMixin, TimestampMixin, Base):
 
 class Module(ReprMixin, UpdatableMixin, Base):
     """ A module for a ship. """
-    __tablename__ = "modules"
+    __tablename__ = "eddb_modules"
     _repr_keys = ['id', 'name', 'group_id', 'size', 'rating', 'mass', 'price', 'ship', 'weapon_mode']
 
     id = sqla.Column(sqla.Integer, primary_key=True)
-    group_id = sqla.Column(sqla.Integer, sqla.ForeignKey('module_groups.id'))
+    group_id = sqla.Column(sqla.Integer, sqla.ForeignKey('eddb_module_groups.id'), nullable=False)
 
     size = sqla.Column(sqla.Integer)  # Equal to in game size, 1-8.
     rating = sqla.Column(sqla.String(1))  # Rating is A-E
@@ -431,7 +431,7 @@ class Module(ReprMixin, UpdatableMixin, Base):
 
 class ModuleGroup(ReprMixin, Base):
     """ A group for a module. """
-    __tablename__ = "module_groups"
+    __tablename__ = "eddb_module_groups"
     _repr_keys = ['id', 'name', 'category', 'category_id']
 
     id = sqla.Column(sqla.Integer, primary_key=True)
