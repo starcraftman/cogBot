@@ -324,19 +324,23 @@ class JournalV1(MsgParser):
         Perform whole message parsing.
         """
         log = logging.getLogger(__name__)
+        star_system = self.body.get('StarSystem', 'Unknown System')
         try:
             if 'Factions' in self.body:
-                log.info("System %s: Parsing factions", self.body.get('StarSystem', 'Unknown System'))
-                log.debug(pprint.pformat(self.parse_factions()))
+                self.parse_factions()
                 self.flush_factions_to_db()
                 self.eddb_session.commit()
 
             system = self.parse_system()
-            log.info("System %s: Parsing system", self.body.get('StarSystem', 'Unknown System'))
+            log.info("JournalV1 [%s] Parsing system", star_system)
             log.info(pprint.pformat(system))
 
+            if 'Factions' in self.body:
+                log.info("JournalV1 [%s] Parsing factions", star_system)
+                log.debug(pprint.pformat(self.parsed['factions']))
+
             if 'StationName' in self.body and "StationType" in self.body:
-                log.info("System %s: Parsing station", self.body.get('StarSystem', 'Unknown System'))
+                log.info("JournalV1 [%s] Parsing station", star_system)
                 log.debug(pprint.pformat(self.parse_station()))
 
                 if self.body["StationType"] == "FleetCarrier":
@@ -345,11 +349,11 @@ class JournalV1(MsgParser):
                     log.info(pprint.pformat(parsed))
 
             if 'Factions' in self.body:
-                log.info("System %s: Parsing influences", self.body.get('StarSystem', 'Unknown System'))
+                log.info("JournalV1 [%s] Parsing influences", star_system)
                 log.debug(pprint.pformat(self.parse_influence()))
                 LOGS['journals'].write_msg(self.msg)
                 if 'Conflicts' in self.body:
-                    log.info("System %s: Parsing conflicts", self.body.get('StarSystem', 'Unknown System'))
+                    log.info("JournalV1 [%s] Parsing conflicts", star_system)
                     log.debug(pprint.pformat(self.parse_conflicts()))
 
         except StopParsing:
@@ -1003,9 +1007,9 @@ def create_args_parser():  # pragma: no cover
     """
     parser = argparse.ArgumentParser(description="EDDN Listener")
     parser.add_argument('--level', '-l', default='INFO',
-                        help='Set the overall logging level..')
+                        help='Set the STDOUT logging level.')
     parser.add_argument('--no-all', '-a', action='store_false', dest='disable_all',
-                        help='Capture all messages intercepted.')
+                        help='Capture all messages received.')
 
     return parser
 
