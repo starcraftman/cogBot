@@ -3,9 +3,6 @@
 Tests for cogdb.eddn
 """
 import datetime
-import pathlib
-import shutil
-import tempfile
 
 import pytest
 try:
@@ -16,7 +13,7 @@ except ImportError:
 import cogdb.eddn
 import cogdb.eddb
 import cogdb.schema
-from cogdb.eddb import FactionActiveState, ShipSold
+from cogdb.eddb import ShipSold
 from cogdb.schema import TrackByID
 from cogdb.spansh import SCommodityPricing, SModuleSold
 import cog.util
@@ -578,39 +575,43 @@ class MsgParserImpl(cogdb.eddn.MsgParser):
         pass
 
 
-def test_msgparser_select_station(session, eddb_session):
-    parser = MsgParserImpl(session, eddb_session, EXAMPLE_COMMODITY)
-    assert parser.select_station().name == "Mozhaysky Gateway"
+class TestMsgParserImpl:
+    """
+    Test all base MsgParser methods.
+    """
+    def test_header(self, session, eddb_session):
+        msg = json.loads(EXAMPLE_JOURNAL_STATION)
+        parser = MsgParserImpl(session, eddb_session, msg)
+
+        assert parser.header["softwareName"] == "E:D Market Connector [Windows]"
+
+    def test_body(self, session, eddb_session):
+        msg = json.loads(EXAMPLE_JOURNAL_STATION)
+        parser = MsgParserImpl(session, eddb_session, msg)
+
+        assert parser.body["BodyID"] == 65
+
+    def test_date_obj(self, session, eddb_session):
+        msg = json.loads(EXAMPLE_JOURNAL_STATION)
+        parser = MsgParserImpl(session, eddb_session, msg)
+
+        assert parser.date_obj == datetime.datetime(2020, 8, 3, 11, 4, 11, tzinfo=datetime.timezone.utc)
+
+    def test_timestamp(self, session, eddb_session):
+        msg = json.loads(EXAMPLE_JOURNAL_STATION)
+        parser = MsgParserImpl(session, eddb_session, msg)
+
+        assert parser.timestamp == 1596452651
+
+    def test_select_station(self, session, eddb_session):
+        parser = MsgParserImpl(session, eddb_session, EXAMPLE_COMMODITY)
+        assert parser.select_station().name == "Mozhaysky Gateway"
 
 
 class TestEDMCJournal:
     """
     Test all related methods of the EDMCJournal parser
     """
-    def test_header(self):
-        msg = json.loads(EXAMPLE_JOURNAL_STATION)
-        parser = cogdb.eddn.create_parser(msg)
-
-        assert parser.header["softwareName"] == "E:D Market Connector [Windows]"
-
-    def test_body(self):
-        msg = json.loads(EXAMPLE_JOURNAL_STATION)
-        parser = cogdb.eddn.create_parser(msg)
-
-        assert parser.body["BodyID"] == 65
-
-    def test_date_obj(self):
-        msg = json.loads(EXAMPLE_JOURNAL_STATION)
-        parser = cogdb.eddn.create_parser(msg)
-
-        assert parser.date_obj == datetime.datetime(2020, 8, 3, 11, 4, 11, tzinfo=datetime.timezone.utc)
-
-    def test_timestamp(self):
-        msg = json.loads(EXAMPLE_JOURNAL_STATION)
-        parser = cogdb.eddn.create_parser(msg)
-
-        assert parser.timestamp == 1596452651
-
     def test_parse_msg_journal(self):
         msg = json.loads(EXAMPLE_JOURNAL_STATION)
         parser = cogdb.eddn.create_parser(msg)

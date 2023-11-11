@@ -36,6 +36,7 @@ if TEST_DB:
     CREDS['main']['db'] = 'test'
 else:
     CREDS['main']['db'] = os.environ.get('TOKEN', 'dev')
+CUR_DB = CREDS['main']['db']
 
 engine = sqlalchemy.create_engine(
     MYSQL_SPEC.format(**CREDS['main']),
