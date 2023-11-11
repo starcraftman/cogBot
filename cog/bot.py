@@ -205,10 +205,10 @@ class CogBot(discord.Client):
                 [cog.util.CONF.monitor, 'ConfigMonitor', 'Monitors file for config changes'],
                 [cogdb.eddb.monitor_eddb_caches, 'EDDBMonitor', 'Monitors cached tables of EDDB'],
                 [cogdb.monitor_pools, 'SQLPoolMonitor', 'Logs state of the SQLAlchemy pools'],
-                [
-                    functools.partial(cog.actions.monitor_spy_site, self, repeat=True, delay=900),
-                    'SpySiteMonitor', 'Monitors spy site for outages',
-                ],
+                #  [
+                    #  functools.partial(cog.actions.monitor_spy_site, self, repeat=True, delay=900),
+                    #  'SpySiteMonitor', 'Monitors spy site for outages',
+                #  ],
                 [
                     functools.partial(
                         cog.actions.monitor_snipe_merits, self,

@@ -2611,15 +2611,13 @@ async def monitor_powerplay_api(client, *, repeat=True, delay=1800):
     """
     log = logging.getLogger(__name__)
     last_base = None
-    params = {'token': cog.util.CONF.scrape.token}
     log.warning("Started powerplay monitor.")
 
     while True:
         await asyncio.sleep(delay)
+        params = {'token': cog.util.CONF.scrape.token}
 
         try:
-            await cog.util.get_url(cog.util.CONF.scrape.url)  # Sanity check service up
-
             with cfut.ProcessPoolExecutor(max_workers=4) as pool:
                 try:
                     if last_base != cog.util.current_cycle():
@@ -2673,7 +2671,8 @@ async def monitor_spy_site(client, *, repeat=True, delay=900):
     while repeat:
         await asyncio.sleep(delay)
         try:
-            await cog.util.get_url(cog.util.CONF.scrape.url)
+            params = {'token': cog.util.CONF.scrape.token}
+            await cog.util.get_url(os.path.join(cog.util.CONF.scrape.api, 'getraw', 'base.json'), params=params)
             if not working:
                 diff_time = datetime.datetime.utcnow() - last_working
                 hours = diff_time.seconds // 3600 + diff_time.days * 24
