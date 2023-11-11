@@ -1,5 +1,5 @@
 """
-cogdb.eddn_log
+cogdb.eddn_logger
 A loger for tracking the last n EDDN messages into a folder.
 """
 import logging

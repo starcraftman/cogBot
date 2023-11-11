@@ -25,39 +25,37 @@ from sqlalchemy.pool import NullPool
 
 import cog.util
 
-# Old engine, just in case
+# Old engine declarations, just in case
 # engine = sqlalchemy.create_engine('sqlite://', echo=False)
+# engine = sqlalchemy.create_engine(MYSQL_SPEC.format(**CREDS), echo=False, pool_pre_ping=True, pool_recycle=3600, pool_size=20)
 
 MYSQL_SPEC = 'mysql+pymysql://{user}:{pass}@{host}/{db}?charset=utf8mb4'
-CREDS = cog.util.CONF.dbs.main.unwrap
-
-TEST_DB = False
-if 'pytest' in sys.modules:
-    CUR_DB = 'test'
-    CREDS['db'] = CUR_DB
-    TEST_DB = True
+CREDS = cog.util.CONF.dbs.unwrap
+TEST_DB = 'pytest' in sys.modules
+if TEST_DB:
+    CREDS['main']['db'] = 'test'
 else:
-    CUR_DB = os.environ.get('TOKEN', 'dev')
-    CREDS['db'] = CUR_DB
+    CREDS['main']['db'] = os.environ.get('TOKEN', 'dev')
 
-#  engine = sqlalchemy.create_engine(MYSQL_SPEC.format(**CREDS), echo=False, pool_pre_ping=True, pool_recycle=3600, pool_size=20)
-engine = sqlalchemy.create_engine(MYSQL_SPEC.format(**CREDS), echo=False, poolclass=NullPool,
-                                  connect_args={'connect_timeout': 3})
+engine = sqlalchemy.create_engine(
+    MYSQL_SPEC.format(**CREDS['main']),
+    echo=False, poolclass=NullPool, connect_args={'connect_timeout': 3}
+)
 Session = sqlalchemy.orm.sessionmaker(bind=engine)
 logging.getLogger(__name__).error('Main Engine Selected: %s', engine)
 
 # Local eddb server
-CREDS['db'] = "eddb"
-#  eddb_engine = sqlalchemy.create_engine(MYSQL_SPEC.format(**CREDS), echo=False, pool_pre_ping=True, pool_recycle=3600, pool_size=20)
-eddb_engine = sqlalchemy.create_engine(MYSQL_SPEC.format(**CREDS), echo=False, poolclass=NullPool,
-                                       connect_args={'connect_timeout': 3})
+eddb_engine = sqlalchemy.create_engine(
+    MYSQL_SPEC.format(**CREDS['eddb']),
+    echo=False, poolclass=NullPool, connect_args={'connect_timeout': 3}
+)
 EDDBSession = sqlalchemy.orm.sessionmaker(bind=eddb_engine)
 logging.getLogger(__name__).error('EDDB Engine Selected: %s', eddb_engine)
 
 # Remote server tracking bgs
-CREDS = cog.util.CONF.dbs.side.unwrap
-#  side_engine = sqlalchemy.create_engine(MYSQL_SPEC.format(**CREDS), echo=False, pool_recycle=900, pool_size=10)
-side_engine = sqlalchemy.create_engine(MYSQL_SPEC.format(**CREDS), echo=False, poolclass=NullPool)
+side_engine = sqlalchemy.create_engine(MYSQL_SPEC.format(
+    **CREDS['side']), echo=False, poolclass=NullPool
+)
 SideSession = sqlalchemy.orm.sessionmaker(bind=side_engine)
 
 CREDS = None
