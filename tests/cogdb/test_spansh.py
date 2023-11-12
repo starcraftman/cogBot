@@ -16,8 +16,9 @@ import sqlalchemy as sqla
 import cogdb
 import cogdb.eddb
 import cogdb.spansh
-from cogdb.spansh import (
-    SEP, SCommodityGroup, SCommodity, SCommodityPricing,
+from cogdb.spansh import SEP
+from cogdb.eddb import (
+    SCommodityGroup, SCommodity, SCommodityPricing,
     SModuleGroup, SModule, SModuleSold)
 import cog.util
 JSON_PATH = cog.util.rel_to_abs('tests', 'cogdb', 'spansh_rana.json')
@@ -110,7 +111,7 @@ def test_parse_station_features(f_json):
 
 def test_transform_commodities(f_json, eddb_session):
     mapped = cogdb.spansh.eddb_maps(eddb_session)
-    expect = cogdb.spansh.SCommodity(id=128924331, group_id=9, name='Alexandrite')
+    expect = SCommodity(id=128924331, group_id=9, name='Alexandrite')
 
     for station in f_json['stations']:
         comms = cogdb.spansh.transform_commodities(station=station, mapped=mapped)
@@ -140,7 +141,7 @@ def test_transform_commodity_pricing(f_json, eddb_session):
 
 def test_transform_modules(f_json, eddb_session):
     mapped = cogdb.spansh.eddb_maps(eddb_session)
-    expect = cogdb.spansh.SModule(id=128777340, group_id=2, ship_id=None, name='Repair Limpet Controller', symbol='Int_DroneControl_Repair_Size5_Class4', mod_class=5, rating='B')
+    expect = SModule(id=128777340, group_id=2, ship_id=None, name='Repair Limpet Controller', symbol='Int_DroneControl_Repair_Size5_Class4', mod_class=5, rating='B')
     for station in f_json['stations']:
         if 'outfitting' in station and 'modules' in station['outfitting'] and station['outfitting']['modules']:
             found = cogdb.spansh.transform_modules(station=station, mapped=mapped)
