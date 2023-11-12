@@ -8,6 +8,7 @@ import tempfile
 
 import cogdb.common
 import cogdb.spansh
+from cogdb.eddb import SCommodityGroup
 from cogdb.eddb import SettlementSecurity
 
 
@@ -67,14 +68,14 @@ def test_bulk_insert_from_file(eddb_session):
             tfile.write(str({'id': fake_id, 'name': 'NotPresent'}) + ',\n')
             tfile.write(']\n')
             tfile.flush()
-            cogdb.common.bulk_insert_from_file(eddb_session, fname=tfile.name, cls=cogdb.spansh.SCommodityGroup)
-            assert eddb_session.query(cogdb.spansh.SCommodityGroup).\
-                filter(cogdb.spansh.SCommodityGroup.id == fake_id).\
+            cogdb.common.bulk_insert_from_file(eddb_session, fname=tfile.name, cls=SCommodityGroup)
+            assert eddb_session.query(SCommodityGroup).\
+                filter(SCommodityGroup.id == fake_id).\
                 one()
     finally:
         eddb_session.rollback()
-        eddb_session.query(cogdb.spansh.SCommodityGroup).\
-            filter(cogdb.spansh.SCommodityGroup.id == fake_id).\
+        eddb_session.query(SCommodityGroup).\
+            filter(SCommodityGroup.id == fake_id).\
             delete()
 
 
@@ -86,12 +87,12 @@ def test_single_insert_from_file(eddb_session):
             tfile.write(str({'id': fake_id, 'name': 'NotPresent'}) + ',\n')
             tfile.write(']\n')
             tfile.flush()
-            cogdb.common.single_insert_from_file(eddb_session, fname=tfile.name, cls=cogdb.spansh.SCommodityGroup)
-            assert eddb_session.query(cogdb.spansh.SCommodityGroup).\
-                filter(cogdb.spansh.SCommodityGroup.id == fake_id).\
+            cogdb.common.single_insert_from_file(eddb_session, fname=tfile.name, cls=SCommodityGroup)
+            assert eddb_session.query(SCommodityGroup).\
+                filter(SCommodityGroup.id == fake_id).\
                 one()
     finally:
         eddb_session.rollback()
-        eddb_session.query(cogdb.spansh.SCommodityGroup).\
-            filter(cogdb.spansh.SCommodityGroup.id == fake_id).\
+        eddb_session.query(SCommodityGroup).\
+            filter(SCommodityGroup.id == fake_id).\
             delete()

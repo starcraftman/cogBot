@@ -16,7 +16,6 @@ https://towardsdatascience.com/how-to-perform-bulk-inserts-with-sqlalchemy-effic
 import asyncio
 import concurrent.futures as cfut
 import datetime
-import functools
 import glob
 import json
 import logging
@@ -24,10 +23,6 @@ import os
 from pathlib import Path
 
 import psutil
-import sqlalchemy as sqla
-import sqlalchemy.sql as sqla_sql
-import sqlalchemy.orm as sqla_orm
-from sqlalchemy.schema import UniqueConstraint
 
 import cogdb
 import cogdb.common
@@ -35,11 +30,12 @@ import cogdb.eddb
 import cogdb.spy_squirrel
 from cogdb.common import bulk_insert_from_file
 from cogdb.eddb import (
-    Base, LEN, Allegiance, Economy, Faction, Influence, FactionState, FactionActiveState, Government,
+    Base, Allegiance, Economy, Faction, Influence, FactionState, FactionActiveState, Government,
     Power, PowerState, Security, Ship, System, Station, StationType, StationEconomy, StationFeatures,
+    SCommodity, SCommodityGroup, SModule, SModuleGroup
 )
 import cog.util
-from cog.util import ReprMixin, UpdatableMixin, print_no_newline
+from cog.util import print_no_newline
 
 
 JSON_INDENT = 2
@@ -90,197 +86,6 @@ class SpanshParsingError(Exception):
     """
     Error happened during processing spansh data.
     """
-
-
-@functools.total_ordering
-class SCommodity(ReprMixin, UpdatableMixin, Base):
-    """ A spansh commodity sold at a station. """
-    __tablename__ = 'spansh_commodities'
-    _repr_keys = ['id', 'group_id', "name", "eddn", "eddn2", "mean_price"]
-
-    id = sqla.Column(sqla.Integer, primary_key=True)  # commodityId
-    group_id = sqla.Column(sqla.Integer, sqla.ForeignKey("spansh_commodity_groups.id"), nullable=False)
-    name = sqla.Column(sqla.String(LEN["commodity"]))
-    eddn = sqla.Column(sqla.String(LEN["commodity"]))
-    eddn2 = sqla.Column(sqla.String(LEN["commodity"]))
-    mean_price = sqla.Column(sqla.Integer, default=0)
-
-    @property
-    def text(self):
-        """ Alias for name. """
-        return self.name
-
-    def __eq__(self, other):
-        return (isinstance(self, SCommodity) and isinstance(other, SCommodity)
-                and hash(self) == hash(other))
-
-    def __lt__(self, other):
-        return (isinstance(self, SCommodity) and isinstance(other, SCommodity)
-                and self.name < other.name)
-
-    def __hash__(self):
-        return self.id
-
-
-@functools.total_ordering
-class SCommodityGroup(ReprMixin, Base):
-    """ The spansh group for a commodity """
-    __tablename__ = "spansh_commodity_groups"
-    _repr_keys = ['id', 'name']
-
-    id = sqla.Column(sqla.Integer, primary_key=True)
-    name = sqla.Column(sqla.String(LEN["commodity_group"]))
-
-    @property
-    def text(self):
-        """ Alias for name. """
-        return self.name
-
-    def __eq__(self, other):
-        return (isinstance(self, SCommodityGroup) and isinstance(other, SCommodityGroup)
-                and hash(self) == hash(other))
-
-    def __lt__(self, other):
-        return (isinstance(self, SCommodityGroup) and isinstance(other, SCommodityGroup)
-                and self.name < other.name)
-
-    def __hash__(self):
-        return self.id
-
-
-class SCommodityPricing(ReprMixin, UpdatableMixin, Base):
-    """
-    The spansh pricing of a commodity sold at the station indicated.
-    Updated_at can be found on station.
-    """
-    __tablename__ = 'spansh_commodity_pricing'
-    __table_args__ = (
-        UniqueConstraint('station_id', 'commodity_id', name='spansh_station_commodity_unique'),
-    )
-    _repr_keys = [
-        'id', 'station_id', 'commodity_id', "demand", "supply", "buy_price", "sell_price"
-    ]
-
-    id = sqla.Column(sqla.BigInteger, primary_key=True)
-    station_id = sqla.Column(sqla.BigInteger, sqla.ForeignKey("stations.id"), nullable=False)
-    commodity_id = sqla.Column(sqla.Integer, sqla.ForeignKey("spansh_commodities.id"), nullable=False)
-
-    demand = sqla.Column(sqla.Integer, default=0)
-    supply = sqla.Column(sqla.Integer, default=0)
-    buy_price = sqla.Column(sqla.Integer, default=0)
-    sell_price = sqla.Column(sqla.Integer, default=0)
-
-    @property
-    def text(self):
-        """ Alias for name. """
-        return self.name
-
-    def __eq__(self, other):
-        return (isinstance(self, SCommodityPricing) and isinstance(other, SCommodityPricing)
-                and hash(self) == hash(other))
-
-    def __hash__(self):
-        return hash(f'{self.station_id}_{self.commodity_id}')
-
-
-@functools.total_ordering
-class SModule(ReprMixin, UpdatableMixin, Base):
-    """ A spansh module sold in a shipyard. """
-    __tablename__ = 'spansh_modules'
-    _repr_keys = [
-        'id', 'group_id', "ship_id", "name", "symbol", "mod_class", "rating"
-    ]
-
-    id = sqla.Column(sqla.Integer, primary_key=True)  # moduleId
-    group_id = sqla.Column(sqla.Integer, sqla.ForeignKey("spansh_module_groups.id"), nullable=False)
-    ship_id = sqla.Column(sqla.Integer)
-
-    name = sqla.Column(sqla.String(LEN["module"]))
-    symbol = sqla.Column(sqla.String(200))
-    mod_class = sqla.Column(sqla.Integer, default=1)
-    rating = sqla.Column(sqla.String(5), default=1)
-
-    @property
-    def text(self):
-        """ Alias for name. """
-        return self.name
-
-    def __eq__(self, other):
-        return (isinstance(self, SModule) and isinstance(other, SModule)
-                and hash(self) == hash(other))
-
-    def __lt__(self, other):
-        return (isinstance(self, SModule) and isinstance(other, SModule)
-                and self.name < other.name)
-
-    def __hash__(self):
-        return self.id
-
-
-@functools.total_ordering
-class SModuleGroup(ReprMixin, Base):
-    """ The spansh group for a module """
-    __tablename__ = "spansh_module_groups"
-    _repr_keys = ['id', 'name']
-
-    id = sqla.Column(sqla.Integer, primary_key=True)
-    name = sqla.Column(sqla.String(LEN["module_group"]))
-
-    @property
-    def text(self):
-        """ Alias for name. """
-        return self.name
-
-    def __eq__(self, other):
-        return (isinstance(self, SModuleGroup) and isinstance(other, SModuleGroup)
-                and hash(self) == hash(other))
-
-    def __lt__(self, other):
-        return (isinstance(self, SModuleGroup) and isinstance(other, SModuleGroup)
-                and self.name < other.name)
-
-    def __hash__(self):
-        return self.id
-
-
-class SModuleSold(ReprMixin, UpdatableMixin, Base):
-    """
-    The spansh module is sold at the station indicted.
-    Updated_at can be found on station.
-    """
-    __tablename__ = 'spansh_modules_sold'
-    __table_args__ = (
-        UniqueConstraint('station_id', 'module_id', name='spansh_station_module_unique'),
-    )
-    _repr_keys = [
-        'id', 'station_id', 'module_id',
-    ]
-
-    id = sqla.Column(sqla.BigInteger, primary_key=True)
-    station_id = sqla.Column(sqla.BigInteger, sqla.ForeignKey("stations.id"), nullable=False)
-    module_id = sqla.Column(sqla.Integer, sqla.ForeignKey("spansh_modules.id"), nullable=False)
-
-    def __eq__(self, other):
-        return (isinstance(self, SModuleSold) and isinstance(other, SModuleSold)
-                and hash(self) == hash(other))
-
-    def __hash__(self):
-        return hash(f'{self.station_id}_{self.module_id}')
-
-
-# Bidirectional relationships
-SCommodity.group = sqla_orm.relationship(
-    'SCommodityGroup', uselist=False, back_populates='commodities', lazy='joined')
-SCommodityGroup.commodities = sqla_orm.relationship(
-    'SCommodity', cascade='save-update, delete, delete-orphan', back_populates='group', lazy='select')
-SCommodityPricing.commodity = sqla_orm.relationship(
-    'SCommodity', uselist=False, viewonly=True, lazy='joined')
-SModule.group = sqla_orm.relationship(
-    'SModuleGroup', uselist=False, back_populates='modules', lazy='joined')
-SModuleGroup.modules = sqla_orm.relationship(
-    'SModule', cascade='save-update, delete, delete-orphan', back_populates='group', lazy='select')
-SModuleSold.module = sqla_orm.relationship(
-    'SModule', uselist=False, viewonly=True, lazy='joined')
 
 
 class CommsModsWriter():
@@ -347,77 +152,6 @@ class CommsModsWriter():
             self.comms_out.write(';\n')
         if self.mods_cnt:
             self.mods_out.write(';\n')
-
-
-def preload_tables(eddb_session, only_groups=False):  # pragma: no cover
-    """
-    Preload tables with fairly constant information for commodities and modules.
-    Meant to be used to seed a clean database.
-    Includes:
-        SModuleGroup
-        SCommodityGroup
-        SModule
-        SCommodity
-
-    Args:
-        eddb_session: A session onto EDDB.
-        only_groups: When True, only SModuleGroup and SCommodityGroup will be loaded.
-    """
-    classes = [SCommodityGroup, SModuleGroup]
-    if not only_groups:
-        classes += [SCommodity, SModule]
-
-    for cls in classes:
-        cogdb.common.preload_table_from_file(eddb_session, cls=cls)
-
-
-def drop_tables():  # pragma: no cover | destructive to test
-    """
-    Drop all tables related to this module.
-    """
-    sqla.orm.session.close_all_sessions()
-
-    for table in SPANSH_TABLES:
-        try:
-            table.__table__.drop(cogdb.eddb_engine)
-        except sqla.exc.OperationalError:
-            pass
-
-
-def empty_tables():
-    """
-    Empty all tables related to this module.
-    Due to sheer size of SModuleSold and SCommodityPricing, it more efficient to drop.
-    """
-    sqla.orm.session.close_all_sessions()
-    for table in (SCommodityPricing, SModuleSold):
-        try:
-            table.__table__.drop(cogdb.eddb_engine)
-        except sqla.exc.OperationalError:
-            pass
-    Base.metadata.create_all(cogdb.eddb_engine)
-
-    with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
-        for table in [SModule, SCommodity, SModuleGroup, SCommodityGroup]:
-            eddb_session.query(table).delete()
-
-
-def recreate_tables():
-    """
-    Recreate all tables in the spansh module, mainly for schema changes and testing.
-    """
-    sqla.orm.session.close_all_sessions()
-    drop_tables()
-    Base.metadata.create_all(cogdb.eddb_engine)
-
-
-def reset_autoincrements():
-    """
-    Reset the autoincrement counts for particular tables whose counts keep rising via insertion.
-    """
-    with cogdb.eddb_engine.connect() as con:
-        for cls in [SCommodity, SCommodityPricing, SModule, SModuleSold]:
-            con.execute(sqla_sql.text(f"ALTER TABLE {cls.__tablename__} AUTO_INCREMENT = 1"))
 
 
 def date_to_timestamp(text):
@@ -1688,9 +1422,3 @@ def verify_map_files():
 
 
 verify_map_files()
-
-
-SPANSH_TABLES = [SCommodityPricing, SModuleSold, SCommodity, SModule, SCommodityGroup, SModuleGroup]
-Base.metadata.create_all(cogdb.eddb_engine)
-with cogdb.session_scope(cogdb.EDDBSession) as init_session:
-    preload_tables(init_session)

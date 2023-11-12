@@ -10,6 +10,7 @@ N.B. Don't put subqueries in FROM of views for now, doesn't work on test docker.
 import asyncio
 import datetime
 import enum
+import functools
 import math
 import string
 import sys
@@ -19,6 +20,7 @@ import time
 import sqlalchemy as sqla
 import sqlalchemy.orm as sqla_orm
 import sqlalchemy.orm.session
+import sqlalchemy.sql as sqla_sql
 import sqlalchemy.ext.declarative
 from sqlalchemy.schema import UniqueConstraint
 from sqlalchemy.sql.expression import or_
@@ -205,6 +207,97 @@ class CommodityCat(ReprMixin, Base):
 
     def __hash__(self):
         return hash(self.id)
+
+
+@functools.total_ordering
+class SCommodity(ReprMixin, UpdatableMixin, Base):
+    """ A spansh commodity sold at a station. """
+    __tablename__ = 'spansh_commodities'
+    _repr_keys = ['id', 'group_id', "name", "eddn", "eddn2", "mean_price"]
+
+    id = sqla.Column(sqla.Integer, primary_key=True)  # commodityId
+    group_id = sqla.Column(sqla.Integer, sqla.ForeignKey("spansh_commodity_groups.id"), nullable=False)
+    name = sqla.Column(sqla.String(LEN["commodity"]))
+    eddn = sqla.Column(sqla.String(LEN["commodity"]))
+    eddn2 = sqla.Column(sqla.String(LEN["commodity"]))
+    mean_price = sqla.Column(sqla.Integer, default=0)
+
+    @property
+    def text(self):
+        """ Alias for name. """
+        return self.name
+
+    def __eq__(self, other):
+        return (isinstance(self, SCommodity) and isinstance(other, SCommodity)
+                and hash(self) == hash(other))
+
+    def __lt__(self, other):
+        return (isinstance(self, SCommodity) and isinstance(other, SCommodity)
+                and self.name < other.name)
+
+    def __hash__(self):
+        return self.id
+
+
+@functools.total_ordering
+class SCommodityGroup(ReprMixin, Base):
+    """ The spansh group for a commodity """
+    __tablename__ = "spansh_commodity_groups"
+    _repr_keys = ['id', 'name']
+
+    id = sqla.Column(sqla.Integer, primary_key=True)
+    name = sqla.Column(sqla.String(LEN["commodity_group"]))
+
+    @property
+    def text(self):
+        """ Alias for name. """
+        return self.name
+
+    def __eq__(self, other):
+        return (isinstance(self, SCommodityGroup) and isinstance(other, SCommodityGroup)
+                and hash(self) == hash(other))
+
+    def __lt__(self, other):
+        return (isinstance(self, SCommodityGroup) and isinstance(other, SCommodityGroup)
+                and self.name < other.name)
+
+    def __hash__(self):
+        return self.id
+
+
+class SCommodityPricing(ReprMixin, UpdatableMixin, Base):
+    """
+    The spansh pricing of a commodity sold at the station indicated.
+    Updated_at can be found on station.
+    """
+    __tablename__ = 'spansh_commodity_pricing'
+    __table_args__ = (
+        UniqueConstraint('station_id', 'commodity_id', name='spansh_station_commodity_unique'),
+    )
+    _repr_keys = [
+        'id', 'station_id', 'commodity_id', "demand", "supply", "buy_price", "sell_price"
+    ]
+
+    id = sqla.Column(sqla.BigInteger, primary_key=True)
+    station_id = sqla.Column(sqla.BigInteger, sqla.ForeignKey("stations.id"), nullable=False)
+    commodity_id = sqla.Column(sqla.Integer, sqla.ForeignKey("spansh_commodities.id"), nullable=False)
+
+    demand = sqla.Column(sqla.Integer, default=0)
+    supply = sqla.Column(sqla.Integer, default=0)
+    buy_price = sqla.Column(sqla.Integer, default=0)
+    sell_price = sqla.Column(sqla.Integer, default=0)
+
+    @property
+    def text(self):
+        """ Alias for name. """
+        return self.name
+
+    def __eq__(self, other):
+        return (isinstance(self, SCommodityPricing) and isinstance(other, SCommodityPricing)
+                and hash(self) == hash(other))
+
+    def __hash__(self):
+        return hash(f'{self.station_id}_{self.commodity_id}')
 
 
 class Economy(ReprMixin, Base):
@@ -445,6 +538,91 @@ class ModuleGroup(ReprMixin, Base):
 
     def __hash__(self):
         return hash(self.id)
+
+
+@functools.total_ordering
+class SModule(ReprMixin, UpdatableMixin, Base):
+    """ A spansh module sold in a shipyard. """
+    __tablename__ = 'spansh_modules'
+    _repr_keys = [
+        'id', 'group_id', "ship_id", "name", "symbol", "mod_class", "rating"
+    ]
+
+    id = sqla.Column(sqla.Integer, primary_key=True)  # moduleId
+    group_id = sqla.Column(sqla.Integer, sqla.ForeignKey("spansh_module_groups.id"), nullable=False)
+    ship_id = sqla.Column(sqla.Integer)
+
+    name = sqla.Column(sqla.String(LEN["module"]))
+    symbol = sqla.Column(sqla.String(200))
+    mod_class = sqla.Column(sqla.Integer, default=1)
+    rating = sqla.Column(sqla.String(5), default=1)
+
+    @property
+    def text(self):
+        """ Alias for name. """
+        return self.name
+
+    def __eq__(self, other):
+        return (isinstance(self, SModule) and isinstance(other, SModule)
+                and hash(self) == hash(other))
+
+    def __lt__(self, other):
+        return (isinstance(self, SModule) and isinstance(other, SModule)
+                and self.name < other.name)
+
+    def __hash__(self):
+        return self.id
+
+
+@functools.total_ordering
+class SModuleGroup(ReprMixin, Base):
+    """ The spansh group for a module """
+    __tablename__ = "spansh_module_groups"
+    _repr_keys = ['id', 'name']
+
+    id = sqla.Column(sqla.Integer, primary_key=True)
+    name = sqla.Column(sqla.String(LEN["module_group"]))
+
+    @property
+    def text(self):
+        """ Alias for name. """
+        return self.name
+
+    def __eq__(self, other):
+        return (isinstance(self, SModuleGroup) and isinstance(other, SModuleGroup)
+                and hash(self) == hash(other))
+
+    def __lt__(self, other):
+        return (isinstance(self, SModuleGroup) and isinstance(other, SModuleGroup)
+                and self.name < other.name)
+
+    def __hash__(self):
+        return self.id
+
+
+class SModuleSold(ReprMixin, UpdatableMixin, Base):
+    """
+    The spansh module is sold at the station indicted.
+    Updated_at can be found on station.
+    """
+    __tablename__ = 'spansh_modules_sold'
+    __table_args__ = (
+        UniqueConstraint('station_id', 'module_id', name='spansh_station_module_unique'),
+    )
+    _repr_keys = [
+        'id', 'station_id', 'module_id',
+    ]
+
+    id = sqla.Column(sqla.BigInteger, primary_key=True)
+    station_id = sqla.Column(sqla.BigInteger, sqla.ForeignKey("stations.id"), nullable=False)
+    module_id = sqla.Column(sqla.Integer, sqla.ForeignKey("spansh_modules.id"), nullable=False)
+
+    def __eq__(self, other):
+        return (isinstance(self, SModuleSold) and isinstance(other, SModuleSold)
+                and hash(self) == hash(other))
+
+    def __hash__(self):
+        return hash(f'{self.station_id}_{self.module_id}')
 
 
 class Power(ReprMixin, Base):
@@ -1170,6 +1348,18 @@ Module.group = sqla_orm.relationship(
     'ModuleGroup', uselist=False, back_populates='modules', lazy='select')
 ModuleGroup.modules = sqla_orm.relationship(
     'Module', cascade='all, delete, delete-orphan', back_populates='group', lazy='select')
+SCommodity.group = sqla_orm.relationship(
+    'SCommodityGroup', uselist=False, back_populates='commodities', lazy='joined')
+SCommodityGroup.commodities = sqla_orm.relationship(
+    'SCommodity', cascade='save-update, delete, delete-orphan', back_populates='group', lazy='select')
+SCommodityPricing.commodity = sqla_orm.relationship(
+    'SCommodity', uselist=False, viewonly=True, lazy='joined')
+SModule.group = sqla_orm.relationship(
+    'SModuleGroup', uselist=False, back_populates='modules', lazy='joined')
+SModuleGroup.modules = sqla_orm.relationship(
+    'SModule', cascade='save-update, delete, delete-orphan', back_populates='group', lazy='select')
+SModuleSold.module = sqla_orm.relationship(
+    'SModule', uselist=False, viewonly=True, lazy='joined')
 
 Faction.home_system = sqla_orm.relationship(
     'System', uselist=False, back_populates='controlling_faction', lazy='select',
@@ -1269,12 +1459,16 @@ def preload_tables(eddb_session):
     classes = [
         Allegiance,
         CommodityCat,
+        SCommodityGroup,
+        SCommodity,
         ConflictState,
         Economy,
         FactionHappiness,
         FactionState,
         Government,
         ModuleGroup,
+        SModuleGroup,
+        SModule,
         Power,
         PowerState,
         Security,
@@ -1283,6 +1477,7 @@ def preload_tables(eddb_session):
         Ship,
         StationType,
     ]
+
     for cls in classes:
         cogdb.common.preload_table_from_file(eddb_session, cls=cls)
 
@@ -2052,11 +2247,17 @@ def drop_tables(*, all_tables=False):  # pragma: no cover | destructive to test
 
 def empty_tables(*, all_tables=False):
     """Ensure all safe to drop tables are empty.
+    Due to sheer size of SModuleSold and SCommodityPricing, it more efficient to drop.
 
     Args:
         all_tables: When True, empty all EDDB tables.
     """
     sqla.orm.session.close_all_sessions()
+    for table in (SCommodityPricing, SModuleSold):
+        try:
+            table.__table__.drop(cogdb.eddb_engine)
+        except sqla.exc.OperationalError:
+            pass
 
     meta = sqlalchemy.MetaData(bind=cogdb.eddb_engine)
     meta.reflect()
@@ -2067,6 +2268,17 @@ def empty_tables(*, all_tables=False):
                     eddb_session.query(tbl).delete()
             except sqla.exc.OperationalError:
                 pass
+    Base.metadata.create_all(cogdb.eddb_engine)
+    reset_autoincrements()
+
+
+def reset_autoincrements():
+    """
+    Reset the autoincrement counts for particular tables whose counts keep rising via insertion.
+    """
+    with cogdb.eddb_engine.connect() as con:
+        for cls in [SCommodity, SCommodityPricing, SModule, SModuleSold]:
+            con.execute(sqla_sql.text(f"ALTER TABLE {cls.__tablename__} AUTO_INCREMENT = 1"))
 
 
 def is_safe_to_drop(tbl_name):
@@ -2120,6 +2332,7 @@ def recreate_tables():  # pragma: no cover | destructive to test
     with cogdb.eddb_engine.connect() as con:
         for create_cmd in create_cmds:
             con.execute(sqla.sql.text(create_cmd))
+    reset_autoincrements()
 
 
 async def monitor_eddb_caches(*, delay_hours=4):  # pragma: no cover
@@ -2215,5 +2428,5 @@ FACTION_STATE_PAIRS = [
 
 
 if __name__ == "__main__":
-    with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
-        main_test_area(eddb_session)
+    with cogdb.session_scope(cogdb.EDDBSession) as e_session:
+        main_test_area(e_session)
