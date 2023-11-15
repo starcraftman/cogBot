@@ -148,7 +148,7 @@ def confirm_msg(args):
         cogdb.eddb.{System, Faction, Influence, Station, StationFeatures, StationEconomy, FactionActiveState}
 """
     if args.commodities:
-        msg += """        cogdb.spansh.{SModuleSold, SCommodityPricing}
+        msg += """        cogdb.eddb.{SModuleSold, SCommodityPricing}
             Note: Module sale information takes about 1.5GB, commodity pricing is 3-4GB.
             Note: Will slow down parsing greatly, makes heavy use of the disk holding the dump file.
 """
@@ -186,19 +186,17 @@ def refresh_module_commodity_cache():  # pragma: no cover, depends on local GALA
     """
     print_no_newline("Regenerating the commodity and module caches ...")
     with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
-        if not eddb_session.query(cogdb.eddb.PowerState).all():
-            cogdb.eddb.preload_tables(eddb_session)
-
-        for cls in [cogdb.eddb.SCommodity, cogdb.eddb.SModule]:
-            eddb_session.query(cls).delete()
-
         cogdb.spansh.generate_module_commodities_caches(eddb_session, GALAXY_JSON)
 
-    with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
+        # Ensure these reloaded from new cache if changes were made.
+        for cls in [cogdb.eddb.SCommodity, cogdb.eddb.SCommodityGroup, cogdb.eddb.SModule, cogdb.eddb.SModuleGroup]:
+            eddb_session.query(cls).delete()
         cogdb.eddb.preload_tables(eddb_session)
 
     print(" Done!")
 
+
+def sanity_check():  # pragma: no cover, underlying functions tested elsewhere or difficult to
     """
     Run a sanity check on the database.
     Upon return all tables should be made and preloaded with constant data.
@@ -251,25 +249,6 @@ def clean_existing_tables(recreate=False):  # pragma: no cover
         print_no_newline("Emptying existing EDDB tables ...")
         cogdb.eddb.empty_tables()
         pvp.schema.empty_tables()
-
-
-def sanity_check():  # pragma: no cover, underlying functions tested elsewhere or difficult to
-    """
-    Run a sanity check on the database.
-    Upon return all tables should be made and preloaded with constant data.
-    """
-    cogdb.schema.Base.metadata.create_all(cogdb.engine)
-    cogdb.eddb.Base.metadata.create_all(cogdb.eddb_engine)
-
-    with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
-        cogdb.eddb.preload_tables(eddb_session)
-
-    gb_needed = 16 if not os.path.exists(GALAXY_JSON) else 8
-    stat = os.statvfs(Path(GALAXY_JSON).parent)
-    if stat.f_bavail * stat.f_frsize < gb_needed * 1024 ** 3:
-        location = pathlib.Path(GALAXY_JSON).parent
-        print(f"Warning: This program uses scratch space roughly equal to dump size. Please free up 8GB or choose new location: {location}.")
-        sys.exit(1)
 
 
 def main():  # pragma: no cover
