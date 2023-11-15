@@ -8,13 +8,16 @@ import pytest
 import cog.exc
 import cogdb.eddb
 from cogdb.eddb import (
-    Station, System, Faction, Influence, HistoryInfluence, HistoryTrack, TraderType, Ship
+    Station, System, Faction, Influence, HistoryInfluence, HistoryTrack, TraderType, Ship,
+    SCommodityGroup, SCommodity, SCommodityPricing,
+    SModuleGroup, SModule, SModuleSold
 )
 
 FAKE_ID1 = 942834121
 FAKE_ID2 = FAKE_ID1 + 1
 FAKE_ID3 = FAKE_ID1 + 2
 HISTORY_TIMESTAMP = 1664897410
+SPANSH_ID = 999999
 
 
 def test_ship__repr__(eddb_session):
@@ -29,6 +32,37 @@ def test_ship__str__(eddb_session):
     ship = eddb_session.query(Ship).filter(Ship.id == 1).one()
 
     assert expect == str(ship)
+
+
+def test_spansh_commodity_group__repr__():
+    found = SCommodityGroup(id=SPANSH_ID, name='TestCommGroup')
+    assert "SCommodityGroup(id=999999, name='TestCommGroup')" == repr(found)
+
+
+def test_spansh_commodity__repr__(eddb_session):
+    found = SCommodity(id=SPANSH_ID, group_id=SPANSH_ID, name='TestCommodity', eddn='testcommgroup', eddn2='TestCommGroup', mean_price=500)
+    assert "SCommodity(id=999999, group_id=999999, name='TestCommodity', eddn='testcommgroup', eddn2='TestCommGroup', mean_price=500)" == repr(found)
+
+
+def test_spansh_module_group__repr__(eddb_session):
+    found = SModuleGroup(id=SPANSH_ID, name='TestModGroup')
+    assert "SModuleGroup(id=999999, name='TestModGroup')" == repr(found)
+
+
+def test_spansh_module__repr__(eddb_session):
+    found = SModule(id=SPANSH_ID, group_id=SPANSH_ID, name='TestModule')
+    assert "SModule(id=999999, group_id=999999, ship_id=None, name='TestModule', symbol=None, mod_class=None, rating=None)" == repr(found)
+
+
+def test_spansh_module_sold__repr__(eddb_session):
+    found = SModuleSold(id=SPANSH_ID, station_id=1, module_id=SPANSH_ID)
+    assert "SModuleSold(id=999999, station_id=1, module_id=999999)" == repr(found)
+
+
+def test_spansh_commodity_pricing__repr__(eddb_session):
+    found = SCommodityPricing(id=SPANSH_ID, station_id=1, commodity_id=SPANSH_ID, demand=1000, supply=1000, buy_price=5000, sell_price=2500)
+    assert "SCommodityPricing(id=999999, station_id=1, commodity_id=999999, demand=1000, supply=1000, buy_price=5000, sell_price=2500)" == repr(found)
+
 
 
 def test_station_carrier_factory(eddb_session):

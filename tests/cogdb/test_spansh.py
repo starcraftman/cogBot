@@ -17,14 +17,10 @@ import cogdb
 import cogdb.eddb
 import cogdb.spansh
 from cogdb.spansh import SEP
-from cogdb.eddb import (
-    SCommodityGroup, SCommodity, SCommodityPricing,
-    SModuleGroup, SModule, SModuleSold)
 import cog.util
 JSON_PATH = cog.util.rel_to_abs('tests', 'cogdb', 'spansh_rana.json')
 BODIES_PATH = cog.util.rel_to_abs('tests', 'cogdb', 'spansh_61cygni.json')
 FAKE_GALAXY = cog.util.rel_to_abs('tests', 'cogdb', 'fake_galaxy.json')
-SPANSH_ID = 999999
 
 
 @pytest.fixture
@@ -37,36 +33,6 @@ def f_json():
 def f_json_bodies():
     with open(BODIES_PATH, 'r', encoding='utf-8') as fin:
         yield json.loads(fin.read())[0]
-
-
-def test_spansh_commodity_group__repr__():
-    found = SCommodityGroup(id=SPANSH_ID, name='TestCommGroup')
-    assert "SCommodityGroup(id=999999, name='TestCommGroup')" == repr(found)
-
-
-def test_spansh_commodity__repr__(eddb_session):
-    found = SCommodity(id=SPANSH_ID, group_id=SPANSH_ID, name='TestCommodity', eddn='testcommgroup', eddn2='TestCommGroup', mean_price=500)
-    assert "SCommodity(id=999999, group_id=999999, name='TestCommodity', eddn='testcommgroup', eddn2='TestCommGroup', mean_price=500)" == repr(found)
-
-
-def test_spansh_module_group__repr__(eddb_session):
-    found = SModuleGroup(id=SPANSH_ID, name='TestModGroup')
-    assert "SModuleGroup(id=999999, name='TestModGroup')" == repr(found)
-
-
-def test_spansh_module__repr__(eddb_session):
-    found = SModule(id=SPANSH_ID, group_id=SPANSH_ID, name='TestModule')
-    assert "SModule(id=999999, group_id=999999, ship_id=None, name='TestModule', symbol=None, mod_class=None, rating=None)" == repr(found)
-
-
-def test_spansh_module_sold__repr__(eddb_session):
-    found = SModuleSold(id=SPANSH_ID, station_id=1, module_id=SPANSH_ID)
-    assert "SModuleSold(id=999999, station_id=1, module_id=999999)" == repr(found)
-
-
-def test_spansh_commodity_pricing__repr__(eddb_session):
-    found = SCommodityPricing(id=SPANSH_ID, station_id=1, commodity_id=SPANSH_ID, demand=1000, supply=1000, buy_price=5000, sell_price=2500)
-    assert "SCommodityPricing(id=999999, station_id=1, commodity_id=999999, demand=1000, supply=1000, buy_price=5000, sell_price=2500)" == repr(found)
 
 
 def test_date_to_timestamp(f_json):

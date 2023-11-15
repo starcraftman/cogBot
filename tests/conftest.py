@@ -30,14 +30,13 @@ import cog.util
 import cogdb
 import cogdb.query
 import cogdb.eddb
-import cogdb.spy_squirrel as spy
+from cogdb.eddb import (SModule, SModuleGroup, SModuleSold, SCommodity, SCommodityGroup, SCommodityPricing)
 from cogdb.schema import (DiscordUser, FortSystem, FortPrep, FortDrop, FortUser, FortOrder,
                           UMSystem, UMExpand, UMOppose, UMUser, UMHold, EUMSheet, KOS,
                           AdminPerm, ChannelPerm, RolePerm,
                           TrackSystem, TrackSystemCached, TrackByID,
                           Global, Vote, EVoteType,
                           Consolidation, SheetRecord)
-from cogdb.spansh import (SModule, SModuleGroup, SModuleSold, SCommodity, SCommodityGroup, SCommodityPricing)
 import pvp.schema
 from pvp.schema import (PVPCmdr, PVPKill, PVPDeath, PVPDeathKiller, PVPInterdicted, PVPInterdiction,
                         PVPInterdictedKill, PVPInterdictedDeath, PVPInterdictionKill, PVPInterdictionDeath,

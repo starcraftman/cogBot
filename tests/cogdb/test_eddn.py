@@ -13,9 +13,8 @@ except ImportError:
 import cogdb.eddn
 import cogdb.eddb
 import cogdb.schema
-from cogdb.eddb import ShipSold
+from cogdb.eddb import ShipSold, SCommodityPricing, SModuleSold
 from cogdb.schema import TrackByID
-from cogdb.spansh import SCommodityPricing, SModuleSold
 import cog.util
 
 

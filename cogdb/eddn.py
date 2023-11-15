@@ -36,7 +36,7 @@ from cogdb.eddb import (
     Conflict, Faction, Influence, Ship, ShipSold, System, Station, CarrierSighting,
     StationEconomy, StationFeatures, FactionActiveState, FactionPendingState, FactionRecoveringState
 )
-from cogdb.spansh import SCommodity, SCommodityPricing, SModule, SModuleSold
+from cogdb.eddb import SCommodity, SCommodityPricing, SModule, SModuleSold
 
 EDDN_ADDR = "tcp://eddn.edcd.io:9500"
 TIMEOUT = 600000
@@ -1053,6 +1053,8 @@ try:
     STATION_CACHE = cogdb.spansh.create_station_cache()
 except (sqla_orm.exc.NoResultFound, sqla.exc.ProgrammingError):
     MAPS = None
+    FACTION_CACHE = None
+    STATION_CACHE = None
 
 
 if __name__ == "__main__":
