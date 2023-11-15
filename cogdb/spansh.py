@@ -30,9 +30,9 @@ import cogdb.eddb
 import cogdb.spy_squirrel
 from cogdb.common import bulk_insert_from_file
 from cogdb.eddb import (
-    Base, Allegiance, Economy, Faction, Influence, FactionState, FactionActiveState, Government,
-    Power, PowerState, Security, Ship, System, Station, StationType, StationEconomy, StationFeatures,
-    SCommodity, SCommodityGroup, SModule, SModuleGroup
+    Allegiance, Economy, Faction, Influence, FactionState, FactionActiveState, Government,
+    Power, PowerState, Security, Ship, System, Station, StationType,
+    StationEconomy, StationFeatures, SCommodity, SCommodityGroup, SModule, SModuleGroup
 )
 import cog.util
 from cog.util import print_no_newline
