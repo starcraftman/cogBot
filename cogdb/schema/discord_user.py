@@ -1,5 +1,6 @@
 """
-A DiscordUser is a member of a guild that uses the bot.
+Store all discord users that have used this bot.
+Can be associated with Fort and UM objects as well as SheetRecords for more information.
 """
 import sqlalchemy as sqla
 from sqlalchemy.orm import relationship
@@ -11,10 +12,10 @@ from cog.util import ReprMixin
 
 class DiscordUser(ReprMixin, Base):
     """
-    Table to store discord users and their permanent preferences.
-
-    These are what the user would prefer be put into sheets.
-    It is also a central tie in for relationships.
+    A DiscordUser is a member of the guild that uses any command on this bot.
+    Store the display_name on creation of this record and their preferred
+    name and cry for sheets.
+    This object acts as a main linkage point to request records in other tables.
     """
     __tablename__ = 'discord_users'
     _repr_keys = ['id', 'display_name', 'pref_name', 'pref_cry']

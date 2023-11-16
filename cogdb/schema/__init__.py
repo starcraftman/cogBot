@@ -2,22 +2,19 @@
 Define the major tables that are used by this bot.
 These allow the bot to store and query the information in sheets that are parsed.
 """
-import datetime
-import enum
-import time
-
 import sqlalchemy as sqla
-import sqlalchemy.orm as sqla_orm
 import sqlalchemy.orm.session
 import sqlalchemy.ext.declarative
 
 import cogdb
 from cogdb.schema.common import Base, LEN
+from cogdb.schema.consolidation import Consolidation
 from cogdb.schema.discord_user import DiscordUser
 from cogdb.schema.fort import EFortType, FortOrder, FortDrop, FortUser, FortSystem, FortPrep
 from cogdb.schema.global_config import Global
 from cogdb.schema.kos import KOS
 from cogdb.schema.permissions import AdminPerm, ChannelPerm, RolePerm
+from cogdb.schema.sheet_record import ESheetType, SheetRecord
 from cogdb.schema.tracking import EVENT_CARRIER, TRACK_SYSTEM_SEP, TrackByID, TrackSystem, TrackSystemCached
 from cogdb.schema.undermine import EUMType, EUMSheet, UMHold, UMUser, UMSystem, UMExpand, UMOppose
 from cogdb.schema.vote import EVoteType, Vote
@@ -25,89 +22,6 @@ from cogdb.schema.vote import EVoteType, Vote
 import cog.exc
 import cog.tbl
 import cog.util
-from cog.util import ReprMixin, TimestampMixin
-
-
-class Consolidation(ReprMixin, Base):
-    """
-    Track the consolidation vote changes over time.
-    """
-    __tablename__ = 'consolidation_tracker'
-    _repr_keys = ['id', 'cycle', 'amount', 'cons_total', 'prep_total', 'updated_at']
-
-    id = sqla.Column(sqla.BigInteger, primary_key=True)
-    amount = sqla.Column(sqla.Integer, default=0)
-    cons_total = sqla.Column(sqla.Integer, default=0)
-    prep_total = sqla.Column(sqla.Integer, default=0)
-    updated_at = sqla.Column(sqla.DateTime, default=datetime.datetime.utcnow, unique=True)  # All dates UTC
-
-    def __str__(self):
-        """ A pretty one line to give all information. """
-        return f"Consolidation {self.amount}% at {self.updated_at}."
-
-    def __eq__(self, other):
-        return isinstance(other, Consolidation) and hash(self) == hash(other)
-
-    def __hash__(self):
-        return hash(self.id)
-
-    @sqla_orm.validates('cons_total', 'prep_total')
-    def validate_totals(self, key, value):
-        """ Validation function for cons_total and prep_total. """
-        try:
-            if value < 0:
-                raise cog.exc.ValidationFail(f"Bounds check failed for: {key} with value {value}")
-        except TypeError:
-            pass
-
-        return value
-
-    @sqla_orm.validates('amount')
-    def validate_amount(self, key, value):
-        """ Validation function for amount. """
-        try:
-            if value < 0 or value > 100:
-                raise cog.exc.ValidationFail(f"Bounds check failed for: {key} with value {value}")
-        except TypeError:
-            pass
-
-        return value
-
-
-class ESheetType(enum.Enum):
-    """ Type of sheet the transaction modified. """
-    fort = 1
-    um = 2
-    snipe = 3
-
-
-class SheetRecord(ReprMixin, TimestampMixin, Base):
-    """
-    For every command modifying the local database and sheet, record a transaction.
-    """
-    __tablename__ = 'history_sheet_transactions'
-    _repr_keys = ['id', 'discord_id', 'channel_id', 'sheet_src', 'cycle', 'command',
-                  'flushed_sheet', 'created_at']
-
-    id = sqla.Column(sqla.BigInteger, primary_key=True)
-    discord_id = sqla.Column(sqla.BigInteger, nullable=False)
-    channel_id = sqla.Column(sqla.BigInteger, nullable=False)
-    sheet_src = sqla.Column(sqla.Enum(ESheetType), default=ESheetType.fort)
-    cycle = sqla.Column(sqla.Integer, default=cog.util.current_cycle)
-    command = sqla.Column(sqla.String(LEN['command']), default="")
-    flushed_sheet = sqla.Column(sqla.Boolean, default=False)
-    created_at = sqla.Column(sqla.Integer, default=time.time)
-
-    # Relationships
-    user = sqla_orm.relationship('DiscordUser', uselist=False, viewonly=True, lazy='joined',
-                                 primaryjoin='foreign(SheetRecord.discord_id) == DiscordUser.id')
-
-    def __eq__(self, other):
-        return (isinstance(self, SheetRecord) and isinstance(other, SheetRecord)
-                and self.id == other.id)
-
-    def __hash__(self):
-        return hash(self.id)
 
 
 def kwargs_um_system(cells, sheet_col, *, sheet_src=EUMSheet.main):
@@ -289,7 +203,7 @@ def recreate_tables():
 
 def run_schema_queries(session):  # pragma: no cover
     """
-    Run a simple of tests.
+    Run a simple set of operations on schema objects.
     This section can be used to experiment with relations and changes.
     """
     try:

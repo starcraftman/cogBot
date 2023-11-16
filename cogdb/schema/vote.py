@@ -8,7 +8,6 @@ import sqlalchemy as sqla
 from sqlalchemy.orm import validates
 
 from cogdb.schema.common import Base
-
 import cog.tbl
 import cog.util
 from cog.util import ReprMixin
@@ -18,14 +17,18 @@ MAX_VOTE_VALUE = 50
 
 
 class EVoteType(enum.Enum):
-    """ Type of vote. """
+    """
+    Type of Vote of a user.
+        cons - A vote for power consolidation.
+        prep - A vote for power preparation.
+    """
     cons = 1
     prep = 2
 
 
 class Vote(ReprMixin, Base):
     """
-    Store vote amount to DB based on discord User ID.
+    Store Vote of a given DiscordUser (id) during the current cycle.
     """
     __tablename__ = 'powerplay_votes'
     _repr_keys = ['id', 'vote', 'amount', 'updated_at']
