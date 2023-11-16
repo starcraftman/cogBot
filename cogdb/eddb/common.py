@@ -1,6 +1,8 @@
 """
 Common imports for all of cogdb.eddb module.
 """
+import datetime
+
 import sqlalchemy.ext.declarative
 
 # The maximum lengths for strings stored in the db
@@ -38,6 +40,8 @@ LEN = {
     "weapon_mode": 6,
 }
 LEN["spy_location"] = 5 + LEN["system"] + LEN["station"]
+# Two weeks of seconds
+TWO_WEEK_SECONDS = int(datetime.timedelta(weeks=2).total_seconds())
 
 # The base for all EDDB databases tables.
 Base = sqlalchemy.ext.declarative.declarative_base()

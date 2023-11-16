@@ -246,9 +246,8 @@ def clean_existing_tables(recreate=False):  # pragma: no cover
         cogdb.spy_squirrel.recreate_tables()
         pvp.schema.recreate_tables()
     else:
-        print_no_newline("Emptying existing EDDB tables ...")
+        print_no_newline("Emptying existing EDDB tables, retaining history_, pvp_ and spy_ tables ...")
         cogdb.eddb.empty_tables()
-        pvp.schema.empty_tables()
 
 
 def main():  # pragma: no cover

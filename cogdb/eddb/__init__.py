@@ -30,8 +30,10 @@ from cogdb.eddb.commodity_eddb import Commodity, CommodityCat
 from cogdb.eddb.commodity_spansh import SCommodity, SCommodityGroup, SCommodityPricing
 from cogdb.eddb.conflict import Conflict, ConflictState, EVENT_CONFLICTS
 from cogdb.eddb.economy import Economy
-from cogdb.eddb.faction import (Faction, FactionHappiness, FactionState,
-                                FactionActiveState, FactionPendingState, FactionRecoveringState)
+from cogdb.eddb.faction import (
+    Faction, FactionHappiness, FactionState,
+    FactionActiveState, FactionPendingState, FactionRecoveringState
+)
 from cogdb.eddb.government import Government
 from cogdb.eddb.influence import EVENT_HISTORY_INFLUENCE, Influence, HistoryTrack, HistoryInfluence
 from cogdb.eddb.module_eddb import Module, ModuleGroup
@@ -39,6 +41,10 @@ from cogdb.eddb.module_spansh import SModule, SModuleSold, SModuleGroup
 from cogdb.eddb.power import Power, PowerState
 from cogdb.eddb.security import Security, SettlementSecurity, SettlementSize
 from cogdb.eddb.ship import Ship, ShipSold
+from cogdb.eddb.spy_bounty import SpyBounty, ship_type_to_id_map, EVENT_SPY_TOP5
+from cogdb.eddb.spy_system import SpySystem, SpyPrep
+from cogdb.eddb.spy_traffic import SpyTraffic, EVENT_SPY_TRAFFIC
+from cogdb.eddb.spy_vote import SpyVote
 from cogdb.eddb.station import CarrierSighting, Station, StationEconomy, StationFeatures, StationType
 from cogdb.eddb.system import (
     System, SystemControl, SystemControlV, SystemContestedV, VIEW_CONTESTEDS, VIEW_SYSTEM_CONTROLS
@@ -961,7 +967,7 @@ def is_safe_to_drop(tbl_name):
     """Check if the table is safe to drop.
 
     Basically any table that can be reconstructed or imported from external can be dropped.
-    For now, tables prefixed with 'spy_' and 'history_' will return False.
+    For now, tables prefixed with 'spy_' and 'history_' and 'pvp_' will return False.
     """
     return not tbl_name.startswith('spy_') and not tbl_name.startswith('history_') and not tbl_name.startswith('pvp_')
 
@@ -979,6 +985,8 @@ def recreate_tables():  # pragma: no cover | destructive to test
         "DROP VIEW eddb.v_systems_controlled",
         "DROP EVENT clean_conflicts",
         "DROP EVENT clean_history_influence",
+        "DROP EVENT clean_spy_traffic",
+        "DROP EVENT clean_spy_top5",
     ]
     try:
         with cogdb.eddb_engine.connect() as con:
@@ -1004,6 +1012,8 @@ def recreate_tables():  # pragma: no cover | destructive to test
         VIEW_SYSTEM_CONTROLS.strip(),
         EVENT_CONFLICTS.strip(),
         EVENT_HISTORY_INFLUENCE.strip(),
+        EVENT_SPY_TOP5.strip(),
+        EVENT_SPY_TRAFFIC.strip(),
     ]
     with cogdb.eddb_engine.connect() as con:
         for create_cmd in create_cmds:
