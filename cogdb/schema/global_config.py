@@ -7,7 +7,6 @@ import sqlalchemy as sqla
 from sqlalchemy.orm import validates
 
 from cogdb.schema.common import Base
-
 import cog.tbl
 import cog.util
 from cog.util import ReprMixin
@@ -15,7 +14,7 @@ from cog.util import ReprMixin
 
 class Global(ReprMixin, Base):
     """
-    A simple storage table for any globals per cycle.
+    A simple storage table for global configurations per cycle.
     """
     __tablename__ = 'globals'
     _repr_keys = ['id', 'cycle', 'consolidation']

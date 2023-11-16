@@ -1,5 +1,13 @@
 """
+Track all undermining information on the UM sheet during a given cycle.
+Information on the systems, users and their undermining held merits can be queried and anaklysed.
 
+Three main UMSystem types exist:
+    UMSystem - The default system is undermined once merits exceed the goal.
+    UMExpand - A system the faction is expanding to, it is only completed when tick
+               occurs AND the actual merits in game exceed opposition efforts.
+    UMOppose - A system an enemy faction is expanding to, the goal is set based
+               on what is expected to be needed to deny it at tick.
 """
 import enum
 
@@ -23,7 +31,9 @@ class EUMSheet(enum.Enum):
 
 
 class EUMType(enum.Enum):
-    """ Type of undermine system. """
+    """
+    Type of UMSystem. See the explanation in module doc.
+    """
     control = 1
     expand = 2
     oppose = 3
@@ -31,7 +41,7 @@ class EUMType(enum.Enum):
 
 class UMUser(Base):
     """
-    Track all infomration about the user in a row of the cattle sheet.
+    Track all infomration about a given user who is underming this cycle.
     """
     __tablename__ = 'hudson_um_users'
 
@@ -125,7 +135,9 @@ class UMUser(Base):
 
 class UMSystem(Base):
     """
-    A control system we intend on undermining.
+    A control system for an enemy group that is the target of undermining.
+    Provides numerous convenience methods to determine when complete,
+    how much left and track merits in system.
     """
     __tablename__ = 'hudson_um_systems'
 
@@ -153,10 +165,10 @@ class UMSystem(Base):
     }
 
     # Relationships
-    merits = relationship('UMHold', uselist=True,
-                                   cascade='all, delete, delete-orphan',
-                                   back_populates='system',
-                                   lazy='select')
+    merits = relationship(
+        'UMHold', uselist=True, cascade='all, delete, delete-orphan',
+        back_populates='system', lazy='select'
+    )
 
     @staticmethod
     def factory(kwargs):
@@ -310,7 +322,9 @@ class UMSystem(Base):
 
 
 class UMExpand(UMSystem):
-    """ An expansion we want. """
+    """
+    A expansion that the faction is trying to expand to.
+    """
     __mapper_args__ = {
         'polymorphic_identity': EUMType.expand,
     }
@@ -339,7 +353,9 @@ class UMExpand(UMSystem):
 
 
 class UMOppose(UMExpand):
-    """ We want to oppose the expansion. """
+    """
+    An enemy expansion that the faction is trying to deny.
+    """
     __mapper_args__ = {
         'polymorphic_identity': EUMType.oppose,
     }
@@ -355,7 +371,7 @@ class UMOppose(UMExpand):
 
 class UMHold(Base):
     """
-    Represents a user's held and redeemed merits within an undermining system.
+    Represents a FortUser's held and redeemed merits within a FortSystem (or it's polymorphic variants).
     """
     __tablename__ = 'hudson_um_merits'
 

@@ -4,13 +4,13 @@ Represents the kill on sight entries in the sheets.
 import sqlalchemy as sqla
 
 from cogdb.schema.common import Base, LEN
-
 from cog.util import ReprMixin
 
 
 class KOS(ReprMixin, Base):
     """
-    Represents a the kos list.
+    Represents a single Kill On Sight record for a given cmdr.
+    A cmdr can either be whitelisted or blacklisted with is_friendly.
     """
     __tablename__ = 'kos'
     _repr_keys = ['id', 'cmdr', 'squad', 'reason', 'is_friendly']

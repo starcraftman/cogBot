@@ -1,7 +1,7 @@
 """
-FortUser, FortSystem, FortDrop represent information from fortification sheet on GoogleSheets.
-FortOrder represents a specified manual fort override beyond the expected order of sheets.
-
+Track all fortification information on the fort sheet during a given cycle.
+Information on the systems, users and the drops made by users in systems are stored for querying and analysis.
+FortOrder allows manual override by leadership over the order of the systems in the sheet.
 """
 import enum
 
@@ -11,23 +11,26 @@ from sqlalchemy.orm import relationship
 from sqlalchemy.sql.expression import or_
 
 from cogdb.schema.common import Base, LEN
-
 import cog.tbl
 import cog.util
 from cog.util import ReprMixin
 
 
 class EFortType(enum.Enum):
-    """ Type of fort system. """
+    """
+    The type of FortSystem available.
+        fort - A standard fortification system.
+        prep - A system being prepared for expansion.
+    """
     fort = 1
     prep = 2
 
 
 class FortUser(ReprMixin, Base):
     """
-    Track all infomration about the user in a row of the cattle sheet.
-
-    These are what actually is in the sheet.
+    Represents the contributions of a member of the discord on the sheets.
+    Note that the name of a user is expected to be unique and not necessarily
+    identical to the user's discord name.
     """
     __tablename__ = 'hudson_fort_users'
     _repr_keys = ['id', 'name', 'row', 'cry']
@@ -85,11 +88,13 @@ class FortUser(ReprMixin, Base):
 
 class FortSystem(ReprMixin, Base):
     """
-    Represent a single system for fortification in the sheet.
-    Object can be flushed and queried from the database.
+    Represent a single standard fort system of the fortification sheet.
+    Provides convenience methods to query or display information about the current state of fortification of a system.
 
-    Carefully examine all methods to understanda, it centralizes a lot of logic.
-    When representing the system use display methods and see header tuple.
+    A few details:
+        A FortSystemis complete once the trigger is reached, further forts wasted.
+        A FortSystem stores the sheet_order to determine the order the systems should be forted.
+        A FortSystem stores the sheet_col that allows for updating the column later if requested by command.
     """
     __tablename__ = 'hudson_fort_systems'
     _repr_keys = [
@@ -332,7 +337,14 @@ class FortSystem(ReprMixin, Base):
 
 class FortPrep(FortSystem):
     """
-    A prep system that must be fortified for expansion.
+    Represent a single preparation system of the fortification sheet.
+    Systems are prepared a cycle before they are set for expansion by the faction.
+    Provides convenience methods to query or display information about the current state of preparation of a system.
+
+    A few details:
+        A FortPrep is never complete, the winner has the higher of forts vs undermining at tick.
+        A FortPrep stores the sheet_order to determine the order the systems should be forted.
+        A FortPrep stores the sheet_col that allows for updating the column later if requested by command.
     """
     __mapper_args__ = {
         'polymorphic_identity': EFortType.prep,
@@ -347,8 +359,8 @@ class FortPrep(FortSystem):
 
 class FortDrop(ReprMixin, Base):
     """
-    Every drop made by a user creates a fort entry here.
-    A drop represents the value at the intersection of a FortUser and a FortSystem.
+    A FortDrop represents the contributions of a single FortUser towards a FortSystem or FortPrep.
+    A contribution generally comes in the form of delivering fortification cargo to a system.
     """
     __tablename__ = 'hudson_fort_merits'
     _repr_keys = ['id', 'system_id', 'user_id', 'amount']
@@ -390,7 +402,9 @@ class FortDrop(ReprMixin, Base):
 
 class FortOrder(ReprMixin, Base):
     """
-    Simply store a list of Control systems in the order they should be forted.
+    Represent the manual order that should override FortSystem.sheet_order.
+    When there are no FortOrder objects left default back to FortSystem.sheet_order.
+    When there is even one FortOrder object remaining, display ONLY the FortSystems or FortPreps matching.
     """
     __tablename__ = 'hudson_fort_order'
     _repr_keys = ['order', 'system_name']

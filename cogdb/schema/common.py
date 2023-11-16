@@ -1,5 +1,6 @@
 """
-The common import for shared parts between classes and the default module.
+Base - The common SQLAlchemy base for all objects in this schema.
+LEN  - The maximum length of varchar fields in this database schema.
 """
 import sqlalchemy.ext.declarative
 
