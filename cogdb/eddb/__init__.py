@@ -47,7 +47,8 @@ from cogdb.eddb.spy_traffic import SpyTraffic, EVENT_SPY_TRAFFIC
 from cogdb.eddb.spy_vote import SpyVote
 from cogdb.eddb.station import CarrierSighting, Station, StationEconomy, StationFeatures, StationType
 from cogdb.eddb.system import (
-    System, SystemControl, SystemControlV, SystemContestedV, VIEW_CONTESTEDS, VIEW_SYSTEM_CONTROLS
+    System, SystemControl, SystemControlV, SystemContestedV,
+    VIEW_CONTESTEDS, VIEW_SYSTEM_CONTROLS
 )
 
 import cog.exc

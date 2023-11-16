@@ -21,7 +21,7 @@ import sqlalchemy.exc as sqla_e
 import cogdb.common
 import cogdb.eddb
 from cogdb.eddb import (
-    Base, Faction, Influence, Power, Ship, System,
+    Base, Faction, Influence, Power, PowerState, Ship, System,
     SpySystem, SpyPrep, SpyVote, SpyBounty, SpyTraffic, ship_type_to_id_map
 )
 from cogdb.schema import FortSystem, UMSystem, EUMType, EUMSheet
@@ -478,12 +478,12 @@ def response_json_update_influences(eddb_session, info):
         # Handle updating data for influence of factions
         for faction in sys_info['factions']:
             try:
-                found = eddb_session.query(cogdb.eddb.Influence).\
-                    join(cogdb.eddb.System, Influence.system_id == System.id).\
-                    join(cogdb.eddb.Faction, Influence.faction_id == Faction.id).\
+                found = eddb_session.query(Influence).\
+                    join(System, Influence.system_id == System.id).\
+                    join(Faction, Influence.faction_id == Faction.id).\
                     filter(
-                        cogdb.eddb.System.name == sys_name,
-                        cogdb.eddb.Faction.name == faction['name']).\
+                        System.name == sys_name,
+                        Faction.name == faction['name']).\
                     one()
                 log.info("Updating faction %s in %s", faction['name'], sys_name)
             except sqla.orm.exc.NoResultFound:
@@ -688,9 +688,9 @@ def get_spy_systems_for_galpow(eddb_session, power_id):
         controls, preps, expansions, vote
     """
     controls = eddb_session.query(SpySystem).\
-        join(cogdb.eddb.PowerState, SpySystem.power_state_id == cogdb.eddb.PowerState.id).\
+        join(PowerState, SpySystem.power_state_id == PowerState.id).\
         filter(SpySystem.power_id == power_id,
-               cogdb.eddb.PowerState.text == "Control").\
+               PowerState.text == "Control").\
         order_by(sqla.func.lower(SpySystem.system_name)).\
         all()
     preps = eddb_session.query(SpyPrep).\
@@ -699,9 +699,9 @@ def get_spy_systems_for_galpow(eddb_session, power_id):
         limit(10).\
         all()
     expansions = eddb_session.query(SpySystem).\
-        join(cogdb.eddb.PowerState, SpySystem.power_state_id == cogdb.eddb.PowerState.id).\
+        join(PowerState, SpySystem.power_state_id == PowerState.id).\
         filter(SpySystem.power_id == power_id,
-               cogdb.eddb.PowerState.text == "Expansion").\
+               PowerState.text == "Expansion").\
         order_by(sqla.func.lower(SpySystem.system_name)).\
         all()
     try:
@@ -861,13 +861,13 @@ def get_controls_outdated_held(eddb_session, *, power='%hudson', hours_old=7):
     """
     cutoff = time.time() - (hours_old * 60 * 60)
 
-    return eddb_session.query(cogdb.eddb.System).\
-        join(SpySystem, cogdb.eddb.System.name == SpySystem.system_name).\
-        join(cogdb.eddb.PowerState, cogdb.eddb.System.power_state_id == cogdb.eddb.PowerState.id).\
-        join(cogdb.eddb.Power, cogdb.eddb.System.power_id == cogdb.eddb.Power.id).\
+    return eddb_session.query(System).\
+        join(SpySystem, System.name == SpySystem.system_name).\
+        join(PowerState, System.power_state_id == PowerState.id).\
+        join(Power, System.power_id == Power.id).\
         filter(
-            cogdb.eddb.Power.text.ilike(power),
-            cogdb.eddb.PowerState.text == "Control",
+            Power.text.ilike(power),
+            PowerState.text == "Control",
             SpySystem.held_updated_at < cutoff).\
         order_by(System.name).\
         all()
