@@ -21,7 +21,7 @@ def test_confirm_msg():
     Parse all the information present in current galaxy_stations.json
     Replace the following possibly existing EDDB tables with that information:
         cogdb.eddb.{System, Faction, Influence, Station, StationFeatures, StationEconomy, FactionActiveState}
-        cogdb.spansh.{SModuleSold, SCommodityPricing}
+        cogdb.eddb.{SModuleSold, SCommodityPricing}
             Note: Module sale information takes about 1.5GB, commodity pricing is 3-4GB.
             Note: Will slow down parsing greatly, makes heavy use of the disk holding the dump file.
 

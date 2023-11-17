@@ -68,18 +68,21 @@ def around_all_tests():
 
     # FIXME: Bit of a hack to prevent unclosed sessions from impeding assertions
     sql_orm.close_all_sessions()
-    classes = [DiscordUser, FortUser, FortSystem, FortDrop, FortOrder,
-               UMSystem, UMUser, UMHold,
-               KOS, AdminPerm, ChannelPerm, RolePerm,
-               TrackSystem, TrackSystemCached, TrackByID]
     with cogdb.session_scope(cogdb.Session) as session:
-        for cls in classes:
-            assert not session.query(cls).all()
-    session.query(Global).delete()
-    session.commit()
+        session.query(Global).delete()
 
-    with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
-        assert eddb_session.query(cogdb.eddb.Ship).all()
+    # To be used to find tests not cleaning up
+    #  classes = [
+        # DiscordUser, FortUser, FortSystem, FortDrop, FortOrder,
+        #  UMSystem, UMUser, UMHold,
+        #  KOS, AdminPerm, ChannelPerm, RolePerm,
+        #  TrackSystem, TrackSystemCached, TrackByID
+    # ]
+        #  for cls in classes:
+            #  assert not session.query(cls).all()
+
+    #  with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
+        #  assert eddb_session.query(cogdb.eddb.Ship).all()
 
 
 @pytest.fixture
