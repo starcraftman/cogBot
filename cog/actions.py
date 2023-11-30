@@ -1436,6 +1436,8 @@ class Near(Action):
 
         stations = [["System", "Distance", "Station", "Arrival"]] + stations
         title = ' '.join([x.capitalize() for x in features[0].split('_')])
+        title = 'Interstellar Factors' if title.startswith('Apex')
+
         return cog.tbl.format_table(
             stations, header=True, prefix=f"__Nearby {title}__\nCentred on: {sys_name}\n\n",
             suffix="[L] Large pads.\n[M] M pads only."
