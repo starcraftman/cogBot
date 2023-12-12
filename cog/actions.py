@@ -40,6 +40,13 @@ from cogdb.schema import FortUser, UMUser, EUMSheet
 from cogdb.scanners import get_scanner
 
 
+DISABLE_IF_MSG = """
+Investigating issues for this command, for now use inara.
+
+Visit `https://inara.cz/elite/nearest` and select 'Interstellar Factors' from Station Services dropdown menu.
+"""
+
+
 async def bot_shutdown(bot):  # pragma: no cover
     """
     Shutdown the bot. Gives background jobs grace window to finish  unless empty.
@@ -1436,7 +1443,7 @@ class Near(Action):
 
         stations = [["System", "Distance", "Station", "Arrival"]] + stations
         title = ' '.join([x.capitalize() for x in features[0].split('_')])
-        title = 'Interstellar Factors' if title.startswith('Apex')
+        title = 'Interstellar Factors' if title.startswith('Apex') else title
 
         return cog.tbl.format_table(
             stations, header=True, prefix=f"__Nearby {title}__\nCentred on: {sys_name}\n\n",
@@ -1478,10 +1485,11 @@ class Near(Action):
         msg = 'Invalid near sub command.'
         with cogdb.session_scope(cogdb.EDDBSession) as eddb_session:
             if self.args.subcmd == 'if':
-                msg = await self._get_station_features(
-                    eddb_session, features=['apexinterstellar'],
-                    include_medium=self.args.medium
-                )
+                msg = DISABLE_IF_MSG
+                #  msg = await self._get_station_features(
+                    #  eddb_session, features=['apexinterstellar'],
+                    #  include_medium=self.args.medium
+                #  )
             elif self.args.subcmd in self.TRADER_MAP:
                 msg = await self._get_traders(eddb_session)
             else:
