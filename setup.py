@@ -276,7 +276,7 @@ SHORT_DESC = 'The Elite Federal Discord Bot'
 MY_NAME = 'Jeremy Pallats / starcraft.man'
 MY_EMAIL = 'N/A'
 RUN_DEPS = ['aiofiles', 'aiozmq', 'argparse', 'asyncinotify', 'beautifulsoup4', 'cffi',
-            'decorator', 'discord.py==2.1.0', 'google-api-python-client', 'gspread-asyncio',
+            'decorator', 'discord.py==2.3.0', 'google-api-python-client', 'gspread-asyncio',
             'ijson', 'msgpack-python', 'psutil', 'pymysql', 'PyNaCl', 'pyyaml', 'pyzmq', 'python-rapidjson',
             'Sanic', 'selenium', 'SQLalchemy==1.4.44', 'textdistance[Hamming]',
             'tqdm', 'uvloop', 'webdriver-manager']
