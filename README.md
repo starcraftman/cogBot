@@ -35,7 +35,7 @@ This bot requires python >= 3.7. I suggest using pyenv to provide python and iso
 - `pyenv local 3.7.10` (in project root)
 
 Now for project dependencies (you can use mysql instead of maria)
-- `sudo apt-get install python3-dev libffi-dev libczmq-dev libczmq3`mariadb-server mariadb-client apt-transport-https ca-certificates curl gnupg`
+- `sudo apt-get install python3-dev libffi-dev libczmq-dev libczmq4 mariadb-server mariadb-client apt-transport-https ca-certificates curl gnupg`
 - `python setup.py deps`
 
 NB: libczmq3 may not be available on some systems. Not to be confused with similarly named zmq kernel messaging.
